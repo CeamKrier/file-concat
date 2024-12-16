@@ -45,11 +45,15 @@ export const SUPPORTED_EXTENSIONS = new Set([
 ]);
 
 export const LLM_CONTEXT_LIMITS: LLMContextLimit[] = [
-    { name: "GPT-3.5", limit: 16385, inputLimit: 4096 },
-    { name: "GPT-4", limit: 128000, inputLimit: 128000 },
-    { name: "Claude 3 Haiku", limit: 128000 },
-    { name: "Claude 3 Sonnet", limit: 200000 },
-    { name: "Claude 3 Opus", limit: 200000 },
-    { name: "Anthropic Claude 2", limit: 100000 },
-    { name: "Google Gemini Pro", limit: 32000 }
+    { name: "GPT-4", limit: 8_192 },
+    { name: "GPT-4-32k", limit: 32_768 },
+    { name: "GPT-4-turbo", limit: 128_000 },
+    { name: "Claude 3 Haiku", limit: 128_000 },
+    { name: "Claude 3 Sonnet", limit: 200_000 },
+    { name: "Llama 3", limit: 128_000 },
+    { name: "Google Gemini Pro", limit: 32_000 },
+    { name: "Google Gemini 1.5 Pro", limit: 2_000_000 }
 ];
+
+export const MULTI_OUTPUT_LIMIT = 100_000;
+export const MULTI_OUTPUT_CHUNK_SIZE = 32_000;

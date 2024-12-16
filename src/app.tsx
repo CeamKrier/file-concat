@@ -5,27 +5,31 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-import { FileEntry, FileContent, FileStatus, ProcessingConfig } from "./types";
+import { FileEntry, FileStatus, OutputFormat, ProcessingConfig } from "./types";
 import { isFileSupported, getFileType, formatSize, estimateTokenCount } from "./utils";
-import { LLM_CONTEXT_LIMITS } from "./constants";
+import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_CHUNK_SIZE, MULTI_OUTPUT_LIMIT } from "./constants";
 
 const App: React.FC = () => {
     const [files, setFiles] = useState<FileEntry[]>([]);
     const [output, setOutput] = useState<string>("");
-    const [concatenationType, setConcatenationType] = useState<"single" | "multiple">("single");
+
     const [fileStatuses, setFileStatuses] = useState<FileStatus[]>([]);
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
     const [isDragging, setIsDragging] = useState<boolean>(false);
     const [isTableExpanded, setIsTableExpanded] = useState<boolean>(false);
     const dragCounter = useRef<number>(0);
     const [tokens, setTokens] = useState<number>(0);
+    const [processedContents, setProcessedContents] = useState<Array<{ path: string; content: string }>>([]);
+    const [recommendedFormat, setRecommendedFormat] = useState<OutputFormat>("single");
+    const [selectedFormat, setSelectedFormat] = useState<OutputFormat | undefined>();
 
     useEffect(() => {
-        estimateTokenCount(output).then(count => {
-            console.log("Token count:", count);
-            setTokens(count);
-        });
-    }, [output]);
+        if (tokens > MULTI_OUTPUT_LIMIT) {
+            setRecommendedFormat("multi");
+        } else {
+            setRecommendedFormat("single");
+        }
+    }, [tokens]);
 
     const defaultConfig: ProcessingConfig = {
         maxFileSizeMB: 10,
@@ -58,66 +62,86 @@ const App: React.FC = () => {
         [defaultConfig.excludeHiddenFiles, defaultConfig.maxFileSizeMB]
     );
 
-    const processFiles = useCallback(async () => {
-        if (files.length === 0) return;
+    const generateOutput = useCallback(async () => {
         setIsProcessing(true);
-
         try {
-            const contents = await Promise.all(
-                files.map(async ({ file, path }) => {
-                    const text = await file.text();
-                    return {
-                        path,
-                        content: text
-                    };
-                })
-            );
+            if (selectedFormat === "single") {
+                const output = `# Files\n` + processedContents.map(({ path, content }) => `## ${path}\n\`\`\`\n${content}\n\`\`\`\n`).join("\n");
 
-            // Create project structure overview
-            const projectStructure = files.map(({ path }) => `- ${path}`).join("\n");
-
-            if (concatenationType === "single") {
-                const concatenated = `# Project Structure\nThe following files are included in this codebase:\n\n${projectStructure}\n\n# File Contents\n\n` + contents.map(({ path, content }) => `### File: ${path}\nLocation: ${path}\n\n\`\`\`\n${content}\n\`\`\`\n\n---\n\n`).join("");
-                setOutput(concatenated);
+                const blob = new Blob([output], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "concat-output.md";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             } else {
-                const groupedByExt = contents.reduce((acc, { path, content }) => {
-                    const ext = path.split(".").pop() || "no-extension";
-                    if (!acc[ext]) acc[ext] = [];
-                    acc[ext].push({ path, content });
-                    return acc;
-                }, {} as Record<string, FileContent[]>);
+                const chunks = calculateChunks(processedContents);
 
-                const concatenated =
-                    `# Project Structure\nThe following files are included in this codebase:\n\n${projectStructure}\n\n# File Contents By Type\n\n` +
-                    Object.entries(groupedByExt)
-                        .map(([ext, files]) => `## ${ext.toUpperCase()} Files\n\n` + files.map(({ path, content }) => `### File: ${path}\nLocation: ${path}\n\n\`\`\`\n${content}\n\`\`\`\n\n---\n\n`).join(""))
-                        .join("\n\n");
-                setOutput(concatenated);
+                // Process and download chunks
+                for (let i = 0; i < chunks.length; i++) {
+                    const chunk = chunks[i];
+                    const output = `# Files - Part ${i + 1}/${chunks.length}\n` + chunk.map(({ path, content }) => `## ${path}\n\`\`\`\n${content}\n\`\`\`\n`).join("\n");
+
+                    const blob = new Blob([output], { type: "text/plain" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `concat-output-part${i + 1}.md`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    // Small delay between downloads
+                    if (i < chunks.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                }
             }
         } catch (error) {
-            console.error("Error processing files:", error);
+            console.error("Error generating output:", error);
         } finally {
             setIsProcessing(false);
         }
-    }, [files, concatenationType]);
+    }, [selectedFormat, processedContents]);
 
-    const downloadOutput = useCallback(() => {
-        const blob = new Blob([output], { type: "text/plain" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "concat-output.md";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }, [output]);
+    const calculateChunks = (contents: Array<{ path: string; content: string }>) => {
+        const targetCharSize = MULTI_OUTPUT_CHUNK_SIZE * 4;
+        const chunks: (typeof contents)[] = [];
+        let currentChunk: typeof contents = [];
+        let currentSize = 0;
+
+        for (const file of contents) {
+            const fileSize = file.content.length;
+
+            if (currentSize + fileSize > targetCharSize && currentChunk.length > 0) {
+                chunks.push(currentChunk);
+                currentChunk = [];
+                currentSize = 0;
+            }
+
+            currentChunk.push(file);
+            currentSize += fileSize;
+        }
+
+        if (currentChunk.length > 0) {
+            chunks.push(currentChunk);
+        }
+
+        return chunks;
+    };
 
     const resetAll = useCallback(() => {
         setFiles([]);
         setOutput("");
         setFileStatuses([]);
         setIsProcessing(false);
+        setTokens(0);
+        setProcessedContents([]);
+        setSelectedFormat(undefined);
     }, []);
 
     const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -145,6 +169,7 @@ const App: React.FC = () => {
 
     const handleDrop = useCallback(
         async (e: React.DragEvent) => {
+            resetAll();
             e.preventDefault();
             e.stopPropagation();
             setIsDragging(false);
@@ -195,13 +220,30 @@ const App: React.FC = () => {
                 await Promise.all(promises);
                 setFiles(fileEntries);
                 setFileStatuses(statuses);
+
+                // Automatically process files after they're dropped
+                const contents = await Promise.all(
+                    fileEntries.map(async ({ file, path }) => ({
+                        path,
+                        content: await file.text()
+                    }))
+                );
+
+                // Estimate token count
+                const tokenCount = await estimateTokenCount(contents.map(c => c.content).join("\n"));
+
+                // Store processed contents in state for later use
+                setProcessedContents(contents);
+
+                // Store token count
+                setTokens(tokenCount);
             } catch (error) {
                 console.error("Error processing files:", error);
             } finally {
                 setIsProcessing(false);
             }
         },
-        [validateFile]
+        [validateFile, resetAll]
     );
 
     return (
@@ -219,7 +261,7 @@ const App: React.FC = () => {
                             </CardDescription>
                         </div>
                         <div className='flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-md border border-green-200'>
-                            <Shield className='w-4 h-4' />
+                            <Shield className='w-4 h-4 fill-current' />
                             100% Offline Processing
                         </div>
                     </div>
@@ -275,11 +317,18 @@ const App: React.FC = () => {
                         )}
                     </div>
 
+                    {(files.length > 0 || output) && (
+                        <button onClick={resetAll} className='w-full justify-center px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'>
+                            <Trash2 className='w-4 h-4' />
+                            Start Over
+                        </button>
+                    )}
+
                     {fileStatuses.length > 0 && (
                         <div className='mt-4 mb-4'>
                             <div className='flex justify-between items-center mb-4'>
                                 <div className='space-y-1'>
-                                    <h3 className='font-semibold'>File Processing Summary</h3>
+                                    <h3 className='font-semibold'>Files Summary</h3>
                                     <p className='text-sm text-gray-500'>
                                         {fileStatuses.filter(s => s.included).length} files included,&nbsp;
                                         {fileStatuses.filter(s => !s.included).length} files excluded
@@ -325,34 +374,10 @@ const App: React.FC = () => {
                         </div>
                     )}
 
-                    <div className='flex gap-4 mb-4'>
-                        <label className='flex items-center'>
-                            <input type='radio' value='single' checked={concatenationType === "single"} onChange={e => setConcatenationType(e.target.value as "single" | "multiple")} className='mr-2' />
-                            Single File Output
-                        </label>
-                        <label className='flex items-center'>
-                            <input type='radio' value='multiple' checked={concatenationType === "multiple"} onChange={e => setConcatenationType(e.target.value as "single" | "multiple")} className='mr-2' />
-                            Group by Extension
-                        </label>
-                    </div>
-
-                    <div className='flex gap-4'>
-                        <button onClick={processFiles} disabled={files.length === 0 || isProcessing} className='px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed'>
-                            {isProcessing ? "Processing..." : "Process Files"}
-                        </button>
-
-                        {(files.length > 0 || output) && (
-                            <button onClick={resetAll} className='px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'>
-                                <Trash2 className='w-4 h-4' />
-                                Start Over
-                            </button>
-                        )}
-                    </div>
-
-                    {output && (
-                        <div className='mt-4 space-y-4'>
+                    {tokens > 0 && (
+                        <div className='space-y-4'>
                             <div className='flex items-center justify-between'>
-                                <h3 className='font-semibold'>Preview:</h3>
+                                <h3 className='font-semibold'>Tokenization</h3>
                                 <div className='flex items-center gap-4'>
                                     <div className='text-sm text-gray-600'>Estimated tokens: {tokens.toLocaleString()}</div>
                                 </div>
@@ -364,7 +389,7 @@ const App: React.FC = () => {
                                     <div key={llm.name} className='space-y-1'>
                                         <div className='flex justify-between text-sm'>
                                             <span>
-                                                <span className='font-bold'>{llm.name}</span> - {llm.limit.toLocaleString()} tokens
+                                                <span className='font-bold'>{llm.name}</span> - <span className='text-muted-foreground'>{llm.limit.toLocaleString()} tokens</span>
                                             </span>
                                             <span className={percentage > 100 ? "text-red-500" : "text-gray-600"}>{percentage.toFixed(1)}% used</span>
                                         </div>
@@ -374,14 +399,49 @@ const App: React.FC = () => {
                                     </div>
                                 );
                             })}
+                        </div>
+                    )}
 
+                    {processedContents.length > 0 && (
+                        <div className='mt-6 space-y-6'>
+                            <h3 className='font-semibold'>Output Format</h3>
+                            <div className='grid grid-cols-2 gap-4'>
+                                <button onClick={() => setSelectedFormat("single")} className={`p-4 rounded-lg border-2 transition-all ${selectedFormat === "single" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-blue-300"}`}>
+                                    <div className='flex justify-between items-start mb-2'>
+                                        <h3 className='font-semibold'>Single File</h3>
+                                        {recommendedFormat === "single" && <span className='text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded'>Recommended</span>}
+                                    </div>
+                                    <p className='text-sm text-gray-600'>All content in one file. Best for smaller contexts.</p>
+                                    <div className='text-xs text-gray-500 mt-2'>~{formatSize(files.reduce((acc, { file }) => acc + file.size, 0))}</div>
+                                </button>
+
+                                <button onClick={() => setSelectedFormat("multi")} className={`p-4 rounded-lg border-2 transition-all ${selectedFormat === "multi" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-blue-300"}`}>
+                                    <div className='flex justify-between items-start mb-2'>
+                                        <h3 className='font-semibold'>Multiple Files</h3>
+                                        {recommendedFormat === "multi" && <span className='text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded'>Recommended</span>}
+                                    </div>
+                                    <p className='text-sm text-gray-600'>Split into optimal chunks. Better for large contexts.</p>
+                                    <div className='text-xs text-gray-500 mt-2'>
+                                        {calculateChunks(processedContents).length} files, ~{formatSize(Math.ceil(files.reduce((acc, { file }) => acc + file.size, 0) / calculateChunks(processedContents).length))} each
+                                    </div>
+                                </button>
+                            </div>
+                            <button onClick={generateOutput} disabled={!selectedFormat || isProcessing} className='mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'>
+                                <Download className='w-4 h-4' />
+                                Download Result
+                            </button>
+                        </div>
+                    )}
+
+                    {/* {output && (
+                        <div className='mt-4 space-y-4'>
                             <pre className='whitespace-pre-wrap bg-gray-100 p-4 rounded-lg max-h-96 overflow-y-auto'>{output}</pre>
                             <button onClick={downloadOutput} disabled={!output || isProcessing} className='mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'>
                                 <Download className='w-4 h-4' />
                                 Download Result
                             </button>
                         </div>
-                    )}
+                    )} */}
                 </CardContent>
             </Card>
         </div>

@@ -33,11 +33,4 @@ export type LLMContextLimit = {
     inputLimit?: number;
 };
 
-export type SplittingStrategy = "per_size" | "per_file_count" | "smart_split";
-
-export type SplittingConfig = {
-    strategy: SplittingStrategy;
-    maxTokensPerFile: number;
-    maxFilesPerBatch: number;
-    addOverview: boolean;
-};
+export type OutputFormat = "single" | "multi";
