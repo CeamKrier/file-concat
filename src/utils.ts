@@ -1,3 +1,5 @@
+import { encoding_for_model, TiktokenModel } from "@dqbd/tiktoken";
+
 import { SUPPORTED_EXTENSIONS } from "./constants";
 
 export const isFileSupported = (filename: string): boolean => {
@@ -18,4 +20,11 @@ export const formatSize = (bytes: number): string => {
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+};
+
+export const estimateTokenCount = async (text: string, model = "gpt-4") => {
+    const enc = encoding_for_model(model as TiktokenModel);
+    const tokens = enc.encode(text);
+    enc.free();
+    return tokens.length;
 };

@@ -21,3 +21,23 @@ export type ProcessingConfig = {
     excludeHiddenFiles: boolean;
     excludeBinaryFiles: boolean;
 };
+
+export type TokenCount = {
+    total: number;
+    byFile: Record<string, number>;
+};
+
+export type LLMContextLimit = {
+    name: string;
+    limit: number;
+    inputLimit?: number;
+};
+
+export type SplittingStrategy = "per_size" | "per_file_count" | "smart_split";
+
+export type SplittingConfig = {
+    strategy: SplittingStrategy;
+    maxTokensPerFile: number;
+    maxFilesPerBatch: number;
+    addOverview: boolean;
+};

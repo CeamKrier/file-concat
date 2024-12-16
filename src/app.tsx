@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Upload, Download, Shield, Trash2 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -6,7 +6,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import { FileEntry, FileContent, FileStatus, ProcessingConfig } from "./types";
-import { isFileSupported, getFileType, formatSize } from "./utils";
+import { isFileSupported, getFileType, formatSize, estimateTokenCount } from "./utils";
+import { LLM_CONTEXT_LIMITS } from "./constants";
 
 const App: React.FC = () => {
     const [files, setFiles] = useState<FileEntry[]>([]);
@@ -17,6 +18,14 @@ const App: React.FC = () => {
     const [isDragging, setIsDragging] = useState<boolean>(false);
     const [isTableExpanded, setIsTableExpanded] = useState<boolean>(false);
     const dragCounter = useRef<number>(0);
+    const [tokens, setTokens] = useState<number>(0);
+
+    useEffect(() => {
+        estimateTokenCount(output).then(count => {
+            console.log("Token count:", count);
+            setTokens(count);
+        });
+    }, [output]);
 
     const defaultConfig: ProcessingConfig = {
         maxFileSizeMB: 10,
@@ -341,8 +350,31 @@ const App: React.FC = () => {
                     </div>
 
                     {output && (
-                        <div className='mt-4'>
-                            <h3 className='font-semibold mb-2'>Preview:</h3>
+                        <div className='mt-4 space-y-4'>
+                            <div className='flex items-center justify-between'>
+                                <h3 className='font-semibold'>Preview:</h3>
+                                <div className='flex items-center gap-4'>
+                                    <div className='text-sm text-gray-600'>Estimated tokens: {tokens.toLocaleString()}</div>
+                                </div>
+                            </div>
+
+                            {LLM_CONTEXT_LIMITS.map(llm => {
+                                const percentage = (tokens / llm.limit) * 100;
+                                return (
+                                    <div key={llm.name} className='space-y-1'>
+                                        <div className='flex justify-between text-sm'>
+                                            <span>
+                                                <span className='font-bold'>{llm.name}</span> - {llm.limit.toLocaleString()} tokens
+                                            </span>
+                                            <span className={percentage > 100 ? "text-red-500" : "text-gray-600"}>{percentage.toFixed(1)}% used</span>
+                                        </div>
+                                        <div className='w-full bg-gray-200 rounded-full h-2'>
+                                            <div className={`h-2 rounded-full ${percentage > 90 ? "bg-red-500" : percentage > 70 ? "bg-yellow-500" : "bg-green-500"}`} style={{ width: `${Math.min(percentage, 100)}%` }} />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+
                             <pre className='whitespace-pre-wrap bg-gray-100 p-4 rounded-lg max-h-96 overflow-y-auto'>{output}</pre>
                             <button onClick={downloadOutput} disabled={!output || isProcessing} className='mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'>
                                 <Download className='w-4 h-4' />
