@@ -1,0 +1,43 @@
+export const SUPPORTED_EXTENSIONS = new Set([
+    // Code Files
+    "js",
+    "jsx",
+    "ts",
+    "tsx",
+    "py",
+    "java",
+    "cpp",
+    "c",
+    "cs",
+    "go",
+    "rb",
+    "php",
+    "swift",
+    "kt",
+    "rs",
+    "sh",
+    "ps1",
+    // Web Files
+    "html",
+    "css",
+    "scss",
+    "sass",
+    "less",
+    "svg",
+    "json",
+    "xml",
+    "yaml",
+    "yml",
+    // Documentation/Text
+    "md",
+    "txt",
+    "rtf",
+    "csv",
+    "log",
+    "env",
+    "ini",
+    "conf",
+    "properties",
+    // Config Files (no extension)
+    ""
+]);
