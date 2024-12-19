@@ -3,6 +3,7 @@ import { Upload, Download, Shield, Trash2 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import { FileEntry, FileStatus, OutputFormat, ProcessingConfig } from "./types";
@@ -260,9 +261,19 @@ const App: React.FC = () => {
                                 Combine multiple files and folders into a single, well-formatted document optimized for Large Language Models (LLMs). Perfect for sharing codebases, documentation, and project structures with AI assistants like ChatGPT or Claude.
                             </CardDescription>
                         </div>
-                        <div className='flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-md border border-green-200'>
-                            <Shield className='w-4 h-4 fill-current' />
-                            100% Offline Processing
+                        <div className='flex flex-col gap-2'>
+                            <div className='flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-md border border-green-200'>
+                                <Shield className='w-4 h-4 fill-current' />
+                                100% Offline Processing
+                            </div>
+                            <div className='flex items-center justify-center gap-2'>
+                                <span className='text-sm text-muted-foreground'>Got feedback?</span>
+                                <Button variant='ghost' asChild className='w-fit' size='sm'>
+                                    <a className='w-fit' href='https://twitter.com/messages/compose?recipient_id=378117341' target='_blank'>
+                                        <img height='12' width='12' src='https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/x.svg' />
+                                    </a>
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </CardHeader>
