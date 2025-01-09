@@ -14,6 +14,7 @@ export type FileStatus = {
     reason?: string;
     size: number;
     type: string;
+    forceInclude?: boolean;
 };
 
 export type ProcessingConfig = {
@@ -34,3 +35,41 @@ export type LLMContextLimit = {
 };
 
 export type OutputFormat = "single" | "multi";
+
+export interface FileValidationResult {
+    isValid: boolean;
+    reason?: string;
+}
+
+export interface GitHubFile {
+    name: string;
+    path: string;
+    type: "file" | "dir";
+    size: number;
+    sha: string;
+    url: string;
+    download_url: string | null;
+    content?: string;
+}
+
+export interface GitLabFile {
+    id: string;
+    name: string;
+    type: "tree" | "blob";
+    path: string;
+    mode: string;
+}
+
+export interface RepoFile {
+    name: string;
+    path: string;
+    type: string;
+    size: number;
+    content?: string;
+    download_url?: string;
+}
+
+export interface RepositoryContent {
+    files: RepoFile[];
+    error?: string;
+}

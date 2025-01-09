@@ -1,48 +1,4 @@
-import { LLMContextLimit } from "./types";
-
-export const SUPPORTED_EXTENSIONS = new Set([
-    // Code Files
-    "js",
-    "jsx",
-    "ts",
-    "tsx",
-    "py",
-    "java",
-    "cpp",
-    "c",
-    "cs",
-    "go",
-    "rb",
-    "php",
-    "swift",
-    "kt",
-    "rs",
-    "sh",
-    "ps1",
-    // Web Files
-    "html",
-    "css",
-    "scss",
-    "sass",
-    "less",
-    "svg",
-    "json",
-    "xml",
-    "yaml",
-    "yml",
-    // Documentation/Text
-    "md",
-    "txt",
-    "rtf",
-    "csv",
-    "log",
-    "env",
-    "ini",
-    "conf",
-    "properties",
-    // Config Files (no extension)
-    ""
-]);
+import { LLMContextLimit, ProcessingConfig } from "./types";
 
 export const LLM_CONTEXT_LIMITS: LLMContextLimit[] = [
     { name: "GPT-4", limit: 8_192 },
@@ -57,3 +13,9 @@ export const LLM_CONTEXT_LIMITS: LLMContextLimit[] = [
 
 export const MULTI_OUTPUT_LIMIT = 100_000;
 export const MULTI_OUTPUT_CHUNK_SIZE = 32_000;
+
+export const DEFAULT_CONFIG: ProcessingConfig = {
+    maxFileSizeMB: 10,
+    excludeHiddenFiles: true,
+    excludeBinaryFiles: true
+};
