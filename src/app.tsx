@@ -12,6 +12,7 @@ import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_CHUNK_SIZE, MULTI_OUTPUT_LIMIT, DEFAUL
 import RepositoryInput from "./components/repository-input";
 import { ThemeToggle } from "./components/theme-toggle";
 import { cn } from "./lib/utils";
+import { SiX } from "@icons-pack/react-simple-icons";
 
 const App: React.FC = () => {
     const [files, setFiles] = useState<FileEntry[]>([]);
@@ -353,7 +354,7 @@ const App: React.FC = () => {
                         </div>
                         <ThemeToggle />
                         <div className='flex flex-col gap-2'>
-                            <div className='flex items-center gap-2 text-sm text-green-600 bg-muted px-3 py-1.5 rounded-md border border-green-200'>
+                            <div className='flex items-center gap-1 text-sm text-green-600 bg-muted px-1.5 py-1.5 rounded-md border border-green-200'>
                                 <Shield className='w-4 h-4 fill-current' />
                                 100% Offline Processing
                             </div>
@@ -361,7 +362,7 @@ const App: React.FC = () => {
                                 <span className='text-sm text-muted-foreground'>Got feedback?</span>
                                 <Button variant='ghost' asChild className='w-fit' size='sm'>
                                     <a className='w-fit' href='https://twitter.com/messages/compose?recipient_id=378117341' target='_blank'>
-                                        <img height='12' width='12' src='https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/x.svg' />
+                                        <SiX className='w-4 h-4' />
                                     </a>
                                 </Button>
                             </div>
@@ -419,9 +420,9 @@ const App: React.FC = () => {
                             </div>
 
                             {isTableExpanded && (
-                                <div className='border rounded-lg max-h-[300px] overflow-auto'>
+                                <div className='border rounded-lg'>
                                     <Table>
-                                        <TableHeader className='sticky top-0 bg-background shadow-sm z-10'>
+                                        <TableHeader>
                                             <TableRow>
                                                 <TableHead>Status</TableHead>
                                                 <TableHead>File</TableHead>
@@ -431,7 +432,7 @@ const App: React.FC = () => {
                                                 <TableHead>Actions</TableHead>
                                             </TableRow>
                                         </TableHeader>
-                                        <TableBody>
+                                        <TableBody className='max-h-96'>
                                             {fileStatuses.map((status, index) => (
                                                 <TableRow key={index}>
                                                     <TableCell>
