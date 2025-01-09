@@ -420,7 +420,7 @@ const App: React.FC = () => {
                             </div>
 
                             {isTableExpanded && (
-                                <div className='border rounded-lg'>
+                                <div className='border relative rounded-lg max-h-80 overflow-y-auto'>
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
@@ -432,7 +432,7 @@ const App: React.FC = () => {
                                                 <TableHead>Actions</TableHead>
                                             </TableRow>
                                         </TableHeader>
-                                        <TableBody className='max-h-96'>
+                                        <TableBody>
                                             {fileStatuses.map((status, index) => (
                                                 <TableRow key={index}>
                                                     <TableCell>
