@@ -1,7 +1,6 @@
 import { LLMContextLimit, ProcessingConfig } from "./types";
 
 export const LLM_CONTEXT_LIMITS: LLMContextLimit[] = [
-    { name: "GPT-4", limit: 8_192 },
     { name: "GPT-4-32k", limit: 32_768 },
     { name: "GPT-4-turbo", limit: 128_000 },
     { name: "Claude 3 Haiku", limit: 128_000 },
