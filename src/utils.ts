@@ -178,16 +178,23 @@ export const fetchGithubRepository = async (url: string): Promise<RepositoryCont
 
 export const fetchGitlabRepository = async (url: string): Promise<RepositoryContent> => {
     try {
-        const match = url.match(/gitlab\.com\/([^/]+)\/([^/]+)/);
+        // Updated regex to capture everything after gitlab.com/
+        const match = url.match(/gitlab\.com\/(.+?)(?:\.git)?$/);
         if (!match) {
             throw new Error("Invalid GitLab URL");
         }
 
-        const [, owner, repo] = match;
-        const projectId = encodeURIComponent(`${owner}/${repo}`);
+        const [, fullPath] = match;
+        // Double encode the path for nested groups
+        const projectId = fullPath
+            .replace(/\.git$/, "") // Remove .git suffix if present
+            .split("/") // Split into parts
+            .map(part => encodeURIComponent(part)) // Encode each part
+            .join("/"); // Join with /
+        const doubleEncodedId = encodeURIComponent(projectId); // Encode the whole path again
 
         // Get all files with recursive parameter
-        const treeUrl = `https://gitlab.com/api/v4/projects/${projectId}/repository/tree?recursive=true&per_page=100`;
+        const treeUrl = `https://gitlab.com/api/v4/projects/${doubleEncodedId}/repository/tree?recursive=true&per_page=100`;
         const response = await fetch(treeUrl);
         if (!response.ok) {
             throw new Error("Failed to fetch repository contents");
@@ -199,7 +206,12 @@ export const fetchGitlabRepository = async (url: string): Promise<RepositoryCont
         const filePromises = data
             .filter((item: GitLabFile) => item.type === "blob")
             .map(async (item: GitLabFile) => {
-                const contentUrl = `https://gitlab.com/api/v4/projects/${projectId}/repository/files/${encodeURIComponent(item.path)}/raw`;
+                // Double encode the file path as well
+                const encodedFilePath = item.path
+                    .split("/")
+                    .map(part => encodeURIComponent(part))
+                    .join("/");
+                const contentUrl = `https://gitlab.com/api/v4/projects/${doubleEncodedId}/repository/files/${encodeURIComponent(encodedFilePath)}/raw`;
                 try {
                     const contentResponse = await fetch(contentUrl);
                     if (!contentResponse.ok) {
@@ -211,7 +223,7 @@ export const fetchGitlabRepository = async (url: string): Promise<RepositoryCont
                         name: item.name,
                         path: item.path,
                         type: "file",
-                        size: content.length, // GitLab API doesn't provide size, so we use content length
+                        size: content.length,
                         content
                     };
                 } catch (error) {
@@ -238,8 +250,6 @@ export const fetchGitlabRepository = async (url: string): Promise<RepositoryCont
 export const fetchRepositoryFiles = async (url: string): Promise<RepositoryContent> => {
     if (url.includes("github.com")) {
         return fetchGithubRepository(url);
-    } else if (url.includes("gitlab.com")) {
-        return fetchGitlabRepository(url);
     }
     throw new Error("Unsupported repository host");
 };

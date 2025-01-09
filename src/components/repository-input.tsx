@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { SiGithub, SiGitlab } from "@icons-pack/react-simple-icons";
+import { SiGithub } from "@icons-pack/react-simple-icons";
 import { Loader2 } from "lucide-react";
 
 import { Button } from "./ui/button";
@@ -18,9 +18,8 @@ const RepositoryInput: React.FC<RepositoryInputProps> = ({ onSubmit, isLoading }
     const validateUrl = (url: string): boolean => {
         // Basic validation for GitHub and GitLab URLs
         const githubRegex = /^https?:\/\/github\.com\/[\w-]+\/[\w.-]+$/;
-        const gitlabRegex = /^https?:\/\/gitlab\.com\/[\w-]+\/[\w.-]+$/;
 
-        return githubRegex.test(url) || gitlabRegex.test(url);
+        return githubRegex.test(url);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -28,7 +27,7 @@ const RepositoryInput: React.FC<RepositoryInputProps> = ({ onSubmit, isLoading }
         setError(null);
 
         if (!validateUrl(url)) {
-            setError("Please enter a valid GitHub or GitLab repository URL");
+            setError("Please enter a valid GitHub repository URL");
             return;
         }
 
@@ -43,7 +42,7 @@ const RepositoryInput: React.FC<RepositoryInputProps> = ({ onSubmit, isLoading }
         <div className='space-y-4 p-4 border rounded-lg'>
             <div className='flex items-center gap-2'>
                 <SiGithub className='w-5 h-5' />
-                <SiGitlab className='w-5 h-5' />
+
                 <Label>Public Repository URL</Label>
             </div>
 
