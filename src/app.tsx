@@ -11,6 +11,7 @@ import { validateFile, formatSize, estimateTokenCount, fetchRepositoryFiles } fr
 import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_CHUNK_SIZE, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "./constants";
 import RepositoryInput from "./components/repository-input";
 import { ThemeToggle } from "./components/theme-toggle";
+import { cn } from "./lib/utils";
 
 const App: React.FC = () => {
     const [files, setFiles] = useState<FileEntry[]>([]);
@@ -52,25 +53,31 @@ const App: React.FC = () => {
 
     const toggleFileInclusion = useCallback(
         async (index: number) => {
-            // Update the file status
-            setFileStatuses(current => current.map((status, i) => (i === index ? { ...status, included: !status.included, forceInclude: !status.included } : status)));
-
-            setIsProcessing(true);
             try {
-                // Get all files that should be included
-                const includedFiles = files.filter(
-                    (_, i) =>
-                        i === index
-                            ? !fileStatuses[i].included // Toggle the current file
-                            : fileStatuses[i].included // Keep existing status for others
-                );
+                // Create new statuses array with toggled status
+                const newStatuses = fileStatuses.map((status, i) => (i === index ? { ...status, included: !status.included, forceInclude: !status.included } : status));
+                setFileStatuses(newStatuses);
 
-                // Process the files
+                // Use the new statuses to filter files
+                const includedFiles = files.filter((_, i) => newStatuses[i].included);
+
+                // Process the files - handle both repository and drag-dropped files
                 const contents = await Promise.all(
-                    includedFiles.map(async ({ file, path }) => ({
-                        path,
-                        content: await file.text()
-                    }))
+                    includedFiles.map(async fileEntry => {
+                        if (fileEntry.content) {
+                            // Repository file
+                            return {
+                                path: fileEntry.path,
+                                content: fileEntry.content
+                            };
+                        } else {
+                            // Drag-dropped file
+                            return {
+                                path: fileEntry.path,
+                                content: fileEntry.content
+                            };
+                        }
+                    })
                 );
 
                 // Update token count
@@ -81,15 +88,71 @@ const App: React.FC = () => {
                 setTokens(tokenCount);
             } catch (error) {
                 console.error("Error reprocessing files:", error);
-            } finally {
-                setIsProcessing(false);
             }
         },
         [files, fileStatuses]
     );
 
+    const handleRepositorySubmit = useCallback(
+        async (url: string) => {
+            setIsProcessing(true);
+            try {
+                const { files, error } = await fetchRepositoryFiles(url);
+
+                if (error) {
+                    throw new Error(error);
+                }
+
+                const fileEntries: FileEntry[] = [];
+                const statuses: FileStatus[] = [];
+
+                // Process each file from the repository
+                for (const file of files) {
+                    const blob = new Blob([file.content || ""], { type: "text/plain" });
+                    const fileObj = new File([blob], file.name, { type: "text/plain" });
+
+                    const status = await processFile(fileObj, file.path);
+                    statuses.push(status);
+
+                    // Add all files to fileEntries and filter later based on status
+                    fileEntries.push({
+                        file: fileObj,
+                        path: file.path,
+                        content: file.content || ""
+                    });
+                }
+
+                // Set all files and statuses
+                setFiles(fileEntries);
+                setFileStatuses(statuses);
+
+                // Filter for included files
+                const includedFiles = fileEntries.filter((_, index) => statuses[index].included);
+
+                // Create processed contents from included files
+                const contents = includedFiles.map(({ path, content }) => ({
+                    path,
+                    content: content || ""
+                }));
+
+                // Estimate token count from included files
+                const tokenCount = await estimateTokenCount(contents.map(c => c.content).join("\n"));
+
+                setProcessedContents(contents);
+                setTokens(tokenCount);
+            } catch (error) {
+                console.error("Error fetching repository:", error);
+            } finally {
+                setIsProcessing(false);
+            }
+        },
+        [processFile]
+    );
+
     const generateOutput = useCallback(async () => {
         setIsProcessing(true);
+        console.log("processedContents", processedContents);
+        console.log("chunks", calculateChunks(processedContents));
         try {
             if (selectedFormat === "single") {
                 const output = `# Files\n` + processedContents.map(({ path, content }) => `## ${path}\n\`\`\`\n${content}\n\`\`\`\n`).join("\n");
@@ -215,7 +278,7 @@ const App: React.FC = () => {
                             const status = await processFile(file, fullPath);
 
                             if (status.included) {
-                                fileEntries.push({ file, path: fullPath });
+                                fileEntries.push({ file, path: fullPath, content: await file.text() });
                             }
                             statuses.push(status);
                             resolve();
@@ -250,6 +313,7 @@ const App: React.FC = () => {
                 // Automatically process files after they're dropped
                 const contents = await Promise.all(
                     fileEntries.map(async ({ file, path }) => ({
+                        file,
                         path,
                         content: await file.text()
                     }))
@@ -270,58 +334,6 @@ const App: React.FC = () => {
             }
         },
         [resetAll, processFile]
-    );
-
-    const handleRepositorySubmit = useCallback(
-        async (url: string) => {
-            setIsProcessing(true);
-            try {
-                const { files, error } = await fetchRepositoryFiles(url);
-
-                if (error) {
-                    throw new Error(error);
-                }
-
-                const fileEntries: FileEntry[] = [];
-                const statuses: FileStatus[] = [];
-
-                // Process each file from the repository
-                for (const file of files) {
-                    const blob = new Blob([file.content || ""], { type: "text/plain" });
-                    const fileObj = new File([blob], file.name, { type: "text/plain" });
-
-                    const status = await processFile(fileObj, file.path);
-
-                    if (status.included) {
-                        fileEntries.push({ file: fileObj, path: file.path });
-                    }
-                    statuses.push(status);
-                }
-
-                setFiles(fileEntries);
-                setFileStatuses(statuses);
-
-                // Process contents
-                const contents = await Promise.all(
-                    fileEntries.map(async ({ file, path }) => ({
-                        path,
-                        content: await file.text()
-                    }))
-                );
-
-                // Estimate token count
-                const tokenCount = await estimateTokenCount(contents.map(c => c.content).join("\n"));
-
-                setProcessedContents(contents);
-                setTokens(tokenCount);
-            } catch (error) {
-                console.error("Error fetching repository:", error);
-                // You might want to show this error to the user
-            } finally {
-                setIsProcessing(false);
-            }
-        },
-        [processFile]
     );
 
     return (
@@ -434,7 +446,12 @@ const App: React.FC = () => {
                                                     <TableCell>{formatSize(status.size)}</TableCell>
                                                     <TableCell>{status.reason || "-"}</TableCell>
                                                     <TableCell>
-                                                        <Button variant='outline' size='sm' onClick={() => toggleFileInclusion(index)} disabled={isProcessing}>
+                                                        <Button
+                                                            variant='outline'
+                                                            className={cn(status.included ? "bg-red-600/80 hover:bg-red-700/80" : "bg-green-600/80 hover:bg-green-700/80", "text-white hover:text-white")}
+                                                            size='sm'
+                                                            onClick={() => toggleFileInclusion(index)}
+                                                            disabled={isProcessing}>
                                                             {isProcessing ? (
                                                                 <span className='flex items-center gap-2'>
                                                                     <span className='animate-spin h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full'></span>

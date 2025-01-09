@@ -1,6 +1,7 @@
 export type FileEntry = {
     file: File;
     path: string;
+    content: string; // Add this field
 };
 
 export type FileContent = {

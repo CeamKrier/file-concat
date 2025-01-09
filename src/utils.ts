@@ -125,7 +125,7 @@ export const fetchGithubRepository = async (url: string): Promise<RepositoryCont
         const repoData = await repoResponse.json();
         const defaultBranch = repoData.default_branch;
 
-        // Get the complete tree in one request
+        // Get the complete tree in one request with recursive flag
         const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`;
         const treeResponse = await fetch(treeUrl);
         if (!treeResponse.ok) {
@@ -133,15 +133,18 @@ export const fetchGithubRepository = async (url: string): Promise<RepositoryCont
         }
 
         const treeData = await treeResponse.json();
-        const files: RepoFile[] = [];
 
-        // Filter for files (exclude directories) and fetch their contents in parallel
+        // Filter for files (skip directories) and fetch their contents in parallel
         const filePromises = treeData.tree
             .filter((item: { type: string }) => item.type === "blob")
-            .map(async (item: { path: string; type: string; size: number; url: string }) => {
+            .map(async (item: { path: string; type: string; size: number }) => {
+                // Use raw GitHub content URL for direct file access
                 const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${defaultBranch}/${item.path}`;
                 try {
                     const contentResponse = await fetch(rawUrl);
+                    if (!contentResponse.ok) {
+                        throw new Error(`Failed to fetch ${item.path}`);
+                    }
                     const content = await contentResponse.text();
 
                     return {
@@ -158,9 +161,11 @@ export const fetchGithubRepository = async (url: string): Promise<RepositoryCont
                 }
             });
 
-        // Wait for all file contents to be fetched
+        // Wait for all files to be fetched
         const fetchedFiles = await Promise.all(filePromises);
-        files.push(...fetchedFiles.filter((file): file is RepoFile => file !== null));
+
+        // Filter out any failed fetches
+        const files = fetchedFiles.filter((file): file is RepoFile => file !== null);
 
         return { files };
     } catch (error) {
@@ -181,29 +186,32 @@ export const fetchGitlabRepository = async (url: string): Promise<RepositoryCont
         const [, owner, repo] = match;
         const projectId = encodeURIComponent(`${owner}/${repo}`);
 
-        // Get tree with recursive=true to get all files at once
+        // Get all files with recursive parameter
         const treeUrl = `https://gitlab.com/api/v4/projects/${projectId}/repository/tree?recursive=true&per_page=100`;
         const response = await fetch(treeUrl);
         if (!response.ok) {
             throw new Error("Failed to fetch repository contents");
         }
 
-        const data: GitLabFile[] = await response.json();
+        const data = await response.json();
 
         // Filter for files and fetch their contents in parallel
         const filePromises = data
-            .filter(item => item.type === "blob")
-            .map(async (item): Promise<RepoFile | null> => {
+            .filter((item: GitLabFile) => item.type === "blob")
+            .map(async (item: GitLabFile) => {
                 const contentUrl = `https://gitlab.com/api/v4/projects/${projectId}/repository/files/${encodeURIComponent(item.path)}/raw`;
                 try {
                     const contentResponse = await fetch(contentUrl);
+                    if (!contentResponse.ok) {
+                        throw new Error(`Failed to fetch ${item.path}`);
+                    }
                     const content = await contentResponse.text();
 
                     return {
                         name: item.name,
                         path: item.path,
                         type: "file",
-                        size: content.length,
+                        size: content.length, // GitLab API doesn't provide size, so we use content length
                         content
                     };
                 } catch (error) {
@@ -212,15 +220,13 @@ export const fetchGitlabRepository = async (url: string): Promise<RepositoryCont
                 }
             });
 
-        // Wait for all file contents to be fetched
+        // Wait for all files to be fetched
         const fetchedFiles = await Promise.all(filePromises);
 
-        // Type guard function to filter out null values
-        const isRepoFile = (file: RepoFile | null): file is RepoFile => {
-            return file !== null;
-        };
+        // Filter out any failed fetches
+        const files = fetchedFiles.filter((file): file is RepoFile => file !== null);
 
-        return { files: fetchedFiles.filter(isRepoFile) };
+        return { files };
     } catch (error) {
         return {
             files: [],
