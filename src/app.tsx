@@ -369,7 +369,7 @@ const App: React.FC = () => {
                         className={`
         border-2 border-dashed rounded-lg p-8 text-center mb-4 
         transition-all duration-200
-        ${isProcessing ? "opacity-50 cursor-not-allowed border-gray-200" : isDragging ? "border-blue-500 bg-blue-50" : "hover:border-blue-300"}
+        ${isProcessing ? "opacity-50 cursor-not-allowed border-gray-200" : isDragging ? "border-blue-500 bg-muted" : "hover:border-blue-300"}
     `}>
                         <Upload
                             className={`w-12 h-12 mx-auto mb-4 transition-colors duration-200 
@@ -494,7 +494,7 @@ const App: React.FC = () => {
                         <div className='mt-6 space-y-6'>
                             <h3 className='font-semibold'>Output Format</h3>
                             <div className='grid grid-cols-2 gap-4'>
-                                <button onClick={() => setSelectedFormat("single")} className={`p-4 rounded-lg border-2 transition-all ${selectedFormat === "single" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-blue-300"}`}>
+                                <button onClick={() => setSelectedFormat("single")} className={`p-4 rounded-lg border-2 transition-all ${selectedFormat === "single" ? "border-blue-500 bg-secondary" : "border-gray-200 hover:border-blue-300"}`}>
                                     <div className='flex justify-between items-start mb-2'>
                                         <h3 className='font-semibold'>Single File</h3>
                                         {recommendedFormat === "single" && <span className='text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded'>Recommended</span>}
@@ -503,7 +503,7 @@ const App: React.FC = () => {
                                     <div className='text-xs text-muted-foreground mt-2'>~{formatSize(fileStatuses.filter(f => f.included).reduce((acc, { size }) => acc + size, 0))}</div>
                                 </button>
 
-                                <button onClick={() => setSelectedFormat("multi")} className={`p-4 rounded-lg border-2 transition-all ${selectedFormat === "multi" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-blue-300"}`}>
+                                <button onClick={() => setSelectedFormat("multi")} className={`p-4 rounded-lg border-2 transition-all ${selectedFormat === "multi" ? "border-blue-500 bg-secondary" : "border-gray-200 hover:border-blue-300"}`}>
                                     <div className='flex justify-between items-start mb-2'>
                                         <h3 className='font-semibold'>Multiple Files</h3>
                                         {recommendedFormat === "multi" && <span className='text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded'>Recommended</span>}

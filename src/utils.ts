@@ -1,5 +1,5 @@
 import { encoding_for_model, TiktokenModel } from "@dqbd/tiktoken";
-import { FileValidationResult, ProcessingConfig, GitHubFile, GitLabFile } from "./types";
+import { FileValidationResult, ProcessingConfig, GitLabFile } from "./types";
 
 // Binary file signatures (magic numbers) to detect binary files
 const BINARY_SIGNATURES = new Uint8Array([
@@ -116,44 +116,52 @@ export const fetchGithubRepository = async (url: string): Promise<RepositoryCont
         }
 
         const [, owner, repo] = match;
-        const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents`;
 
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
+        // First, get the default branch
+        const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+        if (!repoResponse.ok) {
+            throw new Error("Failed to fetch repository information");
+        }
+        const repoData = await repoResponse.json();
+        const defaultBranch = repoData.default_branch;
+
+        // Get the complete tree in one request
+        const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`;
+        const treeResponse = await fetch(treeUrl);
+        if (!treeResponse.ok) {
             throw new Error("Failed to fetch repository contents");
         }
 
-        const data: GitHubFile[] = await response.json();
+        const treeData = await treeResponse.json();
         const files: RepoFile[] = [];
 
-        const fetchFiles = async (items: GitHubFile[], currentPath: string = "") => {
-            for (const item of items) {
-                if (item.type === "file") {
-                    if (!item.download_url) {
-                        console.warn(`No download URL for file: ${item.path}`);
-                        continue;
-                    }
-
-                    const contentResponse = await fetch(item.download_url);
+        // Filter for files (exclude directories) and fetch their contents in parallel
+        const filePromises = treeData.tree
+            .filter((item: { type: string }) => item.type === "blob")
+            .map(async (item: { path: string; type: string; size: number; url: string }) => {
+                const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${defaultBranch}/${item.path}`;
+                try {
+                    const contentResponse = await fetch(rawUrl);
                     const content = await contentResponse.text();
 
-                    files.push({
-                        name: item.name,
-                        path: currentPath + item.path,
-                        type: item.type,
+                    return {
+                        name: item.path.split("/").pop() || "",
+                        path: item.path,
+                        type: "file",
                         size: item.size,
                         content,
-                        download_url: item.download_url
-                    });
-                } else if (item.type === "dir") {
-                    const dirResponse = await fetch(item.url);
-                    const dirContents: GitHubFile[] = await dirResponse.json();
-                    await fetchFiles(dirContents, `${currentPath}${item.name}/`);
+                        download_url: rawUrl
+                    };
+                } catch (error) {
+                    console.warn(`Failed to fetch content for ${item.path}:`, error);
+                    return null;
                 }
-            }
-        };
+            });
 
-        await fetchFiles(data);
+        // Wait for all file contents to be fetched
+        const fetchedFiles = await Promise.all(filePromises);
+        files.push(...fetchedFiles.filter((file): file is RepoFile => file !== null));
+
         return { files };
     } catch (error) {
         return {
@@ -172,42 +180,47 @@ export const fetchGitlabRepository = async (url: string): Promise<RepositoryCont
 
         const [, owner, repo] = match;
         const projectId = encodeURIComponent(`${owner}/${repo}`);
-        const apiUrl = `https://gitlab.com/api/v4/projects/${projectId}/repository/tree`;
 
-        const response = await fetch(apiUrl);
+        // Get tree with recursive=true to get all files at once
+        const treeUrl = `https://gitlab.com/api/v4/projects/${projectId}/repository/tree?recursive=true&per_page=100`;
+        const response = await fetch(treeUrl);
         if (!response.ok) {
             throw new Error("Failed to fetch repository contents");
         }
 
         const data: GitLabFile[] = await response.json();
-        const files: RepoFile[] = [];
 
-        const fetchFiles = async (items: GitLabFile[], currentPath: string = "") => {
-            for (const item of items) {
-                if (item.type === "blob") {
-                    // For GitLab, we need to fetch the file content separately
-                    const contentUrl = `https://gitlab.com/api/v4/projects/${projectId}/repository/files/${encodeURIComponent(item.path)}/raw`;
+        // Filter for files and fetch their contents in parallel
+        const filePromises = data
+            .filter(item => item.type === "blob")
+            .map(async (item): Promise<RepoFile | null> => {
+                const contentUrl = `https://gitlab.com/api/v4/projects/${projectId}/repository/files/${encodeURIComponent(item.path)}/raw`;
+                try {
                     const contentResponse = await fetch(contentUrl);
                     const content = await contentResponse.text();
 
-                    files.push({
+                    return {
                         name: item.name,
-                        path: currentPath + item.path,
+                        path: item.path,
                         type: "file",
-                        size: content.length, // GitLab API doesn't provide size, so we use content length
+                        size: content.length,
                         content
-                    });
-                } else if (item.type === "tree") {
-                    const dirUrl = `${apiUrl}?path=${encodeURIComponent(item.path)}`;
-                    const dirResponse = await fetch(dirUrl);
-                    const dirContents: GitLabFile[] = await dirResponse.json();
-                    await fetchFiles(dirContents, `${currentPath}${item.name}/`);
+                    };
+                } catch (error) {
+                    console.warn(`Failed to fetch content for ${item.path}:`, error);
+                    return null;
                 }
-            }
+            });
+
+        // Wait for all file contents to be fetched
+        const fetchedFiles = await Promise.all(filePromises);
+
+        // Type guard function to filter out null values
+        const isRepoFile = (file: RepoFile | null): file is RepoFile => {
+            return file !== null;
         };
 
-        await fetchFiles(data);
-        return { files };
+        return { files: fetchedFiles.filter(isRepoFile) };
     } catch (error) {
         return {
             files: [],
