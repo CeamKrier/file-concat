@@ -1,5 +1,5 @@
 import { encoding_for_model, TiktokenModel } from "@dqbd/tiktoken";
-import { FileValidationResult, ProcessingConfig, GitLabFile } from "./types";
+import { FileValidationResult, ProcessingConfig, GitLabFile, DownloadProgress } from "./types";
 
 // Binary file signatures (magic numbers) to detect binary files
 const BINARY_SIGNATURES = new Uint8Array([
@@ -108,7 +108,7 @@ export interface RepositoryContent {
     error?: string;
 }
 
-export const fetchGithubRepository = async (url: string): Promise<RepositoryContent> => {
+export const fetchGithubRepository = async (url: string, onProgress?: (progress: DownloadProgress) => void): Promise<RepositoryContent> => {
     try {
         const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
         if (!match) {
@@ -125,7 +125,7 @@ export const fetchGithubRepository = async (url: string): Promise<RepositoryCont
         const repoData = await repoResponse.json();
         const defaultBranch = repoData.default_branch;
 
-        // Get the complete tree in one request with recursive flag
+        // Get the complete tree
         const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`;
         const treeResponse = await fetch(treeUrl);
         if (!treeResponse.ok) {
@@ -133,41 +133,103 @@ export const fetchGithubRepository = async (url: string): Promise<RepositoryCont
         }
 
         const treeData = await treeResponse.json();
+        const files = treeData.tree.filter((item: { type: string }) => item.type === "blob");
 
-        // Filter for files (skip directories) and fetch their contents in parallel
-        const filePromises = treeData.tree
-            .filter((item: { type: string }) => item.type === "blob")
-            .map(async (item: { path: string; type: string; size: number }) => {
-                // Use raw GitHub content URL for direct file access
-                const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${defaultBranch}/${item.path}`;
-                try {
-                    const contentResponse = await fetch(rawUrl);
-                    if (!contentResponse.ok) {
-                        throw new Error(`Failed to fetch ${item.path}`);
-                    }
-                    const content = await contentResponse.text();
+        // Calculate total size
+        const totalBytes = files.reduce((acc: number, file: { size: number }) => acc + file.size, 0);
+        let downloadedBytes = 0;
+        let completedFiles = 0;
+        const startTime = Date.now();
+        let lastUpdate = startTime;
+        let lastBytes = 0;
+        let currentSpeed = 0;
 
-                    return {
-                        name: item.path.split("/").pop() || "",
-                        path: item.path,
-                        type: "file",
-                        size: item.size,
-                        content,
-                        download_url: rawUrl
-                    };
-                } catch (error) {
-                    console.warn(`Failed to fetch content for ${item.path}:`, error);
-                    return null;
-                }
+        // Progress update helper
+        const updateProgress = (addedBytes: number, currentFile: string) => {
+            downloadedBytes += addedBytes;
+
+            // Update speed calculation every 500ms
+            const now = Date.now();
+            if (now - lastUpdate > 500) {
+                const timeDiff = (now - lastUpdate) / 1000; // Convert to seconds
+                const bytesDiff = downloadedBytes - lastBytes;
+                currentSpeed = bytesDiff / timeDiff;
+
+                lastUpdate = now;
+                lastBytes = downloadedBytes;
+            }
+
+            onProgress?.({
+                currentFile,
+                totalFiles: files.length,
+                completedFiles,
+                downloadedBytes,
+                totalBytes,
+                speed: currentSpeed
             });
+        };
+
+        // Fetch files with progress
+        const filePromises = files.map(async (item: { path: string; size: number }) => {
+            const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${defaultBranch}/${item.path}`;
+            try {
+                const response = await fetch(rawUrl);
+                if (!response.ok) throw new Error(`Failed to fetch ${item.path}`);
+
+                const reader = response.body?.getReader();
+                if (!reader) throw new Error("ReadableStream not supported");
+
+                const chunks = [];
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    chunks.push(value);
+                    updateProgress(value.length, item.path);
+                }
+
+                completedFiles++;
+                const allChunks = new Uint8Array(chunks.reduce((acc, chunk) => acc + chunk.length, 0));
+                let position = 0;
+
+                for (const chunk of chunks) {
+                    allChunks.set(chunk, position);
+                    position += chunk.length;
+                }
+
+                const content = new TextDecoder().decode(allChunks);
+
+                return {
+                    name: item.path.split("/").pop() || "",
+                    path: item.path,
+                    type: "file",
+                    size: item.size,
+                    content,
+                    download_url: rawUrl
+                };
+            } catch (error) {
+                console.warn(`Failed to fetch content for ${item.path}:`, error);
+                return null;
+            }
+        });
 
         // Wait for all files to be fetched
         const fetchedFiles = await Promise.all(filePromises);
 
-        // Filter out any failed fetches
-        const files = fetchedFiles.filter((file): file is RepoFile => file !== null);
+        // Report completion
+        onProgress?.({
+            currentFile: "Complete",
+            totalFiles: files.length,
+            completedFiles: files.length,
+            downloadedBytes: totalBytes,
+            totalBytes,
+            speed: 0
+        });
 
-        return { files };
+        // Filter out any failed fetches
+        const validFiles = fetchedFiles.filter((file): file is RepoFile => file !== null);
+
+        return { files: validFiles };
     } catch (error) {
         return {
             files: [],
@@ -247,9 +309,9 @@ export const fetchGitlabRepository = async (url: string): Promise<RepositoryCont
     }
 };
 
-export const fetchRepositoryFiles = async (url: string): Promise<RepositoryContent> => {
+export const fetchRepositoryFiles = async (url: string, onProgress?: (progress: DownloadProgress) => void): Promise<RepositoryContent> => {
     if (url.includes("github.com")) {
-        return fetchGithubRepository(url);
+        return fetchGithubRepository(url, onProgress);
     }
     throw new Error("Unsupported repository host");
 };

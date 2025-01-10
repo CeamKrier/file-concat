@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-import { FileEntry, FileStatus, OutputFormat, ProcessingConfig } from "./types";
+import { DownloadProgress, FileEntry, FileStatus, OutputFormat, ProcessingConfig } from "./types";
 import { validateFile, formatSize, estimateTokenCount, fetchRepositoryFiles } from "./utils";
 import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_CHUNK_SIZE, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "./constants";
 import RepositoryInput from "./components/repository-input";
@@ -95,10 +95,10 @@ const App: React.FC = () => {
     );
 
     const handleRepositorySubmit = useCallback(
-        async (url: string) => {
+        async (url: string, onProgress: (progress: DownloadProgress) => void) => {
             setIsProcessing(true);
             try {
-                const { files, error } = await fetchRepositoryFiles(url);
+                const { files, error } = await fetchRepositoryFiles(url, onProgress);
 
                 if (error) {
                     throw new Error(error);

@@ -5,15 +5,26 @@ import { Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import DownloadProgress from "./download-progress";
+
+import { DownloadProgress as DownloadProgressType } from "../types";
 
 interface RepositoryInputProps {
-    onSubmit: (url: string) => Promise<void>;
+    onSubmit: (url: string, onProgress: (progress: DownloadProgressType) => void) => Promise<void>;
     isLoading: boolean;
 }
 
 const RepositoryInput: React.FC<RepositoryInputProps> = ({ onSubmit, isLoading }) => {
     const [url, setUrl] = useState("");
     const [error, setError] = useState<string | null>(null);
+    const [progress, setProgress] = useState<DownloadProgressType>({
+        currentFile: "",
+        totalFiles: 0,
+        completedFiles: 0,
+        downloadedBytes: 0,
+        totalBytes: 0,
+        speed: 0
+    });
 
     const validateUrl = (url: string): boolean => {
         // Basic validation for GitHub and GitLab URLs
@@ -25,6 +36,7 @@ const RepositoryInput: React.FC<RepositoryInputProps> = ({ onSubmit, isLoading }
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
+        setProgress({ currentFile: "", totalFiles: 0, completedFiles: 0, downloadedBytes: 0, totalBytes: 0, speed: 0 });
 
         if (!validateUrl(url)) {
             setError("Please enter a valid GitHub repository URL");
@@ -32,7 +44,7 @@ const RepositoryInput: React.FC<RepositoryInputProps> = ({ onSubmit, isLoading }
         }
 
         try {
-            await onSubmit(url);
+            await onSubmit(url, setProgress);
         } catch (error) {
             setError(error instanceof Error ? error.message : "Failed to fetch repository");
         }
@@ -61,6 +73,7 @@ const RepositoryInput: React.FC<RepositoryInputProps> = ({ onSubmit, isLoading }
             </form>
 
             {error && <p className='text-sm text-red-500'>{error}</p>}
+            <DownloadProgress isLoading={isLoading} currentFile={progress.currentFile} totalFiles={progress.totalFiles} completedFiles={progress.completedFiles} downloadedBytes={progress.downloadedBytes} speed={progress.speed} totalBytes={progress.totalBytes} />
         </div>
     );
 };

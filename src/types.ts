@@ -74,3 +74,12 @@ export interface RepositoryContent {
     files: RepoFile[];
     error?: string;
 }
+
+export interface DownloadProgress {
+    currentFile: string;
+    totalFiles: number;
+    completedFiles: number;
+    downloadedBytes: number;
+    totalBytes: number;
+    speed: number;
+}
