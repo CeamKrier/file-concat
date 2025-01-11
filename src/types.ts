@@ -16,6 +16,8 @@ export type FileStatus = {
     size: number;
     type: string;
     forceInclude?: boolean;
+    skipped?: boolean;
+    skipReason?: string;
 };
 
 export type ProcessingConfig = {
@@ -82,4 +84,18 @@ export interface DownloadProgress {
     downloadedBytes: number;
     totalBytes: number;
     speed: number;
+}
+
+export interface RepoFile {
+    name: string;
+    path: string;
+    type: string;
+    size: number;
+    content?: string;
+    download_url?: string;
+}
+
+export interface RepositoryContent {
+    files: RepoFile[];
+    error?: string;
 }

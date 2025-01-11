@@ -9,7 +9,7 @@ import RepositoryInput, { RepositoryInputRef } from "./components/repository-inp
 import { ThemeToggle } from "./components/theme-toggle";
 
 import { DownloadProgress, FileEntry, FileStatus, OutputFormat, ProcessingConfig } from "./types";
-import { validateFile, formatSize, estimateTokenCount, fetchRepositoryFiles } from "./utils";
+import { validateFile, formatSize, estimateTokenCount, fetchRepositoryFiles, shouldSkipPath, calculateTotalSize } from "./utils";
 import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "./constants";
 
 import { cn } from "./lib/utils";
@@ -61,6 +61,21 @@ const App: React.FC = () => {
         [config]
     );
 
+    const estimateTokens = useCallback(async (content: string) => {
+        try {
+            const size = calculateTotalSize(content);
+
+            if (size > 1 * 1024 * 1024) {
+                throw new Error("Input size exceeds 3MB limit");
+            }
+
+            const tokenCount = await estimateTokenCount(content);
+            setTokens(tokenCount);
+        } catch (error) {
+            console.error("Error estimating token count:", error);
+        }
+    }, []);
+
     const toggleFileInclusion = useCallback(
         async (index: number) => {
             try {
@@ -90,13 +105,7 @@ const App: React.FC = () => {
                     })
                 );
 
-                try {
-                    // Update token count
-                    const tokenCount = await estimateTokenCount(contents.map(c => c.content).join("\n"));
-                    setTokens(tokenCount);
-                } catch (error) {
-                    console.error("Error estimating token count:", error);
-                }
+                estimateTokens(contents.map(c => c.content).join("\n"));
 
                 // Update state
                 setProcessedContents(contents);
@@ -104,7 +113,7 @@ const App: React.FC = () => {
                 console.error("Error reprocessing files:", error);
             }
         },
-        [files, fileStatuses]
+        [files, fileStatuses, estimateTokens]
     );
 
     const handleRepositorySubmit = useCallback(
@@ -153,13 +162,7 @@ const App: React.FC = () => {
                     content: content || ""
                 }));
 
-                try {
-                    // Update token count
-                    const tokenCount = await estimateTokenCount(contents.map(c => c.content).join("\n"));
-                    setTokens(tokenCount);
-                } catch (error) {
-                    console.error("Error estimating token count:", error);
-                }
+                estimateTokens(contents.map(c => c.content).join("\n"));
 
                 setProcessedContents(contents);
             } catch (error) {
@@ -171,7 +174,7 @@ const App: React.FC = () => {
                 setIsRepoLoading(false);
             }
         },
-        [processFile]
+        [processFile, estimateTokens]
     );
 
     const calculateChunks = useCallback(
@@ -320,11 +323,25 @@ const App: React.FC = () => {
             const statuses: FileStatus[] = [];
 
             const processEntry = async (entry: FileSystemEntry, path = ""): Promise<void> => {
+                // Skip processing if the current path should be skipped
+                if (shouldSkipPath(path)) {
+                    console.log(`Skipping excluded path: ${path}`);
+                    return Promise.resolve();
+                }
+
                 if (entry.isFile) {
                     const fileEntry = entry as FileSystemFileEntry;
                     return new Promise(resolve => {
                         fileEntry.file(async file => {
                             const fullPath = path + file.name;
+
+                            // Skip processing if the file path should be skipped
+                            if (shouldSkipPath(fullPath)) {
+                                console.log(`Skipping excluded file: ${fullPath}`);
+                                resolve();
+                                return;
+                            }
+
                             const status = await processFile(file, fullPath);
 
                             if (status.included) {
@@ -336,6 +353,13 @@ const App: React.FC = () => {
                     });
                 } else if (entry.isDirectory) {
                     const dirEntry = entry as FileSystemDirectoryEntry;
+
+                    // Skip processing if the directory should be skipped
+                    if (shouldSkipPath(path + dirEntry.name + "/")) {
+                        console.log(`Skipping excluded directory: ${path + dirEntry.name}`);
+                        return Promise.resolve();
+                    }
+
                     const dirReader = dirEntry.createReader();
                     return new Promise(resolve => {
                         dirReader.readEntries(async entries => {
@@ -369,13 +393,7 @@ const App: React.FC = () => {
                     }))
                 );
 
-                try {
-                    // Update token count
-                    const tokenCount = await estimateTokenCount(contents.map(c => c.content).join("\n"));
-                    setTokens(tokenCount);
-                } catch (error) {
-                    console.error("Error estimating token count:", error);
-                }
+                estimateTokens(contents.map(c => c.content).join("\n"));
 
                 // Store processed contents in state for later use
                 setProcessedContents(contents);
@@ -385,7 +403,7 @@ const App: React.FC = () => {
                 setIsProcessing(false);
             }
         },
-        [resetAll, processFile]
+        [resetAll, processFile, estimateTokens]
     );
 
     const getEstimations = useCallback(() => {

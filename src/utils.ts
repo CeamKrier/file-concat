@@ -1,5 +1,5 @@
 import { encoding_for_model, TiktokenModel } from "@dqbd/tiktoken";
-import { FileValidationResult, ProcessingConfig, GitLabFile, DownloadProgress } from "./types";
+import { FileValidationResult, ProcessingConfig, GitLabFile, DownloadProgress, RepositoryContent, RepoFile } from "./types";
 
 // Binary file signatures (magic numbers) to detect binary files
 const BINARY_SIGNATURES = new Uint8Array([
@@ -20,6 +20,24 @@ const BINARY_SIGNATURES = new Uint8Array([
     0x4d,
     0x5a // Windows executable
 ]);
+
+// Define common paths to skip across different project types
+export const SKIP_PATHS = {
+    // JavaScript/Node.js
+    javascript: ["node_modules", "dist", "build", "coverage", ".next", ".nuxt", ".output", ".cache"],
+    // Python
+    python: ["__pycache__", ".pytest_cache", "venv", "env", ".env", "build", "dist", "*.egg-info"],
+    // Java
+    java: ["target", "build", ".gradle", "out", "bin"],
+    // Go
+    go: ["vendor", "bin", "pkg"],
+    // Rust
+    rust: ["target", "cargo.lock"],
+    // Common version control and IDE folders
+    common: [".git", ".svn", ".hg", ".idea", ".vscode", ".vs", ".DS_Store", "Thumbs.db"],
+    // Build and dependency artifacts
+    build: ["build", "dist", "out", "release", "debug", "logs", "temp", "tmp"]
+};
 
 export const isBinaryFile = async (file: File): Promise<boolean> => {
     try {
@@ -95,19 +113,6 @@ export const estimateTokenCount = async (text: string, model = "o1-preview-2024-
     return tokens.length;
 };
 
-interface RepoFile {
-    name: string;
-    path: string;
-    type: string;
-    size: number;
-    content?: string;
-    download_url?: string;
-}
-
-export interface RepositoryContent {
-    files: RepoFile[];
-    error?: string;
-}
 export const fetchGitlabRepository = async (url: string): Promise<RepositoryContent> => {
     try {
         // Updated regex to capture everything after gitlab.com/
@@ -313,4 +318,25 @@ export const fetchRepositoryFiles = async (url: string, onProgress?: (progress: 
         return fetchGithubRepository(url, onProgress, signal);
     }
     throw new Error("Unsupported repository host");
+};
+
+// Combine all skip paths into a single array
+export const ALL_SKIP_PATHS = Object.values(SKIP_PATHS).flat();
+
+// Function to check if a path should be skipped
+export const shouldSkipPath = (path: string): boolean => {
+    const normalizedPath = path.toLowerCase();
+    return ALL_SKIP_PATHS.some(skipPath => {
+        // Handle wildcard patterns
+        if (skipPath.includes("*")) {
+            const pattern = skipPath.replace("*", ".*");
+            return new RegExp(pattern).test(normalizedPath);
+        }
+        // Check if the path includes the skip path as a directory name
+        return normalizedPath.split("/").some(part => part === skipPath);
+    });
+};
+
+export const calculateTotalSize = (content: string): number => {
+    return new TextEncoder().encode(content).length;
 };
