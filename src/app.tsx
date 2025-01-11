@@ -1,32 +1,35 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Upload, Download, Shield, Trash2, PlusIcon, XIcon } from "lucide-react";
+import { SiX } from "@icons-pack/react-simple-icons";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import RepositoryInput, { RepositoryInputRef } from "./components/repository-input";
+import { ThemeToggle } from "./components/theme-toggle";
 
 import { DownloadProgress, FileEntry, FileStatus, OutputFormat, ProcessingConfig } from "./types";
 import { validateFile, formatSize, estimateTokenCount, fetchRepositoryFiles } from "./utils";
 import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_CHUNK_SIZE, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "./constants";
-import RepositoryInput from "./components/repository-input";
-import { ThemeToggle } from "./components/theme-toggle";
+
 import { cn } from "./lib/utils";
-import { SiX } from "@icons-pack/react-simple-icons";
 
 const App: React.FC = () => {
     const [files, setFiles] = useState<FileEntry[]>([]);
     const [output, setOutput] = useState<string>("");
     const [fileStatuses, setFileStatuses] = useState<FileStatus[]>([]);
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
+    const [isRepoLoading, setIsRepoLoading] = useState<boolean>(false);
     const [isDragging, setIsDragging] = useState<boolean>(false);
     const [isTableExpanded, setIsTableExpanded] = useState<boolean>(true);
-    const dragCounter = useRef<number>(0);
     const [tokens, setTokens] = useState<number>(0);
     const [processedContents, setProcessedContents] = useState<Array<{ path: string; content: string }>>([]);
     const [recommendedFormat, setRecommendedFormat] = useState<OutputFormat>("single");
     const [selectedFormat, setSelectedFormat] = useState<OutputFormat | undefined>();
     const [config] = useState<ProcessingConfig>(DEFAULT_CONFIG);
+
+    const dragCounter = useRef<number>(0);
+    const repositoryInputRef = useRef<RepositoryInputRef>(null);
 
     useEffect(() => {
         if (tokens > MULTI_OUTPUT_LIMIT) {
@@ -81,12 +84,16 @@ const App: React.FC = () => {
                     })
                 );
 
-                // Update token count
-                const tokenCount = await estimateTokenCount(contents.map(c => c.content).join("\n"));
+                try {
+                    // Update token count
+                    const tokenCount = await estimateTokenCount(contents.map(c => c.content).join("\n"));
+                    setTokens(tokenCount);
+                } catch (error) {
+                    console.error("Error estimating token count:", error);
+                }
 
                 // Update state
                 setProcessedContents(contents);
-                setTokens(tokenCount);
             } catch (error) {
                 console.error("Error reprocessing files:", error);
             }
@@ -95,10 +102,10 @@ const App: React.FC = () => {
     );
 
     const handleRepositorySubmit = useCallback(
-        async (url: string, onProgress: (progress: DownloadProgress) => void) => {
-            setIsProcessing(true);
+        async (url: string, onProgress: (progress: DownloadProgress) => void, signal: AbortSignal) => {
+            setIsRepoLoading(true);
             try {
-                const { files, error } = await fetchRepositoryFiles(url, onProgress);
+                const { files, error } = await fetchRepositoryFiles(url, onProgress, signal); // Pass signal to fetchRepositoryFiles
 
                 if (error) {
                     throw new Error(error);
@@ -109,13 +116,17 @@ const App: React.FC = () => {
 
                 // Process each file from the repository
                 for (const file of files) {
+                    if (signal.aborted) {
+                        // Check for abort signal during processing
+                        throw new Error("Operation aborted");
+                    }
+
                     const blob = new Blob([file.content || ""], { type: "text/plain" });
                     const fileObj = new File([blob], file.name, { type: "text/plain" });
 
                     const status = await processFile(fileObj, file.path);
                     statuses.push(status);
 
-                    // Add all files to fileEntries and filter later based on status
                     fileEntries.push({
                         file: fileObj,
                         path: file.path,
@@ -136,15 +147,22 @@ const App: React.FC = () => {
                     content: content || ""
                 }));
 
-                // Estimate token count from included files
-                const tokenCount = await estimateTokenCount(contents.map(c => c.content).join("\n"));
+                try {
+                    // Update token count
+                    const tokenCount = await estimateTokenCount(contents.map(c => c.content).join("\n"));
+                    setTokens(tokenCount);
+                } catch (error) {
+                    console.error("Error estimating token count:", error);
+                }
 
                 setProcessedContents(contents);
-                setTokens(tokenCount);
             } catch (error) {
-                console.error("Error fetching repository:", error);
+                if (error instanceof Error && error.name === "AbortError") {
+                    throw new Error("Repository fetch aborted");
+                }
+                throw error;
             } finally {
-                setIsProcessing(false);
+                setIsRepoLoading(false);
             }
         },
         [processFile]
@@ -152,8 +170,7 @@ const App: React.FC = () => {
 
     const generateOutput = useCallback(async () => {
         setIsProcessing(true);
-        console.log("processedContents", processedContents);
-        console.log("chunks", calculateChunks(processedContents));
+
         try {
             if (selectedFormat === "single") {
                 const output = `# Files\n` + processedContents.map(({ path, content }) => `## ${path}\n\`\`\`\n${content}\n\`\`\`\n`).join("\n");
@@ -225,13 +242,16 @@ const App: React.FC = () => {
     };
 
     const resetAll = useCallback(() => {
+        repositoryInputRef.current?.abort();
         setFiles([]);
         setOutput("");
         setFileStatuses([]);
         setIsProcessing(false);
+        setIsRepoLoading(false);
         setTokens(0);
         setProcessedContents([]);
         setSelectedFormat(undefined);
+        repositoryInputRef.current?.reset();
     }, []);
 
     const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -320,14 +340,16 @@ const App: React.FC = () => {
                     }))
                 );
 
-                // Estimate token count
-                const tokenCount = await estimateTokenCount(contents.map(c => c.content).join("\n"));
+                try {
+                    // Update token count
+                    const tokenCount = await estimateTokenCount(contents.map(c => c.content).join("\n"));
+                    setTokens(tokenCount);
+                } catch (error) {
+                    console.error("Error estimating token count:", error);
+                }
 
                 // Store processed contents in state for later use
                 setProcessedContents(contents);
-
-                // Store token count
-                setTokens(tokenCount);
             } catch (error) {
                 console.error("Error processing files:", error);
             } finally {
@@ -349,7 +371,7 @@ const App: React.FC = () => {
                                 File Concat Tool
                             </CardTitle>
                             <CardDescription className='text-sm max-w-xl'>
-                                Combine multiple files and folders into a single, well-formatted document optimized for Large Language Models (LLMs). Perfect for sharing codebases, documentation, and project structures with AI assistants like ChatGPT or Claude.
+                                Combine multiple files and folders into a single, well-formatted document optimized for Large Language Models (LLMs). Perfect for sharing codebases, documentation, and project structures with AI assistants like ChatGPT, Claude, and others.
                             </CardDescription>
                         </div>
                         <ThemeToggle />
@@ -370,23 +392,23 @@ const App: React.FC = () => {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <RepositoryInput isLoading={isProcessing} onSubmit={handleRepositorySubmit} />
+                    <RepositoryInput ref={repositoryInputRef} isLoading={isRepoLoading} onSubmit={handleRepositorySubmit} />
 
                     <div className='flex items-center justify-center py-4'>or</div>
 
                     <div
-                        onDragEnter={isProcessing ? undefined : handleDragEnter}
-                        onDragLeave={isProcessing ? undefined : handleDragLeave}
-                        onDragOver={isProcessing ? undefined : handleDragOver}
-                        onDrop={isProcessing ? undefined : handleDrop}
+                        onDragEnter={isProcessing || isRepoLoading ? undefined : handleDragEnter}
+                        onDragLeave={isProcessing || isRepoLoading ? undefined : handleDragLeave}
+                        onDragOver={isProcessing || isRepoLoading ? undefined : handleDragOver}
+                        onDrop={isProcessing || isRepoLoading ? undefined : handleDrop}
                         className={`
         border-2 border-dashed rounded-lg p-8 text-center mb-4 
         transition-all duration-200
-        ${isProcessing ? "opacity-50 cursor-not-allowed border-gray-200" : isDragging ? "border-blue-500 bg-muted" : "hover:border-blue-300"}
+        ${isProcessing || isRepoLoading ? "opacity-50 cursor-not-allowed border-gray-200" : isDragging ? "border-blue-500 bg-muted" : "hover:border-blue-300"}
     `}>
                         <Upload
                             className={`w-12 h-12 mx-auto mb-4 transition-colors duration-200 
-            ${isProcessing ? "text-gray-300" : isDragging ? "text-blue-500" : "text-gray-400"}`}
+            ${isProcessing || isRepoLoading ? "text-gray-300" : isDragging ? "text-blue-500" : "text-gray-400"}`}
                         />
                         <p>{isProcessing ? "Processing files..." : isDragging ? "Drop files here" : "Drag and drop files or folders here"}</p>
                         {files.length > 0 && (
