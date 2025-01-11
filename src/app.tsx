@@ -10,9 +10,10 @@ import { ThemeToggle } from "./components/theme-toggle";
 
 import { DownloadProgress, FileEntry, FileStatus, OutputFormat, ProcessingConfig } from "./types";
 import { validateFile, formatSize, estimateTokenCount, fetchRepositoryFiles } from "./utils";
-import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_CHUNK_SIZE, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "./constants";
+import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "./constants";
 
 import { cn } from "./lib/utils";
+import OutputSettings from "./components/output-settings";
 
 const App: React.FC = () => {
     const [files, setFiles] = useState<FileEntry[]>([]);
@@ -27,6 +28,8 @@ const App: React.FC = () => {
     const [recommendedFormat, setRecommendedFormat] = useState<OutputFormat>("single");
     const [selectedFormat, setSelectedFormat] = useState<OutputFormat | undefined>();
     const [config] = useState<ProcessingConfig>(DEFAULT_CONFIG);
+
+    const [maxFileSize, setMaxFileSize] = useState<number>(32);
 
     const dragCounter = useRef<number>(0);
     const repositoryInputRef = useRef<RepositoryInputRef>(null);
@@ -168,6 +171,53 @@ const App: React.FC = () => {
         [processFile]
     );
 
+    const calculateChunks = useCallback(
+        (contents: Array<{ path: string; content: string }>) => {
+            const targetCharSize = maxFileSize * 1024; // Convert KB to bytes
+            const chunks: (typeof contents)[] = [];
+            let currentChunk: typeof contents = [];
+            let currentSize = 0;
+
+            // Process each file
+            for (const file of contents) {
+                const fileSize = new TextEncoder().encode(file.content).length; // Browser-safe size calculation
+
+                // If adding this file would exceed the target size, start a new chunk
+                if (currentSize + fileSize > targetCharSize && currentChunk.length > 0) {
+                    chunks.push(currentChunk);
+                    currentChunk = [];
+                    currentSize = 0;
+                }
+
+                // If a single file is larger than target size, split its content
+                if (fileSize > targetCharSize) {
+                    const parts = Math.ceil(fileSize / targetCharSize);
+                    for (let i = 0; i < parts; i++) {
+                        const start = i * targetCharSize;
+                        const end = Math.min((i + 1) * targetCharSize, fileSize);
+                        chunks.push([
+                            {
+                                path: `${file.path} (part ${i + 1}/${parts})`,
+                                content: file.content.slice(start, end)
+                            }
+                        ]);
+                    }
+                } else {
+                    currentChunk.push(file);
+                    currentSize += fileSize;
+                }
+            }
+
+            // Add the last chunk if it has any files
+            if (currentChunk.length > 0) {
+                chunks.push(currentChunk);
+            }
+
+            return chunks;
+        },
+        [maxFileSize]
+    );
+
     const generateOutput = useCallback(async () => {
         setIsProcessing(true);
 
@@ -213,33 +263,7 @@ const App: React.FC = () => {
         } finally {
             setIsProcessing(false);
         }
-    }, [selectedFormat, processedContents]);
-
-    const calculateChunks = (contents: Array<{ path: string; content: string }>) => {
-        const targetCharSize = MULTI_OUTPUT_CHUNK_SIZE * 4;
-        const chunks: (typeof contents)[] = [];
-        let currentChunk: typeof contents = [];
-        let currentSize = 0;
-
-        for (const file of contents) {
-            const fileSize = file.content.length;
-
-            if (currentSize + fileSize > targetCharSize && currentChunk.length > 0) {
-                chunks.push(currentChunk);
-                currentChunk = [];
-                currentSize = 0;
-            }
-
-            currentChunk.push(file);
-            currentSize += fileSize;
-        }
-
-        if (currentChunk.length > 0) {
-            chunks.push(currentChunk);
-        }
-
-        return chunks;
-    };
+    }, [selectedFormat, processedContents, calculateChunks]);
 
     const resetAll = useCallback(() => {
         repositoryInputRef.current?.abort();
@@ -251,6 +275,8 @@ const App: React.FC = () => {
         setTokens(0);
         setProcessedContents([]);
         setSelectedFormat(undefined);
+
+        setMaxFileSize(32);
         repositoryInputRef.current?.reset();
     }, []);
 
@@ -358,6 +384,20 @@ const App: React.FC = () => {
         },
         [resetAll, processFile]
     );
+
+    const getEstimations = useCallback(() => {
+        const chunks = calculateChunks(processedContents);
+        const chunkSizes = chunks.map(chunk => chunk.reduce((acc, file) => acc + new TextEncoder().encode(file.content).length, 0));
+        const avgSize = chunkSizes.length > 0 ? Math.ceil(chunkSizes.reduce((a, b) => a + b, 0) / chunkSizes.length) : 0;
+
+        const multiple = `${chunks.length} files, ~${formatSize(avgSize)} each`;
+
+        // For single file option display
+        const totalSize = processedContents.reduce((acc, file) => acc + new TextEncoder().encode(file.content).length, 0);
+        const single = `~${formatSize(totalSize)}`;
+
+        return { single, multiple };
+    }, [calculateChunks, processedContents]);
 
     return (
         <div className='p-4 max-w-4xl mx-auto'>
@@ -540,7 +580,7 @@ const App: React.FC = () => {
                                         {recommendedFormat === "single" && <span className='text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded'>Recommended</span>}
                                     </div>
                                     <p className='text-sm text-muted-foreground'>All content in one file. Best for smaller contexts.</p>
-                                    <div className='text-xs text-muted-foreground mt-2'>~{formatSize(fileStatuses.filter(f => f.included).reduce((acc, { size }) => acc + size, 0))}</div>
+                                    <div className='text-xs text-muted-foreground mt-2'>{getEstimations().single}</div>
                                 </button>
 
                                 <button onClick={() => setSelectedFormat("multi")} className={`p-4 rounded-lg border-2 transition-all ${selectedFormat === "multi" ? "border-blue-500 bg-secondary" : "border-gray-200 hover:border-blue-300"}`}>
@@ -549,11 +589,11 @@ const App: React.FC = () => {
                                         {recommendedFormat === "multi" && <span className='text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded'>Recommended</span>}
                                     </div>
                                     <p className='text-sm text-muted-foreground'>Split into optimal chunks. Better for large contexts.</p>
-                                    <div className='text-xs text-muted-foreground mt-2'>
-                                        {calculateChunks(processedContents).length} files, ~{formatSize(Math.ceil(fileStatuses.filter(f => f.included).reduce((acc, { size }) => acc + size, 0) / calculateChunks(processedContents).length))} each
-                                    </div>
+                                    <div className='text-xs text-muted-foreground mt-2'>{getEstimations().multiple}</div>
                                 </button>
                             </div>
+
+                            {selectedFormat === "multi" && <OutputSettings maxFileSize={maxFileSize} setMaxFileSize={setMaxFileSize} disabled={isProcessing} />}
                             <button onClick={generateOutput} disabled={!selectedFormat || isProcessing} className='w-full justify-center mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'>
                                 <Download className='w-4 h-4' />
                                 Download
