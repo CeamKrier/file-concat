@@ -15,6 +15,7 @@ import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "./consta
 import { cn } from "./lib/utils";
 import OutputSettings from "./components/output-settings";
 import TokenInfoPopover from "./components/token-info-popover";
+import PreviewModal from "./components/preview-modal";
 
 const App: React.FC = () => {
     const [files, setFiles] = useState<FileEntry[]>([]);
@@ -24,6 +25,7 @@ const App: React.FC = () => {
     const [isRepoLoading, setIsRepoLoading] = useState<boolean>(false);
     const [isDragging, setIsDragging] = useState<boolean>(false);
     const [isTableExpanded, setIsTableExpanded] = useState<boolean>(true);
+    const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
     const [tokens, setTokens] = useState<number>(0);
     const [processedContents, setProcessedContents] = useState<Array<{ path: string; content: string }>>([]);
     const [recommendedFormat, setRecommendedFormat] = useState<OutputFormat>("single");
@@ -400,6 +402,23 @@ const App: React.FC = () => {
         return { single, multiple };
     }, [calculateChunks, processedContents]);
 
+    const generatePreview = useCallback(() => {
+        if (selectedFormat === "single") {
+            return [
+                {
+                    name: "concat-output.md",
+                    content: `# Files\n` + processedContents.map(({ path, content }) => `## ${path}\n\`\`\`\n${content}\n\`\`\`\n`).join("\n")
+                }
+            ];
+        } else {
+            const chunks = calculateChunks(processedContents);
+            return chunks.map((chunk, i) => ({
+                name: `concat-output-part${i + 1}.md`,
+                content: `# Files - Part ${i + 1}/${chunks.length}\n` + chunk.map(({ path, content }) => `## ${path}\n\`\`\`\n${content}\n\`\`\`\n`).join("\n")
+            }));
+        }
+    }, [selectedFormat, processedContents, calculateChunks]);
+
     return (
         <div className='p-4 max-w-4xl mx-auto'>
             <Card>
@@ -598,10 +617,22 @@ const App: React.FC = () => {
                             </div>
 
                             {selectedFormat === "multi" && <OutputSettings maxFileSize={maxFileSize} setMaxFileSize={setMaxFileSize} disabled={isProcessing} />}
-                            <button onClick={generateOutput} disabled={!selectedFormat || isProcessing} className='w-full justify-center mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'>
-                                <Download className='w-4 h-4' />
-                                Download
-                            </button>
+
+                            <div className='flex gap-2'>
+                                {/* <button
+                                    onClick={() => setIsPreviewOpen(true)}
+                                    disabled={!selectedFormat || isProcessing}
+                                    className='flex-1 justify-center px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'>
+                                    <Eye className='w-4 h-4' />
+                                    Preview
+                                </button> */}
+                                <button onClick={generateOutput} disabled={!selectedFormat || isProcessing} className='flex-1 justify-center px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'>
+                                    <Download className='w-4 h-4' />
+                                    Download
+                                </button>
+                            </div>
+
+                            <PreviewModal isOpen={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} files={generatePreview()} />
                         </div>
                     )}
                 </CardContent>
