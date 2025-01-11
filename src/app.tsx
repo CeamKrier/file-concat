@@ -14,6 +14,7 @@ import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "./consta
 
 import { cn } from "./lib/utils";
 import OutputSettings from "./components/output-settings";
+import TokenInfoPopover from "./components/token-info-popover";
 
 const App: React.FC = () => {
     const [files, setFiles] = useState<FileEntry[]>([]);
@@ -545,7 +546,10 @@ const App: React.FC = () => {
                     {tokens > 0 && (
                         <div className='space-y-4'>
                             <div className='flex items-center justify-between'>
-                                <h3 className='font-semibold'>Tokenization</h3>
+                                <div className='flex items-center gap-2'>
+                                    <h3 className='font-semibold'>Tokenization</h3>
+                                    <TokenInfoPopover />
+                                </div>
                                 <div className='flex items-center gap-4'>
                                     <div className='text-sm text-muted-foreground'>Estimated tokens: {tokens.toLocaleString()}</div>
                                 </div>
