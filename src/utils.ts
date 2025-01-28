@@ -24,7 +24,7 @@ const BINARY_SIGNATURES = new Uint8Array([
 // Define common paths to skip across different project types
 export const SKIP_PATHS = {
     // JavaScript/Node.js
-    javascript: ["node_modules", "dist", "build", "coverage", ".next", ".nuxt", ".output", ".cache"],
+    javascript: ["node_modules", "dist", "build", "coverage", ".next", ".nuxt", ".output", ".cache", "pnpm-lock.yaml", "package-lock.json"],
     // Python
     python: ["__pycache__", ".pytest_cache", "venv", "env", ".env", "build", "dist", "*.egg-info"],
     // Java

@@ -333,7 +333,7 @@ const App: React.FC = () => {
                     const fileEntry = entry as FileSystemFileEntry;
                     return new Promise(resolve => {
                         fileEntry.file(async file => {
-                            const fullPath = path + file.name;
+                            const fullPath = path ? `${path}/${file.name}` : file.name;
 
                             // Skip processing if the file path should be skipped
                             if (shouldSkipPath(fullPath)) {
@@ -353,17 +353,18 @@ const App: React.FC = () => {
                     });
                 } else if (entry.isDirectory) {
                     const dirEntry = entry as FileSystemDirectoryEntry;
+                    const newPath = path ? `${path}/${dirEntry.name}` : dirEntry.name;
 
                     // Skip processing if the directory should be skipped
-                    if (shouldSkipPath(path + dirEntry.name + "/")) {
-                        console.log(`Skipping excluded directory: ${path + dirEntry.name}`);
+                    if (shouldSkipPath(newPath + "/")) {
+                        console.log(`Skipping excluded directory: ${newPath}`);
                         return Promise.resolve();
                     }
 
                     const dirReader = dirEntry.createReader();
                     return new Promise(resolve => {
                         dirReader.readEntries(async entries => {
-                            const promises = entries.map(entry => processEntry(entry, path + entry.name + "/"));
+                            const promises = entries.map(entry => processEntry(entry, newPath));
                             await Promise.all(promises);
                             resolve();
                         });
