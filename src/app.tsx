@@ -6,16 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import RepositoryInput, { RepositoryInputRef } from "./components/repository-input";
-import { ThemeToggle } from "./components/theme-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
+import OutputSettings from "@/components/output-settings";
+import TokenInfoPopover from "@/components/token-info-popover";
+import PreviewModal from "@/components/preview-modal";
 
-import { DownloadProgress, FileEntry, FileStatus, OutputFormat, ProcessingConfig } from "./types";
-import { validateFile, formatSize, estimateTokenCount, fetchRepositoryFiles, shouldSkipPath, calculateTotalSize } from "./utils";
-import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "./constants";
+import { DownloadProgress, FileEntry, FileStatus, OutputFormat, ProcessingConfig } from "@/types";
+import { validateFile, formatSize, estimateTokenCount, fetchRepositoryFiles, shouldSkipPath, calculateTotalSize } from "@/utils";
+import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "@/constants";
 
 import { cn } from "./lib/utils";
-import OutputSettings from "./components/output-settings";
-import TokenInfoPopover from "./components/token-info-popover";
-import PreviewModal from "./components/preview-modal";
 
 const App: React.FC = () => {
     const [files, setFiles] = useState<FileEntry[]>([]);

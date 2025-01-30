@@ -4,12 +4,12 @@ A browser-based tool for combining multiple files into a format optimized for AI
 
 ## Key Features
 
-- 🔒 100% Offline - All processing happens in your browser
-- 📂 Drag & Drop Interface
-- 🔍 Smart File Processing
-- 📊 Token Usage Estimation
-- ⚡️ GitHub Repository Support
-- 🎨 Dark Mode Support
+-   🔒 100% Offline - All processing happens in your browser
+-   📂 Drag & Drop Interface
+-   🔍 Smart File Processing
+-   📊 Token Usage Estimation
+-   ⚡️ GitHub Repository Support
+-   🎨 Dark Mode Support
 
 ## Getting Started
 
@@ -39,11 +39,11 @@ pnpm build
 
 ## Tech Stack
 
-- React 18
-- TypeScript
-- Vite
-- Tailwind CSS
-- shadcn/ui
+-   React 18
+-   TypeScript
+-   Vite
+-   Tailwind CSS
+-   shadcn/ui
 
 ## Contributing
 
@@ -59,4 +59,4 @@ FileConcat processes all files locally in your browser. No data is ever sent to 
 
 ---
 
-[Visit FileConcat](https://fileconcat.com) | [Report an Issue](https://github.com/CeamKrier/fileconcat/issues)
+[Visit FileConcat](https://fileconcat.com)
