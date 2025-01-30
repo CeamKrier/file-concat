@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Upload, Download, Shield, Trash2, PlusIcon, XIcon } from "lucide-react";
-import { SiX } from "@icons-pack/react-simple-icons";
+import { SiGithub, SiX } from "@icons-pack/react-simple-icons";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -459,11 +459,16 @@ const App: React.FC = () => {
                                 <Shield className='w-4 h-4 fill-current' />
                                 100% Offline Processing
                             </div>
-                            <div className='flex items-center justify-center gap-2'>
+                            <div className='flex items-center justify-center gap-1'>
                                 <span className='text-sm text-muted-foreground'>Got feedback?</span>
                                 <Button variant='ghost' asChild className='w-fit' size='sm'>
                                     <a className='w-fit' href='https://twitter.com/messages/compose?recipient_id=378117341' target='_blank'>
                                         <SiX className='w-4 h-4' />
+                                    </a>
+                                </Button>
+                                <Button variant='ghost' asChild className='w-fit' size='sm'>
+                                    <a className='w-fit' href='https://github.com/CeamKrier/file-concat' target='_blank'>
+                                        <SiGithub className='w-4 h-4' />
                                     </a>
                                 </Button>
                             </div>
