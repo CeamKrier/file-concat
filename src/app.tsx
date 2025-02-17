@@ -136,8 +136,8 @@ const App: React.FC = () => {
                         throw new Error("Operation aborted");
                     }
 
-                    const blob = new Blob([file.content || ""], { type: "text/plain" });
-                    const fileObj = new File([blob], file.name, { type: "text/plain" });
+                    const blob = new Blob([file.content || ""], { type: file.type });
+                    const fileObj = new File([blob], file.name, { type: file.type });
 
                     const status = await processFile(fileObj, file.path);
                     statuses.push(status);

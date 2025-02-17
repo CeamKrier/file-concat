@@ -1,25 +1,271 @@
+import { fileTypeFromBuffer } from "file-type";
 import { encoding_for_model, TiktokenModel } from "@dqbd/tiktoken";
 import { FileValidationResult, ProcessingConfig, GitLabFile, DownloadProgress, RepositoryContent, RepoFile } from "./types";
 
 // Binary file signatures (magic numbers) to detect binary files
-const BINARY_SIGNATURES = new Uint8Array([
-    0xff,
-    0xd8, // JPEG
-    0x89,
-    0x50, // PNG
-    0x47,
-    0x49, // GIF
-    0x50,
-    0x4b, // ZIP/DOCX/XLSX
-    0x25,
-    0x50, // PDF
-    0x7f,
-    0x45, // ELF
-    0xca,
-    0xfe, // Mac executable
-    0x4d,
-    0x5a // Windows executable
-]);
+const BINARY_EXTENSIONS = [
+    "3dm",
+    "3ds",
+    "3g2",
+    "3gp",
+    "7z",
+    "a",
+    "aac",
+    "adp",
+    "afdesign",
+    "afphoto",
+    "afpub",
+    "ai",
+    "aif",
+    "aiff",
+    "alz",
+    "ape",
+    "apk",
+    "appimage",
+    "ar",
+    "arj",
+    "asf",
+    "au",
+    "avi",
+    "bak",
+    "baml",
+    "bh",
+    "bin",
+    "bk",
+    "bmp",
+    "btif",
+    "bz2",
+    "bzip2",
+    "cab",
+    "caf",
+    "cgm",
+    "class",
+    "cmx",
+    "cpio",
+    "cr2",
+    "cur",
+    "dat",
+    "dcm",
+    "deb",
+    "dex",
+    "djvu",
+    "dll",
+    "dmg",
+    "dng",
+    "doc",
+    "docm",
+    "docx",
+    "dot",
+    "dotm",
+    "dra",
+    "DS_Store",
+    "dsk",
+    "dts",
+    "dtshd",
+    "dvb",
+    "dwg",
+    "dxf",
+    "ecelp4800",
+    "ecelp7470",
+    "ecelp9600",
+    "egg",
+    "eol",
+    "eot",
+    "epub",
+    "exe",
+    "f4v",
+    "fbs",
+    "fh",
+    "fla",
+    "flac",
+    "flatpak",
+    "fli",
+    "flv",
+    "fpx",
+    "fst",
+    "fvt",
+    "g3",
+    "gh",
+    "gif",
+    "graffle",
+    "gz",
+    "gzip",
+    "h261",
+    "h263",
+    "h264",
+    "icns",
+    "ico",
+    "ief",
+    "img",
+    "ipa",
+    "iso",
+    "jar",
+    "jpeg",
+    "jpg",
+    "jpgv",
+    "jpm",
+    "jxr",
+    "key",
+    "ktx",
+    "lha",
+    "lib",
+    "lvp",
+    "lz",
+    "lzh",
+    "lzma",
+    "lzo",
+    "m3u",
+    "m4a",
+    "m4v",
+    "mar",
+    "mdi",
+    "mht",
+    "mid",
+    "midi",
+    "mj2",
+    "mka",
+    "mkv",
+    "mmr",
+    "mng",
+    "mobi",
+    "mov",
+    "movie",
+    "mp3",
+    "mp4",
+    "mp4a",
+    "mpeg",
+    "mpg",
+    "mpga",
+    "mxu",
+    "nef",
+    "npx",
+    "numbers",
+    "nupkg",
+    "o",
+    "odp",
+    "ods",
+    "odt",
+    "oga",
+    "ogg",
+    "ogv",
+    "otf",
+    "ott",
+    "pages",
+    "pbm",
+    "pcx",
+    "pdb",
+    "pdf",
+    "pea",
+    "pgm",
+    "pic",
+    "png",
+    "pnm",
+    "pot",
+    "potm",
+    "potx",
+    "ppa",
+    "ppam",
+    "ppm",
+    "pps",
+    "ppsm",
+    "ppsx",
+    "ppt",
+    "pptm",
+    "pptx",
+    "psd",
+    "pya",
+    "pyc",
+    "pyo",
+    "pyv",
+    "qt",
+    "rar",
+    "ras",
+    "raw",
+    "resources",
+    "rgb",
+    "rip",
+    "rlc",
+    "rmf",
+    "rmvb",
+    "rpm",
+    "rtf",
+    "rz",
+    "s3m",
+    "s7z",
+    "scpt",
+    "sgi",
+    "shar",
+    "snap",
+    "sil",
+    "sketch",
+    "slk",
+    "smv",
+    "snk",
+    "so",
+    "stl",
+    "suo",
+    "sub",
+    "swf",
+    "tar",
+    "tbz",
+    "tbz2",
+    "tga",
+    "tgz",
+    "thmx",
+    "tif",
+    "tiff",
+    "tlz",
+    "ttc",
+    "ttf",
+    "txz",
+    "udf",
+    "uvh",
+    "uvi",
+    "uvm",
+    "uvp",
+    "uvs",
+    "uvu",
+    "viv",
+    "vob",
+    "war",
+    "wav",
+    "wax",
+    "wbmp",
+    "wdp",
+    "weba",
+    "webm",
+    "webp",
+    "whl",
+    "wim",
+    "wm",
+    "wma",
+    "wmv",
+    "wmx",
+    "woff",
+    "woff2",
+    "wrm",
+    "wvx",
+    "xbm",
+    "xif",
+    "xla",
+    "xlam",
+    "xls",
+    "xlsb",
+    "xlsm",
+    "xlsx",
+    "xlt",
+    "xltm",
+    "xltx",
+    "xm",
+    "xmind",
+    "xpi",
+    "xpm",
+    "xwd",
+    "xz",
+    "z",
+    "zip",
+    "zipx"
+];
 
 // Define common paths to skip across different project types
 export const SKIP_PATHS = {
@@ -40,31 +286,12 @@ export const SKIP_PATHS = {
 };
 
 export const isBinaryFile = async (file: File): Promise<boolean> => {
-    try {
-        // Read the first 16 bytes of the file
-        const buffer = await file.slice(0, 16).arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-
-        // Check for binary signatures
-        for (let i = 0; i < BINARY_SIGNATURES.length; i += 2) {
-            if (bytes[0] === BINARY_SIGNATURES[i] && bytes[1] === BINARY_SIGNATURES[i + 1]) {
-                return true;
-            }
-        }
-
-        // Check for high concentration of null bytes or non-printable characters
-        let nonPrintable = 0;
-        for (const byte of bytes) {
-            if (byte === 0 || (byte < 32 && byte !== 9 && byte !== 10 && byte !== 13)) {
-                nonPrintable++;
-            }
-        }
-
-        return nonPrintable > bytes.length * 0.3; // 30% threshold
-    } catch (error) {
-        console.error("Error checking file type:", error);
-        return true; // Err on the side of caution
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    if (extension && BINARY_EXTENSIONS.includes(extension)) {
+        return true;
     }
+
+    return false;
 };
 
 export const validateFile = async (file: File, config: ProcessingConfig): Promise<FileValidationResult> => {
@@ -278,10 +505,13 @@ export const fetchGithubRepository = async (url: string, onProgress?: (progress:
 
                 const content = new TextDecoder().decode(allChunks);
 
+                const typeResult = await fileTypeFromBuffer(allChunks);
+                const detectedMime = typeResult?.mime || "text/plain";
+
                 return {
                     name: item.path.split("/").pop() || "",
                     path: item.path,
-                    type: "file",
+                    type: detectedMime,
                     size: item.size,
                     content,
                     download_url: rawUrl
