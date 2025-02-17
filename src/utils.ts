@@ -27,6 +27,7 @@ const BINARY_EXTENSIONS = [
     "asf",
     "au",
     "avi",
+    "avif",
     "bak",
     "baml",
     "bh",
