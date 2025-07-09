@@ -1,22 +1,20 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import { Upload, Download, Shield, Trash2, PlusIcon, XIcon } from "lucide-react";
+import { Upload, Download, Shield, Trash2 } from "lucide-react";
 import { SiGithub, SiX } from "@icons-pack/react-simple-icons";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import RepositoryInput, { RepositoryInputRef } from "./components/repository-input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import OutputSettings from "@/components/output-settings";
 import TokenInfoPopover from "@/components/token-info-popover";
 import PreviewModal from "@/components/preview-modal";
+import FileTree from "@/components/file-tree";
+import AboutSection from "@/components/about-section";
 
 import { DownloadProgress, FileEntry, FileStatus, OutputFormat, ProcessingConfig } from "@/types";
 import { validateFile, formatSize, estimateTokenCount, fetchRepositoryFiles, shouldSkipPath, calculateTotalSize } from "@/utils";
 import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "@/constants";
-
-import { cn } from "./lib/utils";
-
 const App: React.FC = () => {
     const [files, setFiles] = useState<FileEntry[]>([]);
     const [output, setOutput] = useState<string>("");
@@ -24,7 +22,6 @@ const App: React.FC = () => {
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
     const [isRepoLoading, setIsRepoLoading] = useState<boolean>(false);
     const [isDragging, setIsDragging] = useState<boolean>(false);
-    const [isTableExpanded, setIsTableExpanded] = useState<boolean>(true);
     const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
     const [tokens, setTokens] = useState<number>(0);
     const [processedContents, setProcessedContents] = useState<Array<{ path: string; content: string }>>([]);
@@ -46,7 +43,7 @@ const App: React.FC = () => {
     }, [tokens]);
 
     const processFile = useCallback(
-        async (file: File, path: string): Promise<FileStatus> => {
+        async (file: File, path: string, index?: number): Promise<FileStatus> => {
             const validationResult = await validateFile(file, config);
 
             return {
@@ -55,7 +52,8 @@ const App: React.FC = () => {
                 reason: validationResult.reason,
                 size: file.size,
                 type: file.type || "text/plain",
-                forceInclude: false
+                forceInclude: false,
+                index
             };
         },
         [config]
@@ -63,13 +61,14 @@ const App: React.FC = () => {
 
     const estimateTokens = useCallback(async (content: string) => {
         try {
-            const size = calculateTotalSize(content);
+            const size = await calculateTotalSize(content);
 
             if (size > 1 * 1024 * 1024) {
-                throw new Error("Input size exceeds 3MB limit");
+                throw new Error("Input size exceeds 1MB limit");
             }
 
             const tokenCount = await estimateTokenCount(content);
+
             setTokens(tokenCount);
         } catch (error) {
             console.error("Error estimating token count:", error);
@@ -81,6 +80,51 @@ const App: React.FC = () => {
             try {
                 // Create new statuses array with toggled status
                 const newStatuses = fileStatuses.map((status, i) => (i === index ? { ...status, included: !status.included, forceInclude: !status.included } : status));
+                setFileStatuses(newStatuses);
+
+                // Use the new statuses to filter files
+                const includedFiles = files.filter((_, i) => newStatuses[i].included);
+
+                // Process the files - handle both repository and drag-dropped files
+                const contents = await Promise.all(
+                    includedFiles.map(async fileEntry => {
+                        if (fileEntry.content) {
+                            // Repository file
+                            return {
+                                path: fileEntry.path,
+                                content: fileEntry.content
+                            };
+                        } else {
+                            // Drag-dropped file
+                            return {
+                                path: fileEntry.path,
+                                content: fileEntry.content
+                            };
+                        }
+                    })
+                );
+
+                estimateTokens(contents.map(c => c.content).join("\n"));
+
+                // Update state
+                setProcessedContents(contents);
+            } catch (error) {
+                console.error("Error reprocessing files:", error);
+            }
+        },
+        [files, fileStatuses, estimateTokens]
+    );
+
+    const toggleMultipleFiles = useCallback(
+        async (indices: number[], shouldInclude: boolean) => {
+            try {
+                // Create new statuses array with toggled statuses for multiple files
+                const newStatuses = fileStatuses.map((status, i) => {
+                    if (indices.includes(i)) {
+                        return { ...status, included: shouldInclude, forceInclude: shouldInclude };
+                    }
+                    return status;
+                });
                 setFileStatuses(newStatuses);
 
                 // Use the new statuses to filter files
@@ -130,7 +174,7 @@ const App: React.FC = () => {
                 const statuses: FileStatus[] = [];
 
                 // Process each file from the repository
-                for (const file of files) {
+                for (const [index, file] of files.entries()) {
                     if (signal.aborted) {
                         // Check for abort signal during processing
                         throw new Error("Operation aborted");
@@ -139,7 +183,7 @@ const App: React.FC = () => {
                     const blob = new Blob([file.content || ""], { type: file.type });
                     const fileObj = new File([blob], file.name, { type: file.type });
 
-                    const status = await processFile(fileObj, file.path);
+                    const status = await processFile(fileObj, file.path, index);
                     statuses.push(status);
 
                     fileEntries.push({
@@ -321,6 +365,7 @@ const App: React.FC = () => {
             const items = e.dataTransfer.items;
             const fileEntries: FileEntry[] = [];
             const statuses: FileStatus[] = [];
+            let fileIndex = 0; // Counter to track file indices
 
             const processEntry = async (entry: FileSystemEntry, path = ""): Promise<void> => {
                 // Skip processing if the current path should be skipped
@@ -342,7 +387,8 @@ const App: React.FC = () => {
                                 return;
                             }
 
-                            const status = await processFile(file, fullPath);
+                            const currentIndex = fileIndex++;
+                            const status = await processFile(file, fullPath, currentIndex);
 
                             if (status.included) {
                                 fileEntries.push({ file, path: fullPath, content: await file.text() });
@@ -512,77 +558,7 @@ const App: React.FC = () => {
 
                     {fileStatuses.length > 0 && (
                         <div className='mt-4 mb-4'>
-                            <div className='flex justify-between items-center mb-4'>
-                                <div className='space-y-1'>
-                                    <h3 className='font-semibold'>Files Summary</h3>
-                                    <p className='text-sm text-muted-foreground'>
-                                        {fileStatuses.filter(s => s.included).length} files included,&nbsp;
-                                        {fileStatuses.filter(s => !s.included).length} files excluded
-                                    </p>
-                                </div>
-                                <button onClick={() => setIsTableExpanded(!isTableExpanded)} className='text-sm text-blue-500 hover:text-blue-600 flex items-center gap-1'>
-                                    {isTableExpanded ? "Hide Details" : "Show Details"}
-                                </button>
-                            </div>
-
-                            {isTableExpanded && (
-                                <div className='border relative rounded-lg max-h-80 overflow-y-auto'>
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Status</TableHead>
-                                                <TableHead>File</TableHead>
-                                                <TableHead>Type</TableHead>
-                                                <TableHead>Size</TableHead>
-                                                <TableHead>Notes</TableHead>
-                                                <TableHead>Actions</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {fileStatuses.map((status, index) => (
-                                                <TableRow key={index}>
-                                                    <TableCell>
-                                                        <span className={status.included ? "text-green-600" : "text-red-600"}>{status.included ? "Included" : "Excluded"}</span>
-                                                    </TableCell>
-                                                    <TableCell className='font-mono text-sm max-w-[200px]'>
-                                                        <div className='truncate' title={status.path}>
-                                                            {status.path}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>{status.type}</TableCell>
-                                                    <TableCell>{formatSize(status.size)}</TableCell>
-                                                    <TableCell>{status.reason || "-"}</TableCell>
-                                                    <TableCell>
-                                                        <Button
-                                                            variant='outline'
-                                                            className={cn(status.included ? "bg-red-600/80 hover:bg-red-700/80" : "bg-green-600/80 hover:bg-green-700/80", "text-white hover:text-white")}
-                                                            size='sm'
-                                                            onClick={() => toggleFileInclusion(index)}
-                                                            disabled={isProcessing}>
-                                                            {isProcessing ? (
-                                                                <span className='flex items-center gap-2'>
-                                                                    <span className='animate-spin h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full'></span>
-                                                                    Processing...
-                                                                </span>
-                                                            ) : status.included ? (
-                                                                <span className='flex items-center gap-2'>
-                                                                    <XIcon className='w-4 h-4' />
-                                                                    Exclude
-                                                                </span>
-                                                            ) : (
-                                                                <span className='flex items-center gap-2'>
-                                                                    <PlusIcon className='w-4 h-4' />
-                                                                    Include
-                                                                </span>
-                                                            )}
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            )}
+                            <FileTree fileStatuses={fileStatuses} onToggleFile={toggleFileInclusion} onToggleMultipleFiles={toggleMultipleFiles} isProcessing={isProcessing} />
                         </div>
                     )}
 
@@ -600,6 +576,11 @@ const App: React.FC = () => {
 
                             {LLM_CONTEXT_LIMITS.map(llm => {
                                 const percentage = (tokens / llm.limit) * 100;
+
+                                if (percentage > 100) {
+                                    return null; // Skip LLMs that are over the limit, except for Custom
+                                }
+
                                 return (
                                     <div key={llm.name} className='space-y-1'>
                                         <div className='flex justify-between text-sm'>
@@ -661,6 +642,8 @@ const App: React.FC = () => {
                     )}
                 </CardContent>
             </Card>
+
+            <AboutSection />
         </div>
     );
 };

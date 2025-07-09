@@ -18,6 +18,7 @@ export type FileStatus = {
     forceInclude?: boolean;
     skipped?: boolean;
     skipReason?: string;
+    index?: number; // Add index for tree component
 };
 
 export type ProcessingConfig = {

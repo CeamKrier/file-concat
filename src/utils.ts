@@ -333,12 +333,20 @@ export const formatSize = (bytes: number): string => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
-export const estimateTokenCount = async (text: string, model = "o1-preview-2024-09-12") => {
-    const enc = encoding_for_model(model as TiktokenModel);
+export const estimateTokenCount = (text: string, model = "o1-preview-2024-09-12") => {
+    return new Promise<number>((resolve, reject) => {
+        const enc = encoding_for_model(model as TiktokenModel);
 
-    const tokens = enc.encode(text);
-    enc.free();
-    return tokens.length;
+        const tokens = enc.encode(text);
+        enc.free();
+        const tokenCount = tokens.length;
+
+        if (isNaN(tokenCount)) {
+            reject(new Error("Token count is NaN"));
+        } else {
+            resolve(tokenCount);
+        }
+    });
 };
 
 export const fetchGitlabRepository = async (url: string): Promise<RepositoryContent> => {
@@ -568,6 +576,8 @@ export const shouldSkipPath = (path: string): boolean => {
     });
 };
 
-export const calculateTotalSize = (content: string): number => {
-    return new TextEncoder().encode(content).length;
+export const calculateTotalSize = (content: string): Promise<number> => {
+    return new Promise(resolve => {
+        resolve(new TextEncoder().encode(content).length);
+    });
 };

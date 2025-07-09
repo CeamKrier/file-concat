@@ -1,7 +1,36 @@
 {
-    "name": "file-concat",
-    "private": true,
-    "version": "0.0.0",
+    "name": "fileconcat",
+    "version": "2.0.0",
+    "description": "Free file concatenation tool for AI assistants. Combine multiple files for ChatGPT, Claude, Gemini & other LLMs with 100% offline processing.",
+    "keywords": [
+        "file-concatenation",
+        "ai-tools",
+        "chatgpt",
+        "claude",
+        "llm",
+        "developer-tools",
+        "code-sharing",
+        "offline-tools",
+        "file-combiner",
+        "github-integration",
+        "token-counter",
+        "prompt-engineering"
+    ],
+    "homepage": "https://fileconcat.com",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/fileconcat/file-concatenator.git"
+    },
+    "bugs": {
+        "url": "https://github.com/fileconcat/file-concatenator/issues"
+    },
+    "author": {
+        "name": "Emre Çakır",
+        "email": "hello@ceamkrier.com",
+        "url": "https://fileconcat.com"
+    },
+    "license": "MIT",
+    "private": false,
     "type": "module",
     "scripts": {
         "dev": "vite",
