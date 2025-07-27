@@ -57,7 +57,7 @@ const RepositoryInput = forwardRef<RepositoryInputRef, RepositoryInputProps>(({ 
 
     const validateUrl = (url: string): boolean => {
         // Basic validation for GitHub and GitLab URLs
-        const githubRegex = /^https?:\/\/github\.com\/[\w-]+\/[\w.-]+$/;
+        const githubRegex = /^https?:\/\/github\.com\/[\w-]+\/[\w.-]+\/?$/;
         return githubRegex.test(url);
     };
 

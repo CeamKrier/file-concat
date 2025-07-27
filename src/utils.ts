@@ -422,7 +422,7 @@ export const fetchGitlabRepository = async (url: string): Promise<RepositoryCont
 
 export const fetchGithubRepository = async (url: string, onProgress?: (progress: DownloadProgress) => void, signal?: AbortSignal): Promise<RepositoryContent> => {
     try {
-        const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
+        const match = url.match(/github\.com\/([^/]+)\/([^/]+)\/?/);
         if (!match) {
             throw new Error("Invalid GitHub URL");
         }
