@@ -15,6 +15,7 @@ import AboutSection from "@/components/about-section";
 import { DownloadProgress, FileEntry, FileStatus, OutputFormat, ProcessingConfig } from "@/types";
 import { validateFile, formatSize, estimateTokenCount, fetchRepositoryFiles, shouldSkipPath, calculateTotalSize } from "@/utils";
 import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "@/constants";
+
 const App: React.FC = () => {
     const [files, setFiles] = useState<FileEntry[]>([]);
     const [output, setOutput] = useState<string>("");
@@ -33,6 +34,8 @@ const App: React.FC = () => {
 
     const dragCounter = useRef<number>(0);
     const repositoryInputRef = useRef<RepositoryInputRef>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const folderInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (tokens > MULTI_OUTPUT_LIMIT) {
@@ -74,6 +77,61 @@ const App: React.FC = () => {
             console.error("Error estimating token count:", error);
         }
     }, []);
+
+    const isExcludedPath = useCallback((path: string) => {
+        if (shouldSkipPath(path)) {
+            console.log(`Skipping excluded path: ${path}`);
+            return true;
+        }
+        return false;
+    }, []);
+
+    const handleFilesBatch = useCallback(
+        async (incomingFiles: Array<{ file: File; path?: string; content?: string }>) => {
+            const normalizedEntries = incomingFiles
+                .map(entry => {
+                    const path = entry.path || entry.file.webkitRelativePath || entry.file.name;
+                    return { ...entry, path };
+                })
+                .filter(entry => {
+                    return !isExcludedPath(entry.path);
+                });
+
+            const statuses: FileStatus[] = [];
+            const newFileEntries: FileEntry[] = [];
+            const includedContents: Array<{ path: string; content: string }> = [];
+
+            for (const entry of normalizedEntries) {
+                const index = statuses.length;
+                const status = await processFile(entry.file, entry.path, index);
+                statuses.push(status);
+
+                const content = entry.content !== undefined ? entry.content : await entry.file.text();
+                const fileEntry: FileEntry = {
+                    file: entry.file,
+                    path: entry.path,
+                    content
+                };
+
+                newFileEntries.push(fileEntry);
+
+                if (status.included) {
+                    includedContents.push({ path: fileEntry.path, content: fileEntry.content });
+                }
+            }
+
+            setFiles(newFileEntries);
+            setFileStatuses(statuses);
+            setProcessedContents(includedContents);
+
+            if (includedContents.length > 0) {
+                await estimateTokens(includedContents.map(c => c.content).join("\n"));
+            } else {
+                setTokens(0);
+            }
+        },
+        [estimateTokens, isExcludedPath, processFile]
+    );
 
     const toggleFileInclusion = useCallback(
         async (index: number) => {
@@ -164,51 +222,30 @@ const App: React.FC = () => {
         async (url: string, onProgress: (progress: DownloadProgress) => void, signal: AbortSignal) => {
             setIsRepoLoading(true);
             try {
-                const { files, error } = await fetchRepositoryFiles(url, onProgress, signal); // Pass signal to fetchRepositoryFiles
+                const { files, error } = await fetchRepositoryFiles(url, onProgress, signal);
 
                 if (error) {
                     throw new Error(error);
                 }
 
-                const fileEntries: FileEntry[] = [];
-                const statuses: FileStatus[] = [];
+                const incomingFiles: Array<{ file: File; path: string; content?: string }> = [];
 
-                // Process each file from the repository
-                for (const [index, file] of files.entries()) {
+                for (const file of files) {
                     if (signal.aborted) {
-                        // Check for abort signal during processing
                         throw new Error("Operation aborted");
                     }
 
                     const blob = new Blob([file.content || ""], { type: file.type });
                     const fileObj = new File([blob], file.name, { type: file.type });
 
-                    const status = await processFile(fileObj, file.path, index);
-                    statuses.push(status);
-
-                    fileEntries.push({
+                    incomingFiles.push({
                         file: fileObj,
                         path: file.path,
                         content: file.content || ""
                     });
                 }
 
-                // Set all files and statuses
-                setFiles(fileEntries);
-                setFileStatuses(statuses);
-
-                // Filter for included files
-                const includedFiles = fileEntries.filter((_, index) => statuses[index].included);
-
-                // Create processed contents from included files
-                const contents = includedFiles.map(({ path, content }) => ({
-                    path,
-                    content: content || ""
-                }));
-
-                estimateTokens(contents.map(c => c.content).join("\n"));
-
-                setProcessedContents(contents);
+                await handleFilesBatch(incomingFiles);
             } catch (error) {
                 if (error instanceof Error && error.name === "AbortError") {
                     throw new Error("Repository fetch aborted");
@@ -218,7 +255,7 @@ const App: React.FC = () => {
                 setIsRepoLoading(false);
             }
         },
-        [processFile, estimateTokens]
+        [handleFilesBatch]
     );
 
     const calculateChunks = useCallback(
@@ -369,37 +406,19 @@ const App: React.FC = () => {
             setIsProcessing(true);
 
             const items = e.dataTransfer.items;
-            const fileEntries: FileEntry[] = [];
-            const statuses: FileStatus[] = [];
-            let fileIndex = 0; // Counter to track file indices
+            const incomingFiles: Array<{ file: File; path: string }> = [];
 
             const processEntry = async (entry: FileSystemEntry, path = ""): Promise<void> => {
-                // Skip processing if the current path should be skipped
-                if (shouldSkipPath(path)) {
-                    console.log(`Skipping excluded path: ${path}`);
-                    return Promise.resolve();
-                }
-
                 if (entry.isFile) {
                     const fileEntry = entry as FileSystemFileEntry;
                     return new Promise(resolve => {
-                        fileEntry.file(async file => {
+                        fileEntry.file(file => {
                             const fullPath = path ? `${path}/${file.name}` : file.name;
 
-                            // Skip processing if the file path should be skipped
-                            if (shouldSkipPath(fullPath)) {
-                                console.log(`Skipping excluded file: ${fullPath}`);
-                                resolve();
-                                return;
+                            if (!isExcludedPath(fullPath)) {
+                                incomingFiles.push({ file, path: fullPath });
                             }
 
-                            const currentIndex = fileIndex++;
-                            const status = await processFile(file, fullPath, currentIndex);
-
-                            if (status.included) {
-                                fileEntries.push({ file, path: fullPath, content: await file.text() });
-                            }
-                            statuses.push(status);
                             resolve();
                         });
                     });
@@ -407,21 +426,20 @@ const App: React.FC = () => {
                     const dirEntry = entry as FileSystemDirectoryEntry;
                     const newPath = path ? `${path}/${dirEntry.name}` : dirEntry.name;
 
-                    // Skip processing if the directory should be skipped
-                    if (shouldSkipPath(newPath + "/")) {
-                        console.log(`Skipping excluded directory: ${newPath}`);
+                    if (isExcludedPath(`${newPath}/`)) {
                         return Promise.resolve();
                     }
 
                     const dirReader = dirEntry.createReader();
                     return new Promise(resolve => {
                         dirReader.readEntries(async entries => {
-                            const promises = entries.map(entry => processEntry(entry, newPath));
-                            await Promise.all(promises);
+                            await Promise.all(entries.map(entry => processEntry(entry, newPath)));
                             resolve();
                         });
                     });
                 }
+
+                return Promise.resolve();
             };
 
             try {
@@ -434,29 +452,14 @@ const App: React.FC = () => {
                 }
 
                 await Promise.all(promises);
-                setFiles(fileEntries);
-                setFileStatuses(statuses);
-
-                // Automatically process files after they're dropped
-                const contents = await Promise.all(
-                    fileEntries.map(async ({ file, path }) => ({
-                        file,
-                        path,
-                        content: await file.text()
-                    }))
-                );
-
-                estimateTokens(contents.map(c => c.content).join("\n"));
-
-                // Store processed contents in state for later use
-                setProcessedContents(contents);
+                await handleFilesBatch(incomingFiles);
             } catch (error) {
                 console.error("Error processing files:", error);
             } finally {
                 setIsProcessing(false);
             }
         },
-        [resetAll, processFile, estimateTokens]
+        [resetAll, handleFilesBatch, isExcludedPath]
     );
 
     const getEstimations = useCallback(() => {
@@ -502,6 +505,31 @@ const App: React.FC = () => {
         }
     }, [selectedFormat, processedContents, calculateChunks, fileStatuses]);
 
+    const handleFileInputChange = useCallback(
+        async (e: React.ChangeEvent<HTMLInputElement>) => {
+            const selectedFiles = e.target.files;
+            if (!selectedFiles || selectedFiles.length === 0) return;
+
+            resetAll();
+            setIsProcessing(true);
+
+            try {
+                const incomingFiles = Array.from(selectedFiles).map(file => ({
+                    file,
+                    path: file.webkitRelativePath || file.name
+                }));
+
+                await handleFilesBatch(incomingFiles);
+            } catch (error) {
+                console.error("Error processing files:", error);
+            } finally {
+                e.target.value = "";
+                setIsProcessing(false);
+            }
+        },
+        [resetAll, handleFilesBatch]
+    );
+
     return (
         <div className='p-4 max-w-4xl mx-auto'>
             <Card>
@@ -544,6 +572,25 @@ const App: React.FC = () => {
 
                     <div className='flex items-center justify-center py-4'>or</div>
 
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        onChange={handleFileInputChange}
+                        className="hidden"
+                        disabled={isProcessing || isRepoLoading}
+                    />
+                    <input
+                        ref={folderInputRef}
+                        type="file"
+                        webkitdirectory=""
+                        directory=""
+                        multiple
+                        onChange={handleFileInputChange}
+                        className="hidden"
+                        disabled={isProcessing || isRepoLoading}
+                    />
+
                     <div
                         onDragEnter={isProcessing || isRepoLoading ? undefined : handleDragEnter}
                         onDragLeave={isProcessing || isRepoLoading ? undefined : handleDragLeave}
@@ -556,11 +603,31 @@ const App: React.FC = () => {
     `}>
                         <Upload
                             className={`w-12 h-12 mx-auto mb-4 transition-colors duration-200
-            ${isProcessing || isRepoLoading ? "text-gray-300" : isDragging ? "text-blue-500" : "text-gray-400"}`}
+                            ${isProcessing || isRepoLoading ? "text-gray-300" : isDragging ? "text-blue-500" : "text-gray-400"}`}
                         />
                         <p>{isProcessing ? "Processing files..." : isDragging ? "Drop files here" : "Drag and drop files or folders here"}</p>
+                        <div className='flex items-center justify-center py-4 text-muted-foreground'>or</div>
+                        {!isProcessing && !isRepoLoading && (
+                            <div className="flex gap-3 justify-center">
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={isProcessing || isRepoLoading}
+                                >
+                                    Browse Files
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => folderInputRef.current?.click()}
+                                    disabled={isProcessing || isRepoLoading}
+                                >
+                                    Browse Folder
+                                </Button>
+                            </div>
+                        )}
+
                         {files.length > 0 && (
-                            <div className='mt-2 text-sm text-muted-foreground'>
+                            <div className='mt-4 text-sm text-muted-foreground'>
                                 <p>{files.length} files selected</p>
                                 <p>Total size: {formatSize(files.reduce((acc, { file }) => acc + file.size, 0))}</p>
                             </div>
