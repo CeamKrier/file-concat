@@ -56,8 +56,13 @@ const RepositoryInput = forwardRef<RepositoryInputRef, RepositoryInputProps>(({ 
     }));
 
     const validateUrl = (url: string): boolean => {
-        // Basic validation for GitHub and GitLab URLs
-        const githubRegex = /^https?:\/\/github\.com\/[\w-]+\/[\w.-]+\/?$/;
+        // Updated validation to support GitHub URLs with branches and sub-paths
+        // Supports:
+        // - https://github.com/owner/repo
+        // - https://github.com/owner/repo/tree/branch
+        // - https://github.com/owner/repo/tree/branch/path/to/folder
+        // - https://github.com/owner/repo/tree/commit-sha/path
+        const githubRegex = /^https?:\/\/github\.com\/[\w-]+\/[\w.-]+(?:\/tree\/[\w.-]+(?:\/[\w./-]+)?)?$/;
         return githubRegex.test(url);
     };
 
@@ -110,7 +115,7 @@ const RepositoryInput = forwardRef<RepositoryInputRef, RepositoryInputProps>(({ 
             </div>
 
             <form onSubmit={handleSubmit} className='flex gap-2'>
-                <Input type='url' placeholder='https://github.com/username/repository' value={url} onChange={e => setUrl(e.target.value)} className='flex-1' disabled={isLoading} />
+                <Input type='url' placeholder='https://github.com/owner/repo or .../tree/branch/path' value={url} onChange={e => setUrl(e.target.value)} className='flex-1' disabled={isLoading} />
                 {isLoading ? (
                     <>
                         <Button disabled variant='secondary'>

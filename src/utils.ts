@@ -422,30 +422,54 @@ export const fetchGitlabRepository = async (url: string): Promise<RepositoryCont
 
 export const fetchGithubRepository = async (url: string, onProgress?: (progress: DownloadProgress) => void, signal?: AbortSignal): Promise<RepositoryContent> => {
     try {
-        const match = url.match(/github\.com\/([^/]+)\/([^/]+)\/?/);
+        // Updated regex to support branch and sub-path
+        // Captures: owner, repo, branch/commit (optional), sub-path (optional)
+        const match = url.match(/github\.com\/([^/]+)\/([^/]+)(?:\/tree\/([^/]+)(?:\/(.+))?)?/);
         if (!match) {
             throw new Error("Invalid GitHub URL");
         }
 
-        const [, owner, repo] = match;
+        const [, owner, repo, branchOrCommit, subPath] = match;
 
-        // First, get the default branch
-        const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { signal });
-        if (!repoResponse.ok) {
-            throw new Error("Failed to fetch repository information");
+        // First, get the default branch if no branch specified
+        let branch = branchOrCommit;
+        if (!branch) {
+            const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { signal });
+            if (!repoResponse.ok) {
+                throw new Error("Failed to fetch repository information");
+            }
+            const repoData = await repoResponse.json();
+            branch = repoData.default_branch;
         }
-        const repoData = await repoResponse.json();
-        const defaultBranch = repoData.default_branch;
 
-        // Get the complete tree
-        const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`;
+        // Get the complete tree with the specified branch
+        const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`;
         const treeResponse = await fetch(treeUrl, { signal });
         if (!treeResponse.ok) {
+            if (treeResponse.status === 404) {
+                throw new Error(`Branch or commit '${branch}' not found in repository`);
+            }
             throw new Error("Failed to fetch repository contents");
         }
 
         const treeData = await treeResponse.json();
-        const files = treeData.tree.filter((item: { type: string }) => item.type === "blob");
+
+        // Filter for blobs (files) and optionally by sub-path
+        const files = treeData.tree.filter((item: { type: string; path: string }) => {
+            if (item.type !== "blob") return false;
+
+            // If sub-path is specified, filter by it
+            if (subPath) {
+                return item.path.startsWith(subPath + '/') || item.path === subPath;
+            }
+
+            return true;
+        });
+
+        // If sub-path was specified but no files found, throw error
+        if (subPath && files.length === 0) {
+            throw new Error(`Path '${subPath}' not found in branch '${branch}'`);
+        }
 
         // Calculate total size and setup progress tracking
         const totalBytes = files.reduce((acc: number, file: { size: number }) => acc + file.size, 0);
@@ -482,7 +506,7 @@ export const fetchGithubRepository = async (url: string, onProgress?: (progress:
 
         // Fetch files with progress and abort support
         const filePromises = files.map(async (item: { path: string; size: number }) => {
-            const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${defaultBranch}/${item.path}`;
+            const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${item.path}`;
             try {
                 const response = await fetch(rawUrl, { signal });
                 if (!response.ok) throw new Error(`Failed to fetch ${item.path}`);
@@ -517,9 +541,16 @@ export const fetchGithubRepository = async (url: string, onProgress?: (progress:
                 const typeResult = await fileTypeFromBuffer(allChunks);
                 const detectedMime = typeResult?.mime || "text/plain";
 
+                // Adjust path to remove sub-path prefix if present
+                const displayPath = subPath && item.path.startsWith(subPath + '/')
+                    ? item.path.substring(subPath.length + 1)
+                    : subPath && item.path === subPath
+                    ? item.path.split('/').pop() || item.path
+                    : item.path;
+
                 return {
-                    name: item.path.split("/").pop() || "",
-                    path: item.path,
+                    name: displayPath.split("/").pop() || "",
+                    path: displayPath,
                     type: detectedMime,
                     size: item.size,
                     content,

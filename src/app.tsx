@@ -43,7 +43,7 @@ const App: React.FC = () => {
     }, [tokens]);
 
     const processFile = useCallback(
-        async (file: File, path: string, index?: number): Promise<FileStatus> => {
+        async (file: File, path: string, index: number): Promise<FileStatus> => {
             const validationResult = await validateFile(file, config);
 
             return {
@@ -272,8 +272,14 @@ const App: React.FC = () => {
         setIsProcessing(true);
 
         try {
+            // Filter processedContents to only include files that are currently marked as included
+            const includedContents = processedContents.filter((content) => {
+                const status = fileStatuses.find(s => s.path === content.path);
+                return status?.included ?? false;
+            });
+
             if (selectedFormat === "single") {
-                const output = `# Files\n` + processedContents.map(({ path, content }) => `## ${path}\n\`\`\`\n${content}\n\`\`\`\n`).join("\n");
+                const output = `# Files\n` + includedContents.map(({ path, content }) => `## ${path}\n\`\`\`\n${content}\n\`\`\`\n`).join("\n");
 
                 const blob = new Blob([output], { type: "text/plain" });
                 const url = URL.createObjectURL(blob);
@@ -285,7 +291,7 @@ const App: React.FC = () => {
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             } else {
-                const chunks = calculateChunks(processedContents);
+                const chunks = calculateChunks(includedContents);
 
                 // Process and download chunks
                 for (let i = 0; i < chunks.length; i++) {
@@ -313,7 +319,7 @@ const App: React.FC = () => {
         } finally {
             setIsProcessing(false);
         }
-    }, [selectedFormat, processedContents, calculateChunks]);
+    }, [selectedFormat, processedContents, calculateChunks, fileStatuses]);
 
     const resetAll = useCallback(() => {
         repositoryInputRef.current?.abort();
@@ -454,35 +460,47 @@ const App: React.FC = () => {
     );
 
     const getEstimations = useCallback(() => {
-        const chunks = calculateChunks(processedContents);
+        // Filter processedContents to only include files that are currently marked as included
+        const includedContents = processedContents.filter((content) => {
+            const status = fileStatuses.find(s => s.path === content.path);
+            return status?.included ?? false;
+        });
+
+        const chunks = calculateChunks(includedContents);
         const chunkSizes = chunks.map(chunk => chunk.reduce((acc, file) => acc + new TextEncoder().encode(file.content).length, 0));
         const avgSize = chunkSizes.length > 0 ? Math.ceil(chunkSizes.reduce((a, b) => a + b, 0) / chunkSizes.length) : 0;
 
         const multiple = `${chunks.length} files, ~${formatSize(avgSize)} each`;
 
         // For single file option display
-        const totalSize = processedContents.reduce((acc, file) => acc + new TextEncoder().encode(file.content).length, 0);
+        const totalSize = includedContents.reduce((acc, file) => acc + new TextEncoder().encode(file.content).length, 0);
         const single = `~${formatSize(totalSize)}`;
 
         return { single, multiple };
-    }, [calculateChunks, processedContents]);
+    }, [calculateChunks, processedContents, fileStatuses]);
 
     const generatePreview = useCallback(() => {
+        // Filter processedContents to only include files that are currently marked as included
+        const includedContents = processedContents.filter((content) => {
+            const status = fileStatuses.find(s => s.path === content.path);
+            return status?.included ?? false;
+        });
+
         if (selectedFormat === "single") {
             return [
                 {
                     name: "concat-output.md",
-                    content: `# Files\n` + processedContents.map(({ path, content }) => `## ${path}\n\`\`\`\n${content}\n\`\`\`\n`).join("\n")
+                    content: `# Files\n` + includedContents.map(({ path, content }) => `## ${path}\n\`\`\`\n${content}\n\`\`\`\n`).join("\n")
                 }
             ];
         } else {
-            const chunks = calculateChunks(processedContents);
+            const chunks = calculateChunks(includedContents);
             return chunks.map((chunk, i) => ({
                 name: `concat-output-part${i + 1}.md`,
                 content: `# Files - Part ${i + 1}/${chunks.length}\n` + chunk.map(({ path, content }) => `## ${path}\n\`\`\`\n${content}\n\`\`\`\n`).join("\n")
             }));
         }
-    }, [selectedFormat, processedContents, calculateChunks]);
+    }, [selectedFormat, processedContents, calculateChunks, fileStatuses]);
 
     return (
         <div className='p-4 max-w-4xl mx-auto'>
@@ -532,12 +550,12 @@ const App: React.FC = () => {
                         onDragOver={isProcessing || isRepoLoading ? undefined : handleDragOver}
                         onDrop={isProcessing || isRepoLoading ? undefined : handleDrop}
                         className={`
-        border-2 border-dashed rounded-lg p-8 text-center mb-4 
+        border-2 border-dashed rounded-lg p-8 text-center mb-4
         transition-all duration-200
         ${isProcessing || isRepoLoading ? "opacity-50 cursor-not-allowed border-gray-200" : isDragging ? "border-blue-500 bg-muted" : "hover:border-blue-300"}
     `}>
                         <Upload
-                            className={`w-12 h-12 mx-auto mb-4 transition-colors duration-200 
+                            className={`w-12 h-12 mx-auto mb-4 transition-colors duration-200
             ${isProcessing || isRepoLoading ? "text-gray-300" : isDragging ? "text-blue-500" : "text-gray-400"}`}
                         />
                         <p>{isProcessing ? "Processing files..." : isDragging ? "Drop files here" : "Drag and drop files or folders here"}</p>
