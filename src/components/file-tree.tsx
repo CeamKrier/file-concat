@@ -225,9 +225,12 @@ const FileTree: React.FC<FileTreeProps> = ({ fileStatuses, onToggleFile, onToggl
     );
 
     const stats = useMemo(() => {
+        const uploadedCount = fileStatuses.length;
+        const uploadedSize = fileStatuses.reduce((acc, status) => acc + status.size, 0);
         const includedCount = fileStatuses.filter(s => s.included).length;
+        const includedSize = fileStatuses.filter(s => s.included).reduce((acc, status) => acc + status.size, 0);
         const excludedCount = fileStatuses.filter(s => !s.included).length;
-        return { includedCount, excludedCount };
+        return { includedCount, excludedCount, uploadedCount, uploadedSize, includedSize };
     }, [fileStatuses]);
 
     const expandAll = useCallback(() => {
@@ -270,7 +273,7 @@ const FileTree: React.FC<FileTreeProps> = ({ fileStatuses, onToggleFile, onToggl
                 <div className='space-y-1'>
                     <h3 className='font-semibold'>Files</h3>
                     <p className='text-sm text-muted-foreground'>
-                        {stats.includedCount} included, {stats.excludedCount} excluded
+                       <span className="text-foreground">{stats.uploadedCount}</span> files uploaded with total size of <span className="text-foreground">{formatSize(stats.uploadedSize)}</span>
                     </p>
                 </div>
                 <div className='flex items-center gap-2'>
@@ -284,24 +287,35 @@ const FileTree: React.FC<FileTreeProps> = ({ fileStatuses, onToggleFile, onToggl
             </div>
 
             {/* Legend */}
-            <div className='flex items-center gap-4 text-xs text-muted-foreground bg-muted/30 p-2 rounded'>
-                <div className='flex items-center gap-1'>
-                    <Check className='w-3 h-3 text-green-600' />
-                    <span>Included</span>
+            <div className="flex flex-col gap-2">
+                <div className='flex items-center gap-4 text-xs text-muted-foreground bg-muted/30 p-2 rounded'>
+                    <div className='flex items-center gap-1'>
+                        <Check className='w-3 h-3 text-green-600' />
+                        <span>Included</span>
+                    </div>
+                    <div className='flex items-center gap-1'>
+                        <X className='w-3 h-3 text-red-600' />
+                        <span>Excluded</span>
+                    </div>
+                    <div className='flex items-center gap-1'>
+                        <Minus className='w-3 h-3 text-yellow-600' />
+                        <span>Partially included</span>
+                    </div>
                 </div>
-                <div className='flex items-center gap-1'>
-                    <X className='w-3 h-3 text-red-600' />
-                    <span>Excluded</span>
-                </div>
-                <div className='flex items-center gap-1'>
-                    <Minus className='w-3 h-3 text-yellow-600' />
-                    <span>Partially included</span>
-                </div>
+                <p className='text-sm text-muted-foreground'>
+                    You can <span className="text-foreground">click</span> the icons to <span className="text-foreground">toggle</span> inclusion/exclusion of files or directories.
+                </p>
             </div>
 
             {/* File tree */}
             <div className='border rounded-lg bg-background'>
                 <div className='max-h-80 overflow-y-auto p-2'>{treeData.children && treeData.children.map(child => renderNode(child))}</div>
+            </div>
+
+            <div>
+                <p className='text-sm text-muted-foreground'>
+                    <span className="text-foreground">{stats.includedCount}</span> files included with total size of <span className="text-foreground">{formatSize(stats.includedSize)}</span>, <span className="text-foreground">{stats.excludedCount}</span> files excluded
+                </p>
             </div>
         </div>
     );

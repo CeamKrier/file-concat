@@ -568,71 +568,66 @@ const App: React.FC = () => {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <RepositoryInput ref={repositoryInputRef} isLoading={isRepoLoading} onSubmit={handleRepositorySubmit} />
+                    {!fileStatuses.length && <>
+                        <RepositoryInput ref={repositoryInputRef} isLoading={isRepoLoading} onSubmit={handleRepositorySubmit} />
 
-                    <div className='flex items-center justify-center py-4'>or</div>
+                        <div className='flex items-center justify-center py-4'>or</div>
 
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        onChange={handleFileInputChange}
-                        className="hidden"
-                        disabled={isProcessing || isRepoLoading}
-                    />
-                    <input
-                        ref={folderInputRef}
-                        type="file"
-                        webkitdirectory=""
-                        directory=""
-                        multiple
-                        onChange={handleFileInputChange}
-                        className="hidden"
-                        disabled={isProcessing || isRepoLoading}
-                    />
-
-                    <div
-                        onDragEnter={isProcessing || isRepoLoading ? undefined : handleDragEnter}
-                        onDragLeave={isProcessing || isRepoLoading ? undefined : handleDragLeave}
-                        onDragOver={isProcessing || isRepoLoading ? undefined : handleDragOver}
-                        onDrop={isProcessing || isRepoLoading ? undefined : handleDrop}
-                        className={`
-        border-2 border-dashed rounded-lg p-8 text-center mb-4
-        transition-all duration-200
-        ${isProcessing || isRepoLoading ? "opacity-50 cursor-not-allowed border-gray-200" : isDragging ? "border-blue-500 bg-muted" : "hover:border-blue-300"}
-    `}>
-                        <Upload
-                            className={`w-12 h-12 mx-auto mb-4 transition-colors duration-200
-                            ${isProcessing || isRepoLoading ? "text-gray-300" : isDragging ? "text-blue-500" : "text-gray-400"}`}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            multiple
+                            onChange={handleFileInputChange}
+                            className="hidden"
+                            disabled={isProcessing || isRepoLoading}
                         />
-                        <p>{isProcessing ? "Processing files..." : isDragging ? "Drop files here" : "Drag and drop files or folders here"}</p>
-                        <div className='flex items-center justify-center py-4 text-muted-foreground'>or</div>
-                        {!isProcessing && !isRepoLoading && (
-                            <div className="flex gap-3 justify-center">
-                                <Button
-                                    variant="secondary"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    disabled={isProcessing || isRepoLoading}
-                                >
-                                    Browse Files
-                                </Button>
-                                <Button
-                                    variant="secondary"
-                                    onClick={() => folderInputRef.current?.click()}
-                                    disabled={isProcessing || isRepoLoading}
-                                >
-                                    Browse Folder
-                                </Button>
-                            </div>
-                        )}
+                        <input
+                            ref={folderInputRef}
+                            type="file"
+                            webkitdirectory=""
+                            directory=""
+                            multiple
+                            onChange={handleFileInputChange}
+                            className="hidden"
+                            disabled={isProcessing || isRepoLoading}
+                        />
 
-                        {files.length > 0 && (
-                            <div className='mt-4 text-sm text-muted-foreground'>
-                                <p>{files.length} files selected</p>
-                                <p>Total size: {formatSize(files.reduce((acc, { file }) => acc + file.size, 0))}</p>
-                            </div>
-                        )}
-                    </div>
+                        <div
+                            onDragEnter={isProcessing || isRepoLoading ? undefined : handleDragEnter}
+                            onDragLeave={isProcessing || isRepoLoading ? undefined : handleDragLeave}
+                            onDragOver={isProcessing || isRepoLoading ? undefined : handleDragOver}
+                            onDrop={isProcessing || isRepoLoading ? undefined : handleDrop}
+                            className={`
+                                border-2 border-dashed rounded-lg p-8 text-center mb-4
+                                transition-all duration-200
+                                ${isProcessing || isRepoLoading ? "opacity-50 cursor-not-allowed border-gray-200" : isDragging ? "border-blue-500 bg-muted" : "hover:border-blue-300"}
+                            `}>
+                            <Upload
+                                className={`w-12 h-12 mx-auto mb-4 transition-colors duration-200
+                                ${isProcessing || isRepoLoading ? "text-gray-300" : isDragging ? "text-blue-500" : "text-gray-400"}`}
+                            />
+                            <p>{isProcessing ? "Processing files..." : isDragging ? "Drop files here" : "Drag and drop files or folders here"}</p>
+                            <div className='flex items-center justify-center py-4 text-muted-foreground'>or</div>
+                            {!isProcessing && !isRepoLoading && (
+                                <div className="flex gap-3 justify-center">
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={isProcessing || isRepoLoading}
+                                    >
+                                        Browse Files
+                                    </Button>
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() => folderInputRef.current?.click()}
+                                        disabled={isProcessing || isRepoLoading}
+                                    >
+                                        Browse Folder
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </>}
 
                     {(files.length > 0 || output) && (
                         <button onClick={resetAll} className='w-full justify-center px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'>
