@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen, Check, X, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileStatus } from "@/types";
@@ -249,6 +249,15 @@ const FileTree: React.FC<FileTreeProps> = ({ fileStatuses, onToggleFile, onToggl
     const collapseAll = useCallback(() => {
         setExpandedPaths(new Set());
     }, []);
+
+    // Auto-expand all folders on initial load without affecting later interactions
+    const hasAutoExpandedRef = useRef(false);
+    useEffect(() => {
+        if (hasAutoExpandedRef.current) return;
+        if (!treeData.children || treeData.children.length === 0) return;
+        expandAll();
+        hasAutoExpandedRef.current = true;
+    }, [treeData, expandAll]);
 
     if (fileStatuses.length === 0) {
         return null;
