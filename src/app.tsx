@@ -10,6 +10,7 @@ import OutputSettings from "@/components/output-settings";
 import TokenInfoPopover from "@/components/token-info-popover";
 import PreviewModal from "@/components/preview-modal";
 import FileTree from "@/components/file-tree";
+import FileViewerModal from "@/components/file-viewer-modal";
 import AboutSection from "@/components/about-section";
 
 import { DownloadProgress, FileEntry, FileStatus, OutputFormat, ProcessingConfig } from "@/types";
@@ -31,6 +32,29 @@ const App: React.FC = () => {
     const [config] = useState<ProcessingConfig>(DEFAULT_CONFIG);
 
     const [maxFileSize, setMaxFileSize] = useState<number>(32);
+
+    // Viewer state
+    const [activeFilePath, setActiveFilePath] = useState<string | undefined>(undefined);
+    const [isEditorEnabled] = useState<boolean>(true); // feature flag (can be wired to a UI toggle later)
+    const [editingPath, setEditingPath] = useState<string | null>(null);
+    const [editorDirtyByPath, setEditorDirtyByPath] = useState<Record<string, boolean>>({});
+    const [editorDraftByPath, setEditorDraftByPath] = useState<Record<string, string>>({});
+    const [isDesktop, setIsDesktop] = useState<boolean>(false);
+
+    // Track responsive breakpoint to decide between pane vs modal
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const mql = window.matchMedia("(min-width: 768px)"); // Tailwind md breakpoint
+        const handler = (e: MediaQueryListEvent | MediaQueryList) => setIsDesktop(("matches" in e ? e.matches : (e as MediaQueryList).matches));
+        // Initialize
+        setIsDesktop(mql.matches);
+        // Listen
+        const onChange = (e: MediaQueryListEvent) => handler(e);
+        mql.addEventListener?.("change", onChange);
+        return () => {
+            mql.removeEventListener?.("change", onChange);
+        };
+    }, []);
 
     const dragCounter = useRef<number>(0);
     const repositoryInputRef = useRef<RepositoryInputRef>(null);
@@ -530,8 +554,87 @@ const App: React.FC = () => {
         [resetAll, handleFilesBatch]
     );
 
+    // Editing helpers
+    const startEdit = useCallback((path: string) => {
+        const file = files.find(f => f.path === path);
+        if (!file) return;
+        setEditingPath(path);
+        setEditorDraftByPath(prev => ({ ...prev, [path]: file.content }));
+        setEditorDirtyByPath(prev => ({ ...prev, [path]: false }));
+    }, [files]);
+
+    const cancelEdit = useCallback((path: string) => {
+        setEditingPath(prev => (prev === path ? null : prev));
+        setEditorDraftByPath(prev => {
+            const next = { ...prev };
+            delete next[path];
+            return next;
+        });
+        setEditorDirtyByPath(prev => ({ ...prev, [path]: false }));
+    }, []);
+
+    const changeEdit = useCallback((path: string, value: string) => {
+        setEditorDraftByPath(prev => ({ ...prev, [path]: value }));
+        setEditorDirtyByPath(prev => ({ ...prev, [path]: true }));
+    }, []);
+
+    const saveEdit = useCallback(async (path: string) => {
+        const draft = editorDraftByPath[path];
+        if (draft == null) return;
+
+        // Update files
+        setFiles(prev => prev.map(f => (f.path === path ? { ...f, content: draft } : f)));
+
+        // Update file size in statuses
+        const byteLen = new TextEncoder().encode(draft).length;
+        setFileStatuses(prev => prev.map(s => (s.path === path ? { ...s, size: byteLen } : s)));
+
+        // Recompute processedContents based on inclusion
+        const includedSet = new Set(
+            fileStatuses
+                .map(s => (s.path === path ? { ...s, size: byteLen } : s))
+                .filter(s => s.included)
+                .map(s => s.path)
+        );
+
+        const newFiles = files.map(f => (f.path === path ? { ...f, content: draft } : f));
+        const newProcessed = newFiles
+            .filter(f => includedSet.has(f.path))
+            .map(f => ({ path: f.path, content: f.content }));
+        setProcessedContents(newProcessed);
+
+        // Re-estimate tokens for included content
+        try {
+            await estimateTokens(newProcessed.map(c => c.content).join("\n"));
+        } catch (e) {
+            console.warn("Token estimation failed after save", e);
+        }
+
+        // Clear edit state
+        setEditorDirtyByPath(prev => ({ ...prev, [path]: false }));
+        setEditingPath(prev => (prev === path ? null : prev));
+        setEditorDraftByPath(prev => {
+            const next = { ...prev };
+            delete next[path];
+            return next;
+        });
+    }, [editorDraftByPath, files, fileStatuses, estimateTokens]);
+
+    // Warn on page unload if there are unsaved changes
+    useEffect(() => {
+        const hasDirty = Object.values(editorDirtyByPath).some(Boolean);
+        const handler = (e: BeforeUnloadEvent) => {
+            if (hasDirty) {
+                e.preventDefault();
+                e.returnValue = "";
+            }
+        };
+        window.addEventListener("beforeunload", handler);
+        return () => window.removeEventListener("beforeunload", handler);
+    }, [editorDirtyByPath]);
+
     return (
-        <div className='p-4 max-w-4xl mx-auto'>
+        <div className='p-4 max-w-5xl mx-auto'>
             <Card>
                 <CardHeader>
                     <div className='flex justify-between items-start'>
@@ -638,7 +741,60 @@ const App: React.FC = () => {
 
                     {fileStatuses.length > 0 && (
                         <div className='mt-4 mb-4'>
-                            <FileTree fileStatuses={fileStatuses} onToggleFile={toggleFileInclusion} onToggleMultipleFiles={toggleMultipleFiles} isProcessing={isProcessing} />
+                            {/* Responsive layout: single column on mobile, two columns on desktop when a file is active */}
+                            <div className={activeFilePath && isDesktop ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : ''}>
+                                <div>
+                                    <FileTree
+                                        fileStatuses={fileStatuses}
+                                        onToggleFile={toggleFileInclusion}
+                                        onToggleMultipleFiles={toggleMultipleFiles}
+                                        isProcessing={isProcessing}
+                                        onOpenFile={(path) => setActiveFilePath(path)}
+                                    />
+                                </div>
+                            </div>
+
+                            {activeFilePath  && (() => {
+                                const f = files.find(f => f.path === activeFilePath);
+                                const s = fileStatuses.find(s => s.path === activeFilePath);
+                                if (!f || !s) return null;
+                                const isEditing = editingPath === activeFilePath;
+                                const onToggleInclude = () => {
+                                    const idx = fileStatuses.findIndex(st => st.path === activeFilePath);
+                                    if (idx >= 0) toggleFileInclusion(idx);
+                                };
+                                return (
+                                    <FileViewerModal
+                                        open={!!activeFilePath}
+                                        onOpenChange={(open) => {
+                                            if (!open) {
+                                                if (editorDirtyByPath[f.path]) {
+                                                    const proceed = window.confirm("Discard unsaved changes?");
+                                                    if (!proceed) return;
+                                                    cancelEdit(f.path);
+                                                }
+                                                setActiveFilePath(undefined);
+                                            } else {
+                                                setActiveFilePath(activeFilePath);
+                                            }
+                                        }}
+                                        path={f.path}
+                                        size={s.size}
+                                        included={s.included}
+                                        reason={s.reason}
+                                        content={(isEditing ? editorDraftByPath[f.path] : f.content) ?? null}
+                                        onToggleInclude={onToggleInclude}
+                                        isProcessing={isProcessing}
+                                        editingEnabled={isEditorEnabled}
+                                        isEditing={isEditing}
+                                        isDirty={!!editorDirtyByPath[f.path]}
+                                        onStartEdit={() => startEdit(f.path)}
+                                        onCancelEdit={() => cancelEdit(f.path)}
+                                        onSaveEdit={() => saveEdit(f.path)}
+                                        onChangeEdit={(val: string) => changeEdit(f.path, val)}
+                                    />
+                                );
+                            })()}
                         </div>
                     )}
 

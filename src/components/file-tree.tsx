@@ -21,9 +21,10 @@ interface FileTreeProps {
     onToggleFile: (index: number) => void;
     onToggleMultipleFiles: (indices: number[], shouldInclude: boolean) => void;
     isProcessing?: boolean;
+    onOpenFile?: (path: string) => void;
 }
 
-const FileTree: React.FC<FileTreeProps> = ({ fileStatuses, onToggleFile, onToggleMultipleFiles, isProcessing = false }) => {
+const FileTree: React.FC<FileTreeProps> = ({ fileStatuses, onToggleFile, onToggleMultipleFiles, isProcessing = false, onOpenFile }) => {
     const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
 
     // Build tree structure from file paths
@@ -199,7 +200,28 @@ const FileTree: React.FC<FileTreeProps> = ({ fileStatuses, onToggleFile, onToggl
                         </button>
 
                         {/* File/Folder name */}
-                        <span className={cn("text-sm flex-1 truncate", node.type === "file" ? "font-mono" : "font-medium")} title={node.path}>
+                        <span
+                            className={cn(
+                                "text-sm flex-1 truncate",
+                                node.type === "file" ? "font-mono text-foreground hover:underline cursor-pointer" : "font-medium"
+                            )}
+                            title={node.path}
+                            role={node.type === "file" ? "button" : undefined}
+                            tabIndex={node.type === "file" ? 0 : -1}
+                            onClick={(e) => {
+                                // Prevent triggering folder expand when clicking on file name
+                                e.stopPropagation();
+                                if (node.type === "file") {
+                                    onOpenFile?.(node.path);
+                                }
+                            }}
+                            onKeyDown={(e) => {
+                                if (node.type === "file" && (e.key === "Enter" || e.key === " ")) {
+                                    e.preventDefault();
+                                    onOpenFile?.(node.path);
+                                }
+                            }}
+                        >
                             {node.name}
                         </span>
 
@@ -221,7 +243,7 @@ const FileTree: React.FC<FileTreeProps> = ({ fileStatuses, onToggleFile, onToggl
                 </div>
             );
         },
-        [expandedPaths, toggleExpanded, renderInclusionIcon, onToggleFile, toggleDirectoryInclusion, isProcessing]
+        [expandedPaths, toggleExpanded, renderInclusionIcon, onToggleFile, toggleDirectoryInclusion, isProcessing, onOpenFile]
     );
 
     const stats = useMemo(() => {
