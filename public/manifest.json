@@ -1,38 +1,38 @@
 {
-    "name": "FileConcat",
-    "short_name": "FileConcat",
-    "description": "Free file concatenation tool for AI assistants. Combine multiple files for ChatGPT, Claude, and other LLMs.",
-    "start_url": "/",
-    "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#3b82f6",
-    "orientation": "portrait-primary",
-    "categories": ["productivity", "developer", "utilities"],
-    "icons": [
-        {
-            "src": "/favicon.ico",
-            "sizes": "32x32",
-            "type": "image/x-icon"
-        },
-        {
-            "src": "/logo.png",
-            "sizes": "192x192",
-            "type": "image/png",
-            "purpose": "any maskable"
-        },
-        {
-            "src": "/logo.png",
-            "sizes": "512x512",
-            "type": "image/png",
-            "purpose": "any maskable"
-        }
-    ],
-    "screenshots": [
-        {
-            "src": "/opengraph.png",
-            "sizes": "1200x630",
-            "type": "image/png",
-            "form_factor": "wide"
-        }
-    ]
+  "name": "FileConcat",
+  "short_name": "FileConcat",
+  "description": "Free file concatenation tool for AI assistants. Combine multiple files for ChatGPT, Claude, and other LLMs.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "developer", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/opengraph.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ]
 }

@@ -1,13 +1,11 @@
 {
-    "printWidth": 100,
-    "plugins": [
-      "prettier-plugin-tailwindcss"
-    ],
-    "endOfLine": "crlf",
-    "insertFinalNewline": true,
-    "trimTrailingWhitespace": true,
-    "semi": true,
-    "singleQuote": false,
-    "tabWidth": 2,
-    "useTabs": false
-  }
+  "printWidth": 100,
+  "plugins": ["prettier-plugin-tailwindcss"],
+  "endOfLine": "crlf",
+  "insertFinalNewline": true,
+  "trimTrailingWhitespace": true,
+  "semi": true,
+  "singleQuote": false,
+  "tabWidth": 2,
+  "useTabs": false
+}

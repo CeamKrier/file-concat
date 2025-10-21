@@ -12,7 +12,12 @@ export interface LazyEditorProps {
   readOnly?: boolean;
 }
 
-const LazyCodeMirrorEditor: React.FC<LazyEditorProps> = ({ value, language, onChange, readOnly }) => {
+const LazyCodeMirrorEditor: React.FC<LazyEditorProps> = ({
+  value,
+  language,
+  onChange,
+  readOnly,
+}) => {
   const extensions = React.useMemo(() => {
     const lang = (language || "").toLowerCase();
     if (lang.includes("ts") || lang.includes("js")) {
@@ -25,7 +30,7 @@ const LazyCodeMirrorEditor: React.FC<LazyEditorProps> = ({ value, language, onCh
   }, [language]);
 
   return (
-    <div className="h-full w-full min-h-0">
+    <div className="h-full min-h-0 w-full">
       <ScrollArea className="h-full w-full">
         <CodeMirror
           value={value}

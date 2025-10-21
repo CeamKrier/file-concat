@@ -27,9 +27,9 @@ const FileViewerModal: React.FC<FileViewerModalProps> = ({ open, onOpenChange, .
       <DialogContent
         unstyled
         displayClose={false}
-        className="w-[98vw] sm:w-[95vw] md:w-[85vw] lg:w-[80vw] max-w-screen-lg h-[85vh] p-2 sm:p-4 overflow-hidden"
+        className="h-[85vh] w-[98vw] max-w-screen-lg overflow-hidden p-2 sm:w-[95vw] sm:p-4 md:w-[85vw] lg:w-[80vw]"
       >
-        <div className="h-full w-full min-h-0">
+        <div className="h-full min-h-0 w-full">
           <FileViewerContent {...rest} onClose={() => onOpenChange(false)} />
         </div>
       </DialogContent>

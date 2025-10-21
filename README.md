@@ -11,7 +11,7 @@
 ## 🎯 Perfect For
 
 - **Developers** sharing codebases with AI assistants
-- **Content creators** combining documentation files  
+- **Content creators** combining documentation files
 - **Students** preparing project submissions
 - **Researchers** organizing data files for analysis
 - **Anyone** who needs to combine multiple files for AI processing
@@ -82,17 +82,20 @@ pnpm build
 ## 🌟 Why Choose FileConcat?
 
 ### 🔐 Privacy First
+
 - **No data collection** - Your files never leave your device
 - **No registration required** - Start using immediately
 - **No server uploads** - 100% client-side processing
 
 ### 🎯 AI-Optimized
+
 - **Token counting** for GPT-4, Claude, Gemini, and more
 - **Context-aware chunking** for large projects
 - **Smart file filtering** to exclude unnecessary files
 - **Optimized formatting** for better AI comprehension
 
 ### 🚀 Developer Friendly
+
 - **GitHub integration** - Import repositories with one click
 - **Batch processing** - Handle hundreds of files at once
 - **Multiple output formats** - Single file or chunked output
@@ -101,21 +104,27 @@ pnpm build
 ## 📚 Use Cases
 
 ### 👨‍💻 Code Review & Analysis
+
 Perfect for sharing entire codebases with AI assistants for:
+
 - Code review and suggestions
 - Bug hunting and debugging
 - Architecture analysis
 - Documentation generation
 
 ### 📖 Documentation & Writing
+
 Combine multiple documents for:
+
 - Content editing and proofreading
 - Style consistency checks
 - Information synthesis
 - Research compilation
 
 ### 🎓 Educational Projects
+
 Ideal for students to:
+
 - Submit multi-file assignments
 - Get AI tutoring on complex projects
 - Organize research materials

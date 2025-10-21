@@ -7,9 +7,9 @@ import "./index.css";
 import App from "./app.tsx";
 
 createRoot(document.getElementById("root")!).render(
-    <StrictMode>
-        <ThemeProvider defaultTheme='system' storageKey='file-concat-theme'>
-            <App />
-        </ThemeProvider>
-    </StrictMode>
+  <StrictMode>
+    <ThemeProvider defaultTheme="system" storageKey="file-concat-theme">
+      <App />
+    </ThemeProvider>
+  </StrictMode>,
 );
