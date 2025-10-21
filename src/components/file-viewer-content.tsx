@@ -1,4 +1,5 @@
 import React, { Suspense } from "react";
+import { Check, Plus, Pencil, Save as SaveIcon, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -80,37 +81,97 @@ const FileViewerContent: React.FC<FileViewerContentProps> = ({
       <CardHeader className="space-y-2">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <CardTitle className="text-sm font-mono break-all">{path}</CardTitle>
+            <CardTitle className="text-sm font-mono break-all flex items-center gap-2">
+              <span className="truncate" title={path}>{path}</span>
+            </CardTitle>
             <CardDescription className="text-xs">
               <span className="text-foreground">{formatSize(size)}</span>
               {reason ? <span className="ml-2 text-muted-foreground">• {reason}</span> : null}
               <span className="ml-2">• {included ? "Included" : "Excluded"}</span>
+              {isEditing && isDirty && (
+                <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                  Unsaved
+                </span>
+              )}
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {onToggleInclude && (
-              <Button variant={included ? "secondary" : "default"} size="sm" onClick={onToggleInclude} disabled={isProcessing}>
-                {included ? "Exclude" : "Include"}
-              </Button>
-            )}
+          <div className="flex items-center gap-3 shrink-0 flex-wrap justify-end">
+            {/* Include group */}
+            <div className="flex items-center gap-2">
+              {onToggleInclude && (
+                included ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="border-green-200 text-green-700 bg-green-100 hover:bg-green-100/80"
+                    onClick={onToggleInclude}
+                    disabled={isProcessing}
+                    title="Exclude from output"
+                    aria-label="Exclude from output"
+                  >
+                    <Check />
+                    Included
+                  </Button>
+                ) : (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={onToggleInclude}
+                    disabled={isProcessing}
+                    title="Include in output"
+                    aria-label="Include in output"
+                  >
+                    <Plus />
+                    Include
+                  </Button>
+                )
+              )}
+
+            </div>
+
+            {/* Divider between groups */}
+            {(editingEnabled && !cannotPreview) && <div className="w-px h-6 bg-border mx-1" aria-hidden />}
+
+            {/* Edit group */}
             {editingEnabled && !cannotPreview && (
               !isEditing ? (
-                <Button variant="outline" size="sm" onClick={onStartEdit} disabled={isProcessing}>
+                <Button variant="outline" size="sm" onClick={onStartEdit} disabled={isProcessing} title="Edit file" aria-label="Edit file">
+                  <Pencil />
                   Edit
                 </Button>
               ) : (
                 <div className="flex items-center gap-2">
-                  <Button variant="default" size="sm" onClick={onSaveEdit} disabled={isProcessing || !isDirty}>
-                    Save{isDirty ? "" : "d"}
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={onSaveEdit}
+                    disabled={isProcessing || !isDirty}
+                    title={isDirty ? "Save changes" : "No changes to save"}
+                    aria-label="Save changes"
+                  >
+                    <SaveIcon />
+                    Save
                   </Button>
-                  <Button variant="secondary" size="sm" onClick={onCancelEdit} disabled={isProcessing}>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={onCancelEdit}
+                    disabled={isProcessing}
+                    title="Discard changes"
+                    aria-label="Discard changes"
+                  >
+                    <Undo2 />
                     Discard
                   </Button>
                 </div>
               )
             )}
+
+            {/* Close */}
             {onClose && (
-              <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close viewer">
+              <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close viewer" title="Close viewer">
                 Close
               </Button>
             )}
