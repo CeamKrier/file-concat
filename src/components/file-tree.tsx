@@ -327,6 +327,9 @@ const FileTree: React.FC<FileTreeProps> = ({ fileStatuses, onToggleFile, onToggl
                 <p className='text-sm text-muted-foreground'>
                     You can <span className="text-foreground">click</span> the icons to <span className="text-foreground">toggle</span> inclusion/exclusion of files or directories.
                 </p>
+                <p className='text-sm text-muted-foreground'>
+                    You can <span className="text-foreground">view</span> the file contents by <span className="text-foreground">clicking</span> on the file name.
+                </p>
             </div>
 
             {/* File tree */}
