@@ -680,27 +680,29 @@ const App: React.FC = () => {
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between">
-            <div>
+            <div className="max-w-[60vw]">
               <CardTitle className="mb-2 flex items-center gap-2">
                 <img src="/logo.png" alt="Logo" className="h-8 w-8 dark:hidden" />
                 <img src="/dark-logo.png" alt="Logo" className="hidden h-8 w-8 dark:block" />
-                File Concat Tool
+                <span className="hidden text-base sm:block">File Concat Tool</span>
               </CardTitle>
-              <CardDescription className="max-w-xl text-sm">
+              <CardDescription className="hidden max-w-xl text-sm md:block">
                 Combine multiple files and folders into a single, well-formatted document optimized
                 for Large Language Models (LLMs). Perfect for sharing codebases, documentation, and
                 project structures with AI assistants like ChatGPT, Claude, and others.
               </CardDescription>
             </div>
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-1 sm:gap-2">
               <ThemeToggle />
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-1 rounded-md border border-green-200 bg-muted px-1.5 py-1.5 text-sm text-green-600">
+              <div className="flex flex-row gap-1 sm:flex-col sm:gap-2">
+                <div className="hidden h-8 items-center gap-1 rounded-md border border-green-200 bg-muted px-1.5 py-1.5 text-xs text-green-600 sm:flex">
                   <Shield className="h-4 w-4 fill-current" />
                   100% Offline Processing
                 </div>
-                <div className="flex items-center justify-center gap-1">
-                  <span className="text-sm text-muted-foreground">Got feedback?</span>
+                <div className="flex items-center justify-center gap-1 sm:gap-2">
+                  <span className="hidden text-sm text-muted-foreground sm:block">
+                    Got feedback?
+                  </span>
                   <Button variant="ghost" asChild className="w-fit" size="sm">
                     <a
                       className="w-fit"
@@ -722,13 +724,15 @@ const App: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-center">
                   <a
-                    className="flex items-center gap-2 underline-offset-2 hover:underline"
+                    className="flex h-8 w-10 items-center justify-center gap-1 underline-offset-2 hover:underline sm:h-auto sm:w-auto sm:gap-2"
                     href="https://buymeacoffee.com/ceamkrier"
                     target="_blank"
                     rel="noopener"
                   >
                     <BMCLogo />
-                    <span className="text-xs text-muted-foreground">Support me</span>
+                    <span className="hidden text-xs text-muted-foreground sm:block">
+                      Support me
+                    </span>
                   </a>
                 </div>
               </div>
@@ -786,7 +790,7 @@ const App: React.FC = () => {
                   or
                 </div>
                 {!isProcessing && !isRepoLoading && (
-                  <div className="flex justify-center gap-3">
+                  <div className="flex flex-col justify-center gap-3 md:flex-row">
                     <Button
                       variant="secondary"
                       onClick={() => fileInputRef.current?.click()}

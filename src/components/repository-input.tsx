@@ -120,7 +120,7 @@ const RepositoryInput = forwardRef<RepositoryInputRef, RepositoryInputProps>(
           <Label>Public Repository URL</Label>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex gap-2">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2 md:flex-row">
           <Input
             type="url"
             placeholder="https://github.com/owner/repo or .../tree/branch/path"
