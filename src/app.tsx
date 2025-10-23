@@ -934,7 +934,7 @@ const App: React.FC = () => {
           {processedContents.length > 0 && (
             <div className="mt-6 space-y-6">
               <h3 className="font-semibold">Output Format</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <button
                   onClick={() => setSelectedFormat("single")}
                   className={`rounded-lg border-2 p-4 transition-all ${selectedFormat === "single" ? "border-blue-500 bg-secondary" : "border-gray-200 hover:border-blue-300"}`}

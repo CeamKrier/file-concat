@@ -338,7 +338,7 @@ const FileTree: React.FC<FileTreeProps> = ({
   return (
     <div className="space-y-3">
       {/* Header with stats and controls */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start justify-between sm:flex-row sm:items-center">
         <div className="space-y-1">
           <h3 className="font-semibold">Files</h3>
           <p className="text-sm text-muted-foreground">
