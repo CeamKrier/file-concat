@@ -289,6 +289,12 @@ export const SKIP_PATHS = {
     ".cache",
     "pnpm-lock.yaml",
     "package-lock.json",
+    "tsconfig.tsbuildinfo",
+    "yarn.lock",
+    ".turbo",
+    ".vercel",
+    ".parcel-cache",
+    ".expo",
   ],
   // Python
   python: ["__pycache__", ".pytest_cache", "venv", "env", ".env", "build", "dist", "*.egg-info"],
