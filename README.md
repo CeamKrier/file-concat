@@ -43,8 +43,8 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/file-concatenator.git
-cd file-concatenator
+git clone https://github.com/CeamKrier/file-concat.git
+cd file-concat
 
 # Install dependencies
 npm install
@@ -144,7 +144,7 @@ We welcome contributions! Here's how you can help:
 
 ```bash
 # Fork and clone the repo
-git clone https://github.com/yourusername/file-concatenator.git
+git clone https://github.com/CeamKrier/file-concat.git
 
 # Install dependencies
 pnpm install
@@ -173,7 +173,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-**[🌐 Visit FileConcat.com](https://fileconcat.com)** | **[📞 Support](mailto:support@fileconcat.com)** | **[🐛 Report Issues](https://github.com/yourusername/file-concatenator/issues)**
+**[🌐 Visit FileConcat.com](https://fileconcat.com)** | **[🐛 Report Issues](https://github.com/CeamKrier/file-concat/issues)**
 
 Made with ❤️ by developers, for developers
 
