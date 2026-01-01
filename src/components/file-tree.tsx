@@ -293,7 +293,7 @@ const FileTree: React.FC<FileTreeProps> = ({
             )}
             {node.type === "directory" && node.totalSize !== undefined && (
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span>({formatSize(node.totalSize)})</span>
+                <span>[ {formatSize(node.totalSize)} ]</span>
               </div>
             )}
           </div>
