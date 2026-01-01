@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { FileStatus } from "@/types";
 import { formatSize } from "@/utils";
 import { cn } from "@/lib/utils";
+import { getSizeSeverity } from "@/lib/file-size";
 
 interface TreeNode {
   name: string;
@@ -282,8 +283,10 @@ const FileTree: React.FC<FileTreeProps> = ({
 
             {/* Size display for both files and directories */}
             {node.type === "file" && node.status && (
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span>{formatSize(node.status.size)}</span>
+              <div className="flex items-center gap-3 text-xs">
+                <span className={getSizeSeverity(node.status.size)}>
+                  {formatSize(node.status.size)}
+                </span>
                 {node.status.reason && (
                   <span className="max-w-[150px] truncate" title={node.status.reason}>
                     {node.status.reason}
@@ -292,8 +295,10 @@ const FileTree: React.FC<FileTreeProps> = ({
               </div>
             )}
             {node.type === "directory" && node.totalSize !== undefined && (
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span>[ {formatSize(node.totalSize)} ]</span>
+              <div className="flex items-center gap-3 text-xs">
+                <span className={getSizeSeverity(node.totalSize)}>
+                  [ {formatSize(node.totalSize)} ]
+                </span>
               </div>
             )}
           </div>
