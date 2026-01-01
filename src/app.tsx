@@ -21,6 +21,8 @@ import {
   fetchRepositoryFiles,
   shouldSkipPath,
   calculateTotalSize,
+  generateFileTree,
+  getLanguageFromPath,
 } from "@/utils";
 import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "@/constants";
 
@@ -355,18 +357,41 @@ const App: React.FC = () => {
         return status?.included ?? false;
       });
 
-      if (selectedFormat === "single") {
-        const output =
-          `# Files\n` +
-          includedContents
-            .map(({ path, content }) => `## ${path}\n\`\`\`\n${content}\n\`\`\`\n`)
-            .join("\n");
+      // Generate file tree structure
+      const fileTree = generateFileTree(includedContents.map((c) => c.path));
 
-        const blob = new Blob([output], { type: "text/plain" });
+      // AI-optimized preamble with instructions and project structure
+      const preamble = `You are an AI assistant tasked with analyzing a codebase.
+Below is the file structure and the content of the files.
+Use the file structure to understand the project architecture and dependencies.
+
+# Project Structure
+\`\`\`
+${fileTree}\`\`\`
+
+# File Contents
+`;
+
+      if (selectedFormat === "single") {
+        // XML format with language identifiers for better LLM parsing
+        const contentBody = includedContents
+          .map(({ path, content }) => {
+            const language = getLanguageFromPath(path);
+            return `<file path="${path}">
+\`\`\`${language}
+${content}
+\`\`\`
+</file>`;
+          })
+          .join("\n\n");
+
+        const finalOutput = `${preamble}${contentBody}`;
+
+        const blob = new Blob([finalOutput], { type: "text/plain" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "concat-output.md";
+        a.download = "codebase-context.txt";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -374,18 +399,41 @@ const App: React.FC = () => {
       } else {
         const chunks = calculateChunks(includedContents);
 
-        // Process and download chunks
+        // Process and download chunks with AI-optimized format
         for (let i = 0; i < chunks.length; i++) {
           const chunk = chunks[i];
-          const output =
-            `# Files - Part ${i + 1}/${chunks.length}\n` +
-            chunk.map(({ path, content }) => `## ${path}\n\`\`\`\n${content}\n\`\`\`\n`).join("\n");
 
-          const blob = new Blob([output], { type: "text/plain" });
+          // Include file tree in each part for context
+          const partPreamble = `You are an AI assistant tasked with analyzing a codebase.
+This is Part ${i + 1} of ${chunks.length}.
+Below is the complete file structure and the content of files in this part.
+Use the file structure to understand the project architecture and dependencies.
+
+# Project Structure
+\`\`\`
+${fileTree}\`\`\`
+
+# File Contents (Part ${i + 1}/${chunks.length})
+`;
+
+          const contentBody = chunk
+            .map(({ path, content }) => {
+              const language = getLanguageFromPath(path);
+              return `<file path="${path}">
+\`\`\`${language}
+${content}
+\`\`\`
+</file>`;
+            })
+            .join("\n\n");
+
+          const finalOutput = `${partPreamble}${contentBody}`;
+
+          const blob = new Blob([finalOutput], { type: "text/plain" });
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `concat-output-part${i + 1}.md`;
+          a.download = `codebase-context-part${i + 1}.txt`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);

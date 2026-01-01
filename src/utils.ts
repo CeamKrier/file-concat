@@ -648,3 +648,127 @@ export const calculateTotalSize = (content: string): Promise<number> => {
     resolve(new TextEncoder().encode(content).length);
   });
 };
+
+/**
+ * Generates a hierarchical file tree structure from a list of file paths
+ * @param files - Array of file paths
+ * @returns ASCII tree representation of the file structure
+ */
+export const generateFileTree = (files: string[]): string => {
+  interface TreeNode {
+    [key: string]: TreeNode | null;
+  }
+
+  const tree: TreeNode = {};
+
+  // Build tree structure
+  files.forEach((filePath) => {
+    const parts = filePath.split("/");
+    let current = tree;
+
+    parts.forEach((part, index) => {
+      if (!current[part]) {
+        current[part] = index === parts.length - 1 ? null : {};
+      }
+      if (current[part] !== null) {
+        current = current[part] as TreeNode;
+      }
+    });
+  });
+
+  // Convert tree to string representation
+  const buildTreeString = (node: TreeNode, prefix = "", isLast = true): string => {
+    const entries = Object.entries(node);
+    let result = "";
+
+    entries.forEach(([name, children], index) => {
+      const isLastEntry = index === entries.length - 1;
+      const connector = isLastEntry ? "└── " : "├── ";
+      const extension = isLastEntry ? "    " : "│   ";
+
+      result += prefix + connector + name + "\n";
+
+      if (children !== null) {
+        result += buildTreeString(children, prefix + extension, isLastEntry);
+      }
+    });
+
+    return result;
+  };
+
+  return buildTreeString(tree);
+};
+
+/**
+ * Gets the language identifier for syntax highlighting based on file extension
+ * @param filePath - Path to the file
+ * @returns Language identifier for code blocks (e.g., 'typescript', 'python', 'json')
+ */
+export const getLanguageFromPath = (filePath: string): string => {
+  const extension = filePath.split(".").pop()?.toLowerCase() || "";
+
+  const languageMap: Record<string, string> = {
+    ts: "typescript",
+    tsx: "tsx",
+    js: "javascript",
+    jsx: "jsx",
+    py: "python",
+    rb: "ruby",
+    java: "java",
+    cpp: "cpp",
+    c: "c",
+    cs: "csharp",
+    php: "php",
+    go: "go",
+    rs: "rust",
+    swift: "swift",
+    kt: "kotlin",
+    scala: "scala",
+    sh: "bash",
+    bash: "bash",
+    zsh: "zsh",
+    fish: "fish",
+    ps1: "powershell",
+    html: "html",
+    css: "css",
+    scss: "scss",
+    sass: "sass",
+    less: "less",
+    json: "json",
+    xml: "xml",
+    yaml: "yaml",
+    yml: "yaml",
+    toml: "toml",
+    ini: "ini",
+    conf: "conf",
+    cfg: "ini",
+    md: "markdown",
+    mdx: "mdx",
+    sql: "sql",
+    graphql: "graphql",
+    gql: "graphql",
+    proto: "protobuf",
+    dockerfile: "dockerfile",
+    makefile: "makefile",
+    r: "r",
+    m: "matlab",
+    vim: "vim",
+    lua: "lua",
+    pl: "perl",
+    ex: "elixir",
+    exs: "elixir",
+    erl: "erlang",
+    hrl: "erlang",
+    clj: "clojure",
+    cljs: "clojure",
+    dart: "dart",
+    vue: "vue",
+    svelte: "svelte",
+  };
+
+  // Special cases for files without extensions
+  if (filePath.toLowerCase().includes("dockerfile")) return "dockerfile";
+  if (filePath.toLowerCase().includes("makefile")) return "makefile";
+
+  return languageMap[extension] || extension || "text";
+};
