@@ -23,6 +23,7 @@ import {
   calculateTotalSize,
   generateFileTree,
   getLanguageFromPath,
+  generateProjectName,
 } from "@/utils";
 import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "@/constants";
 
@@ -387,17 +388,24 @@ ${content}
 
         const finalOutput = `${preamble}${contentBody}`;
 
+        // Generate dynamic filename based on project structure
+        const projectName = generateProjectName(includedContents.map((c) => c.path));
+        const fileName = `${projectName}_fileconcat.txt`;
+
         const blob = new Blob([finalOutput], { type: "text/plain" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "codebase-context.txt";
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       } else {
         const chunks = calculateChunks(includedContents);
+
+        // Generate dynamic filename based on project structure
+        const projectName = generateProjectName(includedContents.map((c) => c.path));
 
         // Process and download chunks with AI-optimized format
         for (let i = 0; i < chunks.length; i++) {
@@ -433,7 +441,7 @@ ${content}
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `codebase-context-part${i + 1}.txt`;
+          a.download = `${projectName}-fileconcat-part${i + 1}.txt`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
