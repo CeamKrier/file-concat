@@ -1,0 +1,30 @@
+# Cloudflare Pages Headers Configuration
+# Aggressive caching for immutable assets
+
+# WASM files - tiktoken tokenizer (immutable, hash in filename)
+/*.wasm
+  Cache-Control: public, max-age=31536000, immutable
+
+# JavaScript chunks with hash in filename
+/assets/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+# CSS with hash in filename
+/assets/*.css
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML - always revalidate
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Manifest and other JSON files
+/*.json
+  Cache-Control: public, max-age=3600, must-revalidate
+
+# Security headers for all pages
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
