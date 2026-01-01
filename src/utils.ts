@@ -677,7 +677,7 @@ export const generateFileTree = (files: string[]): string => {
   });
 
   // Convert tree to string representation
-  const buildTreeString = (node: TreeNode, prefix = "", isLast = true): string => {
+  const buildTreeString = (node: TreeNode, prefix = ""): string => {
     const entries = Object.entries(node);
     let result = "";
 
@@ -689,7 +689,7 @@ export const generateFileTree = (files: string[]): string => {
       result += prefix + connector + name + "\n";
 
       if (children !== null) {
-        result += buildTreeString(children, prefix + extension, isLastEntry);
+        result += buildTreeString(children, prefix + extension);
       }
     });
 
