@@ -1,6 +1,6 @@
 import React from "react";
 import FileViewerContent from "@/components/file-viewer-content";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 interface FileViewerModalProps {
   open: boolean;
@@ -28,7 +28,9 @@ const FileViewerModal: React.FC<FileViewerModalProps> = ({ open, onOpenChange, .
         unstyled
         displayClose={false}
         className="h-[85vh] w-[98vw] max-w-screen-lg overflow-hidden p-2 sm:w-[95vw] sm:p-4 md:w-[85vw] lg:w-[80vw]"
+        aria-describedby={undefined}
       >
+        <DialogTitle className="sr-only">File Viewer</DialogTitle>
         <div className="h-full min-h-0 w-full">
           <FileViewerContent {...rest} onClose={() => onOpenChange(false)} />
         </div>

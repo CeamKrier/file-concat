@@ -4,6 +4,7 @@ import { SiGithub, SiX } from "@icons-pack/react-simple-icons";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import RepositoryInput, { RepositoryInputRef } from "./components/repository-input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import OutputSettings from "@/components/output-settings";
@@ -46,6 +47,7 @@ const App: React.FC = () => {
   const [config] = useState<ProcessingConfig>(DEFAULT_CONFIG);
 
   const [maxFileSize, setMaxFileSize] = useState<number>(32);
+  const [failedFiles, setFailedFiles] = useState<Array<{ path: string; error: string }>>([]);
 
   // Viewer state
   const [activeFilePath, setActiveFilePath] = useState<string | undefined>(undefined);
@@ -139,29 +141,36 @@ const App: React.FC = () => {
       const statuses: FileStatus[] = [];
       const newFileEntries: FileEntry[] = [];
       const includedContents: Array<{ path: string; content: string }> = [];
+      const failedFilesList: Array<{ path: string; error: string }> = [];
 
       for (const entry of normalizedEntries) {
         const index = statuses.length;
         const status = await processFile(entry.file, entry.path, index);
         statuses.push(status);
 
-        const content = entry.content !== undefined ? entry.content : await entry.file.text();
-        const fileEntry: FileEntry = {
-          file: entry.file,
-          path: entry.path,
-          content,
-        };
+        try {
+          const content = entry.content !== undefined ? entry.content : await entry.file.text();
+          const fileEntry: FileEntry = {
+            file: entry.file,
+            path: entry.path,
+            content,
+          };
 
-        newFileEntries.push(fileEntry);
+          newFileEntries.push(fileEntry);
 
-        if (status.included) {
-          includedContents.push({ path: fileEntry.path, content: fileEntry.content });
+          if (status.included) {
+            includedContents.push({ path: fileEntry.path, content: fileEntry.content });
+          }
+        } catch (error) {
+          console.error(`Failed to read file ${entry.path}:`, error);
+          failedFilesList.push({ path: entry.path, error: "File could not be read" });
         }
       }
 
       setFiles(newFileEntries);
       setFileStatuses(statuses);
       setProcessedContents(includedContents);
+      setFailedFiles(failedFilesList);
 
       if (includedContents.length > 0) {
         await estimateTokens(includedContents.map((c) => c.content).join("\n"));
@@ -470,6 +479,7 @@ ${content}
     setTokens(0);
     setProcessedContents([]);
     setSelectedFormat(undefined);
+    setFailedFiles([]);
 
     setMaxFileSize(32);
     repositoryInputRef.current?.reset();
@@ -509,20 +519,29 @@ ${content}
 
       const items = e.dataTransfer.items;
       const incomingFiles: Array<{ file: File; path: string }> = [];
+      const failedFilesList: Array<{ path: string; error: string }> = [];
 
       const processEntry = async (entry: FileSystemEntry, path = ""): Promise<void> => {
         if (entry.isFile) {
           const fileEntry = entry as FileSystemFileEntry;
           return new Promise((resolve) => {
-            fileEntry.file((file) => {
-              const fullPath = path ? `${path}/${file.name}` : file.name;
+            fileEntry.file(
+              (file) => {
+                const fullPath = path ? `${path}/${file.name}` : file.name;
 
-              if (!isExcludedPath(fullPath)) {
-                incomingFiles.push({ file, path: fullPath });
-              }
+                if (!isExcludedPath(fullPath)) {
+                  incomingFiles.push({ file, path: fullPath });
+                }
 
-              resolve();
-            });
+                resolve();
+              },
+              (error) => {
+                const fullPath = path ? `${path}/${fileEntry.name}` : fileEntry.name;
+                console.error(`Failed to access file ${fullPath}:`, error);
+                failedFilesList.push({ path: fullPath, error: "File could not be read" });
+                resolve();
+              },
+            );
           });
         } else if (entry.isDirectory) {
           const dirEntry = entry as FileSystemDirectoryEntry;
@@ -555,6 +574,9 @@ ${content}
 
         await Promise.all(promises);
         await handleFilesBatch(incomingFiles);
+
+        // Update failed files from processEntry errors
+        setFailedFiles((prev) => [...prev, ...failedFilesList]);
       } catch (error) {
         console.error("Error processing files:", error);
       } finally {
@@ -865,6 +887,26 @@ ${content}
                 )}
               </div>
             </>
+          )}
+
+          {failedFiles.length > 0 && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>
+                <div className="font-medium text-red-600">
+                  Failed to read {failedFiles.length} file{failedFiles.length > 1 ? "s" : ""}:
+                </div>
+                <ul className="mt-2 list-inside list-disc text-sm">
+                  {failedFiles.slice(0, 5).map((failed, index) => (
+                    <li key={index} className="truncate text-red-600">
+                      {failed.path}
+                    </li>
+                  ))}
+                  {failedFiles.length > 5 && (
+                    <li className="text-muted-foreground">... and {failedFiles.length - 5} more</li>
+                  )}
+                </ul>
+              </AlertDescription>
+            </Alert>
           )}
 
           {(files.length > 0 || output) && (
