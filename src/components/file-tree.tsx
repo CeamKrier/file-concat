@@ -14,6 +14,7 @@ interface TreeNode {
   isExpanded?: boolean;
   // Computed properties for tree state
   inclusionState?: "included" | "excluded" | "partial";
+  totalSize?: number; // Total size of all files in this directory
 }
 
 interface FileTreeProps {
@@ -71,6 +72,24 @@ const FileTree: React.FC<FileTreeProps> = ({
       });
     });
 
+    // Calculate total size for each directory (recursively)
+    const calculateDirectorySize = (node: TreeNode): number => {
+      if (node.type === "file") {
+        return node.status?.size || 0;
+      }
+
+      if (!node.children || node.children.length === 0) {
+        return 0;
+      }
+
+      const totalSize = node.children.reduce((acc, child) => {
+        return acc + calculateDirectorySize(child);
+      }, 0);
+
+      node.totalSize = totalSize;
+      return totalSize;
+    };
+
     // Sort children: directories first, then files, both alphabetically
     const sortChildren = (node: TreeNode) => {
       if (node.children) {
@@ -85,6 +104,7 @@ const FileTree: React.FC<FileTreeProps> = ({
     };
 
     sortChildren(root);
+    calculateDirectorySize(root);
     return root;
   }, [fileStatuses]);
 
@@ -260,7 +280,7 @@ const FileTree: React.FC<FileTreeProps> = ({
               {node.name}
             </span>
 
-            {/* File details */}
+            {/* Size display for both files and directories */}
             {node.type === "file" && node.status && (
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span>{formatSize(node.status.size)}</span>
@@ -269,6 +289,11 @@ const FileTree: React.FC<FileTreeProps> = ({
                     {node.status.reason}
                   </span>
                 )}
+              </div>
+            )}
+            {node.type === "directory" && node.totalSize !== undefined && (
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span>({formatSize(node.totalSize)})</span>
               </div>
             )}
           </div>
