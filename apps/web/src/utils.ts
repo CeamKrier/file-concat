@@ -7,7 +7,7 @@ import {
   DownloadProgress,
   RepositoryContent,
   RepoFile,
-} from "./types";
+} from "@fileconcat/core";
 
 // Binary file signatures (magic numbers) to detect binary files
 const BINARY_EXTENSIONS = [

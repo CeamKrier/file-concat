@@ -14,7 +14,7 @@ import FileTree from "@/components/file-tree";
 import FileViewerModal from "@/components/file-viewer-modal";
 import AboutSection from "@/components/about-section";
 
-import { DownloadProgress, FileEntry, FileStatus, OutputFormat, ProcessingConfig } from "@/types";
+import { DownloadProgress, FileEntry, FileStatus, OutputFormat, ProcessingConfig } from "@fileconcat/core";
 import {
   validateFile,
   formatSize,
@@ -26,7 +26,7 @@ import {
   getLanguageFromPath,
   generateProjectName,
 } from "@/utils";
-import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "@/constants";
+import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "@fileconcat/core";
 
 import BMCLogo from "./components/bmc-logo";
 

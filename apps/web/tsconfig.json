@@ -1,0 +1,25 @@
+{
+    "files": [],
+    "references": [
+        {
+            "path": "./tsconfig.app.json"
+        },
+        {
+            "path": "./tsconfig.node.json"
+        }
+    ],
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@/*": [
+                "./src/*"
+            ],
+            "@fileconcat/core": [
+                "../../packages/core/src/index.ts"
+            ],
+            "@fileconcat/core/*": [
+                "../../packages/core/src/*"
+            ]
+        }
+    }
+}
