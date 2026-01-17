@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { minimatch } from "minimatch";
 import { Upload, Download, Shield, Trash2 } from "lucide-react";
 import { SiGithub, SiX } from "@icons-pack/react-simple-icons";
 
@@ -13,6 +14,8 @@ import PreviewModal from "@/components/preview-modal";
 import FileTree from "@/components/file-tree";
 import FileViewerModal from "@/components/file-viewer-modal";
 import AboutSection from "@/components/about-section";
+import ConfigPanel from "@/components/config-panel";
+import { useConfig } from "@/hooks/use-config";
 
 import { DownloadProgress, FileEntry, FileStatus, OutputFormat, ProcessingConfig } from "@fileconcat/core";
 import {
@@ -20,12 +23,12 @@ import {
   formatSize,
   estimateTokenCount,
   fetchRepositoryFiles,
-  shouldSkipPath,
   calculateTotalSize,
   generateFileTree,
   getLanguageFromPath,
   generateProjectName,
 } from "@/utils";
+import { processFileContent } from "@fileconcat/core";
 import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "@fileconcat/core";
 
 import BMCLogo from "./components/bmc-logo";
@@ -35,11 +38,12 @@ const App: React.FC = () => {
   const [output, setOutput] = useState<string>("");
   const [fileStatuses, setFileStatuses] = useState<FileStatus[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [processingStatus, setProcessingStatus] = useState<string>("");
   const [isRepoLoading, setIsRepoLoading] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
   const [tokens, setTokens] = useState<number>(0);
-  const [processedContents, setProcessedContents] = useState<
+  const [rawContents, setRawContents] = useState<
     Array<{ path: string; content: string }>
   >([]);
   const [recommendedFormat, setRecommendedFormat] = useState<OutputFormat>("single");
@@ -48,6 +52,25 @@ const App: React.FC = () => {
 
   const [maxFileSize, setMaxFileSize] = useState<number>(32);
   const [failedFiles, setFailedFiles] = useState<Array<{ path: string; error: string }>>([]);
+
+  // Persistent user config
+  const { config: userConfig, setConfig, exportConfig, importConfig, resetConfig } = useConfig();
+
+  const processedContents = useMemo(() => {
+    return rawContents.map((file) => ({
+      ...file,
+      content: processFileContent(
+        file.content,
+        getLanguageFromPath(file.path),
+        {
+          removeEmptyLines: userConfig.removeEmptyLines,
+          showLineNumbers: userConfig.showLineNumbers,
+        }
+      ),
+    }));
+  }, [rawContents, userConfig.removeEmptyLines, userConfig.showLineNumbers]);
+
+
 
   // Viewer state
   const [activeFilePath, setActiveFilePath] = useState<string | undefined>(undefined);
@@ -119,13 +142,101 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const isExcludedPath = useCallback((path: string) => {
-    if (shouldSkipPath(path)) {
-      console.log(`Skipping excluded path: ${path}`);
-      return true;
+  // Update token count when contents or config changes
+  useEffect(() => {
+    // Filter out disabled files
+    const activeFiles = processedContents.filter((file) => {
+      const status = fileStatuses.find((s) => s.path === file.path);
+      return status?.included ?? false;
+    });
+
+    const combinedText = activeFiles.map((f) => f.content).join("\n");
+    estimateTokens(combinedText);
+  }, [processedContents, fileStatuses, estimateTokens]);
+
+
+  // Check if a directory should be skipped during traversal
+  // Include patterns override ignore patterns - if explicitly included, don't skip
+  const isIgnoredDirectory = useCallback((path: string) => {
+    console.log(`[isIgnoredDirectory] Checking: "${path}"`);
+    console.log(`[isIgnoredDirectory] Include patterns: "${userConfig.includePatterns}"`);
+
+    // If include patterns are defined and this directory matches, don't ignore it
+    if (userConfig.includePatterns && userConfig.includePatterns.trim() !== "") {
+      const includePatterns = userConfig.includePatterns.split(",").map((p) => p.trim());
+      const isExplicitlyIncluded = includePatterns.some((pattern) => {
+        const match = minimatch(path, pattern, { dot: true, matchBase: true });
+        console.log(`[isIgnoredDirectory] Pattern "${pattern}" vs "${path}" = ${match}`);
+        return match;
+      });
+      if (isExplicitlyIncluded) {
+        console.log(`[isIgnoredDirectory] RESULT: Explicitly included, NOT skipping`);
+        return false; // Don't skip - explicitly included
+      }
     }
+
+    // Check ignore patterns
+    if (userConfig.ignorePatterns && userConfig.ignorePatterns.trim() !== "") {
+      const ignorePatterns = userConfig.ignorePatterns.split(",").map((p) => p.trim());
+      const isIgnored = ignorePatterns.some((pattern) => minimatch(path, pattern, { dot: true, matchBase: true }));
+      if (isIgnored) {
+        console.log(`[isIgnoredDirectory] RESULT: Matched ignore pattern, skipping`);
+        return true;
+      }
+    }
+    console.log(`[isIgnoredDirectory] RESULT: Not ignored, NOT skipping`);
     return false;
-  }, []);
+  }, [userConfig.includePatterns, userConfig.ignorePatterns]);
+
+  // Check if a file should be excluded
+  // Include patterns override ignore patterns - if explicitly included, it's NOT excluded
+  const isExcludedPath = useCallback((path: string) => {
+    const hasIncludePatterns = userConfig.includePatterns && userConfig.includePatterns.trim() !== "";
+    const hasIgnorePatterns = userConfig.ignorePatterns && userConfig.ignorePatterns.trim() !== "";
+
+    // Check if file matches include patterns OR is inside an included directory
+    let matchesInclude = false;
+    if (hasIncludePatterns) {
+      const includePatterns = userConfig.includePatterns.split(",").map((p) => p.trim());
+
+      // Check direct match (e.g., *.ts matches file.ts)
+      matchesInclude = includePatterns.some((pattern) => minimatch(path, pattern, { dot: true, matchBase: true }));
+
+      // Also check if file is INSIDE an included directory
+      // e.g., if pattern is ".nx", then "project/.nx/cache/file.json" should be included
+      if (!matchesInclude) {
+        const pathParts = path.split('/');
+        matchesInclude = includePatterns.some((pattern) => {
+          // Check if any directory in the path matches the pattern
+          return pathParts.some((part) => minimatch(part, pattern, { dot: true }));
+        });
+      }
+    }
+
+    // Check if file matches ignore patterns
+    let matchesIgnore = false;
+    if (hasIgnorePatterns) {
+      const ignorePatterns = userConfig.ignorePatterns.split(",").map((p) => p.trim());
+      matchesIgnore = ignorePatterns.some((pattern) => minimatch(path, pattern, { dot: true, matchBase: true }));
+    }
+
+    // Logic:
+    // - If include patterns defined and file matches include → NOT excluded (include wins)
+    // - If include patterns defined but file doesn't match → excluded
+    // - If no include patterns but matches ignore → excluded
+    // - Otherwise → not excluded
+
+    if (hasIncludePatterns) {
+      if (matchesInclude) {
+        return false; // Include patterns override ignore - file is kept
+      } else {
+        return true; // Doesn't match include patterns - excluded
+      }
+    }
+
+    // No include patterns - just check ignore
+    return matchesIgnore;
+  }, [userConfig.includePatterns, userConfig.ignorePatterns]);
 
   const handleFilesBatch = useCallback(
     async (incomingFiles: Array<{ file: File; path?: string; content?: string }>) => {
@@ -169,7 +280,7 @@ const App: React.FC = () => {
 
       setFiles(newFileEntries);
       setFileStatuses(statuses);
-      setProcessedContents(includedContents);
+      setRawContents(includedContents);
       setFailedFiles(failedFilesList);
 
       if (includedContents.length > 0) {
@@ -214,10 +325,10 @@ const App: React.FC = () => {
           }),
         );
 
-        estimateTokens(contents.map((c) => c.content).join("\n"));
+        // estimateTokens(contents.map((c) => c.content).join("\n"));
 
         // Update state
-        setProcessedContents(contents);
+        setRawContents(contents);
       } catch (error) {
         console.error("Error reprocessing files:", error);
       }
@@ -259,10 +370,10 @@ const App: React.FC = () => {
           }),
         );
 
-        estimateTokens(contents.map((c) => c.content).join("\n"));
+        // estimateTokens(contents.map((c) => c.content).join("\n"));
 
         // Update state
-        setProcessedContents(contents);
+        setRawContents(contents);
       } catch (error) {
         console.error("Error reprocessing files:", error);
       }
@@ -477,7 +588,7 @@ ${content}
     setIsProcessing(false);
     setIsRepoLoading(false);
     setTokens(0);
-    setProcessedContents([]);
+    setRawContents([]);
     setSelectedFormat(undefined);
     setFailedFiles([]);
 
@@ -516,6 +627,7 @@ ${content}
       setIsDragging(false);
       dragCounter.current = 0;
       setIsProcessing(true);
+      setProcessingStatus("Scanning files...");
 
       const items = e.dataTransfer.items;
       const incomingFiles: Array<{ file: File; path: string }> = [];
@@ -547,16 +659,34 @@ ${content}
           const dirEntry = entry as FileSystemDirectoryEntry;
           const newPath = path ? `${path}/${dirEntry.name}` : dirEntry.name;
 
-          if (isExcludedPath(`${newPath}/`)) {
+          // Check if directory itself is in ignore patterns (not include patterns)
+          // Include patterns should only apply to files, not directories
+          if (isIgnoredDirectory(newPath) || isIgnoredDirectory(`${newPath}/`)) {
+            console.log(`Skipping directory: ${newPath}`);
             return Promise.resolve();
           }
 
           const dirReader = dirEntry.createReader();
-          return new Promise((resolve) => {
-            dirReader.readEntries(async (entries) => {
-              await Promise.all(entries.map((entry) => processEntry(entry, newPath)));
-              resolve();
-            });
+          const readEntries = async (): Promise<FileSystemEntry[]> => {
+            const entries: FileSystemEntry[] = [];
+            let reading = true;
+            while (reading) {
+              await new Promise<void>((resolve) => {
+                dirReader.readEntries((results) => {
+                  if (results.length === 0) {
+                    reading = false;
+                  } else {
+                    entries.push(...results);
+                  }
+                  resolve();
+                });
+              });
+            }
+            return entries;
+          };
+
+          return readEntries().then(async (entries) => {
+            await Promise.all(entries.map((entry) => processEntry(entry, newPath)));
           });
         }
 
@@ -573,6 +703,7 @@ ${content}
         }
 
         await Promise.all(promises);
+        setProcessingStatus(`Processing ${incomingFiles.length} files...`);
         await handleFilesBatch(incomingFiles);
 
         // Update failed files from processEntry errors
@@ -581,9 +712,10 @@ ${content}
         console.error("Error processing files:", error);
       } finally {
         setIsProcessing(false);
+        setProcessingStatus("");
       }
     },
-    [resetAll, handleFilesBatch, isExcludedPath],
+    [resetAll, handleFilesBatch, isExcludedPath, isIgnoredDirectory],
   );
 
   const getEstimations = useCallback(() => {
@@ -719,7 +851,7 @@ ${content}
       const newProcessed = newFiles
         .filter((f) => includedSet.has(f.path))
         .map((f) => ({ path: f.path, content: f.content }));
-      setProcessedContents(newProcessed);
+      setRawContents(newProcessed);
 
       // Re-estimate tokens for included content
       try {
@@ -818,6 +950,15 @@ ${content}
           </div>
         </CardHeader>
         <CardContent>
+          {/* Settings Panel */}
+          <ConfigPanel
+            config={userConfig}
+            setConfig={setConfig}
+            exportConfig={exportConfig}
+            importConfig={importConfig}
+            resetConfig={resetConfig}
+          />
+
           {!fileStatuses.length && (
             <>
               <RepositoryInput
@@ -859,7 +1000,7 @@ ${content}
                 />
                 <p>
                   {isProcessing
-                    ? "Processing files..."
+                    ? processingStatus || "Processing files..."
                     : isDragging
                       ? "Drop files here"
                       : "Drag and drop files or folders here"}
@@ -1083,13 +1224,6 @@ ${content}
               )}
 
               <div className="flex gap-2">
-                {/* <button
-                                    onClick={() => setIsPreviewOpen(true)}
-                                    disabled={!selectedFormat || isProcessing}
-                                    className='flex-1 justify-center px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'>
-                                    <Eye className='w-4 h-4' />
-                                    Preview
-                                </button> */}
                 <button
                   onClick={generateOutput}
                   disabled={!selectedFormat || isProcessing}
