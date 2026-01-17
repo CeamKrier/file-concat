@@ -27,6 +27,20 @@ export type ProcessingConfig = {
   excludeBinaryFiles: boolean;
 };
 
+// User configuration with schema versioning for localStorage
+export type UserConfig = {
+  version: 2;
+  maxFileSizeMB: number;
+  // Pattern filtering (glob syntax)
+  includePatterns: string;
+  ignorePatterns: string;
+  // File processing options
+  removeEmptyLines: boolean;
+  showLineNumbers: boolean;
+  // Output preferences
+  defaultOutputFormat: "single" | "multi";
+};
+
 export type TokenCount = {
   total: number;
   byFile: Record<string, number>;
@@ -85,18 +99,4 @@ export interface DownloadProgress {
   downloadedBytes: number;
   totalBytes: number;
   speed: number;
-}
-
-export interface RepoFile {
-  name: string;
-  path: string;
-  type: string;
-  size: number;
-  content?: string;
-  download_url?: string;
-}
-
-export interface RepositoryContent {
-  files: RepoFile[];
-  error?: string;
 }

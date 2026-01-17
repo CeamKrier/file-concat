@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen, Check, X, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FileStatus } from "@/types";
+import { FileStatus } from "@fileconcat/core";
 import { formatSize } from "@/utils";
 import { cn } from "@/lib/utils";
 import { getSizeSeverity } from "@/lib/file-size";

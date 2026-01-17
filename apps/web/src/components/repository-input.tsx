@@ -7,7 +7,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import DownloadProgress from "./download-progress";
 
-import { DownloadProgress as DownloadProgressType } from "../types";
+import { DownloadProgress as DownloadProgressType } from "@fileconcat/core";
 
 interface RepositoryInputProps {
   onSubmit: (
