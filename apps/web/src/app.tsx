@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { minimatch } from "minimatch";
-import { Upload, Download, Shield, Trash2 } from "lucide-react";
+import { Upload, Download, Shield, Trash2, Copy, Check } from "lucide-react";
 import { SiGithub, SiX } from "@icons-pack/react-simple-icons";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -17,7 +17,13 @@ import AboutSection from "@/components/about-section";
 import ConfigPanel from "@/components/config-panel";
 import { useConfig } from "@/hooks/use-config";
 
-import { DownloadProgress, FileEntry, FileStatus, OutputFormat, ProcessingConfig } from "@fileconcat/core";
+import {
+  DownloadProgress,
+  FileEntry,
+  FileStatus,
+  OutputFormat,
+  ProcessingConfig,
+} from "@fileconcat/core";
 import {
   validateFile,
   formatSize,
@@ -43,15 +49,14 @@ const App: React.FC = () => {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
   const [tokens, setTokens] = useState<number>(0);
-  const [rawContents, setRawContents] = useState<
-    Array<{ path: string; content: string }>
-  >([]);
+  const [rawContents, setRawContents] = useState<Array<{ path: string; content: string }>>([]);
   const [recommendedFormat, setRecommendedFormat] = useState<OutputFormat>("single");
   const [selectedFormat, setSelectedFormat] = useState<OutputFormat | undefined>();
   const [config] = useState<ProcessingConfig>(DEFAULT_CONFIG);
 
   const [maxFileSize, setMaxFileSize] = useState<number>(32);
   const [failedFiles, setFailedFiles] = useState<Array<{ path: string; error: string }>>([]);
+  const [isCopied, setIsCopied] = useState<boolean>(false);
 
   // Persistent user config
   const { config: userConfig, setConfig, exportConfig, importConfig, resetConfig } = useConfig();
@@ -59,18 +64,12 @@ const App: React.FC = () => {
   const processedContents = useMemo(() => {
     return rawContents.map((file) => ({
       ...file,
-      content: processFileContent(
-        file.content,
-        getLanguageFromPath(file.path),
-        {
-          removeEmptyLines: userConfig.removeEmptyLines,
-          showLineNumbers: userConfig.showLineNumbers,
-        }
-      ),
+      content: processFileContent(file.content, getLanguageFromPath(file.path), {
+        removeEmptyLines: userConfig.removeEmptyLines,
+        showLineNumbers: userConfig.showLineNumbers,
+      }),
     }));
   }, [rawContents, userConfig.removeEmptyLines, userConfig.showLineNumbers]);
-
-
 
   // Viewer state
   const [activeFilePath, setActiveFilePath] = useState<string | undefined>(undefined);
@@ -154,89 +153,102 @@ const App: React.FC = () => {
     estimateTokens(combinedText);
   }, [processedContents, fileStatuses, estimateTokens]);
 
-
   // Check if a directory should be skipped during traversal
   // Include patterns override ignore patterns - if explicitly included, don't skip
-  const isIgnoredDirectory = useCallback((path: string) => {
-    console.log(`[isIgnoredDirectory] Checking: "${path}"`);
-    console.log(`[isIgnoredDirectory] Include patterns: "${userConfig.includePatterns}"`);
+  const isIgnoredDirectory = useCallback(
+    (path: string) => {
+      console.log(`[isIgnoredDirectory] Checking: "${path}"`);
+      console.log(`[isIgnoredDirectory] Include patterns: "${userConfig.includePatterns}"`);
 
-    // If include patterns are defined and this directory matches, don't ignore it
-    if (userConfig.includePatterns && userConfig.includePatterns.trim() !== "") {
-      const includePatterns = userConfig.includePatterns.split(",").map((p) => p.trim());
-      const isExplicitlyIncluded = includePatterns.some((pattern) => {
-        const match = minimatch(path, pattern, { dot: true, matchBase: true });
-        console.log(`[isIgnoredDirectory] Pattern "${pattern}" vs "${path}" = ${match}`);
-        return match;
-      });
-      if (isExplicitlyIncluded) {
-        console.log(`[isIgnoredDirectory] RESULT: Explicitly included, NOT skipping`);
-        return false; // Don't skip - explicitly included
+      // If include patterns are defined and this directory matches, don't ignore it
+      if (userConfig.includePatterns && userConfig.includePatterns.trim() !== "") {
+        const includePatterns = userConfig.includePatterns.split(",").map((p) => p.trim());
+        const isExplicitlyIncluded = includePatterns.some((pattern) => {
+          const match = minimatch(path, pattern, { dot: true, matchBase: true });
+          console.log(`[isIgnoredDirectory] Pattern "${pattern}" vs "${path}" = ${match}`);
+          return match;
+        });
+        if (isExplicitlyIncluded) {
+          console.log(`[isIgnoredDirectory] RESULT: Explicitly included, NOT skipping`);
+          return false; // Don't skip - explicitly included
+        }
       }
-    }
 
-    // Check ignore patterns
-    if (userConfig.ignorePatterns && userConfig.ignorePatterns.trim() !== "") {
-      const ignorePatterns = userConfig.ignorePatterns.split(",").map((p) => p.trim());
-      const isIgnored = ignorePatterns.some((pattern) => minimatch(path, pattern, { dot: true, matchBase: true }));
-      if (isIgnored) {
-        console.log(`[isIgnoredDirectory] RESULT: Matched ignore pattern, skipping`);
-        return true;
+      // Check ignore patterns
+      if (userConfig.ignorePatterns && userConfig.ignorePatterns.trim() !== "") {
+        const ignorePatterns = userConfig.ignorePatterns.split(",").map((p) => p.trim());
+        const isIgnored = ignorePatterns.some((pattern) =>
+          minimatch(path, pattern, { dot: true, matchBase: true }),
+        );
+        if (isIgnored) {
+          console.log(`[isIgnoredDirectory] RESULT: Matched ignore pattern, skipping`);
+          return true;
+        }
       }
-    }
-    console.log(`[isIgnoredDirectory] RESULT: Not ignored, NOT skipping`);
-    return false;
-  }, [userConfig.includePatterns, userConfig.ignorePatterns]);
+      console.log(`[isIgnoredDirectory] RESULT: Not ignored, NOT skipping`);
+      return false;
+    },
+    [userConfig.includePatterns, userConfig.ignorePatterns],
+  );
 
   // Check if a file should be excluded
   // Include patterns override ignore patterns - if explicitly included, it's NOT excluded
-  const isExcludedPath = useCallback((path: string) => {
-    const hasIncludePatterns = userConfig.includePatterns && userConfig.includePatterns.trim() !== "";
-    const hasIgnorePatterns = userConfig.ignorePatterns && userConfig.ignorePatterns.trim() !== "";
+  const isExcludedPath = useCallback(
+    (path: string) => {
+      const hasIncludePatterns =
+        userConfig.includePatterns && userConfig.includePatterns.trim() !== "";
+      const hasIgnorePatterns =
+        userConfig.ignorePatterns && userConfig.ignorePatterns.trim() !== "";
 
-    // Check if file matches include patterns OR is inside an included directory
-    let matchesInclude = false;
-    if (hasIncludePatterns) {
-      const includePatterns = userConfig.includePatterns.split(",").map((p) => p.trim());
+      // Check if file matches include patterns OR is inside an included directory
+      let matchesInclude = false;
+      if (hasIncludePatterns) {
+        const includePatterns = userConfig.includePatterns.split(",").map((p) => p.trim());
 
-      // Check direct match (e.g., *.ts matches file.ts)
-      matchesInclude = includePatterns.some((pattern) => minimatch(path, pattern, { dot: true, matchBase: true }));
+        // Check direct match (e.g., *.ts matches file.ts)
+        matchesInclude = includePatterns.some((pattern) =>
+          minimatch(path, pattern, { dot: true, matchBase: true }),
+        );
 
-      // Also check if file is INSIDE an included directory
-      // e.g., if pattern is ".nx", then "project/.nx/cache/file.json" should be included
-      if (!matchesInclude) {
-        const pathParts = path.split('/');
-        matchesInclude = includePatterns.some((pattern) => {
-          // Check if any directory in the path matches the pattern
-          return pathParts.some((part) => minimatch(part, pattern, { dot: true }));
-        });
+        // Also check if file is INSIDE an included directory
+        // e.g., if pattern is ".nx", then "project/.nx/cache/file.json" should be included
+        if (!matchesInclude) {
+          const pathParts = path.split("/");
+          matchesInclude = includePatterns.some((pattern) => {
+            // Check if any directory in the path matches the pattern
+            return pathParts.some((part) => minimatch(part, pattern, { dot: true }));
+          });
+        }
       }
-    }
 
-    // Check if file matches ignore patterns
-    let matchesIgnore = false;
-    if (hasIgnorePatterns) {
-      const ignorePatterns = userConfig.ignorePatterns.split(",").map((p) => p.trim());
-      matchesIgnore = ignorePatterns.some((pattern) => minimatch(path, pattern, { dot: true, matchBase: true }));
-    }
-
-    // Logic:
-    // - If include patterns defined and file matches include → NOT excluded (include wins)
-    // - If include patterns defined but file doesn't match → excluded
-    // - If no include patterns but matches ignore → excluded
-    // - Otherwise → not excluded
-
-    if (hasIncludePatterns) {
-      if (matchesInclude) {
-        return false; // Include patterns override ignore - file is kept
-      } else {
-        return true; // Doesn't match include patterns - excluded
+      // Check if file matches ignore patterns
+      let matchesIgnore = false;
+      if (hasIgnorePatterns) {
+        const ignorePatterns = userConfig.ignorePatterns.split(",").map((p) => p.trim());
+        matchesIgnore = ignorePatterns.some((pattern) =>
+          minimatch(path, pattern, { dot: true, matchBase: true }),
+        );
       }
-    }
 
-    // No include patterns - just check ignore
-    return matchesIgnore;
-  }, [userConfig.includePatterns, userConfig.ignorePatterns]);
+      // Logic:
+      // - If include patterns defined and file matches include → NOT excluded (include wins)
+      // - If include patterns defined but file doesn't match → excluded
+      // - If no include patterns but matches ignore → excluded
+      // - Otherwise → not excluded
+
+      if (hasIncludePatterns) {
+        if (matchesInclude) {
+          return false; // Include patterns override ignore - file is kept
+        } else {
+          return true; // Doesn't match include patterns - excluded
+        }
+      }
+
+      // No include patterns - just check ignore
+      return matchesIgnore;
+    },
+    [userConfig.includePatterns, userConfig.ignorePatterns],
+  );
 
   const handleFilesBatch = useCallback(
     async (incomingFiles: Array<{ file: File; path?: string; content?: string }>) => {
@@ -580,6 +592,51 @@ ${content}
     }
   }, [selectedFormat, processedContents, calculateChunks, fileStatuses]);
 
+  const copyToClipboard = useCallback(async () => {
+    try {
+      // Filter processedContents to only include files that are currently marked as included
+      const includedContents = processedContents.filter((content) => {
+        const status = fileStatuses.find((s) => s.path === content.path);
+        return status?.included ?? false;
+      });
+
+      // Generate file tree structure
+      const fileTree = generateFileTree(includedContents.map((c) => c.path));
+
+      // AI-optimized preamble with instructions and project structure
+      const preamble = `You are an AI assistant tasked with analyzing a codebase.
+Below is the file structure and the content of the files.
+Use the file structure to understand the project architecture and dependencies.
+
+# Project Structure
+\`\`\`
+${fileTree}\`\`\`
+
+# File Contents
+`;
+
+      // XML format with language identifiers for better LLM parsing
+      const contentBody = includedContents
+        .map(({ path, content }) => {
+          const language = getLanguageFromPath(path);
+          return `<file path="${path}">
+\`\`\`${language}
+${content}
+\`\`\`
+</file>`;
+        })
+        .join("\n\n");
+
+      const finalOutput = `${preamble}${contentBody}`;
+
+      await navigator.clipboard.writeText(finalOutput);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+    }
+  }, [processedContents, fileStatuses]);
+
   const resetAll = useCallback(() => {
     repositoryInputRef.current?.abort();
     setFiles([]);
@@ -889,28 +946,38 @@ ${content}
     <div className="mx-auto max-w-5xl p-4">
       <Card>
         <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="max-w-[60vw]">
+          <div className="flex flex-col gap-4 sm:flex-row sm:gap-0 items-start justify-between">
+            <div className="max-w-[50vw]">
               <CardTitle className="mb-2 flex items-center gap-2">
                 <img src="/logo.png" alt="Logo" className="h-8 w-8 dark:hidden" />
                 <img src="/dark-logo.png" alt="Logo" className="hidden h-8 w-8 dark:block" />
-                <span className="hidden text-base sm:block">File Concat Tool</span>
+                <span className="text-base">FileConcat</span>
               </CardTitle>
-              <CardDescription className="hidden max-w-xl text-sm md:block">
-                Combine multiple files and folders into a single, well-formatted document optimized
-                for Large Language Models (LLMs). Perfect for sharing codebases, documentation, and
-                project structures with AI assistants like ChatGPT, Claude, and others.
+              <CardDescription className="text-xs sm:text-sm">
+                <span className="sm:hidden">
+                  Combine files for AI assistants like ChatGPT & Claude.
+                </span>
+                <span className="hidden sm:inline">
+                  Combine multiple files and folders into a single, well-formatted document
+                  optimized for Large Language Models (LLMs). Perfect for sharing codebases,
+                  documentation, and project structures with AI assistants like ChatGPT, Claude, and
+                  others.
+                </span>
               </CardDescription>
             </div>
             <div className="flex items-start gap-1 sm:gap-2">
               <ThemeToggle />
               <div className="flex flex-row gap-1 sm:flex-col sm:gap-2">
-                <div className="hidden h-8 items-center gap-1 rounded-md border border-green-200 bg-muted px-1.5 py-1.5 text-xs text-green-600 sm:flex">
+                <div
+                  className="bg-muted flex h-8 items-center gap-1 rounded-md border border-green-200 px-1.5 py-1.5 text-xs text-green-600"
+                  title="100% Offline Processing - Your files never leave your device"
+                >
                   <Shield className="h-4 w-4 fill-current" />
-                  100% Offline Processing
+                  <span className="hidden sm:inline">100% Offline Processing</span>
+                  <span className="sm:hidden">Offline</span>
                 </div>
                 <div className="flex items-center justify-center gap-1 sm:gap-2">
-                  <span className="hidden text-sm text-muted-foreground sm:block">
+                  <span className="text-muted-foreground hidden text-sm sm:block">
                     Got feedback?
                   </span>
                   <Button variant="ghost" asChild className="w-fit" size="sm">
@@ -940,7 +1007,7 @@ ${content}
                     rel="noopener"
                   >
                     <BMCLogo />
-                    <span className="hidden text-xs text-muted-foreground sm:block">
+                    <span className="text-muted-foreground hidden text-xs sm:block">
                       Support me
                     </span>
                   </a>
@@ -993,7 +1060,7 @@ ${content}
                 onDragLeave={isProcessing || isRepoLoading ? undefined : handleDragLeave}
                 onDragOver={isProcessing || isRepoLoading ? undefined : handleDragOver}
                 onDrop={isProcessing || isRepoLoading ? undefined : handleDrop}
-                className={`mb-4 rounded-lg border-2 border-dashed p-8 text-center transition-all duration-200 ${isProcessing || isRepoLoading ? "cursor-not-allowed border-gray-200 opacity-50" : isDragging ? "border-blue-500 bg-muted" : "hover:border-blue-300"} `}
+                className={`mb-4 rounded-lg border-2 border-dashed p-8 text-center transition-all duration-200 ${isProcessing || isRepoLoading ? "cursor-not-allowed border-gray-200 opacity-50" : isDragging ? "bg-muted border-blue-500" : "hover:border-blue-300"} `}
               >
                 <Upload
                   className={`mx-auto mb-4 h-12 w-12 transition-colors duration-200 ${isProcessing || isRepoLoading ? "text-gray-300" : isDragging ? "text-blue-500" : "text-gray-400"}`}
@@ -1005,7 +1072,7 @@ ${content}
                       ? "Drop files here"
                       : "Drag and drop files or folders here"}
                 </p>
-                <div className="flex items-center justify-center py-4 text-muted-foreground">
+                <div className="text-muted-foreground flex items-center justify-center py-4">
                   or
                 </div>
                 {!isProcessing && !isRepoLoading && (
@@ -1132,7 +1199,7 @@ ${content}
                   <TokenInfoPopover />
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-muted-foreground text-sm">
                     Estimated tokens: {tokens.toLocaleString()}
                   </div>
                 </div>
@@ -1176,40 +1243,46 @@ ${content}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <button
                   onClick={() => setSelectedFormat("single")}
-                  className={`rounded-lg border-2 p-4 transition-all ${selectedFormat === "single" ? "border-blue-500 bg-secondary" : "border-gray-200 hover:border-blue-300"}`}
+                  className={`rounded-lg border-2 p-4 transition-all ${selectedFormat === "single" ? "bg-secondary border-blue-500" : "border-gray-200 hover:border-blue-300"}`}
                 >
                   <div className="mb-2 flex items-start justify-between">
                     <h3 className="font-semibold">Single File</h3>
                     {recommendedFormat === "single" && (
-                      <span className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700">
+                      <span
+                        className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                        title={`Under ${MULTI_OUTPUT_LIMIT.toLocaleString()} tokens - fits most LLM context windows`}
+                      >
                         Recommended
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     All content in one file. Best for smaller contexts.
                   </p>
-                  <div className="mt-2 text-xs text-muted-foreground">
+                  <div className="text-muted-foreground mt-2 text-xs">
                     {getEstimations().single}
                   </div>
                 </button>
 
                 <button
                   onClick={() => setSelectedFormat("multi")}
-                  className={`rounded-lg border-2 p-4 transition-all ${selectedFormat === "multi" ? "border-blue-500 bg-secondary" : "border-gray-200 hover:border-blue-300"}`}
+                  className={`rounded-lg border-2 p-4 transition-all ${selectedFormat === "multi" ? "bg-secondary border-blue-500" : "border-gray-200 hover:border-blue-300"}`}
                 >
                   <div className="mb-2 flex items-start justify-between">
                     <h3 className="font-semibold">Multiple Files</h3>
                     {recommendedFormat === "multi" && (
-                      <span className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700">
+                      <span
+                        className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                        title={`Over ${MULTI_OUTPUT_LIMIT.toLocaleString()} tokens - split into chunks for better handling`}
+                      >
                         Recommended
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     Split into optimal chunks. Better for large contexts.
                   </p>
-                  <div className="mt-2 text-xs text-muted-foreground">
+                  <div className="text-muted-foreground mt-2 text-xs">
                     {getEstimations().multiple}
                   </div>
                 </button>
@@ -1224,6 +1297,26 @@ ${content}
               )}
 
               <div className="flex gap-2">
+                {selectedFormat === "single" && (
+                  <button
+                    onClick={copyToClipboard}
+                    disabled={isProcessing}
+                    className="flex items-center justify-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                    title="Copy to clipboard"
+                  >
+                    {isCopied ? (
+                      <>
+                        <Check className="h-4 w-4 text-green-500" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                )}
                 <button
                   onClick={generateOutput}
                   disabled={!selectedFormat || isProcessing}

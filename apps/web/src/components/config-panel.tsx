@@ -1,9 +1,71 @@
 import { useRef, useState } from "react";
-import { Settings, Download, Upload, RotateCcw, ChevronDown, ChevronUp, HelpCircle } from "lucide-react";
+import {
+  Settings,
+  Download,
+  Upload,
+  RotateCcw,
+  ChevronDown,
+  ChevronUp,
+  HelpCircle,
+  Zap,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import type { UserConfig } from "@fileconcat/core";
+
+// Stack-based pattern presets
+const PATTERN_PRESETS = [
+  {
+    name: "React/Next.js",
+    icon: "⚛️",
+    include: "**/*.tsx, **/*.ts, **/*.jsx, **/*.js, **/*.css, **/*.json",
+    ignore: "node_modules, .next, dist, build, coverage, **/*.test.*, **/*.spec.*, **/__tests__",
+  },
+  {
+    name: "Vue.js",
+    icon: "💚",
+    include: "**/*.vue, **/*.ts, **/*.js, **/*.css, **/*.json",
+    ignore: "node_modules, dist, .nuxt, coverage, **/*.test.*, **/*.spec.*",
+  },
+  {
+    name: "Python",
+    icon: "🐍",
+    include: "**/*.py, **/*.pyi, **/*.toml, **/*.yaml, **/*.yml, **/*.json",
+    ignore:
+      "__pycache__, .venv, venv, .pytest_cache, dist, build, *.egg-info, **/*_test.py, **/test_*",
+  },
+  {
+    name: "Go",
+    icon: "🐹",
+    include: "**/*.go, **/*.mod, **/*.sum, **/*.yaml, **/*.yml",
+    ignore: "vendor, bin, **/*_test.go",
+  },
+  {
+    name: "Rust",
+    icon: "🦀",
+    include: "**/*.rs, **/*.toml, **/*.md",
+    ignore: "target, **/*_test.rs",
+  },
+  {
+    name: "Java/Kotlin",
+    icon: "☕",
+    include: "**/*.java, **/*.kt, **/*.gradle, **/*.xml, **/*.properties",
+    ignore: "build, target, .gradle, **/test/**, **/*Test.java, **/*Test.kt",
+  },
+  {
+    name: "Source Only",
+    icon: "📁",
+    include: "src/**/*",
+    ignore: "**/*.test.*, **/*.spec.*, **/__tests__",
+  },
+  {
+    name: "Docs Only",
+    icon: "📝",
+    include: "**/*.md, **/*.mdx, **/*.txt, **/*.rst, docs/**/*",
+    ignore: "node_modules, .git",
+  },
+] as const;
 
 interface ConfigPanelProps {
   config: UserConfig;
@@ -42,25 +104,49 @@ export default function ConfigPanel({
 
   return (
     <Card className="mb-4">
-      <CardHeader
-        className="cursor-pointer py-3"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
+      <CardHeader className="cursor-pointer py-3" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             <CardTitle className="text-base">Settings</CardTitle>
           </div>
-          {isExpanded ? (
-            <ChevronUp className="h-4 w-4" />
-          ) : (
-            <ChevronDown className="h-4 w-4" />
-          )}
+          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </div>
       </CardHeader>
 
       {isExpanded && (
         <CardContent className="space-y-5 pt-0">
+          {/* Quick Presets */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1">
+              <Zap className="h-4 w-4 text-yellow-500" />
+              <Label>Quick Presets</Label>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {PATTERN_PRESETS.map((preset) => (
+                <Button
+                  key={preset.name}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => {
+                    setConfig({
+                      includePatterns: preset.include,
+                      ignorePatterns: preset.ignore,
+                    });
+                  }}
+                  title={`Include: ${preset.include}\nIgnore: ${preset.ignore}`}
+                >
+                  <span className="mr-1">{preset.icon}</span>
+                  {preset.name}
+                </Button>
+              ))}
+            </div>
+            <p className="text-muted-foreground text-xs">
+              Click a preset to auto-fill include/ignore patterns for common stacks.
+            </p>
+          </div>
+
           {/* Include Patterns */}
           <div className="space-y-2">
             <div className="flex items-center gap-1">
@@ -79,9 +165,9 @@ export default function ConfigPanel({
               value={config.includePatterns}
               onChange={(e) => setConfig({ includePatterns: e.target.value })}
               placeholder="e.g., src/**/*.ts, src/**/*.tsx"
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm min-h-[60px] resize-y"
+              className="bg-background min-h-[60px] w-full resize-y rounded-md border px-3 py-2 text-sm"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Comma-separated glob patterns. Leave empty to include all files.
             </p>
           </div>
@@ -94,9 +180,9 @@ export default function ConfigPanel({
               value={config.ignorePatterns}
               onChange={(e) => setConfig({ ignorePatterns: e.target.value })}
               placeholder="e.g., node_modules, dist, *.test.ts"
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm min-h-[60px] resize-y"
+              className="bg-background min-h-[60px] w-full resize-y rounded-md border px-3 py-2 text-sm"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Comma-separated patterns to exclude from output.
             </p>
           </div>
@@ -137,7 +223,7 @@ export default function ConfigPanel({
               max={100}
               value={config.maxFileSizeMB}
               onChange={(e) => setConfig({ maxFileSizeMB: Number(e.target.value) })}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className="bg-background w-full rounded-md border px-3 py-2 text-sm"
             />
           </div>
 
@@ -176,11 +262,7 @@ export default function ConfigPanel({
               Export
             </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-            >
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
               <Upload className="mr-2 h-4 w-4" />
               Import
             </Button>
