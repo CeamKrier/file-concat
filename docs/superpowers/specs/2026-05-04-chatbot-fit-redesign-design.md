@@ -68,8 +68,7 @@ Three layers, all inside `apps/web`:
 | `apps/web/src/components/token-info-popover.tsx` | Replaced by chip-level visual. |
 | `apps/web/src/components/token-section.tsx` | Replaced wholesale by `chatbot-fit-badge.tsx`. |
 | `apps/web/src/hooks/use-models.ts` (audit) | **Retain** — `useChatbotFit` still consumes it. |
-
-If `lazy-editor-codemirror.tsx` is only used by deleted components, also delete; verify before removing. CodeMirror is also used by the file viewer/preview, so it almost certainly stays.
+| `apps/web/src/components/lazy-editor-codemirror.tsx` (audit) | **Retain** — used by file viewer / preview, not by the deleted token panel. No action needed. |
 
 ### Files to add
 
@@ -79,6 +78,7 @@ If `lazy-editor-codemirror.tsx` is only used by deleted components, also delete;
 | `apps/web/src/lib/chatbot-providers.ts` | `CHATBOT_PROVIDERS: ChatbotProviderConfig[]` whitelist + `pickFlagshipModel(registry, providerId)` helper. |
 | `apps/web/src/hooks/use-chatbot-fit.ts` | `useChatbotFit(content): ChatbotFitResult` — composes `estimateTokens`, `useModels`, and `pickFlagshipModel`. |
 | `apps/web/src/components/chatbot-fit-badge.tsx` | Renders the chip row + optional all-overflow banner. |
+| `apps/web/vitest.config.ts` | New vitest config for `apps/web` (the package does not currently have one). One-line config that sets `test.environment: "jsdom"` (for the hook test) and reuses the workspace tsconfig. |
 | `apps/web/tests/tokens.test.ts` | Unit tests for `estimateTokens`. |
 | `apps/web/tests/chatbot-providers.test.ts` | Unit tests for `pickFlagshipModel`. |
 | `apps/web/tests/use-chatbot-fit.test.ts` | One light integration test for the hook. |
@@ -89,8 +89,7 @@ If `lazy-editor-codemirror.tsx` is only used by deleted components, also delete;
 | ---- | ------ |
 | `apps/web/src/app.tsx` | Replace `<TokenSection />` (or equivalent) usage with `<ChatbotFitBadge content={joinedContent} />`. |
 | `apps/web/app.config.ts` | Remove `wasm()` and `topLevelAwait()` plugins; remove `optimizeDeps.exclude` for `@dqbd/tiktoken`. |
-| `apps/web/package.json` | Remove deps: `@dqbd/tiktoken`, `vite-plugin-wasm`, `vite-plugin-top-level-await`. |
-| `apps/web/package.json` | Add devDep if needed: vitest config for the new tests (vitest is already used in `packages/core`; the web app may need its own config). |
+| `apps/web/package.json` | Remove deps: `@dqbd/tiktoken`, `vite-plugin-wasm`, `vite-plugin-top-level-await`. Add devDeps: `vitest`, `@testing-library/react`, `jsdom` (for the hook test). Add `test` script: `vitest run`. |
 | `.claude/CLAUDE.md` | Update the apps/web architecture note: tiktoken / wasm plugin order is no longer relevant; remove that paragraph. |
 | `.claude/napkin.md` | Add note: chip-row pattern + heuristic tokens; remove obsolete tiktoken note. |
 
@@ -104,10 +103,11 @@ If `lazy-editor-codemirror.tsx` is only used by deleted components, also delete;
    - Reads `useModels()` → `registry`.
    - For each entry in `CHATBOT_PROVIDERS`:
      - `flagship = pickFlagshipModel(registry, providerId)`.
-     - `fits = (tokens * 1.15) <= flagship.context_window`.
-       - The 1.15 multiplier is a global cross-tokenizer buffer applied **only at the fit check**, not at the displayed token number.
+     - `fits = (tokens * OVERHEAD_FACTOR) <= flagship.limit.context`.
+       - `OVERHEAD_FACTOR = 1.15`, exported from `chatbot-providers.ts` so the tuning knob has one home.
+       - The factor is applied **only at the fit check**, not to the displayed token number — users see the un-buffered estimate.
      - Push `{ id, name, icon, modelName, contextWindow, tokens, fits }` into `providers`.
-   - Skip providers where `flagship` is undefined or `context_window` is missing.
+   - Skip providers where `flagship` is undefined or `flagship.limit.context` is missing/zero.
    - Return `{ tokens, providers }`.
 5. The badge renders `≈ {tokens.toLocaleString()} tokens` and one chip per provider (`<icon> ✓` or `<icon> ✗`).
 6. If `providers.length > 0` and every chip is ✗, render an additional one-line red banner under the chips: *"Exceeds all tracked chatbots — trim files in the tree to fit."*
@@ -128,25 +128,29 @@ Rationale:
 
 ## `pickFlagshipModel` rule
 
+The `models.dev` schema places context size at `model.limit.context` (not `context_window`). The matching `@fileconcat/core` type is `AIModel` (which exposes `limit: { context, output }`), and the registry shape is `ModelsRegistry.providers[providerId].models: Record<string, AIModel>`. Use these directly so we have access to `release_date` for the tie-break — `FilteredModel` from core does not expose it.
+
 ```ts
+import type { AIModel, ModelsRegistry } from "@fileconcat/core";
+
 export function pickFlagshipModel(
   registry: ModelsRegistry,
   providerId: string,
-): FilteredModel | undefined {
+): AIModel | undefined {
   const provider = registry.providers[providerId];
   if (!provider) return undefined;
-  const models = Object.values(provider.models).filter((m) => m.context_window);
+  const models = Object.values(provider.models).filter((m) => m.limit?.context);
   if (models.length === 0) return undefined;
   return models.sort((a, b) => {
-    if (b.context_window !== a.context_window) {
-      return b.context_window - a.context_window;
+    if (b.limit.context !== a.limit.context) {
+      return b.limit.context - a.limit.context;
     }
     return new Date(b.release_date ?? 0).getTime() - new Date(a.release_date ?? 0).getTime();
   })[0];
 }
 ```
 
-Sort key: highest `context_window` wins; ties broken by latest `release_date`. Both fields come from `models.dev`.
+Sort key: highest `limit.context` wins; ties broken by latest `release_date`. Both fields come from `models.dev` and are kept fresh by the existing `apps/web/scripts/fetch-models.ts` prebuild step plus the `routes/api/models.ts` runtime refresh.
 
 ## `CHATBOT_PROVIDERS` whitelist
 
@@ -169,11 +173,14 @@ export const CHATBOT_PROVIDERS: ChatbotProviderConfig[] = [
   { id: "mistral",        name: "Mistral",  icon: "mistralai" },
   { id: "github-copilot", name: "Copilot",  icon: "github" },
 ];
+
+/** Cross-tokenizer safety margin — applied at fits-check, not at display. */
+export const OVERHEAD_FACTOR = 1.15;
 ```
 
 The exact set is curated by hand; updating it is a one-line PR. The flagship model under each provider stays fresh automatically via `models.dev`.
 
-(Provider IDs above are the expected `models.dev` shape — the implementation must verify the actual ids in `apps/web/src/data/models.json` and adjust if the upstream id is different. This is a pre-implementation check, not a design issue.)
+All five provider IDs above are confirmed to exist verbatim in the current `apps/web/src/data/models.json` (verified during spec authoring against the current `models.dev` snapshot). No implementation-time verification needed.
 
 ## Error and edge cases
 
@@ -181,9 +188,9 @@ The exact set is curated by hand; updating it is a one-line PR. The flagship mod
 | ---- | -------- |
 | `useModels()` is in loading state | Render the chip row with greyed-out skeleton chips, no ✓/✗. |
 | `useModels()` errored AND no bundled fallback | Hide the chip row entirely (rest of the app continues). |
-| Bundled fallback is used (API down) | Render normally; no UI signal — the user does not need to know. |
+| Bundled fallback is used (API down) | Render normally; no UI signal. The bundled snapshot is regenerated every prebuild, so it is at most as stale as the last deploy — short enough that surfacing it would be more noise than useful information. The 15% `OVERHEAD_FACTOR` also absorbs the typical context-window growth between snapshots (e.g., 200k → 1M is rare and would only flip ✗ to ✓, never the reverse). |
 | Whitelisted provider not present in registry | Skip that chip. No console error. |
-| Provider present but no model has `context_window` | Skip that chip. |
+| Provider present but no model has `limit.context` | Skip that chip. |
 | `content` is empty or whitespace | Render placeholder: *"Add files to see chatbot fit."* No chips. |
 | `tokens > 0`, all chips are ✗ | Chips render as ✗ + one-line red banner under them. |
 | Heuristic underestimates non-Latin scripts | Acknowledged limitation; documented in code comment near `estimateTokens`. |
@@ -205,7 +212,7 @@ The exact set is curated by hand; updating it is a one-line PR. The flagship mod
 - Tie-break: two models with identical `context_window` → the one with later `release_date` wins.
 
 `apps/web/tests/use-chatbot-fit.test.ts` (light hook test):
-- Given a fixture registry with all five whitelisted providers, `useChatbotFit("hello world")` returns `tokens === 4` and `providers.length === 5`, all `fits === true`.
+- Given a fixture registry with all five whitelisted providers, `useChatbotFit("hello world")` returns `tokens === 4` (11 chars / 3, ceil = 4 — call this out in the test description so the magic number is self-explanatory) and `providers.length === 5`, all `fits === true`.
 - Given content large enough to exceed every chatbot, all `providers[i].fits === false`.
 
 ### No unit test for the badge component
