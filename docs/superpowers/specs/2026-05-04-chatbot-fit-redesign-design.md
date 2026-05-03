@@ -89,7 +89,7 @@ Three layers, all inside `apps/web`:
 | ---- | ------ |
 | `apps/web/src/app.tsx` | Replace `<TokenSection />` (or equivalent) usage with `<ChatbotFitBadge content={joinedContent} />`. |
 | `apps/web/app.config.ts` | Remove `wasm()` and `topLevelAwait()` plugins; remove `optimizeDeps.exclude` for `@dqbd/tiktoken`. |
-| `apps/web/package.json` | Remove deps: `@dqbd/tiktoken`, `vite-plugin-wasm`, `vite-plugin-top-level-await`. Add devDeps: `vitest`, `@testing-library/react`, `jsdom` (for the hook test). Add `test` script: `vitest run`. |
+| `apps/web/package.json` | Remove deps: `@dqbd/tiktoken`, `vite-plugin-wasm`, `vite-plugin-top-level-await`. Add devDeps: `vitest`, `@testing-library/react`, `jsdom` — pin to the latest stable releases compatible with TypeScript 5.6 and Vite 6 at implementation time. Add `test` script: `vitest run`. |
 | `.claude/CLAUDE.md` | Update the apps/web architecture note: tiktoken / wasm plugin order is no longer relevant; remove that paragraph. |
 | `.claude/napkin.md` | Add note: chip-row pattern + heuristic tokens; remove obsolete tiktoken note. |
 
@@ -188,7 +188,7 @@ All five provider IDs above are confirmed to exist verbatim in the current `apps
 | ---- | -------- |
 | `useModels()` is in loading state | Render the chip row with greyed-out skeleton chips, no ✓/✗. |
 | `useModels()` errored AND no bundled fallback | Hide the chip row entirely (rest of the app continues). |
-| Bundled fallback is used (API down) | Render normally; no UI signal. The bundled snapshot is regenerated every prebuild, so it is at most as stale as the last deploy — short enough that surfacing it would be more noise than useful information. The 15% `OVERHEAD_FACTOR` also absorbs the typical context-window growth between snapshots (e.g., 200k → 1M is rare and would only flip ✗ to ✓, never the reverse). |
+| Bundled fallback is used (API down) | Render normally; no UI signal. `useModels()` already returns the bundled `~/data/models.json` transparently when `/api/models` errors, so `useChatbotFit` does not need any special-casing — it always sees a working `registry`. The bundled snapshot is regenerated every prebuild, so it is at most as stale as the last deploy. The 15% `OVERHEAD_FACTOR` also absorbs the typical context-window growth between snapshots (e.g., 200k → 1M is rare and would only flip ✗ to ✓, never the reverse). |
 | Whitelisted provider not present in registry | Skip that chip. No console error. |
 | Provider present but no model has `limit.context` | Skip that chip. |
 | `content` is empty or whitespace | Render placeholder: *"Add files to see chatbot fit."* No chips. |
@@ -249,5 +249,5 @@ These items are explicitly deferred and may be picked up in a follow-up brainsto
 
 - Single PR, single commit on `development`. No feature flag.
 - The existing `apps/web/src/data/models.json` (3 MiB bundled) stays as the runtime fallback. No data migration required.
-- The deleted components have no consumers outside `apps/web`. Verify with `grep -rn 'cost-estimate\|cost-comparison\|model-selector\|token-info-popover\|token-section'` before deleting.
+- The deleted components have no consumers outside `apps/web`. Verify with `grep -rn 'cost-estimate\|cost-comparison\|model-selector\|token-info-popover\|token-section'` before deleting. (This audit is delete-only — the new `chatbot-fit-badge`, `useChatbotFit`, `tokens.ts`, and `chatbot-providers.ts` are net-new and need no pre-flight grep.)
 - localStorage keys to clean up if they exist (one-time, on first run): `fileconcat-favorite-models`, `fileconcat-output-ratio`, `fileconcat-selected-model`. Decision: leave the keys orphaned (no migration, no read path = no functional impact). They are user-local and harmless.
