@@ -92,8 +92,9 @@ Single-purpose Commander program (`src/index.ts` → `src/commands/concat.ts`). 
 
 ## Deploy targets and build artifacts
 
-- The web build output lives in `apps/web/.output/` (TanStack Start convention). Cloudflare expects `.output/server/index.mjs` and `.output/public/`. **Do not** assume a `dist/` directory or commit `.output/` — it is gitignored and dev runs will produce empty stubs in it that Wrangler will happily deploy.
-- `apps/web/wrangler.jsonc` points `main` at `@tanstack/react-start/server-entry`; do not rewrite it to a relative path.
+- The web build output lives in `apps/web/dist/` (the `@cloudflare/vite-plugin` v1.22+ convention; the older `.output/` directory is no longer produced). Vite emits `dist/client/` for static assets and `dist/server/index.js` plus a generated `dist/server/wrangler.json` derived from the hand-written `apps/web/wrangler.jsonc`. `pnpm start` runs the SSR worker via `node dist/server/index.js`.
+- The hand-written `apps/web/wrangler.jsonc` points `main` at `@tanstack/react-start/server-entry` (a virtual module). Do not rewrite it to a relative path — the Cloudflare Vite plugin substitutes the real entry into the generated `dist/server/wrangler.json` at build time.
+- Both `dist/` and the legacy `.output/` are gitignored, alongside `.wrangler/` and `*.tsbuildinfo`.
 - `nodejs_compat` is required and already enabled.
 
 ## Tooling conventions

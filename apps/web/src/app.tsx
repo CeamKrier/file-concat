@@ -346,7 +346,7 @@ const App: React.FC = () => {
         console.error("Error reprocessing files:", error);
       }
     },
-    [files, fileStatuses, estimateTokens],
+    [files, fileStatuses],
   );
 
   const toggleMultipleFiles = useCallback(
@@ -391,7 +391,7 @@ const App: React.FC = () => {
         console.error("Error reprocessing files:", error);
       }
     },
-    [files, fileStatuses, estimateTokens],
+    [files, fileStatuses],
   );
 
   const handleRepositorySubmit = useCallback(

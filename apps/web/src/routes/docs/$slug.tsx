@@ -3,12 +3,14 @@ import { DocsLayout } from "~/components/docs-layout";
 import { lazy, Suspense } from "react";
 import { generateSEOMeta } from "~/lib/seo";
 
-const docsModules = import.meta.glob("~/content/docs/*.mdx");
+// Relative path required — Vite's import.meta.glob does not resolve
+// path aliases like `~/` in the glob pattern.
+const docsModules = import.meta.glob("../../content/docs/*.mdx");
 
 export const Route = createFileRoute("/docs/$slug")({
   component: DocsPage,
   loader: async ({ params }) => {
-    const modulePath = `~/content/docs/${params.slug}.mdx`;
+    const modulePath = `../../content/docs/${params.slug}.mdx`;
     if (!docsModules[modulePath]) {
       throw notFound();
     }

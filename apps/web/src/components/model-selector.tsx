@@ -21,6 +21,7 @@ interface ModelSelectorProps {
 const FAVORITES_KEY = "fileconcat-favorite-models";
 
 function loadFavorites(): Set<string> {
+  if (typeof window === "undefined") return new Set();
   try {
     const stored = localStorage.getItem(FAVORITES_KEY);
     return stored ? new Set(JSON.parse(stored)) : new Set();

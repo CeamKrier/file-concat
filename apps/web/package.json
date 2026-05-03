@@ -10,7 +10,7 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "node .output/server/index.mjs",
+    "start": "node dist/server/index.js",
     "deploy": "pnpm build && wrangler deploy",
     "check": "tsc --noEmit"
   },
