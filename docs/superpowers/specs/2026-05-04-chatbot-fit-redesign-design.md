@@ -107,7 +107,7 @@ Three layers, all inside `apps/web`:
        - `OVERHEAD_FACTOR = 1.15`, exported from `chatbot-providers.ts` so the tuning knob has one home.
        - The factor is applied **only at the fit check**, not to the displayed token number — users see the un-buffered estimate.
      - Push `{ id, name, icon, modelName, contextWindow, tokens, fits }` into `providers`.
-   - Skip providers where `flagship` is undefined or `flagship.limit.context` is missing/zero.
+   - Skip providers where `flagship` is undefined. (`pickFlagshipModel` already filters out models with missing or zero `limit.context`, so a returned model is guaranteed to have a usable context value.)
    - Return `{ tokens, providers }`.
 5. The badge renders `≈ {tokens.toLocaleString()} tokens` and one chip per provider (`<icon> ✓` or `<icon> ✗`).
 6. If `providers.length > 0` and every chip is ✗, render an additional one-line red banner under the chips: *"Exceeds all tracked chatbots — trim files in the tree to fit."*
@@ -206,10 +206,11 @@ All five provider IDs above are confirmed to exist verbatim in the current `apps
 - `estimateTokens("a".repeat(3001))` returns `1001` (Math.ceil edge).
 
 `apps/web/tests/chatbot-providers.test.ts`:
-- `pickFlagshipModel(registry, "anthropic")` returns the Claude entry with the highest `context_window`.
+- `pickFlagshipModel(registry, "anthropic")` returns the Claude entry with the highest `limit.context`.
 - `pickFlagshipModel(registry, "nonexistent")` returns `undefined`.
 - `pickFlagshipModel(emptyRegistry, "openai")` returns `undefined`.
-- Tie-break: two models with identical `context_window` → the one with later `release_date` wins.
+- Tie-break: two models with identical `limit.context` → the one with later `release_date` wins.
+- `OVERHEAD_FACTOR`: tests that depend on the buffer (e.g. fits/doesn't-fit thresholds) must import the constant from the module under test rather than re-stating `1.15`, so the test stays correct if the constant is tuned later.
 
 `apps/web/tests/use-chatbot-fit.test.ts` (light hook test):
 - Given a fixture registry with all five whitelisted providers, `useChatbotFit("hello world")` returns `tokens === 4` (11 chars / 3, ceil = 4 — call this out in the test description so the magic number is self-explanatory) and `providers.length === 5`, all `fits === true`.
