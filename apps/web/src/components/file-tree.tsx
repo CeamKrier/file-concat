@@ -10,11 +10,11 @@ import {
   Minus,
   HelpCircle,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "~/components/ui/button";
 import { FileStatus } from "@fileconcat/core";
-import { formatSize } from "@/utils";
-import { cn } from "@/lib/utils";
-import { getSizeSeverity } from "@/lib/file-size";
+import { formatSize } from "~/utils";
+import { cn } from "~/lib/utils";
+import { getSizeSeverity } from "~/lib/file-size";
 
 const LEGEND_DISMISSED_KEY = "fileconcat-legend-dismissed";
 

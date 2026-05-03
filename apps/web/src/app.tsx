@@ -3,19 +3,19 @@ import { minimatch } from "minimatch";
 import { Upload, Download, Shield, Trash2, Copy, Check } from "lucide-react";
 import { SiGithub, SiX } from "@icons-pack/react-simple-icons";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import RepositoryInput, { RepositoryInputRef } from "./components/repository-input";
-import { ThemeToggle } from "@/components/theme-toggle";
-import OutputSettings from "@/components/output-settings";
-import TokenInfoPopover from "@/components/token-info-popover";
-import PreviewModal from "@/components/preview-modal";
-import FileTree from "@/components/file-tree";
-import FileViewerModal from "@/components/file-viewer-modal";
-import AboutSection from "@/components/about-section";
-import ConfigPanel from "@/components/config-panel";
-import { useConfig } from "@/hooks/use-config";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
+import { Alert, AlertDescription } from "~/components/ui/alert";
+import SourceInput, { SourceInputRef } from "~/components/source-input";
+import { ThemeToggle } from "~/components/theme-toggle";
+import OutputSettings from "~/components/output-settings";
+import { TokenSection } from "~/components/token-section";
+import PreviewModal from "~/components/preview-modal";
+import FileTree from "~/components/file-tree";
+import FileViewerModal from "~/components/file-viewer-modal";
+import AboutSection from "~/components/about-section";
+import ConfigPanel from "~/components/config-panel";
+import { useConfig } from "~/hooks/use-config";
 
 import {
   DownloadProgress,
@@ -23,21 +23,22 @@ import {
   FileStatus,
   OutputFormat,
   ProcessingConfig,
+  defaultSourceRegistry,
 } from "@fileconcat/core";
+import type { SourceType } from "@fileconcat/core";
 import {
   validateFile,
   formatSize,
   estimateTokenCount,
-  fetchRepositoryFiles,
   calculateTotalSize,
   generateFileTree,
   getLanguageFromPath,
   generateProjectName,
-} from "@/utils";
+} from "~/utils";
 import { processFileContent } from "@fileconcat/core";
-import { LLM_CONTEXT_LIMITS, MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "@fileconcat/core";
+import { MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "@fileconcat/core";
 
-import BMCLogo from "./components/bmc-logo";
+import BMCLogo from "~/components/bmc-logo";
 
 const App: React.FC = () => {
   const [files, setFiles] = useState<FileEntry[]>([]);
@@ -96,7 +97,7 @@ const App: React.FC = () => {
   }, []);
 
   const dragCounter = useRef<number>(0);
-  const repositoryInputRef = useRef<RepositoryInputRef>(null);
+  const sourceInputRef = useRef<SourceInputRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
 
@@ -394,10 +395,24 @@ const App: React.FC = () => {
   );
 
   const handleRepositorySubmit = useCallback(
-    async (url: string, onProgress: (progress: DownloadProgress) => void, signal: AbortSignal) => {
+    async (
+      url: string,
+      sourceType: SourceType,
+      onProgress: (progress: DownloadProgress) => void,
+      signal: AbortSignal,
+    ) => {
       setIsRepoLoading(true);
       try {
-        const { files, error } = await fetchRepositoryFiles(url, onProgress, signal);
+        // Get adapter for source type
+        const adapter = defaultSourceRegistry.getByType(sourceType);
+        if (!adapter) {
+          throw new Error("Unknown source type");
+        }
+
+        const { files, error } = await adapter.fetchFiles(url, {
+          onProgress,
+          signal,
+        });
 
         if (error) {
           throw new Error(error);
@@ -638,7 +653,7 @@ ${content}
   }, [processedContents, fileStatuses]);
 
   const resetAll = useCallback(() => {
-    repositoryInputRef.current?.abort();
+    sourceInputRef.current?.abort();
     setFiles([]);
     setOutput("");
     setFileStatuses([]);
@@ -650,7 +665,7 @@ ${content}
     setFailedFiles([]);
 
     setMaxFileSize(32);
-    repositoryInputRef.current?.reset();
+    sourceInputRef.current?.reset();
   }, []);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -946,7 +961,7 @@ ${content}
     <div className="mx-auto max-w-5xl p-4">
       <Card>
         <CardHeader>
-          <div className="flex flex-col gap-4 sm:flex-row sm:gap-0 items-start justify-between">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:gap-0">
             <div className="max-w-[50vw]">
               <CardTitle className="mb-2 flex items-center gap-2">
                 <img src="/logo.png" alt="Logo" className="h-8 w-8 dark:hidden" />
@@ -1028,10 +1043,11 @@ ${content}
 
           {!fileStatuses.length && (
             <>
-              <RepositoryInput
-                ref={repositoryInputRef}
+              <SourceInput
+                ref={sourceInputRef}
                 isLoading={isRepoLoading}
                 onSubmit={handleRepositorySubmit}
+                config={userConfig}
               />
 
               <div className="flex items-center justify-center py-4">or</div>
@@ -1191,51 +1207,7 @@ ${content}
             </div>
           )}
 
-          {tokens > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold">Tokenization</h3>
-                  <TokenInfoPopover />
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-muted-foreground text-sm">
-                    Estimated tokens: {tokens.toLocaleString()}
-                  </div>
-                </div>
-              </div>
-
-              {LLM_CONTEXT_LIMITS.map((llm) => {
-                const percentage = (tokens / llm.limit) * 100;
-
-                if (percentage > 100) {
-                  return null; // Skip LLMs that are over the limit, except for Custom
-                }
-
-                return (
-                  <div key={llm.name} className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>
-                        <span className="font-bold">{llm.name}</span> -{" "}
-                        <span className="text-muted-foreground">
-                          {llm.limit.toLocaleString()} tokens
-                        </span>
-                      </span>
-                      <span className={percentage > 100 ? "text-red-500" : "text-muted-foreground"}>
-                        {percentage.toFixed(1)}% used
-                      </span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-gray-200">
-                      <div
-                        className={`h-2 rounded-full ${percentage > 90 ? "bg-red-500" : percentage > 70 ? "bg-yellow-500" : "bg-green-500"}`}
-                        style={{ width: `${Math.min(percentage, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {tokens > 0 && <TokenSection tokens={tokens} />}
 
           {processedContents.length > 0 && (
             <div className="mt-6 space-y-6">

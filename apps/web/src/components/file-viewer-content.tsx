@@ -1,9 +1,9 @@
 import React, { Suspense } from "react";
 import { Check, Plus, Pencil, Save as SaveIcon, Undo2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { formatSize } from "@/utils";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
+import { ScrollArea } from "~/components/ui/scroll-area";
+import { formatSize } from "~/utils";
 const LazyEditor = React.lazy(() => import("@/components/lazy-editor-codemirror"));
 
 interface FileViewerContentProps {

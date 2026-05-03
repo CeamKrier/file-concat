@@ -27,9 +27,12 @@ export type ProcessingConfig = {
   excludeBinaryFiles: boolean;
 };
 
+// Import SourceType for UserConfig
+import type { SourceType } from "./sources/types";
+
 // User configuration with schema versioning for localStorage
 export type UserConfig = {
-  version: 2;
+  version: 3;
   maxFileSizeMB: number;
   // Pattern filtering (glob syntax)
   includePatterns: string;
@@ -39,6 +42,9 @@ export type UserConfig = {
   showLineNumbers: boolean;
   // Output preferences
   defaultOutputFormat: "single" | "multi";
+  // Source preferences
+  autoSwitchSource: boolean;
+  defaultSourceType: SourceType;
 };
 
 export type TokenCount = {
@@ -51,6 +57,18 @@ export type LLMContextLimit = {
   limit: number;
   inputLimit?: number;
 };
+
+// Import type for helper function
+import type { FilteredModel } from "./models/types";
+
+// Helper: FilteredModel'den LLMContextLimit olusturma (backward compat)
+export function modelToContextLimit(model: FilteredModel): LLMContextLimit {
+  return {
+    name: `${model.providerName} ${model.name}`,
+    limit: model.contextLimit,
+    inputLimit: model.contextLimit,
+  };
+}
 
 export type OutputFormat = "single" | "multi";
 

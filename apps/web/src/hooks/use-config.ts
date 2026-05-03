@@ -3,28 +3,39 @@ import type { UserConfig } from "@fileconcat/core";
 import { DEFAULT_IGNORE_STRING } from "@fileconcat/core";
 
 const STORAGE_KEY = "fileconcat-config";
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 const DEFAULT_CONFIG: UserConfig = {
-  version: 2,
+  version: 3,
   maxFileSizeMB: 32,
   includePatterns: "",
   ignorePatterns: DEFAULT_IGNORE_STRING,
   removeEmptyLines: false,
   showLineNumbers: false,
   defaultOutputFormat: "single",
+  autoSwitchSource: false,
+  defaultSourceType: "github",
 };
 
-// Migration from v1 to v2
+// Migration from older versions to v3
 function migrateConfig(oldConfig: Record<string, unknown>): UserConfig {
   return {
     ...DEFAULT_CONFIG,
     maxFileSizeMB: (oldConfig.maxFileSizeMB as number) || DEFAULT_CONFIG.maxFileSizeMB,
-    defaultOutputFormat: (oldConfig.defaultOutputFormat as "single" | "multi") || DEFAULT_CONFIG.defaultOutputFormat,
+    defaultOutputFormat:
+      (oldConfig.defaultOutputFormat as "single" | "multi") || DEFAULT_CONFIG.defaultOutputFormat,
     // Convert old customIgnorePatterns array to string if exists, otherwise use defaults
     ignorePatterns: Array.isArray(oldConfig.customIgnorePatterns)
       ? oldConfig.customIgnorePatterns.join(", ")
-      : DEFAULT_IGNORE_STRING,
+      : (oldConfig.ignorePatterns as string) || DEFAULT_IGNORE_STRING,
+    includePatterns: (oldConfig.includePatterns as string) || DEFAULT_CONFIG.includePatterns,
+    removeEmptyLines: (oldConfig.removeEmptyLines as boolean) ?? DEFAULT_CONFIG.removeEmptyLines,
+    showLineNumbers: (oldConfig.showLineNumbers as boolean) ?? DEFAULT_CONFIG.showLineNumbers,
+    // New v3 fields
+    autoSwitchSource: (oldConfig.autoSwitchSource as boolean) ?? DEFAULT_CONFIG.autoSwitchSource,
+    defaultSourceType:
+      (oldConfig.defaultSourceType as UserConfig["defaultSourceType"]) ||
+      DEFAULT_CONFIG.defaultSourceType,
   };
 }
 
@@ -89,13 +100,14 @@ export function useConfig() {
       reader.onload = (e) => {
         try {
           const imported = JSON.parse(e.target?.result as string);
-          const migrated = imported.version === CURRENT_VERSION
-            ? imported as UserConfig
-            : migrateConfig(imported);
+          const migrated =
+            imported.version === CURRENT_VERSION
+              ? (imported as UserConfig)
+              : migrateConfig(imported);
           setConfigState(migrated);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
           resolve();
-        } catch (error) {
+        } catch {
           reject(new Error("Failed to parse config file"));
         }
       };

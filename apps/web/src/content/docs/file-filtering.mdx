@@ -1,0 +1,29 @@
+# File Filtering
+
+Filter which files are included in your output using include and ignore patterns.
+
+## Include Patterns
+
+Use glob patterns to include only the files you care about.
+
+```
+src/**/*.ts
+src/**/*.tsx
+README.md
+```
+
+## Ignore Patterns
+
+Exclude build artifacts or large folders you do not want to share.
+
+```
+node_modules/**
+dist/**
+.git/**
+```
+
+## Tips
+
+- Start broad, then refine with ignores.
+- Use presets for common stacks.
+- Keep outputs small for faster LLM responses.

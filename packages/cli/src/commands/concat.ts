@@ -90,7 +90,7 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
       const content = fs.readFileSync(fullPath, "utf-8");
       processedFiles.push({ path: file, content });
       totalSize += stats.size;
-    } catch (error) {
+    } catch {
       // Skip unreadable files (binary, etc.)
       skippedCount++;
     }

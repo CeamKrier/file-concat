@@ -1,5 +1,5 @@
 import React from "react";
-import FileViewerContent from "@/components/file-viewer-content";
+import FileViewerContent from "~/components/file-viewer-content";
 
 interface FileViewerPaneProps {
   path: string;

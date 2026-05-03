@@ -9,10 +9,11 @@ import {
   HelpCircle,
   Zap,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import type { UserConfig } from "@fileconcat/core";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Label } from "~/components/ui/label";
+import type { UserConfig, SourceType } from "@fileconcat/core";
+import { SOURCE_METADATA, getRemoteSourceTypes } from "@fileconcat/core";
 
 // Stack-based pattern presets
 const PATTERN_PRESETS = [
@@ -245,6 +246,46 @@ export default function ConfigPanel({
               >
                 Multiple Files
               </Button>
+            </div>
+          </div>
+
+          {/* Source Preferences */}
+          <div className="space-y-3">
+            <Label>Source Preferences</Label>
+            <div className="space-y-3">
+              {/* Default Source Type */}
+              <div className="space-y-2">
+                <Label className="text-sm font-normal">Default Source</Label>
+                <div className="flex flex-wrap gap-1">
+                  {getRemoteSourceTypes().map((type) => (
+                    <Button
+                      key={type}
+                      variant={config.defaultSourceType === type ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setConfig({ defaultSourceType: type as SourceType })}
+                    >
+                      {SOURCE_METADATA[type].name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Auto-switch option */}
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={config.autoSwitchSource}
+                  onChange={(e) => setConfig({ autoSwitchSource: e.target.checked })}
+                  className="rounded"
+                />
+                <span className="text-sm">
+                  Auto-switch to detected source type when pasting URL
+                </span>
+              </label>
+              <p className="text-muted-foreground text-xs">
+                When enabled, pasting a URL will automatically switch to the detected source type.
+              </p>
             </div>
           </div>
 

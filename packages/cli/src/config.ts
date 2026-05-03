@@ -32,7 +32,7 @@ export function loadConfig(configPath?: string, basePath: string = "."): FileCon
       try {
         const content = fs.readFileSync(fullPath, "utf-8");
         return { ...DEFAULT_CONFIG, ...JSON.parse(content) };
-      } catch (error) {
+      } catch {
         console.warn(`Warning: Could not parse config file ${configPath}`);
       }
     }
@@ -46,7 +46,7 @@ export function loadConfig(configPath?: string, basePath: string = "."): FileCon
         const content = fs.readFileSync(fullPath, "utf-8");
         console.log(`Using config from ${configFile}`);
         return { ...DEFAULT_CONFIG, ...JSON.parse(content) };
-      } catch (error) {
+      } catch {
         // Skip invalid files
       }
     }
