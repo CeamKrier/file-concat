@@ -58,6 +58,10 @@ const App: React.FC = () => {
   const [maxFileSize, setMaxFileSize] = useState<number>(32);
   const [failedFiles, setFailedFiles] = useState<Array<{ path: string; error: string }>>([]);
   const [isCopied, setIsCopied] = useState<boolean>(false);
+  const [filterDropNotice, setFilterDropNotice] = useState<{
+    attempted: number;
+    reason: "all-files-excluded" | "all-dirs-ignored";
+  } | null>(null);
 
   // Persistent user config
   const { config: userConfig, setConfig, exportConfig, importConfig, resetConfig } = useConfig();
@@ -258,9 +262,13 @@ const App: React.FC = () => {
           const path = entry.path || entry.file.webkitRelativePath || entry.file.name;
           return { ...entry, path };
         })
-        .filter((entry) => {
-          return !isExcludedPath(entry.path);
-        });
+        .filter((entry) => !isExcludedPath(entry.path));
+
+      if (incomingFiles.length > 0 && normalizedEntries.length === 0) {
+        setFilterDropNotice({ attempted: incomingFiles.length, reason: "all-files-excluded" });
+      } else if (incomingFiles.length > 0) {
+        setFilterDropNotice(null);
+      }
 
       const statuses: FileStatus[] = [];
       const newFileEntries: FileEntry[] = [];
@@ -663,6 +671,7 @@ ${content}
     setRawContents([]);
     setSelectedFormat(undefined);
     setFailedFiles([]);
+    setFilterDropNotice(null);
 
     setMaxFileSize(32);
     sourceInputRef.current?.reset();
@@ -775,8 +784,13 @@ ${content}
         }
 
         await Promise.all(promises);
-        setProcessingStatus(`Processing ${incomingFiles.length} files...`);
-        await handleFilesBatch(incomingFiles);
+
+        if (items.length > 0 && incomingFiles.length === 0 && failedFilesList.length === 0) {
+          setFilterDropNotice({ attempted: items.length, reason: "all-dirs-ignored" });
+        } else {
+          setProcessingStatus(`Processing ${incomingFiles.length} files...`);
+          await handleFilesBatch(incomingFiles);
+        }
 
         // Update failed files from processEntry errors
         setFailedFiles((prev) => [...prev, ...failedFilesList]);
@@ -1040,6 +1054,51 @@ ${content}
             importConfig={importConfig}
             resetConfig={resetConfig}
           />
+
+          {filterDropNotice && (
+            <Alert variant="destructive" className="mb-4" data-testid="filter-drop-alert">
+              <AlertDescription>
+                <div className="font-medium text-red-600">
+                  {filterDropNotice.reason === "all-files-excluded"
+                    ? `All ${filterDropNotice.attempted} file${filterDropNotice.attempted > 1 ? "s" : ""} were excluded by your filter patterns.`
+                    : `All ${filterDropNotice.attempted} dropped item${filterDropNotice.attempted > 1 ? "s" : ""} matched your ignore patterns.`}
+                </div>
+                <div className="text-muted-foreground mt-1 space-y-0.5 text-xs">
+                  {userConfig.includePatterns && (
+                    <div>
+                      <span className="font-medium">Include patterns:</span>{" "}
+                      <code>{userConfig.includePatterns}</code>
+                    </div>
+                  )}
+                  {userConfig.ignorePatterns && (
+                    <div>
+                      <span className="font-medium">Ignore patterns:</span>{" "}
+                      <code className="break-all">{userConfig.ignorePatterns}</code>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      resetConfig();
+                      setFilterDropNotice(null);
+                    }}
+                  >
+                    Reset filter patterns
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setFilterDropNotice(null)}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {!fileStatuses.length && (
             <>
