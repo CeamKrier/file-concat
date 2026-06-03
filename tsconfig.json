@@ -8,13 +8,12 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "baseUrl": ".",
     "paths": {
       "@fileconcat/core": [
-        "packages/core/src/index.ts"
+        "./packages/core/src/index.ts"
       ],
       "@fileconcat/core/*": [
-        "packages/core/src/*"
+        "./packages/core/src/*"
       ]
     }
   }
