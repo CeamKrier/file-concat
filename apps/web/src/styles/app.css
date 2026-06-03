@@ -3,65 +3,90 @@
 @tailwind utilities;
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    /* Brand seed: oklch(0.550 0.145 150) — deep moss green.
+       Tokens are bare L C H triplets; tailwind wraps with oklch(var(...)).
+       This preserves the alpha pattern: oklch(var(--primary) / 0.5). */
+    --background: 1 0 0;
+    --foreground: 0.18 0.008 150;
+    --card: 0.985 0.002 150;
+    --card-foreground: 0.18 0.008 150;
+    --popover: 1 0 0;
+    --popover-foreground: 0.18 0.008 150;
+    --primary: 0.55 0.145 150;
+    --primary-foreground: 1 0 0;
+    --secondary: 0.97 0.004 150;
+    --secondary-foreground: 0.22 0.008 150;
+    --muted: 0.965 0.004 150;
+    --muted-foreground: 0.44 0.013 150;
+    --accent: 0.95 0.006 150;
+    --accent-foreground: 0.2 0.008 150;
+    --destructive: 0.55 0.21 25;
+    --destructive-foreground: 1 0 0;
+    --border: 0.92 0.005 150;
+    --input: 0.92 0.005 150;
+    --ring: 0.55 0.145 150;
+    --chart-1: 0.55 0.145 150;
+    --chart-2: 0.65 0.14 220;
+    --chart-3: 0.7 0.15 70;
+    --chart-4: 0.55 0.21 25;
+    --chart-5: 0.55 0.16 300;
     --radius: 0.5rem;
+
+    --font-display:
+      "Mona Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial,
+      sans-serif;
+    --font-body:
+      "Mona Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial,
+      sans-serif;
+    --font-mono:
+      "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      monospace;
   }
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --background: 0.1 0 0;
+    --foreground: 0.96 0.005 150;
+    --card: 0.13 0.003 150;
+    --card-foreground: 0.96 0.005 150;
+    --popover: 0.13 0.003 150;
+    --popover-foreground: 0.96 0.005 150;
+    --primary: 0.62 0.135 150;
+    --primary-foreground: 0.1 0 0;
+    --secondary: 0.18 0.005 150;
+    --secondary-foreground: 0.96 0.005 150;
+    --muted: 0.16 0.004 150;
+    --muted-foreground: 0.68 0.013 150;
+    --accent: 0.2 0.006 150;
+    --accent-foreground: 0.96 0.005 150;
+    --destructive: 0.6 0.2 25;
+    --destructive-foreground: 1 0 0;
+    --border: 0.24 0.006 150;
+    --input: 0.24 0.006 150;
+    --ring: 0.62 0.135 150;
+    --chart-1: 0.62 0.135 150;
+    --chart-2: 0.7 0.13 220;
+    --chart-3: 0.75 0.14 70;
+    --chart-4: 0.6 0.2 25;
+    --chart-5: 0.62 0.15 300;
   }
 }
 @layer base {
   * {
     @apply border-border;
   }
+  html {
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings:
+      "ss01" on,
+      "cv11" on;
+  }
+  ::selection {
+    background: oklch(var(--primary) / 0.18);
+    color: oklch(var(--foreground));
   }
 }
 
