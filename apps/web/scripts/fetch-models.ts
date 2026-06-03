@@ -191,6 +191,12 @@ async function main() {
     }
   } catch (error) {
     console.error("Error fetching models:", error);
+    if (existsSync(OUTPUT_FILE)) {
+      console.warn(
+        `Falling back to existing ${OUTPUT_FILE}. Re-run with network access to refresh.`,
+      );
+      process.exit(0);
+    }
     process.exit(1);
   }
 }
