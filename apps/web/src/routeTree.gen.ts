@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/app'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
@@ -19,11 +18,6 @@ import { Route as ApiModelsRouteImport } from './routes/api/models'
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -49,7 +43,6 @@ const ApiModelsRoute = ApiModelsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
   '/app': typeof AppRoute
   '/api/models': typeof ApiModelsRoute
   '/docs/$slug': typeof DocsSlugRoute
@@ -57,7 +50,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
   '/app': typeof AppRoute
   '/api/models': typeof ApiModelsRoute
   '/docs/$slug': typeof DocsSlugRoute
@@ -66,7 +58,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
   '/app': typeof AppRoute
   '/api/models': typeof ApiModelsRoute
   '/docs/$slug': typeof DocsSlugRoute
@@ -74,22 +65,14 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/app' | '/api/models' | '/docs/$slug' | '/docs/'
+  fullPaths: '/' | '/app' | '/api/models' | '/docs/$slug' | '/docs/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/app' | '/api/models' | '/docs/$slug' | '/docs'
-  id:
-    | '__root__'
-    | '/'
-    | '/about'
-    | '/app'
-    | '/api/models'
-    | '/docs/$slug'
-    | '/docs/'
+  to: '/' | '/app' | '/api/models' | '/docs/$slug' | '/docs'
+  id: '__root__' | '/' | '/app' | '/api/models' | '/docs/$slug' | '/docs/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
   AppRoute: typeof AppRoute
   ApiModelsRoute: typeof ApiModelsRoute
   DocsSlugRoute: typeof DocsSlugRoute
@@ -103,13 +86,6 @@ declare module '@tanstack/react-router' {
       path: '/app'
       fullPath: '/app'
       preLoaderRoute: typeof AppRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -145,7 +121,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
   AppRoute: AppRoute,
   ApiModelsRoute: ApiModelsRoute,
   DocsSlugRoute: DocsSlugRoute,

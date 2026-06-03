@@ -25,8 +25,16 @@ export function SiteHeader() {
 
         <nav className="flex items-center gap-1">
           <Link
+            to="/docs"
+            className="hidden rounded-sm px-3 py-1.5 font-display text-[13px] font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background sm:inline-flex"
+            activeProps={{ className: "text-foreground" }}
+          >
+            Docs
+          </Link>
+          <Link
             to="/app"
             className="hidden rounded-sm px-3 py-1.5 font-display text-[13px] font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background sm:inline-flex"
+            activeProps={{ className: "text-foreground" }}
           >
             Open tool
           </Link>

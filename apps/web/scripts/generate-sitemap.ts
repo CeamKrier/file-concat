@@ -18,7 +18,7 @@ interface SitemapEntry {
 
 const pages: SitemapEntry[] = [
   { url: "/", changefreq: "weekly", priority: 1.0 },
-  { url: "/about", changefreq: "monthly", priority: 0.8 },
+  { url: "/app", changefreq: "weekly", priority: 0.9 },
   { url: "/docs", changefreq: "weekly", priority: 0.9 },
   { url: "/docs/quick-start", changefreq: "monthly", priority: 0.7 },
   { url: "/docs/file-filtering", changefreq: "monthly", priority: 0.7 },

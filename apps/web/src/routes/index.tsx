@@ -46,6 +46,7 @@ function LandingPage() {
       <main className="flex-1">
         <Hero />
         <OutputPreview />
+        <Audience />
         <PrivacyFold />
         {CLI_ENABLED ? <CLIFold /> : null}
       </main>
@@ -216,22 +217,18 @@ function Hero() {
             "radial-gradient(60% 60% at 50% 30%, oklch(var(--primary)) 0%, transparent 70%)",
         }}
       />
-      <div className="mx-auto grid max-w-6xl gap-12 px-4 pb-24 pt-20 sm:px-6 sm:pt-28 md:pb-32 md:pt-36 lg:grid-cols-12 lg:gap-16">
+      <div className="mx-auto grid max-w-6xl gap-12 px-4 pb-24 pt-20 sm:px-6 sm:pt-28 md:pb-32 md:pt-36 lg:grid-cols-12 lg:items-center lg:gap-16">
         {/* Left column: copy + CTA */}
-        <div className="lg:col-span-5 lg:pt-2">
-          <div className="text-muted-foreground mb-7 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em]">
-            <span aria-hidden="true" className="bg-foreground/40 inline-block h-px w-6" />
-            privacy-first
-          </div>
+        <div className="lg:col-span-5">
           <h1
-            className="font-display text-foreground text-[clamp(2.25rem,5vw,4rem)] font-bold leading-[1] tracking-[-0.04em]"
+            className="font-display text-foreground text-[clamp(2.25rem,5vw,4rem)] font-bold leading-[1.02] tracking-[-0.04em]"
             style={{ textWrap: "balance" }}
           >
-            Bundle files into one LLM&#8209;ready blob.
+            Drop a folder. Get one file your AI can actually read.
           </h1>
-          <p className="text-muted-foreground mt-7 max-w-[36ch] text-[15.5px] leading-[1.6] sm:text-[16px]">
-            Drop a folder, get a single structured file that ChatGPT, Claude, and Gemini can read.
-            Runs entirely in your browser.
+          <p className="text-muted-foreground mt-7 max-w-[40ch] text-[15.5px] leading-[1.6] sm:text-[16px]">
+            One paste-ready file for ChatGPT, Claude, or Gemini. No upload, no setup. The whole
+            thing runs in this tab.
           </p>
 
           {/* Prominent CTA pair */}
@@ -251,18 +248,15 @@ function Hero() {
             </Link>
           </div>
 
-          <div className="text-muted-foreground mt-10 flex flex-wrap items-baseline gap-x-6 gap-y-2 font-mono text-[12.5px]">
-            <span className="text-foreground inline-flex items-center gap-1.5">
-              <span
-                aria-hidden="true"
-                className="bg-primary inline-block h-1.5 w-1.5 rounded-full"
-              />
-              <span>no upload</span>
-            </span>
-            <span>no account</span>
-            <span>no server</span>
-            <span>no telemetry</span>
-          </div>
+          <ul
+            aria-label="What FileConcat doesn't do"
+            className="text-foreground mt-9 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[12.5px] sm:text-[13px]"
+          >
+            <TrustChip>no upload</TrustChip>
+            <TrustChip>no account</TrustChip>
+            <TrustChip>no server</TrustChip>
+            <TrustChip>no telemetry</TrustChip>
+          </ul>
         </div>
 
         {/* Right column: live drop zone */}
@@ -298,6 +292,15 @@ function Hero() {
         </div>
       </div>
     </section>
+  );
+}
+
+function TrustChip({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="inline-flex items-center gap-1.5">
+      <span aria-hidden="true" className="bg-primary inline-block h-1.5 w-1.5 rounded-full" />
+      <span>{children}</span>
+    </li>
   );
 }
 
@@ -380,12 +383,31 @@ function DropZone({
             ].join(" ")}
           />
         </div>
-        <p className="font-display text-foreground text-xl font-semibold tracking-[-0.015em]">
+        <p className="font-display text-foreground text-[22px] font-semibold tracking-[-0.02em] sm:text-2xl">
           {isProcessing ? state.message : isDragOver ? "Drop to stage" : "Drop files or a folder"}
         </p>
-        <p className="text-muted-foreground mt-2.5 max-w-[34ch] text-[14px] leading-relaxed">
-          Code, docs, configs. Binaries and lockfiles are skipped automatically.
-        </p>
+        {!isProcessing && (
+          <ul className="text-foreground/85 mt-4 grid grid-cols-1 gap-1.5 text-[13.5px] leading-[1.5] sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1.5 sm:text-[14px]">
+            <li className="inline-flex items-center justify-center gap-2 sm:justify-start">
+              <span
+                aria-hidden="true"
+                className="text-primary inline-flex h-4 w-4 shrink-0 items-center justify-center font-mono text-[14px] leading-none"
+              >
+                ✓
+              </span>
+              <span>Code, docs, configs</span>
+            </li>
+            <li className="text-muted-foreground inline-flex items-center justify-center gap-2 sm:justify-start">
+              <span
+                aria-hidden="true"
+                className="text-muted-foreground inline-flex h-4 w-4 shrink-0 items-center justify-center font-mono text-[13px] leading-none"
+              >
+                ⊘
+              </span>
+              <span>Binaries, lockfiles, build output</span>
+            </li>
+          </ul>
+        )}
 
         {!isProcessing && (
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
@@ -407,10 +429,10 @@ function DropZone({
         )}
       </div>
 
-      <div className="text-muted-foreground/70 absolute inset-x-0 bottom-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-6 font-mono text-[11px] tracking-wide">
+      <div className="text-muted-foreground absolute inset-x-0 bottom-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-6 font-mono text-[11px] tracking-wide">
         {[".ts", ".tsx", ".py", ".md", ".json", ".css", ".go", ".rs", ".sql", "+86"].map(
           (ext, i) => (
-            <span key={ext} className={i === 9 ? "text-foreground/50" : ""}>
+            <span key={ext} className={i === 9 ? "text-foreground/70" : ""}>
               {ext}
             </span>
           ),
@@ -624,34 +646,94 @@ function SamplePreview() {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Audience — who reaches for it. Quiet 4-up row.                             */
+/* -------------------------------------------------------------------------- */
+
+function Audience() {
+  return (
+    <section>
+      <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 md:py-28">
+        <div className="grid grid-cols-1 gap-12 md:grid-cols-12 md:gap-10">
+          <header className="md:col-span-4">
+            <h2
+              className="font-display text-foreground text-[clamp(1.625rem,2.75vw,2.25rem)] font-semibold leading-[1.05] tracking-[-0.03em]"
+              style={{ textWrap: "balance" }}
+            >
+              Who reaches for it.
+            </h2>
+            <p className="text-muted-foreground mt-5 max-w-[36ch] text-[15px] leading-[1.6]">
+              Built for anyone who needs an LLM to see a whole project at once.
+            </p>
+          </header>
+
+          <ul className="grid grid-cols-1 gap-x-10 gap-y-7 sm:grid-cols-2 md:col-span-8 md:grid-cols-2 md:gap-y-8">
+            <Audience.Item
+              who="Developers"
+              line="Sharing a whole repo with Claude or GPT for code review, refactors, or debugging."
+            />
+            <Audience.Item
+              who="Researchers"
+              line="Stitching paper sections, notes, and citations into one blob for synthesis."
+            />
+            <Audience.Item
+              who="Writers"
+              line="Editing across many markdown files at once without losing context."
+            />
+            <Audience.Item
+              who="Students"
+              line="Bundling multi-file assignments to get help on the whole thing, not file by file."
+            />
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+Audience.Item = function AudienceItem({ who, line }: { who: string; line: string }) {
+  return (
+    <li>
+      <p className="font-display text-foreground text-[15px] font-semibold tracking-[-0.01em]">
+        {who}
+      </p>
+      <p className="text-muted-foreground mt-2 max-w-[34ch] text-[14.5px] leading-[1.55]">
+        {line}
+      </p>
+    </li>
+  );
+};
+
+/* -------------------------------------------------------------------------- */
 /* Fold 3 — Privacy as behavior. Single column, network-tab visual.           */
 /* -------------------------------------------------------------------------- */
 
 function PrivacyFold() {
   return (
-    <section>
-      <div className="mx-auto max-w-3xl px-4 py-32 sm:px-6 md:py-40">
+    <section className="bg-secondary/40">
+      <div className="mx-auto max-w-3xl px-4 py-28 sm:px-6 md:py-36">
         <div className="mb-12 text-center">
-          <div className="text-muted-foreground mb-6 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em]">
-            <span aria-hidden="true" className="bg-foreground/40 inline-block h-px w-6" />
-            verified, not claimed
-          </div>
           <h2
             className="font-display text-foreground text-[clamp(1.875rem,3.5vw,2.75rem)] font-semibold leading-[1.02] tracking-[-0.035em]"
             style={{ textWrap: "balance" }}
           >
-            Your files don&apos;t leave your browser.
+            Pull the plug. It keeps working.
           </h2>
           <p
-            className="text-muted-foreground mx-auto mt-7 max-w-[52ch] text-[15.5px] leading-[1.6]"
+            className="text-muted-foreground mx-auto mt-6 max-w-[54ch] text-[15.5px] leading-[1.6]"
             style={{ textWrap: "pretty" }}
           >
-            FileConcat runs in this tab. Open the network panel before you drop anything — after the
-            page loads, nothing else goes out.
+            FileConcat loads once and then runs offline. Drop files with your WiFi off — the bundle
+            still comes out the other side. Here's what a fresh session looks like in the network
+            panel:
           </p>
         </div>
 
         <NetworkPanel />
+
+        <p className="text-muted-foreground mx-auto mt-8 max-w-[48ch] text-center text-[13.5px] leading-[1.55]">
+          Open DevTools, watch the Network tab, then drop a folder. Four files at page load, then
+          silence. That's the whole story.
+        </p>
       </div>
     </section>
   );
@@ -719,10 +801,6 @@ function NetworkPanel() {
         <div className="text-muted-foreground mt-1.5">silent. processing happens locally.</div>
       </div>
 
-      {/* Footer caption */}
-      <div className="border-border/40 bg-background/20 text-muted-foreground/80 border-t px-4 py-2.5 text-center font-mono text-[10.5px] uppercase tracking-[0.1em]">
-        try it: F12 → Network → Drop a folder
-      </div>
     </div>
   );
 }

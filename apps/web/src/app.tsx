@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { minimatch } from "minimatch";
-import { Upload, Download, Trash2, Copy, Check } from "lucide-react";
+import { Upload, Download, Copy, Check } from "lucide-react";
 
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
@@ -984,17 +984,37 @@ ${content}
     return () => window.removeEventListener("beforeunload", handler);
   }, [editorDirtyByPath]);
 
+  const includedFileCount = fileStatuses.filter((s) => s.included).length;
+  const workflowStep: "source" | "filter" | "output" =
+    isRepoLoading || fileStatuses.length === 0
+      ? "source"
+      : selectedFormat
+        ? "output"
+        : "filter";
+
+  const headerSubtitle = (() => {
+    if (isProcessing) return processingStatus || "Generating bundle…";
+    if (isRepoLoading) return "Fetching repository…";
+    if (fileStatuses.length === 0) return "Drop a folder, paste a URL, or browse.";
+    const parts: string[] = [
+      `${includedFileCount} ${includedFileCount === 1 ? "file" : "files"}`,
+      `~${tokens.toLocaleString()} tokens`,
+    ];
+    if (selectedFormat === "single") parts.push("single file");
+    else if (selectedFormat === "multi") parts.push("split chunks");
+    return parts.join(" · ");
+  })();
+
+  const canReset = fileStatuses.length > 0 && !isProcessing && !isRepoLoading;
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
-      <div className="mb-6">
-        <h1 className="font-display text-[clamp(1.5rem,2.5vw,1.875rem)] font-semibold tracking-[-0.025em] text-foreground">
-          Concatenate files
-        </h1>
-        <p className="mt-1.5 max-w-[60ch] text-[14px] leading-[1.5] text-muted-foreground">
-          Drop, import, or browse. Filter what gets included, check the token cost, then copy or
-          download the bundle.
-        </p>
-      </div>
+      <WorkbenchHeader
+        subtitle={headerSubtitle}
+        step={workflowStep}
+        canReset={canReset}
+        onReset={resetAll}
+      />
       <Card className="border-border/80">
         <CardContent className="pt-6">
           {/* Settings Panel */}
@@ -1141,16 +1161,6 @@ ${content}
                 </ul>
               </AlertDescription>
             </Alert>
-          )}
-
-          {(files.length > 0 || output) && (
-            <button
-              onClick={resetAll}
-              className="flex w-full items-center justify-center gap-2 rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Trash2 className="h-4 w-4" />
-              Start Over
-            </button>
           )}
 
           {fileStatuses.length > 0 && (
@@ -1321,5 +1331,88 @@ ${content}
     </div>
   );
 };
+
+/* -------------------------------------------------------------------------- */
+/* WorkbenchHeader                                                            */
+/* -------------------------------------------------------------------------- */
+
+type WorkflowStep = "source" | "filter" | "output";
+
+function WorkbenchHeader({
+  subtitle,
+  step,
+  canReset,
+  onReset,
+}: {
+  subtitle: string;
+  step: WorkflowStep;
+  canReset: boolean;
+  onReset: () => void;
+}) {
+  return (
+    <header className="mb-8 border-b border-border/60 pb-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2">
+        <h1 className="font-display text-[clamp(1.5rem,2.5vw,1.875rem)] font-semibold tracking-[-0.025em] text-foreground">
+          Concatenate files
+        </h1>
+        <p
+          className="font-mono text-[12.5px] leading-[1.4] text-muted-foreground sm:text-[13px]"
+          aria-live="polite"
+        >
+          {subtitle}
+        </p>
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <ol
+          aria-label="Workflow progress"
+          className="flex items-center gap-2 font-mono text-[12px] tracking-[0.02em] sm:text-[12.5px]"
+        >
+          <WorkflowMarker active={step === "source"}>source</WorkflowMarker>
+          <WorkflowArrow />
+          <WorkflowMarker active={step === "filter"}>filter</WorkflowMarker>
+          <WorkflowArrow />
+          <WorkflowMarker active={step === "output"}>output</WorkflowMarker>
+        </ol>
+
+        <div className="flex items-center gap-4 font-mono text-[12px] sm:text-[12.5px]">
+          {canReset && (
+            <button
+              type="button"
+              onClick={onReset}
+              className="text-muted-foreground transition-colors duration-150 hover:text-destructive focus-visible:text-destructive focus-visible:outline-none focus-visible:underline focus-visible:underline-offset-4"
+            >
+              reset
+            </button>
+          )}
+          <span className="inline-flex items-center gap-1.5 text-foreground">
+            <span aria-hidden="true" className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+            <span>Local only</span>
+            <span className="sr-only">: nothing is sent to a server.</span>
+          </span>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function WorkflowMarker({ active, children }: { active: boolean; children: React.ReactNode }) {
+  return (
+    <li
+      aria-current={active ? "step" : undefined}
+      className={active ? "text-foreground" : "text-muted-foreground/60"}
+    >
+      {children}
+    </li>
+  );
+}
+
+function WorkflowArrow() {
+  return (
+    <li aria-hidden="true" className="select-none text-muted-foreground/40">
+      →
+    </li>
+  );
+}
 
 export default App;
