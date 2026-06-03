@@ -11,6 +11,7 @@ import topLevelAwait from "vite-plugin-top-level-await";
 import { visualizer } from "rollup-plugin-visualizer";
 
 export default defineConfig({
+  appType: "custom",
   plugins: [
     // Cloudflare SSR environment
     cloudflare({ viteEnvironment: { name: "ssr" } }),

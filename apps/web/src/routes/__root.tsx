@@ -1,11 +1,11 @@
 import {
   createRootRoute,
   Outlet,
-  ScrollRestoration,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
 import { ThemeProvider } from "~/components/theme-provider";
+import { StagedFilesProvider } from "~/components/staged-files-provider";
 import { NotFound } from "~/components/not-found";
 import { ErrorBoundary } from "~/components/error-boundary";
 import { generateHowToSchema, generateWebApplicationSchema } from "~/lib/seo";
@@ -21,14 +21,11 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "icon", type: "image/png", href: "/logo.png" },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
-        rel: "preconnect",
-        href: "https://fonts.googleapis.com",
-      },
-      {
-        rel: "preconnect",
-        href: "https://fonts.gstatic.com",
-        crossOrigin: "anonymous",
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Mona+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
       },
     ],
     scripts: [
@@ -50,7 +47,6 @@ function RootComponent() {
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
-        {/* Theme initialization script to prevent flash */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -68,9 +64,10 @@ function RootComponent() {
       </head>
       <body className="bg-background text-foreground min-h-screen antialiased">
         <ThemeProvider defaultTheme="system" storageKey="ui-theme">
-          <Outlet />
+          <StagedFilesProvider>
+            <Outlet />
+          </StagedFilesProvider>
         </ThemeProvider>
-        <ScrollRestoration />
         <Scripts />
       </body>
     </html>
