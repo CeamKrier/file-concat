@@ -1,19 +1,16 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { minimatch } from "minimatch";
-import { Upload, Download, Shield, Trash2, Copy, Check } from "lucide-react";
-import { SiGithub, SiX } from "@icons-pack/react-simple-icons";
+import { Upload, Download, Trash2, Copy, Check } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
+import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import SourceInput, { SourceInputRef } from "~/components/source-input";
-import { ThemeToggle } from "~/components/theme-toggle";
 import OutputSettings from "~/components/output-settings";
 import { TokenSection } from "~/components/token-section";
 import PreviewModal from "~/components/preview-modal";
 import FileTree from "~/components/file-tree";
 import FileViewerModal from "~/components/file-viewer-modal";
-import AboutSection from "~/components/about-section";
 import ConfigPanel from "~/components/config-panel";
 import { useConfig } from "~/hooks/use-config";
 
@@ -38,7 +35,7 @@ import {
 import { processFileContent } from "@fileconcat/core";
 import { MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "@fileconcat/core";
 
-import BMCLogo from "~/components/bmc-logo";
+import { useStagedFiles } from "~/components/staged-files-provider";
 
 const App: React.FC = () => {
   const [files, setFiles] = useState<FileEntry[]>([]);
@@ -65,6 +62,10 @@ const App: React.FC = () => {
 
   // Persistent user config
   const { config: userConfig, setConfig, exportConfig, importConfig, resetConfig } = useConfig();
+
+  // Staged files handed off from the landing route
+  const { consume: consumeStagedFiles } = useStagedFiles();
+  const stagedHydratedRef = useRef(false);
 
   const processedContents = useMemo(() => {
     return rawContents.map((file) => ({
@@ -312,6 +313,18 @@ const App: React.FC = () => {
     },
     [estimateTokens, isExcludedPath, processFile],
   );
+
+  // Hydrate from staged-files handoff (landing → /app)
+  useEffect(() => {
+    if (stagedHydratedRef.current) return;
+    const staged = consumeStagedFiles();
+    if (staged && staged.length > 0) {
+      stagedHydratedRef.current = true;
+      handleFilesBatch(
+        staged.map(({ file, path, content }) => ({ file, path, content })),
+      );
+    }
+  }, [consumeStagedFiles, handleFilesBatch]);
 
   const toggleFileInclusion = useCallback(
     async (index: number) => {
@@ -972,80 +985,18 @@ ${content}
   }, [editorDirtyByPath]);
 
   return (
-    <div className="mx-auto max-w-5xl p-4">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:gap-0">
-            <div className="max-w-[50vw]">
-              <CardTitle className="mb-2 flex items-center gap-2">
-                <img src="/logo.png" alt="Logo" className="h-8 w-8 dark:hidden" />
-                <img src="/dark-logo.png" alt="Logo" className="hidden h-8 w-8 dark:block" />
-                <span className="text-base">FileConcat</span>
-              </CardTitle>
-              <CardDescription className="text-xs sm:text-sm">
-                <span className="sm:hidden">
-                  Combine files for AI assistants like ChatGPT & Claude.
-                </span>
-                <span className="hidden sm:inline">
-                  Combine multiple files and folders into a single, well-formatted document
-                  optimized for Large Language Models (LLMs). Perfect for sharing codebases,
-                  documentation, and project structures with AI assistants like ChatGPT, Claude, and
-                  others.
-                </span>
-              </CardDescription>
-            </div>
-            <div className="flex items-start gap-1 sm:gap-2">
-              <ThemeToggle />
-              <div className="flex flex-row gap-1 sm:flex-col sm:gap-2">
-                <div
-                  className="bg-muted flex h-8 items-center gap-1 rounded-md border border-green-200 px-1.5 py-1.5 text-xs text-green-600"
-                  title="100% Offline Processing - Your files never leave your device"
-                >
-                  <Shield className="h-4 w-4 fill-current" />
-                  <span className="hidden sm:inline">100% Offline Processing</span>
-                  <span className="sm:hidden">Offline</span>
-                </div>
-                <div className="flex items-center justify-center gap-1 sm:gap-2">
-                  <span className="text-muted-foreground hidden text-sm sm:block">
-                    Got feedback?
-                  </span>
-                  <Button variant="ghost" asChild className="w-fit" size="sm">
-                    <a
-                      className="w-fit"
-                      href="https://twitter.com/messages/compose?recipient_id=378117341"
-                      target="_blank"
-                    >
-                      <SiX className="h-4 w-4" />
-                    </a>
-                  </Button>
-                  <Button variant="ghost" asChild className="w-fit" size="sm">
-                    <a
-                      className="w-fit"
-                      href="https://github.com/CeamKrier/file-concat"
-                      target="_blank"
-                    >
-                      <SiGithub className="h-4 w-4" />
-                    </a>
-                  </Button>
-                </div>
-                <div className="flex items-center justify-center">
-                  <a
-                    className="flex h-8 w-10 items-center justify-center gap-1 underline-offset-2 hover:underline sm:h-auto sm:w-auto sm:gap-2"
-                    href="https://buymeacoffee.com/ceamkrier"
-                    target="_blank"
-                    rel="noopener"
-                  >
-                    <BMCLogo />
-                    <span className="text-muted-foreground hidden text-xs sm:block">
-                      Support me
-                    </span>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
+      <div className="mb-6">
+        <h1 className="font-display text-[clamp(1.5rem,2.5vw,1.875rem)] font-semibold tracking-[-0.025em] text-foreground">
+          Concatenate files
+        </h1>
+        <p className="mt-1.5 max-w-[60ch] text-[14px] leading-[1.5] text-muted-foreground">
+          Drop, import, or browse. Filter what gets included, check the token cost, then copy or
+          download the bundle.
+        </p>
+      </div>
+      <Card className="border-border/80">
+        <CardContent className="pt-6">
           {/* Settings Panel */}
           <ConfigPanel
             config={userConfig}
@@ -1367,8 +1318,6 @@ ${content}
           )}
         </CardContent>
       </Card>
-
-      <AboutSection />
     </div>
   );
 };
