@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { minimatch } from "minimatch";
 import { Upload, Download, Copy, Check } from "lucide-react";
 
 import { Card, CardContent } from "~/components/ui/card";
@@ -32,14 +31,13 @@ import {
   getLanguageFromPath,
   generateProjectName,
 } from "~/utils";
-import { processFileContent } from "@fileconcat/core";
+import { processFileContent, assembleOutput, matchesAnyPattern } from "@fileconcat/core";
 import { MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "@fileconcat/core";
 
 import { useStagedFiles } from "~/components/staged-files-provider";
 
 const App: React.FC = () => {
   const [files, setFiles] = useState<FileEntry[]>([]);
-  const [output, setOutput] = useState<string>("");
   const [fileStatuses, setFileStatuses] = useState<FileStatus[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [processingStatus, setProcessingStatus] = useState<string>("");
@@ -159,99 +157,25 @@ const App: React.FC = () => {
     estimateTokens(combinedText);
   }, [processedContents, fileStatuses, estimateTokens]);
 
-  // Check if a directory should be skipped during traversal
-  // Include patterns override ignore patterns - if explicitly included, don't skip
+  // Include patterns override ignore patterns — if a directory matches an include
+  // pattern, we keep walking it even if it also matches an ignore pattern.
   const isIgnoredDirectory = useCallback(
     (path: string) => {
-      console.log(`[isIgnoredDirectory] Checking: "${path}"`);
-      console.log(`[isIgnoredDirectory] Include patterns: "${userConfig.includePatterns}"`);
-
-      // If include patterns are defined and this directory matches, don't ignore it
-      if (userConfig.includePatterns && userConfig.includePatterns.trim() !== "") {
-        const includePatterns = userConfig.includePatterns.split(",").map((p) => p.trim());
-        const isExplicitlyIncluded = includePatterns.some((pattern) => {
-          const match = minimatch(path, pattern, { dot: true, matchBase: true });
-          console.log(`[isIgnoredDirectory] Pattern "${pattern}" vs "${path}" = ${match}`);
-          return match;
-        });
-        if (isExplicitlyIncluded) {
-          console.log(`[isIgnoredDirectory] RESULT: Explicitly included, NOT skipping`);
-          return false; // Don't skip - explicitly included
-        }
-      }
-
-      // Check ignore patterns
-      if (userConfig.ignorePatterns && userConfig.ignorePatterns.trim() !== "") {
-        const ignorePatterns = userConfig.ignorePatterns.split(",").map((p) => p.trim());
-        const isIgnored = ignorePatterns.some((pattern) =>
-          minimatch(path, pattern, { dot: true, matchBase: true }),
-        );
-        if (isIgnored) {
-          console.log(`[isIgnoredDirectory] RESULT: Matched ignore pattern, skipping`);
-          return true;
-        }
-      }
-      console.log(`[isIgnoredDirectory] RESULT: Not ignored, NOT skipping`);
-      return false;
+      if (matchesAnyPattern(path, userConfig.includePatterns)) return false;
+      return matchesAnyPattern(path, userConfig.ignorePatterns);
     },
     [userConfig.includePatterns, userConfig.ignorePatterns],
   );
 
-  // Check if a file should be excluded
-  // Include patterns override ignore patterns - if explicitly included, it's NOT excluded
+  // Include patterns override ignore patterns. If include patterns are defined,
+  // anything not matching them is excluded.
   const isExcludedPath = useCallback(
     (path: string) => {
-      const hasIncludePatterns =
-        userConfig.includePatterns && userConfig.includePatterns.trim() !== "";
-      const hasIgnorePatterns =
-        userConfig.ignorePatterns && userConfig.ignorePatterns.trim() !== "";
-
-      // Check if file matches include patterns OR is inside an included directory
-      let matchesInclude = false;
+      const hasIncludePatterns = !!userConfig.includePatterns?.trim();
       if (hasIncludePatterns) {
-        const includePatterns = userConfig.includePatterns.split(",").map((p) => p.trim());
-
-        // Check direct match (e.g., *.ts matches file.ts)
-        matchesInclude = includePatterns.some((pattern) =>
-          minimatch(path, pattern, { dot: true, matchBase: true }),
-        );
-
-        // Also check if file is INSIDE an included directory
-        // e.g., if pattern is ".nx", then "project/.nx/cache/file.json" should be included
-        if (!matchesInclude) {
-          const pathParts = path.split("/");
-          matchesInclude = includePatterns.some((pattern) => {
-            // Check if any directory in the path matches the pattern
-            return pathParts.some((part) => minimatch(part, pattern, { dot: true }));
-          });
-        }
+        return !matchesAnyPattern(path, userConfig.includePatterns);
       }
-
-      // Check if file matches ignore patterns
-      let matchesIgnore = false;
-      if (hasIgnorePatterns) {
-        const ignorePatterns = userConfig.ignorePatterns.split(",").map((p) => p.trim());
-        matchesIgnore = ignorePatterns.some((pattern) =>
-          minimatch(path, pattern, { dot: true, matchBase: true }),
-        );
-      }
-
-      // Logic:
-      // - If include patterns defined and file matches include → NOT excluded (include wins)
-      // - If include patterns defined but file doesn't match → excluded
-      // - If no include patterns but matches ignore → excluded
-      // - Otherwise → not excluded
-
-      if (hasIncludePatterns) {
-        if (matchesInclude) {
-          return false; // Include patterns override ignore - file is kept
-        } else {
-          return true; // Doesn't match include patterns - excluded
-        }
-      }
-
-      // No include patterns - just check ignore
-      return matchesIgnore;
+      return matchesAnyPattern(path, userConfig.ignorePatterns);
     },
     [userConfig.includePatterns, userConfig.ignorePatterns],
   );
@@ -518,47 +442,19 @@ const App: React.FC = () => {
     setIsProcessing(true);
 
     try {
-      // Filter processedContents to only include files that are currently marked as included
       const includedContents = processedContents.filter((content) => {
         const status = fileStatuses.find((s) => s.path === content.path);
         return status?.included ?? false;
       });
 
-      // Generate file tree structure
-      const fileTree = generateFileTree(includedContents.map((c) => c.path));
+      const tree = generateFileTree(includedContents.map((c) => c.path));
+      const projectName = generateProjectName(includedContents.map((c) => c.path));
+      const style = userConfig.outputStyle;
+      const extension = style === "xml" ? "xml" : "md";
+      const mimeType = style === "xml" ? "application/xml" : "text/markdown";
 
-      // AI-optimized preamble with instructions and project structure
-      const preamble = `You are an AI assistant tasked with analyzing a codebase.
-Below is the file structure and the content of the files.
-Use the file structure to understand the project architecture and dependencies.
-
-# Project Structure
-\`\`\`
-${fileTree}\`\`\`
-
-# File Contents
-`;
-
-      if (selectedFormat === "single") {
-        // XML format with language identifiers for better LLM parsing
-        const contentBody = includedContents
-          .map(({ path, content }) => {
-            const language = getLanguageFromPath(path);
-            return `<file path="${path}">
-\`\`\`${language}
-${content}
-\`\`\`
-</file>`;
-          })
-          .join("\n\n");
-
-        const finalOutput = `${preamble}${contentBody}`;
-
-        // Generate dynamic filename based on project structure
-        const projectName = generateProjectName(includedContents.map((c) => c.path));
-        const fileName = `${projectName}_fileconcat.txt`;
-
-        const blob = new Blob([finalOutput], { type: "text/plain" });
+      const downloadBlob = (text: string, fileName: string) => {
+        const blob = new Blob([text], { type: mimeType });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -567,53 +463,27 @@ ${content}
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+      };
+
+      if (selectedFormat === "single") {
+        const text = assembleOutput({
+          projectName,
+          files: includedContents,
+          tree,
+          style,
+        });
+        downloadBlob(text, `${projectName}_fileconcat.${extension}`);
       } else {
         const chunks = calculateChunks(includedContents);
-
-        // Generate dynamic filename based on project structure
-        const projectName = generateProjectName(includedContents.map((c) => c.path));
-
-        // Process and download chunks with AI-optimized format
         for (let i = 0; i < chunks.length; i++) {
-          const chunk = chunks[i];
-
-          // Include file tree in each part for context
-          const partPreamble = `You are an AI assistant tasked with analyzing a codebase.
-This is Part ${i + 1} of ${chunks.length}.
-Below is the complete file structure and the content of files in this part.
-Use the file structure to understand the project architecture and dependencies.
-
-# Project Structure
-\`\`\`
-${fileTree}\`\`\`
-
-# File Contents (Part ${i + 1}/${chunks.length})
-`;
-
-          const contentBody = chunk
-            .map(({ path, content }) => {
-              const language = getLanguageFromPath(path);
-              return `<file path="${path}">
-\`\`\`${language}
-${content}
-\`\`\`
-</file>`;
-            })
-            .join("\n\n");
-
-          const finalOutput = `${partPreamble}${contentBody}`;
-
-          const blob = new Blob([finalOutput], { type: "text/plain" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `${projectName}-fileconcat-part${i + 1}.txt`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-
-          // Small delay between downloads
+          const text = assembleOutput({
+            projectName,
+            files: chunks[i],
+            tree,
+            style,
+            part: { index: i + 1, total: chunks.length },
+          });
+          downloadBlob(text, `${projectName}-fileconcat-part${i + 1}.${extension}`);
           if (i < chunks.length - 1) {
             await new Promise((resolve) => setTimeout(resolve, 100));
           }
@@ -624,57 +494,42 @@ ${content}
     } finally {
       setIsProcessing(false);
     }
-  }, [selectedFormat, processedContents, calculateChunks, fileStatuses]);
+  }, [
+    selectedFormat,
+    processedContents,
+    calculateChunks,
+    fileStatuses,
+    userConfig.outputStyle,
+  ]);
 
   const copyToClipboard = useCallback(async () => {
     try {
-      // Filter processedContents to only include files that are currently marked as included
       const includedContents = processedContents.filter((content) => {
         const status = fileStatuses.find((s) => s.path === content.path);
         return status?.included ?? false;
       });
 
-      // Generate file tree structure
-      const fileTree = generateFileTree(includedContents.map((c) => c.path));
+      const tree = generateFileTree(includedContents.map((c) => c.path));
+      const projectName = generateProjectName(includedContents.map((c) => c.path));
 
-      // AI-optimized preamble with instructions and project structure
-      const preamble = `You are an AI assistant tasked with analyzing a codebase.
-Below is the file structure and the content of the files.
-Use the file structure to understand the project architecture and dependencies.
+      const text = assembleOutput({
+        projectName,
+        files: includedContents,
+        tree,
+        style: userConfig.outputStyle,
+      });
 
-# Project Structure
-\`\`\`
-${fileTree}\`\`\`
-
-# File Contents
-`;
-
-      // XML format with language identifiers for better LLM parsing
-      const contentBody = includedContents
-        .map(({ path, content }) => {
-          const language = getLanguageFromPath(path);
-          return `<file path="${path}">
-\`\`\`${language}
-${content}
-\`\`\`
-</file>`;
-        })
-        .join("\n\n");
-
-      const finalOutput = `${preamble}${contentBody}`;
-
-      await navigator.clipboard.writeText(finalOutput);
+      await navigator.clipboard.writeText(text);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
     }
-  }, [processedContents, fileStatuses]);
+  }, [processedContents, fileStatuses, userConfig.outputStyle]);
 
   const resetAll = useCallback(() => {
     sourceInputRef.current?.abort();
     setFiles([]);
-    setOutput("");
     setFileStatuses([]);
     setIsProcessing(false);
     setIsRepoLoading(false);
@@ -983,8 +838,6 @@ ${content}
   }, [editorDirtyByPath]);
 
   const includedFileCount = fileStatuses.filter((s) => s.included).length;
-  const workflowStep: "source" | "filter" | "output" =
-    isRepoLoading || fileStatuses.length === 0 ? "source" : selectedFormat ? "output" : "filter";
 
   const headerSubtitle = (() => {
     if (isProcessing) return processingStatus || "Generating bundle…";
@@ -1005,7 +858,6 @@ ${content}
     <div className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
       <WorkbenchHeader
         subtitle={headerSubtitle}
-        step={workflowStep}
         canReset={canReset}
         onReset={resetAll}
       />
@@ -1221,7 +1073,41 @@ ${content}
 
           {processedContents.length > 0 && (
             <div className="mt-6 space-y-6">
-              <h3 className="font-semibold">Output Format</h3>
+              <div className="flex items-center justify-between gap-4">
+                <h3 className="font-semibold">Output Format</h3>
+                <div
+                  role="group"
+                  aria-label="Output style"
+                  className="border-border/60 inline-flex rounded-md border p-0.5 text-xs"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setConfig({ outputStyle: "xml" })}
+                    aria-pressed={userConfig.outputStyle === "xml"}
+                    className={`rounded px-2.5 py-1 transition-colors ${
+                      userConfig.outputStyle === "xml"
+                        ? "bg-secondary text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    title="Wraps content in <codebase>, <files>, <file> tags. Recommended for Claude."
+                  >
+                    XML
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfig({ outputStyle: "markdown" })}
+                    aria-pressed={userConfig.outputStyle === "markdown"}
+                    className={`rounded px-2.5 py-1 transition-colors ${
+                      userConfig.outputStyle === "markdown"
+                        ? "bg-secondary text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    title="Renders content as Markdown with fenced code blocks."
+                  >
+                    Markdown
+                  </button>
+                </div>
+              </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <button
                   onClick={() => setSelectedFormat("single")}
@@ -1326,16 +1212,12 @@ ${content}
 /* WorkbenchHeader                                                            */
 /* -------------------------------------------------------------------------- */
 
-type WorkflowStep = "source" | "filter" | "output";
-
 function WorkbenchHeader({
   subtitle,
-  step,
   canReset,
   onReset,
 }: {
   subtitle: string;
-  step: WorkflowStep;
   canReset: boolean;
   onReset: () => void;
 }) {
@@ -1367,25 +1249,6 @@ function WorkbenchHeader({
         </div>
       </div>
     </header>
-  );
-}
-
-function WorkflowMarker({ active, children }: { active: boolean; children: React.ReactNode }) {
-  return (
-    <li
-      aria-current={active ? "step" : undefined}
-      className={active ? "text-foreground" : "text-muted-foreground/60"}
-    >
-      {children}
-    </li>
-  );
-}
-
-function WorkflowArrow() {
-  return (
-    <li aria-hidden="true" className="text-muted-foreground/40 select-none">
-      →
-    </li>
   );
 }
 

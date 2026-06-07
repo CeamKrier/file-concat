@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import type { OutputStyle } from "@fileconcat/core";
 
 export interface FileConcatConfig {
   version?: number;
@@ -8,7 +9,7 @@ export interface FileConcatConfig {
   excludeBinaryFiles?: boolean;
   exclude?: string[];
   output?: string;
-  xmlFormat?: boolean;
+  style?: OutputStyle;
 }
 
 const DEFAULT_CONFIG: FileConcatConfig = {

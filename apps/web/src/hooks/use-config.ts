@@ -3,27 +3,29 @@ import type { UserConfig } from "@fileconcat/core";
 import { DEFAULT_IGNORE_STRING } from "@fileconcat/core";
 
 const STORAGE_KEY = "fileconcat-config";
-const CURRENT_VERSION = 3;
+const CURRENT_VERSION = 4;
 
 const DEFAULT_CONFIG: UserConfig = {
-  version: 3,
+  version: 4,
   maxFileSizeMB: 32,
   includePatterns: "",
   ignorePatterns: DEFAULT_IGNORE_STRING,
   removeEmptyLines: false,
   showLineNumbers: false,
   defaultOutputFormat: "single",
+  outputStyle: "xml",
   autoSwitchSource: false,
   defaultSourceType: "github",
 };
 
-// Migration from older versions to v3
 function migrateConfig(oldConfig: Record<string, unknown>): UserConfig {
+  const outputStyle = oldConfig.outputStyle === "markdown" ? "markdown" : "xml";
   return {
     ...DEFAULT_CONFIG,
     maxFileSizeMB: (oldConfig.maxFileSizeMB as number) || DEFAULT_CONFIG.maxFileSizeMB,
     defaultOutputFormat:
       (oldConfig.defaultOutputFormat as "single" | "multi") || DEFAULT_CONFIG.defaultOutputFormat,
+    outputStyle,
     // Convert old customIgnorePatterns array to string if exists, otherwise use defaults
     ignorePatterns: Array.isArray(oldConfig.customIgnorePatterns)
       ? oldConfig.customIgnorePatterns.join(", ")
@@ -31,7 +33,6 @@ function migrateConfig(oldConfig: Record<string, unknown>): UserConfig {
     includePatterns: (oldConfig.includePatterns as string) || DEFAULT_CONFIG.includePatterns,
     removeEmptyLines: (oldConfig.removeEmptyLines as boolean) ?? DEFAULT_CONFIG.removeEmptyLines,
     showLineNumbers: (oldConfig.showLineNumbers as boolean) ?? DEFAULT_CONFIG.showLineNumbers,
-    // New v3 fields
     autoSwitchSource: (oldConfig.autoSwitchSource as boolean) ?? DEFAULT_CONFIG.autoSwitchSource,
     defaultSourceType:
       (oldConfig.defaultSourceType as UserConfig["defaultSourceType"]) ||
