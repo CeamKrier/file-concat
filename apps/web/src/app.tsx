@@ -320,9 +320,7 @@ const App: React.FC = () => {
     const staged = consumeStagedFiles();
     if (staged && staged.length > 0) {
       stagedHydratedRef.current = true;
-      handleFilesBatch(
-        staged.map(({ file, path, content }) => ({ file, path, content })),
-      );
+      handleFilesBatch(staged.map(({ file, path, content }) => ({ file, path, content })));
     }
   }, [consumeStagedFiles, handleFilesBatch]);
 
@@ -986,11 +984,7 @@ ${content}
 
   const includedFileCount = fileStatuses.filter((s) => s.included).length;
   const workflowStep: "source" | "filter" | "output" =
-    isRepoLoading || fileStatuses.length === 0
-      ? "source"
-      : selectedFormat
-        ? "output"
-        : "filter";
+    isRepoLoading || fileStatuses.length === 0 ? "source" : selectedFormat ? "output" : "filter";
 
   const headerSubtitle = (() => {
     if (isProcessing) return processingStatus || "Generating bundle…";
@@ -1059,11 +1053,7 @@ ${content}
                   >
                     Reset filter patterns
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setFilterDropNotice(null)}
-                  >
+                  <Button size="sm" variant="ghost" onClick={() => setFilterDropNotice(null)}>
                     Dismiss
                   </Button>
                 </div>
@@ -1350,13 +1340,13 @@ function WorkbenchHeader({
   onReset: () => void;
 }) {
   return (
-    <header className="mb-8 border-b border-border/60 pb-6">
+    <header className="border-border/60 mb-8 border-b pb-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2">
-        <h1 className="font-display text-[clamp(1.5rem,2.5vw,1.875rem)] font-semibold tracking-[-0.025em] text-foreground">
+        <h1 className="font-display text-foreground text-[clamp(1.5rem,2.5vw,1.875rem)] font-semibold tracking-[-0.025em]">
           Concatenate files
         </h1>
         <p
-          className="font-mono text-[12.5px] leading-[1.4] text-muted-foreground sm:text-[13px]"
+          className="text-muted-foreground font-mono text-[12.5px] leading-[1.4] sm:text-[13px]"
           aria-live="polite"
         >
           {subtitle}
@@ -1364,32 +1354,16 @@ function WorkbenchHeader({
       </div>
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <ol
-          aria-label="Workflow progress"
-          className="flex items-center gap-2 font-mono text-[12px] tracking-[0.02em] sm:text-[12.5px]"
-        >
-          <WorkflowMarker active={step === "source"}>source</WorkflowMarker>
-          <WorkflowArrow />
-          <WorkflowMarker active={step === "filter"}>filter</WorkflowMarker>
-          <WorkflowArrow />
-          <WorkflowMarker active={step === "output"}>output</WorkflowMarker>
-        </ol>
-
         <div className="flex items-center gap-4 font-mono text-[12px] sm:text-[12.5px]">
           {canReset && (
             <button
               type="button"
               onClick={onReset}
-              className="text-muted-foreground transition-colors duration-150 hover:text-destructive focus-visible:text-destructive focus-visible:outline-none focus-visible:underline focus-visible:underline-offset-4"
+              className="text-muted-foreground hover:text-destructive focus-visible:text-destructive transition-colors duration-150 focus-visible:underline focus-visible:underline-offset-4 focus-visible:outline-none"
             >
               reset
             </button>
           )}
-          <span className="inline-flex items-center gap-1.5 text-foreground">
-            <span aria-hidden="true" className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
-            <span>Local only</span>
-            <span className="sr-only">: nothing is sent to a server.</span>
-          </span>
         </div>
       </div>
     </header>
@@ -1409,7 +1383,7 @@ function WorkflowMarker({ active, children }: { active: boolean; children: React
 
 function WorkflowArrow() {
   return (
-    <li aria-hidden="true" className="select-none text-muted-foreground/40">
+    <li aria-hidden="true" className="text-muted-foreground/40 select-none">
       →
     </li>
   );
