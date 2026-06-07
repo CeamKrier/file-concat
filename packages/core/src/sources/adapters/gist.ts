@@ -1,6 +1,7 @@
 import type { SourceAdapter, ParsedSourceUrl, FetchOptions } from "../types";
 import type { RepositoryContent, RepoFile } from "../../types";
 import { SOURCE_METADATA } from "../metadata";
+import { classifyResponseError } from "./_errors";
 
 /** GitHub Gist URL patterns */
 const GITHUB_GIST_REGEX = /^https?:\/\/gist\.github\.com\/([^/]+)\/([a-f0-9]+)/;
@@ -70,7 +71,7 @@ async function fetchGitHubGist(gistId: string, signal?: AbortSignal): Promise<Re
     if (response.status === 404) {
       throw new Error("Gist not found");
     }
-    throw new Error(`GitHub API error: ${response.status}`);
+    throw classifyResponseError(response, `GitHub gist ${gistId}`);
   }
 
   const gist = await response.json();
@@ -120,7 +121,7 @@ async function fetchGitLabSnippet(
     if (response.status === 404) {
       throw new Error("Snippet not found");
     }
-    throw new Error(`GitLab API error: ${response.status}`);
+    throw classifyResponseError(response, `GitLab snippet ${snippetId}`);
   }
 
   const snippet = await response.json();

@@ -1,6 +1,7 @@
 import type { SourceAdapter, ParsedSourceUrl, FetchOptions } from "../types";
 import type { RepositoryContent, RepoFile } from "../../types";
 import { SOURCE_METADATA } from "../metadata";
+import { classifyResponseError } from "./_errors";
 
 /** GitHub URL regex patterns */
 const GITHUB_REPO_REGEX =
@@ -88,7 +89,7 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
         if (repoResponse.status === 404) {
           throw new Error(`Repository '${owner}/${repo}' not found`);
         }
-        throw new Error("Failed to fetch repository information");
+        throw classifyResponseError(repoResponse, `GitHub repo ${owner}/${repo}`);
       }
       const repoData = await repoResponse.json();
       branch = repoData.default_branch;
@@ -102,7 +103,7 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
       if (treeResponse.status === 404) {
         throw new Error(`Branch '${branch}' not found in repository`);
       }
-      throw new Error("Failed to fetch repository contents");
+      throw classifyResponseError(treeResponse, `GitHub tree ${owner}/${repo}@${branch}`);
     }
 
     const treeData = await treeResponse.json();
