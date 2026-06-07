@@ -18,10 +18,6 @@
 - **Catalog over raw API for canonicalized lists.** `models.dev` exposes `api.json` (per-provider raw, 4757 entries with massive duplication), `models.json` (canonical metadata only, no cost), and `catalog.json` (combined: 203 canonical models + provider offerings with cost). We use `catalog.json` and `buildTextModelsFromCatalog` in `@fileconcat/core`. Per-canonical-model we pick the cheapest priced provider; the `FilteredModel.uid` is the catalog id (`lab/model-id`) so it stays stable when the cheapest provider shifts across deploys.
 - **`Omit<Type, "field">` to express server-vs-client payload divergence.** `ModelsRegistry.providers` is optional and dropped from both the bundled `models.json` and the `/api/models` response because the runtime never reads it. Avoids 4MB+ of unread JSON in every page load.
 
-## Known Pre-Existing Debt
-
-- `apps/web/tests/file-upload-flow.test.tsx` renders `App` directly without wrapping in `<StagedFilesProvider>`. `App.tsx:74` calls `useStagedFiles()` which throws "must be used inside <StagedFilesProvider>". Introduced by `b2c5301` (workbench rework), tests were not updated. Three tests in that file fail for this reason alone — unrelated to whatever change you're about to make. Fix is to wrap the render in the provider, not to revert your work.
-
 ## Measured Findings
 
 - **`removeEmptyLines` was a token-cost INCREASE, not decrease.** Measured 2026-06-07 with tiktoken cl100k_base across 8 representative repo files: total +5.93% (+1047 tokens). Zero files showed savings. CRLF endings + the `^\s*[\r\n]/gm` regex appear to interact badly with the tokenizer. Feature removed end-to-end in this commit. Do not reintroduce a "remove blank lines" toggle without re-measuring against CRLF input.
