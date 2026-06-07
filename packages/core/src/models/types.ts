@@ -125,15 +125,19 @@ export interface ModelsRegistry {
 
 /** Filtered model (UI icin basitlestirilmis) */
 export interface FilteredModel {
-  /** Unique identifier: providerId/modelId */
+  /**
+   * Unique identifier. When derived from the canonical catalog this is the
+   * catalog model id (e.g. `anthropic/claude-sonnet-4.6`), which stays
+   * stable across deploys even when the cheapest provider shifts.
+   */
   uid: string;
   /** Model ID */
   id: string;
   /** Model display name */
   name: string;
-  /** Provider ID */
+  /** Cheapest known provider's ID */
   providerId: string;
-  /** Provider display name */
+  /** Cheapest known provider's display name */
   providerName: string;
   /** Context limit (tokens) */
   contextLimit: number;
@@ -147,6 +151,37 @@ export interface FilteredModel {
   hasReasoning: boolean;
   /** Tool call destegi var mi */
   hasToolCall: boolean;
+  /** Release date (YYYY-MM-DD), used for default ordering. Optional for legacy data. */
+  releaseDate?: string;
+}
+
+/**
+ * models.dev catalog.json schema. Combines a canonical model index
+ * (`models`, keyed by `lab/model-id`) with the per-provider offering map
+ * (`providers`). Each canonical model carries metadata (release_date,
+ * limits, modalities, capabilities) but no pricing; pricing comes from
+ * provider offerings which are matched back to canonical models by name.
+ */
+export interface CatalogModel {
+  id: string;
+  name: string;
+  family?: string;
+  attachment: boolean;
+  reasoning: boolean;
+  tool_call: boolean;
+  structured_output?: boolean;
+  temperature: boolean;
+  knowledge?: string;
+  release_date: string;
+  last_updated?: string;
+  modalities: ModelModalities;
+  open_weights: boolean;
+  limit: ModelLimits;
+}
+
+export interface CatalogResponse {
+  models: Record<string, CatalogModel>;
+  providers: Record<string, AIProvider>;
 }
 
 /** Cost estimation result */

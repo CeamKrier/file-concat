@@ -11,6 +11,8 @@ export type {
   ModelsRegistry,
   FilteredModel,
   CostEstimate,
+  CatalogModel,
+  CatalogResponse,
 } from "./types";
 
 export {
@@ -23,3 +25,6 @@ export {
 
 export { dedupAndPruneModels, canonicalModelKey } from "./dedup";
 export type { DedupAndPruneOptions } from "./dedup";
+
+export { buildTextModelsFromCatalog } from "./catalog";
+export type { BuildTextModelsOptions } from "./catalog";

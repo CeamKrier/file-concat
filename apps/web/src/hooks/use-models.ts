@@ -99,10 +99,21 @@ export function useModels(): UseModelsReturn {
   // Runtime defense: dedup at read time so a stale models.json (pre-dedup
   // deploy still cached in a user's bundle) doesn't bleed duplicate entries
   // into the model selector. When the data is already deduped this is a no-op.
-  const models = useMemo<FilteredModel[]>(
-    () => (registry?.textModels ? dedupAndPruneModels(registry.textModels) : []),
-    [registry],
-  );
+  // After dedup, re-sort by release_date descending so the newest models stay
+  // at the top regardless of the input order (dedup's own ordering is
+  // canonical-name-alphabetical for stability).
+  const models = useMemo<FilteredModel[]>(() => {
+    if (!registry?.textModels) return [];
+    const deduped = dedupAndPruneModels(registry.textModels);
+    return deduped.slice().sort((a, b) => {
+      const aDate = a.releaseDate ?? "";
+      const bDate = b.releaseDate ?? "";
+      if (aDate === bDate) return a.name.localeCompare(b.name);
+      if (!aDate) return 1;
+      if (!bDate) return -1;
+      return bDate.localeCompare(aDate);
+    });
+  }, [registry]);
 
   return {
     models,
