@@ -206,24 +206,19 @@ export function FilterRail({
         </summary>
 
         <div className="mt-4 space-y-4">
-          <label className="text-foreground flex cursor-pointer items-center gap-2 text-[12.5px]">
-            <input
-              type="checkbox"
-              checked={config.removeEmptyLines}
-              onChange={(e) => setConfig({ removeEmptyLines: e.target.checked })}
-              className="accent-foreground rounded"
-            />
-            Remove empty lines
-          </label>
-
-          <label className="text-foreground flex cursor-pointer items-center gap-2 text-[12.5px]">
+          <label className="text-foreground flex cursor-pointer items-start gap-2 text-[12.5px]">
             <input
               type="checkbox"
               checked={config.showLineNumbers}
               onChange={(e) => setConfig({ showLineNumbers: e.target.checked })}
-              className="accent-foreground rounded"
+              className="accent-foreground mt-0.5 rounded"
             />
-            Show line numbers
+            <span className="flex flex-col gap-0.5">
+              <span>Show line numbers</span>
+              <span className="text-muted-foreground text-[10.5px] leading-tight">
+                Adds a column prefix. Increases token count by roughly 40 to 50 percent.
+              </span>
+            </span>
           </label>
 
           <div className="space-y-1.5">

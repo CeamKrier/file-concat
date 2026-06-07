@@ -94,6 +94,17 @@ export const DEFAULT_IGNORE_PATTERNS = [
 
   // Source maps
   "*.map",
+
+  // Auto-generated source
+  "*.gen.*",
+  "*.generated.*",
+
+  // Test snapshots
+  "*.snap",
+
+  // Infrastructure state (often contains secrets)
+  "*.tfstate",
+  "*.tfstate.backup",
 ];
 
 /**

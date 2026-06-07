@@ -1,11 +1,4 @@
 /**
- * Remove empty lines from content
- */
-export function removeEmptyLines(content: string): string {
-  return content.replace(/^\s*[\r\n]/gm, '');
-}
-
-/**
  * Add line numbers to content
  */
 export function addLineNumbers(content: string): string {
@@ -23,7 +16,6 @@ export function addLineNumbers(content: string): string {
 }
 
 export type TransformOptions = {
-  removeEmptyLines?: boolean;
   showLineNumbers?: boolean;
 };
 
@@ -32,10 +24,6 @@ export type TransformOptions = {
  */
 export function processFileContent(content: string, _language: string, options: TransformOptions): string {
   let processed = content;
-
-  if (options.removeEmptyLines) {
-    processed = removeEmptyLines(processed);
-  }
 
   if (options.showLineNumbers) {
     processed = addLineNumbers(processed);

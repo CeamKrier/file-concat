@@ -3,14 +3,13 @@ import type { UserConfig } from "@fileconcat/core";
 import { DEFAULT_IGNORE_STRING } from "@fileconcat/core";
 
 const STORAGE_KEY = "fileconcat-config";
-const CURRENT_VERSION = 4;
+const CURRENT_VERSION = 5;
 
 const DEFAULT_CONFIG: UserConfig = {
-  version: 4,
+  version: 5,
   maxFileSizeMB: 32,
   includePatterns: "",
   ignorePatterns: DEFAULT_IGNORE_STRING,
-  removeEmptyLines: false,
   showLineNumbers: false,
   defaultOutputFormat: "single",
   outputStyle: "xml",
@@ -31,7 +30,6 @@ function migrateConfig(oldConfig: Record<string, unknown>): UserConfig {
       ? oldConfig.customIgnorePatterns.join(", ")
       : (oldConfig.ignorePatterns as string) || DEFAULT_IGNORE_STRING,
     includePatterns: (oldConfig.includePatterns as string) || DEFAULT_CONFIG.includePatterns,
-    removeEmptyLines: (oldConfig.removeEmptyLines as boolean) ?? DEFAULT_CONFIG.removeEmptyLines,
     showLineNumbers: (oldConfig.showLineNumbers as boolean) ?? DEFAULT_CONFIG.showLineNumbers,
     autoSwitchSource: (oldConfig.autoSwitchSource as boolean) ?? DEFAULT_CONFIG.autoSwitchSource,
     defaultSourceType:

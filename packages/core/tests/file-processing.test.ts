@@ -1,18 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  addLineNumbers,
-  processFileContent,
-  removeEmptyLines,
-} from "../src/file-processing/transform";
+import { addLineNumbers, processFileContent } from "../src/file-processing/transform";
 import { isBinaryFile, validateFile } from "../src/file-processing/validation";
-
-describe("removeEmptyLines", () => {
-  it("removes blank lines", () => {
-    const input = "a\n\n\n b\n";
-
-    expect(removeEmptyLines(input)).toBe("a\n b\n");
-  });
-});
 
 describe("addLineNumbers", () => {
   it("normalizes CRLF and CR", () => {
@@ -23,14 +11,18 @@ describe("addLineNumbers", () => {
 });
 
 describe("processFileContent", () => {
-  it("applies requested transforms", () => {
-    const input = "a\n\n b\n";
-    const output = processFileContent(input, "text", {
-      removeEmptyLines: true,
-      showLineNumbers: true,
-    });
+  it("applies line numbers when requested", () => {
+    const input = "a\nb\n";
+    const output = processFileContent(input, "text", { showLineNumbers: true });
 
-    expect(output).toBe("   1 | a\n   2 |  b");
+    expect(output).toBe("   1 | a\n   2 | b");
+  });
+
+  it("returns content unchanged when no transforms requested", () => {
+    const input = "a\n\n b\n";
+    const output = processFileContent(input, "text", {});
+
+    expect(output).toBe(input);
   });
 });
 

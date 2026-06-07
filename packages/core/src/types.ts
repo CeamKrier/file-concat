@@ -32,13 +32,12 @@ import type { SourceType } from "./sources/types";
 
 // User configuration with schema versioning for localStorage
 export type UserConfig = {
-  version: 4;
+  version: 5;
   maxFileSizeMB: number;
   // Pattern filtering (glob syntax)
   includePatterns: string;
   ignorePatterns: string;
   // File processing options
-  removeEmptyLines: boolean;
   showLineNumbers: boolean;
   // Output preferences
   defaultOutputFormat: "single" | "multi";

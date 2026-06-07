@@ -78,11 +78,10 @@ const App: React.FC = () => {
     return rawContents.map((file) => ({
       ...file,
       content: processFileContent(file.content, getLanguageFromPath(file.path), {
-        removeEmptyLines: userConfig.removeEmptyLines,
         showLineNumbers: userConfig.showLineNumbers,
       }),
     }));
-  }, [rawContents, userConfig.removeEmptyLines, userConfig.showLineNumbers]);
+  }, [rawContents, userConfig.showLineNumbers]);
 
   // Viewer state
   const [activeFilePath, setActiveFilePath] = useState<string | undefined>(undefined);
