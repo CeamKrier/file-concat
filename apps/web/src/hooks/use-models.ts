@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import type { ModelsRegistry, FilteredModel } from "@fileconcat/core";
+import { dedupAndPruneModels } from "@fileconcat/core";
 
 // Import static fallback data
 import fallbackData from "~/data/models.json";
@@ -95,8 +96,16 @@ export function useModels(): UseModelsReturn {
     }
   }, []);
 
+  // Runtime defense: dedup at read time so a stale models.json (pre-dedup
+  // deploy still cached in a user's bundle) doesn't bleed duplicate entries
+  // into the model selector. When the data is already deduped this is a no-op.
+  const models = useMemo<FilteredModel[]>(
+    () => (registry?.textModels ? dedupAndPruneModels(registry.textModels) : []),
+    [registry],
+  );
+
   return {
-    models: registry?.textModels ?? [],
+    models,
     registry,
     isLoading,
     error,

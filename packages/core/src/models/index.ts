@@ -20,3 +20,6 @@ export {
   findFittingModels,
   formatCost,
 } from "./cost-calculator";
+
+export { dedupAndPruneModels, canonicalModelKey } from "./dedup";
+export type { DedupAndPruneOptions } from "./dedup";

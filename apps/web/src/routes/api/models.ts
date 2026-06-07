@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { FilteredModel, AIProvider, ModelsRegistry } from "@fileconcat/core";
+import { dedupAndPruneModels } from "@fileconcat/core";
 
 const MODELS_API_URL = "https://models.dev/api.json";
 
@@ -89,7 +90,8 @@ export const Route = createFileRoute("/api/models")({
           }
 
           const providers: Record<string, AIProvider> = await response.json();
-          const textModels = filterTextModels(providers);
+          const rawTextModels = filterTextModels(providers);
+          const textModels = dedupAndPruneModels(rawTextModels);
 
           // Count total models
           let totalModels = 0;
@@ -97,8 +99,8 @@ export const Route = createFileRoute("/api/models")({
             totalModels += Object.keys(provider.models).length;
           }
 
-          const registry: ModelsRegistry = {
-            providers,
+          // Omit providers: clients never read it and it bloats the response.
+          const registry: Omit<ModelsRegistry, "providers"> = {
             lastUpdated: new Date().toISOString(),
             totalModels,
             textModels,

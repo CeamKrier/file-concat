@@ -109,13 +109,17 @@ export type ModelsDevAPIResponse = Record<string, AIProvider>;
 
 /** Filtrelenmis ve normalize edilmis model registry */
 export interface ModelsRegistry {
-  /** Tum provider'lar */
-  providers: Record<string, AIProvider>;
+  /**
+   * Raw provider blob from upstream. Kept optional because client-facing
+   * payloads (the bundled models.json fallback and the /api/models response)
+   * omit it to keep bundle and over-the-wire size small.
+   */
+  providers?: Record<string, AIProvider>;
   /** Son guncelleme zamani */
   lastUpdated: string;
   /** Toplam model sayisi */
   totalModels: number;
-  /** Sadece text destekleyen modeller (filtered) */
+  /** Sadece text destekleyen modeller (filtered, deduped) */
   textModels: FilteredModel[];
 }
 

@@ -2,12 +2,16 @@
 /**
  * Build-time script to fetch AI models from models.dev API
  * Filters to only include text-input models
+ * Deduplicates by canonical model name so the same model served by many
+ * providers collapses to one entry.
  * Saves to src/data/models.json as fallback data
  */
 
 import { writeFileSync, mkdirSync, existsSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+
+import { dedupAndPruneModels } from "@fileconcat/core";
 
 // Types (inline to avoid import issues in script)
 interface ModelCost {
@@ -157,15 +161,21 @@ function countTotalModels(providers: Record<string, AIProvider>): number {
 async function main() {
   try {
     const providers = await fetchModels();
-    const textModels = filterTextModels(providers);
+    const rawTextModels = filterTextModels(providers);
     const totalModels = countTotalModels(providers);
+    const textModels = dedupAndPruneModels(rawTextModels);
 
-    const registry: ModelsRegistry = {
-      providers,
+    // Client-facing payload omits the raw provider blob: the runtime never
+    // reads it, and at ~4MB it was inflating the bundle for no benefit.
+    const registry: Omit<ModelsRegistry, "providers"> = {
       lastUpdated: new Date().toISOString(),
       totalModels,
       textModels,
     };
+
+    console.log(
+      `Dedup + prune: ${rawTextModels.length} text entries collapsed to ${textModels.length} canonical models`,
+    );
 
     // Ensure output directory exists
     if (!existsSync(OUTPUT_DIR)) {
