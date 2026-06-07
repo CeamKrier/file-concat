@@ -1,17 +1,16 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { Upload, Download, Copy, Check } from "lucide-react";
+import { Upload } from "lucide-react";
 
 import { Button } from "~/components/ui/button";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Dialog, DialogContent, DialogTitle } from "~/components/ui/dialog";
 import SourceInput, { SourceInputRef } from "~/components/source-input";
-import OutputSettings from "~/components/output-settings";
 import { TokenSection } from "~/components/token-section";
-import PreviewModal from "~/components/preview-modal";
 import FileTree from "~/components/file-tree";
 import FileViewerModal from "~/components/file-viewer-modal";
 import { FilterRail } from "~/components/filter-rail";
 import { SourceBar } from "~/components/source-bar";
+import { ActionBar } from "~/components/action-bar";
 import { useConfig } from "~/hooks/use-config";
 
 import {
@@ -44,11 +43,11 @@ const App: React.FC = () => {
   const [processingStatus, setProcessingStatus] = useState<string>("");
   const [isRepoLoading, setIsRepoLoading] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
   const [tokens, setTokens] = useState<number>(0);
   const [rawContents, setRawContents] = useState<Array<{ path: string; content: string }>>([]);
   const [recommendedFormat, setRecommendedFormat] = useState<OutputFormat>("single");
-  const [selectedFormat, setSelectedFormat] = useState<OutputFormat | undefined>();
+  const [userPickedFormat, setUserPickedFormat] = useState<OutputFormat | null>(null);
+  const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const [config] = useState<ProcessingConfig>(DEFAULT_CONFIG);
 
   const [maxFileSize, setMaxFileSize] = useState<number>(32);
@@ -102,6 +101,10 @@ const App: React.FC = () => {
       setRecommendedFormat("single");
     }
   }, [tokens]);
+
+  // The format the action bar acts on. User pick wins, otherwise follow the
+  // token-driven recommendation so the bar is always armed.
+  const selectedFormat: OutputFormat = userPickedFormat ?? recommendedFormat;
 
   const processFile = useCallback(
     async (file: File, path: string, index: number): Promise<FileStatus> => {
@@ -335,6 +338,7 @@ const App: React.FC = () => {
       signal: AbortSignal,
     ) => {
       setIsRepoLoading(true);
+      setSourceUrl(url);
       try {
         // Get adapter for source type
         const adapter = defaultSourceRegistry.getByType(sourceType);
@@ -455,12 +459,15 @@ const App: React.FC = () => {
         URL.revokeObjectURL(url);
       };
 
+      const source = sourceUrl ?? undefined;
+
       if (selectedFormat === "single") {
         const text = assembleOutput({
           projectName,
           files: includedContents,
           tree,
           style,
+          source,
         });
         downloadBlob(text, `${projectName}_fileconcat.${extension}`);
       } else {
@@ -471,6 +478,7 @@ const App: React.FC = () => {
             files: chunks[i],
             tree,
             style,
+            source,
             part: { index: i + 1, total: chunks.length },
           });
           downloadBlob(text, `${projectName}-fileconcat-part${i + 1}.${extension}`);
@@ -490,6 +498,7 @@ const App: React.FC = () => {
     calculateChunks,
     fileStatuses,
     userConfig.outputStyle,
+    sourceUrl,
   ]);
 
   const copyToClipboard = useCallback(async () => {
@@ -507,6 +516,7 @@ const App: React.FC = () => {
         files: includedContents,
         tree,
         style: userConfig.outputStyle,
+        source: sourceUrl ?? undefined,
       });
 
       await navigator.clipboard.writeText(text);
@@ -515,7 +525,7 @@ const App: React.FC = () => {
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
     }
-  }, [processedContents, fileStatuses, userConfig.outputStyle]);
+  }, [processedContents, fileStatuses, userConfig.outputStyle, sourceUrl]);
 
   const resetAll = useCallback(() => {
     sourceInputRef.current?.abort();
@@ -527,7 +537,8 @@ const App: React.FC = () => {
     setIsRepoLoading(false);
     setTokens(0);
     setRawContents([]);
-    setSelectedFormat(undefined);
+    setUserPickedFormat(null);
+    setSourceUrl(null);
     setFailedFiles([]);
     setFilterDropNotice(null);
     setActiveFilePath(undefined);
@@ -690,35 +701,6 @@ const App: React.FC = () => {
 
     return { single, multiple };
   }, [calculateChunks, processedContents, fileStatuses]);
-
-  const generatePreview = useCallback(() => {
-    // Filter processedContents to only include files that are currently marked as included
-    const includedContents = processedContents.filter((content) => {
-      const status = fileStatuses.find((s) => s.path === content.path);
-      return status?.included ?? false;
-    });
-
-    if (selectedFormat === "single") {
-      return [
-        {
-          name: "concat-output.md",
-          content:
-            `# Files\n` +
-            includedContents
-              .map(({ path, content }) => `## ${path}\n\`\`\`\n${content}\n\`\`\`\n`)
-              .join("\n"),
-        },
-      ];
-    } else {
-      const chunks = calculateChunks(includedContents);
-      return chunks.map((chunk, i) => ({
-        name: `concat-output-part${i + 1}.md`,
-        content:
-          `# Files - Part ${i + 1}/${chunks.length}\n` +
-          chunk.map(({ path, content }) => `## ${path}\n\`\`\`\n${content}\n\`\`\`\n`).join("\n"),
-      }));
-    }
-  }, [selectedFormat, processedContents, calculateChunks, fileStatuses]);
 
   const handleFileInputChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1081,140 +1063,27 @@ const App: React.FC = () => {
               })()}
 
             {tokens > 0 && <TokenSection tokens={tokens} />}
-
-            {processedContents.length > 0 && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between gap-4">
-                  <h3 className="font-semibold">Output format</h3>
-                  <div
-                    role="group"
-                    aria-label="Output style"
-                    className="border-border/60 inline-flex rounded-md border p-0.5 text-xs"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setConfig({ outputStyle: "xml" })}
-                      aria-pressed={userConfig.outputStyle === "xml"}
-                      className={`rounded px-2.5 py-1 transition-colors ${
-                        userConfig.outputStyle === "xml"
-                          ? "bg-secondary text-foreground"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                      title="Wraps content in <codebase>, <files>, <file> tags. Recommended for Claude."
-                    >
-                      XML
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfig({ outputStyle: "markdown" })}
-                      aria-pressed={userConfig.outputStyle === "markdown"}
-                      className={`rounded px-2.5 py-1 transition-colors ${
-                        userConfig.outputStyle === "markdown"
-                          ? "bg-secondary text-foreground"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                      title="Renders content as Markdown with fenced code blocks."
-                    >
-                      Markdown
-                    </button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <button
-                    onClick={() => setSelectedFormat("single")}
-                    className={`rounded-lg border-2 p-4 text-left transition-all ${selectedFormat === "single" ? "bg-secondary border-blue-500" : "border-gray-200 hover:border-blue-300"}`}
-                  >
-                    <div className="mb-2 flex items-start justify-between">
-                      <h3 className="font-semibold">Single file</h3>
-                      {recommendedFormat === "single" && (
-                        <span
-                          className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                          title={`Under ${MULTI_OUTPUT_LIMIT.toLocaleString()} tokens - fits most LLM context windows`}
-                        >
-                          Recommended
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-muted-foreground text-sm">
-                      All content in one file. Best for smaller contexts.
-                    </p>
-                    <div className="text-muted-foreground mt-2 text-xs">
-                      {getEstimations().single}
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setSelectedFormat("multi")}
-                    className={`rounded-lg border-2 p-4 text-left transition-all ${selectedFormat === "multi" ? "bg-secondary border-blue-500" : "border-gray-200 hover:border-blue-300"}`}
-                  >
-                    <div className="mb-2 flex items-start justify-between">
-                      <h3 className="font-semibold">Multiple files</h3>
-                      {recommendedFormat === "multi" && (
-                        <span
-                          className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                          title={`Over ${MULTI_OUTPUT_LIMIT.toLocaleString()} tokens - split into chunks for better handling`}
-                        >
-                          Recommended
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-muted-foreground text-sm">
-                      Split into optimal chunks. Better for large contexts.
-                    </p>
-                    <div className="text-muted-foreground mt-2 text-xs">
-                      {getEstimations().multiple}
-                    </div>
-                  </button>
-                </div>
-
-                {selectedFormat === "multi" && (
-                  <OutputSettings
-                    maxFileSize={maxFileSize}
-                    setMaxFileSize={setMaxFileSize}
-                    disabled={isProcessing}
-                  />
-                )}
-
-                <div className="flex gap-2">
-                  {selectedFormat === "single" && (
-                    <button
-                      onClick={copyToClipboard}
-                      disabled={isProcessing}
-                      className="flex items-center justify-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                      title="Copy to clipboard"
-                    >
-                      {isCopied ? (
-                        <>
-                          <Check className="h-4 w-4 text-green-500" />
-                          Copied!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-4 w-4" />
-                          Copy
-                        </>
-                      )}
-                    </button>
-                  )}
-                  <button
-                    onClick={generateOutput}
-                    disabled={!selectedFormat || isProcessing}
-                    className="flex flex-1 items-center justify-center gap-2 rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <Download className="h-4 w-4" />
-                    Download
-                  </button>
-                </div>
-
-                <PreviewModal
-                  isOpen={isPreviewOpen}
-                  onClose={() => setIsPreviewOpen(false)}
-                  files={generatePreview()}
-                />
-              </div>
-            )}
           </div>
         </div>
+      )}
+
+      {hasFiles && processedContents.length > 0 && (
+        <ActionBar
+          tokens={tokens}
+          format={selectedFormat}
+          style={userConfig.outputStyle}
+          recommendedFormat={recommendedFormat}
+          maxFileSizeMB={maxFileSize}
+          estimations={getEstimations()}
+          isProcessing={isProcessing}
+          canEmit={includedFileCount > 0}
+          isCopied={isCopied}
+          onSelectFormat={(format) => setUserPickedFormat(format)}
+          onSelectStyle={(style) => setConfig({ outputStyle: style })}
+          onChangeMaxFileSize={setMaxFileSize}
+          onCopy={copyToClipboard}
+          onDownload={generateOutput}
+        />
       )}
 
       {/* Mobile filter drawer. Below lg the rail collapses into this sheet. */}
