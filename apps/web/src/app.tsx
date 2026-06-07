@@ -36,6 +36,11 @@ import { MULTI_OUTPUT_LIMIT, DEFAULT_CONFIG } from "@fileconcat/core";
 
 import { useStagedFiles } from "~/components/staged-files-provider";
 
+// Directories that never make it into memory. These are not user-editable;
+// dropping their contents into a browser tab would crash the page long before
+// any pattern could filter them. Everything else honors the live filter rail.
+const HARDCODED_PRUNE_DIRS = new Set([".git", "node_modules"]);
+
 const App: React.FC = () => {
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [fileStatuses, setFileStatuses] = useState<FileStatus[]>([]);
@@ -53,10 +58,6 @@ const App: React.FC = () => {
   const [maxFileSize, setMaxFileSize] = useState<number>(32);
   const [failedFiles, setFailedFiles] = useState<Array<{ path: string; error: string }>>([]);
   const [isCopied, setIsCopied] = useState<boolean>(false);
-  const [filterDropNotice, setFilterDropNotice] = useState<{
-    attempted: number;
-    reason: "all-files-excluded" | "all-dirs-ignored";
-  } | null>(null);
 
   // Live-reactive filtering: validations cache the per-file size/binary check from
   // ingestion; userToggled is the sticky manual override layer over pattern decisions.
@@ -151,16 +152,6 @@ const App: React.FC = () => {
     estimateTokens(combinedText);
   }, [processedContents, fileStatuses, estimateTokens]);
 
-  // Include patterns override ignore patterns — if a directory matches an include
-  // pattern, we keep walking it even if it also matches an ignore pattern.
-  const isIgnoredDirectory = useCallback(
-    (path: string) => {
-      if (matchesAnyPattern(path, userConfig.includePatterns)) return false;
-      return matchesAnyPattern(path, userConfig.ignorePatterns);
-    },
-    [userConfig.includePatterns, userConfig.ignorePatterns],
-  );
-
   // Include patterns override ignore patterns. If include patterns are defined,
   // anything not matching them is excluded.
   const isExcludedPath = useCallback(
@@ -176,18 +167,13 @@ const App: React.FC = () => {
 
   const handleFilesBatch = useCallback(
     async (incomingFiles: Array<{ file: File; path?: string; content?: string }>) => {
-      const normalizedEntries = incomingFiles
-        .map((entry) => {
-          const path = entry.path || entry.file.webkitRelativePath || entry.file.name;
-          return { ...entry, path };
-        })
-        .filter((entry) => !isExcludedPath(entry.path));
-
-      if (incomingFiles.length > 0 && normalizedEntries.length === 0) {
-        setFilterDropNotice({ attempted: incomingFiles.length, reason: "all-files-excluded" });
-      } else if (incomingFiles.length > 0) {
-        setFilterDropNotice(null);
-      }
+      // Drop time keeps every text-y file the browser handed us. Filter patterns
+      // are applied post-ingestion by the live useEffect below, so clicking a
+      // preset (or editing patterns) re-evaluates the same set without re-drop.
+      const normalizedEntries = incomingFiles.map((entry) => {
+        const path = entry.path || entry.file.webkitRelativePath || entry.file.name;
+        return { ...entry, path };
+      });
 
       const statuses: FileStatus[] = [];
       const newFileEntries: FileEntry[] = [];
@@ -236,7 +222,7 @@ const App: React.FC = () => {
         setTokens(0);
       }
     },
-    [estimateTokens, isExcludedPath, processFile],
+    [estimateTokens, processFile],
   );
 
   // Hydrate from staged-files handoff (landing → /app)
@@ -540,7 +526,6 @@ const App: React.FC = () => {
     setUserPickedFormat(null);
     setSourceUrl(null);
     setFailedFiles([]);
-    setFilterDropNotice(null);
     setActiveFilePath(undefined);
 
     setMaxFileSize(32);
@@ -591,11 +576,7 @@ const App: React.FC = () => {
             fileEntry.file(
               (file) => {
                 const fullPath = path ? `${path}/${file.name}` : file.name;
-
-                if (!isExcludedPath(fullPath)) {
-                  incomingFiles.push({ file, path: fullPath });
-                }
-
+                incomingFiles.push({ file, path: fullPath });
                 resolve();
               },
               (error) => {
@@ -610,10 +591,10 @@ const App: React.FC = () => {
           const dirEntry = entry as FileSystemDirectoryEntry;
           const newPath = path ? `${path}/${dirEntry.name}` : dirEntry.name;
 
-          // Check if directory itself is in ignore patterns (not include patterns)
-          // Include patterns should only apply to files, not directories
-          if (isIgnoredDirectory(newPath) || isIgnoredDirectory(`${newPath}/`)) {
-            console.log(`Skipping directory: ${newPath}`);
+          // The drop walk only hard-prunes directories that would crash the
+          // browser (massive object trees). Everything else is loaded and the
+          // filter rail decides what stays in the bundle, live.
+          if (HARDCODED_PRUNE_DIRS.has(dirEntry.name)) {
             return Promise.resolve();
           }
 
@@ -655,12 +636,8 @@ const App: React.FC = () => {
 
         await Promise.all(promises);
 
-        if (items.length > 0 && incomingFiles.length === 0 && failedFilesList.length === 0) {
-          setFilterDropNotice({ attempted: items.length, reason: "all-dirs-ignored" });
-        } else {
-          setProcessingStatus(`Processing ${incomingFiles.length} files...`);
-          await handleFilesBatch(incomingFiles);
-        }
+        setProcessingStatus(`Processing ${incomingFiles.length} files...`);
+        await handleFilesBatch(incomingFiles);
 
         // Update failed files from processEntry errors
         setFailedFiles((prev) => [...prev, ...failedFilesList]);
@@ -671,7 +648,7 @@ const App: React.FC = () => {
         setProcessingStatus("");
       }
     },
-    [resetAll, handleFilesBatch, isExcludedPath, isIgnoredDirectory],
+    [resetAll, handleFilesBatch],
   );
 
   const getEstimations = useCallback(() => {
@@ -854,47 +831,6 @@ const App: React.FC = () => {
           onReset={resetAll}
           onOpenFilters={() => setIsMobileFiltersOpen(true)}
         />
-      )}
-
-      {filterDropNotice && (
-        <Alert variant="destructive" className="mb-4" data-testid="filter-drop-alert">
-          <AlertDescription>
-            <div className="font-medium text-red-600">
-              {filterDropNotice.reason === "all-files-excluded"
-                ? `All ${filterDropNotice.attempted} file${filterDropNotice.attempted > 1 ? "s" : ""} were excluded by your filter patterns.`
-                : `All ${filterDropNotice.attempted} dropped item${filterDropNotice.attempted > 1 ? "s" : ""} matched your ignore patterns.`}
-            </div>
-            <div className="text-muted-foreground mt-1 space-y-0.5 text-xs">
-              {userConfig.includePatterns && (
-                <div>
-                  <span className="font-medium">Include patterns:</span>{" "}
-                  <code>{userConfig.includePatterns}</code>
-                </div>
-              )}
-              {userConfig.ignorePatterns && (
-                <div>
-                  <span className="font-medium">Ignore patterns:</span>{" "}
-                  <code className="break-all">{userConfig.ignorePatterns}</code>
-                </div>
-              )}
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  resetConfig();
-                  setFilterDropNotice(null);
-                }}
-              >
-                Reset filter patterns
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setFilterDropNotice(null)}>
-                Dismiss
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
       )}
 
       {failedFiles.length > 0 && (
