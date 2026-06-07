@@ -1,16 +1,17 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Upload, Download, Copy, Check } from "lucide-react";
 
-import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Alert, AlertDescription } from "~/components/ui/alert";
+import { Dialog, DialogContent, DialogTitle } from "~/components/ui/dialog";
 import SourceInput, { SourceInputRef } from "~/components/source-input";
 import OutputSettings from "~/components/output-settings";
 import { TokenSection } from "~/components/token-section";
 import PreviewModal from "~/components/preview-modal";
 import FileTree from "~/components/file-tree";
 import FileViewerModal from "~/components/file-viewer-modal";
-import ConfigPanel from "~/components/config-panel";
+import { FilterRail } from "~/components/filter-rail";
+import { SourceBar } from "~/components/source-bar";
 import { useConfig } from "~/hooks/use-config";
 
 import {
@@ -58,6 +59,14 @@ const App: React.FC = () => {
     reason: "all-files-excluded" | "all-dirs-ignored";
   } | null>(null);
 
+  // Live-reactive filtering: validations cache the per-file size/binary check from
+  // ingestion; userToggled is the sticky manual override layer over pattern decisions.
+  type ManualOverride = "include" | "exclude";
+  type ValidationRecord = { included: boolean; reason?: string; size: number; type: string };
+  const [validations, setValidations] = useState<Record<string, ValidationRecord>>({});
+  const [userToggled, setUserToggled] = useState<Record<string, ManualOverride>>({});
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+
   // Persistent user config
   const { config: userConfig, setConfig, exportConfig, importConfig, resetConfig } = useConfig();
 
@@ -81,24 +90,6 @@ const App: React.FC = () => {
   const [editingPath, setEditingPath] = useState<string | null>(null);
   const [editorDirtyByPath, setEditorDirtyByPath] = useState<Record<string, boolean>>({});
   const [editorDraftByPath, setEditorDraftByPath] = useState<Record<string, string>>({});
-  const [isDesktop, setIsDesktop] = useState<boolean>(false);
-
-  // Track responsive breakpoint to decide between pane vs modal
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mql = window.matchMedia("(min-width: 768px)"); // Tailwind md breakpoint
-    const handler = (e: MediaQueryListEvent | MediaQueryList) =>
-      setIsDesktop("matches" in e ? e.matches : (e as MediaQueryList).matches);
-    // Initialize
-    setIsDesktop(mql.matches);
-    // Listen
-    const onChange = (e: MediaQueryListEvent) => handler(e);
-    mql.addEventListener?.("change", onChange);
-    return () => {
-      mql.removeEventListener?.("change", onChange);
-    };
-  }, []);
-
   const dragCounter = useRef<number>(0);
   const sourceInputRef = useRef<SourceInputRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -197,13 +188,20 @@ const App: React.FC = () => {
 
       const statuses: FileStatus[] = [];
       const newFileEntries: FileEntry[] = [];
-      const includedContents: Array<{ path: string; content: string }> = [];
+      const allContents: Array<{ path: string; content: string }> = [];
+      const validationMap: Record<string, ValidationRecord> = {};
       const failedFilesList: Array<{ path: string; error: string }> = [];
 
       for (const entry of normalizedEntries) {
         const index = statuses.length;
         const status = await processFile(entry.file, entry.path, index);
         statuses.push(status);
+        validationMap[entry.path] = {
+          included: status.included,
+          reason: status.reason,
+          size: status.size,
+          type: status.type,
+        };
 
         try {
           const content = entry.content !== undefined ? entry.content : await entry.file.text();
@@ -214,10 +212,7 @@ const App: React.FC = () => {
           };
 
           newFileEntries.push(fileEntry);
-
-          if (status.included) {
-            includedContents.push({ path: fileEntry.path, content: fileEntry.content });
-          }
+          allContents.push({ path: fileEntry.path, content: fileEntry.content });
         } catch (error) {
           console.error(`Failed to read file ${entry.path}:`, error);
           failedFilesList.push({ path: entry.path, error: "File could not be read" });
@@ -226,11 +221,14 @@ const App: React.FC = () => {
 
       setFiles(newFileEntries);
       setFileStatuses(statuses);
-      setRawContents(includedContents);
+      setValidations(validationMap);
+      setUserToggled({});
+      setRawContents(allContents);
       setFailedFiles(failedFilesList);
 
-      if (includedContents.length > 0) {
-        await estimateTokens(includedContents.map((c) => c.content).join("\n"));
+      const initiallyIncluded = allContents.filter((c) => validationMap[c.path]?.included);
+      if (initiallyIncluded.length > 0) {
+        await estimateTokens(initiallyIncluded.map((c) => c.content).join("\n"));
       } else {
         setTokens(0);
       }
@@ -248,94 +246,86 @@ const App: React.FC = () => {
     }
   }, [consumeStagedFiles, handleFilesBatch]);
 
-  const toggleFileInclusion = useCallback(
-    async (index: number) => {
-      try {
-        // Create new statuses array with toggled status
-        const newStatuses = fileStatuses.map((status, i) =>
-          i === index
-            ? { ...status, included: !status.included, forceInclude: !status.included }
-            : status,
-        );
-        setFileStatuses(newStatuses);
-
-        // Use the new statuses to filter files
-        const includedFiles = files.filter((_, i) => newStatuses[i].included);
-
-        // Process the files - handle both repository and drag-dropped files
-        const contents = await Promise.all(
-          includedFiles.map(async (fileEntry) => {
-            if (fileEntry.content) {
-              // Repository file
-              return {
-                path: fileEntry.path,
-                content: fileEntry.content,
-              };
-            } else {
-              // Drag-dropped file
-              return {
-                path: fileEntry.path,
-                content: fileEntry.content,
-              };
-            }
-          }),
-        );
-
-        // estimateTokens(contents.map((c) => c.content).join("\n"));
-
-        // Update state
-        setRawContents(contents);
-      } catch (error) {
-        console.error("Error reprocessing files:", error);
-      }
+  // What would the pattern + validation layer decide for this path, ignoring overrides?
+  const patternDecision = useCallback(
+    (path: string): boolean => {
+      const validation = validations[path];
+      if (!validation || !validation.included) return false;
+      return !isExcludedPath(path);
     },
-    [files, fileStatuses],
+    [validations, isExcludedPath],
+  );
+
+  // Live-reactive recompute. Patterns or override layer changes flow into fileStatuses.
+  useEffect(() => {
+    if (files.length === 0) return;
+    setFileStatuses((prev) =>
+      prev.map((status) => {
+        const override = userToggled[status.path];
+        const validation = validations[status.path];
+        const validatedIncluded = validation?.included ?? status.included;
+        let included: boolean;
+        let forceInclude = false;
+        if (override === "include") {
+          included = true;
+          forceInclude = true;
+        } else if (override === "exclude") {
+          included = false;
+        } else {
+          included = validatedIncluded && !isExcludedPath(status.path);
+        }
+        return { ...status, included, forceInclude };
+      }),
+    );
+  }, [
+    files,
+    userToggled,
+    validations,
+    isExcludedPath,
+    userConfig.includePatterns,
+    userConfig.ignorePatterns,
+  ]);
+
+  const toggleFileInclusion = useCallback(
+    (index: number) => {
+      const status = fileStatuses[index];
+      if (!status) return;
+      const target = !status.included;
+      setUserToggled((prev) => {
+        const next = { ...prev };
+        if (target === patternDecision(status.path)) {
+          delete next[status.path];
+        } else {
+          next[status.path] = target ? "include" : "exclude";
+        }
+        return next;
+      });
+    },
+    [fileStatuses, patternDecision],
   );
 
   const toggleMultipleFiles = useCallback(
-    async (indices: number[], shouldInclude: boolean) => {
-      try {
-        // Create new statuses array with toggled statuses for multiple files
-        const newStatuses = fileStatuses.map((status, i) => {
-          if (indices.includes(i)) {
-            return { ...status, included: shouldInclude, forceInclude: shouldInclude };
+    (indices: number[], shouldInclude: boolean) => {
+      setUserToggled((prev) => {
+        const next = { ...prev };
+        for (const i of indices) {
+          const status = fileStatuses[i];
+          if (!status) continue;
+          if (shouldInclude === patternDecision(status.path)) {
+            delete next[status.path];
+          } else {
+            next[status.path] = shouldInclude ? "include" : "exclude";
           }
-          return status;
-        });
-        setFileStatuses(newStatuses);
-
-        // Use the new statuses to filter files
-        const includedFiles = files.filter((_, i) => newStatuses[i].included);
-
-        // Process the files - handle both repository and drag-dropped files
-        const contents = await Promise.all(
-          includedFiles.map(async (fileEntry) => {
-            if (fileEntry.content) {
-              // Repository file
-              return {
-                path: fileEntry.path,
-                content: fileEntry.content,
-              };
-            } else {
-              // Drag-dropped file
-              return {
-                path: fileEntry.path,
-                content: fileEntry.content,
-              };
-            }
-          }),
-        );
-
-        // estimateTokens(contents.map((c) => c.content).join("\n"));
-
-        // Update state
-        setRawContents(contents);
-      } catch (error) {
-        console.error("Error reprocessing files:", error);
-      }
+        }
+        return next;
+      });
     },
-    [files, fileStatuses],
+    [fileStatuses, patternDecision],
   );
+
+  const clearManualOverrides = useCallback(() => {
+    setUserToggled({});
+  }, []);
 
   const handleRepositorySubmit = useCallback(
     async (
@@ -531,6 +521,8 @@ const App: React.FC = () => {
     sourceInputRef.current?.abort();
     setFiles([]);
     setFileStatuses([]);
+    setValidations({});
+    setUserToggled({});
     setIsProcessing(false);
     setIsRepoLoading(false);
     setTokens(0);
@@ -538,6 +530,7 @@ const App: React.FC = () => {
     setSelectedFormat(undefined);
     setFailedFiles([]);
     setFilterDropNotice(null);
+    setActiveFilePath(undefined);
 
     setMaxFileSize(32);
     sourceInputRef.current?.reset();
@@ -838,418 +831,404 @@ const App: React.FC = () => {
   }, [editorDirtyByPath]);
 
   const includedFileCount = fileStatuses.filter((s) => s.included).length;
+  const manualOverrideCount = Object.keys(userToggled).length;
+  const hasFiles = fileStatuses.length > 0;
 
-  const headerSubtitle = (() => {
+  const projectName = useMemo(() => {
+    if (files.length === 0) return "";
+    return generateProjectName(files.map((f) => f.path));
+  }, [files]);
+
+  const sourceStatusMessage = (() => {
     if (isProcessing) return processingStatus || "Generating bundle…";
     if (isRepoLoading) return "Fetching repository…";
-    if (fileStatuses.length === 0) return "Drop a folder, paste a URL, or browse.";
-    const parts: string[] = [
-      `${includedFileCount} ${includedFileCount === 1 ? "file" : "files"}`,
-      `~${tokens.toLocaleString()} tokens`,
-    ];
-    if (selectedFormat === "single") parts.push("single file");
-    else if (selectedFormat === "multi") parts.push("split chunks");
-    return parts.join(" · ");
+    if (!hasFiles) return "";
+    return `${tokens.toLocaleString()} tokens`;
   })();
 
-  const canReset = fileStatuses.length > 0 && !isProcessing && !isRepoLoading;
+  const filterRailProps = {
+    config: userConfig,
+    setConfig,
+    exportConfig,
+    importConfig,
+    resetConfig,
+    totalFiles: fileStatuses.length,
+    includedFiles: includedFileCount,
+    manualOverrideCount,
+    onClearOverrides: clearManualOverrides,
+    hasFiles,
+  };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
-      <WorkbenchHeader
-        subtitle={headerSubtitle}
-        canReset={canReset}
-        onReset={resetAll}
-      />
-      <Card className="border-border/80">
-        <CardContent className="pt-6">
-          {/* Settings Panel */}
-          <ConfigPanel
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:py-8">
+      {hasFiles && (
+        <SourceBar
+          projectName={projectName}
+          fileCount={fileStatuses.length}
+          includedCount={includedFileCount}
+          manualOverrideCount={manualOverrideCount}
+          isProcessing={isProcessing || isRepoLoading}
+          statusMessage={sourceStatusMessage}
+          onReset={resetAll}
+          onOpenFilters={() => setIsMobileFiltersOpen(true)}
+        />
+      )}
+
+      {filterDropNotice && (
+        <Alert variant="destructive" className="mb-4" data-testid="filter-drop-alert">
+          <AlertDescription>
+            <div className="font-medium text-red-600">
+              {filterDropNotice.reason === "all-files-excluded"
+                ? `All ${filterDropNotice.attempted} file${filterDropNotice.attempted > 1 ? "s" : ""} were excluded by your filter patterns.`
+                : `All ${filterDropNotice.attempted} dropped item${filterDropNotice.attempted > 1 ? "s" : ""} matched your ignore patterns.`}
+            </div>
+            <div className="text-muted-foreground mt-1 space-y-0.5 text-xs">
+              {userConfig.includePatterns && (
+                <div>
+                  <span className="font-medium">Include patterns:</span>{" "}
+                  <code>{userConfig.includePatterns}</code>
+                </div>
+              )}
+              {userConfig.ignorePatterns && (
+                <div>
+                  <span className="font-medium">Ignore patterns:</span>{" "}
+                  <code className="break-all">{userConfig.ignorePatterns}</code>
+                </div>
+              )}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  resetConfig();
+                  setFilterDropNotice(null);
+                }}
+              >
+                Reset filter patterns
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setFilterDropNotice(null)}>
+                Dismiss
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {failedFiles.length > 0 && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>
+            <div className="font-medium text-red-600">
+              Failed to read {failedFiles.length} file{failedFiles.length > 1 ? "s" : ""}:
+            </div>
+            <ul className="mt-2 list-inside list-disc text-sm">
+              {failedFiles.slice(0, 5).map((failed, index) => (
+                <li key={index} className="truncate text-red-600">
+                  {failed.path}
+                </li>
+              ))}
+              {failedFiles.length > 5 && (
+                <li className="text-muted-foreground">... and {failedFiles.length - 5} more</li>
+              )}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!hasFiles && (
+        <div className="mx-auto max-w-2xl">
+          <SourceInput
+            ref={sourceInputRef}
+            isLoading={isRepoLoading}
+            onSubmit={handleRepositorySubmit}
             config={userConfig}
-            setConfig={setConfig}
-            exportConfig={exportConfig}
-            importConfig={importConfig}
-            resetConfig={resetConfig}
           />
 
-          {filterDropNotice && (
-            <Alert variant="destructive" className="mb-4" data-testid="filter-drop-alert">
-              <AlertDescription>
-                <div className="font-medium text-red-600">
-                  {filterDropNotice.reason === "all-files-excluded"
-                    ? `All ${filterDropNotice.attempted} file${filterDropNotice.attempted > 1 ? "s" : ""} were excluded by your filter patterns.`
-                    : `All ${filterDropNotice.attempted} dropped item${filterDropNotice.attempted > 1 ? "s" : ""} matched your ignore patterns.`}
-                </div>
-                <div className="text-muted-foreground mt-1 space-y-0.5 text-xs">
-                  {userConfig.includePatterns && (
-                    <div>
-                      <span className="font-medium">Include patterns:</span>{" "}
-                      <code>{userConfig.includePatterns}</code>
-                    </div>
-                  )}
-                  {userConfig.ignorePatterns && (
-                    <div>
-                      <span className="font-medium">Ignore patterns:</span>{" "}
-                      <code className="break-all">{userConfig.ignorePatterns}</code>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      resetConfig();
-                      setFilterDropNotice(null);
-                    }}
-                  >
-                    Reset filter patterns
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setFilterDropNotice(null)}>
-                    Dismiss
-                  </Button>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
+          <div className="text-muted-foreground my-4 flex items-center gap-4 font-mono text-[11px] uppercase tracking-[0.08em]">
+            <span className="border-border/60 h-px flex-1 border-t" aria-hidden="true" />
+            or drop
+            <span className="border-border/60 h-px flex-1 border-t" aria-hidden="true" />
+          </div>
 
-          {!fileStatuses.length && (
-            <>
-              <SourceInput
-                ref={sourceInputRef}
-                isLoading={isRepoLoading}
-                onSubmit={handleRepositorySubmit}
-                config={userConfig}
-              />
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            onChange={handleFileInputChange}
+            className="hidden"
+            disabled={isProcessing || isRepoLoading}
+          />
+          <input
+            ref={folderInputRef}
+            type="file"
+            webkitdirectory=""
+            directory=""
+            multiple
+            onChange={handleFileInputChange}
+            className="hidden"
+            disabled={isProcessing || isRepoLoading}
+          />
 
-              <div className="flex items-center justify-center py-4">or</div>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                onChange={handleFileInputChange}
-                className="hidden"
-                disabled={isProcessing || isRepoLoading}
-              />
-              <input
-                ref={folderInputRef}
-                type="file"
-                webkitdirectory=""
-                directory=""
-                multiple
-                onChange={handleFileInputChange}
-                className="hidden"
-                disabled={isProcessing || isRepoLoading}
-              />
-
-              <div
-                onDragEnter={isProcessing || isRepoLoading ? undefined : handleDragEnter}
-                onDragLeave={isProcessing || isRepoLoading ? undefined : handleDragLeave}
-                onDragOver={isProcessing || isRepoLoading ? undefined : handleDragOver}
-                onDrop={isProcessing || isRepoLoading ? undefined : handleDrop}
-                className={`mb-4 rounded-lg border-2 border-dashed p-8 text-center transition-all duration-200 ${isProcessing || isRepoLoading ? "cursor-not-allowed border-gray-200 opacity-50" : isDragging ? "bg-muted border-blue-500" : "hover:border-blue-300"} `}
-              >
-                <Upload
-                  className={`mx-auto mb-4 h-12 w-12 transition-colors duration-200 ${isProcessing || isRepoLoading ? "text-gray-300" : isDragging ? "text-blue-500" : "text-gray-400"}`}
-                />
-                <p>
-                  {isProcessing
-                    ? processingStatus || "Processing files..."
-                    : isDragging
-                      ? "Drop files here"
-                      : "Drag and drop files or folders here"}
-                </p>
-                <div className="text-muted-foreground flex items-center justify-center py-4">
-                  or
-                </div>
-                {!isProcessing && !isRepoLoading && (
-                  <div className="flex flex-col justify-center gap-3 md:flex-row">
-                    <Button
-                      variant="secondary"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isProcessing || isRepoLoading}
-                    >
-                      Browse Files
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => folderInputRef.current?.click()}
-                      disabled={isProcessing || isRepoLoading}
-                    >
-                      Browse Folder
-                    </Button>
-                  </div>
-                )}
+          <div
+            onDragEnter={isProcessing || isRepoLoading ? undefined : handleDragEnter}
+            onDragLeave={isProcessing || isRepoLoading ? undefined : handleDragLeave}
+            onDragOver={isProcessing || isRepoLoading ? undefined : handleDragOver}
+            onDrop={isProcessing || isRepoLoading ? undefined : handleDrop}
+            className={`border-border/70 mb-4 rounded-lg border-2 border-dashed p-8 text-center transition-colors duration-200 ${
+              isProcessing || isRepoLoading
+                ? "cursor-not-allowed opacity-50"
+                : isDragging
+                  ? "border-foreground bg-muted/40"
+                  : "hover:border-foreground/40"
+            }`}
+          >
+            <Upload
+              className={`mx-auto mb-4 h-10 w-10 transition-colors duration-200 ${
+                isProcessing || isRepoLoading
+                  ? "text-muted-foreground/40"
+                  : isDragging
+                    ? "text-foreground"
+                    : "text-muted-foreground"
+              }`}
+            />
+            <p className="text-foreground text-sm">
+              {isProcessing
+                ? processingStatus || "Processing files..."
+                : isDragging
+                  ? "Drop files here"
+                  : "Drag a folder or files here"}
+            </p>
+            {!isProcessing && !isRepoLoading && (
+              <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isProcessing || isRepoLoading}
+                >
+                  Browse files
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => folderInputRef.current?.click()}
+                  disabled={isProcessing || isRepoLoading}
+                >
+                  Browse folder
+                </Button>
               </div>
-            </>
-          )}
+            )}
+          </div>
+        </div>
+      )}
 
-          {failedFiles.length > 0 && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>
-                <div className="font-medium text-red-600">
-                  Failed to read {failedFiles.length} file{failedFiles.length > 1 ? "s" : ""}:
-                </div>
-                <ul className="mt-2 list-inside list-disc text-sm">
-                  {failedFiles.slice(0, 5).map((failed, index) => (
-                    <li key={index} className="truncate text-red-600">
-                      {failed.path}
-                    </li>
-                  ))}
-                  {failedFiles.length > 5 && (
-                    <li className="text-muted-foreground">... and {failedFiles.length - 5} more</li>
-                  )}
-                </ul>
-              </AlertDescription>
-            </Alert>
-          )}
+      {hasFiles && (
+        <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <div className="hidden lg:block">
+            <FilterRail {...filterRailProps} />
+          </div>
 
-          {fileStatuses.length > 0 && (
-            <div className="mb-4 mt-4">
-              {/* Responsive layout: single column on mobile, two columns on desktop when a file is active */}
-              <div
-                className={
-                  activeFilePath && isDesktop ? "grid grid-cols-1 gap-4 md:grid-cols-2" : ""
-                }
-              >
-                <div>
-                  <FileTree
-                    fileStatuses={fileStatuses}
-                    onToggleFile={toggleFileInclusion}
-                    onToggleMultipleFiles={toggleMultipleFiles}
-                    isProcessing={isProcessing}
-                    onOpenFile={(path) => setActiveFilePath(path)}
-                  />
-                </div>
-              </div>
+          <div className="min-w-0 space-y-6">
+            <FileTree
+              fileStatuses={fileStatuses}
+              onToggleFile={toggleFileInclusion}
+              onToggleMultipleFiles={toggleMultipleFiles}
+              isProcessing={isProcessing}
+              onOpenFile={(path) => setActiveFilePath(path)}
+            />
 
-              {activeFilePath &&
-                (() => {
-                  const f = files.find((f) => f.path === activeFilePath);
-                  const s = fileStatuses.find((s) => s.path === activeFilePath);
-                  if (!f || !s) return null;
-                  const isEditing = editingPath === activeFilePath;
-                  const onToggleInclude = () => {
-                    const idx = fileStatuses.findIndex((st) => st.path === activeFilePath);
-                    if (idx >= 0) toggleFileInclusion(idx);
-                  };
-                  return (
-                    <FileViewerModal
-                      open={!!activeFilePath}
-                      onOpenChange={(open) => {
-                        if (!open) {
-                          if (editorDirtyByPath[f.path]) {
-                            const proceed = window.confirm("Discard unsaved changes?");
-                            if (!proceed) return;
-                            cancelEdit(f.path);
-                          }
-                          setActiveFilePath(undefined);
-                        } else {
-                          setActiveFilePath(activeFilePath);
+            {activeFilePath &&
+              (() => {
+                const f = files.find((f) => f.path === activeFilePath);
+                const s = fileStatuses.find((s) => s.path === activeFilePath);
+                if (!f || !s) return null;
+                const isEditing = editingPath === activeFilePath;
+                const onToggleInclude = () => {
+                  const idx = fileStatuses.findIndex((st) => st.path === activeFilePath);
+                  if (idx >= 0) toggleFileInclusion(idx);
+                };
+                return (
+                  <FileViewerModal
+                    open={!!activeFilePath}
+                    onOpenChange={(open) => {
+                      if (!open) {
+                        if (editorDirtyByPath[f.path]) {
+                          const proceed = window.confirm("Discard unsaved changes?");
+                          if (!proceed) return;
+                          cancelEdit(f.path);
                         }
-                      }}
-                      path={f.path}
-                      size={s.size}
-                      included={s.included}
-                      reason={s.reason}
-                      content={(isEditing ? editorDraftByPath[f.path] : f.content) ?? null}
-                      onToggleInclude={onToggleInclude}
-                      isProcessing={isProcessing}
-                      editingEnabled={isEditorEnabled}
-                      isEditing={isEditing}
-                      isDirty={!!editorDirtyByPath[f.path]}
-                      onStartEdit={() => startEdit(f.path)}
-                      onCancelEdit={() => cancelEdit(f.path)}
-                      onSaveEdit={() => saveEdit(f.path)}
-                      onChangeEdit={(val: string) => changeEdit(f.path, val)}
-                    />
-                  );
-                })()}
-            </div>
-          )}
+                        setActiveFilePath(undefined);
+                      } else {
+                        setActiveFilePath(activeFilePath);
+                      }
+                    }}
+                    path={f.path}
+                    size={s.size}
+                    included={s.included}
+                    reason={s.reason}
+                    content={(isEditing ? editorDraftByPath[f.path] : f.content) ?? null}
+                    onToggleInclude={onToggleInclude}
+                    isProcessing={isProcessing}
+                    editingEnabled={isEditorEnabled}
+                    isEditing={isEditing}
+                    isDirty={!!editorDirtyByPath[f.path]}
+                    onStartEdit={() => startEdit(f.path)}
+                    onCancelEdit={() => cancelEdit(f.path)}
+                    onSaveEdit={() => saveEdit(f.path)}
+                    onChangeEdit={(val: string) => changeEdit(f.path, val)}
+                  />
+                );
+              })()}
 
-          {tokens > 0 && <TokenSection tokens={tokens} />}
+            {tokens > 0 && <TokenSection tokens={tokens} />}
 
-          {processedContents.length > 0 && (
-            <div className="mt-6 space-y-6">
-              <div className="flex items-center justify-between gap-4">
-                <h3 className="font-semibold">Output Format</h3>
-                <div
-                  role="group"
-                  aria-label="Output style"
-                  className="border-border/60 inline-flex rounded-md border p-0.5 text-xs"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setConfig({ outputStyle: "xml" })}
-                    aria-pressed={userConfig.outputStyle === "xml"}
-                    className={`rounded px-2.5 py-1 transition-colors ${
-                      userConfig.outputStyle === "xml"
-                        ? "bg-secondary text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    title="Wraps content in <codebase>, <files>, <file> tags. Recommended for Claude."
+            {processedContents.length > 0 && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between gap-4">
+                  <h3 className="font-semibold">Output format</h3>
+                  <div
+                    role="group"
+                    aria-label="Output style"
+                    className="border-border/60 inline-flex rounded-md border p-0.5 text-xs"
                   >
-                    XML
+                    <button
+                      type="button"
+                      onClick={() => setConfig({ outputStyle: "xml" })}
+                      aria-pressed={userConfig.outputStyle === "xml"}
+                      className={`rounded px-2.5 py-1 transition-colors ${
+                        userConfig.outputStyle === "xml"
+                          ? "bg-secondary text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title="Wraps content in <codebase>, <files>, <file> tags. Recommended for Claude."
+                    >
+                      XML
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfig({ outputStyle: "markdown" })}
+                      aria-pressed={userConfig.outputStyle === "markdown"}
+                      className={`rounded px-2.5 py-1 transition-colors ${
+                        userConfig.outputStyle === "markdown"
+                          ? "bg-secondary text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title="Renders content as Markdown with fenced code blocks."
+                    >
+                      Markdown
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <button
+                    onClick={() => setSelectedFormat("single")}
+                    className={`rounded-lg border-2 p-4 text-left transition-all ${selectedFormat === "single" ? "bg-secondary border-blue-500" : "border-gray-200 hover:border-blue-300"}`}
+                  >
+                    <div className="mb-2 flex items-start justify-between">
+                      <h3 className="font-semibold">Single file</h3>
+                      {recommendedFormat === "single" && (
+                        <span
+                          className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                          title={`Under ${MULTI_OUTPUT_LIMIT.toLocaleString()} tokens - fits most LLM context windows`}
+                        >
+                          Recommended
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-muted-foreground text-sm">
+                      All content in one file. Best for smaller contexts.
+                    </p>
+                    <div className="text-muted-foreground mt-2 text-xs">
+                      {getEstimations().single}
+                    </div>
                   </button>
+
                   <button
-                    type="button"
-                    onClick={() => setConfig({ outputStyle: "markdown" })}
-                    aria-pressed={userConfig.outputStyle === "markdown"}
-                    className={`rounded px-2.5 py-1 transition-colors ${
-                      userConfig.outputStyle === "markdown"
-                        ? "bg-secondary text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    title="Renders content as Markdown with fenced code blocks."
+                    onClick={() => setSelectedFormat("multi")}
+                    className={`rounded-lg border-2 p-4 text-left transition-all ${selectedFormat === "multi" ? "bg-secondary border-blue-500" : "border-gray-200 hover:border-blue-300"}`}
                   >
-                    Markdown
+                    <div className="mb-2 flex items-start justify-between">
+                      <h3 className="font-semibold">Multiple files</h3>
+                      {recommendedFormat === "multi" && (
+                        <span
+                          className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                          title={`Over ${MULTI_OUTPUT_LIMIT.toLocaleString()} tokens - split into chunks for better handling`}
+                        >
+                          Recommended
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-muted-foreground text-sm">
+                      Split into optimal chunks. Better for large contexts.
+                    </p>
+                    <div className="text-muted-foreground mt-2 text-xs">
+                      {getEstimations().multiple}
+                    </div>
                   </button>
                 </div>
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <button
-                  onClick={() => setSelectedFormat("single")}
-                  className={`rounded-lg border-2 p-4 transition-all ${selectedFormat === "single" ? "bg-secondary border-blue-500" : "border-gray-200 hover:border-blue-300"}`}
-                >
-                  <div className="mb-2 flex items-start justify-between">
-                    <h3 className="font-semibold">Single File</h3>
-                    {recommendedFormat === "single" && (
-                      <span
-                        className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                        title={`Under ${MULTI_OUTPUT_LIMIT.toLocaleString()} tokens - fits most LLM context windows`}
-                      >
-                        Recommended
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-muted-foreground text-sm">
-                    All content in one file. Best for smaller contexts.
-                  </p>
-                  <div className="text-muted-foreground mt-2 text-xs">
-                    {getEstimations().single}
-                  </div>
-                </button>
 
-                <button
-                  onClick={() => setSelectedFormat("multi")}
-                  className={`rounded-lg border-2 p-4 transition-all ${selectedFormat === "multi" ? "bg-secondary border-blue-500" : "border-gray-200 hover:border-blue-300"}`}
-                >
-                  <div className="mb-2 flex items-start justify-between">
-                    <h3 className="font-semibold">Multiple Files</h3>
-                    {recommendedFormat === "multi" && (
-                      <span
-                        className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                        title={`Over ${MULTI_OUTPUT_LIMIT.toLocaleString()} tokens - split into chunks for better handling`}
-                      >
-                        Recommended
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-muted-foreground text-sm">
-                    Split into optimal chunks. Better for large contexts.
-                  </p>
-                  <div className="text-muted-foreground mt-2 text-xs">
-                    {getEstimations().multiple}
-                  </div>
-                </button>
-              </div>
-
-              {selectedFormat === "multi" && (
-                <OutputSettings
-                  maxFileSize={maxFileSize}
-                  setMaxFileSize={setMaxFileSize}
-                  disabled={isProcessing}
-                />
-              )}
-
-              <div className="flex gap-2">
-                {selectedFormat === "single" && (
-                  <button
-                    onClick={copyToClipboard}
+                {selectedFormat === "multi" && (
+                  <OutputSettings
+                    maxFileSize={maxFileSize}
+                    setMaxFileSize={setMaxFileSize}
                     disabled={isProcessing}
-                    className="flex items-center justify-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                    title="Copy to clipboard"
-                  >
-                    {isCopied ? (
-                      <>
-                        <Check className="h-4 w-4 text-green-500" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                        Copy
-                      </>
-                    )}
-                  </button>
+                  />
                 )}
-                <button
-                  onClick={generateOutput}
-                  disabled={!selectedFormat || isProcessing}
-                  className="flex flex-1 items-center justify-center gap-2 rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Download className="h-4 w-4" />
-                  Download
-                </button>
-              </div>
 
-              <PreviewModal
-                isOpen={isPreviewOpen}
-                onClose={() => setIsPreviewOpen(false)}
-                files={generatePreview()}
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                <div className="flex gap-2">
+                  {selectedFormat === "single" && (
+                    <button
+                      onClick={copyToClipboard}
+                      disabled={isProcessing}
+                      className="flex items-center justify-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                      title="Copy to clipboard"
+                    >
+                      {isCopied ? (
+                        <>
+                          <Check className="h-4 w-4 text-green-500" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4" />
+                          Copy
+                        </>
+                      )}
+                    </button>
+                  )}
+                  <button
+                    onClick={generateOutput}
+                    disabled={!selectedFormat || isProcessing}
+                    className="flex flex-1 items-center justify-center gap-2 rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download
+                  </button>
+                </div>
+
+                <PreviewModal
+                  isOpen={isPreviewOpen}
+                  onClose={() => setIsPreviewOpen(false)}
+                  files={generatePreview()}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile filter drawer. Below lg the rail collapses into this sheet. */}
+      <Dialog open={isMobileFiltersOpen} onOpenChange={setIsMobileFiltersOpen}>
+        <DialogContent
+          unstyled
+          className="bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left border-border/60 fixed inset-y-0 left-0 top-0 z-50 m-0 flex h-full w-full max-w-[340px] translate-x-0 translate-y-0 flex-col gap-0 overflow-y-auto rounded-none border-r p-5 shadow-lg sm:rounded-none"
+        >
+          <DialogTitle className="mb-4 text-sm font-semibold">Filters</DialogTitle>
+          <FilterRail {...filterRailProps} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
-
-/* -------------------------------------------------------------------------- */
-/* WorkbenchHeader                                                            */
-/* -------------------------------------------------------------------------- */
-
-function WorkbenchHeader({
-  subtitle,
-  canReset,
-  onReset,
-}: {
-  subtitle: string;
-  canReset: boolean;
-  onReset: () => void;
-}) {
-  return (
-    <header className="border-border/60 mb-8 border-b pb-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2">
-        <h1 className="font-display text-foreground text-[clamp(1.5rem,2.5vw,1.875rem)] font-semibold tracking-[-0.025em]">
-          Concatenate files
-        </h1>
-        <p
-          className="text-muted-foreground font-mono text-[12.5px] leading-[1.4] sm:text-[13px]"
-          aria-live="polite"
-        >
-          {subtitle}
-        </p>
-      </div>
-
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <div className="flex items-center gap-4 font-mono text-[12px] sm:text-[12.5px]">
-          {canReset && (
-            <button
-              type="button"
-              onClick={onReset}
-              className="text-muted-foreground hover:text-destructive focus-visible:text-destructive transition-colors duration-150 focus-visible:underline focus-visible:underline-offset-4 focus-visible:outline-none"
-            >
-              reset
-            </button>
-          )}
-        </div>
-      </div>
-    </header>
-  );
-}
 
 export default App;
