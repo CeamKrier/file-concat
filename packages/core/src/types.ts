@@ -32,7 +32,7 @@ import type { SourceType } from "./sources/types";
 
 // User configuration with schema versioning for localStorage
 export type UserConfig = {
-  version: 3;
+  version: 4;
   maxFileSizeMB: number;
   // Pattern filtering (glob syntax)
   includePatterns: string;
@@ -42,6 +42,7 @@ export type UserConfig = {
   showLineNumbers: boolean;
   // Output preferences
   defaultOutputFormat: "single" | "multi";
+  outputStyle: "xml" | "markdown";
   // Source preferences
   autoSwitchSource: boolean;
   defaultSourceType: SourceType;
