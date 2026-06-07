@@ -20,6 +20,24 @@ function formatLimit(tokens: number): string {
   return `${(tokens / 1_000).toFixed(0)}K tokens`;
 }
 
+// Catalog uids switched from `providerId/modelId` to canonical `lab/model-id`.
+// If the stored uid no longer matches any current model, try to recover the
+// user's pick by suffix or normalized name; otherwise let the caller fall back
+// to the default.
+function migrateLegacyUid(storedUid: string, models: FilteredModel[]): FilteredModel | null {
+  const segments = storedUid.split("/");
+  if (segments.length < 2) return null;
+  const legacyModelId = segments.slice(1).join("/").toLowerCase();
+  const bySuffix = models.find((m) => {
+    const tail = m.uid.split("/").slice(1).join("/").toLowerCase();
+    return tail === legacyModelId;
+  });
+  if (bySuffix) return bySuffix;
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const target = norm(legacyModelId);
+  return models.find((m) => norm(m.id) === target || norm(m.name) === target) ?? null;
+}
+
 export function TokenSection({ tokens }: TokenSectionProps) {
   const { models, isLoading, error, lastUpdated, refresh } = useModels();
   const [selectedModel, setSelectedModel] = useState<FilteredModel | null>(null);
@@ -47,9 +65,15 @@ export function TokenSection({ tokens }: TokenSectionProps) {
   useEffect(() => {
     const stored = localStorage.getItem(SELECTED_MODEL_KEY);
     if (stored && pricedModels.length > 0) {
-      const model = pricedModels.find((m) => m.uid === stored);
-      if (model) {
-        setSelectedModel(model);
+      const exact = pricedModels.find((m) => m.uid === stored);
+      if (exact) {
+        setSelectedModel(exact);
+        return;
+      }
+      const migrated = migrateLegacyUid(stored, pricedModels);
+      if (migrated) {
+        setSelectedModel(migrated);
+        localStorage.setItem(SELECTED_MODEL_KEY, migrated.uid);
         return;
       }
     }
@@ -140,8 +164,8 @@ export function TokenSection({ tokens }: TokenSectionProps) {
         <div className="space-y-1">
           <div className="flex justify-between text-sm">
             <span>
-              <span className="font-bold">{selectedModel.providerName}</span>{" "}
-              <span className="text-muted-foreground">{selectedModel.name}</span>
+              <span className="font-bold">{selectedModel.name}</span>{" "}
+              <span className="text-muted-foreground text-xs">via {selectedModel.providerName}</span>
             </span>
             <span className={percentage > 100 ? "text-red-500" : "text-muted-foreground"}>
               {percentage.toFixed(1)}% of {formatLimit(selectedModel.contextLimit)}

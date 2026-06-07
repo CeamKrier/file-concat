@@ -212,10 +212,10 @@ export function ModelSelector({
           )}
         </div>
         <div className="text-muted-foreground flex items-center gap-2 text-xs">
-          <span>{model.providerName}</span>
-          <span>-</span>
+          <span>via {model.providerName}</span>
+          <span>·</span>
           <span>{formatTokenLimit(model.contextLimit)} ctx</span>
-          <span>-</span>
+          <span>·</span>
           <span>{formatCost(model.inputCost, model.outputCost)}/1M in</span>
         </div>
       </div>
@@ -234,8 +234,11 @@ export function ModelSelector({
             className="w-full justify-between"
           >
             {selectedModel ? (
-              <span className="truncate">
-                {selectedModel.providerName} {selectedModel.name}
+              <span className="flex min-w-0 items-baseline gap-1.5">
+                <span className="truncate">{selectedModel.name}</span>
+                <span className="text-muted-foreground shrink-0 text-xs font-normal">
+                  via {selectedModel.providerName}
+                </span>
               </span>
             ) : (
               <span className="text-muted-foreground">Select model...</span>
