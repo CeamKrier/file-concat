@@ -1,6 +1,7 @@
 import type { SourceAdapter, ParsedSourceUrl, FetchOptions } from "../types";
 import type { RepositoryContent, RepoFile } from "../../types";
 import { SOURCE_METADATA } from "../metadata";
+import { createProgressReporter } from "../progress";
 
 /** Bitbucket URL regex patterns */
 const BITBUCKET_REPO_REGEX =
@@ -9,6 +10,10 @@ const BITBUCKET_REPO_REGEX =
 interface BitbucketDirectoryResponse {
   values?: Array<{ type: string; path: string; size?: number }>;
   next?: string;
+}
+
+interface BitbucketRepoResponse {
+  mainbranch?: { name?: string };
 }
 
 export function getBitbucketDisplayPath(itemPath: string, subPath?: string): string {
@@ -127,7 +132,7 @@ async function fetchBitbucketFiles(
         throw new Error("Failed to fetch repository information");
       }
 
-      const repoData = await repoResponse.json();
+      const repoData = (await repoResponse.json()) as BitbucketRepoResponse;
       branch = repoData.mainbranch?.name || "main";
     }
 
@@ -139,37 +144,20 @@ async function fetchBitbucketFiles(
       throw new Error("No files found in repository");
     }
 
-    // Setup progress tracking
-    let completedFiles = 0;
-    const totalFiles = files.length;
+    const progress = createProgressReporter({ totalFiles: files.length, onProgress });
 
-    const updateProgress = (currentFile: string) => {
-      onProgress?.({
-        currentFile,
-        totalFiles,
-        completedFiles,
-        downloadedBytes: completedFiles,
-        totalBytes: totalFiles,
-        speed: 0,
-      });
-    };
-
-    // Fetch file contents
     const filePromises = files.map(async (item) => {
       const contentUrl = `https://api.bitbucket.org/2.0/repositories/${workspace}/${repo}/src/${branch}/${item.path}`;
 
       try {
-        updateProgress(item.path);
-
         const response = await fetch(contentUrl, { signal });
         if (!response.ok) {
           throw new Error(`Failed to fetch ${item.path}`);
         }
 
         const content = await response.text();
-        completedFiles++;
+        progress.fileComplete(item.path);
 
-        // Adjust path if subdirectory
         const displayPath = getBitbucketDisplayPath(item.path, subPath);
 
         return {
@@ -203,22 +191,10 @@ async function fetchBitbucketFiles(
   }
 }
 
-/**
- * Bitbucket Source Adapter
- */
 export const bitbucketAdapter: SourceAdapter = {
   type: "bitbucket",
   meta: SOURCE_METADATA.bitbucket,
-
-  matches(url: string): boolean {
-    return url.includes("bitbucket.org") && BITBUCKET_REPO_REGEX.test(url);
-  },
-
-  parseUrl(url: string): ParsedSourceUrl {
-    return parseBitbucketUrl(url);
-  },
-
-  fetchFiles(url: string, options?: FetchOptions): Promise<RepositoryContent> {
-    return fetchBitbucketFiles(url, options);
-  },
+  matches: (url) => url.includes("bitbucket.org") && BITBUCKET_REPO_REGEX.test(url),
+  parseUrl: parseBitbucketUrl,
+  fetchFiles: fetchBitbucketFiles,
 };

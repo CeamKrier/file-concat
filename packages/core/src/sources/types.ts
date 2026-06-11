@@ -62,25 +62,20 @@ export interface SourceAdapter {
   meta: SourceMeta;
 
   /**
-   * Check if URL matches this source
-   * @param url URL to check
-   * @returns true if URL is for this source
+   * `"specific"` (default): adapter only matches URLs it recognises.
+   * `"fallback"`: adapter is only consulted when no specific adapter matched.
+   * The registry consults specific adapters first regardless of insertion
+   * order, so a misregistered fallback can't shadow a real source.
    */
+  priority?: "specific" | "fallback";
+
+  /** True if `url` is for this source. */
   matches(url: string): boolean;
 
-  /**
-   * Validate and parse URL
-   * @param url URL to parse
-   * @returns Parsed URL components
-   */
+  /** Validate and parse `url` into its source-specific components. */
   parseUrl(url: string): ParsedSourceUrl;
 
-  /**
-   * Fetch files from source
-   * @param url Source URL
-   * @param options Fetch options
-   * @returns Repository content with files
-   */
+  /** Fetch repository content for `url`. */
   fetchFiles(url: string, options?: FetchOptions): Promise<RepositoryContent>;
 }
 

@@ -6,13 +6,14 @@ import { gistAdapter } from "./adapters/gist";
 import { urlAdapter } from "./adapters/url";
 
 /**
- * Default source registry with all built-in adapters
- * Order matters: more specific adapters first, URL adapter last (fallback)
+ * Default source registry. The registry sorts adapters by `priority`, so
+ * specific adapters always win over `urlAdapter` regardless of insertion
+ * order. Adapter order in this list is presentational only.
  */
 export const defaultSourceRegistry = createSourceRegistry([
   githubAdapter,
   gitlabAdapter,
   bitbucketAdapter,
   gistAdapter,
-  urlAdapter, // Fallback - matches any URL
+  urlAdapter,
 ]);

@@ -1,12 +1,27 @@
 import type { SourceAdapter, ParsedSourceUrl, FetchOptions } from "../types";
 import type { RepositoryContent, RepoFile } from "../../types";
 import { SOURCE_METADATA } from "../metadata";
+import { createProgressReporter } from "../progress";
 import { classifyResponseError } from "./_errors";
 
 /** GitHub URL regex patterns */
 const GITHUB_REPO_REGEX =
   /^https?:\/\/github\.com\/([^/]+)\/([^/]+)(?:\/tree\/([^/]+)(?:\/(.+))?)?$/;
 const GITHUB_RAW_REGEX = /^https?:\/\/raw\.githubusercontent\.com\//;
+
+interface GitHubRepoResponse {
+  default_branch: string;
+}
+
+interface GitHubTreeItem {
+  type: string;
+  path: string;
+  size: number;
+}
+
+interface GitHubTreeResponse {
+  tree: GitHubTreeItem[];
+}
 
 export function isGitHubTreeItemIncluded(
   item: { type: string; path: string },
@@ -91,7 +106,7 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
         }
         throw classifyResponseError(repoResponse, `GitHub repo ${owner}/${repo}`);
       }
-      const repoData = await repoResponse.json();
+      const repoData = (await repoResponse.json()) as GitHubRepoResponse;
       branch = repoData.default_branch;
     }
 
@@ -106,52 +121,22 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
       throw classifyResponseError(treeResponse, `GitHub tree ${owner}/${repo}@${branch}`);
     }
 
-    const treeData = await treeResponse.json();
+    const treeData = (await treeResponse.json()) as GitHubTreeResponse;
 
-    // Filter files
-    const files = treeData.tree.filter((item: { type: string; path: string }) =>
-      isGitHubTreeItemIncluded(item, subPath),
-    );
+    const files = treeData.tree.filter((item) => isGitHubTreeItemIncluded(item, subPath));
 
     if (subPath && files.length === 0) {
       throw new Error(`Path '${subPath}' not found in branch '${branch}'`);
     }
 
-    // Setup progress tracking
-    const totalBytes = files.reduce(
-      (acc: number, file: { size: number }) => acc + (file.size || 0),
-      0,
-    );
-    let downloadedBytes = 0;
-    let completedFiles = 0;
-    let lastUpdate = Date.now();
-    let lastBytes = 0;
-    let currentSpeed = 0;
+    const totalBytes = files.reduce((acc, file) => acc + (file.size || 0), 0);
+    const progress = createProgressReporter({
+      totalFiles: files.length,
+      totalBytes,
+      onProgress,
+    });
 
-    const updateProgress = (addedBytes: number, currentFile: string) => {
-      downloadedBytes += addedBytes;
-      const now = Date.now();
-
-      if (now - lastUpdate > 500) {
-        const timeDiff = (now - lastUpdate) / 1000;
-        const bytesDiff = downloadedBytes - lastBytes;
-        currentSpeed = bytesDiff / timeDiff;
-        lastUpdate = now;
-        lastBytes = downloadedBytes;
-      }
-
-      onProgress?.({
-        currentFile,
-        totalFiles: files.length,
-        completedFiles,
-        downloadedBytes,
-        totalBytes,
-        speed: currentSpeed,
-      });
-    };
-
-    // Fetch file contents
-    const filePromises = files.map(async (item: { path: string; size: number }) => {
+    const filePromises = files.map(async (item) => {
       const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${item.path}`;
 
       try {
@@ -174,10 +159,10 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
             throw new Error("Aborted");
           }
           chunks.push(value);
-          updateProgress(value.length, item.path);
+          progress.bytesReceived(item.path, value.length);
         }
 
-        completedFiles++;
+        progress.fileComplete(item.path);
 
         // Combine chunks
         const allChunks = new Uint8Array(chunks.reduce((acc, chunk) => acc + chunk.length, 0));
@@ -224,22 +209,10 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
   }
 }
 
-/**
- * GitHub Source Adapter
- */
 export const githubAdapter: SourceAdapter = {
   type: "github",
   meta: SOURCE_METADATA.github,
-
-  matches(url: string): boolean {
-    return GITHUB_REPO_REGEX.test(url) && !url.includes("gist.github.com");
-  },
-
-  parseUrl(url: string): ParsedSourceUrl {
-    return parseGitHubUrl(url);
-  },
-
-  fetchFiles(url: string, options?: FetchOptions): Promise<RepositoryContent> {
-    return fetchGitHubFiles(url, options);
-  },
+  matches: (url) => GITHUB_REPO_REGEX.test(url) && !url.includes("gist.github.com"),
+  parseUrl: parseGitHubUrl,
+  fetchFiles: fetchGitHubFiles,
 };

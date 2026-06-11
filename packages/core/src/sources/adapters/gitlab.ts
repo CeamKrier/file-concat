@@ -1,6 +1,17 @@
 import type { SourceAdapter, ParsedSourceUrl, FetchOptions } from "../types";
 import type { RepositoryContent, RepoFile } from "../../types";
 import { SOURCE_METADATA } from "../metadata";
+import { createProgressReporter } from "../progress";
+
+interface GitLabProjectResponse {
+  default_branch?: string;
+}
+
+interface GitLabTreeItem {
+  path: string;
+  type: string;
+  name: string;
+}
 
 /** GitLab URL regex patterns */
 // Lazy `*?` on the path group lets `/-/tree/<branch>/<path>` actually match
@@ -98,8 +109,8 @@ async function fetchAllTreePages(
   projectId: string,
   branch: string,
   signal?: AbortSignal,
-): Promise<Array<{ path: string; type: string; name: string }>> {
-  const allItems: Array<{ path: string; type: string; name: string }> = [];
+): Promise<GitLabTreeItem[]> {
+  const allItems: GitLabTreeItem[] = [];
   let page = 1;
   const perPage = 100;
 
@@ -115,7 +126,7 @@ async function fetchAllTreePages(
       throw new Error(`GitLab API error: ${response.status}`);
     }
 
-    const items = await response.json();
+    const items = (await response.json()) as GitLabTreeItem[];
     allItems.push(...items);
 
     // Check if there are more pages
@@ -153,7 +164,7 @@ async function fetchGitLabFiles(url: string, options?: FetchOptions): Promise<Re
           signal,
         });
         if (projectResponse.ok) {
-          const projectData = await projectResponse.json();
+          const projectData = (await projectResponse.json()) as GitLabProjectResponse;
           branch = projectData.default_branch || "main";
         }
       } catch {
@@ -171,38 +182,21 @@ async function fetchGitLabFiles(url: string, options?: FetchOptions): Promise<Re
       throw new Error(`Path '${subPath}' not found in branch '${branch}'`);
     }
 
-    // Setup progress tracking
-    let completedFiles = 0;
-    const totalFiles = files.length;
+    const progress = createProgressReporter({ totalFiles: files.length, onProgress });
 
-    const updateProgress = (currentFile: string) => {
-      onProgress?.({
-        currentFile,
-        totalFiles,
-        completedFiles,
-        downloadedBytes: completedFiles,
-        totalBytes: totalFiles,
-        speed: 0,
-      });
-    };
-
-    // Fetch file contents
     const filePromises = files.map(async (item) => {
       const encodedPath = encodeURIComponent(item.path);
       const contentUrl = `https://gitlab.com/api/v4/projects/${projectId}/repository/files/${encodedPath}/raw?ref=${branch}`;
 
       try {
-        updateProgress(item.path);
-
         const response = await fetch(contentUrl, { signal });
         if (!response.ok) {
           throw new Error(`Failed to fetch ${item.path}`);
         }
 
         const content = await response.text();
-        completedFiles++;
+        progress.fileComplete(item.path);
 
-        // Adjust path if subdirectory
         const displayPath = getGitLabDisplayPath(item.path, subPath);
 
         return {
@@ -236,26 +230,13 @@ async function fetchGitLabFiles(url: string, options?: FetchOptions): Promise<Re
   }
 }
 
-/**
- * GitLab Source Adapter
- */
 export const gitlabAdapter: SourceAdapter = {
   type: "gitlab",
   meta: SOURCE_METADATA.gitlab,
-
-  matches(url: string): boolean {
-    return (
-      url.includes("gitlab.com") &&
-      !GITLAB_SNIPPET_REGEX.test(url) &&
-      GITLAB_REPO_REGEX.test(url.replace(/\.git$/, ""))
-    );
-  },
-
-  parseUrl(url: string): ParsedSourceUrl {
-    return parseGitLabUrl(url);
-  },
-
-  fetchFiles(url: string, options?: FetchOptions): Promise<RepositoryContent> {
-    return fetchGitLabFiles(url, options);
-  },
+  matches: (url) =>
+    url.includes("gitlab.com") &&
+    !GITLAB_SNIPPET_REGEX.test(url) &&
+    GITLAB_REPO_REGEX.test(url.replace(/\.git$/, "")),
+  parseUrl: parseGitLabUrl,
+  fetchFiles: fetchGitLabFiles,
 };

@@ -3,6 +3,28 @@ import type { RepositoryContent, RepoFile } from "../../types";
 import { SOURCE_METADATA } from "../metadata";
 import { classifyResponseError } from "./_errors";
 
+interface GitHubGistFile {
+  filename: string;
+  content: string;
+  size: number;
+  language: string | null;
+  raw_url: string;
+}
+
+interface GitHubGistResponse {
+  files?: Record<string, GitHubGistFile>;
+}
+
+interface GitLabSnippetFile {
+  path: string;
+}
+
+interface GitLabSnippetResponse {
+  files?: GitLabSnippetFile[];
+  content?: string;
+  file_name?: string;
+}
+
 /** GitHub Gist URL patterns */
 const GITHUB_GIST_REGEX = /^https?:\/\/gist\.github\.com\/([^/]+)\/([a-f0-9]+)/;
 
@@ -74,18 +96,10 @@ async function fetchGitHubGist(gistId: string, signal?: AbortSignal): Promise<Re
     throw classifyResponseError(response, `GitHub gist ${gistId}`);
   }
 
-  const gist = await response.json();
+  const gist = (await response.json()) as GitHubGistResponse;
   const files: RepoFile[] = [];
 
-  for (const [filename, fileData] of Object.entries(gist.files || {})) {
-    const file = fileData as {
-      filename: string;
-      content: string;
-      size: number;
-      language: string | null;
-      raw_url: string;
-    };
-
+  for (const [filename, file] of Object.entries(gist.files || {})) {
     // If content is truncated, fetch from raw_url
     let content = file.content;
     if (file.size > 10_000_000 || !content) {
@@ -124,7 +138,7 @@ async function fetchGitLabSnippet(
     throw classifyResponseError(response, `GitLab snippet ${snippetId}`);
   }
 
-  const snippet = await response.json();
+  const snippet = (await response.json()) as GitLabSnippetResponse;
   const files: RepoFile[] = [];
 
   // GitLab snippets can have multiple files
@@ -204,26 +218,13 @@ async function fetchGistFiles(url: string, options?: FetchOptions): Promise<Repo
   }
 }
 
-/**
- * Gist/Snippet Source Adapter
- */
 export const gistAdapter: SourceAdapter = {
   type: "gist",
   meta: SOURCE_METADATA.gist,
-
-  matches(url: string): boolean {
-    return (
-      GITHUB_GIST_REGEX.test(url) ||
-      GITLAB_SNIPPET_REGEX.test(url) ||
-      GITLAB_USER_SNIPPET_REGEX.test(url)
-    );
-  },
-
-  parseUrl(url: string): ParsedSourceUrl {
-    return parseGistUrl(url);
-  },
-
-  fetchFiles(url: string, options?: FetchOptions): Promise<RepositoryContent> {
-    return fetchGistFiles(url, options);
-  },
+  matches: (url) =>
+    GITHUB_GIST_REGEX.test(url) ||
+    GITLAB_SNIPPET_REGEX.test(url) ||
+    GITLAB_USER_SNIPPET_REGEX.test(url),
+  parseUrl: parseGistUrl,
+  fetchFiles: fetchGistFiles,
 };

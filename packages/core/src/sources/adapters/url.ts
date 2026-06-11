@@ -222,24 +222,13 @@ async function fetchUrlFiles(url: string, options?: FetchOptions): Promise<Repos
   }
 }
 
-/**
- * URL Source Adapter
- */
 export const urlAdapter: SourceAdapter = {
   type: "url",
   meta: SOURCE_METADATA.url,
-
-  matches(url: string): boolean {
-    // URL adapter is a fallback - matches any http(s) URL
-    // that doesn't match other adapters
-    return URL_REGEX.test(url);
-  },
-
-  parseUrl(url: string): ParsedSourceUrl {
-    return parseUrlSource(url);
-  },
-
-  fetchFiles(url: string, options?: FetchOptions): Promise<RepositoryContent> {
-    return fetchUrlFiles(url, options);
-  },
+  // Fallback: the registry only consults this adapter when no specific
+  // adapter matched, so a broad http(s) regex is safe.
+  priority: "fallback",
+  matches: (url) => URL_REGEX.test(url),
+  parseUrl: parseUrlSource,
+  fetchFiles: fetchUrlFiles,
 };
