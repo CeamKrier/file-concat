@@ -105,7 +105,6 @@ export function buildTextModelsFromCatalog(
 
     out.push({
       uid: canonical.id,
-      id: canonical.id,
       name: canonical.name,
       providerId: cheapest.providerId,
       providerName: cheapest.providerName,

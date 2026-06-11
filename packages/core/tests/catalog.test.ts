@@ -93,7 +93,7 @@ describe("buildTextModelsFromCatalog", () => {
         }),
       },
     };
-    const out = buildTextModelsFromCatalog(catalog).map((m) => m.id);
+    const out = buildTextModelsFromCatalog(catalog).map((m) => m.uid);
     expect(out).toEqual(["new", "mid", "old"]);
   });
 
@@ -129,7 +129,7 @@ describe("buildTextModelsFromCatalog", () => {
         }),
       },
     };
-    const out = buildTextModelsFromCatalog(catalog).map((m) => m.id);
+    const out = buildTextModelsFromCatalog(catalog).map((m) => m.uid);
     expect(out).toEqual(["ok"]);
   });
 

@@ -22,8 +22,6 @@ import { useOutputGeneration } from "~/hooks/use-output-generation";
 import { DEFAULT_CONFIG, addLineNumbers, generateProjectName } from "@fileconcat/core";
 import { estimateTokenCount } from "~/lib/tokens";
 
-const MAX_TOKEN_ESTIMATE_BYTES = 1 * 1024 * 1024;
-
 const App: React.FC = () => {
   const { config: userConfig, setConfig, exportConfig, importConfig, resetConfig } = useConfig();
 
@@ -48,8 +46,6 @@ const App: React.FC = () => {
   const tokens = useMemo(() => {
     if (includedContents.length === 0) return 0;
     const combined = includedContents.map((c) => c.content).join("\n");
-    const bytes = new TextEncoder().encode(combined).length;
-    if (bytes > MAX_TOKEN_ESTIMATE_BYTES) return Math.ceil(combined.length / 4);
     return estimateTokenCount(combined);
   }, [includedContents]);
 

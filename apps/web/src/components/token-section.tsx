@@ -35,7 +35,7 @@ function migrateLegacyUid(storedUid: string, models: FilteredModel[]): FilteredM
   if (bySuffix) return bySuffix;
   const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
   const target = norm(legacyModelId);
-  return models.find((m) => norm(m.id) === target || norm(m.name) === target) ?? null;
+  return models.find((m) => norm(m.uid) === target || norm(m.name) === target) ?? null;
 }
 
 export function TokenSection({ tokens }: TokenSectionProps) {

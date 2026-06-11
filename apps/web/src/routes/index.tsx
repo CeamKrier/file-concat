@@ -37,8 +37,6 @@ type DropState =
   | { kind: "staged"; entries: StagedEntry[]; tokens: number; totalBytes: number }
   | { kind: "error"; message: string };
 
-const MAX_INLINE_BYTES = 1 * 1024 * 1024;
-
 function LandingPage() {
   return (
     <div className="bg-background flex min-h-screen flex-col">
@@ -135,13 +133,12 @@ function Hero() {
     }
     const combined = entries.map((e) => e.content).join("\n");
     const totalBytes = new TextEncoder().encode(combined).length;
-    let tokens = 0;
-    if (totalBytes <= MAX_INLINE_BYTES) {
-      tokens = estimateTokenCount(combined);
-    } else {
-      tokens = Math.ceil(totalBytes / 4);
-    }
-    setState({ kind: "staged", entries, tokens, totalBytes });
+    setState({
+      kind: "staged",
+      entries,
+      tokens: estimateTokenCount(combined),
+      totalBytes,
+    });
   }, []);
 
   const handleDrop = useCallback(

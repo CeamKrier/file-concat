@@ -131,8 +131,6 @@ export interface FilteredModel {
    * stable across deploys even when the cheapest provider shifts.
    */
   uid: string;
-  /** Model ID */
-  id: string;
   /** Model display name */
   name: string;
   /** Cheapest known provider's ID */

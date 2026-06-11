@@ -150,7 +150,7 @@ export function ModelSelector({
             score:
               getFuzzyScore(trimmedSearch, model.name) ??
               getFuzzyScore(trimmedSearch, model.providerName) ??
-              getFuzzyScore(trimmedSearch, model.id),
+              getFuzzyScore(trimmedSearch, model.uid),
           }))
           .filter((item): item is { model: FilteredModel; score: number } => item.score !== null)
           .sort((a, b) => a.score - b.score)

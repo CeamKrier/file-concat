@@ -10,7 +10,6 @@
   ],
   "compilerOptions": {
     "paths": {
-      "@/*": ["./src/*"],
       "~/*": ["./src/*"],
       "@fileconcat/core": ["../../packages/core/src/index.ts"],
       "@fileconcat/core/*": ["../../packages/core/src/*"]

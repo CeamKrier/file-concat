@@ -1,15 +1,9 @@
-import { minimatch } from "minimatch";
 import { DEFAULT_IGNORE_PATTERNS } from "../default-ignore";
+import { pathMatches } from "./glob-match";
 
 /**
- * Check if a path should be skipped based on default patterns.
- * Matches the full path against each pattern, and also each path segment so
- * bare directory names like "node_modules" skip everything beneath them.
+ * Skip-test for `DEFAULT_IGNORE_PATTERNS` using the canonical
+ * {@link pathMatches} "matches anywhere in the path" semantics.
  */
-export const shouldSkipPath = (path: string): boolean => {
-  const segments = path.split("/").filter(Boolean);
-  return DEFAULT_IGNORE_PATTERNS.some((pattern) => {
-    if (minimatch(path, pattern, { dot: true })) return true;
-    return segments.some((seg) => minimatch(seg, pattern, { dot: true }));
-  });
-};
+export const shouldSkipPath = (path: string): boolean =>
+  DEFAULT_IGNORE_PATTERNS.some((pattern) => pathMatches(path, pattern));
