@@ -21,12 +21,15 @@ const pages: SitemapEntry[] = [
   { url: "/app", changefreq: "weekly", priority: 0.9 },
   { url: "/docs", changefreq: "weekly", priority: 0.9 },
   { url: "/docs/quick-start", changefreq: "monthly", priority: 0.7 },
-  { url: "/docs/file-filtering", changefreq: "monthly", priority: 0.7 },
   { url: "/docs/github-import", changefreq: "monthly", priority: 0.7 },
   { url: "/docs/gitlab-import", changefreq: "monthly", priority: 0.7 },
+  { url: "/docs/bitbucket-import", changefreq: "monthly", priority: 0.7 },
+  { url: "/docs/file-filtering", changefreq: "monthly", priority: 0.7 },
+  { url: "/docs/filter-precedence", changefreq: "monthly", priority: 0.7 },
   { url: "/docs/token-estimation", changefreq: "monthly", priority: 0.7 },
-  { url: "/docs/cli-usage", changefreq: "monthly", priority: 0.7 },
+  { url: "/docs/token-costs", changefreq: "monthly", priority: 0.7 },
   { url: "/docs/configuration", changefreq: "monthly", priority: 0.7 },
+  { url: "/docs/cli-usage", changefreq: "monthly", priority: 0.7 },
 ];
 
 function generateSitemap(): string {
