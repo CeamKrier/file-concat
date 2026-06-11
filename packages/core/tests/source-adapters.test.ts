@@ -308,6 +308,44 @@ describe("adapter fetch flows", () => {
     expect(result.files[0].content).toBeDefined();
   });
 
+  it("filters to a /tree/<branch>/<path> subdir and normalizes display paths", async () => {
+    mockFetch.mockImplementation((url: RequestInfo) => {
+      if (url === "https://api.github.com/repos/owner/repo/git/trees/main?recursive=1") {
+        return Promise.resolve(
+          makeResponse({
+            json: {
+              tree: [
+                { type: "blob", path: "README.md", size: 5 },
+                { type: "tree", path: "src" },
+                { type: "blob", path: "src/index.ts", size: 10 },
+                { type: "blob", path: "src/components/Button.tsx", size: 20 },
+              ],
+            },
+          }),
+        );
+      }
+      if (url === "https://raw.githubusercontent.com/owner/repo/main/src/index.ts") {
+        return Promise.resolve(makeResponse({ body: makeStreamBody(["console.log(1)"]) }));
+      }
+      if (url === "https://raw.githubusercontent.com/owner/repo/main/src/components/Button.tsx") {
+        return Promise.resolve(makeResponse({ body: makeStreamBody(["export {}"]) }));
+      }
+
+      return Promise.resolve(makeResponse({ ok: false, status: 404 }));
+    });
+
+    const result = await githubAdapter.fetchFiles(
+      "https://github.com/owner/repo/tree/main/src",
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(result.files).toHaveLength(2);
+
+    const paths = result.files.map((f) => f.path).sort();
+    expect(paths).toEqual(["components/Button.tsx", "index.ts"]);
+    expect(paths).not.toContain("README.md");
+  });
+
   it("fetches files from GitLab repositories", async () => {
     mockFetch.mockImplementation((url: RequestInfo) => {
       if (url === "https://gitlab.com/api/v4/projects/owner%2Frepo") {
