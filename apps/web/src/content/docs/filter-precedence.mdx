@@ -1,3 +1,106 @@
 # Filter precedence
 
-This page is under construction.
+FileConcat decides which files end up in your output through a four-layer
+pipeline. Each layer runs in order and the next one only sees what survived
+the previous. Knowing the order makes it easier to predict why a file
+appears or disappears when you type a pattern.
+
+## The four layers
+
+1. **Drop-time prune** runs at ingestion.
+2. **Validation cache** runs once per file at ingestion.
+3. **Pattern layer** runs live every time you edit a textarea.
+4. **Manual overrides** are sticky and applied last.
+
+The pipeline is deterministic. Same inputs produce the same `included`
+decision for every file.
+
+## Layer 1: drop-time prune
+
+Only two directory names are excluded before files even enter memory:
+`.git` and `node_modules`. They live in a hardcoded set named
+`HARDCODED_PRUNE_DIRS` inside `apps/web/src/hooks/use-file-ingestion.ts`.
+The walker that traverses your dropped folder skips any directory whose
+name matches.
+
+These two names are special because they are large enough to crash the
+browser tab on real projects. Every other ignore pattern, including
+`dist`, `build`, `vendor`, and lockfiles, runs at filter time. Those
+files are read into memory first and hidden from view by a later layer.
+
+For typical projects this is invisible. If a drop feels slow, look for
+oversized auto-generated folders that the patterns will catch later but
+that the walker still pulled in.
+
+## Layer 2: validation cache
+
+When a file is ingested, FileConcat checks two things and records the
+result in a sticky `validations` map:
+
+- Is the content binary? Binary files are excluded permanently.
+- Does the file exceed the configured max size (default 32 MB)? Oversize
+  files are excluded permanently.
+
+This check runs once per file. Pattern edits do not retrigger it, which
+is why pattern changes feel instantaneous even on large drops.
+
+## Layer 3: pattern layer
+
+Two textareas in the FilterRail drive this layer:
+
+- **Include** is a comma-separated list of glob patterns. Empty means
+  every surviving file passes.
+- **Ignore** is a comma-separated list of glob patterns. Files matching
+  any of them are excluded.
+
+There is one rule that surprises people: **if the Include textarea has
+any non-empty content, the Ignore textarea is skipped entirely.** The
+include list is treated as an exclusive whitelist. To go back to "every
+file except these", you have to clear the Include textarea.
+
+Pattern matching uses the `pathMatches` helper in
+`packages/core/src/path-utils/glob-match.ts`. Two semantics matter:
+
+- **Bare directory or filename patterns match anywhere in the path.**
+  Typing `node_modules` matches `apps/web/node_modules/react/index.js`,
+  not just a top-level `node_modules`. The same goes for `*.log`,
+  matching every `.log` file at any depth.
+- **Slashed patterns match the full path or any path suffix obtained by
+  stripping leading directories.** Typing `src/**/*.ts` matches
+  `src/app.tsx` and also `myrepo/src/app.tsx`. This lets patterns work
+  when you drop a folder whose name you do not want to type.
+
+See [File filtering](/docs/file-filtering) for the pattern syntax in
+more detail.
+
+## Layer 4: manual overrides
+
+Every checkbox in the file tree writes to a sticky map called
+`userToggled`. An entry for a path can be `"include"` or `"exclude"`,
+and either value wins over whatever the pattern layer decided.
+
+The map only stores divergences. If you tick a checkbox so that the
+file's state matches the pattern decision anyway, the entry is removed
+instead of recorded. The result is that the override map stays small
+and only tracks the deliberate exceptions.
+
+The counter line shows how many overrides are active and offers a
+`clear` link that empties the map. Pattern edits never touch this map,
+so a preset chip click or an Include rewrite cannot accidentally lose
+your individual decisions.
+
+## Worked example
+
+You drop a Node project into the workbench:
+
+1. Drop-time prune removes `.git/` and `node_modules/`. Everything
+   else, including `dist/`, lands in memory.
+2. Validation marks any binaries (PNGs, fonts) as excluded.
+3. You type `dist` into the Ignore textarea. The file tree updates
+   immediately. Every file under `dist/` disappears.
+4. You manually re-check one file at `dist/special.js` because you
+   want it in the context. `userToggled["dist/special.js"] = "include"`.
+5. You edit the Ignore textarea to add `vendor`. Pattern layer hides
+   `vendor/*` but the override for `dist/special.js` is untouched.
+
+Every other interaction in the workbench is a variation on this loop.
