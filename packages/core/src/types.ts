@@ -30,9 +30,17 @@ export type ProcessingConfig = {
 // Import SourceType for UserConfig
 import type { SourceType } from "./sources/types";
 
+/**
+ * Current schema version for {@link UserConfig}. Bump when the persisted
+ * shape changes and update the `migrateConfig` handler in the web app
+ * accordingly. The literal lives here so the type definition and every
+ * migration consumer share one source of truth.
+ */
+export const CONFIG_VERSION = 5;
+
 // User configuration with schema versioning for localStorage
 export type UserConfig = {
-  version: 5;
+  version: typeof CONFIG_VERSION;
   maxFileSizeMB: number;
   // Pattern filtering (glob syntax)
   includePatterns: string;
