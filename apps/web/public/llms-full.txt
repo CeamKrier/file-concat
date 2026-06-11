@@ -1,5 +1,7 @@
 # FileConcat documentation
 
+Index: https://fileconcat.com/llms.txt
+
 Generated from the MDX sources at https://github.com/CeamKrier/file-concat. Every page below is the
 raw Markdown content of the corresponding doc on fileconcat.com/docs.
 

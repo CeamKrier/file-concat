@@ -8,6 +8,8 @@ These pages cover what the tool does, how to feed files into it, how the
 filter pipeline decides what survives, and how to read the token counter.
 Source code, schemas, and the CLI implementation live in the linked repo.
 
+Full content as a single file: https://fileconcat.com/llms-full.txt
+
 ## Getting started
 
 - [Introduction](https://fileconcat.com/docs): FileConcat is a privacy-first tool that packs the files you pick into a single LLM-ready blob. The output is one XML or Markdown document you can paste into Claude, ChatGPT, Gemini, or any other assistant that takes long-form context.

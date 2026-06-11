@@ -86,6 +86,10 @@ function buildIndex(pages: Map<string, PageRecord>): string {
     "Source code, schemas, and the CLI implementation live in the linked repo.",
   );
   lines.push("");
+  lines.push(
+    `Full content as a single file: ${BASE_URL}/llms-full.txt`,
+  );
+  lines.push("");
 
   for (const section of DOCS_NAVIGATION) {
     lines.push(`## ${section.title}`);
@@ -131,6 +135,10 @@ function buildFull(pages: Map<string, PageRecord>): string {
   const lines: string[] = [];
 
   lines.push("# FileConcat documentation");
+  lines.push("");
+  lines.push(
+    `Index: ${BASE_URL}/llms.txt`,
+  );
   lines.push("");
   lines.push(
     `Generated from the MDX sources at ${REPO_URL}. Every page below is the`,
