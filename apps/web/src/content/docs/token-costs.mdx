@@ -21,21 +21,6 @@ Show line numbers earns its place when you want the model to refer to a
 specific line in a follow-up question. It is a navigation aid, not a
 saving. Leave it off unless line references will appear in your prompts.
 
-## Remove empty lines (removed)
-
-A `removeEmptyLines` toggle existed in an earlier build. It was removed
-after measurement. Across the same 8-file fixture set, with this
-repository's default CRLF line endings, the transform produced a
-**5.93 percent token increase**, never a decrease. No file showed a
-saving.
-
-The CRLF endings combined with the regex used to strip blank lines
-appears to confuse the tokenizer enough that the cost of the
-post-transform encoding exceeds whatever was saved by removing
-whitespace characters. The toggle is gone end to end. If you remember it
-from a previous session, that memory is correct, and the answer is that
-it was an unhelpful feature dressed up as a saving.
-
 ## Output format
 
 The **Format** group in the ActionBar Options popover offers two choices:
