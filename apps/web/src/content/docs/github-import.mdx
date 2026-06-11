@@ -1,17 +1,71 @@
-# GitHub Import
+# GitHub import
 
-Import any public GitHub repository by pasting its URL.
+Paste a public GitHub repository URL into the Source input and the
+workbench fetches the file tree on demand. No GitHub account needed,
+and no servers in between.
 
-## Supported Formats
+## Supported URL shapes
 
-```
+The GitHub adapter at `packages/core/src/sources/adapters/github.ts`
+parses three shapes:
+
+```text
 https://github.com/owner/repo
-https://github.com/owner/repo/tree/main
-https://github.com/owner/repo/tree/main/packages/core
+https://github.com/owner/repo/tree/branch
+https://github.com/owner/repo/tree/branch/subdirectory
 ```
 
-## Tips
+A trailing `.git` is tolerated and stripped. The optional branch
+defaults to the repository's default branch when omitted. When a
+subdirectory is included, only files at or under that path are
+imported.
 
-- Large repositories may take a bit longer to fetch.
-- Use filters after import to narrow the output.
-- Check the token count before copying.
+## Rate limits
+
+The GitHub REST API allows 60 requests per hour per IP for
+unauthenticated callers. A single repository fetch is at least one
+request for the tree and additional requests for raw file contents on
+the streaming path; large repositories burn through the quota faster
+than small ones.
+
+When a request is denied, the error message you see in the workbench
+is produced by `classifyResponseError`
+(`packages/core/src/sources/adapters/_errors.ts`). Status 401, 403,
+and 429 each carry their own human-readable wording so you can tell
+"rate limited" apart from "private repository".
+
+If you need higher quotas or access to private repositories today,
+the supported workaround is to download the project locally and use
+the drag-and-drop path instead. Token-authenticated imports are
+tracked separately and are not shipped at the time of writing.
+
+## Raw URLs
+
+Raw file URLs like `https://raw.githubusercontent.com/owner/repo/...`
+are not handled by the GitHub adapter. They go to the URL fallback
+adapter instead, which downloads the single file you point it at and
+shows it in the workbench. Use this for "give me one file from
+GitHub" cases.
+
+## Gists
+
+GitHub Gists are handled by a separate adapter that lives next to the
+others. URL shape:
+
+```text
+https://gist.github.com/owner/gistId
+```
+
+The `owner` segment is required by the regex; bare gist URLs without
+the owner part are not matched. Gists are flat (no subdirectories);
+every file in the gist comes in together.
+
+The same adapter also matches GitLab Snippet URLs; see
+[GitLab import](/docs/gitlab-import) for those.
+
+## See also
+
+- [File filtering](/docs/file-filtering) to narrow the imported tree
+  before assembling the output.
+- [Token estimation](/docs/token-estimation) to keep the import
+  inside your model's context window.
