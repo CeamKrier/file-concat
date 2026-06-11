@@ -6,7 +6,8 @@
   "scripts": {
     "fetch-models": "tsx scripts/fetch-models.ts",
     "generate-sitemap": "tsx scripts/generate-sitemap.ts",
-    "prebuild": "pnpm fetch-models && pnpm generate-sitemap",
+    "generate-llms-txt": "tsx scripts/generate-llms-txt.ts",
+    "prebuild": "pnpm fetch-models && pnpm generate-sitemap && pnpm generate-llms-txt",
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",

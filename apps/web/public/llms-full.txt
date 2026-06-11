@@ -1,0 +1,802 @@
+# FileConcat documentation
+
+Generated from the MDX sources at https://github.com/CeamKrier/file-concat. Every page below is the
+raw Markdown content of the corresponding doc on fileconcat.com/docs.
+
+# Getting started
+
+<!-- source: https://fileconcat.com/docs -->
+
+# Introduction
+
+FileConcat is a privacy-first tool that packs the files you pick into a
+single LLM-ready blob. The output is one XML or Markdown document you
+can paste into Claude, ChatGPT, Gemini, or any other assistant that
+takes long-form context.
+
+## What it gives you
+
+- A workbench at [fileconcat.com](https://fileconcat.com) for drag,
+  drop, filter, and copy.
+- A published npm CLI (`pnpm add -g fileconcat`, or `npx fileconcat`)
+  for the same flow from a shell.
+- Live token counting against the tokenizer most modern LLMs use, so
+  you know how much of your context window the output consumes
+  before you paste it.
+
+## How it works
+
+Everything runs in your browser. There is no upload step, no
+intermediate server, and no telemetry on the files you process. The
+core library (`@fileconcat/core`) is the same in the web app and the
+CLI; what differs is the surface you drive it from.
+
+## Supported sources
+
+You can feed the workbench from any of these:
+
+- Local files and folders, by drag-and-drop or file picker
+- GitHub repositories, including subdirectories
+- GitHub Gists
+- GitLab repositories, including nested groups
+- GitLab Snippets
+- Bitbucket repositories
+- Any other public URL via the URL fallback adapter
+
+## Next steps
+
+- [Quick start](/docs/quick-start) walks through the first import.
+- [File filtering](/docs/file-filtering) covers the glob patterns and
+  preset chips that narrow the output.
+- [Token estimation](/docs/token-estimation) explains the counter and
+  the model selector.
+
+---
+
+<!-- source: https://fileconcat.com/docs/quick-start -->
+
+# Quick start
+
+You can be looking at a tokenised, filtered project blob in under a
+minute. The two paths below cover almost every use.
+
+## Path 1: local files
+
+1. Open [fileconcat.com](https://fileconcat.com).
+2. Drag a folder or file selection onto the drop zone on the landing
+   page. The workbench takes over.
+3. Watch the file tree populate. Tick or untick individual files; the
+   token counter in the ActionBar updates live.
+4. Click **Copy** or **Download** in the bottom ActionBar to take the
+   output with you. **Copy** is single-file only; for multi-part
+   output use **Download**.
+
+## Path 2: remote source
+
+1. On the workbench, paste a GitHub, GitLab, Bitbucket, Gist, or any
+   other URL into the Source input.
+2. The tabs above the input auto-switch to the matching adapter
+   (toggleable in Advanced if you prefer a fixed default).
+3. Click **Fetch Files**. The tree populates the same way as a local
+   drop.
+4. Filter and emit as in Path 1.
+
+## Filter and emit
+
+Both paths share the same workbench from this point on:
+
+- The **FilterRail** on the left holds the include and ignore
+  textareas and a row of preset chips for common stacks.
+- The ActionBar **Options** popover at the bottom holds the
+  single-vs-multi format choice, the XML-vs-Markdown style choice,
+  and (when multi is active) a chunk-size input.
+- The bottom-of-rail Advanced disclosure holds line numbers, max
+  file size, and the default remote source setting.
+
+## See also
+
+- [File filtering](/docs/file-filtering) for the pattern syntax.
+- [Filter precedence](/docs/filter-precedence) for the four-layer
+  pipeline that decides what survives.
+- [Token costs](/docs/token-costs) for which toggles cost tokens.
+
+---
+
+# Sources
+
+<!-- source: https://fileconcat.com/docs/github-import -->
+
+# GitHub import
+
+Paste a public GitHub repository URL into the Source input and the
+workbench fetches the file tree on demand. No GitHub account needed,
+and no servers in between.
+
+## Supported URL shapes
+
+The GitHub adapter at `packages/core/src/sources/adapters/github.ts`
+parses three shapes:
+
+```text
+https://github.com/owner/repo
+https://github.com/owner/repo/tree/branch
+https://github.com/owner/repo/tree/branch/subdirectory
+```
+
+A trailing `.git` is tolerated and stripped. The optional branch
+defaults to the repository's default branch when omitted. When a
+subdirectory is included, only files at or under that path are
+imported.
+
+## Rate limits
+
+The GitHub REST API allows 60 requests per hour per IP for
+unauthenticated callers. A single repository fetch is at least one
+request for the tree and additional requests for raw file contents on
+the streaming path; large repositories burn through the quota faster
+than small ones.
+
+When a request is denied, the error message you see in the workbench
+is produced by `classifyResponseError`
+(`packages/core/src/sources/adapters/_errors.ts`). Status 401, 403,
+and 429 each carry their own human-readable wording so you can tell
+"rate limited" apart from "private repository".
+
+If you need higher quotas or access to private repositories today,
+the supported workaround is to download the project locally and use
+the drag-and-drop path instead. Token-authenticated imports are
+tracked separately and are not shipped at the time of writing.
+
+## Raw URLs
+
+Raw file URLs like `https://raw.githubusercontent.com/owner/repo/...`
+are not handled by the GitHub adapter. They go to the URL fallback
+adapter instead, which downloads the single file you point it at and
+shows it in the workbench. Use this for "give me one file from
+GitHub" cases.
+
+## Gists
+
+GitHub Gists are handled by a separate adapter that lives next to the
+others. URL shape:
+
+```text
+https://gist.github.com/owner/gistId
+```
+
+The `owner` segment is required by the regex; bare gist URLs without
+the owner part are not matched. Gists are flat (no subdirectories);
+every file in the gist comes in together.
+
+The same adapter also matches GitLab Snippet URLs; see
+[GitLab import](/docs/gitlab-import) for those.
+
+## See also
+
+- [File filtering](/docs/file-filtering) to narrow the imported tree
+  before assembling the output.
+- [Token estimation](/docs/token-estimation) to keep the import
+  inside your model's context window.
+
+---
+
+<!-- source: https://fileconcat.com/docs/gitlab-import -->
+
+# GitLab import
+
+Paste a public GitLab repository URL into the Source input and the
+workbench fetches the project tree.
+
+## Supported URL shapes
+
+The GitLab adapter at `packages/core/src/sources/adapters/gitlab.ts`
+matches `gitlab.com` URLs only. Self-hosted GitLab instances are not
+recognised.
+
+```text
+https://gitlab.com/owner/repo
+https://gitlab.com/group/subgroup/project
+https://gitlab.com/owner/repo/-/tree/branch
+https://gitlab.com/owner/repo/-/tree/branch/subdirectory
+```
+
+GitLab supports nested groups, which means the "owner" segment can
+itself be a path of group and subgroup names. The adapter handles up
+to any depth of nesting before the `-/tree/...` marker. A trailing
+`.git` is tolerated and stripped.
+
+When a branch is omitted, the project's default branch is used. When
+a subdirectory is included, only files at or under that path are
+imported.
+
+## Rate limits and errors
+
+The GitLab REST API has its own per-IP rate limit (smaller than
+GitHub's for most endpoints). When a request is denied, the
+workbench surfaces a message produced by `classifyResponseError`;
+status 401, 403, and 429 each carry distinct wording.
+
+Public repositories work without authentication. Private repositories
+are not accessible at the time of writing; token-authenticated
+imports are tracked as separate work.
+
+## Snippets
+
+GitLab Snippets do not go to the GitLab adapter. They go to the Gist
+adapter, which handles both GitHub Gists and GitLab Snippets behind
+one URL shape group. Recognised forms:
+
+```text
+https://gitlab.com/snippets/12345
+https://gitlab.com/-/snippets/12345
+https://gitlab.com/owner/snippets/12345
+https://gitlab.com/owner/-/snippets/12345
+```
+
+Paste a Snippet URL into the same Source input and the workbench
+routes it automatically.
+
+## See also
+
+- [File filtering](/docs/file-filtering) to trim the imported tree
+  before output assembly.
+- [Token estimation](/docs/token-estimation) for the token budget.
+
+---
+
+<!-- source: https://fileconcat.com/docs/bitbucket-import -->
+
+# Bitbucket import
+
+Paste a public Bitbucket repository URL into the Source input and the
+workbench fetches the project tree.
+
+## Supported URL shapes
+
+The Bitbucket adapter at
+`packages/core/src/sources/adapters/bitbucket.ts` matches
+`bitbucket.org` URLs only. Bitbucket Server and Data Center (the
+self-hosted products) are not supported.
+
+```text
+https://bitbucket.org/workspace/repo
+https://bitbucket.org/workspace/repo/src/branch
+https://bitbucket.org/workspace/repo/src/branch/subdirectory
+```
+
+A trailing `.git` is tolerated and stripped. When the branch is
+omitted, the workspace's `mainbranch` is queried via the API and used
+as the default. When a subdirectory is included, only files at or
+under that path are imported.
+
+The Bitbucket workspace name fills the same slot as `owner` does for
+GitHub and GitLab URLs.
+
+## Rate limits and errors
+
+The Bitbucket REST API has per-IP rate limits comparable to the
+other hosts. Errors surface through the same `classifyResponseError`
+helper used by the GitHub and GitLab adapters, with distinct wording
+for 401, 403, and 429 responses.
+
+Public repositories work without authentication. Private repositories
+are not accessible at the time of writing; token-authenticated
+imports are tracked as separate work.
+
+## See also
+
+- [File filtering](/docs/file-filtering) for narrowing the imported
+  tree.
+- [Token estimation](/docs/token-estimation) for tracking the token
+  budget.
+
+---
+
+# Reference
+
+<!-- source: https://fileconcat.com/docs/file-filtering -->
+
+# File filtering
+
+The FilterRail in the workbench is the surface for narrowing your output
+to the files you actually want to share with an assistant. Everything you
+type here applies live: the file tree updates as you type, with no Apply
+button.
+
+## Include and Ignore textareas
+
+Two textareas drive pattern filtering:
+
+- **Include** is empty by default. When you put glob patterns in it,
+  only files matching at least one of them survive.
+- **Ignore** carries a default list (the same list the CLI uses) of
+  common build outputs, lockfiles, and binary directories. Patterns you
+  add here exclude their matches.
+
+Both textareas accept a **comma-separated list of globs**. Newlines
+between commas are fine for readability. The two interact in one
+surprising way described in
+[Filter precedence](/docs/filter-precedence): if Include has any
+content, Ignore is skipped entirely. Treat Include as an exclusive
+whitelist when you use it.
+
+## Pattern semantics
+
+Patterns are matched against each file's path using the `pathMatches`
+helper in `packages/core/src/path-utils/glob-match.ts`. Two rules cover
+every case:
+
+- **A bare directory or filename pattern matches anywhere in the path.**
+  Typing `node_modules` matches `apps/web/node_modules/react/index.js`,
+  not just a top-level `node_modules` directory. The same goes for
+  `*.log`, which matches every `.log` file at any depth.
+- **A slashed pattern matches the full path or any suffix obtained by
+  stripping leading directories.** Typing `src/**/*.ts` matches both
+  `src/app.ts` and `myrepo/src/app.ts`. This lets patterns work
+  whether you dropped a folder by its repo name or by its inner `src/`.
+
+A few examples that catch what most projects need:
+
+```text
+node_modules, dist, build, .git, *.lock, *.log
+```
+
+```text
+src/**/*.ts, src/**/*.tsx, README.md
+```
+
+## Presets
+
+Above the textareas, a row of preset chips covers common stacks. Each
+chip rewrites both textareas in one click: the Include patterns and the
+Ignore patterns are replaced, not added to. Click a chip you already
+have selected and the textareas return to whatever was in them before.
+
+Presets are baked into the build, not user-saveable. The export and
+import buttons in the Advanced section serialise the whole
+`UserConfig` (including your current patterns) to a JSON file you can
+share or restore.
+
+## Manual file toggles
+
+Each file in the tree has a checkbox that overrides the pattern
+decision for that one file. Manual toggles are sticky: if you tick a
+checkbox to include a file, then later edit your Ignore textarea, the
+file stays included.
+
+The counter line beneath the textareas shows two numbers: how many
+files are included in total, and how many of them are kept that way by
+an explicit manual override. A `clear` link next to the override count
+resets all manual decisions, leaving pattern filtering in charge again.
+
+## See also
+
+- [Filter precedence](/docs/filter-precedence) for the full ordering
+  of pruning, validation, patterns, and overrides.
+- [Configuration](/docs/configuration) for the Advanced section's
+  other knobs (max file size, default remote source, config
+  export/import).
+
+---
+
+<!-- source: https://fileconcat.com/docs/filter-precedence -->
+
+# Filter precedence
+
+FileConcat decides which files end up in your output through a four-layer
+pipeline. Each layer runs in order and the next one only sees what survived
+the previous. Knowing the order makes it easier to predict why a file
+appears or disappears when you type a pattern.
+
+## The four layers
+
+1. **Drop-time prune** runs at ingestion.
+2. **Validation cache** runs once per file at ingestion.
+3. **Pattern layer** runs live every time you edit a textarea.
+4. **Manual overrides** are sticky and applied last.
+
+The pipeline is deterministic. Same inputs produce the same `included`
+decision for every file.
+
+## Layer 1: drop-time prune
+
+Only two directory names are excluded before files even enter memory:
+`.git` and `node_modules`. They live in a hardcoded set named
+`HARDCODED_PRUNE_DIRS` inside `apps/web/src/hooks/use-file-ingestion.ts`.
+The walker that traverses your dropped folder skips any directory whose
+name matches.
+
+These two names are special because they are large enough to crash the
+browser tab on real projects. Every other ignore pattern, including
+`dist`, `build`, `vendor`, and lockfiles, runs at filter time. Those
+files are read into memory first and hidden from view by a later layer.
+
+For typical projects this is invisible. If a drop feels slow, look for
+oversized auto-generated folders that the patterns will catch later but
+that the walker still pulled in.
+
+## Layer 2: validation cache
+
+When a file is ingested, FileConcat checks two things and records the
+result in a sticky `validations` map:
+
+- Is the content binary? Binary files are excluded permanently.
+- Does the file exceed the configured max size (default 32 MB)? Oversize
+  files are excluded permanently.
+
+This check runs once per file. Pattern edits do not retrigger it, which
+is why pattern changes feel instantaneous even on large drops.
+
+## Layer 3: pattern layer
+
+Two textareas in the FilterRail drive this layer:
+
+- **Include** is a comma-separated list of glob patterns. Empty means
+  every surviving file passes.
+- **Ignore** is a comma-separated list of glob patterns. Files matching
+  any of them are excluded.
+
+There is one rule that surprises people: **if the Include textarea has
+any non-empty content, the Ignore textarea is skipped entirely.** The
+include list is treated as an exclusive whitelist. To go back to "every
+file except these", you have to clear the Include textarea.
+
+Pattern matching uses the `pathMatches` helper in
+`packages/core/src/path-utils/glob-match.ts`. Two semantics matter:
+
+- **Bare directory or filename patterns match anywhere in the path.**
+  Typing `node_modules` matches `apps/web/node_modules/react/index.js`,
+  not just a top-level `node_modules`. The same goes for `*.log`,
+  matching every `.log` file at any depth.
+- **Slashed patterns match the full path or any path suffix obtained by
+  stripping leading directories.** Typing `src/**/*.ts` matches
+  `src/app.tsx` and also `myrepo/src/app.tsx`. This lets patterns work
+  when you drop a folder whose name you do not want to type.
+
+See [File filtering](/docs/file-filtering) for the pattern syntax in
+more detail.
+
+## Layer 4: manual overrides
+
+Every checkbox in the file tree writes to a sticky map called
+`userToggled`. An entry for a path can be `"include"` or `"exclude"`,
+and either value wins over whatever the pattern layer decided.
+
+The map only stores divergences. If you tick a checkbox so that the
+file's state matches the pattern decision anyway, the entry is removed
+instead of recorded. The result is that the override map stays small
+and only tracks the deliberate exceptions.
+
+The counter line shows how many overrides are active and offers a
+`clear` link that empties the map. Pattern edits never touch this map,
+so a preset chip click or an Include rewrite cannot accidentally lose
+your individual decisions.
+
+## Worked example
+
+You drop a Node project into the workbench:
+
+1. Drop-time prune removes `.git/` and `node_modules/`. Everything
+   else, including `dist/`, lands in memory.
+2. Validation marks any binaries (PNGs, fonts) as excluded.
+3. You type `dist` into the Ignore textarea. The file tree updates
+   immediately. Every file under `dist/` disappears.
+4. You manually re-check one file at `dist/special.js` because you
+   want it in the context. `userToggled["dist/special.js"] = "include"`.
+5. You edit the Ignore textarea to add `vendor`. Pattern layer hides
+   `vendor/*` but the override for `dist/special.js` is untouched.
+
+Every other interaction in the workbench is a variation on this loop.
+
+---
+
+<!-- source: https://fileconcat.com/docs/token-estimation -->
+
+# Token estimation
+
+The token counter in the workbench tells you how much of your model's
+context window the current output will consume. It updates live as
+files come and go.
+
+## How the count is produced
+
+Token counting runs against `@dqbd/tiktoken`, a WebAssembly build of
+OpenAI's tokenizer. The default encoding is the one used by
+`o1-preview-2024-09-12`, which most modern LLM models match closely
+enough to be useful as a unified estimate. The result you see on screen
+is the actual encoder output for the assembled blob, not a heuristic.
+
+The encoder runs synchronously after the page boots, so toggling files
+on and off does not introduce a perceptible delay for typical projects.
+
+## The 1 MB cap
+
+Inputs over 1 MB skip the encoder and fall back to
+`Math.ceil(length / 4)`. The reason lives in
+`apps/web/src/lib/tokens.ts`: running the WASM encoder on multi-MB
+blobs blocks the main thread long enough to feel like the tab has
+frozen, and the approximation is good enough for a headline number on
+inputs that size. The fallback also catches the case where the encoder
+itself fails for any reason.
+
+If you are working with a giant context and want an exact count,
+narrow the output with the filter patterns until you are under the
+cap, then read the precise number.
+
+## Model selector
+
+The button next to the token counter opens a model selector. The
+catalog ships with the build and is refreshed at every deploy from
+`models.dev`, the same source the cost estimates use.
+
+A few facts that make the picker behave the way it does:
+
+- Models are sorted by release date descending, so the newest
+  Claude, GPT, Gemini, and so on appear at the top.
+- The picker shows the **canonical** model (e.g. `claude-sonnet-4-6`)
+  and a `via {provider}` hint for the cheapest priced provider that
+  offers that model on the day of the deploy. If the cheapest provider
+  changes between deploys, the hint changes; the canonical id stays
+  the same so your selection survives.
+- The selected model's identifier is the catalog UID
+  (`lab/model-id`), persisted in localStorage. Models removed from the
+  catalog upstream are pruned at load time.
+
+## See also
+
+- [Token costs](/docs/token-costs) for which toggles cost or save
+  tokens.
+- [Filter precedence](/docs/filter-precedence) for the layered
+  filtering pipeline that decides which files contribute to the
+  count.
+
+---
+
+<!-- source: https://fileconcat.com/docs/token-costs -->
+
+# Token costs
+
+The workbench has knobs that change how much of your model's context
+window the output consumes. Some moves cost tokens rather than save
+them. This page tells you which is which, with measured numbers where
+they exist.
+
+## Show line numbers
+
+The **Show line numbers** toggle in the FilterRail Advanced section
+prefixes every line of every file with its 1-based line number. The
+toggle's own help text says it the plainest way possible: "Increases
+token count by roughly 40 to 50 percent."
+
+The transform itself lives in
+`packages/core/src/file-processing/transform.ts` as `addLineNumbers`.
+Measured against 8 representative repo files on 2026-06-07, the
+average increase was 44.83 percent. The cost is real on every file.
+
+Show line numbers earns its place when you want the model to refer to a
+specific line in a follow-up question. It is a navigation aid, not a
+saving. Leave it off unless line references will appear in your prompts.
+
+## Output format
+
+The **Format** group in the ActionBar Options popover offers two choices:
+
+- **Single file** packs everything into one blob, ready to paste into a
+  single prompt.
+- **Multi-part** splits the output into chunks aimed at fitting your
+  model's per-turn input limit. The popover notes that the
+  recommendation switches above roughly 200K tokens.
+
+Multi-part adds a per-chunk header so the model knows the chunks belong
+to one project. The overhead per chunk is small relative to the file
+contents, and the tradeoff buys you the ability to feed projects that
+would otherwise overflow your context window in one shot.
+
+## Output style
+
+The **Style** group offers **XML** and **Markdown**. The XML style
+wraps each file in named tags and tends to read better for Claude. The
+Markdown style uses fenced code blocks and tends to read better for
+chat-style assistants that emit Markdown themselves.
+
+There is no measured token delta between the two styles worth quoting
+here. The difference in practice is small. Pick whichever your
+assistant handles better.
+
+## Chunk size (multi-part only)
+
+When **Multi-part** is the selected format, a **Chunk size** input
+appears. Smaller chunks produce more parts, which means more headers
+and slightly more total tokens but also more flexibility in feeding
+the output across multiple turns. The default sits at the value
+configured for the per-file size cap.
+
+## Cross-link
+
+For the tokenizer itself, the 1 MB self-cap, and the model selector,
+see [Token estimation](/docs/token-estimation).
+
+---
+
+<!-- source: https://fileconcat.com/docs/configuration -->
+
+# Configuration
+
+FileConcat keeps configuration in three places: the ActionBar Options
+popover (per-output knobs), the FilterRail Advanced section (filtering
+and persistence knobs), and `localStorage` (everything that survives a
+page reload). This page documents each one in the order you encounter
+it.
+
+## ActionBar Options popover
+
+The Options button sits in the sticky ActionBar at the bottom of the
+workbench. Clicking it opens a popover with three groups.
+
+**Format** offers Single file or Multi-part. Single file produces one
+blob ready to paste. Multi-part splits the output so each chunk fits
+your model's per-turn limit; the popover notes that the recommendation
+switches to Multi-part above roughly 200K tokens. The recommended
+choice is marked with a small `rec` tag.
+
+**Style** offers XML or Markdown. XML wraps each file in named tags
+(recommended for Claude); Markdown uses fenced code blocks
+(recommended for assistants that emit Markdown themselves). The button
+hints carry the same recommendation.
+
+**Chunk size** appears only when Multi-part is the active format. It
+sets the target size per output chunk. Files larger than this value
+are split across chunks.
+
+## FilterRail Advanced section
+
+The Advanced disclosure under the FilterRail textareas holds the
+toggles that are too settings-shaped for the main filter surface.
+
+- **Show line numbers** prefixes each line of every file with its
+  1-based line number. The hint text says it plainly: this adds
+  roughly 40 to 50 percent to the token count. Treat it as a
+  navigation aid for the assistant, not a saving. See
+  [Token costs](/docs/token-costs) for the measurement.
+- **Max file size (MB)** is the per-file size limit applied at
+  ingestion. Files larger than this number of megabytes are excluded
+  from the output. Default 32.
+- **Default remote source** picks which tab in the Source input is
+  selected when you visit the workbench. The choices match the
+  registered source adapters: GitHub, GitLab, Bitbucket, Gist, URL.
+- **Auto-switch on paste** toggles whether the source tab switches
+  automatically when you paste a URL that belongs to a different
+  source than the one currently selected.
+- **Export** and **Import** buttons at the bottom of the Advanced
+  section serialise the full `UserConfig` to a JSON file, or load
+  one back. The format matches the on-disk schema version (currently
+  v5); older imported configs are upgraded transparently.
+
+## Persistent configuration
+
+The full `UserConfig` shape lives in
+`apps/web/src/hooks/use-config.ts` and is persisted under the
+`fileconcat-config` localStorage key. The fields that survive across
+sessions:
+
+- `includePatterns` and `ignorePatterns` (your textareas)
+- `maxFileSizeMB`
+- `showLineNumbers`
+- `defaultOutputFormat` (single or multi)
+- `outputStyle` (xml or markdown)
+- `defaultSourceType` and `autoSwitchSource`
+
+The store carries a `version` field. When the app loads, anything
+older than the current version is run through `migrateConfig` and the
+upgraded shape is written back. You do not take action; the migration
+is silent.
+
+## Recent sources
+
+The Source input remembers the URLs you have imported from in a
+separate store under `fileconcat-recent-sources`. The
+**Recent sources** dropdown next to the source input shows them with
+two affordances: per-entry remove and a clear-all action. No browser
+storage poking required.
+
+## CLI configuration
+
+The CLI keeps its own configuration layer documented in
+[CLI usage](/docs/cli-usage), including the `--config` flag and the
+`FileConcatConfig` shape that file accepts.
+
+---
+
+<!-- source: https://fileconcat.com/docs/cli-usage -->
+
+# CLI usage
+
+The `fileconcat` CLI runs the same `@fileconcat/core` library that
+powers the web app. Same filtering semantics, same output format,
+no browser required.
+
+## Install
+
+```bash
+pnpm add -g fileconcat
+```
+
+Or run it without installing globally:
+
+```bash
+npx fileconcat ./src
+```
+
+## Usage
+
+```text
+fileconcat [path] [options]
+fileconcat concat [path] [options]
+```
+
+The bare command and the explicit `concat` subcommand share the same
+flag set. `[path]` defaults to the current directory.
+
+## Flags
+
+| Flag                       | Short | Default                     | Notes                                    |
+| -------------------------- | ----- | --------------------------- | ---------------------------------------- |
+| `[path]`                   |       | `.`                         | Positional argument; root to process     |
+| `--output <file>`          | `-o`  | `output.xml` / `output.md`  | Default extension follows `--style`      |
+| `--max-size <mb>`          | `-m`  | `32`                        | Per-file size cap in megabytes           |
+| `--no-hidden`              |       | hidden files excluded       | Pass to force-exclude after a config opt-in |
+| `--no-binary`              |       | binary files excluded       | Pass to force-exclude after a config opt-in |
+| `--exclude <patterns...>`  | `-e`  |                             | Repeatable; one or more glob patterns    |
+| `--config <file>`          | `-c`  |                             | Path to a JSON config file               |
+| `--style <style>`          | `-s`  | `xml`                       | `xml`, `markdown`, or `md`               |
+
+Defaults for `--no-hidden` and `--no-binary` reflect that hidden and
+binary files are already excluded out of the box. The flags are there
+to flip a per-project override back to the default.
+
+## Example
+
+```bash
+fileconcat ./src \
+  --exclude "**/*.test.ts" \
+  --exclude "**/__snapshots__/**" \
+  --style markdown \
+  --output context.md
+```
+
+This walks `./src`, drops every test file and snapshot directory,
+emits Markdown with fenced code blocks, and writes to `context.md`.
+
+## Config file
+
+The CLI looks for a config file in the working directory at startup.
+Names searched in order:
+
+1. `.fileconcatrc`
+2. `.fileconcatrc.json`
+3. `fileconcat.config.json`
+
+Pass `--config <path>` to point at a different file. The format is
+JSON, matching the `FileConcatConfig` type in
+`packages/cli/src/config.ts`. A minimal example:
+
+```json
+{
+  "version": 1,
+  "maxFileSizeMB": 32,
+  "exclude": ["**/*.test.ts", "**/__snapshots__/**"],
+  "style": "markdown",
+  "output": "context.md"
+}
+```
+
+Command-line flags override config-file values for the same fields.
+
+## See also
+
+- [File filtering](/docs/file-filtering) covers the glob syntax,
+  which is shared with the web app's filter textareas.
+- [Configuration](/docs/configuration) describes the web app's
+  parallel configuration surfaces.
+
+---
