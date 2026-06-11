@@ -2,7 +2,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { glob } from "glob";
 import {
-  shouldSkipPath,
+  DEFAULT_GLOB_IGNORE,
+  toGlobIgnore,
   generateFileTree,
   generateProjectName,
   assembleOutput,
@@ -51,13 +52,7 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
     cwd: basePath,
     nodir: true,
     dot: !excludeHidden,
-    ignore: [
-      "node_modules/**",
-      ".git/**",
-      "**/dist/**",
-      "**/build/**",
-      ...excludePatterns,
-    ],
+    ignore: [...DEFAULT_GLOB_IGNORE, ...excludePatterns.flatMap(toGlobIgnore)],
   });
 
   console.log(`🔍 Found ${files.length} files`);
@@ -71,11 +66,6 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
     const stats = fs.statSync(fullPath);
 
     if (stats.size > maxFileSizeMB * 1024 * 1024) {
-      skippedCount++;
-      continue;
-    }
-
-    if (shouldSkipPath(file)) {
       skippedCount++;
       continue;
     }
