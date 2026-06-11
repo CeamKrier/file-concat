@@ -1,9 +1,41 @@
+import fc from "fast-check";
 import { describe, it, expect } from "vitest";
 import {
   dedupAndPruneModels,
   canonicalModelKey,
   type FilteredModel,
 } from "../src";
+
+const NAME_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789.";
+const PROVIDER_IDS = [
+  "anthropic",
+  "openai",
+  "openrouter",
+  "together",
+  "cheap-host",
+  "mid-host",
+  "expensive-host",
+] as const;
+
+const nameGen = fc.string({
+  minLength: 1,
+  maxLength: 8,
+  unit: fc.constantFrom(...NAME_CHARS.split("")),
+});
+
+const modelGen: fc.Arbitrary<FilteredModel> = fc.record({
+  uid: fc.uuid(),
+  id: nameGen,
+  name: nameGen,
+  providerId: fc.constantFrom(...PROVIDER_IDS),
+  providerName: nameGen,
+  contextLimit: fc.integer({ min: 0, max: 1_000_000 }),
+  outputLimit: fc.integer({ min: 0, max: 100_000 }),
+  inputCost: fc.integer({ min: 0, max: 100 }),
+  outputCost: fc.integer({ min: 0, max: 100 }),
+  hasReasoning: fc.boolean(),
+  hasToolCall: fc.boolean(),
+});
 
 function model(overrides: Partial<FilteredModel>): FilteredModel {
   return {
@@ -31,6 +63,41 @@ describe("canonicalModelKey", () => {
 
   it("preserves version dots", () => {
     expect(canonicalModelKey("glm-5.1")).not.toBe(canonicalModelKey("glm-5"));
+  });
+});
+
+describe("canonicalModelKey — properties", () => {
+  it("is idempotent", () => {
+    fc.assert(
+      fc.property(fc.string(), (s) => {
+        const once = canonicalModelKey(s);
+        return canonicalModelKey(once) === once;
+      }),
+    );
+  });
+
+  it("is case-insensitive", () => {
+    fc.assert(
+      fc.property(fc.string(), (s) => {
+        return canonicalModelKey(s.toUpperCase()) === canonicalModelKey(s.toLowerCase());
+      }),
+    );
+  });
+
+  it("treats space, underscore and dash as the same separator", () => {
+    const partGen = fc.string({
+      minLength: 1,
+      maxLength: 6,
+      unit: fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz0123456789".split("")),
+    });
+    fc.assert(
+      fc.property(fc.array(partGen, { minLength: 2, maxLength: 5 }), (parts) => {
+        const a = canonicalModelKey(parts.join("-"));
+        const b = canonicalModelKey(parts.join("_"));
+        const c = canonicalModelKey(parts.join(" "));
+        return a === b && b === c;
+      }),
+    );
   });
 });
 
@@ -99,5 +166,68 @@ describe("dedupAndPruneModels", () => {
     const a = dedupAndPruneModels(input).map((m) => m.name);
     const b = dedupAndPruneModels([...input].reverse()).map((m) => m.name);
     expect(a).toEqual(b);
+  });
+});
+
+describe("dedupAndPruneModels — properties", () => {
+  it("output is sorted by canonical key", () => {
+    fc.assert(
+      fc.property(fc.array(modelGen, { maxLength: 30 }), (models) => {
+        const result = dedupAndPruneModels(models);
+        for (let i = 1; i < result.length; i++) {
+          const prev = canonicalModelKey(result[i - 1].name);
+          const curr = canonicalModelKey(result[i].name);
+          if (prev.localeCompare(curr) > 0) return false;
+        }
+        return true;
+      }),
+    );
+  });
+
+  it("is idempotent under repeated application", () => {
+    fc.assert(
+      fc.property(fc.array(modelGen, { maxLength: 30 }), (models) => {
+        const once = dedupAndPruneModels(models);
+        const twice = dedupAndPruneModels(once);
+        if (once.length !== twice.length) return false;
+        return once.every((m, i) => m.uid === twice[i].uid);
+      }),
+    );
+  });
+
+  it("never emits a model below minContextLimit", () => {
+    fc.assert(
+      fc.property(
+        fc.array(modelGen, { maxLength: 30 }),
+        fc.integer({ min: 0, max: 200_000 }),
+        (models, minContextLimit) => {
+          const result = dedupAndPruneModels(models, { minContextLimit });
+          return result.every((m) => m.contextLimit >= minContextLimit);
+        },
+      ),
+    );
+  });
+
+  it("drops free-plan entries when dropFreePlans is on (default)", () => {
+    fc.assert(
+      fc.property(fc.array(modelGen, { maxLength: 30 }), (models) => {
+        const result = dedupAndPruneModels(models);
+        return result.every((m) => m.inputCost !== 0 || m.outputCost !== 0);
+      }),
+    );
+  });
+
+  it("collapses canonical duplicates: output count <= input count", () => {
+    fc.assert(
+      fc.property(fc.array(modelGen, { maxLength: 30 }), (models) => {
+        const result = dedupAndPruneModels(models, {
+          minContextLimit: 0,
+          dropFreePlans: false,
+        });
+        const uniqueCanonical = new Set(models.map((m) => canonicalModelKey(m.name)));
+        uniqueCanonical.delete("");
+        return result.length === uniqueCanonical.size;
+      }),
+    );
   });
 });
