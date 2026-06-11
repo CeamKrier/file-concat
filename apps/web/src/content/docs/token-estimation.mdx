@@ -1,13 +1,57 @@
-# Token Estimation
+# Token estimation
 
-FileConcat estimates token usage so you can stay within your model's context window.
+The token counter in the workbench tells you how much of your model's
+context window the current output will consume. It updates live as
+files come and go.
 
-## How It Works
+## How the count is produced
 
-Tokens are calculated using the same tokenizer as popular LLMs. The estimate updates in real time as you add or remove files.
+Token counting runs against `@dqbd/tiktoken`, a WebAssembly build of
+OpenAI's tokenizer. The default encoding is the one used by
+`o1-preview-2024-09-12`, which most modern LLM models match closely
+enough to be useful as a unified estimate. The result you see on screen
+is the actual encoder output for the assembled blob, not a heuristic.
 
-## Tips
+The encoder runs synchronously after the page boots, so toggling files
+on and off does not introduce a perceptible delay for typical projects.
 
-- Keep an eye on the token meter while filtering.
-- Split very large projects into multiple outputs.
-- Use multiple files output when you exceed limits.
+## The 1 MB cap
+
+Inputs over 1 MB skip the encoder and fall back to
+`Math.ceil(length / 4)`. The reason lives in
+`apps/web/src/lib/tokens.ts`: running the WASM encoder on multi-MB
+blobs blocks the main thread long enough to feel like the tab has
+frozen, and the approximation is good enough for a headline number on
+inputs that size. The fallback also catches the case where the encoder
+itself fails for any reason.
+
+If you are working with a giant context and want an exact count,
+narrow the output with the filter patterns until you are under the
+cap, then read the precise number.
+
+## Model selector
+
+The button next to the token counter opens a model selector. The
+catalog ships with the build and is refreshed at every deploy from
+`models.dev`, the same source the cost estimates use.
+
+A few facts that make the picker behave the way it does:
+
+- Models are sorted by release date descending, so the newest
+  Claude, GPT, Gemini, and so on appear at the top.
+- The picker shows the **canonical** model (e.g. `claude-sonnet-4-6`)
+  and a `via {provider}` hint for the cheapest priced provider that
+  offers that model on the day of the deploy. If the cheapest provider
+  changes between deploys, the hint changes; the canonical id stays
+  the same so your selection survives.
+- The selected model's identifier is the catalog UID
+  (`lab/model-id`), persisted in localStorage. Models removed from the
+  catalog upstream are pruned at load time.
+
+## See also
+
+- [Token costs](/docs/token-costs) for which toggles cost or save
+  tokens.
+- [Filter precedence](/docs/filter-precedence) for the layered
+  filtering pipeline that decides which files contribute to the
+  count.
