@@ -186,11 +186,13 @@ async function fetchGistFiles(url: string, options?: FetchOptions): Promise<Repo
     // Check if GitLab snippet
     if (parsed.gistId.startsWith("gitlab:")) {
       const snippetId = parsed.gistId.replace("gitlab:", "");
-      return fetchGitLabSnippet(snippetId, signal);
+      // `return await` is required: a bare `return promise` in an async
+      // function lets a rejection skip the outer try/catch, surfacing the
+      // raw exception instead of populating result.error.
+      return await fetchGitLabSnippet(snippetId, signal);
     }
 
-    // GitHub Gist
-    return fetchGitHubGist(parsed.gistId, signal);
+    return await fetchGitHubGist(parsed.gistId, signal);
   } catch (error) {
     if (error instanceof Error && (error.name === "AbortError" || error.message === "Aborted")) {
       throw new Error("AbortError");

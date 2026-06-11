@@ -316,3 +316,130 @@ describe("adapter fetch flows", () => {
     expect(result.error).toContain("CORS");
   });
 });
+
+describe("github error paths", () => {
+  const originalFetch = global.fetch;
+  const mockFetch = vi.fn();
+
+  beforeEach(() => {
+    global.fetch = mockFetch as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    mockFetch.mockReset();
+    global.fetch = originalFetch;
+  });
+
+  it("surfaces 401 as authentication required and names the repo", async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse({ ok: false, status: 401 }));
+
+    const result = await githubAdapter.fetchFiles("https://github.com/owner/repo");
+
+    expect(result.files).toHaveLength(0);
+    expect(result.error).toMatch(/authentication required/i);
+    expect(result.error).toContain("owner/repo");
+  });
+
+  it("distinguishes a rate-limited 403 from a forbidden 403", async () => {
+    const resetAt = Math.floor(Date.now() / 1000) + 600;
+    mockFetch.mockResolvedValueOnce(
+      makeResponse({
+        ok: false,
+        status: 403,
+        headers: {
+          "x-ratelimit-remaining": "0",
+          "x-ratelimit-reset": String(resetAt),
+        },
+      }),
+    );
+
+    const rateLimited = await githubAdapter.fetchFiles("https://github.com/owner/repo");
+    expect(rateLimited.error).toMatch(/rate limit/i);
+
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValueOnce(makeResponse({ ok: false, status: 403 }));
+
+    const forbidden = await githubAdapter.fetchFiles("https://github.com/owner/repo");
+    expect(forbidden.error).toMatch(/forbidden/i);
+    expect(forbidden.error).not.toMatch(/rate limit/i);
+  });
+
+  it("includes a Retry-After hint on 429", async () => {
+    mockFetch.mockResolvedValueOnce(
+      makeResponse({ ok: false, status: 429, headers: { "retry-after": "45" } }),
+    );
+
+    const result = await githubAdapter.fetchFiles("https://github.com/owner/repo");
+
+    expect(result.error).toMatch(/too many requests/i);
+    expect(result.error).toMatch(/45s/);
+  });
+
+  it("reports degraded service for 5xx", async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse({ ok: false, status: 503 }));
+
+    const result = await githubAdapter.fetchFiles("https://github.com/owner/repo");
+
+    expect(result.error).toMatch(/503/);
+    expect(result.error).toMatch(/degraded/i);
+  });
+
+  it("preserves the endpoint-specific 404 wording", async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse({ ok: false, status: 404 }));
+
+    const result = await githubAdapter.fetchFiles("https://github.com/owner/repo");
+
+    expect(result.error).toBe("Repository 'owner/repo' not found");
+  });
+});
+
+describe("gist error paths", () => {
+  const originalFetch = global.fetch;
+  const mockFetch = vi.fn();
+
+  beforeEach(() => {
+    global.fetch = mockFetch as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    mockFetch.mockReset();
+    global.fetch = originalFetch;
+  });
+
+  it("surfaces 401 on the GitHub gist endpoint", async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse({ ok: false, status: 401 }));
+
+    const result = await gistAdapter.fetchFiles("https://gist.github.com/octocat/abcdef123456");
+
+    expect(result.error).toMatch(/authentication required/i);
+    expect(result.error).toContain("abcdef123456");
+  });
+
+  it("flags 429 rate limit with a duration hint", async () => {
+    mockFetch.mockResolvedValueOnce(
+      makeResponse({ ok: false, status: 429, headers: { "retry-after": "120" } }),
+    );
+
+    const result = await gistAdapter.fetchFiles("https://gist.github.com/octocat/abcdef123456");
+
+    expect(result.error).toMatch(/too many requests/i);
+    expect(result.error).toMatch(/2m/);
+  });
+
+  it("preserves 'Gist not found' wording on 404", async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse({ ok: false, status: 404 }));
+
+    const result = await gistAdapter.fetchFiles("https://gist.github.com/octocat/abcdef123456");
+
+    expect(result.error).toBe("Gist not found");
+  });
+
+  it("forwards GitLab snippet 5xx as a degraded-service message", async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse({ ok: false, status: 503 }));
+
+    const result = await gistAdapter.fetchFiles("https://gitlab.com/-/snippets/12345");
+
+    expect(result.error).toMatch(/503/);
+    expect(result.error).toMatch(/degraded/i);
+  });
+});
