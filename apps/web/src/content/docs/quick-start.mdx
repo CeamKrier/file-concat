@@ -1,45 +1,44 @@
-# Quick Start
+# Quick start
 
-Get started with FileConcat in under a minute.
+You can be looking at a tokenised, filtered project blob in under a
+minute. The two paths below cover almost every use.
 
-## Option 1: Local Files
+## Path 1: local files
 
-1. Open [fileconcat.com](https://fileconcat.com)
-2. Drag and drop your project folder onto the upload area
-3. Review the file list and toggle any files you want to exclude
-4. Click "Copy" to copy the output to your clipboard
-5. Paste into ChatGPT, Claude, or your preferred AI assistant
+1. Open [fileconcat.com](https://fileconcat.com).
+2. Drag a folder or file selection onto the drop zone on the landing
+   page. The workbench takes over.
+3. Watch the file tree populate. Tick or untick individual files; the
+   token counter in the ActionBar updates live.
+4. Click **Copy** or **Download** in the bottom ActionBar to take the
+   output with you. **Copy** is single-file only; for multi-part
+   output use **Download**.
 
-## Option 2: GitHub Repository
+## Path 2: remote source
 
-1. Copy your GitHub repository URL
-2. Paste it into the repository input field
-3. Click "Fetch Files"
-4. Wait for the download to complete
-5. Copy or download the combined output
+1. On the workbench, paste a GitHub, GitLab, Bitbucket, Gist, or any
+   other URL into the Source input.
+2. The tabs above the input auto-switch to the matching adapter
+   (toggleable in Advanced if you prefer a fixed default).
+3. Click **Fetch Files**. The tree populates the same way as a local
+   drop.
+4. Filter and emit as in Path 1.
 
-## Supported URL Formats
+## Filter and emit
 
-```
-# Basic repository
-https://github.com/owner/repo
+Both paths share the same workbench from this point on:
 
-# Specific branch
-https://github.com/owner/repo/tree/develop
+- The **FilterRail** on the left holds the include and ignore
+  textareas and a row of preset chips for common stacks.
+- The ActionBar **Options** popover at the bottom holds the
+  single-vs-multi format choice, the XML-vs-Markdown style choice,
+  and (when multi is active) a chunk-size input.
+- The bottom-of-rail Advanced disclosure holds line numbers, max
+  file size, and the default remote source setting.
 
-# Subdirectory
-https://github.com/owner/repo/tree/main/packages/core
-```
+## See also
 
-## Tips
-
-- Use the **Settings** panel to configure include/ignore patterns
-- Use **Presets** for quick configuration of common tech stacks
-- Check the **token count** to ensure your content fits the AI's context window
-- Use **Multiple Files** output for very large projects
-
-## Next Steps
-
-- Learn about [File Filtering](/docs/file-filtering)
-- Explore [Token Estimation](/docs/token-estimation)
-- Try the [CLI Tool](/docs/cli-usage)
+- [File filtering](/docs/file-filtering) for the pattern syntax.
+- [Filter precedence](/docs/filter-precedence) for the four-layer
+  pipeline that decides what survives.
+- [Token costs](/docs/token-costs) for which toggles cost tokens.

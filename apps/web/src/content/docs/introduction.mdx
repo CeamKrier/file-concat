@@ -1,47 +1,43 @@
-# Introduction to FileConcat
+# Introduction
 
-FileConcat is a free, open-source tool for combining multiple files into a single document optimized for AI assistants like ChatGPT, Claude, and Gemini.
+FileConcat is a privacy-first tool that packs the files you pick into a
+single LLM-ready blob. The output is one XML or Markdown document you
+can paste into Claude, ChatGPT, Gemini, or any other assistant that
+takes long-form context.
 
-## Why FileConcat?
+## What it gives you
 
-When working with AI assistants, you often need to share code or documentation for analysis. Copy-pasting individual files is tedious and loses context. FileConcat solves this by:
+- A workbench at [fileconcat.com](https://fileconcat.com) for drag,
+  drop, filter, and copy.
+- A published npm CLI (`pnpm add -g fileconcat`, or `npx fileconcat`)
+  for the same flow from a shell.
+- Live token counting against the tokenizer most modern LLMs use, so
+  you know how much of your context window the output consumes
+  before you paste it.
 
-- **Combining files** into a structured format
-- **Preserving context** with file tree visualization
-- **Optimizing output** for LLM comprehension
-- **Processing offline** for complete privacy
+## How it works
 
-## Key Features
+Everything runs in your browser. There is no upload step, no
+intermediate server, and no telemetry on the files you process. The
+core library (`@fileconcat/core`) is the same in the web app and the
+CLI; what differs is the surface you drive it from.
 
-### 100% Offline Processing
+## Supported sources
 
-All file processing happens in your browser. Your files never leave your device, ensuring complete privacy.
+You can feed the workbench from any of these:
 
-### Smart Token Estimation
-
-Real-time token counting using the same tokenizer as OpenAI models. Know exactly how much of your LLM's context window you're using.
-
-### Multiple Input Sources
-
-Import files from:
-
-- Local files (drag & drop or file picker)
-- GitHub repositories
-- GitLab repositories
-- Bitbucket repositories
+- Local files and folders, by drag-and-drop or file picker
+- GitHub repositories, including subdirectories
 - GitHub Gists
-- Any public URL
+- GitLab repositories, including nested groups
+- GitLab Snippets
+- Bitbucket repositories
+- Any other public URL via the URL fallback adapter
 
-### Intelligent Filtering
+## Next steps
 
-Use glob patterns to include or exclude specific files. Quick presets available for popular tech stacks like React, Vue, Python, and more.
-
-## Getting Started
-
-1. Visit [fileconcat.com](https://fileconcat.com)
-2. Drag & drop your files or import from a repository
-3. Configure filters if needed
-4. Copy or download the combined output
-5. Paste into your AI assistant
-
-Ready to try it? [Go to the app](/) or continue reading the [Quick Start](/docs/quick-start) guide.
+- [Quick start](/docs/quick-start) walks through the first import.
+- [File filtering](/docs/file-filtering) covers the glob patterns and
+  preset chips that narrow the output.
+- [Token estimation](/docs/token-estimation) explains the counter and
+  the model selector.

@@ -1,20 +1,89 @@
-# CLI Usage
+# CLI usage
 
-Use the CLI to generate outputs from your terminal.
+The `fileconcat` CLI runs the same `@fileconcat/core` library that
+powers the web app. Same filtering semantics, same output format,
+no browser required.
 
 ## Install
 
-```
+```bash
 pnpm add -g fileconcat
 ```
 
+Or run it without installing globally:
+
+```bash
+npx fileconcat ./src
+```
+
+## Usage
+
+```text
+fileconcat [path] [options]
+fileconcat concat [path] [options]
+```
+
+The bare command and the explicit `concat` subcommand share the same
+flag set. `[path]` defaults to the current directory.
+
+## Flags
+
+| Flag                       | Short | Default                     | Notes                                    |
+| -------------------------- | ----- | --------------------------- | ---------------------------------------- |
+| `[path]`                   |       | `.`                         | Positional argument; root to process     |
+| `--output <file>`          | `-o`  | `output.xml` / `output.md`  | Default extension follows `--style`      |
+| `--max-size <mb>`          | `-m`  | `32`                        | Per-file size cap in megabytes           |
+| `--no-hidden`              |       | hidden files excluded       | Pass to force-exclude after a config opt-in |
+| `--no-binary`              |       | binary files excluded       | Pass to force-exclude after a config opt-in |
+| `--exclude <patterns...>`  | `-e`  |                             | Repeatable; one or more glob patterns    |
+| `--config <file>`          | `-c`  |                             | Path to a JSON config file               |
+| `--style <style>`          | `-s`  | `xml`                       | `xml`, `markdown`, or `md`               |
+
+Defaults for `--no-hidden` and `--no-binary` reflect that hidden and
+binary files are already excluded out of the box. The flags are there
+to flip a per-project override back to the default.
+
 ## Example
 
-```
-fileconcat ./src --include "**/*.ts" --ignore "**/*.test.ts"
+```bash
+fileconcat ./src \
+  --exclude "**/*.test.ts" \
+  --exclude "**/__snapshots__/**" \
+  --style markdown \
+  --output context.md
 ```
 
-## Tips
+This walks `./src`, drops every test file and snapshot directory,
+emits Markdown with fenced code blocks, and writes to `context.md`.
 
-- Use the same include/ignore patterns as the web app.
-- Redirect output to a file for long prompts.
+## Config file
+
+The CLI looks for a config file in the working directory at startup.
+Names searched in order:
+
+1. `.fileconcatrc`
+2. `.fileconcatrc.json`
+3. `fileconcat.config.json`
+
+Pass `--config <path>` to point at a different file. The format is
+JSON, matching the `FileConcatConfig` type in
+`packages/cli/src/config.ts`. A minimal example:
+
+```json
+{
+  "version": 1,
+  "maxFileSizeMB": 32,
+  "exclude": ["**/*.test.ts", "**/__snapshots__/**"],
+  "style": "markdown",
+  "output": "context.md"
+}
+```
+
+Command-line flags override config-file values for the same fields.
+
+## See also
+
+- [File filtering](/docs/file-filtering) covers the glob syntax,
+  which is shared with the web app's filter textareas.
+- [Configuration](/docs/configuration) describes the web app's
+  parallel configuration surfaces.
