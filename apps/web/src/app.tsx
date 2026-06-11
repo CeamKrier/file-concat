@@ -4,7 +4,7 @@ import { Upload } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Dialog, DialogContent, DialogTitle } from "~/components/ui/dialog";
-import SourceInput, { SourceInputRef } from "~/components/source-input";
+import SourceInput, { type SourceInputSubmitHandler } from "~/components/source-input";
 import { TokenSection } from "~/components/token-section";
 import FileTree from "~/components/file-tree";
 import FileViewerModal from "~/components/file-viewer-modal";
@@ -56,7 +56,6 @@ const App: React.FC = () => {
     outputStyle: userConfig.outputStyle,
   });
 
-  const sourceInputRef = useRef<SourceInputRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
@@ -72,14 +71,12 @@ const App: React.FC = () => {
   }, [filter, editor, output]);
 
   const resetAll = useCallback(() => {
-    sourceInputRef.current?.abort();
     ingestion.reset();
     resetSiblings();
     setActiveFilePath(undefined);
-    sourceInputRef.current?.reset();
   }, [ingestion, resetSiblings]);
 
-  const handleRepositorySubmit = useCallback<React.ComponentProps<typeof SourceInput>["onSubmit"]>(
+  const handleRepositorySubmit = useCallback<SourceInputSubmitHandler>(
     async (url, sourceType, onProgress, signal) => {
       resetSiblings();
       await ingestion.ingestRepo(url, sourceType, onProgress, signal);
@@ -193,7 +190,6 @@ const App: React.FC = () => {
       {!hasFiles && (
         <div className="mx-auto max-w-2xl">
           <SourceInput
-            ref={sourceInputRef}
             isLoading={ingestion.isRepoLoading}
             onSubmit={handleRepositorySubmit}
             config={userConfig}
