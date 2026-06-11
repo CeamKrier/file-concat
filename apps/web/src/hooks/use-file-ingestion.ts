@@ -6,6 +6,8 @@ import type {
 } from "@fileconcat/core";
 import { defaultSourceRegistry, validateFile } from "@fileconcat/core";
 
+import { collectFromDataTransfer } from "~/lib/collect-from-drop";
+
 // Directories that never make it into memory. These are not user-editable;
 // dropping their contents into a browser tab would crash the page long before
 // any pattern could filter them. Everything else honors the live filter rail.
@@ -198,58 +200,14 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setIsProcessing(true);
       setProcessingStatus("Scanning files...");
 
-      const incoming: IncomingFile[] = [];
-      const failed: FailedFile[] = [];
-
-      const walk = async (entry: FileSystemEntry, prefix = ""): Promise<void> => {
-        if (entry.isFile) {
-          const fileEntry = entry as FileSystemFileEntry;
-          return new Promise((resolve) => {
-            fileEntry.file(
-              (file) => {
-                const full = prefix ? `${prefix}/${file.name}` : file.name;
-                incoming.push({ file, path: full });
-                resolve();
-              },
-              (error) => {
-                const full = prefix ? `${prefix}/${fileEntry.name}` : fileEntry.name;
-                console.error(`Failed to access file ${full}:`, error);
-                failed.push({ path: full, error: "File could not be read" });
-                resolve();
-              },
-            );
-          });
-        }
-        if (!entry.isDirectory) return;
-
-        const dirEntry = entry as FileSystemDirectoryEntry;
-        if (HARDCODED_PRUNE_DIRS.has(dirEntry.name)) return;
-
-        const nextPrefix = prefix ? `${prefix}/${dirEntry.name}` : dirEntry.name;
-        const reader = dirEntry.createReader();
-        const children: FileSystemEntry[] = [];
-        for (;;) {
-          const batch = await new Promise<FileSystemEntry[]>((resolve) => {
-            reader.readEntries(resolve);
-          });
-          if (batch.length === 0) break;
-          children.push(...batch);
-        }
-        await Promise.all(children.map((child) => walk(child, nextPrefix)));
-      };
-
       try {
-        const items = e.dataTransfer.items;
-        const tops: Promise<void>[] = [];
-        for (let i = 0; i < items.length; i++) {
-          const entry = items[i].webkitGetAsEntry();
-          if (entry) tops.push(walk(entry));
-        }
-        await Promise.all(tops);
-
+        const { collected, failed } = await collectFromDataTransfer(e.dataTransfer.items, {
+          skipDir: (name) => HARDCODED_PRUNE_DIRS.has(name),
+        });
+        const incoming: IncomingFile[] = collected.map(({ file, path }) => ({ file, path }));
         setProcessingStatus(`Processing ${incoming.length} files...`);
         await ingestBatch(incoming);
-        setFailedFiles((prev) => [...prev, ...failed]);
+        if (failed.length > 0) setFailedFiles((prev) => [...prev, ...failed]);
       } catch (error) {
         console.error("Error processing files:", error);
       } finally {
