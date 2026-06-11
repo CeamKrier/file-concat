@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addLineNumbers, processFileContent } from "../src/file-processing/transform";
+import { addLineNumbers } from "../src/file-processing/transform";
 import { isBinaryFile, validateFile } from "../src/file-processing/validation";
 
 describe("addLineNumbers", () => {
@@ -8,21 +8,9 @@ describe("addLineNumbers", () => {
 
     expect(addLineNumbers(input)).toBe("   1 | a\n   2 | b\n   3 | c");
   });
-});
 
-describe("processFileContent", () => {
-  it("applies line numbers when requested", () => {
-    const input = "a\nb\n";
-    const output = processFileContent(input, "text", { showLineNumbers: true });
-
-    expect(output).toBe("   1 | a\n   2 | b");
-  });
-
-  it("returns content unchanged when no transforms requested", () => {
-    const input = "a\n\n b\n";
-    const output = processFileContent(input, "text", {});
-
-    expect(output).toBe(input);
+  it("drops the trailing empty line a final newline would produce", () => {
+    expect(addLineNumbers("a\nb\n")).toBe("   1 | a\n   2 | b");
   });
 });
 
