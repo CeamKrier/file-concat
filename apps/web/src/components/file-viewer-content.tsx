@@ -4,7 +4,7 @@ import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { formatSize } from "@fileconcat/core";
-const LazyEditor = React.lazy(() => import("@/components/lazy-editor-codemirror"));
+const LazyEditor = React.lazy(() => import("~/components/lazy-editor-codemirror"));
 
 interface FileViewerContentProps {
   path: string;
