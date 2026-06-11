@@ -64,7 +64,6 @@ export default defineConfig({
             "@radix-ui/react-tabs",
           ],
           icons: ["lucide-react", "@icons-pack/react-simple-icons"],
-          "file-type": ["file-type"],
           "react-vendor": ["react", "react-dom"],
         },
       },
