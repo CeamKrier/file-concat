@@ -11,8 +11,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import { FileStatus } from "@fileconcat/core";
-import { formatSize } from "~/utils";
+import { FileStatus, formatSize } from "@fileconcat/core";
 import { cn } from "~/lib/utils";
 import { getSizeSeverity } from "~/lib/file-size";
 

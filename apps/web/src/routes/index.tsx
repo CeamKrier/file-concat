@@ -6,7 +6,7 @@ import { SiteHeader } from "~/components/site-header";
 import { SiteFooter } from "~/components/site-footer";
 import { useStagedFiles, type StagedEntry } from "~/components/staged-files-provider";
 import { generateSEOMeta } from "~/lib/seo";
-import { estimateTokenCount } from "~/utils";
+import { estimateTokenCount } from "~/lib/tokens";
 
 const CLI_ENABLED = false;
 
@@ -137,11 +137,7 @@ function Hero() {
     const totalBytes = new TextEncoder().encode(combined).length;
     let tokens = 0;
     if (totalBytes <= MAX_INLINE_BYTES) {
-      try {
-        tokens = await estimateTokenCount(combined);
-      } catch {
-        tokens = Math.ceil(totalBytes / 4);
-      }
+      tokens = estimateTokenCount(combined);
     } else {
       tokens = Math.ceil(totalBytes / 4);
     }
