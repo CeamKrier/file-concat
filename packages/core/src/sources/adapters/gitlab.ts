@@ -3,8 +3,12 @@ import type { RepositoryContent, RepoFile } from "../../types";
 import { SOURCE_METADATA } from "../metadata";
 
 /** GitLab URL regex patterns */
+// Lazy `*?` on the path group lets `/-/tree/<branch>/<path>` actually match
+// instead of being absorbed into the project path (the canonical GitLab URL
+// always carries the `-/` segment, so a greedy quantifier swallowed both
+// the marker and the branch).
 const GITLAB_REPO_REGEX =
-  /^https?:\/\/gitlab\.com\/([^/]+(?:\/[^/]+)*)(?:\/-)?(?:\/tree\/([^/]+)(?:\/(.+))?)?(?:\.git)?$/;
+  /^https?:\/\/gitlab\.com\/([^/]+(?:\/[^/]+)*?)(?:\/-\/tree\/([^/]+)(?:\/(.+))?)?$/;
 const GITLAB_SNIPPET_REGEX = /^https?:\/\/gitlab\.com\/snippets\//;
 
 /**

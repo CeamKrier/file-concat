@@ -108,6 +108,130 @@ describe("bitbucketAdapter helpers", () => {
   });
 });
 
+describe("parseUrl variants", () => {
+  describe("github", () => {
+    it("parses a bare repo URL with no branch or path", () => {
+      const parsed = githubAdapter.parseUrl("https://github.com/owner/repo");
+
+      expect(parsed.isValid).toBe(true);
+      expect(parsed.owner).toBe("owner");
+      expect(parsed.repo).toBe("repo");
+      expect(parsed.branch).toBeUndefined();
+      expect(parsed.path).toBeUndefined();
+    });
+
+    it("extracts the branch from /tree/<branch>", () => {
+      const parsed = githubAdapter.parseUrl("https://github.com/owner/repo/tree/main");
+
+      expect(parsed.isValid).toBe(true);
+      expect(parsed.branch).toBe("main");
+      expect(parsed.path).toBeUndefined();
+    });
+
+    it("extracts both branch and subpath from /tree/<branch>/<path>", () => {
+      const parsed = githubAdapter.parseUrl(
+        "https://github.com/owner/repo/tree/main/src/components",
+      );
+
+      expect(parsed.isValid).toBe(true);
+      expect(parsed.branch).toBe("main");
+      expect(parsed.path).toBe("src/components");
+    });
+
+    it("strips a trailing .git suffix from the repo name", () => {
+      const parsed = githubAdapter.parseUrl("https://github.com/owner/repo.git");
+
+      expect(parsed.isValid).toBe(true);
+      expect(parsed.repo).toBe("repo");
+    });
+
+    it("rejects a URL missing the repo segment", () => {
+      const parsed = githubAdapter.parseUrl("https://github.com/owner");
+
+      expect(parsed.isValid).toBe(false);
+      expect(parsed.error).toMatch(/invalid github url/i);
+    });
+  });
+
+  describe("gitlab", () => {
+    it("parses a bare repo URL", () => {
+      const parsed = gitlabAdapter.parseUrl("https://gitlab.com/owner/repo");
+
+      expect(parsed.isValid).toBe(true);
+      expect(parsed.owner).toBe("owner");
+      expect(parsed.repo).toBe("repo");
+    });
+
+    it("handles nested groups (group/subgroup/project)", () => {
+      const parsed = gitlabAdapter.parseUrl("https://gitlab.com/group/subgroup/repo");
+
+      expect(parsed.isValid).toBe(true);
+      expect(parsed.owner).toBe("group/subgroup");
+      expect(parsed.repo).toBe("repo");
+    });
+
+    it("extracts branch and subpath through the /-/tree/ form", () => {
+      const parsed = gitlabAdapter.parseUrl(
+        "https://gitlab.com/owner/repo/-/tree/main/src/lib",
+      );
+
+      expect(parsed.isValid).toBe(true);
+      expect(parsed.branch).toBe("main");
+      expect(parsed.path).toBe("src/lib");
+    });
+
+    it("redirects snippet URLs to the gist adapter", () => {
+      const parsed = gitlabAdapter.parseUrl("https://gitlab.com/snippets/12345");
+
+      expect(parsed.isValid).toBe(false);
+      expect(parsed.error).toMatch(/gist adapter/i);
+    });
+
+    it("rejects a URL missing the project segment", () => {
+      const parsed = gitlabAdapter.parseUrl("https://gitlab.com/owner");
+
+      expect(parsed.isValid).toBe(false);
+      expect(parsed.error).toMatch(/project path|invalid gitlab/i);
+    });
+  });
+
+  describe("bitbucket", () => {
+    it("parses a bare workspace/repo URL", () => {
+      const parsed = bitbucketAdapter.parseUrl("https://bitbucket.org/workspace/repo");
+
+      expect(parsed.isValid).toBe(true);
+      expect(parsed.owner).toBe("workspace");
+      expect(parsed.repo).toBe("repo");
+    });
+
+    it("extracts branch and subpath from /src/<branch>/<path>", () => {
+      const parsed = bitbucketAdapter.parseUrl(
+        "https://bitbucket.org/workspace/repo/src/main/lib/index.ts",
+      );
+
+      expect(parsed.isValid).toBe(true);
+      expect(parsed.branch).toBe("main");
+      expect(parsed.path).toBe("lib/index.ts");
+    });
+
+    it("rejects a URL missing the repo segment", () => {
+      const parsed = bitbucketAdapter.parseUrl("https://bitbucket.org/workspace");
+
+      expect(parsed.isValid).toBe(false);
+      expect(parsed.error).toMatch(/invalid bitbucket/i);
+    });
+  });
+
+  describe("gist", () => {
+    it("rejects a URL that is neither a GitHub gist nor a GitLab snippet", () => {
+      const parsed = gistAdapter.parseUrl("https://example.com/something");
+
+      expect(parsed.isValid).toBe(false);
+      expect(parsed.error).toMatch(/invalid gist/i);
+    });
+  });
+});
+
 describe("gistAdapter parsing", () => {
   it("parses GitHub gist URLs", () => {
     const parsed = parseGistUrl("https://gist.github.com/octocat/abcdef123456");
