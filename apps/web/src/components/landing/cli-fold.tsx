@@ -9,7 +9,7 @@ export function CLIFold() {
     <section aria-labelledby="cli-fold-heading">
       <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 md:py-32">
         <div className="grid gap-14 lg:grid-cols-12 lg:gap-16">
-          <div className="lg:col-span-5">
+          <div className="min-w-0 lg:col-span-5">
             <h2
               id="cli-fold-heading"
               className="font-display text-foreground text-[clamp(1.75rem,3.2vw,2.5rem)] font-semibold leading-[1.05] tracking-[-0.03em]"
@@ -61,7 +61,7 @@ export function CLIFold() {
             </ul>
           </div>
 
-          <div className="lg:col-span-7">
+          <div className="min-w-0 lg:col-span-7">
             <TerminalSession />
           </div>
         </div>
@@ -205,7 +205,7 @@ function OutputContrast() {
         </p>
       </div>
 
-      <div className="mt-12 grid gap-6 lg:grid-cols-[1.7fr_1fr] lg:gap-8">
+      <div className="mt-12 grid gap-6 lg:grid-cols-[1.7fr_1fr] lg:gap-8 [&>*]:min-w-0">
         <ArtefactCard label="bundle for the model" hint="ctx.xml · what your prompt embeds">
           <pre className="text-foreground/90 overflow-x-auto font-mono text-[12px] leading-[1.7]">
             <code>

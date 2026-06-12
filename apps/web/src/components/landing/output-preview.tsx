@@ -7,7 +7,7 @@ export function OutputPreview() {
   return (
     <section className="bg-secondary/40">
       <div className="mx-auto grid max-w-6xl gap-12 px-4 py-24 sm:px-6 md:py-32 lg:grid-cols-12 lg:gap-16">
-        <div className="lg:col-span-5">
+        <div className="min-w-0 lg:col-span-5">
           <h2
             className="font-display text-foreground text-[clamp(1.75rem,3.2vw,2.5rem)] font-semibold leading-[1.05] tracking-[-0.03em]"
             style={{ textWrap: "balance" }}
@@ -41,7 +41,7 @@ export function OutputPreview() {
           </ul>
         </div>
 
-        <div className="lg:col-span-7">
+        <div className="min-w-0 lg:col-span-7">
           <SamplePreview />
         </div>
       </div>
