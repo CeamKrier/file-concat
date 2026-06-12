@@ -222,7 +222,10 @@ function FileTree({
               </button>
             </PopoverTrigger>
             <PopoverContent align="end" side="top" className="w-auto min-w-[10rem] p-3">
-              <ul className="space-y-1.5 text-xs">
+              <ul
+                aria-label="Excluded files by reason"
+                className="space-y-1.5 text-xs"
+              >
                 {excludedBreakdown.map(([label, count]) => (
                   <li key={label} className="flex items-center justify-between gap-6">
                     <span className="text-muted-foreground capitalize">{label}</span>

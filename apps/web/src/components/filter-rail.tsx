@@ -190,6 +190,7 @@ export function FilterRail({
               <button
                 type="button"
                 onClick={onClearOverrides}
+                aria-label="Clear manual file overrides"
                 className="text-muted-foreground hover:text-foreground focus-visible:text-foreground underline underline-offset-2 transition-colors focus-visible:outline-none"
               >
                 clear
@@ -249,6 +250,7 @@ export function FilterRail({
                   key={type}
                   type="button"
                   onClick={() => setConfig({ defaultSourceType: type as SourceType })}
+                  aria-pressed={config.defaultSourceType === type}
                   className={cn(
                     "border-border/70 hover:border-foreground/40 rounded-md border px-2 py-0.5 text-[11.5px] transition-colors",
                     config.defaultSourceType === type
