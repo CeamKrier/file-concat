@@ -35,7 +35,7 @@ export function DocsLayout({ children }: DocsLayoutProps) {
 
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 top-14 z-40 w-72 transform border-r border-border/60 bg-background transition-transform duration-200 ease-out-quart md:sticky md:top-14 md:h-[calc(100vh-3.5rem)] md:translate-x-0",
+            "fixed inset-y-0 left-0 top-0 z-40 w-72 transform border-r border-border/60 bg-background transition-transform duration-200 ease-out-quart md:sticky md:top-0 md:h-screen md:translate-x-0",
             isSidebarOpen ? "translate-x-0" : "-translate-x-full",
             "motion-reduce:transition-none",
           )}

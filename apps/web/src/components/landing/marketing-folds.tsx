@@ -152,21 +152,3 @@ function NetworkPanel() {
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* CLI fold — feature-flagged off until npm publish.                          */
-/* -------------------------------------------------------------------------- */
-
-export function CLIFold() {
-  return (
-    <section className="bg-secondary/40">
-      <div className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6 md:py-24">
-        <h2 className="font-display text-foreground text-[clamp(1.5rem,2.5vw,2rem)] font-semibold tracking-[-0.03em]">
-          Coming to the terminal.
-        </h2>
-        <p className="text-muted-foreground mx-auto mt-4 max-w-[52ch] text-[15px] leading-[1.6]">
-          A CLI sharing the same engine is in progress. Watch the repo for the first publish.
-        </p>
-      </div>
-    </section>
-  );
-}
