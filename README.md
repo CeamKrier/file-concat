@@ -1,192 +1,83 @@
-# 🚀 FileConcat - Free AI File Preparation Tool
+# FileConcat
 
-[![Website](https://img.shields.io/badge/Website-fileconcat.com-blue)](https://fileconcat.com)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+Privacy-first tool that turns a folder of files into one LLM-ready bundle. The browser at [fileconcat.com](https://fileconcat.com) and the [`@fileconcat/cli`](https://www.npmjs.com/package/@fileconcat/cli) npm CLI run the same engine, and nothing leaves your machine on either surface.
 
-**The ultimate free tool for preparing files for AI assistants like ChatGPT, Claude, Gemini, and other Large Language Models (LLMs).**
+## Two surfaces, same engine
 
-🌐 **[Try it now at fileconcat.com](https://fileconcat.com)** - No sign-up required!
+### Browser
 
-## 🎯 Perfect For
+Drop a folder, paste a public GitHub / GitLab / Bitbucket URL, or pick a recent source. The file tree updates live as you tune include / ignore globs; the token counter tracks running cost against any of 200+ LLM models. Copy or download the bundle as XML or Markdown.
 
-- **Developers** sharing codebases with AI assistants
-- **Content creators** combining documentation files
-- **Students** preparing project submissions
-- **Researchers** organizing data files for analysis
-- **Anyone** who needs to combine multiple files for AI processing
+Open at [fileconcat.com](https://fileconcat.com).
 
-## ✨ Key Features
-
-- 🔒 **100% Secure & Offline** - All processing happens in your browser, no data sent to servers
-- 📂 **Drag & Drop Interface** - Simply drag files or folders to get started
-- 🔍 **Smart File Processing** - Automatically detects and handles different file types
-- 📊 **Token Usage Estimation** - Real-time counting for different LLM context limits
-- ⚡️ **GitHub Repository Support** - Import entire repositories directly from GitHub
-- 🎨 **Dark Mode Support** - Easy on the eyes for long coding sessions
-- 📱 **Mobile Friendly** - Works perfectly on all devices
-- 🚀 **Lightning Fast** - No uploads or downloads, instant processing
-- 🎯 **Multi-Format Output** - Single file or chunked output for large projects
-- 📋 **Copy to Clipboard** - One-click copying for immediate use
-
-## 🛠️ Supported File Types
-
-- **Code Files**: `.js`, `.ts`, `.py`, `.java`, `.cpp`, `.c`, `.rb`, `.go`, `.rs`, `.php`, `.css`, `.html`, `.jsx`, `.tsx`, `.vue`, `.svelte`
-- **Documentation**: `.md`, `.txt`, `.rst`, `.adoc`, `.org`
-- **Configuration**: `.json`, `.yaml`, `.yml`, `.toml`, `.ini`, `.env`, `.xml`
-- **Data Files**: `.csv`, `.tsv`, `.sql`
-- **And many more!**
-
-## 🚀 Quick Start
-
-### 💻 Local Development
+### CLI
 
 ```bash
-# Clone the repository
-git clone https://github.com/CeamKrier/file-concat.git
-cd file-concat
-
-# Install dependencies
-npm install
-# or
-pnpm install
+npm install -g @fileconcat/cli
+# or one-off:
+pnpm dlx @fileconcat/cli ./your-folder
 ```
 
-### 🏃‍♂️ Running the Application
+After install the bin is `file-concat`. Node 18 or newer.
 
 ```bash
-# Start development server
-npm run dev
-# or
-pnpm dev
+file-concat ./service                                  # output.xml
+file-concat ./service --style markdown -o ctx.md
+file-concat ./service --parse pdf,docx -o ctx.xml      # extract PDF + DOCX text
+file-concat ./service --stdout | claude -p             # pipe straight to a model
+file-concat ./service --json                           # one-line summary on stdout
 ```
 
-### 🏗️ Building for Production
+Full flag reference: [`packages/cli/README.md`](packages/cli/README.md) and [the CLI docs](https://fileconcat.com/docs/cli-usage).
+
+## What's in the bundle
+
+Project tree at the top so the model sees the structure before any file body. Then every file in its own `<file path="..." language="...">` block (or a fenced Markdown block under `--style markdown`). Binary files, lock files, and build output are dropped by default; the rest is shaped by include / ignore globs.
+
+Opt-in with `--parse` (CLI) or the web tool's parse toggle to extract plain text from PDF, DOCX, XLSX, PPTX, ODT, ODS, and ODP files. Failed parses count as skipped and the run continues.
+
+## Workspace layout
+
+pnpm workspace + Nx (`pnpm-workspace.yaml`, `nx.json`). Three members:
+
+| Path            | Name                | Role                                                              |
+| --------------- | ------------------- | ----------------------------------------------------------------- |
+| `apps/web`      | `@fileconcat/web`   | TanStack Start app deployed to Cloudflare Workers                 |
+| `packages/cli`  | `@fileconcat/cli`   | Commander CLI, published to npm, built with tsup                  |
+| `packages/core` | `@fileconcat/core`  | Shared engine: file processing, path utils, source adapters, models |
+
+`@fileconcat/core` is consumed via `workspace:*` and linked at source so neither the web app nor the CLI needs a build step to pick it up in dev.
+
+## Local development
 
 ```bash
-# Create production build
-npm run build
-# or
-pnpm build
+pnpm install        # bootstrap the workspace
+pnpm dev            # TanStack dev server (apps/web)
+pnpm build          # web production build
+pnpm build:all      # build every package
+pnpm check          # tsc --noEmit per package
+pnpm lint           # eslint .
+pnpm format         # prettier --write .
 ```
 
-## 🔧 Tech Stack
-
-- **Frontend**: React 18 with TypeScript
-- **Build Tool**: Vite for lightning-fast development
-- **Styling**: Tailwind CSS for modern, responsive design
-- **UI Components**: shadcn/ui for beautiful, accessible components
-- **Token Estimation**: tiktoken for accurate LLM token counting
-- **File Processing**: Advanced file type detection and processing
-
-## 🌟 Why Choose FileConcat?
-
-### 🔐 Privacy First
-
-- **No data collection** - Your files never leave your device
-- **No registration required** - Start using immediately
-- **No server uploads** - 100% client-side processing
-
-### 🎯 AI-Optimized
-
-- **Token counting** for GPT-4, Claude, Gemini, and more
-- **Context-aware chunking** for large projects
-- **Smart file filtering** to exclude unnecessary files
-- **Optimized formatting** for better AI comprehension
-
-### 🚀 Developer Friendly
-
-- **GitHub integration** - Import repositories with one click
-- **Batch processing** - Handle hundreds of files at once
-- **Multiple output formats** - Single file or chunked output
-- **Real-time preview** - See exactly what your AI will receive
-
-## 📚 Use Cases
-
-### 👨‍💻 Code Review & Analysis
-
-Perfect for sharing entire codebases with AI assistants for:
-
-- Code review and suggestions
-- Bug hunting and debugging
-- Architecture analysis
-- Documentation generation
-
-### 📖 Documentation & Writing
-
-Combine multiple documents for:
-
-- Content editing and proofreading
-- Style consistency checks
-- Information synthesis
-- Research compilation
-
-### 🎓 Educational Projects
-
-Ideal for students to:
-
-- Submit multi-file assignments
-- Get AI tutoring on complex projects
-- Organize research materials
-- Prepare presentation content
-
-## 🤝 Contributing
-
-We welcome contributions! Here's how you can help:
-
-1. **🐛 Report Bugs** - Found an issue? Let us know!
-2. **💡 Suggest Features** - Have an idea? We'd love to hear it!
-3. **🔧 Submit PRs** - Fix bugs or add features
-4. **📝 Improve Docs** - Help make our documentation better
-5. **⭐ Star the Repo** - Show your support!
-
-### Development Setup
+Core has its own Vitest suite:
 
 ```bash
-# Fork and clone the repo
-git clone https://github.com/CeamKrier/file-concat.git
-
-# Install dependencies
-pnpm install
-
-# Start development server
-pnpm dev
-
-# Run tests
-pnpm test
-
-# Build for production
-pnpm build
+cd packages/core && pnpm vitest run
 ```
 
-## 📄 License
+The CLI runs from source via `tsx`:
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+```bash
+cd packages/cli && pnpm dev -- ./your-folder
+```
 
-## 🙏 Acknowledgments
+## Docs
 
-- Built with love for the AI and developer community
-- Inspired by the need for better AI-human collaboration tools
-- Thanks to all contributors and users who make this project possible
+Long-form docs at [fileconcat.com/docs](https://fileconcat.com/docs). Topics: getting started, the four-layer filter pipeline, GitHub / GitLab / Bitbucket import, token estimation and costs, configuration, and the CLI reference.
 
----
-
-<div align="center">
-
-**[🌐 Visit FileConcat.com](https://fileconcat.com)** | **[🐛 Report Issues](https://github.com/CeamKrier/file-concat/issues)**
-
-Made with ❤️ by developers, for developers
-
-</div>
-
-## Security
-
-FileConcat processes all files locally in your browser. No data is ever sent to any server.
+The browser tool and the CLI share the same filter pipeline and output shape, so the docs apply to both.
 
 ## License
 
-[MIT](LICENSE)
-
----
-
-[Visit FileConcat](https://fileconcat.com)
+[MIT](LICENSE).
