@@ -20,7 +20,7 @@ import { useFileEditor } from "~/hooks/use-file-editor";
 import { useOutputGeneration } from "~/hooks/use-output-generation";
 
 import { DEFAULT_CONFIG, addLineNumbers, generateProjectName } from "@fileconcat/core";
-import { estimateTokenCount } from "~/lib/tokens";
+import { estimateTokenCount, preloadTokenEstimator } from "~/lib/tokens";
 
 const App: React.FC = () => {
   const { config: userConfig, setConfig, exportConfig, importConfig, resetConfig } = useConfig();
@@ -43,11 +43,20 @@ const App: React.FC = () => {
       .map((e) => ({ path: e.path, content: transform ? transform(e.content) : e.content }));
   }, [ingestion.entries, filter.fileStatuses, userConfig.showLineNumbers]);
 
+  // Tiktoken's WASM encoder is loaded lazily on the client (kept out of the
+  // SSR worker bundle to stay under Cloudflare's worker size limit). Until it
+  // resolves, estimateTokenCount returns a bytes/4 approximation; flipping
+  // estimatorReady triggers a recompute with the exact count.
+  const [estimatorReady, setEstimatorReady] = useState(false);
+  useEffect(() => {
+    void preloadTokenEstimator().then(() => setEstimatorReady(true));
+  }, []);
+
   const tokens = useMemo(() => {
     if (includedContents.length === 0) return 0;
     const combined = includedContents.map((c) => c.content).join("\n");
     return estimateTokenCount(combined);
-  }, [includedContents]);
+  }, [includedContents, estimatorReady]);
 
   const output = useOutputGeneration({
     includedContents,

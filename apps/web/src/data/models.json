@@ -1,7 +1,20 @@
 {
-  "lastUpdated": "2026-06-11T22:50:28.994Z",
-  "totalModels": 211,
+  "lastUpdated": "2026-06-12T21:33:05.091Z",
+  "totalModels": 212,
   "textModels": [
+    {
+      "uid": "moonshotai/kimi-k2.7-code",
+      "name": "Kimi K2.7 Code",
+      "providerId": "cloudflare-workers-ai",
+      "providerName": "Cloudflare Workers AI",
+      "contextLimit": 262144,
+      "outputLimit": 262144,
+      "inputCost": 0.95,
+      "outputCost": 4,
+      "hasReasoning": true,
+      "hasToolCall": true,
+      "releaseDate": "2026-06-12"
+    },
     {
       "uid": "anthropic/claude-fable-5",
       "name": "Claude Fable 5",
@@ -1680,6 +1693,19 @@
       "releaseDate": "2025-06-20"
     },
     {
+      "uid": "google/gemini-2.5-flash",
+      "name": "Gemini 2.5 Flash",
+      "providerId": "qihang-ai",
+      "providerName": "QiHang",
+      "contextLimit": 1048576,
+      "outputLimit": 65536,
+      "inputCost": 0.09,
+      "outputCost": 0.71,
+      "hasReasoning": true,
+      "hasToolCall": true,
+      "releaseDate": "2025-06-17"
+    },
+    {
       "uid": "google/gemini-2.5-flash-lite",
       "name": "Gemini 2.5 Flash-Lite",
       "providerId": "poe",
@@ -1688,6 +1714,19 @@
       "outputLimit": 65536,
       "inputCost": 0.07,
       "outputCost": 0.28,
+      "hasReasoning": true,
+      "hasToolCall": true,
+      "releaseDate": "2025-06-17"
+    },
+    {
+      "uid": "google/gemini-2.5-pro",
+      "name": "Gemini 2.5 Pro",
+      "providerId": "poe",
+      "providerName": "Poe",
+      "contextLimit": 1048576,
+      "outputLimit": 65536,
+      "inputCost": 0.87,
+      "outputCost": 7,
       "hasReasoning": true,
       "hasToolCall": true,
       "releaseDate": "2025-06-17"
@@ -1927,32 +1966,6 @@
       "releaseDate": "2025-04"
     },
     {
-      "uid": "google/gemini-2.5-flash",
-      "name": "Gemini 2.5 Flash",
-      "providerId": "qihang-ai",
-      "providerName": "QiHang",
-      "contextLimit": 1048576,
-      "outputLimit": 65536,
-      "inputCost": 0.09,
-      "outputCost": 0.71,
-      "hasReasoning": true,
-      "hasToolCall": true,
-      "releaseDate": "2025-03-20"
-    },
-    {
-      "uid": "google/gemini-2.5-pro",
-      "name": "Gemini 2.5 Pro",
-      "providerId": "poe",
-      "providerName": "Poe",
-      "contextLimit": 1048576,
-      "outputLimit": 65536,
-      "inputCost": 0.87,
-      "outputCost": 7,
-      "hasReasoning": true,
-      "hasToolCall": true,
-      "releaseDate": "2025-03-20"
-    },
-    {
       "uid": "openai/o1-pro",
       "name": "o1-pro",
       "providerId": "poe",
@@ -2122,19 +2135,6 @@
       "releaseDate": "2024-11-20"
     },
     {
-      "uid": "mistral/mistral-large-latest",
-      "name": "Mistral Large (latest)",
-      "providerId": "llmgateway",
-      "providerName": "LLM Gateway",
-      "contextLimit": 262144,
-      "outputLimit": 262144,
-      "inputCost": 0.5,
-      "outputCost": 1.5,
-      "hasReasoning": false,
-      "hasToolCall": true,
-      "releaseDate": "2024-11-01"
-    },
-    {
       "uid": "mistral/mistral-large-2411",
       "name": "Mistral Large 2.1",
       "providerId": "merge-gateway",
@@ -2143,6 +2143,19 @@
       "outputLimit": 16384,
       "inputCost": 2,
       "outputCost": 6,
+      "hasReasoning": false,
+      "hasToolCall": true,
+      "releaseDate": "2024-11-18"
+    },
+    {
+      "uid": "mistral/mistral-large-latest",
+      "name": "Mistral Large (latest)",
+      "providerId": "llmgateway",
+      "providerName": "LLM Gateway",
+      "contextLimit": 262144,
+      "outputLimit": 262144,
+      "inputCost": 0.5,
+      "outputCost": 1.5,
       "hasReasoning": false,
       "hasToolCall": true,
       "releaseDate": "2024-11-01"

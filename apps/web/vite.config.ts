@@ -49,9 +49,15 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        // Manual chunks for better code splitting and caching
+        // Manual chunks for client-side code splitting and caching.
+        // Tiktoken is deliberately NOT listed: it is loaded lazily from the
+        // client via tokens-client.ts and DCE'd out of the SSR worker by
+        // tokens.ts's `import.meta.env.SSR` guard. A forced manualChunks
+        // entry for tiktoken creates an orphan stub in the SSR bundle whose
+        // side-effect `import "./tiktoken_bg.wasm"` drags the 5.4 MiB wasm
+        // into the Cloudflare Worker bundle and busts the 3 MiB free-plan
+        // size limit.
         manualChunks: {
-          tiktoken: ["@dqbd/tiktoken"],
           codemirror: ["@uiw/react-codemirror"],
           "radix-ui": [
             "@radix-ui/react-dialog",

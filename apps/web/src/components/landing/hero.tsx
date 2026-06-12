@@ -1,10 +1,10 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Upload } from "lucide-react";
 
 import { useStagedFiles, type StagedEntry } from "~/components/staged-files-provider";
 import { collectFromDataTransfer } from "~/lib/collect-from-drop";
-import { estimateTokenCount } from "~/lib/tokens";
+import { estimateTokenCount, preloadTokenEstimator } from "~/lib/tokens";
 
 type DropState =
   | { kind: "idle" }
@@ -49,6 +49,13 @@ export function Hero() {
   const dragCounter = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
+
+  // Preload tiktoken WASM in the background so the staged drop summary shows
+  // an exact count instead of the bytes/4 approximation. Lives client-side
+  // only — the import is DCE'd out of the SSR worker.
+  useEffect(() => {
+    void preloadTokenEstimator();
+  }, []);
 
   const finishCollection = useCallback((entries: StagedEntry[]) => {
     if (entries.length === 0) {

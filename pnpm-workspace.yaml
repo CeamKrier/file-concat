@@ -1,7 +1,10 @@
 packages:
-  - "apps/*"
-  - "packages/*"
+  - apps/*
+  - packages/*
+
+ignoredBuiltDependencies:
+  - tesseract.js
 
 onlyBuiltDependencies:
-  - "@swc/core"
+  - '@swc/core'
   - esbuild
