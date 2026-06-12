@@ -6,6 +6,7 @@ import { Hero } from "~/components/landing/hero";
 import { OutputPreview } from "~/components/landing/output-preview";
 import { Audience, PrivacyFold } from "~/components/landing/marketing-folds";
 import { CLIFold } from "~/components/landing/cli-fold";
+import { ClosingFold } from "~/components/landing/closing-fold";
 import { generateSEOMeta } from "~/lib/seo";
 
 export const Route = createFileRoute("/")({
@@ -38,6 +39,7 @@ function LandingPage() {
         <Audience />
         <CLIFold />
         <PrivacyFold />
+        <ClosingFold />
       </main>
       <SiteFooter />
     </div>
