@@ -34,7 +34,7 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/fileconcat/file-concatenator.git",
+        "url": "https://github.com/CeamKrier/file-concat.git",
         "directory": "packages/cli"
     },
     "homepage": "https://fileconcat.com",
