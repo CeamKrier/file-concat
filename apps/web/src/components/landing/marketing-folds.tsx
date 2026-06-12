@@ -1,58 +1,45 @@
 /* -------------------------------------------------------------------------- */
-/* Audience — who reaches for it. Quiet 4-up row.                             */
+/* Audience — the recurring moment. Prose, not a persona grid: the page's     */
+/* only "people" beat names the four audiences inline so reach stays broad    */
+/* without dropping a SaaS-shaped 4-up into the rhythm.                       */
 /* -------------------------------------------------------------------------- */
 
 export function Audience() {
   return (
     <section>
-      <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 md:py-28">
-        <div className="grid grid-cols-1 gap-12 md:grid-cols-12 md:gap-10">
-          <header className="md:col-span-4">
+      <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 md:py-28 lg:py-32">
+        <div className="grid gap-10 lg:grid-cols-12 lg:items-start lg:gap-16">
+          <header className="lg:col-span-5">
             <h2
               className="font-display text-foreground text-[clamp(1.625rem,2.75vw,2.25rem)] font-semibold leading-[1.05] tracking-[-0.03em]"
               style={{ textWrap: "balance" }}
             >
-              Who reaches for it.
+              When you reach for it.
             </h2>
-            <p className="text-muted-foreground mt-5 max-w-[36ch] text-[15px] leading-[1.6]">
-              Built for anyone who needs an LLM to see a whole project at once.
+            <p className="text-muted-foreground mt-5 max-w-[34ch] text-[15px] leading-[1.6]">
+              The moment looks the same across very different work.
             </p>
           </header>
 
-          <ul className="grid grid-cols-1 gap-x-10 gap-y-7 sm:grid-cols-2 md:col-span-8 md:grid-cols-2 md:gap-y-8">
-            <AudienceItem
-              who="Developers"
-              line="Sharing a whole repo with Claude or GPT for code review, refactors, or debugging."
-            />
-            <AudienceItem
-              who="Researchers"
-              line="Stitching paper sections, notes, and citations into one blob for synthesis."
-            />
-            <AudienceItem
-              who="Writers"
-              line="Editing across many markdown files at once without losing context."
-            />
-            <AudienceItem
-              who="Students"
-              line="Bundling multi-file assignments to get help on the whole thing, not file by file."
-            />
-          </ul>
+          <div className="lg:col-span-7">
+            <p
+              className="text-foreground text-[15.5px] leading-[1.7]"
+              style={{ textWrap: "pretty" }}
+            >
+              You have files scattered across folders, a clear question for the model, and no
+              patience for shuttle-copying one file at a time.
+            </p>
+            <p
+              className="text-muted-foreground mt-5 text-[15px] leading-[1.65]"
+              style={{ textWrap: "pretty" }}
+            >
+              Whether that's a repo headed for code review, paper sections for a synthesis pass,
+              markdown chapters you're editing across, or an assignment built from many files.
+            </p>
+          </div>
         </div>
       </div>
     </section>
-  );
-}
-
-function AudienceItem({ who, line }: { who: string; line: string }) {
-  return (
-    <li>
-      <p className="font-display text-foreground text-[15px] font-semibold tracking-[-0.01em]">
-        {who}
-      </p>
-      <p className="text-muted-foreground mt-2 max-w-[34ch] text-[14.5px] leading-[1.55]">
-        {line}
-      </p>
-    </li>
   );
 }
 
