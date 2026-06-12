@@ -1,0 +1,43 @@
+# Bitbucket import
+
+Paste a public Bitbucket repository URL into the Source input and the
+workbench fetches the project tree.
+
+## Supported URL shapes
+
+The Bitbucket adapter at
+`packages/core/src/sources/adapters/bitbucket.ts` matches
+`bitbucket.org` URLs only. Bitbucket Server and Data Center (the
+self-hosted products) are not supported.
+
+```text
+https://bitbucket.org/workspace/repo
+https://bitbucket.org/workspace/repo/src/branch
+https://bitbucket.org/workspace/repo/src/branch/subdirectory
+```
+
+A trailing `.git` is tolerated and stripped. When the branch is
+omitted, the workspace's `mainbranch` is queried via the API and used
+as the default. When a subdirectory is included, only files at or
+under that path are imported.
+
+The Bitbucket workspace name fills the same slot as `owner` does for
+GitHub and GitLab URLs.
+
+## Rate limits and errors
+
+The Bitbucket REST API has per-IP rate limits comparable to the
+other hosts. Errors surface through the same `classifyResponseError`
+helper used by the GitHub and GitLab adapters, with distinct wording
+for 401, 403, and 429 responses.
+
+Public repositories work without authentication. Private repositories
+are not accessible at the time of writing; token-authenticated
+imports are tracked as separate work.
+
+## See also
+
+- [File filtering](/docs/file-filtering) for narrowing the imported
+  tree.
+- [Token estimation](/docs/token-estimation) for tracking the token
+  budget.

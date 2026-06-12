@@ -1,0 +1,48 @@
+# FileConcat
+
+> Privacy-first tool that concatenates source files into one LLM-ready blob.
+> Runs entirely in the browser, ships as both a web app at fileconcat.com
+> and a published npm CLI `@fileconcat/cli` (bin: `file-concat`).
+
+These pages cover what the tool does, how to feed files into it, how the
+filter pipeline decides what survives, and how to read the token counter.
+Source code, schemas, and the CLI implementation live in the linked repo.
+
+Full content as a single file: https://fileconcat.com/llms-full.txt
+
+## Getting started
+
+- [Introduction](https://fileconcat.com/docs): FileConcat is a privacy-first tool that packs the files you pick into a single LLM-ready blob. The output is one XML or Markdown document you can paste into Claude, ChatGPT, Gemini, or any other assistant that takes long-form context.
+- [Quick start](https://fileconcat.com/docs/quick-start): You can be looking at a tokenised, filtered project blob in under a minute. The two paths below cover almost every use.
+
+## Sources
+
+- [GitHub import](https://fileconcat.com/docs/github-import): Paste a public GitHub repository URL into the Source input and the workbench fetches the file tree on demand. No GitHub account needed, and no servers in between.
+- [GitLab import](https://fileconcat.com/docs/gitlab-import): Paste a public GitLab repository URL into the Source input and the workbench fetches the project tree.
+- [Bitbucket import](https://fileconcat.com/docs/bitbucket-import): Paste a public Bitbucket repository URL into the Source input and the workbench fetches the project tree.
+
+## Reference
+
+- [File filtering](https://fileconcat.com/docs/file-filtering): The FilterRail in the workbench is the surface for narrowing your output to the files you actually want to share with an assistant. Everything you type here applies live: the file tree updates as you type, with no Apply button.
+- [Filter precedence](https://fileconcat.com/docs/filter-precedence): FileConcat decides which files end up in your output through a four-layer pipeline. Each layer runs in order and the next one only sees what survived the previous. Knowing the order makes it easier to predict why a file appears or disappears when you type a pattern.
+- [Token estimation](https://fileconcat.com/docs/token-estimation): The token counter in the workbench tells you how much of your model's context window the current output will consume. It updates live as files come and go.
+- [Token costs](https://fileconcat.com/docs/token-costs): The workbench has knobs that change how much of your model's context window the output consumes. Some moves cost tokens rather than save them. This page tells you which is which, with measured numbers where they exist.
+- [Configuration](https://fileconcat.com/docs/configuration): FileConcat keeps configuration in three places: the ActionBar Options popover (per-output knobs), the FilterRail Advanced section (filtering and persistence knobs), and `localStorage` (everything that survives a page reload). This page documents each one in the order you encounter it.
+- [CLI usage](https://fileconcat.com/docs/cli-usage): The `file-concat` CLI runs the same `@fileconcat/core` library that powers the web app. Same filtering semantics, same output format, no browser required.
+
+## Source code
+
+The FileConcat implementation is open source at https://github.com/CeamKrier/file-concat. The repo is a
+pnpm workspace with three members: `apps/web` (TanStack Start app deployed
+to Cloudflare Workers), `packages/cli` (the published CLI), and
+`packages/core` (the shared library both surfaces use).
+
+To grab the full source as a single LLM-ready document, FileConcat can
+ingest its own repository. Two ways:
+
+- Web: open https://fileconcat.com, switch to the GitHub tab, paste
+  `https://github.com/CeamKrier/file-concat`, click Fetch Files, then Copy or Download.
+- CLI: clone the repo, then run
+  `pnpm dlx @fileconcat/cli ./file-concat --style markdown --output context.md`
+  (or install globally with `pnpm add -g @fileconcat/cli`).
+

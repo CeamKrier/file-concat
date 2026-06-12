@@ -1,0 +1,80 @@
+# File filtering
+
+The FilterRail in the workbench is the surface for narrowing your output
+to the files you actually want to share with an assistant. Everything you
+type here applies live: the file tree updates as you type, with no Apply
+button.
+
+## Include and Ignore textareas
+
+Two textareas drive pattern filtering:
+
+- **Include** is empty by default. When you put glob patterns in it,
+  only files matching at least one of them survive.
+- **Ignore** carries a default list (the same list the CLI uses) of
+  common build outputs, lockfiles, and binary directories. Patterns you
+  add here exclude their matches.
+
+Both textareas accept a **comma-separated list of globs**. Newlines
+between commas are fine for readability. The two interact in one
+surprising way described in
+[Filter precedence](/docs/filter-precedence): if Include has any
+content, Ignore is skipped entirely. Treat Include as an exclusive
+whitelist when you use it.
+
+## Pattern semantics
+
+Patterns are matched against each file's path using the `pathMatches`
+helper in `packages/core/src/path-utils/glob-match.ts`. Two rules cover
+every case:
+
+- **A bare directory or filename pattern matches anywhere in the path.**
+  Typing `node_modules` matches `apps/web/node_modules/react/index.js`,
+  not just a top-level `node_modules` directory. The same goes for
+  `*.log`, which matches every `.log` file at any depth.
+- **A slashed pattern matches the full path or any suffix obtained by
+  stripping leading directories.** Typing `src/**/*.ts` matches both
+  `src/app.ts` and `myrepo/src/app.ts`. This lets patterns work
+  whether you dropped a folder by its repo name or by its inner `src/`.
+
+A few examples that catch what most projects need:
+
+```text
+node_modules, dist, build, .git, *.lock, *.log
+```
+
+```text
+src/**/*.ts, src/**/*.tsx, README.md
+```
+
+## Presets
+
+Above the textareas, a row of preset chips covers common stacks. Each
+chip rewrites both textareas in one click: the Include patterns and the
+Ignore patterns are replaced, not added to. Click a chip you already
+have selected and the textareas return to whatever was in them before.
+
+Presets are baked into the build, not user-saveable. The export and
+import buttons in the Advanced section serialise the whole
+`UserConfig` (including your current patterns) to a JSON file you can
+share or restore.
+
+## Manual file toggles
+
+Each file in the tree has a checkbox that overrides the pattern
+decision for that one file. Manual toggles are sticky: if you tick a
+checkbox to include a file, then later edit your Ignore textarea, the
+file stays included.
+
+The counter line beneath the textareas shows two numbers: how many
+files are included in total, and how many of them are kept that way by
+an explicit manual override. A `clear` link next to the override count
+resets all manual decisions, leaving pattern filtering in charge again.
+
+## See also
+
+- [Filter precedence](/docs/filter-precedence) for the full ordering
+  of pruning, validation, patterns, and overrides.
+- [Configuration](/docs/configuration) for the Advanced section's
+  other knobs (max file size, default remote source, config
+  export/import).

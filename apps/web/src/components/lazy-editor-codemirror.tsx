@@ -3,7 +3,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorView } from "@codemirror/view";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea } from "~/components/ui/scroll-area";
 
 export interface LazyEditorProps {
   value: string;

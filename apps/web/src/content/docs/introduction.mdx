@@ -1,0 +1,43 @@
+# Introduction
+
+FileConcat is a privacy-first tool that packs the files you pick into a
+single LLM-ready blob. The output is one XML or Markdown document you
+can paste into Claude, ChatGPT, Gemini, or any other assistant that
+takes long-form context.
+
+## What it gives you
+
+- A workbench at [fileconcat.com](https://fileconcat.com) for drag,
+  drop, filter, and copy.
+- A published npm CLI (`pnpm add -g @fileconcat/cli`, or
+  `npx @fileconcat/cli`) for the same flow from a shell.
+- Live token counting against the tokenizer most modern LLMs use, so
+  you know how much of your context window the output consumes
+  before you paste it.
+
+## How it works
+
+Everything runs in your browser. There is no upload step, no
+intermediate server, and no telemetry on the files you process. The
+core library (`@fileconcat/core`) is the same in the web app and the
+CLI; what differs is the surface you drive it from.
+
+## Supported sources
+
+You can feed the workbench from any of these:
+
+- Local files and folders, by drag-and-drop or file picker
+- GitHub repositories, including subdirectories
+- GitHub Gists
+- GitLab repositories, including nested groups
+- GitLab Snippets
+- Bitbucket repositories
+- Any other public URL via the URL fallback adapter
+
+## Next steps
+
+- [Quick start](/docs/quick-start) walks through the first import.
+- [File filtering](/docs/file-filtering) covers the glob patterns and
+  preset chips that narrow the output.
+- [Token estimation](/docs/token-estimation) explains the counter and
+  the model selector.

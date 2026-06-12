@@ -27,18 +27,32 @@ export type ProcessingConfig = {
   excludeBinaryFiles: boolean;
 };
 
+// Import SourceType for UserConfig
+import type { SourceType } from "./sources/types";
+
+/**
+ * Current schema version for {@link UserConfig}. Bump when the persisted
+ * shape changes and update the `migrateConfig` handler in the web app
+ * accordingly. The literal lives here so the type definition and every
+ * migration consumer share one source of truth.
+ */
+export const CONFIG_VERSION = 5;
+
 // User configuration with schema versioning for localStorage
 export type UserConfig = {
-  version: 2;
+  version: typeof CONFIG_VERSION;
   maxFileSizeMB: number;
   // Pattern filtering (glob syntax)
   includePatterns: string;
   ignorePatterns: string;
   // File processing options
-  removeEmptyLines: boolean;
   showLineNumbers: boolean;
   // Output preferences
   defaultOutputFormat: "single" | "multi";
+  outputStyle: "xml" | "markdown";
+  // Source preferences
+  autoSwitchSource: boolean;
+  defaultSourceType: SourceType;
 };
 
 export type TokenCount = {
@@ -51,6 +65,18 @@ export type LLMContextLimit = {
   limit: number;
   inputLimit?: number;
 };
+
+// Import type for helper function
+import type { FilteredModel } from "./models/types";
+
+// Helper: FilteredModel'den LLMContextLimit olusturma (backward compat)
+export function modelToContextLimit(model: FilteredModel): LLMContextLimit {
+  return {
+    name: `${model.providerName} ${model.name}`,
+    limit: model.contextLimit,
+    inputLimit: model.contextLimit,
+  };
+}
 
 export type OutputFormat = "single" | "multi";
 

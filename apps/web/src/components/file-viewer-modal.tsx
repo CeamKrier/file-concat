@@ -1,6 +1,6 @@
 import React from "react";
-import FileViewerContent from "@/components/file-viewer-content";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import FileViewerContent from "~/components/file-viewer-content";
+import { Dialog, DialogContent, DialogTitle } from "~/components/ui/dialog";
 
 interface FileViewerModalProps {
   open: boolean;

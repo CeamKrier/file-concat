@@ -1,0 +1,61 @@
+# Token costs
+
+The workbench has knobs that change how much of your model's context
+window the output consumes. Some moves cost tokens rather than save
+them. This page tells you which is which, with measured numbers where
+they exist.
+
+## Show line numbers
+
+The **Show line numbers** toggle in the FilterRail Advanced section
+prefixes every line of every file with its 1-based line number. The
+toggle's own help text says it the plainest way possible: "Increases
+token count by roughly 40 to 50 percent."
+
+The transform itself lives in
+`packages/core/src/file-processing/transform.ts` as `addLineNumbers`.
+Measured against 8 representative repo files on 2026-06-07, the
+average increase was 44.83 percent. The cost is real on every file.
+
+Show line numbers earns its place when you want the model to refer to a
+specific line in a follow-up question. It is a navigation aid, not a
+saving. Leave it off unless line references will appear in your prompts.
+
+## Output format
+
+The **Format** group in the ActionBar Options popover offers two choices:
+
+- **Single file** packs everything into one blob, ready to paste into a
+  single prompt.
+- **Multi-part** splits the output into chunks aimed at fitting your
+  model's per-turn input limit. The popover notes that the
+  recommendation switches above roughly 200K tokens.
+
+Multi-part adds a per-chunk header so the model knows the chunks belong
+to one project. The overhead per chunk is small relative to the file
+contents, and the tradeoff buys you the ability to feed projects that
+would otherwise overflow your context window in one shot.
+
+## Output style
+
+The **Style** group offers **XML** and **Markdown**. The XML style
+wraps each file in named tags and tends to read better for Claude. The
+Markdown style uses fenced code blocks and tends to read better for
+chat-style assistants that emit Markdown themselves.
+
+There is no measured token delta between the two styles worth quoting
+here. The difference in practice is small. Pick whichever your
+assistant handles better.
+
+## Chunk size (multi-part only)
+
+When **Multi-part** is the selected format, a **Chunk size** input
+appears. Smaller chunks produce more parts, which means more headers
+and slightly more total tokens but also more flexibility in feeding
+the output across multiple turns. The default sits at the value
+configured for the per-file size cap.
+
+## Cross-link
+
+For the tokenizer itself, the 1 MB self-cap, and the model selector,
+see [Token estimation](/docs/token-estimation).

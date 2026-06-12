@@ -1,30 +1,68 @@
 import { useState, useEffect, useCallback } from "react";
 import type { UserConfig } from "@fileconcat/core";
-import { DEFAULT_IGNORE_STRING } from "@fileconcat/core";
+import { CONFIG_VERSION, DEFAULT_IGNORE_STRING } from "@fileconcat/core";
 
 const STORAGE_KEY = "fileconcat-config";
-const CURRENT_VERSION = 2;
 
 const DEFAULT_CONFIG: UserConfig = {
-  version: 2,
+  version: CONFIG_VERSION,
   maxFileSizeMB: 32,
   includePatterns: "",
   ignorePatterns: DEFAULT_IGNORE_STRING,
-  removeEmptyLines: false,
   showLineNumbers: false,
   defaultOutputFormat: "single",
+  outputStyle: "xml",
+  autoSwitchSource: false,
+  defaultSourceType: "github",
 };
 
-// Migration from v1 to v2
+function pickString(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.length > 0 ? value : fallback;
+}
+
+function pickBoolean(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function pickNumber(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function pickEnum<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+  return (allowed as readonly string[]).includes(value as string) ? (value as T) : fallback;
+}
+
+function pickIgnorePatterns(raw: Record<string, unknown>): string {
+  // V3-era schema stored ignore patterns as a string array under
+  // `customIgnorePatterns`. Newer schemas use a comma-separated string at
+  // `ignorePatterns`. Honour either, falling back to defaults.
+  if (Array.isArray(raw.customIgnorePatterns)) return raw.customIgnorePatterns.join(", ");
+  return pickString(raw.ignorePatterns, DEFAULT_IGNORE_STRING);
+}
+
+const OUTPUT_STYLES = ["xml", "markdown"] as const;
+const OUTPUT_FORMATS = ["single", "multi"] as const;
+const SOURCE_TYPES = ["github", "gitlab", "bitbucket", "gist", "url", "local"] as const;
+
 function migrateConfig(oldConfig: Record<string, unknown>): UserConfig {
   return {
-    ...DEFAULT_CONFIG,
-    maxFileSizeMB: (oldConfig.maxFileSizeMB as number) || DEFAULT_CONFIG.maxFileSizeMB,
-    defaultOutputFormat: (oldConfig.defaultOutputFormat as "single" | "multi") || DEFAULT_CONFIG.defaultOutputFormat,
-    // Convert old customIgnorePatterns array to string if exists, otherwise use defaults
-    ignorePatterns: Array.isArray(oldConfig.customIgnorePatterns)
-      ? oldConfig.customIgnorePatterns.join(", ")
-      : DEFAULT_IGNORE_STRING,
+    version: CONFIG_VERSION,
+    maxFileSizeMB: pickNumber(oldConfig.maxFileSizeMB, DEFAULT_CONFIG.maxFileSizeMB),
+    includePatterns: pickString(oldConfig.includePatterns, DEFAULT_CONFIG.includePatterns),
+    ignorePatterns: pickIgnorePatterns(oldConfig),
+    showLineNumbers: pickBoolean(oldConfig.showLineNumbers, DEFAULT_CONFIG.showLineNumbers),
+    defaultOutputFormat: pickEnum(
+      oldConfig.defaultOutputFormat,
+      OUTPUT_FORMATS,
+      DEFAULT_CONFIG.defaultOutputFormat,
+    ),
+    outputStyle: pickEnum(oldConfig.outputStyle, OUTPUT_STYLES, DEFAULT_CONFIG.outputStyle),
+    autoSwitchSource: pickBoolean(oldConfig.autoSwitchSource, DEFAULT_CONFIG.autoSwitchSource),
+    defaultSourceType: pickEnum(
+      oldConfig.defaultSourceType,
+      SOURCE_TYPES,
+      DEFAULT_CONFIG.defaultSourceType,
+    ),
   };
 }
 
@@ -41,7 +79,7 @@ export function useConfig() {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed.version === CURRENT_VERSION) {
+        if (parsed.version === CONFIG_VERSION) {
           setConfigState(parsed as UserConfig);
         } else {
           // Migrate from older version
@@ -89,13 +127,14 @@ export function useConfig() {
       reader.onload = (e) => {
         try {
           const imported = JSON.parse(e.target?.result as string);
-          const migrated = imported.version === CURRENT_VERSION
-            ? imported as UserConfig
-            : migrateConfig(imported);
+          const migrated =
+            imported.version === CONFIG_VERSION
+              ? (imported as UserConfig)
+              : migrateConfig(imported);
           setConfigState(migrated);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
           resolve();
-        } catch (error) {
+        } catch {
           reject(new Error("Failed to parse config file"));
         }
       };

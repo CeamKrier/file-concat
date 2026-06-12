@@ -4,12 +4,5 @@ Allow: /
 # Sitemap
 Sitemap: https://fileconcat.com/sitemap.xml
 
-# Crawl delay (optional - helps with server load)
-Crawl-delay: 1
-
-# Block access to source maps and config files
-Disallow: /*.map$
-Disallow: /src/
-Disallow: /*.config.js
-Disallow: /*.config.ts
-Disallow: /node_modules/
+# Block API routes
+Disallow: /api/

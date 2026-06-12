@@ -1,9 +1,9 @@
 import React from "react";
 import { Minus, Plus } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { Button } from "~/components/ui/button";
+import { Label } from "~/components/ui/label";
+import { Input } from "~/components/ui/input";
 
 interface OutputSettingsProps {
   maxFileSize: number;

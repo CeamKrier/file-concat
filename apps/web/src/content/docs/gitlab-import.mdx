@@ -1,0 +1,59 @@
+# GitLab import
+
+Paste a public GitLab repository URL into the Source input and the
+workbench fetches the project tree.
+
+## Supported URL shapes
+
+The GitLab adapter at `packages/core/src/sources/adapters/gitlab.ts`
+matches `gitlab.com` URLs only. Self-hosted GitLab instances are not
+recognised.
+
+```text
+https://gitlab.com/owner/repo
+https://gitlab.com/group/subgroup/project
+https://gitlab.com/owner/repo/-/tree/branch
+https://gitlab.com/owner/repo/-/tree/branch/subdirectory
+```
+
+GitLab supports nested groups, which means the "owner" segment can
+itself be a path of group and subgroup names. The adapter handles up
+to any depth of nesting before the `-/tree/...` marker. A trailing
+`.git` is tolerated and stripped.
+
+When a branch is omitted, the project's default branch is used. When
+a subdirectory is included, only files at or under that path are
+imported.
+
+## Rate limits and errors
+
+The GitLab REST API has its own per-IP rate limit (smaller than
+GitHub's for most endpoints). When a request is denied, the
+workbench surfaces a message produced by `classifyResponseError`;
+status 401, 403, and 429 each carry distinct wording.
+
+Public repositories work without authentication. Private repositories
+are not accessible at the time of writing; token-authenticated
+imports are tracked as separate work.
+
+## Snippets
+
+GitLab Snippets do not go to the GitLab adapter. They go to the Gist
+adapter, which handles both GitHub Gists and GitLab Snippets behind
+one URL shape group. Recognised forms:
+
+```text
+https://gitlab.com/snippets/12345
+https://gitlab.com/-/snippets/12345
+https://gitlab.com/owner/snippets/12345
+https://gitlab.com/owner/-/snippets/12345
+```
+
+Paste a Snippet URL into the same Source input and the workbench
+routes it automatically.
+
+## See also
+
+- [File filtering](/docs/file-filtering) to trim the imported tree
+  before output assembly.
+- [Token estimation](/docs/token-estimation) for the token budget.
