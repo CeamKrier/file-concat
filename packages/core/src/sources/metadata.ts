@@ -19,7 +19,7 @@ export const SOURCE_METADATA: Record<SourceType, SourceMeta> = {
     icon: "gitlab",
     placeholder: "https://gitlab.com/owner/repo",
     helpText: "Public GitLab repository.",
-    examples: ["https://gitlab.com/gitlab-org/gitlab", "https://gitlab.com/inkscape/inkscape"],
+    examples: ["https://gitlab.com/gitlab-org/cli", "https://gitlab.com/libeigen/eigen"],
   },
   bitbucket: {
     type: "bitbucket",
@@ -27,7 +27,7 @@ export const SOURCE_METADATA: Record<SourceType, SourceMeta> = {
     icon: "bitbucket",
     placeholder: "https://bitbucket.org/workspace/repo",
     helpText: "Public Bitbucket repository.",
-    examples: ["https://bitbucket.org/atlassian/python-bitbucket"],
+    examples: ["https://bitbucket.org/tildeslash/monit"],
   },
   gist: {
     type: "gist",
