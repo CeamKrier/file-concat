@@ -3,6 +3,7 @@ import type { SourceType } from "@fileconcat/core";
 
 const STORAGE_KEY = "fileconcat-recent-sources";
 const MAX_RECENT = 10;
+const RECENT_SOURCES_VERSION = 1;
 
 export interface RecentSource {
   /** Source URL */
@@ -13,6 +14,30 @@ export interface RecentSource {
   name: string;
   /** Timestamp */
   timestamp: number;
+}
+
+interface StoredEnvelope {
+  version: number;
+  sources: RecentSource[];
+}
+
+/**
+ * Read the stored payload, accepting either the current envelope shape
+ * or the legacy bare-array shape that predates versioning. Filtering /
+ * sorting / capping happens at the call site.
+ */
+function readStoredSources(raw: string): RecentSource[] {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const envelope = parsed as Partial<StoredEnvelope>;
+      if (Array.isArray(envelope.sources)) return envelope.sources;
+    }
+    if (Array.isArray(parsed)) return parsed as RecentSource[];
+  } catch {
+    // fall through to empty
+  }
+  return [];
 }
 
 interface UseRecentSourcesReturn {
@@ -71,9 +96,7 @@ export function useRecentSources(): UseRecentSourcesReturn {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored) as RecentSource[];
-        // Filter out invalid entries and sort by timestamp
-        const valid = parsed
+        const valid = readStoredSources(stored)
           .filter((s) => s.url && s.type && s.timestamp)
           .sort((a, b) => b.timestamp - a.timestamp)
           .slice(0, MAX_RECENT);
@@ -87,7 +110,11 @@ export function useRecentSources(): UseRecentSourcesReturn {
   // Save to localStorage
   const save = useCallback((newSources: RecentSource[]) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newSources));
+      const envelope: StoredEnvelope = {
+        version: RECENT_SOURCES_VERSION,
+        sources: newSources,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(envelope));
     } catch (e) {
       console.warn("Failed to save recent sources:", e);
     }
