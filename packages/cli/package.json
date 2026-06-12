@@ -19,7 +19,8 @@
         "build": "tsup",
         "prepublishOnly": "pnpm run build",
         "check": "tsc --noEmit",
-        "test": "pnpm run build && vitest run"
+        "test": "pnpm run build && vitest run",
+        "publish": "pnpm publish --access public --no-git-checks"
     },
     "keywords": [
         "cli",
