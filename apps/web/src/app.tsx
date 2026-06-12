@@ -328,14 +328,14 @@ const App: React.FC = () => {
           format={output.selectedFormat}
           style={userConfig.outputStyle}
           recommendedFormat={output.recommendedFormat}
-          maxFileSizeMB={output.maxFileSizeMB}
+          chunkSizeKB={output.chunkSizeKB}
           estimations={output.estimations}
           isProcessing={isBusy}
           canEmit={output.canEmit}
           isCopied={output.isCopied}
           onSelectFormat={output.setUserPickedFormat}
           onSelectStyle={(style) => setConfig({ outputStyle: style })}
-          onChangeMaxFileSize={output.setMaxFileSizeMB}
+          onChangeChunkSize={output.setChunkSizeKB}
           onCopy={output.copy}
           onDownload={output.download}
         />

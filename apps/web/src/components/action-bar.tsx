@@ -11,7 +11,7 @@ export interface ActionBarProps {
   format: OutputFormat;
   style: OutputStyle;
   recommendedFormat: OutputFormat;
-  maxFileSizeMB: number;
+  chunkSizeKB: number;
   estimations: { single: string; multiple: string };
 
   isProcessing: boolean;
@@ -20,7 +20,7 @@ export interface ActionBarProps {
 
   onSelectFormat: (format: OutputFormat) => void;
   onSelectStyle: (style: OutputStyle) => void;
-  onChangeMaxFileSize: (value: number) => void;
+  onChangeChunkSize: (value: number) => void;
   onCopy: () => void;
   onDownload: () => void;
 }
@@ -30,14 +30,14 @@ export function ActionBar({
   format,
   style,
   recommendedFormat,
-  maxFileSizeMB,
+  chunkSizeKB,
   estimations,
   isProcessing,
   canEmit,
   isCopied,
   onSelectFormat,
   onSelectStyle,
-  onChangeMaxFileSize,
+  onChangeChunkSize,
   onCopy,
   onDownload,
 }: ActionBarProps) {
@@ -128,18 +128,18 @@ export function ActionBar({
               {format === "multi" && (
                 <div className="space-y-1.5">
                   <label
-                    htmlFor="actionbar-max-size"
+                    htmlFor="actionbar-chunk-size"
                     className="text-foreground text-[11px] font-semibold uppercase tracking-[0.08em]"
                   >
                     Chunk size (KB)
                   </label>
                   <input
-                    id="actionbar-max-size"
+                    id="actionbar-chunk-size"
                     type="number"
                     min={1}
                     max={1024}
-                    value={maxFileSizeMB}
-                    onChange={(e) => onChangeMaxFileSize(Number(e.target.value))}
+                    value={chunkSizeKB}
+                    onChange={(e) => onChangeChunkSize(Number(e.target.value))}
                     className="bg-background border-border/70 focus-visible:border-foreground/40 focus-visible:ring-ring w-full max-w-[8rem] rounded-md border px-2.5 py-1 font-mono text-[12px] tabular-nums focus-visible:outline-none focus-visible:ring-2"
                   />
                   <p className="text-muted-foreground text-[11px]">

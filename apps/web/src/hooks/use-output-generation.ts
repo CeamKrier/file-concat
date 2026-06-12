@@ -25,8 +25,8 @@ export interface OutputGenerationInputs {
 }
 
 export interface OutputGeneration {
-  maxFileSizeMB: number;
-  setMaxFileSizeMB: (mb: number) => void;
+  chunkSizeKB: number;
+  setChunkSizeKB: (kb: number) => void;
   recommendedFormat: OutputFormat;
   selectedFormat: OutputFormat;
   setUserPickedFormat: (format: OutputFormat) => void;
@@ -45,7 +45,7 @@ export function useOutputGeneration({
   sourceUrl,
   outputStyle,
 }: OutputGenerationInputs): OutputGeneration {
-  const [maxFileSizeMB, setMaxFileSizeMB] = useState(32);
+  const [chunkSizeKB, setChunkSizeKB] = useState(32);
   const [userPickedFormat, setUserPickedFormat] = useState<OutputFormat | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -54,11 +54,8 @@ export function useOutputGeneration({
   const selectedFormat: OutputFormat = userPickedFormat ?? recommendedFormat;
 
   const chunks = useMemo(
-    // Preserves the pre-refactor semantics: `maxFileSizeMB * 1024` was passed
-    // straight to the chunk byte target. Despite the "MB" label users see, the
-    // resulting cap is effectively KB-scale (32 → 32 KB). See M4 in CONTEXT.
-    () => chunkContents(includedContents, maxFileSizeMB * 1024),
-    [includedContents, maxFileSizeMB],
+    () => chunkContents(includedContents, chunkSizeKB * 1024),
+    [includedContents, chunkSizeKB],
   );
 
   const estimations = useMemo(() => {
@@ -142,8 +139,8 @@ export function useOutputGeneration({
   }, []);
 
   return {
-    maxFileSizeMB,
-    setMaxFileSizeMB,
+    chunkSizeKB,
+    setChunkSizeKB,
     recommendedFormat,
     selectedFormat,
     setUserPickedFormat: (format: OutputFormat) => setUserPickedFormat(format),
