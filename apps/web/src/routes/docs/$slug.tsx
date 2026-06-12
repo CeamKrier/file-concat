@@ -1,19 +1,24 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
+import type { ComponentType } from "react";
 import { DocsLayout } from "~/components/docs-layout";
-import { lazy, Suspense } from "react";
 import { generateSEOMeta } from "~/lib/seo";
 
-// Relative path required — Vite's import.meta.glob does not resolve
-// path aliases like `~/` in the glob pattern.
-const docsModules = import.meta.glob("../../content/docs/*.mdx");
+// Eager glob bakes every MDX into this route chunk so SSR/prerender returns
+// the rendered content in the first HTML chunk, no Suspense fallback flash.
+// Relative path required: Vite's import.meta.glob does not resolve `~/`.
+const docsModules = import.meta.glob<{ default: ComponentType }>(
+  "../../content/docs/*.mdx",
+  { eager: true },
+);
+
+function moduleForSlug(slug: string): ComponentType | null {
+  return docsModules[`../../content/docs/${slug}.mdx`]?.default ?? null;
+}
 
 export const Route = createFileRoute("/docs/$slug")({
   component: DocsPage,
-  loader: async ({ params }) => {
-    const modulePath = `../../content/docs/${params.slug}.mdx`;
-    if (!docsModules[modulePath]) {
-      throw notFound();
-    }
+  loader: ({ params }) => {
+    if (!moduleForSlug(params.slug)) throw notFound();
     return { slug: params.slug };
   },
   head: ({ params }) => {
@@ -32,18 +37,12 @@ export const Route = createFileRoute("/docs/$slug")({
 
 function DocsPage() {
   const { slug } = Route.useParams();
-
-  const Content = lazy(() =>
-    import(`~/content/docs/${slug}.mdx`).then((mod) => ({
-      default: mod.default,
-    })),
-  );
+  const Content = moduleForSlug(slug);
+  if (!Content) throw notFound();
 
   return (
     <DocsLayout>
-      <Suspense fallback={<div>Loading...</div>}>
-        <Content />
-      </Suspense>
+      <Content />
     </DocsLayout>
   );
 }

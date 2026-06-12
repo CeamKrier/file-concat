@@ -7,9 +7,15 @@
   ],
   "main": "@tanstack/react-start/server-entry",
   "assets": {
+    // Every non-asset URL routes through the SSR worker. We don't prerender
+    // anything yet — @cloudflare/vite-plugin@1.22.0 overrides Vite 6's
+    // builder.buildApp with its own createBuildApp, which skips the plugin
+    // buildApp hook chain that TanStack Start uses to run its prerender
+    // pass. Until that's resolved upstream (or we replace CF's buildApp),
+    // the docs flash is fixed at the route level (eager MDX glob in
+    // routes/docs/$slug.tsx) and worker edge cache carries serving cost.
     "run_worker_first": [
       "/",
-      "/about",
       "/app",
       "/docs",
       "/docs/*",

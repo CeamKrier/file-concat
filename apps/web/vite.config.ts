@@ -15,7 +15,19 @@ export default defineConfig({
   plugins: [
     // Cloudflare SSR environment
     cloudflare({ viteEnvironment: { name: "ssr" } }),
-    // TanStack Start - must come before React
+    // TanStack Start - must come before React.
+    //
+    // NOTE on prerender: TanStack Start exposes a `prerender` config that
+    // runs after the SSR build via Vite 6's plugin `buildApp` lifecycle.
+    // The current `@cloudflare/vite-plugin@1.22.0` overrides `builder.buildApp`
+    // with its own implementation (see CF dist/index.mjs around line 21477,
+    // function createBuildApp) which builds the worker + client environments
+    // but does NOT invoke other plugins' `buildApp` hooks. That means
+    // TanStack's prerender pass never runs in this stack — no `pages` /
+    // `prerender` options here will emit static HTML. Until CF restores the
+    // plugin hook chain (or we replace CF's buildApp ourselves), all routes
+    // are served by the SSR worker; the docs flash was eliminated upstream
+    // by eager-importing the MDX in routes/docs/$slug.tsx instead.
     tanstackStart(),
     // WASM support for tiktoken
     wasm(),
