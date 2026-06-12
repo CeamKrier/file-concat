@@ -82,7 +82,7 @@ TanStack Start (file-routed React + SSR) targeting Cloudflare Workers. The Vite 
 
 Manual `manualChunks` split tiktoken, CodeMirror, Radix, icons, file-type, and react-vendor — keep heavy deps in their own chunks when adding them.
 
-Routes live in `apps/web/src/routes/` (`__root.tsx`, `index.tsx`, `about.tsx`, `docs/index.tsx`, `docs/$slug.tsx`, `api/models.ts`). Docs content is MDX under `apps/web/src/content/docs/`; `docs/$slug.tsx` resolves slug → MDX file.
+Routes live in `apps/web/src/routes/` (`__root.tsx`, `index.tsx`, `app.tsx`, `docs/index.tsx`, `docs/$slug.tsx`, `api/models.ts`). Docs content is MDX under `apps/web/src/content/docs/`; `docs/$slug.tsx` resolves slug → MDX file.
 
 Path aliases inside the web app: `@` and `~` → `apps/web/src`, plus the `@fileconcat/core` alias mentioned above.
 

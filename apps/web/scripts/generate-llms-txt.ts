@@ -74,7 +74,7 @@ function buildIndex(pages: Map<string, PageRecord>): string {
   lines.push(
     "> Runs entirely in the browser, ships as both a web app at fileconcat.com",
   );
-  lines.push("> and a published npm CLI named `fileconcat`.");
+  lines.push("> and a published npm CLI `@fileconcat/cli` (bin: `file-concat`).");
   lines.push("");
   lines.push(
     "These pages cover what the tool does, how to feed files into it, how the",
@@ -124,8 +124,8 @@ function buildIndex(pages: Map<string, PageRecord>): string {
   lines.push(`- Web: open ${BASE_URL}, switch to the GitHub tab, paste`);
   lines.push(`  \`${REPO_URL}\`, click Fetch Files, then Copy or Download.`);
   lines.push("- CLI: clone the repo, then run");
-  lines.push("  `pnpm dlx fileconcat ./file-concat --style markdown --output context.md`");
-  lines.push("  (or install globally with `pnpm add -g fileconcat`).");
+  lines.push("  `pnpm dlx @fileconcat/cli ./file-concat --style markdown --output context.md`");
+  lines.push("  (or install globally with `pnpm add -g @fileconcat/cli`).");
   lines.push("");
 
   return lines.join("\n") + "\n";

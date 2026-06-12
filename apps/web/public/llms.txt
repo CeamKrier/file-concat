@@ -2,7 +2,7 @@
 
 > Privacy-first tool that concatenates source files into one LLM-ready blob.
 > Runs entirely in the browser, ships as both a web app at fileconcat.com
-> and a published npm CLI named `fileconcat`.
+> and a published npm CLI `@fileconcat/cli` (bin: `file-concat`).
 
 These pages cover what the tool does, how to feed files into it, how the
 filter pipeline decides what survives, and how to read the token counter.
@@ -28,7 +28,7 @@ Full content as a single file: https://fileconcat.com/llms-full.txt
 - [Token estimation](https://fileconcat.com/docs/token-estimation): The token counter in the workbench tells you how much of your model's context window the current output will consume. It updates live as files come and go.
 - [Token costs](https://fileconcat.com/docs/token-costs): The workbench has knobs that change how much of your model's context window the output consumes. Some moves cost tokens rather than save them. This page tells you which is which, with measured numbers where they exist.
 - [Configuration](https://fileconcat.com/docs/configuration): FileConcat keeps configuration in three places: the ActionBar Options popover (per-output knobs), the FilterRail Advanced section (filtering and persistence knobs), and `localStorage` (everything that survives a page reload). This page documents each one in the order you encounter it.
-- [CLI usage](https://fileconcat.com/docs/cli-usage): The `fileconcat` CLI runs the same `@fileconcat/core` library that powers the web app. Same filtering semantics, same output format, no browser required.
+- [CLI usage](https://fileconcat.com/docs/cli-usage): The `file-concat` CLI runs the same `@fileconcat/core` library that powers the web app. Same filtering semantics, same output format, no browser required.
 
 ## Source code
 
@@ -43,6 +43,6 @@ ingest its own repository. Two ways:
 - Web: open https://fileconcat.com, switch to the GitHub tab, paste
   `https://github.com/CeamKrier/file-concat`, click Fetch Files, then Copy or Download.
 - CLI: clone the repo, then run
-  `pnpm dlx fileconcat ./file-concat --style markdown --output context.md`
-  (or install globally with `pnpm add -g fileconcat`).
+  `pnpm dlx @fileconcat/cli ./file-concat --style markdown --output context.md`
+  (or install globally with `pnpm add -g @fileconcat/cli`).
 

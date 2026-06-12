@@ -75,7 +75,7 @@ export function PrivacyFold() {
             className="text-muted-foreground mx-auto mt-6 max-w-[54ch] text-[15.5px] leading-[1.6]"
             style={{ textWrap: "pretty" }}
           >
-            FileConcat loads once and then runs offline. Drop files with your WiFi off — the bundle
+            FileConcat loads once and then runs offline. Drop files with your WiFi off. The bundle
             still comes out the other side. Here's what a fresh session looks like in the network
             panel:
           </p>
@@ -139,7 +139,7 @@ function NetworkPanel() {
 
       <div className="border-border/60 bg-background/10 text-muted-foreground flex items-center gap-3 border-y border-dashed px-4 py-2 font-mono text-[11px]">
         <span className="text-foreground/60">14:02:31</span>
-        <span>— you drop 47 files —</span>
+        <span>you drop 47 files</span>
       </div>
 
       <div className="px-4 py-7 text-center font-mono text-[12.5px]">
