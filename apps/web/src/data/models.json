@@ -1,10 +1,9 @@
 {
-  "lastUpdated": "2026-06-11T21:26:11.412Z",
+  "lastUpdated": "2026-06-11T22:50:28.994Z",
   "totalModels": 211,
   "textModels": [
     {
       "uid": "anthropic/claude-fable-5",
-      "id": "anthropic/claude-fable-5",
       "name": "Claude Fable 5",
       "providerId": "anthropic",
       "providerName": "Anthropic",
@@ -18,7 +17,6 @@
     },
     {
       "uid": "xiaomi/mimo-v2.5-pro-ultraspeed",
-      "id": "xiaomi/mimo-v2.5-pro-ultraspeed",
       "name": "MiMo-V2.5-Pro-UltraSpeed",
       "providerId": "xiaomi",
       "providerName": "Xiaomi",
@@ -32,7 +30,6 @@
     },
     {
       "uid": "nvidia/nemotron-3-ultra-550b-a55b",
-      "id": "nvidia/nemotron-3-ultra-550b-a55b",
       "name": "Nemotron 3 Ultra 550B A55B",
       "providerId": "nvidia",
       "providerName": "Nvidia",
@@ -46,7 +43,6 @@
     },
     {
       "uid": "alibaba/qwen3.7-plus",
-      "id": "alibaba/qwen3.7-plus",
       "name": "Qwen3.7 Plus",
       "providerId": "openrouter",
       "providerName": "OpenRouter",
@@ -60,7 +56,6 @@
     },
     {
       "uid": "minimax/MiniMax-M3",
-      "id": "minimax/MiniMax-M3",
       "name": "MiniMax-M3",
       "providerId": "vercel",
       "providerName": "Vercel AI Gateway",
@@ -74,7 +69,6 @@
     },
     {
       "uid": "stepfun/step-3.7-flash",
-      "id": "stepfun/step-3.7-flash",
       "name": "Step 3.7 Flash",
       "providerId": "openrouter",
       "providerName": "OpenRouter",
@@ -88,7 +82,6 @@
     },
     {
       "uid": "anthropic/claude-opus-4-8",
-      "id": "anthropic/claude-opus-4-8",
       "name": "Claude Opus 4.8",
       "providerId": "poe",
       "providerName": "Poe",
@@ -102,7 +95,6 @@
     },
     {
       "uid": "alibaba/qwen3.7-max",
-      "id": "alibaba/qwen3.7-max",
       "name": "Qwen3.7 Max",
       "providerId": "novita-ai",
       "providerName": "NovitaAI",
@@ -116,7 +108,6 @@
     },
     {
       "uid": "cohere/command-a-plus-05-2026",
-      "id": "cohere/command-a-plus-05-2026",
       "name": "Command A Plus",
       "providerId": "cohere",
       "providerName": "Cohere",
@@ -130,7 +121,6 @@
     },
     {
       "uid": "google/gemini-3.5-flash",
-      "id": "google/gemini-3.5-flash",
       "name": "Gemini 3.5 Flash",
       "providerId": "fastrouter",
       "providerName": "FastRouter",
@@ -144,7 +134,6 @@
     },
     {
       "uid": "google/gemini-3.1-flash-lite",
-      "id": "google/gemini-3.1-flash-lite",
       "name": "Gemini 3.1 Flash Lite",
       "providerId": "aihubmix",
       "providerName": "AIHubMix",
@@ -158,7 +147,6 @@
     },
     {
       "uid": "openai/gpt-5.5-instant",
-      "id": "openai/gpt-5.5-instant",
       "name": "GPT-5.5 Instant",
       "providerId": "zenmux",
       "providerName": "ZenMux",
@@ -172,7 +160,6 @@
     },
     {
       "uid": "mistral/mistral-medium-2604",
-      "id": "mistral/mistral-medium-2604",
       "name": "Mistral Medium 3.5",
       "providerId": "mistral",
       "providerName": "Mistral",
@@ -186,7 +173,6 @@
     },
     {
       "uid": "alibaba/qwen3.6-flash",
-      "id": "alibaba/qwen3.6-flash",
       "name": "Qwen3.6 Flash",
       "providerId": "aihubmix",
       "providerName": "AIHubMix",
@@ -200,7 +186,6 @@
     },
     {
       "uid": "deepseek/deepseek-v4-flash",
-      "id": "deepseek/deepseek-v4-flash",
       "name": "DeepSeek V4 Flash",
       "providerId": "openrouter",
       "providerName": "OpenRouter",
@@ -214,7 +199,6 @@
     },
     {
       "uid": "deepseek/deepseek-v4-pro",
-      "id": "deepseek/deepseek-v4-pro",
       "name": "DeepSeek V4 Pro",
       "providerId": "azure",
       "providerName": "Azure",
@@ -228,7 +212,6 @@
     },
     {
       "uid": "openai/gpt-5.5",
-      "id": "openai/gpt-5.5",
       "name": "GPT-5.5",
       "providerId": "frogbot",
       "providerName": "FrogBot",
@@ -242,7 +225,6 @@
     },
     {
       "uid": "openai/gpt-5.5-pro",
-      "id": "openai/gpt-5.5-pro",
       "name": "GPT-5.5 Pro",
       "providerId": "poe",
       "providerName": "Poe",
@@ -256,7 +238,6 @@
     },
     {
       "uid": "xiaomi/mimo-v2.5",
-      "id": "xiaomi/mimo-v2.5",
       "name": "MiMo-V2.5",
       "providerId": "nano-gpt",
       "providerName": "NanoGPT",
@@ -270,7 +251,6 @@
     },
     {
       "uid": "xiaomi/mimo-v2.5-pro",
-      "id": "xiaomi/mimo-v2.5-pro",
       "name": "MiMo-V2.5-Pro",
       "providerId": "crof",
       "providerName": "CrofAI",
@@ -284,7 +264,6 @@
     },
     {
       "uid": "alibaba/qwen3.6-27b",
-      "id": "alibaba/qwen3.6-27b",
       "name": "Qwen3.6 27B",
       "providerId": "crof",
       "providerName": "CrofAI",
@@ -298,7 +277,6 @@
     },
     {
       "uid": "moonshotai/kimi-k2.6",
-      "id": "moonshotai/kimi-k2.6",
       "name": "Kimi K2.6",
       "providerId": "vultr",
       "providerName": "Vultr",
@@ -312,7 +290,6 @@
     },
     {
       "uid": "tencent/hy3-preview",
-      "id": "tencent/hy3-preview",
       "name": "Hy3 preview",
       "providerId": "openrouter",
       "providerName": "OpenRouter",
@@ -326,7 +303,6 @@
     },
     {
       "uid": "alibaba/qwen3.6-max-preview",
-      "id": "alibaba/qwen3.6-max-preview",
       "name": "Qwen3.6 Max Preview",
       "providerId": "openrouter",
       "providerName": "OpenRouter",
@@ -340,7 +316,6 @@
     },
     {
       "uid": "xai/grok-4.3",
-      "id": "xai/grok-4.3",
       "name": "Grok 4.3",
       "providerId": "aihubmix",
       "providerName": "AIHubMix",
@@ -354,7 +329,6 @@
     },
     {
       "uid": "alibaba/qwen3.6-35b-a3b",
-      "id": "alibaba/qwen3.6-35b-a3b",
       "name": "Qwen3.6 35B-A3B",
       "providerId": "nano-gpt",
       "providerName": "NanoGPT",
@@ -368,7 +342,6 @@
     },
     {
       "uid": "anthropic/claude-opus-4-7",
-      "id": "anthropic/claude-opus-4-7",
       "name": "Claude Opus 4.7",
       "providerId": "poe",
       "providerName": "Poe",
@@ -382,7 +355,6 @@
     },
     {
       "uid": "xai/grok-build-0.1",
-      "id": "xai/grok-build-0.1",
       "name": "Grok Build 0.1",
       "providerId": "fastrouter",
       "providerName": "FastRouter",
@@ -396,7 +368,6 @@
     },
     {
       "uid": "google/gemma-4-26b-a4b-it",
-      "id": "google/gemma-4-26b-a4b-it",
       "name": "Gemma 4 26B A4B IT",
       "providerId": "openrouter",
       "providerName": "OpenRouter",
@@ -410,7 +381,6 @@
     },
     {
       "uid": "google/gemma-4-31b-it",
-      "id": "google/gemma-4-31b-it",
       "name": "Gemma 4 31B IT",
       "providerId": "crof",
       "providerName": "CrofAI",
@@ -424,7 +394,6 @@
     },
     {
       "uid": "alibaba/qwen3.6-plus",
-      "id": "alibaba/qwen3.6-plus",
       "name": "Qwen3.6 Plus",
       "providerId": "aihubmix",
       "providerName": "AIHubMix",
@@ -438,7 +407,6 @@
     },
     {
       "uid": "stepfun/step-3.5-flash-2603",
-      "id": "stepfun/step-3.5-flash-2603",
       "name": "Step 3.5 Flash 2603",
       "providerId": "routing-run",
       "providerName": "routing.run",
@@ -452,7 +420,6 @@
     },
     {
       "uid": "zhipuai/glm-5v-turbo",
-      "id": "zhipuai/glm-5v-turbo",
       "name": "GLM-5V-Turbo",
       "providerId": "302ai",
       "providerName": "302.AI",
@@ -466,7 +433,6 @@
     },
     {
       "uid": "zhipuai/glm-5.1",
-      "id": "zhipuai/glm-5.1",
       "name": "GLM-5.1",
       "providerId": "crof",
       "providerName": "CrofAI",
@@ -480,7 +446,6 @@
     },
     {
       "uid": "nvidia/nemotron-cascade-2-30b-a3b",
-      "id": "nvidia/nemotron-cascade-2-30b-a3b",
       "name": "Nemotron Cascade 2 30B A3B",
       "providerId": "venice",
       "providerName": "Venice AI",
@@ -494,7 +459,6 @@
     },
     {
       "uid": "xiaomi/mimo-v2-omni",
-      "id": "xiaomi/mimo-v2-omni",
       "name": "MiMo-V2-Omni",
       "providerId": "zenmux",
       "providerName": "ZenMux",
@@ -508,7 +472,6 @@
     },
     {
       "uid": "xiaomi/mimo-v2-pro",
-      "id": "xiaomi/mimo-v2-pro",
       "name": "MiMo-V2-Pro",
       "providerId": "llmgateway",
       "providerName": "LLM Gateway",
@@ -522,7 +485,6 @@
     },
     {
       "uid": "minimax/MiniMax-M2.7",
-      "id": "minimax/MiniMax-M2.7",
       "name": "MiniMax-M2.7",
       "providerId": "openrouter",
       "providerName": "OpenRouter",
@@ -536,7 +498,6 @@
     },
     {
       "uid": "minimax/MiniMax-M2.7-highspeed",
-      "id": "minimax/MiniMax-M2.7-highspeed",
       "name": "MiniMax-M2.7-highspeed",
       "providerId": "routing-run",
       "providerName": "routing.run",
@@ -550,7 +511,6 @@
     },
     {
       "uid": "openai/gpt-5.4-mini",
-      "id": "openai/gpt-5.4-mini",
       "name": "GPT-5.4 mini",
       "providerId": "poe",
       "providerName": "Poe",
@@ -564,7 +524,6 @@
     },
     {
       "uid": "openai/gpt-5.4-nano",
-      "id": "openai/gpt-5.4-nano",
       "name": "GPT-5.4 nano",
       "providerId": "poe",
       "providerName": "Poe",
@@ -578,7 +537,6 @@
     },
     {
       "uid": "zhipuai/glm-5-turbo",
-      "id": "zhipuai/glm-5-turbo",
       "name": "GLM-5-Turbo",
       "providerId": "chutes",
       "providerName": "Chutes",
@@ -592,7 +550,6 @@
     },
     {
       "uid": "mistral/mistral-small-latest",
-      "id": "mistral/mistral-small-latest",
       "name": "Mistral Small (latest)",
       "providerId": "merge-gateway",
       "providerName": "Merge Gateway",
@@ -606,7 +563,6 @@
     },
     {
       "uid": "mistral/mistral-small-2603",
-      "id": "mistral/mistral-small-2603",
       "name": "Mistral Small 4",
       "providerId": "openrouter",
       "providerName": "OpenRouter",
@@ -620,7 +576,6 @@
     },
     {
       "uid": "nvidia/nemotron-3-super-120b-a12b",
-      "id": "nvidia/nemotron-3-super-120b-a12b",
       "name": "Nemotron 3 Super 120B A12B",
       "providerId": "openrouter",
       "providerName": "OpenRouter",
@@ -634,7 +589,6 @@
     },
     {
       "uid": "xai/grok-4.20-0309-non-reasoning",
-      "id": "xai/grok-4.20-0309-non-reasoning",
       "name": "Grok 4.20 (Non-Reasoning)",
       "providerId": "vercel",
       "providerName": "Vercel AI Gateway",
@@ -648,7 +602,6 @@
     },
     {
       "uid": "xai/grok-4.20-0309-reasoning",
-      "id": "xai/grok-4.20-0309-reasoning",
       "name": "Grok 4.20 (Reasoning)",
       "providerId": "vercel",
       "providerName": "Vercel AI Gateway",
@@ -662,7 +615,6 @@
     },
     {
       "uid": "openai/gpt-5.4",
-      "id": "openai/gpt-5.4",
       "name": "GPT-5.4",
       "providerId": "302ai",
       "providerName": "302.AI",
@@ -676,7 +628,6 @@
     },
     {
       "uid": "openai/gpt-5.4-pro",
-      "id": "openai/gpt-5.4-pro",
       "name": "GPT-5.4 Pro",
       "providerId": "302ai",
       "providerName": "302.AI",
@@ -690,7 +641,6 @@
     },
     {
       "uid": "google/gemini-3.1-flash-lite-preview",
-      "id": "google/gemini-3.1-flash-lite-preview",
       "name": "Gemini 3.1 Flash Lite Preview",
       "providerId": "zenmux",
       "providerName": "ZenMux",
@@ -704,7 +654,6 @@
     },
     {
       "uid": "openai/gpt-5.3-chat-latest",
-      "id": "openai/gpt-5.3-chat-latest",
       "name": "GPT-5.3 Chat (latest)",
       "providerId": "abacus",
       "providerName": "Abacus",
@@ -718,7 +667,6 @@
     },
     {
       "uid": "google/gemini-3.1-flash-image-preview",
-      "id": "google/gemini-3.1-flash-image-preview",
       "name": "Nano Banana 2",
       "providerId": "fastrouter",
       "providerName": "FastRouter",
@@ -732,7 +680,6 @@
     },
     {
       "uid": "alibaba/qwen3.5-122b-a10b",
-      "id": "alibaba/qwen3.5-122b-a10b",
       "name": "Qwen3.5 122B-A10B",
       "providerId": "orcarouter",
       "providerName": "OrcaRouter",
@@ -746,7 +693,6 @@
     },
     {
       "uid": "alibaba/qwen3.5-27b",
-      "id": "alibaba/qwen3.5-27b",
       "name": "Qwen3.5 27B",
       "providerId": "orcarouter",
       "providerName": "OrcaRouter",
@@ -760,7 +706,6 @@
     },
     {
       "uid": "alibaba/qwen3.5-35b-a3b",
-      "id": "alibaba/qwen3.5-35b-a3b",
       "name": "Qwen3.5 35B-A3B",
       "providerId": "orcarouter",
       "providerName": "OrcaRouter",
@@ -774,7 +719,6 @@
     },
     {
       "uid": "google/gemini-3.1-pro-preview",
-      "id": "google/gemini-3.1-pro-preview",
       "name": "Gemini 3.1 Pro Preview",
       "providerId": "nano-gpt",
       "providerName": "NanoGPT",
@@ -788,7 +732,6 @@
     },
     {
       "uid": "google/gemini-3.1-pro-preview-customtools",
-      "id": "google/gemini-3.1-pro-preview-customtools",
       "name": "Gemini 3.1 Pro Preview Custom Tools",
       "providerId": "nano-gpt",
       "providerName": "NanoGPT",
@@ -802,7 +745,6 @@
     },
     {
       "uid": "sarvam/sarvam-30b",
-      "id": "sarvam/sarvam-30b",
       "name": "Sarvam 30B",
       "providerId": "fastrouter",
       "providerName": "FastRouter",
@@ -816,7 +758,6 @@
     },
     {
       "uid": "anthropic/claude-sonnet-4-6",
-      "id": "anthropic/claude-sonnet-4-6",
       "name": "Claude Sonnet 4.6",
       "providerId": "poe",
       "providerName": "Poe",
@@ -830,7 +771,6 @@
     },
     {
       "uid": "alibaba/qwen3.5-plus",
-      "id": "alibaba/qwen3.5-plus",
       "name": "Qwen3.5 Plus",
       "providerId": "orcarouter",
       "providerName": "OrcaRouter",
@@ -844,7 +784,6 @@
     },
     {
       "uid": "alibaba/qwen3.5-397b-a17b",
-      "id": "alibaba/qwen3.5-397b-a17b",
       "name": "Qwen3.5 397B-A17B",
       "providerId": "orcarouter",
       "providerName": "OrcaRouter",
@@ -858,7 +797,6 @@
     },
     {
       "uid": "minimax/MiniMax-M2.5-highspeed",
-      "id": "minimax/MiniMax-M2.5-highspeed",
       "name": "MiniMax-M2.5-highspeed",
       "providerId": "routing-run",
       "providerName": "routing.run",
@@ -872,7 +810,6 @@
     },
     {
       "uid": "minimax/MiniMax-M2.5",
-      "id": "minimax/MiniMax-M2.5",
       "name": "MiniMax-M2.5",
       "providerId": "openrouter",
       "providerName": "OpenRouter",
@@ -886,7 +823,6 @@
     },
     {
       "uid": "zhipuai/glm-5",
-      "id": "zhipuai/glm-5",
       "name": "GLM-5",
       "providerId": "crof",
       "providerName": "CrofAI",
@@ -900,7 +836,6 @@
     },
     {
       "uid": "anthropic/claude-opus-4-6",
-      "id": "anthropic/claude-opus-4-6",
       "name": "Claude Opus 4.6",
       "providerId": "poe",
       "providerName": "Poe",
@@ -914,7 +849,6 @@
     },
     {
       "uid": "openai/gpt-5.3-codex",
-      "id": "openai/gpt-5.3-codex",
       "name": "GPT-5.3 Codex",
       "providerId": "poe",
       "providerName": "Poe",
@@ -928,7 +862,6 @@
     },
     {
       "uid": "stepfun/step-3.5-flash",
-      "id": "stepfun/step-3.5-flash",
       "name": "Step 3.5 Flash",
       "providerId": "routing-run",
       "providerName": "routing.run",
@@ -942,7 +875,6 @@
     },
     {
       "uid": "zhipuai/glm-4.7-flash",
-      "id": "zhipuai/glm-4.7-flash",
       "name": "GLM-4.7-Flash",
       "providerId": "crof",
       "providerName": "CrofAI",
@@ -956,7 +888,6 @@
     },
     {
       "uid": "zhipuai/glm-4.7-flashx",
-      "id": "zhipuai/glm-4.7-flashx",
       "name": "GLM-4.7-FlashX",
       "providerId": "vercel",
       "providerName": "Vercel AI Gateway",
@@ -970,7 +901,6 @@
     },
     {
       "uid": "moonshotai/kimi-k2.5",
-      "id": "moonshotai/kimi-k2.5",
       "name": "Kimi K2.5",
       "providerId": "hpc-ai",
       "providerName": "HPC-AI",
@@ -984,7 +914,6 @@
     },
     {
       "uid": "minimax/MiniMax-M2.1",
-      "id": "minimax/MiniMax-M2.1",
       "name": "MiniMax-M2.1",
       "providerId": "openrouter",
       "providerName": "OpenRouter",
@@ -998,7 +927,6 @@
     },
     {
       "uid": "zhipuai/glm-4.7",
-      "id": "zhipuai/glm-4.7",
       "name": "GLM-4.7",
       "providerId": "nano-gpt",
       "providerName": "NanoGPT",
@@ -1012,7 +940,6 @@
     },
     {
       "uid": "google/gemini-3-flash-preview",
-      "id": "google/gemini-3-flash-preview",
       "name": "Gemini 3 Flash Preview",
       "providerId": "qihang-ai",
       "providerName": "QiHang",
@@ -1026,7 +953,6 @@
     },
     {
       "uid": "xiaomi/mimo-v2-flash",
-      "id": "xiaomi/mimo-v2-flash",
       "name": "MiMo-V2-Flash",
       "providerId": "huggingface",
       "providerName": "Hugging Face",
@@ -1040,7 +966,6 @@
     },
     {
       "uid": "nvidia/nemotron-3-nano-30b-a3b",
-      "id": "nvidia/nemotron-3-nano-30b-a3b",
       "name": "Nemotron 3 Nano 30B A3B",
       "providerId": "openrouter",
       "providerName": "OpenRouter",
@@ -1054,7 +979,6 @@
     },
     {
       "uid": "openai/gpt-5.2",
-      "id": "openai/gpt-5.2",
       "name": "GPT-5.2",
       "providerId": "qihang-ai",
       "providerName": "QiHang",
@@ -1068,7 +992,6 @@
     },
     {
       "uid": "openai/gpt-5.2-chat-latest",
-      "id": "openai/gpt-5.2-chat-latest",
       "name": "GPT-5.2 Chat",
       "providerId": "azure",
       "providerName": "Azure",
@@ -1082,7 +1005,6 @@
     },
     {
       "uid": "openai/gpt-5.2-codex",
-      "id": "openai/gpt-5.2-codex",
       "name": "GPT-5.2 Codex",
       "providerId": "qihang-ai",
       "providerName": "QiHang",
@@ -1096,7 +1018,6 @@
     },
     {
       "uid": "openai/gpt-5.2-pro",
-      "id": "openai/gpt-5.2-pro",
       "name": "GPT-5.2 Pro",
       "providerId": "poe",
       "providerName": "Poe",
@@ -1110,7 +1031,6 @@
     },
     {
       "uid": "mistral/devstral-2512",
-      "id": "mistral/devstral-2512",
       "name": "Devstral 2",
       "providerId": "llmgateway",
       "providerName": "LLM Gateway",
@@ -1124,7 +1044,6 @@
     },
     {
       "uid": "zhipuai/glm-4.6v",
-      "id": "zhipuai/glm-4.6v",
       "name": "GLM-4.6V",
       "providerId": "zenmux",
       "providerName": "ZenMux",
@@ -1138,7 +1057,6 @@
     },
     {
       "uid": "mistral/devstral-medium-latest",
-      "id": "mistral/devstral-medium-latest",
       "name": "Devstral 2 (latest)",
       "providerId": "merge-gateway",
       "providerName": "Merge Gateway",
@@ -1152,7 +1070,6 @@
     },
     {
       "uid": "deepseek/deepseek-chat",
-      "id": "deepseek/deepseek-chat",
       "name": "DeepSeek Chat",
       "providerId": "deepseek",
       "providerName": "DeepSeek",
@@ -1166,7 +1083,6 @@
     },
     {
       "uid": "deepseek/deepseek-reasoner",
-      "id": "deepseek/deepseek-reasoner",
       "name": "DeepSeek Reasoner",
       "providerId": "deepseek",
       "providerName": "DeepSeek",
@@ -1180,7 +1096,6 @@
     },
     {
       "uid": "anthropic/claude-opus-4-5",
-      "id": "anthropic/claude-opus-4-5",
       "name": "Claude Opus 4.5 (latest)",
       "providerId": "anthropic",
       "providerName": "Anthropic",
@@ -1194,7 +1109,6 @@
     },
     {
       "uid": "google/gemini-3-pro-image-preview",
-      "id": "google/gemini-3-pro-image-preview",
       "name": "Nano Banana Pro",
       "providerId": "fastrouter",
       "providerName": "FastRouter",
@@ -1208,7 +1122,6 @@
     },
     {
       "uid": "google/gemini-3-pro-preview",
-      "id": "google/gemini-3-pro-preview",
       "name": "Gemini 3 Pro Preview",
       "providerId": "qihang-ai",
       "providerName": "QiHang",
@@ -1222,7 +1135,6 @@
     },
     {
       "uid": "openai/gpt-5.1",
-      "id": "openai/gpt-5.1",
       "name": "GPT-5.1",
       "providerId": "opencode",
       "providerName": "OpenCode Zen",
@@ -1236,7 +1148,6 @@
     },
     {
       "uid": "openai/gpt-5.1-chat-latest",
-      "id": "openai/gpt-5.1-chat-latest",
       "name": "GPT-5.1 Chat",
       "providerId": "azure",
       "providerName": "Azure",
@@ -1250,7 +1161,6 @@
     },
     {
       "uid": "openai/gpt-5.1-codex",
-      "id": "openai/gpt-5.1-codex",
       "name": "GPT-5.1 Codex",
       "providerId": "opencode",
       "providerName": "OpenCode Zen",
@@ -1264,7 +1174,6 @@
     },
     {
       "uid": "openai/gpt-5.1-codex-max",
-      "id": "openai/gpt-5.1-codex-max",
       "name": "GPT-5.1 Codex Max",
       "providerId": "poe",
       "providerName": "Poe",
@@ -1278,7 +1187,6 @@
     },
     {
       "uid": "openai/gpt-5.1-codex-mini",
-      "id": "openai/gpt-5.1-codex-mini",
       "name": "GPT-5.1 Codex mini",
       "providerId": "poe",
       "providerName": "Poe",
@@ -1292,7 +1200,6 @@
     },
     {
       "uid": "moonshotai/kimi-k2-thinking",
-      "id": "moonshotai/kimi-k2-thinking",
       "name": "Kimi K2 Thinking",
       "providerId": "nano-gpt",
       "providerName": "NanoGPT",
@@ -1306,7 +1213,6 @@
     },
     {
       "uid": "moonshotai/kimi-k2-thinking-turbo",
-      "id": "moonshotai/kimi-k2-thinking-turbo",
       "name": "Kimi K2 Thinking Turbo",
       "providerId": "llmgateway",
       "providerName": "LLM Gateway",
@@ -1320,7 +1226,6 @@
     },
     {
       "uid": "anthropic/claude-opus-4-5-20251101",
-      "id": "anthropic/claude-opus-4-5-20251101",
       "name": "Claude Opus 4.5",
       "providerId": "qihang-ai",
       "providerName": "QiHang",
@@ -1334,7 +1239,6 @@
     },
     {
       "uid": "nvidia/nemotron-nano-12b-v2-vl",
-      "id": "nvidia/nemotron-nano-12b-v2-vl",
       "name": "Nemotron Nano 12B v2 VL",
       "providerId": "digitalocean",
       "providerName": "DigitalOcean",
@@ -1348,7 +1252,6 @@
     },
     {
       "uid": "minimax/MiniMax-M2",
-      "id": "minimax/MiniMax-M2",
       "name": "MiniMax-M2",
       "providerId": "openrouter",
       "providerName": "OpenRouter",
@@ -1362,7 +1265,6 @@
     },
     {
       "uid": "anthropic/claude-haiku-4-5-20251001",
-      "id": "anthropic/claude-haiku-4-5-20251001",
       "name": "Claude Haiku 4.5",
       "providerId": "qihang-ai",
       "providerName": "QiHang",
@@ -1376,7 +1278,6 @@
     },
     {
       "uid": "anthropic/claude-haiku-4-5",
-      "id": "anthropic/claude-haiku-4-5",
       "name": "Claude Haiku 4.5 (latest)",
       "providerId": "anthropic",
       "providerName": "Anthropic",
@@ -1390,7 +1291,6 @@
     },
     {
       "uid": "openai/gpt-5-pro",
-      "id": "openai/gpt-5-pro",
       "name": "GPT-5 Pro",
       "providerId": "jiekou",
       "providerName": "Jiekou.AI",
@@ -1404,7 +1304,6 @@
     },
     {
       "uid": "zhipuai/glm-4.6",
-      "id": "zhipuai/glm-4.6",
       "name": "GLM-4.6",
       "providerId": "302ai",
       "providerName": "302.AI",
@@ -1418,7 +1317,6 @@
     },
     {
       "uid": "anthropic/claude-sonnet-4-5-20250929",
-      "id": "anthropic/claude-sonnet-4-5-20250929",
       "name": "Claude Sonnet 4.5",
       "providerId": "qihang-ai",
       "providerName": "QiHang",
@@ -1432,7 +1330,6 @@
     },
     {
       "uid": "anthropic/claude-sonnet-4-5",
-      "id": "anthropic/claude-sonnet-4-5",
       "name": "Claude Sonnet 4.5 (latest)",
       "providerId": "openrouter",
       "providerName": "OpenRouter",
@@ -1446,7 +1343,6 @@
     },
     {
       "uid": "google/gemini-flash-latest",
-      "id": "google/gemini-flash-latest",
       "name": "Gemini Flash Latest",
       "providerId": "google",
       "providerName": "Google",
@@ -1460,7 +1356,6 @@
     },
     {
       "uid": "google/gemini-flash-lite-latest",
-      "id": "google/gemini-flash-lite-latest",
       "name": "Gemini Flash-Lite Latest",
       "providerId": "google",
       "providerName": "Google",
@@ -1474,7 +1369,6 @@
     },
     {
       "uid": "alibaba/qwen3-max",
-      "id": "alibaba/qwen3-max",
       "name": "Qwen3 Max",
       "providerId": "orcarouter",
       "providerName": "OrcaRouter",
@@ -1488,7 +1382,6 @@
     },
     {
       "uid": "alibaba/qwen3-vl-plus",
-      "id": "alibaba/qwen3-vl-plus",
       "name": "Qwen3-VL Plus",
       "providerId": "alibaba-cn",
       "providerName": "Alibaba (China)",
@@ -1502,7 +1395,6 @@
     },
     {
       "uid": "openai/gpt-5-codex",
-      "id": "openai/gpt-5-codex",
       "name": "GPT-5-Codex",
       "providerId": "opencode",
       "providerName": "OpenCode Zen",
@@ -1516,7 +1408,6 @@
     },
     {
       "uid": "sarvam/sarvam-105b",
-      "id": "sarvam/sarvam-105b",
       "name": "Sarvam 105B",
       "providerId": "fastrouter",
       "providerName": "FastRouter",
@@ -1530,7 +1421,6 @@
     },
     {
       "uid": "alibaba/qwen3-next-80b-a3b-thinking",
-      "id": "alibaba/qwen3-next-80b-a3b-thinking",
       "name": "Qwen3-Next 80B-A3B (Thinking)",
       "providerId": "nano-gpt",
       "providerName": "NanoGPT",
@@ -1544,7 +1434,6 @@
     },
     {
       "uid": "alibaba/qwen3-next-80b-a3b-instruct",
-      "id": "alibaba/qwen3-next-80b-a3b-instruct",
       "name": "Qwen3-Next 80B-A3B Instruct",
       "providerId": "alibaba-cn",
       "providerName": "Alibaba (China)",
@@ -1558,7 +1447,6 @@
     },
     {
       "uid": "google/gemini-2.5-flash-image",
-      "id": "google/gemini-2.5-flash-image",
       "name": "Nano Banana",
       "providerId": "poe",
       "providerName": "Poe",
@@ -1572,7 +1460,6 @@
     },
     {
       "uid": "mistral/mistral-medium-latest",
-      "id": "mistral/mistral-medium-latest",
       "name": "Mistral Medium (latest)",
       "providerId": "merge-gateway",
       "providerName": "Merge Gateway",
@@ -1586,7 +1473,6 @@
     },
     {
       "uid": "zhipuai/glm-4.5v",
-      "id": "zhipuai/glm-4.5v",
       "name": "GLM-4.5V",
       "providerId": "302ai",
       "providerName": "302.AI",
@@ -1600,7 +1486,6 @@
     },
     {
       "uid": "openai/gpt-5",
-      "id": "openai/gpt-5",
       "name": "GPT-5",
       "providerId": "opencode",
       "providerName": "OpenCode Zen",
@@ -1614,7 +1499,6 @@
     },
     {
       "uid": "openai/gpt-5-chat-latest",
-      "id": "openai/gpt-5-chat-latest",
       "name": "GPT-5 Chat (latest)",
       "providerId": "jiekou",
       "providerName": "Jiekou.AI",
@@ -1628,7 +1512,6 @@
     },
     {
       "uid": "openai/gpt-5-mini",
-      "id": "openai/gpt-5-mini",
       "name": "GPT-5 Mini",
       "providerId": "qihang-ai",
       "providerName": "QiHang",
@@ -1642,7 +1525,6 @@
     },
     {
       "uid": "openai/gpt-5-nano",
-      "id": "openai/gpt-5-nano",
       "name": "GPT-5 Nano",
       "providerId": "jiekou",
       "providerName": "Jiekou.AI",
@@ -1656,7 +1538,6 @@
     },
     {
       "uid": "anthropic/claude-opus-4-1-20250805",
-      "id": "anthropic/claude-opus-4-1-20250805",
       "name": "Claude Opus 4.1",
       "providerId": "poe",
       "providerName": "Poe",
@@ -1670,7 +1551,6 @@
     },
     {
       "uid": "anthropic/claude-opus-4-1",
-      "id": "anthropic/claude-opus-4-1",
       "name": "Claude Opus 4.1 (latest)",
       "providerId": "anthropic",
       "providerName": "Anthropic",
@@ -1684,7 +1564,6 @@
     },
     {
       "uid": "zhipuai/glm-4.5",
-      "id": "zhipuai/glm-4.5",
       "name": "GLM-4.5",
       "providerId": "302ai",
       "providerName": "302.AI",
@@ -1698,7 +1577,6 @@
     },
     {
       "uid": "zhipuai/glm-4.5-air",
-      "id": "zhipuai/glm-4.5-air",
       "name": "GLM-4.5-Air",
       "providerId": "302ai",
       "providerName": "302.AI",
@@ -1712,7 +1590,6 @@
     },
     {
       "uid": "alibaba/qwen-flash",
-      "id": "alibaba/qwen-flash",
       "name": "Qwen Flash",
       "providerId": "alibaba-cn",
       "providerName": "Alibaba (China)",
@@ -1726,7 +1603,6 @@
     },
     {
       "uid": "alibaba/qwen3-coder-flash",
-      "id": "alibaba/qwen3-coder-flash",
       "name": "Qwen3 Coder Flash",
       "providerId": "alibaba-cn",
       "providerName": "Alibaba (China)",
@@ -1740,7 +1616,6 @@
     },
     {
       "uid": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
-      "id": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
       "name": "Llama 3.3 Nemotron Super 49B v1.5",
       "providerId": "openrouter",
       "providerName": "OpenRouter",
@@ -1754,7 +1629,6 @@
     },
     {
       "uid": "alibaba/qwen3-coder-plus",
-      "id": "alibaba/qwen3-coder-plus",
       "name": "Qwen3 Coder Plus",
       "providerId": "openrouter",
       "providerName": "OpenRouter",
@@ -1768,7 +1642,6 @@
     },
     {
       "uid": "mistral/devstral-medium-2507",
-      "id": "mistral/devstral-medium-2507",
       "name": "Devstral Medium",
       "providerId": "merge-gateway",
       "providerName": "Merge Gateway",
@@ -1782,7 +1655,6 @@
     },
     {
       "uid": "mistral/devstral-small-2507",
-      "id": "mistral/devstral-small-2507",
       "name": "Devstral Small",
       "providerId": "llmgateway",
       "providerName": "LLM Gateway",
@@ -1796,7 +1668,6 @@
     },
     {
       "uid": "mistral/mistral-small-2506",
-      "id": "mistral/mistral-small-2506",
       "name": "Mistral Small 3.2",
       "providerId": "helicone",
       "providerName": "Helicone",
@@ -1810,7 +1681,6 @@
     },
     {
       "uid": "google/gemini-2.5-flash-lite",
-      "id": "google/gemini-2.5-flash-lite",
       "name": "Gemini 2.5 Flash-Lite",
       "providerId": "poe",
       "providerName": "Poe",
@@ -1824,7 +1694,6 @@
     },
     {
       "uid": "openai/o3-pro",
-      "id": "openai/o3-pro",
       "name": "o3-pro",
       "providerId": "abacus",
       "providerName": "Abacus",
@@ -1838,7 +1707,6 @@
     },
     {
       "uid": "anthropic/claude-opus-4-20250514",
-      "id": "anthropic/claude-opus-4-20250514",
       "name": "Claude Opus 4",
       "providerId": "poe",
       "providerName": "Poe",
@@ -1852,7 +1720,6 @@
     },
     {
       "uid": "anthropic/claude-opus-4-0",
-      "id": "anthropic/claude-opus-4-0",
       "name": "Claude Opus 4 (latest)",
       "providerId": "anthropic",
       "providerName": "Anthropic",
@@ -1866,7 +1733,6 @@
     },
     {
       "uid": "anthropic/claude-sonnet-4-20250514",
-      "id": "anthropic/claude-sonnet-4-20250514",
       "name": "Claude Sonnet 4",
       "providerId": "poe",
       "providerName": "Poe",
@@ -1880,7 +1746,6 @@
     },
     {
       "uid": "anthropic/claude-sonnet-4-0",
-      "id": "anthropic/claude-sonnet-4-0",
       "name": "Claude Sonnet 4 (latest)",
       "providerId": "github-copilot",
       "providerName": "GitHub Copilot",
@@ -1894,7 +1759,6 @@
     },
     {
       "uid": "mistral/mistral-medium-2505",
-      "id": "mistral/mistral-medium-2505",
       "name": "Mistral Medium 3",
       "providerId": "merge-gateway",
       "providerName": "Merge Gateway",
@@ -1908,7 +1772,6 @@
     },
     {
       "uid": "openai/o3",
-      "id": "openai/o3",
       "name": "o3",
       "providerId": "poe",
       "providerName": "Poe",
@@ -1922,7 +1785,6 @@
     },
     {
       "uid": "openai/o4-mini",
-      "id": "openai/o4-mini",
       "name": "o4-mini",
       "providerId": "poe",
       "providerName": "Poe",
@@ -1936,7 +1798,6 @@
     },
     {
       "uid": "openai/gpt-4.1",
-      "id": "openai/gpt-4.1",
       "name": "GPT-4.1",
       "providerId": "poe",
       "providerName": "Poe",
@@ -1950,7 +1811,6 @@
     },
     {
       "uid": "openai/gpt-4.1-mini",
-      "id": "openai/gpt-4.1-mini",
       "name": "GPT-4.1 mini",
       "providerId": "poe",
       "providerName": "Poe",
@@ -1964,7 +1824,6 @@
     },
     {
       "uid": "openai/gpt-4.1-nano",
-      "id": "openai/gpt-4.1-nano",
       "name": "GPT-4.1 nano",
       "providerId": "poe",
       "providerName": "Poe",
@@ -1978,7 +1837,6 @@
     },
     {
       "uid": "nvidia/llama-3.1-nemotron-ultra-253b",
-      "id": "nvidia/llama-3.1-nemotron-ultra-253b",
       "name": "Llama 3.1 Nemotron Ultra 253B",
       "providerId": "llmgateway",
       "providerName": "LLM Gateway",
@@ -1992,7 +1850,6 @@
     },
     {
       "uid": "meta/llama-4-maverick-17b-instruct",
-      "id": "meta/llama-4-maverick-17b-instruct",
       "name": "Llama 4 Maverick 17B Instruct",
       "providerId": "amazon-bedrock",
       "providerName": "Amazon Bedrock",
@@ -2006,7 +1863,6 @@
     },
     {
       "uid": "meta/llama-4-scout-17b-instruct",
-      "id": "meta/llama-4-scout-17b-instruct",
       "name": "Llama 4 Scout 17B Instruct",
       "providerId": "amazon-bedrock",
       "providerName": "Amazon Bedrock",
@@ -2020,7 +1876,6 @@
     },
     {
       "uid": "alibaba/qwen3-235b-a22b",
-      "id": "alibaba/qwen3-235b-a22b",
       "name": "Qwen3 235B-A22B",
       "providerId": "jiekou",
       "providerName": "Jiekou.AI",
@@ -2034,7 +1889,6 @@
     },
     {
       "uid": "alibaba/qwen3-32b",
-      "id": "alibaba/qwen3-32b",
       "name": "Qwen3 32B",
       "providerId": "ovhcloud",
       "providerName": "OVHcloud AI Endpoints",
@@ -2048,7 +1902,6 @@
     },
     {
       "uid": "alibaba/qwen3-coder-30b-a3b-instruct",
-      "id": "alibaba/qwen3-coder-30b-a3b-instruct",
       "name": "Qwen3-Coder 30B-A3B Instruct",
       "providerId": "cortecs",
       "providerName": "Cortecs",
@@ -2062,7 +1915,6 @@
     },
     {
       "uid": "alibaba/qwen3-coder-480b-a35b-instruct",
-      "id": "alibaba/qwen3-coder-480b-a35b-instruct",
       "name": "Qwen3-Coder 480B-A35B Instruct",
       "providerId": "submodel",
       "providerName": "submodel",
@@ -2076,7 +1928,6 @@
     },
     {
       "uid": "google/gemini-2.5-flash",
-      "id": "google/gemini-2.5-flash",
       "name": "Gemini 2.5 Flash",
       "providerId": "qihang-ai",
       "providerName": "QiHang",
@@ -2090,7 +1941,6 @@
     },
     {
       "uid": "google/gemini-2.5-pro",
-      "id": "google/gemini-2.5-pro",
       "name": "Gemini 2.5 Pro",
       "providerId": "poe",
       "providerName": "Poe",
@@ -2104,7 +1954,6 @@
     },
     {
       "uid": "openai/o1-pro",
-      "id": "openai/o1-pro",
       "name": "o1-pro",
       "providerId": "poe",
       "providerName": "Poe",
@@ -2118,7 +1967,6 @@
     },
     {
       "uid": "mistral/magistral-medium-latest",
-      "id": "mistral/magistral-medium-latest",
       "name": "Magistral Medium (latest)",
       "providerId": "merge-gateway",
       "providerName": "Merge Gateway",
@@ -2132,7 +1980,6 @@
     },
     {
       "uid": "cohere/command-a-03-2025",
-      "id": "cohere/command-a-03-2025",
       "name": "Command A",
       "providerId": "azure",
       "providerName": "Azure",
@@ -2146,7 +1993,6 @@
     },
     {
       "uid": "alibaba/qwq-plus",
-      "id": "alibaba/qwq-plus",
       "name": "QwQ Plus",
       "providerId": "alibaba-cn",
       "providerName": "Alibaba (China)",
@@ -2160,7 +2006,6 @@
     },
     {
       "uid": "anthropic/claude-3-7-sonnet-20250219",
-      "id": "anthropic/claude-3-7-sonnet-20250219",
       "name": "Claude Sonnet 3.7",
       "providerId": "poe",
       "providerName": "Poe",
@@ -2174,7 +2019,6 @@
     },
     {
       "uid": "deepseek/deepseek-r1",
-      "id": "deepseek/deepseek-r1",
       "name": "DeepSeek-R1",
       "providerId": "nano-gpt",
       "providerName": "NanoGPT",
@@ -2188,7 +2032,6 @@
     },
     {
       "uid": "alibaba/qwen-omni-turbo",
-      "id": "alibaba/qwen-omni-turbo",
       "name": "Qwen-Omni Turbo",
       "providerId": "alibaba-cn",
       "providerName": "Alibaba (China)",
@@ -2202,7 +2045,6 @@
     },
     {
       "uid": "openai/o3-mini",
-      "id": "openai/o3-mini",
       "name": "o3-mini",
       "providerId": "poe",
       "providerName": "Poe",
@@ -2216,7 +2058,6 @@
     },
     {
       "uid": "google/gemini-2.0-flash",
-      "id": "google/gemini-2.0-flash",
       "name": "Gemini 2.0 Flash",
       "providerId": "google",
       "providerName": "Google",
@@ -2230,7 +2071,6 @@
     },
     {
       "uid": "google/gemini-2.0-flash-lite",
-      "id": "google/gemini-2.0-flash-lite",
       "name": "Gemini 2.0 Flash-Lite",
       "providerId": "poe",
       "providerName": "Poe",
@@ -2244,7 +2084,6 @@
     },
     {
       "uid": "meta/llama-3.3-70b-instruct",
-      "id": "meta/llama-3.3-70b-instruct",
       "name": "Llama-3.3-70B-Instruct",
       "providerId": "nano-gpt",
       "providerName": "NanoGPT",
@@ -2258,7 +2097,6 @@
     },
     {
       "uid": "openai/o1",
-      "id": "openai/o1",
       "name": "o1",
       "providerId": "poe",
       "providerName": "Poe",
@@ -2272,7 +2110,6 @@
     },
     {
       "uid": "openai/gpt-4o-2024-11-20",
-      "id": "openai/gpt-4o-2024-11-20",
       "name": "GPT-4o (2024-11-20)",
       "providerId": "abacus",
       "providerName": "Abacus",
@@ -2286,7 +2123,6 @@
     },
     {
       "uid": "mistral/mistral-large-latest",
-      "id": "mistral/mistral-large-latest",
       "name": "Mistral Large (latest)",
       "providerId": "llmgateway",
       "providerName": "LLM Gateway",
@@ -2300,7 +2136,6 @@
     },
     {
       "uid": "mistral/mistral-large-2411",
-      "id": "mistral/mistral-large-2411",
       "name": "Mistral Large 2.1",
       "providerId": "merge-gateway",
       "providerName": "Merge Gateway",
@@ -2314,7 +2149,6 @@
     },
     {
       "uid": "mistral/mistral-large-2512",
-      "id": "mistral/mistral-large-2512",
       "name": "Mistral Large 3",
       "providerId": "llmgateway",
       "providerName": "LLM Gateway",
@@ -2328,7 +2162,6 @@
     },
     {
       "uid": "mistral/pixtral-large-latest",
-      "id": "mistral/pixtral-large-latest",
       "name": "Pixtral Large (latest)",
       "providerId": "llmgateway",
       "providerName": "LLM Gateway",
@@ -2342,7 +2175,6 @@
     },
     {
       "uid": "alibaba/qwen-turbo",
-      "id": "alibaba/qwen-turbo",
       "name": "Qwen Turbo",
       "providerId": "alibaba-cn",
       "providerName": "Alibaba (China)",
@@ -2356,7 +2188,6 @@
     },
     {
       "uid": "anthropic/claude-3-5-haiku-20241022",
-      "id": "anthropic/claude-3-5-haiku-20241022",
       "name": "Claude Haiku 3.5",
       "providerId": "poe",
       "providerName": "Poe",
@@ -2370,7 +2201,6 @@
     },
     {
       "uid": "anthropic/claude-3-5-sonnet-20241022",
-      "id": "anthropic/claude-3-5-sonnet-20241022",
       "name": "Claude Sonnet 3.5 v2",
       "providerId": "anthropic",
       "providerName": "Anthropic",
@@ -2384,7 +2214,6 @@
     },
     {
       "uid": "mistral/pixtral-12b",
-      "id": "mistral/pixtral-12b",
       "name": "Pixtral 12B",
       "providerId": "mistral",
       "providerName": "Mistral",
@@ -2398,7 +2227,6 @@
     },
     {
       "uid": "alibaba/qwen2-5-vl-72b-instruct",
-      "id": "alibaba/qwen2-5-vl-72b-instruct",
       "name": "Qwen2.5-VL 72B Instruct",
       "providerId": "nebius",
       "providerName": "Nebius Token Factory",
@@ -2412,7 +2240,6 @@
     },
     {
       "uid": "cohere/command-r-08-2024",
-      "id": "cohere/command-r-08-2024",
       "name": "Command R",
       "providerId": "azure",
       "providerName": "Azure",
@@ -2426,7 +2253,6 @@
     },
     {
       "uid": "cohere/command-r-plus-08-2024",
-      "id": "cohere/command-r-plus-08-2024",
       "name": "Command R+",
       "providerId": "azure",
       "providerName": "Azure",
@@ -2440,7 +2266,6 @@
     },
     {
       "uid": "openai/gpt-4o-2024-08-06",
-      "id": "openai/gpt-4o-2024-08-06",
       "name": "GPT-4o (2024-08-06)",
       "providerId": "nano-gpt",
       "providerName": "NanoGPT",
@@ -2454,7 +2279,6 @@
     },
     {
       "uid": "openai/gpt-4o-mini",
-      "id": "openai/gpt-4o-mini",
       "name": "GPT-4o mini",
       "providerId": "poe",
       "providerName": "Poe",
@@ -2468,7 +2292,6 @@
     },
     {
       "uid": "mistral/mistral-nemo",
-      "id": "mistral/mistral-nemo",
       "name": "Mistral Nemo",
       "providerId": "openrouter",
       "providerName": "OpenRouter",
@@ -2482,7 +2305,6 @@
     },
     {
       "uid": "openai/o3-deep-research",
-      "id": "openai/o3-deep-research",
       "name": "o3-deep-research",
       "providerId": "poe",
       "providerName": "Poe",
@@ -2496,7 +2318,6 @@
     },
     {
       "uid": "openai/o4-mini-deep-research",
-      "id": "openai/o4-mini-deep-research",
       "name": "o4-mini-deep-research",
       "providerId": "poe",
       "providerName": "Poe",
@@ -2510,7 +2331,6 @@
     },
     {
       "uid": "mistral/codestral-latest",
-      "id": "mistral/codestral-latest",
       "name": "Codestral (latest)",
       "providerId": "merge-gateway",
       "providerName": "Merge Gateway",
@@ -2524,7 +2344,6 @@
     },
     {
       "uid": "openai/gpt-4o",
-      "id": "openai/gpt-4o",
       "name": "GPT-4o",
       "providerId": "nano-gpt",
       "providerName": "NanoGPT",
@@ -2538,7 +2357,6 @@
     },
     {
       "uid": "openai/gpt-4o-2024-05-13",
-      "id": "openai/gpt-4o-2024-05-13",
       "name": "GPT-4o (2024-05-13)",
       "providerId": "merge-gateway",
       "providerName": "Merge Gateway",
@@ -2552,7 +2370,6 @@
     },
     {
       "uid": "alibaba/qwen-vl-max",
-      "id": "alibaba/qwen-vl-max",
       "name": "Qwen-VL Max",
       "providerId": "alibaba-cn",
       "providerName": "Alibaba (China)",
@@ -2566,7 +2383,6 @@
     },
     {
       "uid": "alibaba/qwen-max",
-      "id": "alibaba/qwen-max",
       "name": "Qwen Max",
       "providerId": "alibaba-cn",
       "providerName": "Alibaba (China)",
@@ -2580,7 +2396,6 @@
     },
     {
       "uid": "cohere/command-r7b-12-2024",
-      "id": "cohere/command-r7b-12-2024",
       "name": "Command R7B",
       "providerId": "cohere",
       "providerName": "Cohere",
@@ -2594,7 +2409,6 @@
     },
     {
       "uid": "alibaba/qwen-plus",
-      "id": "alibaba/qwen-plus",
       "name": "Qwen Plus",
       "providerId": "alibaba-cn",
       "providerName": "Alibaba (China)",
@@ -2608,7 +2422,6 @@
     },
     {
       "uid": "alibaba/qwen-vl-plus",
-      "id": "alibaba/qwen-vl-plus",
       "name": "Qwen-VL Plus",
       "providerId": "alibaba-cn",
       "providerName": "Alibaba (China)",
@@ -2622,7 +2435,6 @@
     },
     {
       "uid": "perplexity/sonar",
-      "id": "perplexity/sonar",
       "name": "Sonar",
       "providerId": "llmgateway",
       "providerName": "LLM Gateway",
@@ -2636,7 +2448,6 @@
     },
     {
       "uid": "perplexity/sonar-pro",
-      "id": "perplexity/sonar-pro",
       "name": "Sonar Pro",
       "providerId": "llmgateway",
       "providerName": "LLM Gateway",
@@ -2650,7 +2461,6 @@
     },
     {
       "uid": "perplexity/sonar-reasoning-pro",
-      "id": "perplexity/sonar-reasoning-pro",
       "name": "Sonar Reasoning Pro",
       "providerId": "llmgateway",
       "providerName": "LLM Gateway",
@@ -2664,7 +2474,6 @@
     },
     {
       "uid": "openai/gpt-4-turbo",
-      "id": "openai/gpt-4-turbo",
       "name": "GPT-4 Turbo",
       "providerId": "poe",
       "providerName": "Poe",
@@ -2678,7 +2487,6 @@
     },
     {
       "uid": "openai/gpt-3.5-turbo",
-      "id": "openai/gpt-3.5-turbo",
       "name": "GPT-3.5-turbo",
       "providerId": "poe",
       "providerName": "Poe",
