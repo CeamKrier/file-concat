@@ -145,9 +145,9 @@ export function Hero() {
           >
             Drop a folder. Get one file your AI can actually read.
           </h1>
-          <p className="text-muted-foreground mt-7 max-w-[40ch] text-[15.5px] leading-[1.6] sm:text-[16px]">
-            One paste-ready file for ChatGPT, Claude, or Gemini. No upload, no setup. The whole
-            thing runs in this tab.
+          <p className="text-muted-foreground mt-7 max-w-[42ch] text-[15.5px] leading-[1.6] sm:text-[16px]">
+            Project tree at the top, every file in a labeled block. The model gets the structure
+            before any file body.
           </p>
 
           <div className="mt-9 flex flex-wrap items-center gap-3">
