@@ -14,7 +14,7 @@ For AI coding agents:
   concatenated output, --json emits a machine-readable summary. Exit code
   is 0 on success, 1 on fatal error or flag conflict.
   Full recipes and JSON summary schema in the README:
-  https://www.npmjs.com/package/file-concat`,
+  https://www.npmjs.com/package/@fileconcat/cli`,
   );
 
 function addSharedOptions(cmd: Command): Command {

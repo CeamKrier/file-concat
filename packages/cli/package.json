@@ -1,5 +1,5 @@
 {
-    "name": "file-concat",
+    "name": "@fileconcat/cli",
     "version": "0.1.0",
     "description": "Privacy-first CLI for concatenating files into LLM context, with optional PDF/DOCX/XLSX/PPTX/ODT/ODS/ODP extraction",
     "type": "module",

@@ -1,4 +1,4 @@
-# file-concat
+# @fileconcat/cli
 
 Privacy-first CLI that concatenates a directory into a single LLM-ready blob. Bundles plain text files by default, and optionally extracts text from PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP. Everything runs locally; nothing is uploaded.
 
@@ -7,12 +7,12 @@ The browser version of the same tool lives at [fileconcat.com](https://fileconca
 ## Install
 
 ```bash
-npm install -g file-concat
+npm install -g @fileconcat/cli
 # or
-pnpm add -g file-concat
+pnpm add -g @fileconcat/cli
 ```
 
-Node 18 or newer.
+After install the bin command is `file-concat`. Node 18 or newer.
 
 ## Quick start
 
