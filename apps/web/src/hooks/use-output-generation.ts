@@ -132,7 +132,7 @@ export function useOutputGeneration({
   }, [selectedFormat, includedContents, chunks, buildSingle, outputStyle]);
 
   const reset = useCallback(() => {
-    setMaxFileSizeMB(32);
+    setChunkSizeKB(32);
     setUserPickedFormat(null);
     setIsCopied(false);
     setIsGenerating(false);

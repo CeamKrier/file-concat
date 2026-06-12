@@ -11,9 +11,9 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "node dist/server/index.js",
+    "start": "wrangler dev --config dist/server/wrangler.json",
     "deploy": "pnpm build && wrangler deploy",
-    "check": "tsc --noEmit",
+    "check": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest"
   },
