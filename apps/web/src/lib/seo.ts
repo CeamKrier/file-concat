@@ -69,8 +69,18 @@ export function generateSEOMeta(config: SEOConfig) {
   return meta;
 }
 
+const AUTHOR = {
+  "@type": "Person" as const,
+  name: "CeamKrier",
+  url: "https://twitter.com/CeamKrier",
+};
+
+const CLI_NPM_URL = "https://www.npmjs.com/package/@fileconcat/cli";
+const REPO_URL = "https://github.com/CeamKrier/file-concat";
+
 /**
- * Generate JSON-LD structured data for WebApplication
+ * Generate JSON-LD structured data for the web tool at fileconcat.com.
+ * Emitted from `__root.tsx` so every page carries the site-level schema.
  */
 export function generateWebApplicationSchema() {
   return {
@@ -78,75 +88,107 @@ export function generateWebApplicationSchema() {
     "@type": "WebApplication",
     name: "FileConcat",
     description:
-      "Free, offline tool to combine multiple files into a single document optimized for AI assistants like ChatGPT, Claude, and Gemini.",
+      "Privacy-first tool that turns a folder into one structured file for AI assistants. Runs entirely in the browser at fileconcat.com, or as the @fileconcat/cli npm package in the terminal. Supports token estimation, glob filtering, GitHub / GitLab / Bitbucket import, and PDF / DOCX / XLSX / PPTX / ODF text extraction.",
     url: BASE_URL,
     applicationCategory: "DeveloperApplication",
-    operatingSystem: "Any",
+    operatingSystem: "Any modern browser",
+    browserRequirements: "Requires a browser with the File System Access API or drag-and-drop.",
     offers: {
       "@type": "Offer",
       price: "0",
       priceCurrency: "USD",
     },
     featureList: [
-      "100% Offline Processing",
-      "GitHub Repository Import",
-      "GitLab Repository Import",
-      "Token Estimation",
-      "Multiple Output Formats",
-      "File Filtering with Glob Patterns",
+      "Runs in the browser, no upload, no account",
+      "Token estimation for 200+ LLM models (OpenAI, Anthropic, Google, and others)",
+      "Glob include / ignore patterns with live preview",
+      "Public GitHub, GitLab, and Bitbucket repository import",
+      "XML and Markdown output formats",
+      "Multi-file output chunking by size",
+      "Companion npm CLI @fileconcat/cli with the same engine",
     ],
-    screenshot: `${BASE_URL}/screenshot.png`,
     softwareHelp: {
       "@type": "CreativeWork",
       url: `${BASE_URL}/docs`,
     },
-    author: {
-      "@type": "Person",
-      name: "CeamKrier",
-      url: "https://twitter.com/CeamKrier",
-    },
+    sameAs: [REPO_URL, CLI_NPM_URL],
+    author: AUTHOR,
   };
 }
 
 /**
- * Generate JSON-LD structured data for HowTo
+ * Generate JSON-LD structured data for the published CLI.
+ * Separate from the WebApplication entry so the npm artifact gets its own
+ * SERP signal.
+ */
+export function generateCLISoftwareApplicationSchema() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "@fileconcat/cli",
+    alternateName: "file-concat",
+    description:
+      "Commander.js CLI that runs the same @fileconcat/core engine as fileconcat.com. Streams the bundle to stdout, progress to stderr, and a one-line JSON summary under --json. Opt-in PDF / DOCX / XLSX / PPTX / ODF parsing via --parse.",
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "Linux, macOS, Windows",
+    downloadUrl: CLI_NPM_URL,
+    softwareRequirements: "Node.js >= 18",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
+    softwareHelp: {
+      "@type": "CreativeWork",
+      url: `${BASE_URL}/docs/cli-usage`,
+    },
+    codeRepository: REPO_URL,
+    author: AUTHOR,
+  };
+}
+
+/**
+ * Generate JSON-LD structured data for HowTo.
+ * Note: Google deprecated the HowTo rich result for non-cooking sites in
+ * 2023, so this is no longer a SERP boost. It stays as a knowledge-graph
+ * description of what the tool does.
  */
 export function generateHowToSchema() {
   return {
     "@context": "https://schema.org",
     "@type": "HowTo",
-    name: "How to Combine Files for AI Assistants",
+    name: "How to combine files for AI assistants",
     description:
-      "Learn how to use FileConcat to combine multiple files into a single document optimized for ChatGPT, Claude, and other AI assistants.",
+      "How to use FileConcat to turn a folder of files into a single structured bundle for ChatGPT, Claude, Gemini, or any other long-context assistant.",
     step: [
       {
         "@type": "HowToStep",
-        name: "Upload Files",
-        text: "Drag and drop your files or folders, or import from a GitHub/GitLab repository.",
+        name: "Bring in your files",
+        text: "Drop a folder in the browser at fileconcat.com, paste a public GitHub / GitLab / Bitbucket URL, or run `pnpm dlx @fileconcat/cli ./folder` from the terminal.",
         position: 1,
       },
       {
         "@type": "HowToStep",
-        name: "Configure Filters",
-        text: "Use glob patterns to include or exclude specific files. Choose from presets for popular tech stacks.",
+        name: "Filter the tree",
+        text: "Use glob patterns in the include / ignore textareas, or pick a preset chip for a popular stack. The file tree updates live as you type.",
         position: 2,
       },
       {
         "@type": "HowToStep",
-        name: "Review and Edit",
-        text: "Preview file contents, toggle individual files, and make edits if needed.",
+        name: "Review the selection",
+        text: "Inspect the file tree, preview contents, and toggle individual files on or off. The token counter tracks the running cost.",
         position: 3,
       },
       {
         "@type": "HowToStep",
         name: "Export",
-        text: "Copy to clipboard or download as a single file or multiple chunks for large projects.",
+        text: "Copy the bundle to your clipboard or download it as a single file. Large projects can be split into multiple chunks by size.",
         position: 4,
       },
       {
         "@type": "HowToStep",
-        name: "Share with AI",
-        text: "Paste the optimized output into ChatGPT, Claude, or your preferred AI assistant.",
+        name: "Send it to the model",
+        text: "Paste the bundle into ChatGPT, Claude, Gemini, or pipe stdout from the CLI directly into an assistant of your choice.",
         position: 5,
       },
     ],

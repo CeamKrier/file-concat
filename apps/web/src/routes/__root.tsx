@@ -8,7 +8,11 @@ import { ThemeProvider } from "~/components/theme-provider";
 import { StagedFilesProvider } from "~/components/staged-files-provider";
 import { NotFound } from "~/components/not-found";
 import { ErrorBoundary } from "~/components/error-boundary";
-import { generateHowToSchema, generateWebApplicationSchema } from "~/lib/seo";
+import {
+  generateCLISoftwareApplicationSchema,
+  generateHowToSchema,
+  generateWebApplicationSchema,
+} from "~/lib/seo";
 import "~/styles/app.css";
 
 export const Route = createRootRoute({
@@ -32,6 +36,10 @@ export const Route = createRootRoute({
       {
         type: "application/ld+json",
         children: JSON.stringify(generateWebApplicationSchema()),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(generateCLISoftwareApplicationSchema()),
       },
       {
         type: "application/ld+json",
