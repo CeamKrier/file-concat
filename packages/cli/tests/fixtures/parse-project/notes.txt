@@ -1,0 +1,1 @@
+A plain text note that should always appear regardless of parse mode.

@@ -39,7 +39,8 @@
     "preview": "nx run @fileconcat/web:preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "check": "nx run-many -t check"
+    "check": "nx run-many -t check",
+    "test": "nx run-many -t test"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

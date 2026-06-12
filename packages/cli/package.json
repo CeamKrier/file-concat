@@ -1,11 +1,14 @@
 {
-    "name": "fileconcat",
-    "version": "1.0.0",
-    "description": "Privacy-first CLI tool for concatenating files for LLM context",
+    "name": "file-concat",
+    "version": "0.1.0",
+    "description": "Privacy-first CLI for concatenating files into LLM context, with optional PDF/DOCX/XLSX/PPTX/ODT/ODS/ODP extraction",
     "type": "module",
     "main": "./dist/index.js",
     "bin": {
-        "fileconcat": "./dist/index.js"
+        "file-concat": "./dist/index.js"
+    },
+    "engines": {
+        "node": ">=18"
     },
     "files": [
         "dist"
@@ -15,7 +18,8 @@
         "dev": "tsx src/index.ts",
         "build": "tsup",
         "prepublishOnly": "pnpm run build",
-        "check": "tsc --noEmit"
+        "check": "tsc --noEmit",
+        "test": "pnpm run build && vitest run"
     },
     "keywords": [
         "cli",
@@ -39,14 +43,17 @@
     },
     "homepage": "https://fileconcat.com",
     "dependencies": {
-        "@fileconcat/core": "workspace:*",
         "commander": "^12.0.0",
-        "glob": "^11.0.0"
+        "glob": "^11.0.0",
+        "officeparser": "^7.2.1"
     },
     "devDependencies": {
+        "@fileconcat/core": "workspace:*",
         "@types/node": "^22.0.0",
+        "execa": "^9.6.1",
         "tsup": "^8.0.0",
-        "typescript": "^5.0.0"
+        "typescript": "^5.0.0",
+        "vitest": "^4.1.8"
     },
     "publishConfig": {
         "access": "public"

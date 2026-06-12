@@ -1,26 +1,31 @@
 # CLI usage
 
-The `fileconcat` CLI runs the same `@fileconcat/core` library that
+The `file-concat` CLI runs the same `@fileconcat/core` library that
 powers the web app. Same filtering semantics, same output format,
 no browser required.
 
 ## Install
 
 ```bash
-pnpm add -g fileconcat
+npm install -g file-concat
+# or
+pnpm add -g file-concat
 ```
 
-Or run it without installing globally:
+Node 18 or newer. The published package is `file-concat`; the bin
+command it installs is also `file-concat`.
+
+You can also invoke it without a global install:
 
 ```bash
-npx fileconcat ./src
+npx file-concat ./src
 ```
 
 ## Usage
 
 ```text
-fileconcat [path] [options]
-fileconcat concat [path] [options]
+file-concat [path] [options]
+file-concat concat [path] [options]
 ```
 
 The bare command and the explicit `concat` subcommand share the same
@@ -28,16 +33,20 @@ flag set. `[path]` defaults to the current directory.
 
 ## Flags
 
-| Flag                       | Short | Default                     | Notes                                    |
-| -------------------------- | ----- | --------------------------- | ---------------------------------------- |
-| `[path]`                   |       | `.`                         | Positional argument; root to process     |
-| `--output <file>`          | `-o`  | `output.xml` / `output.md`  | Default extension follows `--style`      |
-| `--max-size <mb>`          | `-m`  | `32`                        | Per-file size cap in megabytes           |
-| `--no-hidden`              |       | hidden files excluded       | Pass to force-exclude after a config opt-in |
-| `--no-binary`              |       | binary files excluded       | Pass to force-exclude after a config opt-in |
-| `--exclude <patterns...>`  | `-e`  |                             | Repeatable; one or more glob patterns    |
-| `--config <file>`          | `-c`  |                             | Path to a JSON config file               |
-| `--style <style>`          | `-s`  | `xml`                       | `xml`, `markdown`, or `md`               |
+| Flag                       | Short | Default                    | Notes                                                              |
+| -------------------------- | ----- | -------------------------- | ------------------------------------------------------------------ |
+| `[path]`                   |       | `.`                        | Positional argument; root to process                               |
+| `--output <file>`          | `-o`  | `output.xml` / `output.md` | Default extension follows `--style`. Ignored when `--stdout` set.  |
+| `--style <style>`          | `-s`  | `xml`                      | `xml`, `markdown`, or `md`                                         |
+| `--max-size <mb>`          | `-m`  | `32`                       | Per-file size cap in megabytes                                     |
+| `--no-hidden`              |       | hidden files excluded      | Pass to force-exclude after a config opt-in                        |
+| `--no-binary`              |       | binary files excluded      | Pass to force-exclude after a config opt-in                        |
+| `--exclude <patterns...>`  | `-e`  |                            | Repeatable; one or more glob patterns                              |
+| `--config <file>`          | `-c`  |                            | Path to a JSON config file                                         |
+| `--parse [formats]`        |       |                            | Extract text from PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP. Comma list or empty for all. |
+| `--stdout`                 |       |                            | Write the concatenated output to stdout. Mutually exclusive with `--json`. |
+| `--quiet`                  | `-q`  |                            | Suppress progress logs on stderr. Errors still print.              |
+| `--json`                   |       |                            | Emit a single-line JSON summary on stdout when finished.           |
 
 Defaults for `--no-hidden` and `--no-binary` reflect that hidden and
 binary files are already excluded out of the box. The flags are there
@@ -46,7 +55,7 @@ to flip a per-project override back to the default.
 ## Example
 
 ```bash
-fileconcat ./src \
+file-concat ./src \
   --exclude "**/*.test.ts" \
   --exclude "**/__snapshots__/**" \
   --style markdown \
@@ -66,8 +75,7 @@ Names searched in order:
 3. `fileconcat.config.json`
 
 Pass `--config <path>` to point at a different file. The format is
-JSON, matching the `FileConcatConfig` type in
-`packages/cli/src/config.ts`. A minimal example:
+JSON. A minimal example:
 
 ```json
 {
@@ -80,6 +88,73 @@ JSON, matching the `FileConcatConfig` type in
 ```
 
 Command-line flags override config-file values for the same fields.
+
+## Binary documents (PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP)
+
+By default the CLI skips files with binary extensions. Pass `--parse`
+to extract text from supported documents and inline it alongside your
+code. Available formats: PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP.
+
+```bash
+file-concat ./repo --parse                  # extract every supported format
+file-concat ./repo --parse pdf,docx         # restrict to a subset
+```
+
+Parse failures (corrupt files, password-protected PDFs, unsupported
+variants) are logged to stderr and counted under
+`skippedBreakdown.parseFailed` in the JSON summary. They never fail
+the run.
+
+## For AI coding agents
+
+The CLI is designed to drop into Claude Code, Cursor agent mode,
+aider, or any custom orchestrator without surprises. Three contracts
+hold:
+
+1. **Stdout is the artifact, stderr is the chatter.** Progress lines
+   and warnings always go to stderr. Stdout only carries the
+   concatenated output (with `--stdout`) or the JSON summary (with
+   `--json`). `file-concat ./repo --stdout 2>/dev/null` is a clean
+   pipe; `file-concat ./repo --json 2>>logs.txt` preserves progress.
+2. **`--json` provides a single-line machine-readable summary.**
+   ```json
+   {
+     "files": 42,
+     "parsed": 3,
+     "skipped": 5,
+     "skippedBreakdown": { "oversize": 1, "binary": 2, "readError": 0, "parseFailed": 2 },
+     "totalBytes": 184320,
+     "outputPath": "output.xml",
+     "elapsedSeconds": 0.213,
+     "style": "xml"
+   }
+   ```
+   The summary appears on stdout, so harness code can pipe it directly
+   into `JSON.parse`.
+3. **Exit codes are stable.** `0` on success (including partial-skip
+   outcomes), `1` on any fatal error or flag conflict. Errors are
+   written to stderr with an `Error:` prefix.
+
+### Recipes
+
+Pipe a directory straight into an LLM CLI:
+
+```bash
+file-concat ./service --stdout --quiet | claude -p "explain this codebase"
+```
+
+Generate context plus a machine-readable summary for a wrapper
+script:
+
+```bash
+file-concat ./service -o ctx.xml --json | jq '.parsed'
+```
+
+Pull a PDF spec and its accompanying code into the same blob:
+
+```bash
+file-concat ./service --parse pdf,docx -o ctx.xml
+```
 
 ## See also
 

@@ -1,0 +1,4 @@
+{
+  "style": "markdown",
+  "exclude": ["secrets/**"]
+}
