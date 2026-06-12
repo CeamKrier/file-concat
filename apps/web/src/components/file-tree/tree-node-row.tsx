@@ -121,11 +121,6 @@ export function TreeNodeRow(props: TreeNodeRowProps): JSX.Element {
             <span className={getSizeSeverity(node.status.size)}>
               {formatSize(node.status.size)}
             </span>
-            {node.status.reason && (
-              <span className="max-w-[150px] truncate" title={node.status.reason}>
-                {node.status.reason}
-              </span>
-            )}
           </div>
         )}
         {node.type === "directory" && node.totalSize !== undefined && (

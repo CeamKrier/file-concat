@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, HelpCircle, Minus, X } from "lucide-react";
+import { Check, HelpCircle, Info, Minus, X } from "lucide-react";
 
 import { Button } from "~/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { FileStatus, formatSize } from "@fileconcat/core";
 
 import {
@@ -42,14 +43,38 @@ function FileTree({
     const uploadedCount = fileStatuses.length;
     const uploadedSize = fileStatuses.reduce((acc, s) => acc + s.size, 0);
     const included = fileStatuses.filter((s) => s.included);
+
+    const excludedBuckets = { binary: 0, oversize: 0, pattern: 0, manual: 0, other: 0 };
+    for (const status of fileStatuses) {
+      if (status.included) continue;
+      const reason = status.reason ?? "";
+      if (/binary/i.test(reason)) excludedBuckets.binary++;
+      else if (/exceeds|size/i.test(reason)) excludedBuckets.oversize++;
+      else if (/(ignore|include) patterns/i.test(reason)) excludedBuckets.pattern++;
+      else if (/manually/i.test(reason)) excludedBuckets.manual++;
+      else excludedBuckets.other++;
+    }
+
     return {
       uploadedCount,
       uploadedSize,
       includedCount: included.length,
       includedSize: included.reduce((acc, s) => acc + s.size, 0),
       excludedCount: uploadedCount - included.length,
+      excludedBuckets,
     };
   }, [fileStatuses]);
+
+  const excludedBreakdown = useMemo(() => {
+    const labels: Array<[string, number]> = [
+      ["binary", stats.excludedBuckets.binary],
+      ["oversize", stats.excludedBuckets.oversize],
+      ["pattern", stats.excludedBuckets.pattern],
+      ["manual", stats.excludedBuckets.manual],
+      ["other", stats.excludedBuckets.other],
+    ];
+    return labels.filter(([, count]) => count > 0);
+  }, [stats.excludedBuckets]);
 
   const toggleExpanded = useCallback((path: string) => {
     setExpandedPaths((prev) => {
@@ -179,13 +204,36 @@ function FileTree({
         </div>
       </div>
 
-      <div>
-        <p className="text-muted-foreground text-sm">
+      <p className="text-muted-foreground flex flex-wrap items-center gap-x-1 text-sm">
+        <span>
           <span className="text-foreground">{stats.includedCount}</span> files included with total
           size of <span className="text-foreground">{formatSize(stats.includedSize)}</span>,{" "}
           <span className="text-foreground">{stats.excludedCount}</span> files excluded
-        </p>
-      </div>
+        </span>
+        {excludedBreakdown.length > 0 && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label="View exclusion breakdown"
+                className="text-muted-foreground hover:text-foreground focus-visible:text-foreground focus-visible:ring-ring rounded-sm p-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+              >
+                <Info className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" side="top" className="w-auto min-w-[10rem] p-3">
+              <ul className="space-y-1.5 text-xs">
+                {excludedBreakdown.map(([label, count]) => (
+                  <li key={label} className="flex items-center justify-between gap-6">
+                    <span className="text-muted-foreground capitalize">{label}</span>
+                    <span className="text-foreground font-medium tabular-nums">{count}</span>
+                  </li>
+                ))}
+              </ul>
+            </PopoverContent>
+          </Popover>
+        )}
+      </p>
     </div>
   );
 }
