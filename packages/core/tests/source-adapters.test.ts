@@ -605,3 +605,121 @@ describe("gist error paths", () => {
     expect(result.error).toMatch(/degraded/i);
   });
 });
+
+describe("gitlab error paths", () => {
+  const originalFetch = global.fetch;
+  const mockFetch = vi.fn();
+
+  beforeEach(() => {
+    global.fetch = mockFetch as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    mockFetch.mockReset();
+    global.fetch = originalFetch;
+  });
+
+  it("surfaces 401 as authentication required and names the project", async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse({ ok: false, status: 401 }));
+
+    const result = await gitlabAdapter.fetchFiles("https://gitlab.com/owner/repo/-/tree/main");
+
+    expect(result.error).toMatch(/authentication required/i);
+    expect(result.error).toContain("owner/repo");
+  });
+
+  it("surfaces 403 as forbidden", async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse({ ok: false, status: 403 }));
+
+    const result = await gitlabAdapter.fetchFiles("https://gitlab.com/owner/repo/-/tree/main");
+
+    expect(result.error).toMatch(/forbidden/i);
+  });
+
+  it("includes a Retry-After hint on 429", async () => {
+    mockFetch.mockResolvedValueOnce(
+      makeResponse({ ok: false, status: 429, headers: { "retry-after": "45" } }),
+    );
+
+    const result = await gitlabAdapter.fetchFiles("https://gitlab.com/owner/repo/-/tree/main");
+
+    expect(result.error).toMatch(/too many requests/i);
+    expect(result.error).toMatch(/45s/);
+  });
+
+  it("reports degraded service for 5xx", async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse({ ok: false, status: 503 }));
+
+    const result = await gitlabAdapter.fetchFiles("https://gitlab.com/owner/repo/-/tree/main");
+
+    expect(result.error).toMatch(/503/);
+    expect(result.error).toMatch(/degraded/i);
+  });
+
+  it("preserves the endpoint-specific 404 wording", async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse({ ok: false, status: 404 }));
+
+    const result = await gitlabAdapter.fetchFiles("https://gitlab.com/owner/repo/-/tree/main");
+
+    expect(result.error).toBe("Repository or branch not found");
+  });
+});
+
+describe("bitbucket error paths", () => {
+  const originalFetch = global.fetch;
+  const mockFetch = vi.fn();
+
+  beforeEach(() => {
+    global.fetch = mockFetch as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    mockFetch.mockReset();
+    global.fetch = originalFetch;
+  });
+
+  it("surfaces 401 as authentication required and names the repository", async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse({ ok: false, status: 401 }));
+
+    const result = await bitbucketAdapter.fetchFiles("https://bitbucket.org/workspace/repo");
+
+    expect(result.error).toMatch(/authentication required/i);
+    expect(result.error).toContain("workspace/repo");
+  });
+
+  it("surfaces 403 as forbidden", async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse({ ok: false, status: 403 }));
+
+    const result = await bitbucketAdapter.fetchFiles("https://bitbucket.org/workspace/repo");
+
+    expect(result.error).toMatch(/forbidden/i);
+  });
+
+  it("includes a Retry-After hint on 429", async () => {
+    mockFetch.mockResolvedValueOnce(
+      makeResponse({ ok: false, status: 429, headers: { "retry-after": "60" } }),
+    );
+
+    const result = await bitbucketAdapter.fetchFiles("https://bitbucket.org/workspace/repo");
+
+    expect(result.error).toMatch(/too many requests/i);
+    expect(result.error).toMatch(/1m/);
+  });
+
+  it("reports degraded service for 5xx", async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse({ ok: false, status: 503 }));
+
+    const result = await bitbucketAdapter.fetchFiles("https://bitbucket.org/workspace/repo");
+
+    expect(result.error).toMatch(/503/);
+    expect(result.error).toMatch(/degraded/i);
+  });
+
+  it("preserves the endpoint-specific 404 wording", async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse({ ok: false, status: 404 }));
+
+    const result = await bitbucketAdapter.fetchFiles("https://bitbucket.org/workspace/repo");
+
+    expect(result.error).toBe("Repository, branch, or path not found");
+  });
+});

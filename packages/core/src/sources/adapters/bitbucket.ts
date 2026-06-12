@@ -2,6 +2,7 @@ import type { SourceAdapter, ParsedSourceUrl, FetchOptions } from "../types";
 import type { RepositoryContent, RepoFile } from "../../types";
 import { SOURCE_METADATA } from "../metadata";
 import { createProgressReporter } from "../progress";
+import { classifyResponseError } from "./_errors";
 
 /** Bitbucket URL regex patterns */
 const BITBUCKET_REPO_REGEX =
@@ -75,7 +76,10 @@ async function fetchDirectoryContents(
       if (response.status === 404) {
         throw new Error("Repository, branch, or path not found");
       }
-      throw new Error(`Bitbucket API error: ${response.status}`);
+      throw classifyResponseError(
+        response,
+        `Bitbucket repository ${workspace}/${repo}@${branch}`,
+      );
     }
 
     const data = (await response.json()) as BitbucketDirectoryResponse;

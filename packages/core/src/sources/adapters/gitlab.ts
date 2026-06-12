@@ -2,6 +2,7 @@ import type { SourceAdapter, ParsedSourceUrl, FetchOptions } from "../types";
 import type { RepositoryContent, RepoFile } from "../../types";
 import { SOURCE_METADATA } from "../metadata";
 import { createProgressReporter } from "../progress";
+import { classifyResponseError } from "./_errors";
 
 interface GitLabProjectResponse {
   default_branch?: string;
@@ -123,7 +124,10 @@ async function fetchAllTreePages(
       if (response.status === 404) {
         throw new Error("Repository or branch not found");
       }
-      throw new Error(`GitLab API error: ${response.status}`);
+      throw classifyResponseError(
+        response,
+        `GitLab project ${decodeURIComponent(projectId)}@${branch}`,
+      );
     }
 
     const items = (await response.json()) as GitLabTreeItem[];
