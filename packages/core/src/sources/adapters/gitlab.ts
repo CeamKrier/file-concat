@@ -2,7 +2,7 @@ import type { SourceAdapter, ParsedSourceUrl, FetchOptions } from "../types";
 import type { RepositoryContent, RepoFile } from "../../types";
 import { SOURCE_METADATA } from "../metadata";
 import { createProgressReporter } from "../progress";
-import { classifyResponseError } from "./_errors";
+import { classifyResponseError, fetchWithRateLimitRetry } from "./_errors";
 
 interface GitLabProjectResponse {
   default_branch?: string;
@@ -118,7 +118,7 @@ async function fetchAllTreePages(
   while (true) {
     const url = `https://gitlab.com/api/v4/projects/${projectId}/repository/tree?ref=${branch}&recursive=true&per_page=${perPage}&page=${page}`;
 
-    const response = await fetch(url, { signal });
+    const response = await fetchWithRateLimitRetry(url, { signal });
 
     if (!response.ok) {
       if (response.status === 404) {

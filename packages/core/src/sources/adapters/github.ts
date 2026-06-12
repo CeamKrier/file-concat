@@ -2,7 +2,7 @@ import type { SourceAdapter, ParsedSourceUrl, FetchOptions } from "../types";
 import type { RepositoryContent, RepoFile } from "../../types";
 import { SOURCE_METADATA } from "../metadata";
 import { createProgressReporter } from "../progress";
-import { classifyResponseError } from "./_errors";
+import { classifyResponseError, fetchWithRateLimitRetry } from "./_errors";
 
 /** GitHub URL regex patterns */
 const GITHUB_REPO_REGEX =
@@ -99,7 +99,10 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
 
     // Get default branch if not specified
     if (!branch) {
-      const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { signal });
+      const repoResponse = await fetchWithRateLimitRetry(
+        `https://api.github.com/repos/${owner}/${repo}`,
+        { signal },
+      );
       if (!repoResponse.ok) {
         if (repoResponse.status === 404) {
           throw new Error(`Repository '${owner}/${repo}' not found`);
@@ -112,7 +115,7 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
 
     // Get file tree
     const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`;
-    const treeResponse = await fetch(treeUrl, { signal });
+    const treeResponse = await fetchWithRateLimitRetry(treeUrl, { signal });
 
     if (!treeResponse.ok) {
       if (treeResponse.status === 404) {

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fetchWithRateLimitRetry } from "../src/sources/adapters/_errors";
 import { bitbucketAdapter, getBitbucketDisplayPath } from "../src/sources/adapters/bitbucket";
 import { gistAdapter, parseGistUrl } from "../src/sources/adapters/gist";
 import {
@@ -721,5 +722,97 @@ describe("bitbucket error paths", () => {
     const result = await bitbucketAdapter.fetchFiles("https://bitbucket.org/workspace/repo");
 
     expect(result.error).toBe("Repository, branch, or path not found");
+  });
+});
+
+describe("fetchWithRateLimitRetry", () => {
+  const originalFetch = global.fetch;
+  const mockFetch = vi.fn();
+
+  beforeEach(() => {
+    global.fetch = mockFetch as unknown as typeof fetch;
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    mockFetch.mockReset();
+    vi.useRealTimers();
+    global.fetch = originalFetch;
+  });
+
+  it("passes the first response through unchanged on 200", async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse({ ok: true, status: 200, json: { ok: 1 } }));
+
+    const response = await fetchWithRateLimitRetry("https://example.com/api");
+
+    expect(response.status).toBe(200);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries once on 429 when Retry-After fits the short-window ceiling", async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        makeResponse({ ok: false, status: 429, headers: { "retry-after": "5" } }),
+      )
+      .mockResolvedValueOnce(makeResponse({ ok: true, status: 200 }));
+
+    const promise = fetchWithRateLimitRetry("https://example.com/api");
+    await vi.advanceTimersByTimeAsync(5_000);
+    const response = await promise;
+
+    expect(response.status).toBe(200);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry on 429 when Retry-After exceeds the ceiling", async () => {
+    mockFetch.mockResolvedValueOnce(
+      makeResponse({ ok: false, status: 429, headers: { "retry-after": "120" } }),
+    );
+
+    const response = await fetchWithRateLimitRetry("https://example.com/api");
+
+    expect(response.status).toBe(429);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not retry on 429 when Retry-After is missing", async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse({ ok: false, status: 429 }));
+
+    const response = await fetchWithRateLimitRetry("https://example.com/api");
+
+    expect(response.status).toBe(429);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("caps the retry at one even when the second response is also 429", async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        makeResponse({ ok: false, status: 429, headers: { "retry-after": "2" } }),
+      )
+      .mockResolvedValueOnce(
+        makeResponse({ ok: false, status: 429, headers: { "retry-after": "2" } }),
+      );
+
+    const promise = fetchWithRateLimitRetry("https://example.com/api");
+    await vi.advanceTimersByTimeAsync(2_000);
+    const response = await promise;
+
+    expect(response.status).toBe(429);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("aborts the wait when the signal fires during the retry delay", async () => {
+    mockFetch.mockResolvedValueOnce(
+      makeResponse({ ok: false, status: 429, headers: { "retry-after": "10" } }),
+    );
+
+    const controller = new AbortController();
+    const promise = fetchWithRateLimitRetry("https://example.com/api", { signal: controller.signal });
+
+    await vi.advanceTimersByTimeAsync(1_000);
+    controller.abort();
+
+    await expect(promise).rejects.toThrow(/aborted/i);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 });

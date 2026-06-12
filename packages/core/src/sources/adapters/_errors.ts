@@ -3,6 +3,8 @@
 // specific) and lean on this module for the auth, rate-limit, and server
 // failure cases that look the same everywhere.
 
+const RATE_LIMIT_AUTO_RETRY_CEILING_MS = 30_000;
+
 const TIME_FORMATTER = new Intl.DateTimeFormat(undefined, {
   hour: "2-digit",
   minute: "2-digit",
@@ -99,4 +101,48 @@ export function classifyResponseError(response: Response, context: string): Erro
   }
 
   return new Error(`${context}: request failed (${status}).`);
+}
+
+function sleep(ms: number, signal?: AbortSignal | null): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new Error("Aborted"));
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new Error("Aborted"));
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+/**
+ * Fetch that retries ONCE on HTTP 429 when the Retry-After hint fits inside
+ * the short-window ceiling (30 seconds by default). Anything longer or
+ * absent surfaces the original 429 response unchanged so callers can
+ * classify it through {@link classifyResponseError}. The retry honours
+ * `init.signal` during the wait. Hard ceiling: at most one extra request.
+ */
+export async function fetchWithRateLimitRetry(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  options?: { maxRetryDelayMs?: number },
+): Promise<Response> {
+  const maxDelay = options?.maxRetryDelayMs ?? RATE_LIMIT_AUTO_RETRY_CEILING_MS;
+  const signal = init?.signal ?? null;
+
+  const first = await fetch(input, init);
+  if (first.status !== 429) return first;
+
+  const info = readRateLimitInfo(first);
+  const delayMs = (info.retryInSeconds ?? 0) * 1000;
+  if (delayMs <= 0 || delayMs > maxDelay) return first;
+
+  await sleep(delayMs, signal);
+  return fetch(input, init);
 }

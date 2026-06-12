@@ -1,7 +1,7 @@
 import type { SourceAdapter, ParsedSourceUrl, FetchOptions } from "../types";
 import type { RepositoryContent, RepoFile } from "../../types";
 import { SOURCE_METADATA } from "../metadata";
-import { classifyResponseError } from "./_errors";
+import { classifyResponseError, fetchWithRateLimitRetry } from "./_errors";
 
 interface GitHubGistFile {
   filename: string;
@@ -82,7 +82,7 @@ export function parseGistUrl(url: string): ParsedSourceUrl {
  * Fetch GitHub Gist
  */
 async function fetchGitHubGist(gistId: string, signal?: AbortSignal): Promise<RepositoryContent> {
-  const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+  const response = await fetchWithRateLimitRetry(`https://api.github.com/gists/${gistId}`, {
     signal,
     headers: {
       Accept: "application/vnd.github+json",
@@ -129,7 +129,10 @@ async function fetchGitLabSnippet(
   signal?: AbortSignal,
 ): Promise<RepositoryContent> {
   // Get snippet metadata
-  const response = await fetch(`https://gitlab.com/api/v4/snippets/${snippetId}`, { signal });
+  const response = await fetchWithRateLimitRetry(
+    `https://gitlab.com/api/v4/snippets/${snippetId}`,
+    { signal },
+  );
 
   if (!response.ok) {
     if (response.status === 404) {

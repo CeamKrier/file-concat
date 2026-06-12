@@ -2,7 +2,7 @@ import type { SourceAdapter, ParsedSourceUrl, FetchOptions } from "../types";
 import type { RepositoryContent, RepoFile } from "../../types";
 import { SOURCE_METADATA } from "../metadata";
 import { createProgressReporter } from "../progress";
-import { classifyResponseError } from "./_errors";
+import { classifyResponseError, fetchWithRateLimitRetry } from "./_errors";
 
 /** Bitbucket URL regex patterns */
 const BITBUCKET_REPO_REGEX =
@@ -70,7 +70,7 @@ async function fetchDirectoryContents(
     `https://api.bitbucket.org/2.0/repositories/${workspace}/${repo}/src/${branch}/${path}?pagelen=100`;
 
   while (nextUrl) {
-    const response: Response = await fetch(nextUrl, { signal });
+    const response: Response = await fetchWithRateLimitRetry(nextUrl, { signal });
 
     if (!response.ok) {
       if (response.status === 404) {
