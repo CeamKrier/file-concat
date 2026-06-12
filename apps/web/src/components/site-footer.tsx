@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { SiGithub } from "@icons-pack/react-simple-icons";
+import { SiGithub, SiNpm } from "@icons-pack/react-simple-icons";
 
 import BMCLogo from "~/components/bmc-logo";
 
@@ -31,7 +31,7 @@ export function SiteFooter() {
 
         <nav
           aria-label="Footer"
-          className="grid grid-cols-2 gap-x-10 gap-y-3 font-display text-[13px] sm:grid-cols-3"
+          className="flex flex-wrap gap-x-8 gap-y-3 font-display text-[13px]"
         >
           <Link
             to="/app"
@@ -53,6 +53,15 @@ export function SiteFooter() {
           >
             <SiGithub className="h-3.5 w-3.5" aria-hidden="true" />
             <span>GitHub</span>
+          </a>
+          <a
+            href="https://www.npmjs.com/package/@fileconcat/cli"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:underline focus-visible:underline-offset-4"
+          >
+            <SiNpm className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>npm</span>
           </a>
         </nav>
       </div>
