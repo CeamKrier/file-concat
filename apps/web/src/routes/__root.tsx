@@ -59,12 +59,23 @@ function RootComponent() {
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
+                var style = document.createElement('style');
+                style.setAttribute('data-theme-init', '');
+                style.appendChild(document.createTextNode('*,*::before,*::after{transition-duration:0s !important;transition-delay:0s !important;animation-duration:0s !important;animation-delay:0s !important;}'));
+                document.head.appendChild(style);
                 try {
                   var theme = localStorage.getItem('ui-theme');
                   if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                     document.documentElement.classList.add('dark');
                   }
                 } catch (e) {}
+                function unlock() {
+                  requestAnimationFrame(function() {
+                    requestAnimationFrame(function() { style.remove(); });
+                  });
+                }
+                if (document.readyState === 'complete') unlock();
+                else window.addEventListener('load', unlock, { once: true });
               })();
             `,
           }}
