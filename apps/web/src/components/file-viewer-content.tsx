@@ -3,7 +3,7 @@ import { Check, Plus, Pencil, Save as SaveIcon, Undo2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { formatSize } from "@fileconcat/core";
+import { formatSize, getLanguageFromPath } from "@fileconcat/core";
 const LazyEditor = React.lazy(() => import("~/components/lazy-editor-codemirror"));
 
 interface FileViewerContentProps {
@@ -57,7 +57,11 @@ const FileViewerContent: React.FC<FileViewerContentProps> = ({
         <Suspense
           fallback={<div className="p-4 text-sm text-muted-foreground">Loading editor…</div>}
         >
-          <LazyEditor value={content || ""} onChange={onChangeEdit || (() => {})} />
+          <LazyEditor
+            value={content || ""}
+            language={getLanguageFromPath(path)}
+            onChange={onChangeEdit || (() => {})}
+          />
         </Suspense>
       </div>
     );
