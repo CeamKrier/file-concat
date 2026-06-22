@@ -3,7 +3,6 @@ import { Check, ChevronsUpDown, RefreshCw, Star, Search } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { Input } from "~/components/ui/input";
-import { ScrollArea } from "~/components/ui/scroll-area";
 import Badge from "~/components/ui/badge";
 import type { FilteredModel } from "@fileconcat/core";
 import { cn } from "~/lib/utils";
@@ -204,19 +203,29 @@ export function ModelSelector({
       </button>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="truncate text-sm font-medium">{model.name}</span>
+          <span className="min-w-0 truncate text-sm font-medium">{model.name}</span>
           {model.hasReasoning && (
-            <Badge variant="secondary" className="px-1 py-0 text-[10px]">
+            <Badge variant="secondary" className="shrink-0 px-1 py-0 text-[10px]">
               Reasoning
             </Badge>
           )}
         </div>
-        <div className="text-muted-foreground flex items-center gap-2 text-xs">
-          <span>via {model.providerName}</span>
-          <span>·</span>
-          <span>{formatTokenLimit(model.contextLimit)} ctx</span>
-          <span>·</span>
-          <span>{formatCost(model.inputCost, model.outputCost)}/1M in</span>
+        <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+          <span className="min-w-0 truncate" title={model.providerName}>
+            via {model.providerName}
+          </span>
+          <span aria-hidden="true" className="shrink-0">
+            ·
+          </span>
+          <span className="shrink-0 whitespace-nowrap">
+            {formatTokenLimit(model.contextLimit)} ctx
+          </span>
+          <span aria-hidden="true" className="shrink-0">
+            ·
+          </span>
+          <span className="shrink-0 whitespace-nowrap">
+            {formatCost(model.inputCost, model.outputCost)}/1M in
+          </span>
         </div>
       </div>
       {selectedModel?.uid === model.uid && <Check className="text-primary h-4 w-4 shrink-0" />}
@@ -246,7 +255,7 @@ export function ModelSelector({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[350px] p-0" align="start">
+        <PopoverContent className="w-[min(380px,calc(100vw-2rem))] p-0" align="start">
           <div className="flex items-center gap-2 border-b px-3 py-2">
             <Search className="text-muted-foreground h-4 w-4" />
             <Input
@@ -256,7 +265,7 @@ export function ModelSelector({
               className="h-auto border-0 p-0 focus-visible:ring-0"
             />
           </div>
-          <ScrollArea className="h-[300px]">
+          <div className="h-[300px] overflow-x-hidden overflow-y-auto">
             <div className="space-y-1 p-2">
               {favoriteModels.length > 0 && (
                 <>
@@ -277,7 +286,7 @@ export function ModelSelector({
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
           {lastUpdated && (
             <div className="text-muted-foreground border-t px-3 py-2 text-xs">
               Updated: {new Date(lastUpdated).toLocaleDateString()}
