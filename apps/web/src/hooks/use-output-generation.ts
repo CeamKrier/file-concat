@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import type { OutputFormat } from "@fileconcat/core";
+import type { OutputFormat, OutputFormatPreference } from "@fileconcat/core";
 import {
   MULTI_OUTPUT_LIMIT,
   assembleOutput,
@@ -22,14 +22,15 @@ export interface OutputGenerationInputs {
   tokens: number;
   sourceUrl: string | null;
   outputStyle: "xml" | "markdown";
+  /** Persisted format preference. `"auto"` defers to {@link recommendedFormat}. */
+  formatPreference: OutputFormatPreference;
+  /** Persisted target size (KB) per part for multi-part output. */
+  chunkSizeKB: number;
 }
 
 export interface OutputGeneration {
-  chunkSizeKB: number;
-  setChunkSizeKB: (kb: number) => void;
   recommendedFormat: OutputFormat;
   selectedFormat: OutputFormat;
-  setUserPickedFormat: (format: OutputFormat) => void;
   estimations: { single: string; multiple: string };
   isCopied: boolean;
   isGenerating: boolean;
@@ -44,14 +45,15 @@ export function useOutputGeneration({
   tokens,
   sourceUrl,
   outputStyle,
+  formatPreference,
+  chunkSizeKB,
 }: OutputGenerationInputs): OutputGeneration {
-  const [chunkSizeKB, setChunkSizeKB] = useState(32);
-  const [userPickedFormat, setUserPickedFormat] = useState<OutputFormat | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const recommendedFormat: OutputFormat = tokens > MULTI_OUTPUT_LIMIT ? "multi" : "single";
-  const selectedFormat: OutputFormat = userPickedFormat ?? recommendedFormat;
+  const selectedFormat: OutputFormat =
+    formatPreference === "auto" ? recommendedFormat : formatPreference;
 
   const chunks = useMemo(
     () => chunkContents(includedContents, chunkSizeKB * 1024),
@@ -70,7 +72,8 @@ export function useOutputGeneration({
       chunk.reduce((acc, file) => acc + new TextEncoder().encode(file.content).length, 0),
     );
     const avg = Math.ceil(sizes.reduce((a, b) => a + b, 0) / sizes.length);
-    const multiple = `${chunks.length} files, ~${formatSize(avg)} each`;
+    const partWord = chunks.length === 1 ? "file" : "files";
+    const multiple = `${chunks.length} ${partWord}, ~${formatSize(avg)} each`;
     return { single, multiple };
   }, [includedContents, chunks]);
 
@@ -131,19 +134,16 @@ export function useOutputGeneration({
     }
   }, [selectedFormat, includedContents, chunks, buildSingle, outputStyle]);
 
+  // Format and chunk size are persisted preferences (owned by useConfig), so a
+  // fresh ingest only clears the transient emit state — not the user's choices.
   const reset = useCallback(() => {
-    setChunkSizeKB(32);
-    setUserPickedFormat(null);
     setIsCopied(false);
     setIsGenerating(false);
   }, []);
 
   return {
-    chunkSizeKB,
-    setChunkSizeKB,
     recommendedFormat,
     selectedFormat,
-    setUserPickedFormat: (format: OutputFormat) => setUserPickedFormat(format),
     estimations,
     isCopied,
     isGenerating,

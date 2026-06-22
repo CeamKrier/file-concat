@@ -21,8 +21,14 @@ describe("useConfig localStorage migration", () => {
     localStorage.clear();
   });
 
-  it("accepts a v5 payload as-is without migration", async () => {
-    const stored = { version: CONFIG_VERSION, ...baseV5Fields, maxFileSizeMB: 64 };
+  it("accepts a current-version payload as-is without migration", async () => {
+    const stored = {
+      version: CONFIG_VERSION,
+      ...baseV5Fields,
+      defaultOutputFormat: "auto" as const,
+      chunkSizeKB: 256,
+      maxFileSizeMB: 64,
+    };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
 
     const { result } = renderHook(() => useConfig());
@@ -30,8 +36,27 @@ describe("useConfig localStorage migration", () => {
 
     expect(result.current.config.version).toBe(CONFIG_VERSION);
     expect(result.current.config.maxFileSizeMB).toBe(64);
+    expect(result.current.config.chunkSizeKB).toBe(256);
     // The hook returns the stored object verbatim — no rewrite to localStorage.
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}")).toEqual(stored);
+  });
+
+  it("migrates v5: resets the dead defaultOutputFormat to auto and seeds chunkSizeKB", async () => {
+    // Pre-v6 stored defaultOutputFormat was never user-driven, so a stale
+    // "single" must not pin the format; the missing chunkSizeKB takes the default.
+    const v5 = { version: 5, ...baseV5Fields };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(v5));
+
+    const { result } = renderHook(() => useConfig());
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    expect(result.current.config.version).toBe(CONFIG_VERSION);
+    expect(result.current.config.defaultOutputFormat).toBe("auto");
+    expect(result.current.config.chunkSizeKB).toBe(32);
+
+    const persisted = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
+    expect(persisted.defaultOutputFormat).toBe("auto");
+    expect(persisted.chunkSizeKB).toBe(32);
   });
 
   it("drops legacy removeEmptyLines when migrating from v4", async () => {

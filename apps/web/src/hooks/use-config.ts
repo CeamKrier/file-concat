@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import type { UserConfig } from "@fileconcat/core";
+import type { OutputFormatPreference, UserConfig } from "@fileconcat/core";
 import { CONFIG_VERSION, DEFAULT_IGNORE_STRING } from "@fileconcat/core";
 
 const STORAGE_KEY = "fileconcat-config";
@@ -10,8 +10,9 @@ const DEFAULT_CONFIG: UserConfig = {
   includePatterns: "",
   ignorePatterns: DEFAULT_IGNORE_STRING,
   showLineNumbers: false,
-  defaultOutputFormat: "single",
+  defaultOutputFormat: "auto",
   outputStyle: "xml",
+  chunkSizeKB: 32,
   autoSwitchSource: false,
   defaultSourceType: "github",
 };
@@ -41,8 +42,21 @@ function pickIgnorePatterns(raw: Record<string, unknown>): string {
 }
 
 const OUTPUT_STYLES = ["xml", "markdown"] as const;
-const OUTPUT_FORMATS = ["single", "multi"] as const;
+const OUTPUT_FORMAT_PREFS = ["auto", "single", "multi"] as const;
 const SOURCE_TYPES = ["github", "gitlab", "bitbucket", "gist", "url", "local"] as const;
+
+function pickOutputFormatPref(raw: Record<string, unknown>): OutputFormatPreference {
+  // `defaultOutputFormat` existed before v6 but was never wired to the UI — the
+  // app drove the format off the live token recommendation, so a stored
+  // "single" / "multi" from a pre-v6 schema is a dead default, not a deliberate
+  // user choice. Only honour it once the config is already on v6+, where the
+  // preference is real; otherwise start fresh at "auto".
+  const storedVersion = typeof raw.version === "number" ? raw.version : 0;
+  if (storedVersion >= 6) {
+    return pickEnum(raw.defaultOutputFormat, OUTPUT_FORMAT_PREFS, "auto");
+  }
+  return "auto";
+}
 
 function migrateConfig(oldConfig: Record<string, unknown>): UserConfig {
   return {
@@ -51,12 +65,9 @@ function migrateConfig(oldConfig: Record<string, unknown>): UserConfig {
     includePatterns: pickString(oldConfig.includePatterns, DEFAULT_CONFIG.includePatterns),
     ignorePatterns: pickIgnorePatterns(oldConfig),
     showLineNumbers: pickBoolean(oldConfig.showLineNumbers, DEFAULT_CONFIG.showLineNumbers),
-    defaultOutputFormat: pickEnum(
-      oldConfig.defaultOutputFormat,
-      OUTPUT_FORMATS,
-      DEFAULT_CONFIG.defaultOutputFormat,
-    ),
+    defaultOutputFormat: pickOutputFormatPref(oldConfig),
     outputStyle: pickEnum(oldConfig.outputStyle, OUTPUT_STYLES, DEFAULT_CONFIG.outputStyle),
+    chunkSizeKB: pickNumber(oldConfig.chunkSizeKB, DEFAULT_CONFIG.chunkSizeKB),
     autoSwitchSource: pickBoolean(oldConfig.autoSwitchSource, DEFAULT_CONFIG.autoSwitchSource),
     defaultSourceType: pickEnum(
       oldConfig.defaultSourceType,

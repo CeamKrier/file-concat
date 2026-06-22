@@ -36,7 +36,7 @@ import type { SourceType } from "./sources/types";
  * accordingly. The literal lives here so the type definition and every
  * migration consumer share one source of truth.
  */
-export const CONFIG_VERSION = 5;
+export const CONFIG_VERSION = 6;
 
 // User configuration with schema versioning for localStorage
 export type UserConfig = {
@@ -48,8 +48,10 @@ export type UserConfig = {
   // File processing options
   showLineNumbers: boolean;
   // Output preferences
-  defaultOutputFormat: "single" | "multi";
+  defaultOutputFormat: OutputFormatPreference;
   outputStyle: "xml" | "markdown";
+  // Target size (KB) per part when emitting multi-part output.
+  chunkSizeKB: number;
   // Source preferences
   autoSwitchSource: boolean;
   defaultSourceType: SourceType;
@@ -79,6 +81,12 @@ export function modelToContextLimit(model: FilteredModel): LLMContextLimit {
 }
 
 export type OutputFormat = "single" | "multi";
+
+/**
+ * Persisted output-format preference. `"auto"` defers to the live token-count
+ * recommendation; `"single"` / `"multi"` pin the choice across sessions.
+ */
+export type OutputFormatPreference = "auto" | OutputFormat;
 
 export interface FileValidationResult {
   isValid: boolean;

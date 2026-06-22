@@ -63,6 +63,8 @@ const App: React.FC = () => {
     tokens,
     sourceUrl: ingestion.sourceUrl,
     outputStyle: userConfig.outputStyle,
+    formatPreference: userConfig.defaultOutputFormat,
+    chunkSizeKB: userConfig.chunkSizeKB,
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -330,7 +332,7 @@ const App: React.FC = () => {
               <TokenSection
                 tokens={tokens}
                 selectedFormat={output.selectedFormat}
-                onSwitchToMultipart={() => output.setUserPickedFormat("multi")}
+                onSwitchToMultipart={() => setConfig({ defaultOutputFormat: "multi" })}
               />
             )}
           </div>
@@ -340,17 +342,20 @@ const App: React.FC = () => {
       {hasFiles && includedContents.length > 0 && (
         <ActionBar
           tokens={tokens}
-          format={output.selectedFormat}
-          style={userConfig.outputStyle}
+          formatPreference={userConfig.defaultOutputFormat}
+          effectiveFormat={output.selectedFormat}
           recommendedFormat={output.recommendedFormat}
-          chunkSizeKB={output.chunkSizeKB}
+          style={userConfig.outputStyle}
+          chunkSizeKB={userConfig.chunkSizeKB}
           estimations={output.estimations}
           isProcessing={isBusy}
           canEmit={output.canEmit}
           isCopied={output.isCopied}
-          onSelectFormat={output.setUserPickedFormat}
+          onSelectFormatPreference={(preference) =>
+            setConfig({ defaultOutputFormat: preference })
+          }
           onSelectStyle={(style) => setConfig({ outputStyle: style })}
-          onChangeChunkSize={output.setChunkSizeKB}
+          onChangeChunkSize={(value) => setConfig({ chunkSizeKB: value })}
           onCopy={output.copy}
           onDownload={output.download}
         />
