@@ -326,7 +326,13 @@ const App: React.FC = () => {
               />
             )}
 
-            {tokens > 0 && <TokenSection tokens={tokens} />}
+            {tokens > 0 && (
+              <TokenSection
+                tokens={tokens}
+                selectedFormat={output.selectedFormat}
+                onSwitchToMultipart={() => output.setUserPickedFormat("multi")}
+              />
+            )}
           </div>
         </div>
       )}

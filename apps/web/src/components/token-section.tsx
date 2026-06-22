@@ -1,23 +1,40 @@
 import { useState, useEffect, useMemo } from "react";
+import { AlertTriangle, Check } from "lucide-react";
 import { ModelSelector } from "~/components/model-selector";
 import { CostEstimate } from "~/components/cost-estimate";
 import { CostComparison } from "~/components/cost-comparison";
 import { useModels } from "~/hooks/use-models";
-import type { FilteredModel } from "@fileconcat/core";
+import type { FilteredModel, OutputFormat } from "@fileconcat/core";
+import { cn } from "~/lib/utils";
 
 interface TokenSectionProps {
   tokens: number;
+  /** Current output format, so the fit readout can offer a real action. */
+  selectedFormat?: OutputFormat;
+  /** Switch the output to multi-part from the overflow guidance. */
+  onSwitchToMultipart?: () => void;
 }
 
 const SELECTED_MODEL_KEY = "fileconcat-selected-model";
 const OUTPUT_RATIO_KEY = "fileconcat-output-ratio";
 const DEFAULT_OUTPUT_RATIO = 10;
 
-function formatLimit(tokens: number): string {
+/** Compact token count for the fit readout: 240000 → "240K", 1000000 → "1M". */
+function formatCompact(tokens: number): string {
   if (tokens >= 1_000_000) {
-    return `${(tokens / 1_000_000).toFixed(1)}M tokens`;
+    const millions = tokens / 1_000_000;
+    return `${millions % 1 === 0 ? millions.toFixed(0) : millions.toFixed(1)}M`;
   }
-  return `${(tokens / 1_000).toFixed(0)}K tokens`;
+  if (tokens >= 1_000) {
+    return `${Math.round(tokens / 1_000)}K`;
+  }
+  return tokens.toString();
+}
+
+/** Honest percentage label: never round non-zero usage down to a flat "0%". */
+function formatPct(pct: number): string {
+  if (pct > 0 && pct < 1) return "<1%";
+  return `${pct.toFixed(0)}%`;
 }
 
 // Catalog uids switched from `providerId/modelId` to canonical `lab/model-id`.
@@ -38,7 +55,7 @@ function migrateLegacyUid(storedUid: string, models: FilteredModel[]): FilteredM
   return models.find((m) => norm(m.uid) === target || norm(m.name) === target) ?? null;
 }
 
-export function TokenSection({ tokens }: TokenSectionProps) {
+export function TokenSection({ tokens, selectedFormat, onSwitchToMultipart }: TokenSectionProps) {
   const { models, isLoading, error, lastUpdated, refresh } = useModels();
   const [selectedModel, setSelectedModel] = useState<FilteredModel | null>(null);
   const [outputRatioPercent, setOutputRatioPercent] = useState(DEFAULT_OUTPUT_RATIO);
@@ -89,7 +106,6 @@ export function TokenSection({ tokens }: TokenSectionProps) {
     localStorage.setItem(SELECTED_MODEL_KEY, model.uid);
   };
 
-  const percentage = selectedModel ? (tokens / selectedModel.contextLimit) * 100 : 0;
   const outputRatio = outputRatioPercent / 100;
 
   return (
@@ -159,40 +175,116 @@ export function TokenSection({ tokens }: TokenSectionProps) {
       {/* Error message */}
       {error && <p className="text-sm text-red-500">Failed to refresh models: {error}</p>}
 
-      {/* Progress Bar */}
+      {/* Context-window fit: the signature moment, where color and guidance earn their place. */}
       {selectedModel && (
-        <div className="space-y-1">
-          <div className="flex justify-between text-sm">
-            <span>
-              <span className="font-bold">{selectedModel.name}</span>{" "}
-              <span className="text-muted-foreground text-xs">via {selectedModel.providerName}</span>
-            </span>
-            <span className={percentage > 100 ? "text-red-500" : "text-muted-foreground"}>
-              {percentage.toFixed(1)}% of {formatLimit(selectedModel.contextLimit)}
-            </span>
-          </div>
-          <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
-            <div
-              className={`h-2 rounded-full transition-all ${
-                percentage > 100
-                  ? "bg-red-500"
-                  : percentage > 90
-                    ? "bg-red-500"
-                    : percentage > 70
-                      ? "bg-yellow-500"
-                      : "bg-green-500"
-              }`}
-              style={{ width: `${Math.min(percentage, 100)}%` }}
-            />
-          </div>
-          {percentage > 100 && (
-            <p className="text-xs text-red-500">
-              Content exceeds model context window by{" "}
-              {(tokens - selectedModel.contextLimit).toLocaleString()} tokens
-            </p>
-          )}
-        </div>
+        <ContextFitReadout
+          model={selectedModel}
+          tokens={tokens}
+          selectedFormat={selectedFormat}
+          onSwitchToMultipart={onSwitchToMultipart}
+        />
       )}
+    </div>
+  );
+}
+
+type FitTone = "ok" | "warn" | "over";
+
+function describeFit(
+  model: FilteredModel,
+  tokens: number,
+): { tone: FitTone; pct: number; headline: string; detail: string } {
+  const limit = model.contextLimit;
+  const pct = (tokens / limit) * 100;
+
+  if (tokens > limit) {
+    return {
+      tone: "over",
+      pct,
+      headline: `Exceeds ${model.name}`,
+      detail: `Over the ${formatCompact(limit)} window by ${(tokens - limit).toLocaleString()} tokens.`,
+    };
+  }
+  if (pct > 80) {
+    return {
+      tone: "warn",
+      pct,
+      headline: `Fits ${model.name}, with little headroom`,
+      detail: `${formatCompact(tokens)} of ${formatCompact(limit)} · ${formatPct(pct)} of the context window`,
+    };
+  }
+  return {
+    tone: "ok",
+    pct,
+    headline: `Fits ${model.name}`,
+    detail: `${formatCompact(tokens)} of ${formatCompact(limit)} · ${formatPct(pct)} of the context window`,
+  };
+}
+
+function ContextFitReadout({
+  model,
+  tokens,
+  selectedFormat,
+  onSwitchToMultipart,
+}: {
+  model: FilteredModel;
+  tokens: number;
+  selectedFormat?: OutputFormat;
+  onSwitchToMultipart?: () => void;
+}) {
+  const fit = describeFit(model, tokens);
+  const Icon = fit.tone === "ok" ? Check : AlertTriangle;
+  const iconColor =
+    fit.tone === "ok"
+      ? "text-primary"
+      : fit.tone === "warn"
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-destructive";
+  const barColor =
+    fit.tone === "ok" ? "bg-primary" : fit.tone === "warn" ? "bg-amber-500" : "bg-destructive";
+  const showSwitch = fit.tone === "over" && !!onSwitchToMultipart && selectedFormat === "single";
+
+  return (
+    <div
+      className={cn(
+        "space-y-2.5",
+        fit.tone === "over" && "border-destructive/30 bg-destructive/5 rounded-lg border p-3",
+      )}
+    >
+      <div className="flex items-start gap-2.5">
+        <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", iconColor)} aria-hidden="true" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium">
+            {fit.headline}{" "}
+            <span className="text-muted-foreground text-xs font-normal">
+              via {model.providerName}
+            </span>
+          </p>
+          <p className="text-muted-foreground text-[13px]">{fit.detail}</p>
+        </div>
+        {showSwitch && (
+          <button
+            type="button"
+            onClick={onSwitchToMultipart}
+            className="border-border/70 bg-background hover:border-foreground/40 hover:bg-accent focus-visible:ring-ring shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2"
+          >
+            Use multi-part
+          </button>
+        )}
+      </div>
+      <div
+        className="bg-muted h-1.5 w-full overflow-hidden rounded-full"
+        role="progressbar"
+        aria-valuenow={Math.round(Math.min(fit.pct, 100))}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`Context window usage: ${fit.pct.toFixed(0)}%`}
+      >
+        <div
+          className={cn("h-full rounded-full transition-all", barColor)}
+          style={{ width: `${Math.min(fit.pct, 100)}%` }}
+        />
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronDown, Copy, Download, Sliders } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, Copy, Download, Sliders } from "lucide-react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import type { OutputFormat, OutputStyle } from "@fileconcat/core";
@@ -45,22 +45,43 @@ export function ActionBar({
 
   const formatLabel = format === "single" ? "single file" : "multi-part";
   const styleLabel = style === "xml" ? "XML" : "Markdown";
+  const suggestMultiPart = recommendedFormat === "multi" && format === "single";
+  const multiPartThreshold = (MULTI_OUTPUT_LIMIT / 1000).toFixed(0);
 
   return (
     <div className="sticky bottom-0 z-30 -mx-4 mt-6 sm:mx-0">
-      <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 border-border/60 mx-4 flex flex-wrap items-center gap-3 rounded-lg border px-3 py-2.5 shadow-sm backdrop-blur-md sm:mx-0 sm:flex-nowrap">
-        <div className="text-foreground flex min-w-0 flex-1 items-baseline gap-2 font-mono text-[12.5px] tabular-nums">
-          <span className="font-semibold">{tokens.toLocaleString()}</span>
-          <span className="text-muted-foreground">tokens</span>
-          <span className="text-muted-foreground hidden sm:inline" aria-hidden="true">
-            ·
-          </span>
-          <span className="text-muted-foreground hidden truncate sm:inline">
-            {formatLabel} · {styleLabel}
-          </span>
-        </div>
+      <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 border-border/60 mx-4 rounded-lg border shadow-sm backdrop-blur-md sm:mx-0">
+        {suggestMultiPart && (
+          <div className="border-border/60 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b px-3 py-2 text-[12px]">
+            <AlertTriangle
+              className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400"
+              aria-hidden="true"
+            />
+            <span className="text-foreground font-medium">Over {multiPartThreshold}K tokens.</span>
+            <span className="text-muted-foreground">Multi-part is easier to paste into a chat.</span>
+            <button
+              type="button"
+              onClick={() => onSelectFormat("multi")}
+              className="border-border/70 hover:border-foreground/40 hover:bg-accent focus-visible:ring-ring ml-auto rounded-md border px-2 py-1 font-mono text-[11.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2"
+            >
+              Switch to multi-part
+            </button>
+          </div>
+        )}
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-3 px-3 py-2.5 sm:flex-nowrap">
+          <div className="text-foreground flex min-w-0 flex-1 items-baseline gap-2 font-mono text-[12.5px] tabular-nums">
+            <span className="font-semibold">{tokens.toLocaleString()}</span>
+            <span className="text-muted-foreground">tokens</span>
+            <span className="text-muted-foreground hidden sm:inline" aria-hidden="true">
+              ·
+            </span>
+            <span className="text-muted-foreground hidden truncate sm:inline">
+              {formatLabel} · {styleLabel}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
           <Popover open={optionsOpen} onOpenChange={setOptionsOpen}>
             <PopoverTrigger asChild>
               <button
@@ -180,6 +201,7 @@ export function ActionBar({
             <Download className="h-3.5 w-3.5" />
             Download
           </button>
+          </div>
         </div>
       </div>
     </div>

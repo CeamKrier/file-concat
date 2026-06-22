@@ -38,7 +38,7 @@ describe("assembleOutput xml", () => {
     expect(output).not.toContain("```");
   });
 
-  it("escapes & < > in file content and attributes", () => {
+  it("emits file content verbatim while escaping only attributes", () => {
     const output = assembleOutput({
       projectName: "a&b",
       files: [{ path: "x<y>.ts", content: "const a = 1 < 2 && 3 > 1;\n" }],
@@ -46,20 +46,34 @@ describe("assembleOutput xml", () => {
       style: "xml",
     });
 
+    // Attributes stay escaped: a stray quote/angle there breaks the tag itself.
     expect(output).toContain(`project="a&amp;b"`);
     expect(output).toContain(`path="x&lt;y&gt;.ts"`);
-    expect(output).toContain("const a = 1 &lt; 2 &amp;&amp; 3 &gt; 1;");
-    expect(output).not.toContain("a&b\""); // ensure no raw & in attrs
+    // Content is verbatim: the code the user pastes must not be entity-corrupted.
+    expect(output).toContain("const a = 1 < 2 && 3 > 1;");
   });
 
-  it("preserves raw <file> sequences inside content as escaped text", () => {
+  it("keeps angle brackets, ampersands, and arrows intact in content", () => {
     const output = assembleOutput({
       projectName: "demo",
-      files: [{ path: "doc.md", content: "Example: <file path=\"foo\">bar</file>" }],
+      files: [{ path: "g.ts", content: "const f = (x: Record<string, number>) => x && true;\n" }],
+      tree: "g.ts\n",
+      style: "xml",
+    });
+    expect(output).toContain("const f = (x: Record<string, number>) => x && true;");
+    expect(output).not.toContain("&lt;string");
+    expect(output).not.toContain("=&gt;");
+  });
+
+  it("emits literal tag-like sequences in content verbatim (delimiter, not strict XML)", () => {
+    const output = assembleOutput({
+      projectName: "demo",
+      files: [{ path: "doc.md", content: 'Example: <file path="foo">bar</file>' }],
       tree: "doc.md\n",
       style: "xml",
     });
-    expect(output).toContain(`&lt;file path="foo"&gt;bar&lt;/file&gt;`);
+    expect(output).toContain('Example: <file path="foo">bar</file>');
+    expect(output).not.toContain("&lt;file");
   });
 
   it("declares part metadata in summary when part is set", () => {

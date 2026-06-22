@@ -1,9 +1,4 @@
-import {
-  createRootRoute,
-  Outlet,
-  HeadContent,
-  Scripts,
-} from "@tanstack/react-router";
+import { createRootRoute, Outlet, HeadContent, Scripts } from "@tanstack/react-router";
 import { ThemeProvider } from "~/components/theme-provider";
 import { StagedFilesProvider } from "~/components/staged-files-provider";
 import { NotFound } from "~/components/not-found";
@@ -55,6 +50,16 @@ function RootComponent() {
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(c,l,a,r,i,t,y){
+                      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+                    })(window, document, "clarity", "script", "pg1fkmu3nn");`,
+          }}
+        ></script>
+
         <script
           dangerouslySetInnerHTML={{
             __html: `

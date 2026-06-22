@@ -48,9 +48,13 @@ function assembleXml(options: AssembleOutputOptions): string {
   const fileBlocks = files
     .map((file) => {
       const language = file.language ?? getLanguageFromPath(file.path);
+      // Content is emitted verbatim. The <file> tags are delimiters for the LLM,
+      // not a contract with an XML parser, so escaping `<`/`>`/`&` here would only
+      // corrupt the very code the user is about to paste (`Record<T>` → `Record&lt;T&gt;`).
+      // Attributes stay escaped because a stray quote/angle there breaks the tag itself.
       return [
         `<file path="${escapeXmlAttr(file.path)}" language="${escapeXmlAttr(language)}">`,
-        escapeXmlText(file.content),
+        file.content,
         `</file>`,
       ].join("\n");
     })
@@ -111,10 +115,6 @@ function assembleMarkdown(options: AssembleOutputOptions): string {
     fileBlocks,
     "",
   ].join("\n");
-}
-
-function escapeXmlText(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function escapeXmlAttr(text: string): string {
