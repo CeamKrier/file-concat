@@ -21,7 +21,7 @@ import { TopBar } from "./top-bar";
 import { LandingHero } from "./landing-hero";
 import { ProcessingView } from "./processing-view";
 import { ResultView } from "./result-view";
-import { ResultEmpty } from "./result-empty";
+import { ResultEmpty, type EmptyKind } from "./result-empty";
 import { SettingsDrawer } from "./settings-drawer";
 
 type Phase = "landing" | "processing" | "result";
@@ -247,6 +247,18 @@ export function AppFlow() {
     () => ingestion.entries.map((e) => e.path.split("/").pop() ?? e.path),
     [ingestion.entries],
   );
+  // Tailor the empty-state rescue to what was actually dropped: a lone .7z is
+  // an archive we can't open, not "an image". Archive wins (a .7z reads as a
+  // binary otherwise); images next; everything else falls back to a generic.
+  const emptyKind = useMemo((): EmptyKind => {
+    if (droppedFiles.length === 0) return "other";
+    const ARCHIVE = /\.(7z|rar|zip|tar\.gz|tgz|tar|gz|bz2|xz)$/i;
+    const IMAGE = /\.(png|jpe?g|gif|webp|svg|bmp|ico|avif|heic|heif|tiff?)$/i;
+    if (droppedFiles.some((n) => ARCHIVE.test(n))) return "archive";
+    const images = droppedFiles.filter((n) => IMAGE.test(n)).length;
+    if (images > 0 && images >= droppedFiles.length / 2) return "image";
+    return "other";
+  }, [droppedFiles]);
 
   // --- flow control ---------------------------------------------------------
   // Runs the processing theatre for `run`. Rethrows so an import can recover
@@ -413,7 +425,7 @@ export function AppFlow() {
 
         {phase === "result" &&
           (filesCombined === 0 ? (
-            <ResultEmpty droppedFiles={droppedFiles} onStartOver={startOver} />
+            <ResultEmpty droppedFiles={droppedFiles} kind={emptyKind} onStartOver={startOver} />
           ) : (
             <ResultView
               sourceLabel={sourceLabel}

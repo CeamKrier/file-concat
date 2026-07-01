@@ -33,8 +33,8 @@ export function LandingHero({ importControls, ...props }: LandingHeroProps) {
         </h1>
 
         <p className="text-ink-secondary mt-4 max-w-[520px] text-[17px] leading-relaxed">
-          Drop a folder, files, or a zip. The noise gets stripped and out comes one clean document
-          for ChatGPT, Claude, or Gemini. No setup, no account.
+          Drop a folder, files, or an archive. The noise gets stripped and out comes one clean
+          document for ChatGPT, Claude, or Gemini. No setup, no account.
         </p>
       </div>
 

@@ -8,7 +8,7 @@ const COMBINED = ["Code", "Docs", "Configs", "Data"];
 const SKIPPED = ["Images", "node_modules", "*.lock", "Build output"];
 
 const EXTRAS = [
-  { icon: Archive, text: "Zips unpack themselves" },
+  { icon: Archive, text: "Archives unpack themselves" },
   { icon: Link2, text: "Repos & Gists import by URL" },
   { icon: Globe, text: "Single web pages too" },
 ];
