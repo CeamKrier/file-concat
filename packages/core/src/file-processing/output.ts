@@ -1,6 +1,6 @@
 import { getLanguageFromPath } from "../path-utils/language";
 
-export type OutputStyle = "xml" | "markdown";
+export type OutputStyle = "xml" | "markdown" | "plain";
 
 export interface OutputFile {
   path: string;
@@ -23,7 +23,14 @@ export interface AssembleOutputOptions {
 }
 
 export function assembleOutput(options: AssembleOutputOptions): string {
-  return options.style === "xml" ? assembleXml(options) : assembleMarkdown(options);
+  switch (options.style) {
+    case "xml":
+      return assembleXml(options);
+    case "markdown":
+      return assembleMarkdown(options);
+    case "plain":
+      return assemblePlain(options);
+  }
 }
 
 function assembleXml(options: AssembleOutputOptions): string {
@@ -83,10 +90,7 @@ function assembleMarkdown(options: AssembleOutputOptions): string {
     ? `# Codebase: ${projectName} (Part ${part.index} of ${part.total})`
     : `# Codebase: ${projectName}`;
 
-  const metaLine = [
-    source ? `**Source:** ${source}` : null,
-    `**Files:** ${files.length}`,
-  ]
+  const metaLine = [source ? `**Source:** ${source}` : null, `**Files:** ${files.length}`]
     .filter(Boolean)
     .join(" · ");
 
@@ -111,6 +115,37 @@ function assembleMarkdown(options: AssembleOutputOptions): string {
     "```",
     "",
     "## Files",
+    "",
+    fileBlocks,
+    "",
+  ].join("\n");
+}
+
+function assemblePlain(options: AssembleOutputOptions): string {
+  const { projectName, files, tree, source, part } = options;
+  const separator = "=".repeat(72);
+
+  const headerLines = [
+    part
+      ? `Codebase: ${projectName} (Part ${part.index} of ${part.total})`
+      : `Codebase: ${projectName}`,
+  ];
+  if (source) headerLines.push(`Source: ${source}`);
+  headerLines.push(`Files: ${files.length}`);
+
+  // No XML tags, no markdown fences. Each file sits between two rules with its
+  // path, so the blob stays readable as-is and the content is emitted verbatim.
+  const fileBlocks = files
+    .map((file) => [separator, `FILE: ${file.path}`, separator, file.content].join("\n"))
+    .join("\n\n");
+
+  return [
+    headerLines.join("\n"),
+    "",
+    "Packed snapshot. Treat the contents below as read-only context for your request.",
+    "",
+    "Directory structure:",
+    tree.trimEnd(),
     "",
     fileBlocks,
     "",

@@ -1,54 +1,59 @@
 # Configuration
 
-FileConcat keeps configuration in three places: the ActionBar Options
-popover (per-output knobs), the FilterRail Advanced section (filtering
-and persistence knobs), and `localStorage` (everything that survives a
-page reload). This page documents each one in the order you encounter
-it.
+FileConcat keeps its output and filtering choices in a few places: the
+result screen (the output format and the single-vs-split choice), the
+**Adjust what's included** drawer (filtering and cost knobs), and
+`localStorage` (the defaults that survive a page reload). This page
+documents each one in the order you encounter it.
 
-## ActionBar Options popover
+## Output controls on the result screen
 
-The Options button sits in the sticky ActionBar at the bottom of the
-workbench. Clicking it opens a popover with three groups.
+Once your file is ready, the result screen carries the two output
+choices.
 
-**Format** offers Single file or Multi-part. Single file produces one
-blob ready to paste. Multi-part splits the output so each chunk fits
-your model's per-turn limit; the popover notes that the recommendation
-switches to Multi-part above roughly 200K tokens. The recommended
-choice is marked with a small `rec` tag.
+**Format** is a segmented control offering XML, Markdown, or Plain. XML
+wraps each file in named tags (recommended for Claude); Markdown uses
+fenced code blocks (recommended for assistants that emit Markdown
+themselves); Plain concatenates the files with lightweight separators
+and no markup.
 
-**Style** offers XML or Markdown. XML wraps each file in named tags
-(recommended for Claude); Markdown uses fenced code blocks
-(recommended for assistants that emit Markdown themselves). The button
-hints carry the same recommendation.
+**Keep as one file / Split into parts** appears on the big-bundle card
+when the output is large enough to be awkward to paste in one go. Keep
+as one file produces a single blob ready to paste; Split into parts
+breaks the output so each part fits your model's per-turn limit. When
+you split, the parts are sized by a fixed engine target rather than a
+control you set.
 
-**Chunk size** appears only when Multi-part is the active format. It
-sets the target size per output chunk. Files larger than this value
-are split across chunks.
+## The Adjust what's included drawer
 
-## FilterRail Advanced section
+The **Adjust what's included** button in the result screen's top bar
+opens a drawer titled "Fine-tune the output." Everything in it updates
+the bundle live; you never have to touch any of it.
 
-The Advanced disclosure under the FilterRail textareas holds the
-toggles that are too settings-shaped for the main filter surface.
+- **Quick presets** rewrite both pattern fields in one click for a
+  common stack: React / Next, Vue, Python, Go, Rust, Source only, and
+  Docs only.
+- **Ignore** and **Only include** are the two glob textareas. Ignore
+  carries the default list (the same one the CLI uses); Only include is
+  empty by default and acts as an exclusive whitelist when filled. See
+  [File filtering](/docs/file-filtering) for the pattern syntax.
+- The **file tree** gives every file a checkbox. Auto-skipped noise
+  (binaries, oversize files, and pattern-excluded files) shows dimmed.
+- **Cost estimate** pairs a model selector with the dollar estimate for
+  the current token count. See
+  [Token estimation](/docs/token-estimation) for how the model list is
+  built.
 
-- **Show line numbers** prefixes each line of every file with its
-  1-based line number. The hint text says it plainly: this adds
-  roughly 40 to 50 percent to the token count. Treat it as a
-  navigation aid for the assistant, not a saving. See
-  [Token costs](/docs/token-costs) for the measurement.
-- **Max file size (MB)** is the per-file size limit applied at
-  ingestion. Files larger than this number of megabytes are excluded
-  from the output. Default 32.
-- **Default remote source** picks which tab in the Source input is
-  selected when you visit the workbench. The choices match the
-  registered source adapters: GitHub, GitLab, Bitbucket, Gist, URL.
-- **Auto-switch on paste** toggles whether the source tab switches
-  automatically when you paste a URL that belongs to a different
-  source than the one currently selected.
-- **Export** and **Import** buttons at the bottom of the Advanced
-  section serialise the full `UserConfig` to a JSON file, or load
-  one back. The format matches the on-disk schema version (currently
-  v5); older imported configs are upgraded transparently.
+Line numbers are off, and the drawer does not expose a toggle for them.
+The engine can prefix every line with its 1-based number
+(`addLineNumbers` in `packages/core/src/file-processing/transform.ts`),
+and the preference persists in your config, but it is not currently a UI
+control. See [Token costs](/docs/token-costs) for why it is an expensive
+option.
+
+A per-file size limit still applies at ingestion: files larger than the
+configured maximum (`maxFileSizeMB`, default 32) are excluded from the
+output. It is a persisted value rather than a drawer control.
 
 ## Persistent configuration
 
@@ -61,21 +66,13 @@ sessions:
 - `maxFileSizeMB`
 - `showLineNumbers`
 - `defaultOutputFormat` (single or multi)
-- `outputStyle` (xml or markdown)
+- `outputStyle` (xml, markdown, or plain)
 - `defaultSourceType` and `autoSwitchSource`
 
 The store carries a `version` field. When the app loads, anything
 older than the current version is run through `migrateConfig` and the
 upgraded shape is written back. You do not take action; the migration
 is silent.
-
-## Recent sources
-
-The Source input remembers the URLs you have imported from in a
-separate store under `fileconcat-recent-sources`. The
-**Recent sources** dropdown next to the source input shows them with
-two affordances: per-entry remove and a clear-all action. No browser
-storage poking required.
 
 ## CLI configuration
 

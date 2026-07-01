@@ -55,20 +55,6 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ["@dqbd/tiktoken"],
-    // CodeMirror highlighting breaks if the optimizer inlines separate copies
-    // of these shared cores into each pre-bundled chunk: the grammar's syntax
-    // tags (from @lezer/highlight) end up as different object identities than
-    // the ones the highlight styles reference, so highlightTree matches nothing
-    // and the editor renders as flat, uncolored text. Forcing them into their
-    // own optimized chunks makes every CodeMirror package share one instance.
-    include: [
-      "@codemirror/state",
-      "@codemirror/view",
-      "@codemirror/language",
-      "@lezer/common",
-      "@lezer/highlight",
-      "@lezer/lr",
-    ],
   },
   build: {
     // Disable sourcemaps in production for smaller bundle size
@@ -84,7 +70,6 @@ export default defineConfig({
         // into the Cloudflare Worker bundle and busts the 3 MiB free-plan
         // size limit.
         manualChunks: {
-          codemirror: ["@uiw/react-codemirror"],
           "radix-ui": [
             "@radix-ui/react-dialog",
             "@radix-ui/react-label",

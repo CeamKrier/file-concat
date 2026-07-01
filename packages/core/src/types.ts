@@ -27,16 +27,13 @@ export type ProcessingConfig = {
   excludeBinaryFiles: boolean;
 };
 
-// Import SourceType for UserConfig
-import type { SourceType } from "./sources/types";
-
 /**
  * Current schema version for {@link UserConfig}. Bump when the persisted
  * shape changes and update the `migrateConfig` handler in the web app
  * accordingly. The literal lives here so the type definition and every
  * migration consumer share one source of truth.
  */
-export const CONFIG_VERSION = 6;
+export const CONFIG_VERSION = 7;
 
 // User configuration with schema versioning for localStorage
 export type UserConfig = {
@@ -49,12 +46,9 @@ export type UserConfig = {
   showLineNumbers: boolean;
   // Output preferences
   defaultOutputFormat: OutputFormatPreference;
-  outputStyle: "xml" | "markdown";
+  outputStyle: "xml" | "markdown" | "plain";
   // Target size (KB) per part when emitting multi-part output.
   chunkSizeKB: number;
-  // Source preferences
-  autoSwitchSource: boolean;
-  defaultSourceType: SourceType;
 };
 
 export type TokenCount = {

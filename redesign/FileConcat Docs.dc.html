@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#16130f}
+  ::selection{background:rgba(122,205,142,.28)}
+  .fc-scroll::-webkit-scrollbar{width:9px;height:9px}
+  .fc-scroll::-webkit-scrollbar-thumb{background:#3a3329;border-radius:6px}
+  .fc-scroll::-webkit-scrollbar-track{background:transparent}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:radial-gradient(1100px 560px at 50% -10%,#211b13 0%,#16130f 52%);color:#f1ebe0;font-family:'Hanken Grotesk',system-ui,sans-serif">
+
+  <!-- TOP BAR -->
+  <div style="position:sticky;top:0;z-index:30;background:rgba(22,19,15,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid #221d16">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 26px;max-width:1180px;width:100%;margin:0 auto">
+      <a href="FileConcat%20Redesign.dc.html" style="display:flex;align-items:center;gap:11px;text-decoration:none;color:inherit">
+        <div style="position:relative;width:24px;height:24px">
+          <div style="position:absolute;left:0;top:0;width:15px;height:15px;border-radius:5px;background:#7acd8e"></div>
+          <div style="position:absolute;right:0;bottom:0;width:15px;height:15px;border-radius:5px;background:#e7e0d2;box-shadow:0 0 0 3px #16130f"></div>
+        </div>
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:18px;letter-spacing:-.01em">FileConcat</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7a7264;border:1px solid #2c261d;padding:2px 7px;border-radius:6px;margin-left:2px">docs</span>
+      </a>
+      <div style="display:flex;align-items:center;gap:8px">
+        <a href="FileConcat%20Redesign.dc.html" style="background:#7acd8e;color:#11261a;font-family:'Hanken Grotesk',sans-serif;font-size:13.5px;font-weight:600;padding:8px 15px;border-radius:9px;text-decoration:none;white-space:nowrap">Open the tool</a>
+        <a href="https://github.com/CeamKrier/file-concat" target="_blank" rel="noopener" style="color:#8d8472;font-size:13.5px;font-weight:500;text-decoration:none;padding:8px 10px">GitHub</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div style="max-width:1040px;margin:0 auto;padding:46px 26px 80px;display:grid;grid-template-columns:212px minmax(0,1fr);gap:54px;align-items:start">
+
+    <!-- SIDEBAR -->
+    <aside style="position:sticky;top:84px;align-self:start">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#6f675a;margin-bottom:14px;padding-left:14px">Documentation</div>
+      <nav style="display:flex;flex-direction:column">
+        <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="9">
+          <a href="{{ n.href }}" onClick="{{ n.onClick }}" style="{{ n.style }}">{{ n.label }}</a>
+        </sc-for>
+      </nav>
+    </aside>
+
+    <!-- CONTENT -->
+    <main style="min-width:0">
+      <h1 style="font-family:'Space Grotesk',sans-serif;font-size:38px;font-weight:700;letter-spacing:-.025em;line-height:1.05;margin:0 0 14px">FileConcat docs</h1>
+      <p style="font-size:17px;line-height:1.55;color:#b3a994;margin:0 0 46px;max-width:560px">Everything FileConcat does, and how to bend it when you need to. The browser tool needs no setup; the CLI is a separate package, called out clearly where it appears.</p>
+
+      <!-- QUICK START -->
+      <div id="quickstart" style="scroll-margin-top:86px;margin-bottom:54px">
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.015em;margin:0 0 16px">Quick start</h2>
+        <p style="font-size:15px;line-height:1.65;color:#b3a994;margin:0 0 22px">Drop a folder or files onto the page. The text-based files get read and combined, the noise gets skipped, and one document comes out — ready to copy or download. Nothing is uploaded.</p>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+          <div style="background:#1c1812;border:1px solid #2c261d;border-radius:13px;padding:16px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7acd8e;margin-bottom:8px">01</div><div style="font-weight:600;font-size:14.5px;margin-bottom:4px">Drop</div><div style="font-size:13px;line-height:1.5;color:#8d8472">A folder, loose files, or a .zip.</div></div>
+          <div style="background:#1c1812;border:1px solid #2c261d;border-radius:13px;padding:16px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7acd8e;margin-bottom:8px">02</div><div style="font-weight:600;font-size:14.5px;margin-bottom:4px">Auto-prepared</div><div style="font-size:13px;line-height:1.5;color:#8d8472">Noise skipped, tokens counted — instantly.</div></div>
+          <div style="background:#1c1812;border:1px solid #2c261d;border-radius:13px;padding:16px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7acd8e;margin-bottom:8px">03</div><div style="font-weight:600;font-size:14.5px;margin-bottom:4px">Copy or download</div><div style="font-size:13px;line-height:1.5;color:#8d8472">One file, ready to paste into any AI.</div></div>
+        </div>
+      </div>
+
+      <!-- SUPPORTED -->
+      <div id="supported" style="scroll-margin-top:86px;margin-bottom:54px">
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.015em;margin:0 0 16px">What gets combined</h2>
+        <p style="font-size:15px;line-height:1.65;color:#b3a994;margin:0 0 22px">Anything text-based is fair game. Binaries and build noise are filtered out automatically, so a whole folder can go in untouched.</p>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-bottom:18px">
+          <div style="background:#15110c;border:1px solid rgba(122,205,142,.25);border-radius:14px;padding:18px">
+            <div style="font-weight:600;color:#9fdcb0;margin-bottom:12px;font-size:14.5px">Combined</div>
+            <div style="display:flex;flex-direction:column;gap:9px;font-size:13px;color:#a89e8d">
+              <div><b style="color:#d8d0c0">Code</b> · .js .ts .jsx .tsx .py .go .rs .java .rb .php .c .cpp</div>
+              <div><b style="color:#d8d0c0">Docs</b> · .md .txt .rst .adoc .org</div>
+              <div><b style="color:#d8d0c0">Config</b> · .json .yaml .toml .ini .env .xml</div>
+              <div><b style="color:#d8d0c0">Data</b> · .csv .tsv .sql</div>
+            </div>
+          </div>
+          <div style="background:#15110c;border:1px solid #2c261d;border-radius:14px;padding:18px">
+            <div style="font-weight:600;color:#b3a994;margin-bottom:12px;font-size:14.5px">Skipped for you</div>
+            <div style="display:flex;flex-direction:column;gap:9px;font-size:13px;color:#8d8472">
+              <div>Images, fonts, audio &amp; video</div>
+              <div>Compiled binaries, archives</div>
+              <div><span style="font-family:'JetBrains Mono',monospace">node_modules</span>, <span style="font-family:'JetBrains Mono',monospace">vendor</span></div>
+              <div>Lockfiles &amp; <span style="font-family:'JetBrains Mono',monospace">dist</span> / <span style="font-family:'JetBrains Mono',monospace">build</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:11px;align-items:flex-start;background:rgba(217,168,90,.07);border:1px solid rgba(217,168,90,.24);border-radius:12px;padding:13px 15px">
+          <span style="width:19px;height:19px;border-radius:50%;background:rgba(217,168,90,.2);color:#e3b96a;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;flex:none;margin-top:1px">i</span>
+          <span style="font-size:13.5px;line-height:1.5;color:#cabfa9">Images can't be combined — they aren't text. To have a model read pictures, use a vision-capable model, which is a different kind of tool.</span>
+        </div>
+      </div>
+
+      <!-- FORMATS -->
+      <div id="formats" style="scroll-margin-top:86px;margin-bottom:54px">
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.015em;margin:0 0 16px">Output formats</h2>
+        <p style="font-size:15px;line-height:1.65;color:#b3a994;margin:0 0 22px">Three shapes for the same bundle. XML is the default — tags keep file boundaries unambiguous across long context. Switch any time; the token count updates live.</p>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#9fdcb0;margin-bottom:7px">XML · default</div>
+            <pre class="fc-scroll" style="margin:0;background:#120f0a;border:1px solid #2c261d;border-radius:12px;padding:15px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:#b8b0a0;overflow:auto">&lt;codebase project="app"&gt;
+  &lt;file path="src/index.ts" lang="ts"&gt;
+    export const ok = true;
+  &lt;/file&gt;
+&lt;/codebase&gt;</pre>
+          </div>
+          <div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#9fdcb0;margin-bottom:7px">Markdown</div>
+            <pre class="fc-scroll" style="margin:0;background:#120f0a;border:1px solid #2c261d;border-radius:12px;padding:15px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:#b8b0a0;overflow:auto"># app
+
+## src/index.ts
+```ts
+export const ok = true;
+```</pre>
+          </div>
+          <div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#9fdcb0;margin-bottom:7px">Plain</div>
+            <pre class="fc-scroll" style="margin:0;background:#120f0a;border:1px solid #2c261d;border-radius:12px;padding:15px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:#b8b0a0;overflow:auto">===== src/index.ts =====
+export const ok = true;</pre>
+          </div>
+        </div>
+        <p style="font-size:13.5px;line-height:1.6;color:#8d8472;margin:16px 0 0">Large projects can be emitted as a single file or split into numbered parts — splitting just pastes more reliably into a chat, it changes nothing about the content.</p>
+      </div>
+
+      <!-- FILTERING -->
+      <div id="filtering" style="scroll-margin-top:86px;margin-bottom:54px">
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.015em;margin:0 0 16px">Filtering &amp; presets</h2>
+        <p style="font-size:15px;line-height:1.65;color:#b3a994;margin:0 0 20px">Smart defaults handle the common case. When you want control, open <b style="color:#e7e0d2">Adjust what's included</b> on the result screen.</p>
+        <div style="display:flex;flex-direction:column;gap:13px">
+          <div style="display:flex;gap:13px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#7acd8e;width:78px;flex:none;padding-top:2px">PRESETS</span><span style="font-size:14px;line-height:1.55;color:#a89e8d">One tap for React / Next, Vue, Python, Go, Rust — plus Source-only and Docs-only.</span></div>
+          <div style="display:flex;gap:13px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#7acd8e;width:78px;flex:none;padding-top:2px">IGNORE</span><span style="font-size:14px;line-height:1.55;color:#a89e8d">Comma-separated globs to skip. <span style="font-family:'JetBrains Mono',monospace;color:#b8b0a0">node_modules, *.lock, dist</span> are already on by default.</span></div>
+          <div style="display:flex;gap:13px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#7acd8e;width:78px;flex:none;padding-top:2px">INCLUDE</span><span style="font-size:14px;line-height:1.55;color:#a89e8d">Leave empty for everything readable, or list globs to keep only those.</span></div>
+          <div style="display:flex;gap:13px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#7acd8e;width:78px;flex:none;padding-top:2px">TREE</span><span style="font-size:14px;line-height:1.55;color:#a89e8d">Uncheck any file or folder in the live tree to leave it out of the bundle.</span></div>
+        </div>
+      </div>
+
+      <!-- IMPORT -->
+      <div id="import" style="scroll-margin-top:86px;margin-bottom:54px">
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.015em;margin:0 0 16px">Import by URL</h2>
+        <p style="font-size:15px;line-height:1.65;color:#b3a994;margin:0 0 20px">No local files needed. Paste a link and FileConcat fetches it, then combines it the same way a drop would.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px">
+          <span style="font-size:13px;color:#d8d0c0;background:#1c1812;border:1px solid #2c261d;padding:6px 12px;border-radius:8px">GitHub repos</span>
+          <span style="font-size:13px;color:#d8d0c0;background:#1c1812;border:1px solid #2c261d;padding:6px 12px;border-radius:8px">GitLab</span>
+          <span style="font-size:13px;color:#d8d0c0;background:#1c1812;border:1px solid #2c261d;padding:6px 12px;border-radius:8px">Bitbucket</span>
+          <span style="font-size:13px;color:#d8d0c0;background:#1c1812;border:1px solid #2c261d;padding:6px 12px;border-radius:8px">Gists</span>
+          <span style="font-size:13px;color:#d8d0c0;background:#1c1812;border:1px solid #2c261d;padding:6px 12px;border-radius:8px">Any web page</span>
+        </div>
+        <pre class="fc-scroll" style="margin:0 0 16px;background:#120f0a;border:1px solid #2c261d;border-radius:12px;padding:15px;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.7;color:#b8b0a0;overflow:auto">https://github.com/owner/repo
+https://gist.github.com/owner/id
+https://example.com/docs/page</pre>
+        <p style="font-size:13.5px;line-height:1.6;color:#8d8472;margin:0">Zips unpack automatically. Web pages come in as their readable text, with nav and scripts stripped. If a link points at a non-text file — an image, a binary — it's flagged rather than combined.</p>
+      </div>
+
+      <!-- TOKENS -->
+      <div id="tokens" style="scroll-margin-top:86px;margin-bottom:54px">
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.015em;margin:0 0 16px">Tokens &amp; cost</h2>
+        <p style="font-size:15px;line-height:1.65;color:#b3a994;margin:0 0 20px">Token counts are exact, computed locally with tiktoken — the same encoding the major models use. A rough cost estimate sits beside it so big bundles don't surprise you.</p>
+        <div style="display:flex;flex-direction:column;gap:13px">
+          <div style="display:flex;gap:13px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#7acd8e;width:78px;flex:none;padding-top:2px">COUNT</span><span style="font-size:14px;line-height:1.55;color:#a89e8d">Updates live as you include or exclude files.</span></div>
+          <div style="display:flex;gap:13px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#7acd8e;width:78px;flex:none;padding-top:2px">COST</span><span style="font-size:14px;line-height:1.55;color:#a89e8d">Pick a model to see an estimate; an output-ratio control factors in the reply.</span></div>
+          <div style="display:flex;gap:13px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#7acd8e;width:78px;flex:none;padding-top:2px">SPLIT</span><span style="font-size:14px;line-height:1.55;color:#a89e8d">Over a model's context window, a multi-part split is suggested — as info, never a blocker.</span></div>
+        </div>
+      </div>
+
+      <!-- PRIVACY -->
+      <div id="privacy" style="scroll-margin-top:86px;margin-bottom:54px">
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.015em;margin:0 0 16px">Privacy</h2>
+        <p style="font-size:15px;line-height:1.65;color:#b3a994;margin:0 0 18px">Files are read and combined entirely in your browser. There is no upload step, no account, and no server in the loop. After the page loads once, it works with the network off.</p>
+        <div style="display:inline-flex;align-items:center;gap:9px;font-size:13px;color:#9fdcb0;background:rgba(122,205,142,.08);border:1px solid rgba(122,205,142,.22);padding:8px 14px;border-radius:9px"><span style="width:7px;height:7px;border-radius:50%;background:#7acd8e"></span>0 outbound requests · processing is local</div>
+      </div>
+
+      <!-- CLI -->
+      <div id="cli" style="scroll-margin-top:86px;margin-bottom:54px">
+        <div style="display:inline-flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#90b6e2;background:rgba(121,166,216,.1);border:1px solid rgba(121,166,216,.26);padding:6px 11px;border-radius:999px;margin-bottom:14px">Separate tool · command line</div>
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.015em;margin:0 0 16px">CLI</h2>
+        <p style="font-size:15px;line-height:1.65;color:#aeb6c2;margin:0 0 20px">A separate package from the browser app. Install it once and pipe directories straight into scripts — same structured output, printed to stdout. You don't need this for the web tool.</p>
+        <pre class="fc-scroll" style="margin:0 0 18px;background:#0a0806;border:1px solid #232b34;border-radius:12px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.7;color:#aeb6c2;overflow:auto">$ npm install -g @fileconcat/cli
+
+$ file-concat ./src -o context.xml
+$ file-concat ./docs --parse pdf,docx --json</pre>
+        <div style="display:flex;flex-direction:column;gap:11px">
+          <div style="display:flex;gap:13px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#90b6e2;width:118px;flex:none">-o &lt;file&gt;</span><span style="font-size:13.5px;line-height:1.5;color:#9aa3b0">Write to a file instead of stdout.</span></div>
+          <div style="display:flex;gap:13px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#90b6e2;width:118px;flex:none">--parse</span><span style="font-size:13.5px;line-height:1.5;color:#9aa3b0">Extract text from PDF, DOCX, XLSX, PPTX and the ODF family.</span></div>
+          <div style="display:flex;gap:13px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#90b6e2;width:118px;flex:none">--json</span><span style="font-size:13.5px;line-height:1.5;color:#9aa3b0">Print a one-line summary — counts, bytes, elapsed — for scripts.</span></div>
+          <div style="display:flex;gap:13px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#90b6e2;width:118px;flex:none">-i / -e</span><span style="font-size:13.5px;line-height:1.5;color:#9aa3b0">Include / exclude globs, same idea as the browser tool.</span></div>
+        </div>
+      </div>
+
+      <!-- FAQ -->
+      <div id="faq" style="scroll-margin-top:86px">
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.015em;margin:0 0 18px">FAQ</h2>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="border-top:1px solid #221d16;padding-top:16px"><div style="font-weight:600;font-size:15px;margin-bottom:6px">Can it combine images?</div><p style="font-size:13.5px;line-height:1.6;color:#8d8472;margin:0">No — FileConcat works with text. Images aren't text, so there's nothing to concatenate. Reading pictures needs a vision model, a different kind of tool.</p></div>
+          <div style="border-top:1px solid #221d16;padding-top:16px"><div style="font-weight:600;font-size:15px;margin-bottom:6px">Is my code uploaded anywhere?</div><p style="font-size:13.5px;line-height:1.6;color:#8d8472;margin:0">No. Everything happens in your browser — no upload, no server, no account.</p></div>
+          <div style="border-top:1px solid #221d16;padding-top:16px"><div style="font-weight:600;font-size:15px;margin-bottom:6px">What about a huge repo?</div><p style="font-size:13.5px;line-height:1.6;color:#8d8472;margin:0">It still works. If it's over a model's context window, a multi-part split is offered to make pasting easier.</p></div>
+          <div style="border-top:1px solid #221d16;padding-top:16px"><div style="font-weight:600;font-size:15px;margin-bottom:6px">Can it read PDF or DOCX?</div><p style="font-size:13.5px;line-height:1.6;color:#8d8472;margin:0">In the browser app these are treated as binaries and skipped. The CLI can extract their text with <span style="font-family:'JetBrains Mono',monospace;color:#b8b0a0">--parse</span>.</p></div>
+          <div style="border-top:1px solid #221d16;padding-top:16px"><div style="font-weight:600;font-size:15px;margin-bottom:6px">Does it work offline?</div><p style="font-size:13.5px;line-height:1.6;color:#8d8472;margin:0">Yes — once the page has loaded, you can turn the network off and keep going.</p></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- FOOTER -->
+  <div style="border-top:1px solid #221d16;padding:34px 26px 44px">
+    <div style="max-width:1040px;margin:0 auto;display:flex;flex-wrap:wrap;gap:18px;justify-content:space-between;align-items:center">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#5f5849">MIT · © 2026 FileConcat · built by @CeamKrier</span>
+      <div style="display:flex;gap:22px">
+        <a href="FileConcat%20Redesign.dc.html" style="font-size:13px;color:#a89e8d;text-decoration:none">Open tool</a>
+        <a href="https://github.com/CeamKrier/file-concat" target="_blank" rel="noopener" style="font-size:13px;color:#a89e8d;text-decoration:none">GitHub</a>
+        <a href="https://www.npmjs.com/package/@fileconcat/cli" target="_blank" rel="noopener" style="font-size:13px;color:#a89e8d;text-decoration:none">npm · CLI</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { activeId: 'quickstart' };
+  sections = ['quickstart', 'supported', 'formats', 'filtering', 'import', 'tokens', 'privacy', 'cli', 'faq'];
+
+  componentDidMount() {
+    this._onScroll = () => this.spy();
+    window.addEventListener('scroll', this._onScroll, { passive: true });
+    this.spy();
+  }
+  componentWillUnmount() {
+    window.removeEventListener('scroll', this._onScroll);
+    if (this._raf) cancelAnimationFrame(this._raf);
+  }
+  spy() {
+    if (this._raf) return;
+    this._raf = requestAnimationFrame(() => {
+      this._raf = null;
+      let cur = this.sections[0];
+      for (const id of this.sections) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= 140) cur = id;
+      }
+      if (cur !== this.state.activeId) this.setState({ activeId: cur });
+    });
+  }
+  go = (id) => () => this.setState({ activeId: id });
+
+  renderVals() {
+    const nav = [
+      ['quickstart', 'Quick start'],
+      ['supported', 'What gets combined'],
+      ['formats', 'Output formats'],
+      ['filtering', 'Filtering & presets'],
+      ['import', 'Import by URL'],
+      ['tokens', 'Tokens & cost'],
+      ['privacy', 'Privacy'],
+      ['cli', 'CLI · separate tool'],
+      ['faq', 'FAQ'],
+    ];
+    const navItems = nav.map(([id, label]) => {
+      const on = this.state.activeId === id;
+      return {
+        id, label, href: '#' + id, onClick: this.go(id),
+        style: 'display:block;padding:7px 0 7px 14px;border-left:2px solid ' + (on ? '#7acd8e' : 'transparent') +
+          ';color:' + (on ? '#f1ebe0' : '#8d8472') + ';font-size:13.5px;font-weight:' + (on ? '600' : '500') +
+          ';text-decoration:none;transition:color .15s',
+      };
+    });
+    return { navItems };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # File filtering
 
-The FilterRail in the workbench is the surface for narrowing your output
+The **Adjust what's included** drawer is the surface for narrowing your output
 to the files you actually want to share with an assistant. Everything you
 type here applies live: the file tree updates as you type, with no Apply
 button.
@@ -54,10 +54,8 @@ chip rewrites both textareas in one click: the Include patterns and the
 Ignore patterns are replaced, not added to. Click a chip you already
 have selected and the textareas return to whatever was in them before.
 
-Presets are baked into the build, not user-saveable. The export and
-import buttons in the Advanced section serialise the whole
-`UserConfig` (including your current patterns) to a JSON file you can
-share or restore.
+Presets are baked into the build, not user-saveable. They live in the
+**Adjust what's included** drawer alongside the pattern fields.
 
 ## Manual file toggles
 
@@ -66,15 +64,14 @@ decision for that one file. Manual toggles are sticky: if you tick a
 checkbox to include a file, then later edit your Ignore textarea, the
 file stays included.
 
-The counter line beneath the textareas shows two numbers: how many
-files are included in total, and how many of them are kept that way by
-an explicit manual override. A `clear` link next to the override count
-resets all manual decisions, leaving pattern filtering in charge again.
+The drawer's file list is headed with a live count of how many files
+are going into the output. Auto-skipped noise (binaries, oversize
+files, and anything your patterns exclude) stays visible but dimmed, so
+you can see what was dropped and re-check it by hand.
 
 ## See also
 
 - [Filter precedence](/docs/filter-precedence) for the full ordering
   of pruning, validation, patterns, and overrides.
-- [Configuration](/docs/configuration) for the Advanced section's
-  other knobs (max file size, default remote source, config
-  export/import).
+- [Configuration](/docs/configuration) for the output format choice,
+  the drawer, and the settings that persist across reloads.

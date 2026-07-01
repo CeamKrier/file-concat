@@ -22,6 +22,12 @@ export interface FileTreeProps {
   onToggleMultipleFiles: (indices: number[], shouldInclude: boolean) => void;
   isProcessing?: boolean;
   onOpenFile?: (path: string) => void;
+  /**
+   * Bare mode for the settings drawer: renders only the indented rows, no
+   * header / legend / stats / own scroll container. The parent owns the single
+   * scroll so there are never nested scrollbars.
+   */
+  embedded?: boolean;
 }
 
 function FileTree({
@@ -30,6 +36,7 @@ function FileTree({
   onToggleMultipleFiles,
   isProcessing = false,
   onOpenFile,
+  embedded = false,
 }: FileTreeProps) {
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [showLegend, setShowLegend] = useState<boolean>(() => {
@@ -118,6 +125,26 @@ function FileTree({
 
   if (fileStatuses.length === 0) return null;
 
+  const rows = treeData.children?.map((child) => (
+    <TreeNodeRow
+      key={child.path}
+      node={child}
+      depth={0}
+      expandedPaths={expandedPaths}
+      isProcessing={isProcessing}
+      onToggleExpanded={toggleExpanded}
+      onToggleFile={onToggleFile}
+      onToggleDirectory={toggleDirectory}
+      onOpenFile={onOpenFile}
+    />
+  ));
+
+  // Drawer mode: just the rows. The parent supplies the border + scroll, so
+  // there is a single scrollbar and none of the standalone chrome.
+  if (embedded) {
+    return <div className="space-y-0.5">{rows}</div>;
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex flex-col items-start justify-between sm:flex-row sm:items-center">
@@ -187,21 +214,7 @@ function FileTree({
       )}
 
       <div className="bg-background rounded-lg border">
-        <div className="max-h-[50vh] min-h-[200px] overflow-y-auto p-2">
-          {treeData.children?.map((child) => (
-            <TreeNodeRow
-              key={child.path}
-              node={child}
-              depth={0}
-              expandedPaths={expandedPaths}
-              isProcessing={isProcessing}
-              onToggleExpanded={toggleExpanded}
-              onToggleFile={onToggleFile}
-              onToggleDirectory={toggleDirectory}
-              onOpenFile={onOpenFile}
-            />
-          ))}
-        </div>
+        <div className="max-h-[50vh] min-h-[200px] overflow-y-auto p-2">{rows}</div>
       </div>
 
       <p className="text-muted-foreground flex flex-wrap items-center gap-x-1 text-sm">
@@ -222,10 +235,7 @@ function FileTree({
               </button>
             </PopoverTrigger>
             <PopoverContent align="end" side="top" className="w-auto min-w-[10rem] p-3">
-              <ul
-                aria-label="Excluded files by reason"
-                className="space-y-1.5 text-xs"
-              >
+              <ul aria-label="Excluded files by reason" className="space-y-1.5 text-xs">
                 {excludedBreakdown.map(([label, count]) => (
                   <li key={label} className="flex items-center justify-between gap-6">
                     <span className="text-muted-foreground capitalize">{label}</span>

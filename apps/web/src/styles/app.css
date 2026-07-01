@@ -3,70 +3,62 @@
 @tailwind utilities;
 @layer base {
   :root {
-    /* Brand seed: oklch(0.550 0.145 150) — deep moss green.
+    /* Warm near-black dark theme — single theme (dark-only).
        Tokens are bare L C H triplets; tailwind wraps with oklch(var(...)).
-       This preserves the alpha pattern: oklch(var(--primary) / 0.5). */
-    --background: 1 0 0;
-    --foreground: 0.18 0.008 150;
-    --card: 0.985 0.002 150;
-    --card-foreground: 0.18 0.008 150;
-    --popover: 1 0 0;
-    --popover-foreground: 0.18 0.008 150;
-    --primary: 0.55 0.145 150;
-    --primary-foreground: 1 0 0;
-    --secondary: 0.97 0.004 150;
-    --secondary-foreground: 0.22 0.008 150;
-    --muted: 0.965 0.004 150;
-    --muted-foreground: 0.44 0.013 150;
-    --accent: 0.95 0.006 150;
-    --accent-foreground: 0.2 0.008 150;
-    --destructive: 0.55 0.21 25;
-    --destructive-foreground: 1 0 0;
-    --border: 0.92 0.005 150;
-    --input: 0.92 0.005 150;
-    --ring: 0.55 0.145 150;
-    --chart-1: 0.55 0.145 150;
-    --chart-2: 0.65 0.14 220;
-    --chart-3: 0.7 0.15 70;
-    --chart-4: 0.55 0.21 25;
-    --chart-5: 0.55 0.16 300;
+       Alpha pattern preserved: oklch(var(--primary) / 0.5). */
+    --background: 0.1888 0.0093 75.1; /* #16130f */
+    --foreground: 0.9417 0.016 82.8; /* #f1ebe0 */
+    --card: 0.2116 0.013 77.9; /* #1c1812 */
+    --card-foreground: 0.9417 0.016 82.8;
+    --popover: 0.2116 0.013 77.9;
+    --popover-foreground: 0.9417 0.016 82.8;
+    --primary: 0.7788 0.1214 150.5; /* #7acd8e go/success/primary */
+    --primary-foreground: 0.2467 0.0358 157.4; /* #11261a */
+    --secondary: 0.2341 0.015 76.1; /* #221d16 dark button fill */
+    --secondary-foreground: 0.9417 0.016 82.8;
+    --muted: 0.1987 0.0116 73.2; /* #191510 */
+    --muted-foreground: 0.6162 0.0284 84.6; /* #8d8472 */
+    --accent: 0.2341 0.015 76.1; /* #221d16 active/hover fill */
+    --accent-foreground: 0.9417 0.016 82.8;
+    --destructive: 0.6 0.2 25;
+    --destructive-foreground: 0.9417 0.016 82.8;
+    --border: 0.2723 0.0182 77.9; /* #2c261d */
+    --input: 0.2723 0.0182 77.9;
+    --ring: 0.7788 0.1214 150.5; /* #7acd8e */
+
+    /* Extended warm-dark palette (redesign tokens) */
+    --glow: 0.2265 0.0175 74.7; /* #211b13 radial top glow */
+    --surface-alt: 0.1987 0.0116 73.2; /* #191510 alt panel / drawer */
+    --surface-inset: 0.1703 0.0111 80.4; /* #120f0a code / inputs */
+    --surface-cli: 0.1362 0.0065 71.3; /* #0a0806 CLI blocks */
+    --border-strong: 0.3012 0.0214 79; /* #342d22 */
+    --hairline: 0.2341 0.015 76.1; /* #221d16 divider */
+    --text-secondary: 0.7375 0.0315 85.6; /* #b3a994 */
+    --text-muted: 0.6162 0.0284 84.6; /* #8d8472 */
+    --text-faint: 0.5173 0.0223 80; /* #6f675a labels */
+    --code-text: 0.7594 0.0241 84.6; /* #b8b0a0 */
+    --go: 0.7788 0.1214 150.5; /* #7acd8e */
+    --go-text: 0.8411 0.0874 152.9; /* #9fdcb0 */
+    --info: 0.8067 0.109 82; /* #e3b96a amber heads-up (never alarm) */
+    --neutral-info: 0.7121 0.0882 251.7; /* #79a6d8 optional / CLI context */
+
+    --chart-1: 0.7788 0.1214 150.5;
+    --chart-2: 0.7121 0.0882 251.7;
+    --chart-3: 0.8067 0.109 82;
+    --chart-4: 0.6 0.2 25;
+    --chart-5: 0.62 0.15 300;
+
     --radius: 0.5rem;
 
     --font-display:
-      "Mona Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial,
+      "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial,
       sans-serif;
     --font-body:
-      "Mona Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial,
+      "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial,
       sans-serif;
     --font-mono:
       "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
       monospace;
-  }
-  .dark {
-    --background: 0.1 0 0;
-    --foreground: 0.96 0.005 150;
-    --card: 0.13 0.003 150;
-    --card-foreground: 0.96 0.005 150;
-    --popover: 0.13 0.003 150;
-    --popover-foreground: 0.96 0.005 150;
-    --primary: 0.62 0.135 150;
-    --primary-foreground: 0.1 0 0;
-    --secondary: 0.18 0.005 150;
-    --secondary-foreground: 0.96 0.005 150;
-    --muted: 0.16 0.004 150;
-    --muted-foreground: 0.68 0.013 150;
-    --accent: 0.2 0.006 150;
-    --accent-foreground: 0.96 0.005 150;
-    --destructive: 0.6 0.2 25;
-    --destructive-foreground: 1 0 0;
-    --border: 0.24 0.006 150;
-    --input: 0.24 0.006 150;
-    --ring: 0.62 0.135 150;
-    --chart-1: 0.62 0.135 150;
-    --chart-2: 0.7 0.13 220;
-    --chart-3: 0.75 0.14 70;
-    --chart-4: 0.6 0.2 25;
-    --chart-5: 0.62 0.15 300;
   }
 }
 @layer base {
@@ -80,9 +72,12 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings:
-      "ss01" on,
-      "cv11" on;
+    background-image: radial-gradient(
+      125% 85% at 50% -10%,
+      oklch(var(--glow)) 0%,
+      oklch(var(--background)) 55%
+    );
+    background-attachment: fixed;
   }
   ::selection {
     background: oklch(var(--primary) / 0.18);
@@ -90,12 +85,13 @@
   }
 }
 
+/* Warm-dark syntax highlighting. Two brand accents carry it: green for
+   keywords / tags / structure, amber for strings / literals / values. Function
+   names take the bright ink, punctuation stays muted, comments fade italic. */
 code[class*="language-"],
 pre[class*="language-"] {
-  color: #e2e8f0;
-  font-family:
-    ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-    "Courier New", monospace;
+  color: oklch(var(--code-text)); /* #b8b0a0 */
+  font-family: var(--font-mono);
   font-size: 0.875rem;
   line-height: 1.6;
 }
@@ -104,51 +100,43 @@ pre[class*="language-"] {
 .token.prolog,
 .token.doctype,
 .token.cdata {
-  color: #94a3b8;
+  color: oklch(var(--text-faint)); /* #6f675a */
+  font-style: italic;
 }
 
-.token.punctuation {
-  color: #cbd5e1;
-}
-
-.token.property,
-.token.tag,
-.token.constant,
-.token.symbol,
-.token.deleted {
-  color: #fda4af;
-}
-
-.token.boolean,
-.token.number {
-  color: #f9a8d4;
-}
-
-.token.selector,
-.token.attr-name,
-.token.string,
-.token.char,
-.token.builtin,
-.token.inserted {
-  color: #86efac;
-}
-
+.token.punctuation,
 .token.operator,
 .token.entity,
 .token.url,
 .token.variable {
-  color: #e2e8f0;
+  color: oklch(var(--text-muted)); /* #8d8472 */
 }
 
-.token.atrule,
-.token.attr-value,
-.token.function,
-.token.class-name {
-  color: #fde68a;
-}
-
+.token.tag,
+.token.property,
+.token.constant,
+.token.symbol,
+.token.deleted,
+.token.selector,
 .token.keyword,
 .token.regex,
-.token.important {
-  color: #93c5fd;
+.token.important,
+.token.atrule {
+  color: oklch(var(--go-text)); /* #9fdcb0 green — syntax / structure */
+}
+
+.token.string,
+.token.char,
+.token.attr-name,
+.token.attr-value,
+.token.number,
+.token.boolean,
+.token.builtin,
+.token.inserted {
+  color: oklch(var(--info)); /* #e3b96a amber — strings / literals */
+}
+
+.token.function,
+.token.class-name {
+  color: oklch(var(--foreground)); /* #f1ebe0 — names pop */
 }

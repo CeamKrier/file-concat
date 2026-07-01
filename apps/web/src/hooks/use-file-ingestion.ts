@@ -1,12 +1,9 @@
 import { useCallback, useRef, useState } from "react";
-import type {
-  DownloadProgress,
-  ProcessingConfig,
-  SourceType,
-} from "@fileconcat/core";
+import type { DownloadProgress, ProcessingConfig, SourceType } from "@fileconcat/core";
 import { defaultSourceRegistry, validateFile } from "@fileconcat/core";
 
 import { collectFromDataTransfer } from "~/lib/collect-from-drop";
+import { expandArchives } from "~/lib/expand-archives";
 
 // Directories that never make it into memory. These are not user-editable;
 // dropping their contents into a browser tab would crash the page long before
@@ -39,6 +36,8 @@ export interface FileIngestion {
   isRepoLoading: boolean;
   processingStatus: string;
   isDragging: boolean;
+  /** True when the last batch unpacked at least one archive. */
+  expandedArchive: boolean;
   ingestBatch: (incoming: IncomingFile[]) => Promise<void>;
   ingestRepo: (
     url: string,
@@ -64,11 +63,18 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   const [isRepoLoading, setIsRepoLoading] = useState(false);
   const [processingStatus, setProcessingStatus] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+  const [expandedArchive, setExpandedArchive] = useState(false);
   const dragCounter = useRef(0);
 
   const ingestBatch = useCallback(
     async (incoming: IncomingFile[]) => {
-      const normalized = incoming.map((entry) => {
+      // Unpack any dropped/browsed zip archives before validation so their
+      // contents flow through the same pipeline. Remote fetches arrive with
+      // content set, so they are never treated as archives.
+      const { files: expanded, expandedCount } = await expandArchives(incoming);
+      setExpandedArchive(expandedCount > 0);
+
+      const normalized = expanded.map((entry) => {
         const path = entry.path || entry.file.webkitRelativePath || entry.file.name;
         return { ...entry, path };
       });
@@ -227,6 +233,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     setIsRepoLoading(false);
     setProcessingStatus("");
     setIsDragging(false);
+    setExpandedArchive(false);
     dragCounter.current = 0;
   }, []);
 
@@ -239,6 +246,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     isRepoLoading,
     processingStatus,
     isDragging,
+    expandedArchive,
     ingestBatch,
     ingestRepo,
     setEntryContent,

@@ -26,3 +26,7 @@ dist-ssr
 *.sln
 *.sw?
 .nx
+
+# impeccable design-tool cache (regenerated locally)
+**/.impeccable/hook.cache.json
+.impeccable/live/
