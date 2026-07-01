@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import type { OutputFormat, OutputFormatPreference } from "@fileconcat/core";
+import type { OutputFormat, OutputFormatPreference, OutputStyle } from "@fileconcat/core";
 import {
   MULTI_OUTPUT_LIMIT,
   assembleOutput,
@@ -21,7 +21,7 @@ export interface OutputGenerationInputs {
   includedContents: ContentEntry[];
   tokens: number;
   sourceUrl: string | null;
-  outputStyle: "xml" | "markdown";
+  outputStyle: OutputStyle;
   /** Persisted format preference. `"auto"` defers to {@link recommendedFormat}. */
   formatPreference: OutputFormatPreference;
   /** Persisted target size (KB) per part for multi-part output. */
@@ -110,8 +110,13 @@ export function useOutputGeneration({
   const download = useCallback(async () => {
     setIsGenerating(true);
     try {
-      const extension = outputStyle === "xml" ? "xml" : "md";
-      const mimeType = outputStyle === "xml" ? "application/xml" : "text/markdown";
+      const extension = outputStyle === "xml" ? "xml" : outputStyle === "markdown" ? "md" : "txt";
+      const mimeType =
+        outputStyle === "xml"
+          ? "application/xml"
+          : outputStyle === "markdown"
+            ? "text/markdown"
+            : "text/plain";
 
       if (selectedFormat === "single") {
         const { projectName, text } = buildSingle(includedContents);
@@ -202,4 +207,3 @@ function triggerDownload(text: string, fileName: string, mimeType: string) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-

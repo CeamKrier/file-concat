@@ -6,39 +6,46 @@ minute. The two paths below cover almost every use.
 ## Path 1: local files
 
 1. Open [fileconcat.com](https://fileconcat.com).
-2. Drag a folder or file selection onto the drop zone on the landing
-   page. The workbench takes over.
-3. Watch the file tree populate. Tick or untick individual files; the
-   token counter in the ActionBar updates live.
-4. Click **Copy** or **Download** in the bottom ActionBar to take the
-   output with you. **Copy** is single-file only; for multi-part
-   output use **Download**.
+2. Drag a folder, files, or an archive (`.zip`, `.tar`, `.tar.gz`/`.tgz`,
+   or `.gz`) onto the drop zone on the landing page, or use **Browse
+   files** / **Browse folder**. Archives are unpacked automatically and
+   their contents flow through the same filtering. (`.7z` and `.rar`
+   can't be opened in the browser; unzip those first.)
+3. FileConcat narrates the work (reading your files, skipping noise,
+   counting tokens) and then lands on the result screen, "Your file's
+   ready," with the files combined, the token count, and how much noise
+   was skipped.
+4. Click **Copy** or **Download** to take the output with you. **Copy**
+   gives you one blob; if you split a big bundle into parts, use
+   **Download** to get the part files.
 
 ## Path 2: remote source
 
-1. On the workbench, paste a GitHub, GitLab, Bitbucket, Gist, or any
-   other URL into the Source input.
-2. The tabs above the input auto-switch to the matching adapter
-   (toggleable in Advanced if you prefer a fixed default).
-3. Click **Fetch Files**. The tree populates the same way as a local
-   drop.
-4. Filter and emit as in Path 1.
+1. On the landing page, click **Got a link instead? Import from a repo,
+   Gist or URL** to open the import panel.
+2. Pick a source tab (GitHub, GitLab, Bitbucket, Gist, or URL) and paste
+   a link into the input. The panel reads the URL and tells you what it
+   found; the tab mainly steers the placeholder and examples.
+3. Press **Fetch**. FileConcat fetches the files and runs the same
+   processing as a local drop, then shows the result screen.
+4. Adjust and emit as in Path 1.
 
 ## Filter and emit
 
-Both paths share the same workbench from this point on:
+Both paths land on the same result screen:
 
-- The **FilterRail** on the left holds the include and ignore
-  textareas and a row of preset chips for common stacks.
-- The ActionBar **Options** popover at the bottom holds the
-  single-vs-multi format choice, the XML-vs-Markdown style choice,
-  and (when multi is active) a chunk-size input.
-- The bottom-of-rail Advanced disclosure holds line numbers, max
-  file size, and the default remote source setting.
+- The result screen's **Format** control switches the output between
+  **XML**, **Markdown**, and **Plain**. On a large bundle, a
+  **Keep as one file / Split into parts** choice appears so you can
+  break the output into pasteable parts.
+- The **Adjust what's included** button in the top bar opens a drawer
+  holding quick presets for common stacks, the **Ignore** and **Only
+  include** glob textareas, the file tree, and a cost estimate. Every
+  change updates the bundle live.
 
 ## See also
 
 - [File filtering](/docs/file-filtering) for the pattern syntax.
 - [Filter precedence](/docs/filter-precedence) for the four-layer
   pipeline that decides what survives.
-- [Token costs](/docs/token-costs) for which toggles cost tokens.
+- [Token costs](/docs/token-costs) for which choices cost tokens.

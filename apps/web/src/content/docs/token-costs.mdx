@@ -1,59 +1,60 @@
 # Token costs
 
-The workbench has knobs that change how much of your model's context
+FileConcat has output controls that change how much of your model's context
 window the output consumes. Some moves cost tokens rather than save
 them. This page tells you which is which, with measured numbers where
 they exist.
 
 ## Show line numbers
 
-The **Show line numbers** toggle in the FilterRail Advanced section
-prefixes every line of every file with its 1-based line number. The
-toggle's own help text says it the plainest way possible: "Increases
-token count by roughly 40 to 50 percent."
-
-The transform itself lives in
+FileConcat leaves line numbers off, and the current UI does not surface
+a toggle for them. The engine can still prefix every line of every file
+with its 1-based line number; that transform lives in
 `packages/core/src/file-processing/transform.ts` as `addLineNumbers`.
-Measured against 8 representative repo files on 2026-06-07, the
-average increase was 44.83 percent. The cost is real on every file.
 
-Show line numbers earns its place when you want the model to refer to a
-specific line in a follow-up question. It is a navigation aid, not a
-saving. Leave it off unless line references will appear in your prompts.
+Measured against 8 representative repo files on 2026-06-07, turning it
+on raised the token count by 44.83 percent on average, roughly 40 to 50
+percent per file. That cost is why it stays off by default: line numbers
+are a navigation aid for when you want the model to refer back to a
+specific line, not a saving.
 
 ## Output format
 
-The **Format** group in the ActionBar Options popover offers two choices:
+On a large bundle, the result screen shows a **Keep as one file /
+Split into parts** choice on the big-bundle card:
 
-- **Single file** packs everything into one blob, ready to paste into a
-  single prompt.
-- **Multi-part** splits the output into chunks aimed at fitting your
-  model's per-turn input limit. The popover notes that the
-  recommendation switches above roughly 200K tokens.
+- **Keep as one file** packs everything into one blob, ready to paste
+  into a single prompt.
+- **Split into parts** splits the output into chunks aimed at fitting
+  your model's per-turn input limit. The card appears once the bundle
+  crosses about 100,000 tokens, the point where it starts to be awkward
+  to paste in one go.
 
-Multi-part adds a per-chunk header so the model knows the chunks belong
+Splitting adds a per-chunk header so the model knows the chunks belong
 to one project. The overhead per chunk is small relative to the file
 contents, and the tradeoff buys you the ability to feed projects that
 would otherwise overflow your context window in one shot.
 
 ## Output style
 
-The **Style** group offers **XML** and **Markdown**. The XML style
-wraps each file in named tags and tends to read better for Claude. The
-Markdown style uses fenced code blocks and tends to read better for
-chat-style assistants that emit Markdown themselves.
+The result screen's **Format** control offers **XML**, **Markdown**,
+and **Plain**. The XML style wraps each file in named tags and tends to
+read better for Claude. The Markdown style uses fenced code blocks and
+tends to read better for chat-style assistants that emit Markdown
+themselves. Plain concatenates the files with lightweight separators and
+no markup.
 
-There is no measured token delta between the two styles worth quoting
-here. The difference in practice is small. Pick whichever your
-assistant handles better.
+There is no measured token delta between the styles worth quoting here.
+The difference in practice is small. Pick whichever your assistant
+handles better.
 
 ## Chunk size (multi-part only)
 
-When **Multi-part** is the selected format, a **Chunk size** input
-appears. Smaller chunks produce more parts, which means more headers
-and slightly more total tokens but also more flexibility in feeding
-the output across multiple turns. The default sits at the value
-configured for the per-file size cap.
+When **Split into parts** is active, the output is divided by a target
+size per part. Smaller parts produce more chunks, which means more
+headers and slightly more total tokens but also more flexibility in
+feeding the output across multiple turns. That target is a fixed engine
+value; the current UI does not expose it as its own input.
 
 ## Cross-link
 

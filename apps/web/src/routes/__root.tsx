@@ -1,6 +1,4 @@
 import { createRootRoute, Outlet, HeadContent, Scripts } from "@tanstack/react-router";
-import { ThemeProvider } from "~/components/theme-provider";
-import { StagedFilesProvider } from "~/components/staged-files-provider";
 import { NotFound } from "~/components/not-found";
 import { ErrorBoundary } from "~/components/error-boundary";
 import {
@@ -24,7 +22,7 @@ export const Route = createRootRoute({
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Mona+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap",
       },
     ],
     scripts: [
@@ -47,7 +45,7 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark">
       <head>
         <HeadContent />
         <script
@@ -59,39 +57,9 @@ function RootComponent() {
                     })(window, document, "clarity", "script", "pg1fkmu3nn");`,
           }}
         ></script>
-
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                var style = document.createElement('style');
-                style.setAttribute('data-theme-init', '');
-                style.appendChild(document.createTextNode('*,*::before,*::after{transition-duration:0s !important;transition-delay:0s !important;animation-duration:0s !important;animation-delay:0s !important;}'));
-                document.head.appendChild(style);
-                try {
-                  var theme = localStorage.getItem('ui-theme');
-                  if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                    document.documentElement.classList.add('dark');
-                  }
-                } catch (e) {}
-                function unlock() {
-                  requestAnimationFrame(function() {
-                    requestAnimationFrame(function() { style.remove(); });
-                  });
-                }
-                if (document.readyState === 'complete') unlock();
-                else window.addEventListener('load', unlock, { once: true });
-              })();
-            `,
-          }}
-        />
       </head>
       <body className="bg-background text-foreground min-h-screen antialiased">
-        <ThemeProvider defaultTheme="system" storageKey="ui-theme">
-          <StagedFilesProvider>
-            <Outlet />
-          </StagedFilesProvider>
-        </ThemeProvider>
+        <Outlet />
         <Scripts />
       </body>
     </html>

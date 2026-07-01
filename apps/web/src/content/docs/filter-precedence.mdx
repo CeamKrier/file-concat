@@ -46,7 +46,7 @@ is why pattern changes feel instantaneous even on large drops.
 
 ## Layer 3: pattern layer
 
-Two textareas in the FilterRail drive this layer:
+Two textareas in the **Adjust what's included** drawer drive this layer:
 
 - **Include** is a comma-separated list of glob patterns. Empty means
   every surviving file passes.
@@ -75,7 +75,7 @@ more detail.
 
 ## Layer 4: manual overrides
 
-Every checkbox in the file tree writes to a sticky map called
+Every checkbox in the drawer's file tree writes to a sticky map called
 `userToggled`. An entry for a path can be `"include"` or `"exclude"`,
 and either value wins over whatever the pattern layer decided.
 
@@ -84,14 +84,13 @@ file's state matches the pattern decision anyway, the entry is removed
 instead of recorded. The result is that the override map stays small
 and only tracks the deliberate exceptions.
 
-The counter line shows how many overrides are active and offers a
-`clear` link that empties the map. Pattern edits never touch this map,
-so a preset chip click or an Include rewrite cannot accidentally lose
-your individual decisions.
+Pattern edits never touch this map, so a preset chip click or an
+include rewrite cannot accidentally lose your individual decisions.
+Starting over clears the bundle and the overrides together.
 
 ## Worked example
 
-You drop a Node project into the workbench:
+You drop a Node project into FileConcat:
 
 1. Drop-time prune removes `.git/` and `node_modules/`. Everything
    else, including `dist/`, lands in memory.
@@ -103,4 +102,4 @@ You drop a Node project into the workbench:
 5. You edit the Ignore textarea to add `vendor`. Pattern layer hides
    `vendor/*` but the override for `dist/special.js` is untouched.
 
-Every other interaction in the workbench is a variation on this loop.
+Every other interaction in FileConcat is a variation on this loop.

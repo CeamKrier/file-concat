@@ -13,8 +13,6 @@ const DEFAULT_CONFIG: UserConfig = {
   defaultOutputFormat: "auto",
   outputStyle: "xml",
   chunkSizeKB: 32,
-  autoSwitchSource: false,
-  defaultSourceType: "github",
 };
 
 function pickString(value: unknown, fallback: string): string {
@@ -43,7 +41,6 @@ function pickIgnorePatterns(raw: Record<string, unknown>): string {
 
 const OUTPUT_STYLES = ["xml", "markdown"] as const;
 const OUTPUT_FORMAT_PREFS = ["auto", "single", "multi"] as const;
-const SOURCE_TYPES = ["github", "gitlab", "bitbucket", "gist", "url", "local"] as const;
 
 function pickOutputFormatPref(raw: Record<string, unknown>): OutputFormatPreference {
   // `defaultOutputFormat` existed before v6 but was never wired to the UI — the
@@ -68,12 +65,6 @@ function migrateConfig(oldConfig: Record<string, unknown>): UserConfig {
     defaultOutputFormat: pickOutputFormatPref(oldConfig),
     outputStyle: pickEnum(oldConfig.outputStyle, OUTPUT_STYLES, DEFAULT_CONFIG.outputStyle),
     chunkSizeKB: pickNumber(oldConfig.chunkSizeKB, DEFAULT_CONFIG.chunkSizeKB),
-    autoSwitchSource: pickBoolean(oldConfig.autoSwitchSource, DEFAULT_CONFIG.autoSwitchSource),
-    defaultSourceType: pickEnum(
-      oldConfig.defaultSourceType,
-      SOURCE_TYPES,
-      DEFAULT_CONFIG.defaultSourceType,
-    ),
   };
 }
 
@@ -118,42 +109,6 @@ export function useConfig() {
     });
   }, []);
 
-  // Export config as JSON file
-  const exportConfig = useCallback(() => {
-    const blob = new Blob([JSON.stringify(config, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "fileconcat-config.json";
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [config]);
-
-  // Import config from JSON file
-  const importConfig = useCallback((file: File) => {
-    return new Promise<void>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const imported = JSON.parse(e.target?.result as string);
-          const migrated =
-            imported.version === CONFIG_VERSION
-              ? (imported as UserConfig)
-              : migrateConfig(imported);
-          setConfigState(migrated);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-          resolve();
-        } catch {
-          reject(new Error("Failed to parse config file"));
-        }
-      };
-      reader.onerror = () => reject(new Error("Failed to read file"));
-      reader.readAsText(file);
-    });
-  }, []);
-
   // Reset to defaults
   const resetConfig = useCallback(() => {
     setConfigState(DEFAULT_CONFIG);
@@ -167,8 +122,6 @@ export function useConfig() {
   return {
     config,
     setConfig,
-    exportConfig,
-    importConfig,
     resetConfig,
     isLoaded,
     DEFAULT_CONFIG,

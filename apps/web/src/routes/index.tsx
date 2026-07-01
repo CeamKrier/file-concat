@@ -1,12 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { SiteHeader } from "~/components/site-header";
-import { SiteFooter } from "~/components/site-footer";
-import { Hero } from "~/components/landing/hero";
-import { OutputPreview } from "~/components/landing/output-preview";
-import { Audience, PrivacyFold } from "~/components/landing/marketing-folds";
-import { CLIFold } from "~/components/landing/cli-fold";
-import { ClosingFold } from "~/components/landing/closing-fold";
+import { AppFlow } from "~/components/app/app-flow";
 import { generateSEOMeta } from "~/lib/seo";
 
 export const Route = createFileRoute("/")({
@@ -14,15 +8,15 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       ...generateSEOMeta({
-        title: "FileConcat. Combine files for any AI.",
+        title: "FileConcat. Combine files into one AI-ready document.",
         description:
-          "Drop a folder or pipe a directory into the CLI. Get one structured file ChatGPT, Claude, and Gemini can read. Runs in your browser or your terminal, with PDF and DOCX extraction.",
+          "Drop a folder, files, or an archive. The noise gets stripped and out comes one clean document for ChatGPT, Claude, or Gemini. Runs in your browser, no setup, no account, nothing uploaded.",
         url: "https://fileconcat.com",
       }),
       {
         name: "keywords",
         content:
-          "file concat, combine files, LLM, ChatGPT, Claude, Gemini, AI assistant, code sharing, GitHub import, token counter, npm cli, pdf extract, docx extract",
+          "file concat, combine files, LLM, ChatGPT, Claude, Gemini, AI assistant, code sharing, GitHub import, token counter, npm cli",
       },
     ],
     links: [{ rel: "canonical", href: "https://fileconcat.com" }],
@@ -30,18 +24,5 @@ export const Route = createFileRoute("/")({
 });
 
 function LandingPage() {
-  return (
-    <div className="bg-background flex min-h-screen flex-col">
-      <SiteHeader />
-      <main className="flex-1">
-        <Hero />
-        <OutputPreview />
-        <Audience />
-        <CLIFold />
-        <PrivacyFold />
-        <ClosingFold />
-      </main>
-      <SiteFooter />
-    </div>
-  );
+  return <AppFlow />;
 }

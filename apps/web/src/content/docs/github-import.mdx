@@ -1,8 +1,8 @@
 # GitHub import
 
-Paste a public GitHub repository URL into the Source input and the
-workbench fetches the file tree on demand. No GitHub account needed,
-and no servers in between.
+Paste a public GitHub repository URL into the import panel and press
+**Fetch**, and FileConcat fetches the file tree on demand. No GitHub
+account needed, and no servers in between.
 
 ## Supported URL shapes
 
@@ -28,7 +28,7 @@ request for the tree and additional requests for raw file contents on
 the streaming path; large repositories burn through the quota faster
 than small ones.
 
-When a request is denied, the error message you see in the workbench
+When a request is denied, the error message you see in the import panel
 is produced by `classifyResponseError`
 (`packages/core/src/sources/adapters/_errors.ts`). Status 401, 403,
 and 429 each carry their own human-readable wording so you can tell
@@ -44,7 +44,7 @@ tracked separately and are not shipped at the time of writing.
 Raw file URLs like `https://raw.githubusercontent.com/owner/repo/...`
 are not handled by the GitHub adapter. They go to the URL fallback
 adapter instead, which downloads the single file you point it at and
-shows it in the workbench. Use this for "give me one file from
+shows it in the result screen. Use this for "give me one file from
 GitHub" cases.
 
 ## Gists

@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#16130f}
+  ::selection{background:rgba(122,205,142,.28)}
+  @keyframes fc-spin{to{transform:rotate(360deg)}}
+  @keyframes fc-bar{0%{background-position:0 0}100%{background-position:28px 0}}
+  @keyframes fc-up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fc-pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+  @keyframes fc-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  @keyframes fc-pulse{0%,100%{opacity:.5}50%{opacity:1}}
+  .fc-scroll::-webkit-scrollbar{width:9px;height:9px}
+  .fc-scroll::-webkit-scrollbar-thumb{background:#3a3329;border-radius:6px}
+  .fc-scroll::-webkit-scrollbar-track{background:transparent}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:radial-gradient(1100px 620px at 50% -8%,#211b13 0%,#16130f 58%);color:#f1ebe0;font-family:'Hanken Grotesk',system-ui,sans-serif;display:flex;flex-direction:column">
+
+  <!-- TOP BAR -->
+  <div style="position:sticky;top:0;z-index:30;background:rgba(22,19,15,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid #221d16">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 26px;max-width:1180px;width:100%;margin:0 auto">
+    <div style="display:flex;align-items:center;gap:11px;cursor:pointer" onClick="{{ startOver }}">
+      <div style="position:relative;width:24px;height:24px">
+        <div style="position:absolute;left:0;top:0;width:15px;height:15px;border-radius:5px;background:#7acd8e"></div>
+        <div style="position:absolute;right:0;bottom:0;width:15px;height:15px;border-radius:5px;background:#e7e0d2;box-shadow:0 0 0 3px #16130f"></div>
+      </div>
+      <span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:18px;letter-spacing:-.01em">FileConcat</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <sc-if value="{{ isResult }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ openSettings }}" style="display:flex;align-items:center;gap:7px;background:#221d16;border:1px solid #342d22;color:#e7e0d2;font-family:'Hanken Grotesk',sans-serif;font-size:13.5px;font-weight:500;padding:8px 13px;border-radius:9px;cursor:pointer">
+          <span style="width:14px;height:14px;display:inline-block;border:2px solid #b7ad9a;border-radius:50%;border-right-color:transparent"></span>
+          Adjust what's included
+        </button>
+        <button onClick="{{ startOver }}" style="background:transparent;border:1px solid #2c261d;color:#a89e8d;font-family:'Hanken Grotesk',sans-serif;font-size:13.5px;font-weight:500;padding:8px 13px;border-radius:9px;cursor:pointer">Start over</button>
+      </sc-if>
+      <a href="FileConcat%20Docs.dc.html" style="color:#8d8472;font-size:13.5px;font-weight:500;text-decoration:none;padding:8px 10px">Docs</a>
+      <a href="https://github.com/CeamKrier/file-concat" target="_blank" rel="noopener" style="color:#8d8472;font-size:13.5px;font-weight:500;text-decoration:none;padding:8px 10px">GitHub</a>
+    </div>
+  </div>
+  </div>
+
+  <!-- ================= LANDING ================= -->
+  <sc-if value="{{ isLanding }}" hint-placeholder-val="{{ true }}">
+  <div style="width:100%" id="top">
+  <div style="display:flex;flex-direction:column;align-items:center;padding:34px 22px 58px;max-width:780px;width:100%;margin:0 auto;text-align:center">
+    <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(122,205,142,.10);border:1px solid rgba(122,205,142,.22);color:#9fdcb0;font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:500;padding:6px 12px;border-radius:999px;margin-bottom:22px;white-space:nowrap">
+      <span style="width:6px;height:6px;border-radius:50%;background:#7acd8e"></span>
+      runs in your browser · nothing uploaded
+    </div>
+    <h1 style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:46px;line-height:1.04;letter-spacing:-.025em;margin:0 0 16px;text-wrap:balance">Combine files into one<br>AI-ready document.</h1>
+    <p style="font-size:17px;line-height:1.5;color:#b3a994;margin:0 0 32px;max-width:520px">Drop a folder, files, or a zip. The noise gets stripped and out comes one clean document for ChatGPT, Claude or Gemini — no setup, no account.</p>
+
+    <!-- DROP ZONE -->
+    <div onDrop="{{ onDrop }}" onDragOver="{{ onDragOver }}" onDragEnter="{{ onDragEnter }}" onDragLeave="{{ onDragLeave }}" onClick="{{ startProject }}" style="width:100%;background:{{ dropBg }};border:2px dashed {{ dropBorder }};border-radius:20px;padding:46px 28px 38px;cursor:pointer;transition:all .18s ease">
+      <div style="width:62px;height:62px;margin:0 auto 18px;border-radius:18px;background:#221d16;border:1px solid #342d22;display:flex;align-items:center;justify-content:center;animation:fc-float 3.4s ease-in-out infinite">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7acd8e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M5 16v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
+      </div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:21px;font-weight:600;margin-bottom:6px">Drag a folder or files here</div>
+      <div style="font-size:14px;color:#8d8472;margin-bottom:20px">…and your file is ready a second later</div>
+      <div style="display:flex;gap:10px;justify-content:center" onClick="{{ stop }}">
+        <button onClick="{{ startProject }}" style="background:#7acd8e;color:#11261a;font-family:'Hanken Grotesk',sans-serif;font-weight:600;font-size:14px;padding:11px 20px;border:none;border-radius:10px;cursor:pointer">Browse files</button>
+        <button onClick="{{ startProject }}" style="background:#221d16;color:#e7e0d2;font-family:'Hanken Grotesk',sans-serif;font-weight:600;font-size:14px;padding:11px 20px;border:1px solid #342d22;border-radius:10px;cursor:pointer">Browse folder</button>
+      </div>
+    </div>
+
+    <!-- WHAT I COMBINE -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center;margin-top:22px;font-size:13px">
+      <span style="display:inline-flex;align-items:center;gap:7px;color:#b3a994"><span style="color:#7acd8e;font-weight:700">✓</span> Code, docs, configs &amp; data</span>
+      <span style="display:inline-flex;align-items:center;gap:7px;color:#8d8472"><span style="color:#6f675a">○</span> Images &amp; binaries skipped for you</span>
+    </div>
+
+    <!-- SAMPLES -->
+    <div style="margin-top:34px;width:100%">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;color:#6f675a;text-transform:uppercase;margin-bottom:12px">or try a sample</div>
+      <div style="display:flex;flex-wrap:wrap;gap:9px;justify-content:center">
+        <sc-for list="{{ samples }}" as="s" hint-placeholder-count="5">
+          <button onClick="{{ s.onClick }}" style="display:inline-flex;align-items:center;gap:9px;background:#1c1812;border:1px solid #2c261d;color:#d8d0c0;font-family:'Hanken Grotesk',sans-serif;font-size:13.5px;font-weight:500;padding:8px 13px 8px 9px;border-radius:10px;cursor:pointer">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;color:#9a9082;background:#15110c;border:1px solid #2c261d;padding:3px 7px;border-radius:6px">{{ s.tag }}</span>
+            {{ s.label }}
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- IMPORT FROM (progressive) -->
+    <div style="margin-top:26px;width:100%">
+      <sc-if value="{{ importClosed }}" hint-placeholder-val="{{ true }}">
+        <div style="font-size:13px;color:#7a7264;text-align:center">
+          Got a link instead? <span onClick="{{ openImport }}" style="color:#9fdcb0;cursor:pointer;font-weight:600">Import from a repo, Gist or URL →</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{ importOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#1a1610;border:1px solid #2c261d;border-radius:16px;padding:16px;text-align:left">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px">
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;color:#e7e0d2">Paste a link to fetch and combine</span>
+            <button onClick="{{ closeImport }}" style="background:transparent;border:none;color:#8d8472;font-size:13px;cursor:pointer">✕ close</button>
+          </div>
+          <div class="fc-scroll" style="display:flex;gap:6px;background:#15110c;border:1px solid #2c261d;border-radius:10px;padding:4px;margin-bottom:13px;overflow:auto">
+            <sc-for list="{{ importTabs }}" as="t" hint-placeholder-count="5">
+              <button onClick="{{ t.onClick }}" style="flex:1;white-space:nowrap;background:{{ t.bg }};color:{{ t.fg }};border:1px solid {{ t.border }};font-family:'Hanken Grotesk',sans-serif;font-size:13px;font-weight:600;padding:7px 11px;border-radius:7px;cursor:pointer">{{ t.label }}</button>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:8px">
+            <input value="{{ urlText }}" onChange="{{ onUrlChange }}" onKeyDown="{{ onUrlKey }}" placeholder="{{ urlPlaceholder }}" style="flex:1;min-width:0;background:#120f0a;border:1px solid #2c261d;border-radius:10px;padding:11px 13px;color:#f1ebe0;font-family:'JetBrains Mono',monospace;font-size:13px">
+            <button onClick="{{ fetchUrl }}" style="background:{{ fetchBg }};color:{{ fetchFg }};font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:13.5px;padding:11px 20px;border:none;border-radius:10px;cursor:pointer;white-space:nowrap">Fetch</button>
+          </div>
+          <div style="min-height:17px;margin-top:8px;font-size:12.5px;color:{{ liveColor }}">{{ liveText }}</div>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-top:3px">
+            <span style="font-size:11.5px;color:#6f675a">try</span>
+            <sc-for list="{{ examples }}" as="ex" hint-placeholder-count="2">
+              <button onClick="{{ ex.onClick }}" style="background:#15110c;border:1px solid #2c261d;color:#9a9082;font-family:'JetBrains Mono',monospace;font-size:11.5px;padding:4px 9px;border-radius:6px;cursor:pointer">{{ ex.label }}</button>
+            </sc-for>
+          </div>
+          <sc-if value="{{ urlWarning }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:10px;align-items:flex-start;background:rgba(217,168,90,.08);border:1px solid rgba(217,168,90,.28);border-radius:11px;padding:11px 13px;margin-top:12px">
+              <span style="width:18px;height:18px;border-radius:50%;background:rgba(217,168,90,.2);color:#e3b96a;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;flex:none;margin-top:1px">!</span>
+              <span style="font-size:13px;line-height:1.45;color:#e9dcc2">{{ urlWarning }}</span>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <!-- ===== SECTION A · WHAT YOU GET BACK ===== -->
+  <div style="border-top:1px solid #221d16;padding:70px 0">
+    <div style="max-width:1040px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:50px;align-items:center">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7c9c86;margin-bottom:14px">What you get back</div>
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;letter-spacing:-.02em;line-height:1.1;margin:0 0 16px;color:#f1ebe0">One file, structured so models read it cleanly.</h2>
+        <p style="font-size:16px;line-height:1.6;color:#b3a994;margin:0 0 26px">Every file arrives wrapped and labeled — the project tree first, then each file in a tagged block with its path and language. The model walks the bundle the way you'd walk the folder.</p>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;gap:13px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#7acd8e;width:54px;flex:none;padding-top:1px">TREE</span><span style="font-size:14px;line-height:1.5;color:#a89e8d">An ASCII map at the top, so the model knows the shape before any file body.</span></div>
+          <div style="display:flex;gap:13px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#7acd8e;width:54px;flex:none;padding-top:1px">TAGS</span><span style="font-size:14px;line-height:1.5;color:#a89e8d">Each file in its own labeled block — paths stay unambiguous across the whole bundle.</span></div>
+          <div style="display:flex;gap:13px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#7acd8e;width:54px;flex:none;padding-top:1px">FENCES</span><span style="font-size:14px;line-height:1.5;color:#a89e8d">Language-typed fences, so syntax highlighting survives in whatever renders the reply.</span></div>
+        </div>
+      </div>
+      <pre class="fc-scroll" style="margin:0;background:#120f0a;border:1px solid #2c261d;border-radius:14px;padding:20px;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.65;color:#b8b0a0;overflow:auto">&lt;codebase project="my-app"&gt;
+  &lt;directory_structure&gt;
+    src/
+    ├─ App.tsx
+    ├─ hooks/use-theme.ts
+    └─ components/Button.tsx
+    package.json
+  &lt;/directory_structure&gt;
+
+  &lt;file path="src/App.tsx" lang="tsx"&gt;
+    import &#123; useState &#125; from "react";
+    export default function App() &#123;
+      const [count, setCount] = useState(0);
+      return &lt;h1&gt;Total: &#123;count&#125;&lt;/h1&gt;;
+    &#125;
+  &lt;/file&gt;
+&lt;/codebase&gt;</pre>
+    </div>
+  </div>
+
+  <!-- ===== SECTION B · WHAT TO DROP ===== -->
+  <div style="border-top:1px solid #221d16;padding:70px 0;background:#1a1610">
+    <div style="max-width:1040px;margin:0 auto;padding:0 24px;text-align:center">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7c9c86;margin-bottom:14px">Not sure what to drop?</div>
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;letter-spacing:-.02em;line-height:1.1;margin:0 0 14px;color:#f1ebe0">Drop the whole thing. The right files get through.</h2>
+      <p style="font-size:16px;line-height:1.6;color:#b3a994;margin:0 auto 36px;max-width:540px">No cleanup first. The text that helps a model gets combined; the noise that wastes tokens gets filtered out.</p>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;text-align:left">
+        <div style="background:#15110c;border:1px solid rgba(122,205,142,.25);border-radius:16px;padding:22px">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:24px;height:24px;border-radius:50%;background:rgba(122,205,142,.16);color:#7acd8e;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">✓</span><span style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;color:#e7e0d2">Combined</span></div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#b8b0a0;background:#1c1812;border:1px solid #2c261d;padding:5px 9px;border-radius:7px">Code · .ts .py .go .rs</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#b8b0a0;background:#1c1812;border:1px solid #2c261d;padding:5px 9px;border-radius:7px">Docs · .md .txt .rst</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#b8b0a0;background:#1c1812;border:1px solid #2c261d;padding:5px 9px;border-radius:7px">Configs · .json .yaml</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#b8b0a0;background:#1c1812;border:1px solid #2c261d;padding:5px 9px;border-radius:7px">Data · .csv .sql</span>
+          </div>
+        </div>
+        <div style="background:#15110c;border:1px solid #2c261d;border-radius:16px;padding:22px">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:24px;height:24px;border-radius:50%;background:#221d16;color:#8d8472;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">○</span><span style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;color:#b3a994">Skipped for you</span></div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8d8472;background:#1a1610;border:1px solid #2c261d;padding:5px 9px;border-radius:7px">Images · fonts · video</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8d8472;background:#1a1610;border:1px solid #2c261d;padding:5px 9px;border-radius:7px">node_modules</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8d8472;background:#1a1610;border:1px solid #2c261d;padding:5px 9px;border-radius:7px">*.lock files</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8d8472;background:#1a1610;border:1px solid #2c261d;padding:5px 9px;border-radius:7px">build output</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:20px">
+        <span style="display:inline-flex;align-items:center;gap:7px;font-size:13px;color:#9fdcb0;background:rgba(122,205,142,.08);border:1px solid rgba(122,205,142,.2);padding:7px 13px;border-radius:9px">Zips unpack themselves</span>
+        <span style="display:inline-flex;align-items:center;gap:7px;font-size:13px;color:#9fdcb0;background:rgba(122,205,142,.08);border:1px solid rgba(122,205,142,.2);padding:7px 13px;border-radius:9px">Repos &amp; Gists import by URL</span>
+        <span style="display:inline-flex;align-items:center;gap:7px;font-size:13px;color:#9fdcb0;background:rgba(122,205,142,.08);border:1px solid rgba(122,205,142,.2);padding:7px 13px;border-radius:9px">Single web pages too</span>
+      </div>
+      <div style="display:flex;gap:11px;align-items:flex-start;text-align:left;max-width:620px;margin:26px auto 0;background:rgba(217,168,90,.07);border:1px solid rgba(217,168,90,.24);border-radius:12px;padding:14px 16px">
+        <span style="width:19px;height:19px;border-radius:50%;background:rgba(217,168,90,.2);color:#e3b96a;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;flex:none;margin-top:1px">i</span>
+        <span style="font-size:13.5px;line-height:1.5;color:#cabfa9">Images can't be combined — they aren't text. To have a model <em>look at</em> pictures you need a vision model, which is a different kind of tool.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION C · PRIVACY ===== -->
+  <div style="border-top:1px solid #221d16;padding:70px 0">
+    <div style="max-width:1040px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:50px;align-items:center">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7c9c86;margin-bottom:14px">Private by design</div>
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;letter-spacing:-.02em;line-height:1.1;margin:0 0 16px;color:#f1ebe0">Nothing leaves your browser.</h2>
+        <p style="font-size:16px;line-height:1.6;color:#b3a994;margin:0">Files are read and combined on your machine — no upload, no account, no server. Load the page once, pull the plug, and it still works.</p>
+      </div>
+      <div style="background:#120f0a;border:1px solid #2c261d;border-radius:14px;padding:18px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#8d8472">
+        <div style="color:#6f675a;letter-spacing:.1em;margin-bottom:12px">NETWORK</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between"><span style="color:#b8b0a0">fileconcat.com</span><span>200 · document · page load</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#b8b0a0">index.css</span><span>200 · style · page load</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#b8b0a0">main.js</span><span>200 · script · page load</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#b8b0a0">tiktoken.wasm</span><span>200 · wasm · page load</span></div>
+        </div>
+        <div style="border-top:1px solid #221d16;margin-top:13px;padding-top:12px;color:#7acd8e">0 outbound requests · everything runs locally</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION D · CLI (separate) ===== -->
+  <div style="border-top:1px solid #221d16;padding:70px 0;background:#100d09">
+    <div style="max-width:1040px;margin:0 auto;padding:0 24px">
+      <div style="display:inline-flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#90b6e2;background:rgba(121,166,216,.1);border:1px solid rgba(121,166,216,.26);padding:6px 11px;border-radius:999px;margin-bottom:18px">Separate tool · command line</div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:50px;align-items:center">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;letter-spacing:-.02em;line-height:1.1;margin:0 0 16px;color:#f1ebe0">Rather work in the terminal?</h2>
+          <p style="font-size:16px;line-height:1.6;color:#aeb6c2;margin:0 0 22px">The browser app above needs no install. The FileConcat CLI is a separate package for piping directories straight into scripts — same structured output, printed to stdout.</p>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;gap:13px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#90b6e2;width:58px;flex:none;padding-top:1px">PIPE</span><span style="font-size:14px;line-height:1.5;color:#9aa3b0">Point it at a folder; the bundle lands on stdout, ready to redirect or pipe.</span></div>
+            <div style="display:flex;gap:13px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#90b6e2;width:58px;flex:none;padding-top:1px">PARSE</span><span style="font-size:14px;line-height:1.5;color:#9aa3b0">Opt in with --parse to pull text out of PDF, DOCX, XLSX and more.</span></div>
+            <div style="display:flex;gap:13px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#90b6e2;width:58px;flex:none;padding-top:1px">JSON</span><span style="font-size:14px;line-height:1.5;color:#9aa3b0">A one-line --json summary for scripts: counts, bytes, elapsed.</span></div>
+          </div>
+        </div>
+        <div>
+          <pre class="fc-scroll" style="margin:0;background:#0a0806;border:1px solid #232b34;border-radius:14px;padding:20px;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.7;color:#aeb6c2;overflow:auto">$ npm install -g @fileconcat/cli
+
+$ file-concat ./src \
+    --parse pdf,docx -o ctx.xml
+  Processing ./src
+  Found 47 files · parsed 3 · skipped 2
+  Done in 1.8s → ctx.xml</pre>
+          <div style="font-size:12.5px;color:#6f675a;margin-top:12px;text-align:center">This is the command-line tool — not needed for the browser app.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION E · FINAL CTA ===== -->
+  <div style="border-top:1px solid #221d16;padding:76px 0;text-align:center">
+    <div style="max-width:1040px;margin:0 auto;padding:0 24px">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:38px;font-weight:700;letter-spacing:-.025em;line-height:1.05;margin:0 0 22px;color:#f1ebe0">Drop a folder. Get one file.</h2>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <button onClick="{{ scrollTop }}" style="background:#7acd8e;color:#11261a;font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:15px;padding:14px 26px;border:none;border-radius:12px;cursor:pointer">Open the tool ↑</button>
+        <a href="FileConcat%20Docs.dc.html" style="display:inline-flex;align-items:center;background:#221d16;color:#f1ebe0;font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:15px;padding:14px 26px;border:1px solid #342d22;border-radius:12px;cursor:pointer;text-decoration:none">Read the docs</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FOOTER ===== -->
+  <div style="border-top:1px solid #221d16;padding:38px 0 46px">
+    <div style="max-width:1040px;margin:0 auto;padding:0 24px;display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:flex-start">
+      <div style="max-width:300px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="position:relative;width:22px;height:22px"><div style="position:absolute;left:0;top:0;width:14px;height:14px;border-radius:5px;background:#7acd8e"></div><div style="position:absolute;right:0;bottom:0;width:14px;height:14px;border-radius:5px;background:#e7e0d2;box-shadow:0 0 0 3px #16130f"></div></div>
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px">FileConcat</span>
+        </div>
+        <p style="font-size:13px;line-height:1.55;color:#7a7264;margin:0">Drop a folder, get one file ChatGPT, Claude, or Gemini can read. Runs in your browser.</p>
+      </div>
+      <div style="display:flex;gap:38px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <a href="#top" onClick="{{ scrollTop }}" style="font-size:13.5px;color:#a89e8d;text-decoration:none">Open tool</a>
+          <a href="FileConcat%20Docs.dc.html" style="font-size:13.5px;color:#a89e8d;text-decoration:none">Docs</a>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <a href="https://github.com/CeamKrier/file-concat" target="_blank" rel="noopener" style="font-size:13.5px;color:#a89e8d;text-decoration:none">GitHub</a>
+          <a href="https://www.npmjs.com/package/@fileconcat/cli" target="_blank" rel="noopener" style="font-size:13.5px;color:#a89e8d;text-decoration:none">npm · CLI</a>
+        </div>
+      </div>
+    </div>
+    <div style="max-width:1040px;margin:22px auto 0;padding:0 24px;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#5f5849">MIT · © 2026 FileConcat · built by @CeamKrier</div>
+  </div>
+
+  </div>
+  </sc-if>
+
+  <!-- ================= PROCESSING ================= -->
+  <sc-if value="{{ isProcessing }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;max-width:560px;width:100%;margin:0 auto">
+    <div style="position:relative;width:72px;height:72px;margin-bottom:26px">
+      <div style="position:absolute;inset:0;border:3px solid #2c261d;border-top-color:#7acd8e;border-radius:50%;animation:fc-spin .8s linear infinite"></div>
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;color:#7acd8e">{{ progressPct }}%</div>
+    </div>
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:600;margin-bottom:4px">{{ curStep }}</div>
+    <div style="font-size:14px;color:#8d8472;margin-bottom:26px">{{ source }}</div>
+    <div style="width:100%;display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ stepItems }}" as="it" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:11px;font-size:14.5px;color:{{ it.color }}">
+          <span style="width:18px;height:18px;border-radius:50%;border:2px solid {{ it.dot }};background:{{ it.fill }};display:flex;align-items:center;justify-content:center;font-size:11px;color:#11261a;flex:none">{{ it.mark }}</span>
+          {{ it.label }}
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ================= RESULT ================= -->
+  <sc-if value="{{ isResult }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 22px 70px;max-width:720px;width:100%;margin:0 auto">
+
+    <!-- EMPTY / IMAGES REDIRECT -->
+    <sc-if value="{{ isEmptyResult }}" hint-placeholder-val="{{ false }}">
+      <div style="width:100%;margin-top:26px;background:#1c1812;border:1px solid #342d22;border-radius:18px;padding:34px 30px;text-align:center">
+        <div style="width:56px;height:56px;margin:0 auto 16px;border-radius:16px;background:rgba(217,168,90,.12);border:1px solid rgba(217,168,90,.3);display:flex;align-items:center;justify-content:center;font-size:24px">🖼️</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:600;margin-bottom:8px">These look like images, not text</div>
+        <p style="font-size:15px;line-height:1.55;color:#b3a994;margin:0 auto 18px;max-width:420px">FileConcat bundles <b style="color:#e7e0d2">text</b> — code, docs, configs, data. Pictures can't be read as text, so there's nothing to combine here. For images, just paste them straight into your AI chat.</p>
+        <div style="display:inline-flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-bottom:22px">
+          <sc-for list="{{ unsupportedList }}" as="u" hint-placeholder-count="3">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#9a9082;background:#15110c;border:1px solid #2c261d;padding:5px 10px;border-radius:7px">{{ u.name }}</span>
+          </sc-for>
+        </div>
+        <div><button onClick="{{ startOver }}" style="background:#7acd8e;color:#11261a;font-family:'Hanken Grotesk',sans-serif;font-weight:600;font-size:14px;padding:11px 22px;border:none;border-radius:10px;cursor:pointer">Try a folder of files instead</button></div>
+      </div>
+    </sc-if>
+
+    <!-- SUCCESS -->
+    <sc-if value="{{ isOkResult }}" hint-placeholder-val="{{ true }}">
+      <div style="width:56px;height:56px;margin:28px auto 16px;border-radius:50%;background:rgba(122,205,142,.14);border:1px solid rgba(122,205,142,.4);display:flex;align-items:center;justify-content:center">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7acd8e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;letter-spacing:-.02em;margin:0 0 8px;text-align:center">Your file's ready</h2>
+      <div style="display:inline-flex;align-items:center;gap:8px;font-size:14px;color:#9a9082;margin-bottom:22px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#d8d0c0;background:#1c1812;border:1px solid #2c261d;padding:4px 10px;border-radius:7px">{{ source }}</span>
+        → one document
+      </div>
+
+      <!-- SOURCE NOTE -->
+      <sc-if value="{{ showNote }}" hint-placeholder-val="{{ false }}">
+        <div style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#9fdcb0;background:rgba(122,205,142,.08);border:1px solid rgba(122,205,142,.2);padding:7px 13px;border-radius:9px;margin-bottom:18px">
+          <span style="font-weight:700">✓</span> {{ noteText }}
+        </div>
+      </sc-if>
+
+      <!-- SUMMARY STATS -->
+      <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;width:100%;margin-bottom:24px">
+        <div style="flex:1;min-width:150px;background:#1c1812;border:1px solid #2c261d;border-radius:13px;padding:15px 16px;text-align:left">
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:#f1ebe0">{{ includedCount }}</div>
+          <div style="font-size:12.5px;color:#8d8472;margin-top:2px">files combined</div>
+        </div>
+        <div style="flex:1;min-width:150px;background:#1c1812;border:1px solid #2c261d;border-radius:13px;padding:15px 16px;text-align:left">
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:#f1ebe0">{{ tokens }}</div>
+          <div style="font-size:12.5px;color:#8d8472;margin-top:2px">tokens</div>
+        </div>
+        <div style="flex:1;min-width:150px;background:#1c1812;border:1px solid #2c261d;border-radius:13px;padding:15px 16px;text-align:left">
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:#9fdcb0">{{ skippedNoise }}</div>
+          <div style="font-size:12.5px;color:#8d8472;margin-top:2px">noise files skipped</div>
+        </div>
+      </div>
+
+      <!-- PRIMARY ACTIONS -->
+      <div style="display:flex;gap:11px;width:100%;margin-bottom:14px">
+        <button onClick="{{ onCopy }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:9px;background:#7acd8e;color:#11261a;font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:15.5px;padding:15px;border:none;border-radius:13px;cursor:pointer;transition:background .15s">
+          {{ copyLabel }}
+        </button>
+        <button onClick="{{ onDownload }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:9px;background:#221d16;color:#f1ebe0;font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:15.5px;padding:15px;border:1px solid #342d22;border-radius:13px;cursor:pointer">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+          Download
+        </button>
+      </div>
+
+      <!-- FORMAT ROW -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:14px;font-size:13px;color:#8d8472;margin-bottom:26px">
+        <span>Format</span>
+        <div style="display:flex;background:#15110c;border:1px solid #2c261d;border-radius:9px;padding:3px">
+          <sc-for list="{{ formats }}" as="f" hint-placeholder-count="3">
+            <button onClick="{{ f.onClick }}" style="background:{{ f.bg }};color:{{ f.fg }};font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;padding:6px 13px;border:none;border-radius:7px;cursor:pointer">{{ f.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- HEADS UP (binary / unsupported) — INFO, not error -->
+      <sc-if value="{{ showHeadsUp }}" hint-placeholder-val="{{ false }}">
+        <div style="width:100%;background:rgba(217,168,90,.07);border:1px solid rgba(217,168,90,.26);border-radius:14px;padding:18px 19px;margin-bottom:14px;text-align:left">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <span style="width:20px;height:20px;border-radius:50%;background:rgba(217,168,90,.18);color:#e3b96a;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;flex:none">i</span>
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:15.5px;font-weight:600;color:#e9dcc2">{{ unsupportedCount }} files aren't text — left out</span>
+          </div>
+          <p style="font-size:13.5px;line-height:1.5;color:#b3a994;margin:0 0 12px">That's fine — they just aren't text, so an AI can't read them. Everything readable is already in your file.</p>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:4px">
+            <sc-for list="{{ unsupportedList }}" as="u" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#1a1610;border:1px solid #2c261d;border-radius:8px;padding:8px 11px">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#d8d0c0">{{ u.name }}</span>
+                <span style="font-size:12px;color:#8d8472">{{ u.why }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- BIG BUNDLE — INFO suggestion, not warning -->
+      <sc-if value="{{ showBigBundle }}" hint-placeholder-val="{{ false }}">
+        <div style="width:100%;background:rgba(121,166,216,.07);border:1px solid rgba(121,166,216,.26);border-radius:14px;padding:18px 19px;margin-bottom:14px;text-align:left">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <span style="width:20px;height:20px;border-radius:50%;background:rgba(121,166,216,.18);color:#90b6e2;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;flex:none">i</span>
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:15.5px;font-weight:600;color:#dce4ef">Big bundle — splitting is optional, just easier to paste</span>
+          </div>
+          <p style="font-size:13.5px;line-height:1.5;color:#aeb6c2;margin:0 0 13px">At {{ tokens }} tokens, some chats paste more reliably in a few parts. Totally your call — single file works too.</p>
+          <div style="display:flex;background:#15110c;border:1px solid #2c261d;border-radius:9px;padding:3px;width:fit-content">
+            <sc-for list="{{ splitOpts }}" as="o" hint-placeholder-count="2">
+              <button onClick="{{ o.onClick }}" style="background:{{ o.bg }};color:{{ o.fg }};font-family:'Hanken Grotesk',sans-serif;font-size:13px;font-weight:600;padding:7px 14px;border:none;border-radius:7px;cursor:pointer">{{ o.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- PREVIEW -->
+      <details style="width:100%;margin-top:6px">
+        <summary style="font-size:13px;color:#8d8472;cursor:pointer;list-style:none;user-select:none">▸ Peek at what your AI receives</summary>
+        <pre class="fc-scroll" style="margin:11px 0 0;background:#120f0a;border:1px solid #2c261d;border-radius:12px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:#b8b0a0;overflow:auto;max-height:230px">{{ previewText }}</pre>
+      </details>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <!-- ================= SETTINGS DRAWER ================= -->
+  <sc-if value="{{ settingsOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeSettings }}" style="position:fixed;inset:0;background:rgba(8,6,4,.55);z-index:40"></div>
+  <div class="fc-scroll" style="position:fixed;top:0;right:0;bottom:0;width:420px;max-width:92vw;background:#191510;border-left:1px solid #2c261d;z-index:41;overflow-y:auto;box-shadow:-24px 0 60px rgba(0,0,0,.5)">
+    <div style="position:sticky;top:0;background:#191510;border-bottom:1px solid #2c261d;padding:18px 22px;display:flex;align-items:center;justify-content:between;justify-content:space-between;z-index:2">
+      <div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:600">Fine-tune the output</div>
+        <div style="font-size:12.5px;color:#8d8472;margin-top:2px">Everything updates live. You don't have to touch any of this.</div>
+      </div>
+      <button onClick="{{ closeSettings }}" style="background:#221d16;border:1px solid #342d22;color:#d8d0c0;width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:16px;flex:none">✕</button>
+    </div>
+    <div style="padding:22px">
+      <!-- PRESETS -->
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#6f675a;margin-bottom:11px">Quick presets</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">
+        <sc-for list="{{ presets }}" as="p" hint-placeholder-count="7">
+          <button onClick="{{ p.onClick }}" style="background:{{ p.bg }};color:{{ p.fg }};border:1px solid {{ p.border }};font-family:'Hanken Grotesk',sans-serif;font-size:13px;font-weight:500;padding:7px 12px;border-radius:8px;cursor:pointer">{{ p.label }}</button>
+        </sc-for>
+      </div>
+
+      <!-- IGNORE -->
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#6f675a;margin-bottom:9px">Skip these (already smart by default)</div>
+      <textarea value="{{ ignoreText }}" onChange="{{ onIgnore }}" class="fc-scroll" style="width:100%;height:74px;background:#120f0a;border:1px solid #2c261d;border-radius:10px;padding:11px 12px;color:#d8d0c0;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.55;resize:vertical;margin-bottom:7px"></textarea>
+      <div style="font-size:11.5px;color:#6f675a;margin-bottom:22px">Comma-separated patterns. node_modules, lockfiles &amp; binaries are skipped automatically.</div>
+
+      <!-- INCLUDE -->
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#6f675a;margin-bottom:9px">Only include (optional)</div>
+      <textarea value="{{ includeText }}" onChange="{{ onInclude }}" placeholder="empty = everything readable" class="fc-scroll" style="width:100%;height:50px;background:#120f0a;border:1px solid #2c261d;border-radius:10px;padding:11px 12px;color:#d8d0c0;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.55;resize:vertical;margin-bottom:24px"></textarea>
+
+      <!-- FILE TREE -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#6f675a">Files · {{ includedCount }} in</span>
+        <span style="font-size:12px;color:#8d8472">uncheck to leave out</span>
+      </div>
+      <div style="background:#120f0a;border:1px solid #2c261d;border-radius:12px;padding:7px;margin-bottom:24px">
+        <sc-for list="{{ tree }}" as="t" hint-placeholder-count="10">
+          <div onClick="{{ t.onToggle }}" style="display:flex;align-items:center;gap:9px;padding:6px 8px 6px {{ t.pad }};border-radius:7px;cursor:pointer;opacity:{{ t.opacity }}">
+            <span style="width:15px;height:15px;border-radius:4px;border:1.5px solid {{ t.boxBorder }};background:{{ t.boxBg }};display:flex;align-items:center;justify-content:center;font-size:10px;color:#11261a;flex:none">{{ t.check }}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:{{ t.nameColor }};flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.name }}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6f675a;flex:none">{{ t.size }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- TOKEN / MODEL -->
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#6f675a;margin-bottom:11px">Cost estimate</div>
+      <div style="background:#120f0a;border:1px solid #2c261d;border-radius:12px;padding:15px 16px;margin-bottom:18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:13px;color:#b3a994">{{ tokens }} tokens</span>
+          <span style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:#9fdcb0">{{ cost }}</span>
+        </div>
+        <select onChange="{{ onModel }}" style="width:100%;background:#191510;border:1px solid #2c261d;border-radius:9px;padding:10px 12px;color:#d8d0c0;font-family:'Hanken Grotesk',sans-serif;font-size:13.5px;cursor:pointer">
+          <option>Claude Sonnet</option>
+          <option>GPT-4o</option>
+          <option>Gemini 2.5 Pro</option>
+          <option>GLM-4.6</option>
+        </select>
+      </div>
+
+      <div style="font-size:12px;color:#6f675a;line-height:1.55;border-top:1px solid #221d16;padding-top:16px">
+        Prefer the terminal? FileConcat also ships as a CLI — that's a separate tool for piping directories straight into your scripts.
+        <span style="color:#8d8472;text-decoration:underline;cursor:pointer">See the CLI →</span>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    view: 'landing',
+    scenarioKey: null,
+    settingsOpen: false,
+    format: 'xml',
+    splitMode: 'single',
+    activePreset: null,
+    stepIndex: 0,
+    isDragging: false,
+    copied: false,
+    importOpen: false,
+    importTab: 'github',
+    urlText: '',
+    urlWarning: '',
+    excluded: {},
+    includeText: '',
+    ignoreText: '.git, node_modules, dist, build, *.lock, package-lock.json, .DS_Store',
+  };
+
+  scenarios = {
+    project: {
+      source: 'my-app (folder)', sourceKind: 'folder',
+      totalFiles: 47, includedCount: 41, skippedNoise: 6, tokens: '12,340',
+      steps: ['Reading 47 files', 'Skipping noise — node_modules, lockfiles', 'Counting tokens', 'Packing it into one file'],
+      unsupportedList: [],
+    },
+    zip: {
+      source: 'project.zip', sourceKind: 'zip',
+      totalFiles: 38, includedCount: 34, skippedNoise: 4, tokens: '9,120',
+      steps: ['Unpacking project.zip', 'Reading 38 files', 'Skipping noise', 'Counting tokens', 'Packing it up'],
+      note: 'Unpacked the zip and combined everything inside',
+      unsupportedList: [],
+    },
+    images: {
+      source: '5 images', sourceKind: 'images', kind: 'images',
+      totalFiles: 5, includedCount: 0, skippedNoise: 0, tokens: '0',
+      steps: ['Looking at 5 files', 'Checking what is text'],
+      unsupportedList: [{ name: 'logo.png', why: 'Image' }, { name: 'hero.jpg', why: 'Image' }, { name: 'shot-1.png', why: 'Image' }, { name: 'shot-2.png', why: 'Image' }, { name: 'banner.webp', why: 'Image' }],
+    },
+    mixed: {
+      source: 'design-handoff (folder)', sourceKind: 'folder',
+      totalFiles: 52, includedCount: 30, skippedNoise: 3, tokens: '8,740',
+      steps: ['Reading 52 files', 'Sorting text from binaries', 'Skipping noise', 'Counting tokens', 'Packing it up'],
+      unsupportedList: [
+        { name: 'brand.ai', why: 'Illustrator file' },
+        { name: 'hero.psd', why: 'Photoshop file' },
+        { name: 'Inter.woff2', why: 'Font' },
+        { name: 'logo.png', why: 'Image' },
+        { name: 'spec.pdf', why: 'PDF — use the CLI to extract its text' },
+      ],
+    },
+    huge: {
+      source: 'apps-325files (folder)', sourceKind: 'folder',
+      totalFiles: 325, includedCount: 312, skippedNoise: 13, tokens: '728,854', bigBundle: true,
+      steps: ['Reading 325 files', 'Skipping noise', 'Counting tokens', 'Packing it up'],
+      unsupportedList: [],
+    },
+    docs: {
+      source: 'project-docs (folder)', sourceKind: 'folder',
+      totalFiles: 22, includedCount: 22, skippedNoise: 0, tokens: '6,480',
+      steps: ['Reading 22 files', 'Counting tokens', 'Packing it into one file'],
+      unsupportedList: [],
+    },
+  };
+
+  tree = [
+    { name: 'src', depth: 0, size: '128 KB', dir: true },
+    { name: 'App.tsx', depth: 1, size: '4.2 KB' },
+    { name: 'main.tsx', depth: 1, size: '1.1 KB' },
+    { name: 'components', depth: 1, size: '42 KB', dir: true },
+    { name: 'Button.tsx', depth: 2, size: '2.0 KB' },
+    { name: 'Header.tsx', depth: 2, size: '3.4 KB' },
+    { name: 'hooks', depth: 1, size: '8 KB', dir: true },
+    { name: 'useTheme.ts', depth: 2, size: '1.3 KB' },
+    { name: 'package.json', depth: 0, size: '1.8 KB' },
+    { name: 'README.md', depth: 0, size: '2.4 KB' },
+    { name: 'node_modules', depth: 0, size: 'skipped', skipped: true },
+    { name: 'pnpm-lock.yaml', depth: 0, size: 'skipped', skipped: true },
+  ];
+
+  clearTimers() { (this.timers || []).forEach(clearTimeout); this.timers = []; }
+  componentWillUnmount() { this.clearTimers(); }
+
+  start = (key) => {
+    const sc = this.scenarios[key];
+    if (!sc) return;
+    this.clearTimers();
+    this.timers = [];
+    this.setState({ view: 'processing', scenarioKey: key, stepIndex: 0, isDragging: false, settingsOpen: false, copied: false, splitMode: 'single', excluded: {} });
+    const steps = sc.steps;
+    const per = 560;
+    let i = 0;
+    const tick = () => {
+      i++;
+      if (i < steps.length) {
+        this.setState({ stepIndex: i });
+        this.timers.push(setTimeout(tick, per));
+      } else {
+        this.timers.push(setTimeout(() => this.setState({ view: 'result', stepIndex: steps.length - 1 }), 460));
+      }
+    };
+    this.timers.push(setTimeout(tick, per));
+  };
+
+  startProject = (e) => { if (e) { e.preventDefault(); e.stopPropagation(); } this.start('project'); };
+  stop = (e) => { if (e) e.stopPropagation(); };
+  onDrop = (e) => { e.preventDefault(); e.stopPropagation(); this.setState({ isDragging: false }); this.start('project'); };
+  onDragOver = (e) => { e.preventDefault(); };
+  onDragEnter = (e) => { e.preventDefault(); this.setState({ isDragging: true }); };
+  onDragLeave = (e) => { e.preventDefault(); this.setState({ isDragging: false }); };
+
+  startOver = () => { this.clearTimers(); this.setState({ view: 'landing', scenarioKey: null, settingsOpen: false, copied: false }); };
+  scrollTop = (e) => { if (e && e.preventDefault) e.preventDefault(); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (err) { window.scrollTo(0, 0); } };
+  openSettings = () => this.setState({ settingsOpen: true });
+  closeSettings = () => this.setState({ settingsOpen: false });
+
+  setFormat = (f) => this.setState({ format: f });
+  setSplit = (m) => this.setState({ splitMode: m });
+  setPreset = (p) => this.setState({ activePreset: this.state.activePreset === p ? null : p });
+  onInclude = (e) => this.setState({ includeText: e.target.value });
+  onIgnore = (e) => this.setState({ ignoreText: e.target.value });
+  onModel = () => {};
+
+  openImport = () => this.setState({ importOpen: true, urlWarning: '' });
+  closeImport = () => this.setState({ importOpen: false, urlWarning: '' });
+  setImportTab = (k) => this.setState({ importTab: k, urlWarning: '' });
+  setUrl = (v) => this.setState({ urlText: v, urlWarning: '' });
+  onUrlChange = (e) => this.setState({ urlText: e.target.value, urlWarning: '' });
+  onUrlKey = (e) => { if (e.key === 'Enter') { e.preventDefault(); this.fetchUrl(); } };
+
+  hostName(host) {
+    if (!host) return '';
+    if (host.includes('gist')) return 'Gist';
+    if (host.includes('gitlab')) return 'GitLab';
+    if (host.includes('bitbucket')) return 'Bitbucket';
+    if (host.includes('github')) return 'GitHub';
+    return host;
+  }
+
+  classifyUrl(raw) {
+    const t = (raw || '').trim();
+    if (!t) return { state: 'empty' };
+    if (/^[\w.-]+\/[\w.-]+$/.test(t)) return { state: 'repo', host: 'github.com', ownerRepo: t };
+    let u;
+    try { u = new URL(t.includes('://') ? t : 'https://' + t); }
+    catch (e) { return { state: 'bad', msg: "That doesn't look like a link yet. Paste a full URL, like https://github.com/owner/repo." }; }
+    const host = u.hostname.replace(/^www\./, '');
+    if (!host.includes('.')) return { state: 'bad', msg: "Only public links can be fetched — local or intranet addresses aren't reachable from the browser." };
+    const parts = u.pathname.split('/').filter(Boolean);
+    const last = parts[parts.length - 1] || '';
+    const ext = last.includes('.') ? last.split('.').pop().toLowerCase() : '';
+    const binary = { png: 'image', jpg: 'image', jpeg: 'image', gif: 'image', webp: 'image', bmp: 'image', ico: 'image', svg: 'image', zip: 'archive', tar: 'archive', gz: 'archive', rar: 'archive', '7z': 'archive', exe: 'binary', dmg: 'binary', bin: 'binary', woff: 'font', woff2: 'font', ttf: 'font', otf: 'font', mp4: 'video', mov: 'video', avi: 'video', mp3: 'audio', wav: 'audio', pdf: 'PDF', psd: 'Photoshop', ai: 'Illustrator' };
+    if (binary[ext]) {
+      const ty = binary[ext];
+      const extra = ext === 'pdf' ? ' (the CLI can pull text out of PDFs).' : '.';
+      return { state: 'binary', msg: 'That link points to a ' + ty + " file, which can't be read as text" + extra + ' Try a repo, a Gist, or a page with text.' };
+    }
+    if (host === 'gist.github.com') { const id = (parts[parts.length - 1] || 'gist'); return { state: 'gist', source: 'gist · ' + id.slice(0, 12) }; }
+    if (host === 'github.com' || host.endsWith('.github.com')) {
+      if (parts.length >= 2) return { state: 'repo', host: 'github.com', ownerRepo: parts[0] + '/' + parts[1] };
+      return { state: 'bad', msg: 'Use a specific repo URL, like github.com/owner/repo — not just the GitHub home.' };
+    }
+    if (host === 'gitlab.com' || host === 'bitbucket.org') {
+      if (parts.length >= 2) return { state: 'repo', host, ownerRepo: parts[0] + '/' + parts[1] };
+      return { state: 'bad', msg: 'Use a specific repo URL on ' + this.hostName(host) + ', like ' + host + '/owner/repo.' };
+    }
+    return { state: 'page', host, source: host + (parts.length ? '/' + parts.join('/') : '') };
+  }
+
+  buildUrlScenario(c) {
+    if (c.state === 'repo') {
+      const H = this.hostName(c.host);
+      return {
+        source: c.ownerRepo, sourceKind: 'repo',
+        totalFiles: 47, includedCount: 41, skippedNoise: 6, tokens: '12,340',
+        note: 'Fetched straight from ' + H + ' — nothing stored.',
+        steps: ['Fetching ' + c.ownerRepo + ' from ' + H, 'Reading 41 files', 'Skipping noise — lockfiles, build output', 'Counting tokens', 'Packing it into one file'],
+        unsupportedList: [],
+      };
+    }
+    if (c.state === 'gist') {
+      return {
+        source: c.source, sourceKind: 'gist',
+        totalFiles: 3, includedCount: 3, skippedNoise: 0, tokens: '1,180',
+        note: 'Grabbed every file in the gist.',
+        steps: ['Fetching the gist', 'Reading 3 files', 'Counting tokens', 'Packing it up'],
+        unsupportedList: [],
+      };
+    }
+    return {
+      source: c.source, sourceKind: 'page',
+      totalFiles: 1, includedCount: 1, skippedNoise: 0, tokens: '2,640',
+      note: 'Pulled the readable text off the page — nav, ads and scripts stripped.',
+      steps: ['Fetching the page', 'Extracting readable text', 'Counting tokens', 'Packing it up'],
+      unsupportedList: [],
+    };
+  }
+
+  fetchUrl = () => {
+    const c = this.classifyUrl(this.state.urlText);
+    if (c.state === 'repo' || c.state === 'gist' || c.state === 'page') {
+      this.scenarios._url = this.buildUrlScenario(c);
+      this.setState({ importOpen: false, urlWarning: '' });
+      this.start('_url');
+    } else {
+      const msg = c.state === 'empty' ? 'Paste a link first — a repo, a Gist, or a page URL.' : c.msg;
+      this.setState({ urlWarning: msg });
+    }
+  };
+
+  onCopy = () => {
+    this.setState({ copied: true });
+    this.timers = this.timers || [];
+    this.timers.push(setTimeout(() => this.setState({ copied: false }), 1600));
+  };
+  onDownload = () => {};
+
+  toggleTree = (name) => {
+    const ex = { ...this.state.excluded };
+    ex[name] = !ex[name];
+    this.setState({ excluded: ex });
+  };
+
+  preview(format) {
+    if (format === 'md') {
+      return '# my-app\n\n## src/App.tsx\n\n```tsx\nimport { useState } from "react";\n\nexport default function App() {\n  const [n, setN] = useState(0);\n  return <button onClick={() => setN(n + 1)}>{n}</button>;\n}\n```\n\n## package.json\n\n```json\n{ "name": "my-app", "version": "1.0.0" }\n```';
+    }
+    if (format === 'txt') {
+      return '===== src/App.tsx =====\nimport { useState } from "react";\n\nexport default function App() {\n  const [n, setN] = useState(0);\n  return <button onClick={() => setN(n + 1)}>{n}</button>;\n}\n\n===== package.json =====\n{ "name": "my-app", "version": "1.0.0" }';
+    }
+    return '<codebase project="my-app">\n  <directory_structure>\n    src/\n    \u2514\u2500 App.tsx\n    package.json\n  </directory_structure>\n  <file path="src/App.tsx" lang="tsx">\n    import { useState } from "react";\n    export default function App() {\n      const [n, setN] = useState(0);\n      return <button onClick={() => setN(n + 1)}>{n}</button>;\n    }\n  </file>\n</codebase>';
+  }
+
+  renderVals() {
+    const s = this.state;
+    const sc = this.scenarios[s.scenarioKey] || {};
+    const steps = sc.steps || [];
+    const isResult = s.view === 'result';
+    const isEmptyResult = isResult && (sc.includedCount || 0) === 0;
+    const isOkResult = isResult && !isEmptyResult;
+
+    const stepItems = steps.map((label, i) => {
+      const done = i < s.stepIndex;
+      const active = i === s.stepIndex;
+      return {
+        label,
+        mark: done ? '\u2713' : '',
+        dot: done ? '#7acd8e' : (active ? '#7acd8e' : '#3a3329'),
+        fill: done ? '#7acd8e' : 'transparent',
+        color: done || active ? '#e7e0d2' : '#6f675a',
+      };
+    });
+
+    const fmtDef = [['xml', 'XML'], ['md', 'Markdown'], ['txt', 'Plain']];
+    const formats = fmtDef.map(([k, label]) => ({
+      label, onClick: () => this.setFormat(k),
+      bg: s.format === k ? '#7acd8e' : 'transparent',
+      fg: s.format === k ? '#11261a' : '#9a9082',
+    }));
+
+    const splitOpts = [['single', 'Keep as one file'], ['multi', 'Split into parts']].map(([k, label]) => ({
+      label, onClick: () => this.setSplit(k),
+      bg: s.splitMode === k ? '#79a6d8' : 'transparent',
+      fg: s.splitMode === k ? '#0d1722' : '#aeb6c2',
+    }));
+
+    const presetDef = ['React / Next', 'Vue', 'Python', 'Go', 'Rust', 'Source only', 'Docs only'];
+    const presets = presetDef.map((label) => {
+      const on = s.activePreset === label;
+      return {
+        label, onClick: () => this.setPreset(label),
+        bg: on ? 'rgba(122,205,142,.14)' : '#1c1812',
+        fg: on ? '#9fdcb0' : '#d8d0c0',
+        border: on ? 'rgba(122,205,142,.4)' : '#2c261d',
+      };
+    });
+
+    const tree = this.tree.map((t) => {
+      const out = !!s.excluded[t.name] || t.skipped;
+      return {
+        name: t.name, size: t.size,
+        pad: (8 + t.depth * 18) + 'px',
+        opacity: t.skipped ? '.45' : '1',
+        check: out ? '' : '\u2713',
+        boxBg: out ? 'transparent' : '#7acd8e',
+        boxBorder: out ? '#4a4337' : '#7acd8e',
+        nameColor: t.dir ? '#e7e0d2' : '#b8b0a0',
+        onToggle: t.skipped ? (() => {}) : (() => this.toggleTree(t.name)),
+      };
+    });
+
+    const samples = [
+      { label: 'A code folder', tag: 'code', onClick: () => this.start('project') },
+      { label: 'A .zip', tag: 'zip', onClick: () => this.start('zip') },
+      { label: 'Docs & notes', tag: '.md', onClick: () => this.start('docs') },
+      { label: 'A mixed folder', tag: 'mixed', onClick: () => this.start('mixed') },
+      { label: 'A huge repo', tag: '325', onClick: () => this.start('huge') },
+    ];
+
+    const tabDef = [['github', 'GitHub'], ['gitlab', 'GitLab'], ['bitbucket', 'Bitbucket'], ['gist', 'Gist'], ['url', 'URL']];
+    const importTabs = tabDef.map(([k, label]) => ({
+      label, onClick: () => this.setImportTab(k),
+      bg: s.importTab === k ? '#221d16' : 'transparent',
+      fg: s.importTab === k ? '#f1ebe0' : '#8d8472',
+      border: s.importTab === k ? '#3a3329' : 'transparent',
+    }));
+    const phMap = { github: 'https://github.com/owner/repo', gitlab: 'https://gitlab.com/owner/repo', bitbucket: 'https://bitbucket.org/owner/repo', gist: 'https://gist.github.com/owner/id', url: 'https://example.com/docs/page' };
+    const exMap = {
+      github: ['facebook/react', 'vercel/next.js'],
+      gitlab: ['https://gitlab.com/gitlab-org/gitlab-runner'],
+      bitbucket: ['https://bitbucket.org/atlassian/asap-python'],
+      gist: ['https://gist.github.com/octocat/6cad326836d38'],
+      url: ['https://react.dev/learn', 'example.com/blog/post'],
+    };
+    const examples = (exMap[s.importTab] || []).map((v) => ({ label: v, onClick: () => this.setUrl(v) }));
+    const c = this.classifyUrl(s.urlText);
+    let liveText = '', liveColor = '#6f675a';
+    if ((s.urlText || '').trim()) {
+      if (c.state === 'repo') { liveText = '\u2713 ' + this.hostName(c.host) + ' repo — press Fetch'; liveColor = '#9fdcb0'; }
+      else if (c.state === 'gist') { liveText = '\u2713 Gist — press Fetch'; liveColor = '#9fdcb0'; }
+      else if (c.state === 'page') { liveText = '\u2713 Web page — readable text only'; liveColor = '#9fdcb0'; }
+      else if (c.state === 'binary') { liveText = 'This link points to a non-text file'; liveColor = '#e3b96a'; }
+      else { liveText = 'Not a public link yet'; liveColor = '#e3b96a'; }
+    }
+    const fetchOk = c.state === 'repo' || c.state === 'gist' || c.state === 'page';
+
+    return {
+      isLanding: s.view === 'landing',
+      isProcessing: s.view === 'processing',
+      isResult,
+      isEmptyResult,
+      isOkResult,
+      settingsOpen: s.settingsOpen,
+
+      source: sc.source,
+      includedCount: sc.includedCount,
+      totalFiles: sc.totalFiles,
+      skippedNoise: sc.skippedNoise,
+      tokens: sc.tokens,
+      unsupportedList: sc.unsupportedList || [],
+      unsupportedCount: (sc.unsupportedList || []).length,
+
+      showHeadsUp: isOkResult && (sc.unsupportedList || []).length > 0,
+      showNote: isOkResult && !!sc.note,
+      noteText: sc.note,
+      showBigBundle: isOkResult && !!sc.bigBundle,
+
+      curStep: steps[Math.min(s.stepIndex, steps.length - 1)] || '',
+      progressPct: steps.length ? Math.round(((s.stepIndex + 1) / steps.length) * 100) : 0,
+      stepItems,
+
+      dropBg: s.isDragging ? 'rgba(122,205,142,.08)' : '#1a1610',
+      dropBorder: s.isDragging ? '#7acd8e' : '#3a3329',
+
+      formats, splitOpts, presets, tree, samples,
+      includeText: s.includeText, ignoreText: s.ignoreText,
+      copyLabel: s.copied ? '\u2713 Copied to clipboard' : 'Copy',
+      previewText: this.preview(s.format),
+      cost: '$' + (Math.max(0.001, (parseFloat((sc.tokens || '0').replace(/,/g, '')) || 0) / 1e6 * 3)).toFixed(3),
+
+      startOver: this.startOver,
+      scrollTop: this.scrollTop,
+      openSettings: this.openSettings,
+      closeSettings: this.closeSettings,
+      startProject: this.startProject,
+      stop: this.stop,
+      onDrop: this.onDrop, onDragOver: this.onDragOver, onDragEnter: this.onDragEnter, onDragLeave: this.onDragLeave,
+      onCopy: this.onCopy, onDownload: this.onDownload,
+      onInclude: this.onInclude, onIgnore: this.onIgnore, onModel: this.onModel,
+
+      importOpen: s.importOpen,
+      importClosed: !s.importOpen,
+      importTabs, examples,
+      urlText: s.urlText,
+      urlPlaceholder: phMap[s.importTab],
+      urlWarning: s.urlWarning,
+      liveText, liveColor,
+      fetchBg: fetchOk ? '#7acd8e' : '#2c261d',
+      fetchFg: fetchOk ? '#11261a' : '#8d8472',
+      openImport: this.openImport, closeImport: this.closeImport,
+      onUrlChange: this.onUrlChange, onUrlKey: this.onUrlKey, fetchUrl: this.fetchUrl,
+    };
+  }
+}
+</script>
+</body>
+</html>

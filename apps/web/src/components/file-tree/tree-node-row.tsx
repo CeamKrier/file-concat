@@ -2,7 +2,6 @@ import { ChevronDown, ChevronRight, File, Folder, FolderOpen, Check, X, Minus } 
 
 import { formatSize } from "@fileconcat/core";
 import { cn } from "~/lib/utils";
-import { getSizeSeverity } from "~/lib/file-size";
 
 import { calculateInclusionState, type InclusionState, type TreeNode } from "./tree-data";
 
@@ -17,10 +16,12 @@ export interface TreeNodeRowProps {
   onOpenFile?: (path: string) => void;
 }
 
+// Warm-dark toggle affordance: green check = in, muted x = left out, amber
+// minus = partially in. Matches the drawer's go / info / dimmed semantics.
 const ICON_BY_STATE: Record<InclusionState, JSX.Element> = {
-  included: <Check className="h-4 w-4 text-green-600" />,
-  excluded: <X className="h-4 w-4 text-red-600" />,
-  partial: <Minus className="h-4 w-4 text-yellow-600" />,
+  included: <Check className="text-primary h-4 w-4" />,
+  excluded: <X className="text-ink-faint h-4 w-4" />,
+  partial: <Minus className="text-info h-4 w-4" />,
 };
 
 export function TreeNodeRow(props: TreeNodeRowProps): JSX.Element {
@@ -38,6 +39,7 @@ export function TreeNodeRow(props: TreeNodeRowProps): JSX.Element {
   const isExpanded = expandedPaths.has(node.path);
   const hasChildren = !!node.children && node.children.length > 0;
   const inclusionState = calculateInclusionState(node);
+  const dimmed = inclusionState === "excluded";
 
   const handleInclusionToggle = (): void => {
     if (node.type === "file" && node.status && typeof node.status.index === "number") {
@@ -50,7 +52,7 @@ export function TreeNodeRow(props: TreeNodeRowProps): JSX.Element {
   return (
     <div>
       <div
-        className="hover:bg-muted/50 flex min-h-[28px] cursor-pointer items-center gap-2 rounded-sm px-2 py-1"
+        className="flex min-h-[28px] cursor-pointer items-center gap-2 rounded-sm px-2 py-1 transition-colors hover:bg-[oklch(var(--surface-inset))]"
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >
         <div className="flex h-4 w-4 items-center justify-center">
@@ -58,7 +60,7 @@ export function TreeNodeRow(props: TreeNodeRowProps): JSX.Element {
             <button
               type="button"
               onClick={() => onToggleExpanded(node.path)}
-              className="hover:bg-muted rounded p-0.5"
+              className="text-ink-muted hover:text-ink rounded p-0.5 hover:bg-[oklch(var(--surface-inset))]"
               aria-label={isExpanded ? "Collapse folder" : "Expand folder"}
             >
               {isExpanded ? (
@@ -73,12 +75,12 @@ export function TreeNodeRow(props: TreeNodeRowProps): JSX.Element {
         <div className="flex h-4 w-4 items-center justify-center">
           {node.type === "directory" ? (
             isExpanded ? (
-              <FolderOpen className="h-4 w-4 text-blue-500" />
+              <FolderOpen className="text-ink-muted h-4 w-4" />
             ) : (
-              <Folder className="h-4 w-4 text-blue-500" />
+              <Folder className="text-ink-muted h-4 w-4" />
             )
           ) : (
-            <File className="h-4 w-4 text-gray-500" />
+            <File className="text-ink-faint h-4 w-4" />
           )}
         </div>
 
@@ -86,7 +88,7 @@ export function TreeNodeRow(props: TreeNodeRowProps): JSX.Element {
           type="button"
           onClick={handleInclusionToggle}
           disabled={isProcessing}
-          className="hover:bg-muted rounded p-0.5 disabled:opacity-50"
+          className="rounded p-0.5 hover:bg-[oklch(var(--surface-inset))] disabled:opacity-50"
           aria-label={`Toggle inclusion: ${inclusionState}`}
         >
           {ICON_BY_STATE[inclusionState]}
@@ -96,8 +98,11 @@ export function TreeNodeRow(props: TreeNodeRowProps): JSX.Element {
           className={cn(
             "flex-1 truncate text-sm",
             node.type === "file"
-              ? "text-foreground cursor-pointer font-mono hover:underline"
-              : "font-medium",
+              ? cn(
+                  "cursor-pointer font-mono hover:underline",
+                  dimmed ? "text-ink-faint" : "text-ink-secondary",
+                )
+              : cn("font-medium", dimmed ? "text-ink-muted" : "text-ink"),
           )}
           title={node.path}
           role={node.type === "file" ? "button" : undefined}
@@ -117,18 +122,14 @@ export function TreeNodeRow(props: TreeNodeRowProps): JSX.Element {
         </span>
 
         {node.type === "file" && node.status && (
-          <div className="flex items-center gap-3 text-xs">
-            <span className={getSizeSeverity(node.status.size)}>
-              {formatSize(node.status.size)}
-            </span>
-          </div>
+          <span className="text-ink-faint shrink-0 font-mono text-[11px] tabular-nums">
+            {formatSize(node.status.size)}
+          </span>
         )}
         {node.type === "directory" && node.totalSize !== undefined && (
-          <div className="flex items-center gap-3 text-xs">
-            <span className={getSizeSeverity(node.totalSize)}>
-              [ {formatSize(node.totalSize)} ]
-            </span>
-          </div>
+          <span className="text-ink-faint shrink-0 font-mono text-[11px] tabular-nums">
+            {formatSize(node.totalSize)}
+          </span>
         )}
       </div>
 

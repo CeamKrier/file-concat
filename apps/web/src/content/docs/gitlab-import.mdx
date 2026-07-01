@@ -1,7 +1,7 @@
 # GitLab import
 
-Paste a public GitLab repository URL into the Source input and the
-workbench fetches the project tree.
+Paste a public GitLab repository URL into the import panel and press
+**Fetch**, and FileConcat fetches the project tree.
 
 ## Supported URL shapes
 
@@ -29,7 +29,7 @@ imported.
 
 The GitLab REST API has its own per-IP rate limit (smaller than
 GitHub's for most endpoints). When a request is denied, the
-workbench surfaces a message produced by `classifyResponseError`;
+import panel surfaces a message produced by `classifyResponseError`;
 status 401, 403, and 429 each carry distinct wording.
 
 Public repositories work without authentication. Private repositories
@@ -49,8 +49,8 @@ https://gitlab.com/owner/snippets/12345
 https://gitlab.com/owner/-/snippets/12345
 ```
 
-Paste a Snippet URL into the same Source input and the workbench
-routes it automatically.
+Paste a Snippet URL into the import panel and FileConcat routes it
+automatically.
 
 ## See also
 

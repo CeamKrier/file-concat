@@ -53,6 +53,9 @@ describe("useConfig localStorage migration", () => {
     expect(result.current.config.version).toBe(CONFIG_VERSION);
     expect(result.current.config.defaultOutputFormat).toBe("auto");
     expect(result.current.config.chunkSizeKB).toBe(32);
+    // The retired source preferences are dropped on migration.
+    expect(result.current.config).not.toHaveProperty("autoSwitchSource");
+    expect(result.current.config).not.toHaveProperty("defaultSourceType");
 
     const persisted = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
     expect(persisted.defaultOutputFormat).toBe("auto");

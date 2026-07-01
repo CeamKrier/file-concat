@@ -4,7 +4,10 @@ import { generateFileTree } from "../src/path-utils/file-tree";
 
 const files = [
   { path: "src/index.ts", content: "export const x = 1;\n" },
-  { path: "src/util.ts", content: "export function add(a: number, b: number) {\n  return a + b;\n}\n" },
+  {
+    path: "src/util.ts",
+    content: "export function add(a: number, b: number) {\n  return a + b;\n}\n",
+  },
 ];
 const tree = generateFileTree(files.map((f) => f.path));
 
@@ -140,5 +143,60 @@ describe("assembleOutput markdown", () => {
       part: { index: 1, total: 3 },
     });
     expect(output.startsWith("# Codebase: demo (Part 1 of 3)")).toBe(true);
+  });
+});
+
+describe("assembleOutput plain", () => {
+  it("delimits each file with a ruled path header and no markup", () => {
+    const output = assembleOutput({
+      projectName: "demo",
+      files,
+      tree,
+      source: "local",
+      style: "plain",
+    });
+
+    expect(output.startsWith("Codebase: demo")).toBe(true);
+    expect(output).toContain("Source: local");
+    expect(output).toContain("Files: 2");
+    expect(output).toContain("Directory structure:");
+    expect(output).toContain("FILE: src/index.ts");
+    expect(output).toContain("=".repeat(72));
+    expect(output).toContain("export const x = 1;");
+  });
+
+  it("emits neither XML tags nor markdown fences", () => {
+    const output = assembleOutput({ projectName: "demo", files, tree, style: "plain" });
+    expect(output).not.toContain("```");
+    expect(output).not.toContain("<file ");
+    expect(output).not.toContain("<codebase ");
+  });
+
+  it("keeps content verbatim, including tag-like and angle-bracket sequences", () => {
+    const output = assembleOutput({
+      projectName: "demo",
+      files: [{ path: "g.ts", content: "const f = (x: Record<string, number>) => x;\n" }],
+      tree: "g.ts\n",
+      style: "plain",
+    });
+    expect(output).toContain("const f = (x: Record<string, number>) => x;");
+    expect(output).not.toContain("&lt;");
+  });
+
+  it("annotates the header with part metadata when part is set", () => {
+    const output = assembleOutput({
+      projectName: "demo",
+      files,
+      tree,
+      style: "plain",
+      part: { index: 1, total: 3 },
+    });
+    expect(output.startsWith("Codebase: demo (Part 1 of 3)")).toBe(true);
+  });
+
+  it("renders an empty files list without crashing", () => {
+    const output = assembleOutput({ projectName: "empty", files: [], tree: "", style: "plain" });
+    expect(output).toContain("Codebase: empty");
+    expect(output).toContain("Files: 0");
   });
 });
