@@ -1,5 +1,3 @@
-# FileConcat
-
 ![FileConcat Banner Image](https://fileconcat.com/github-banner.png)
 
 Privacy-first tool that turns a folder of files into one LLM-ready bundle. The browser at [fileconcat.com](https://fileconcat.com) and the [`@fileconcat/cli`](https://www.npmjs.com/package/@fileconcat/cli) npm CLI run the same engine, and nothing leaves your machine on either surface.
