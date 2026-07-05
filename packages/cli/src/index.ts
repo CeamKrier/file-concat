@@ -5,7 +5,7 @@ import { concat } from "./commands/concat.js";
 program
   .name("file-concat")
   .description("Concatenate files for LLM context. Privacy-first and pipe-friendly.")
-  .version("0.1.0")
+  .version("0.2.0")
   .addHelpText(
     "after",
     `
