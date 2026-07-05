@@ -24,6 +24,7 @@ type MockResponse = {
   status: number;
   statusText?: string;
   headers: Headers;
+  url?: string;
   json: () => Promise<unknown>;
   text: () => Promise<string>;
   body?: {
@@ -42,6 +43,7 @@ const makeResponse = (options: {
   text?: string;
   headers?: Record<string, string>;
   body?: MockResponse["body"];
+  url?: string;
 }): MockResponse => {
   return {
     ok: options.ok ?? true,
@@ -51,6 +53,7 @@ const makeResponse = (options: {
     json: async () => options.json ?? {},
     text: async () => options.text ?? "",
     body: options.body,
+    url: options.url ?? "",
   };
 };
 
@@ -425,35 +428,31 @@ describe("adapter fetch flows", () => {
   });
 
   it("fetches files from Bitbucket repositories", async () => {
+    const COMMIT = "abc123def4567890";
+    const base = "https://api.bitbucket.org/2.0/repositories/workspace/repo/src";
     mockFetch.mockImplementation((url: RequestInfo) => {
-      if (url === "https://api.bitbucket.org/2.0/repositories/workspace/repo") {
-        return Promise.resolve(makeResponse({ json: { mainbranch: { name: "main" } } }));
-      }
-      if (
-        url === "https://api.bitbucket.org/2.0/repositories/workspace/repo/src/main/?pagelen=100"
-      ) {
+      // Ref resolution: the bare /src endpoint 302-redirects to /src/{commit}/.
+      if (url === base) {
         return Promise.resolve(
           makeResponse({
-            json: {
-              values: [{ type: "commit_directory", path: "src" }],
-            },
+            url: `${base}/${COMMIT}/`,
+            json: { values: [{ type: "commit_directory", path: "src" }] },
           }),
         );
       }
-      if (
-        url === "https://api.bitbucket.org/2.0/repositories/workspace/repo/src/main/src?pagelen=100"
-      ) {
+      if (url === `${base}/${COMMIT}/?pagelen=100`) {
+        return Promise.resolve(
+          makeResponse({ json: { values: [{ type: "commit_directory", path: "src" }] } }),
+        );
+      }
+      if (url === `${base}/${COMMIT}/src?pagelen=100`) {
         return Promise.resolve(
           makeResponse({
-            json: {
-              values: [{ type: "commit_file", path: "src/index.ts", size: 10 }],
-            },
+            json: { values: [{ type: "commit_file", path: "src/index.ts", size: 10 }] },
           }),
         );
       }
-      if (
-        url === "https://api.bitbucket.org/2.0/repositories/workspace/repo/src/main/src/index.ts"
-      ) {
+      if (url === `${base}/${COMMIT}/src/index.ts`) {
         return Promise.resolve(makeResponse({ text: "let x = 1" }));
       }
 
@@ -465,6 +464,47 @@ describe("adapter fetch flows", () => {
     expect(result.error).toBeUndefined();
     expect(result.files).toHaveLength(1);
     expect(result.files[0].path).toBe("src/index.ts");
+  });
+
+  it("resolves a Bitbucket default branch that isn't 'main' (via the /src redirect)", async () => {
+    // Real-world repro: fargo3d/public's default branch is "release/public".
+    // The bare /src endpoint 302-redirects to /src/{commit}/, and the resolved
+    // commit is what every subsequent request must use — a slashed branch name
+    // in /src/{ref}/{path} would 404.
+    const COMMIT = "2f230c6334a85fbee3818bdf9ad9b3367c9f778b";
+    mockFetch.mockImplementation((url: RequestInfo) => {
+      if (url === "https://api.bitbucket.org/2.0/repositories/fargo3d/public/src") {
+        return Promise.resolve(
+          makeResponse({
+            url: `https://api.bitbucket.org/2.0/repositories/fargo3d/public/src/${COMMIT}/`,
+            json: { values: [{ type: "commit_file", path: "setup.py", size: 12 }] },
+          }),
+        );
+      }
+      if (
+        url ===
+        `https://api.bitbucket.org/2.0/repositories/fargo3d/public/src/${COMMIT}/?pagelen=100`
+      ) {
+        return Promise.resolve(
+          makeResponse({
+            json: { values: [{ type: "commit_file", path: "setup.py", size: 12 }] },
+          }),
+        );
+      }
+      if (
+        url === `https://api.bitbucket.org/2.0/repositories/fargo3d/public/src/${COMMIT}/setup.py`
+      ) {
+        return Promise.resolve(makeResponse({ text: "import fargo3d" }));
+      }
+      return Promise.resolve(makeResponse({ ok: false, status: 404 }));
+    });
+
+    const result = await bitbucketAdapter.fetchFiles("https://bitbucket.org/fargo3d/public");
+
+    expect(result.error).toBeUndefined();
+    expect(result.files).toHaveLength(1);
+    expect(result.files[0].path).toBe("setup.py");
+    expect(result.files[0].content).toBe("import fargo3d");
   });
 
   it("fetches files from gists", async () => {
@@ -757,12 +797,12 @@ describe("bitbucket error paths", () => {
     expect(result.error).toMatch(/degraded/i);
   });
 
-  it("preserves the endpoint-specific 404 wording", async () => {
+  it("surfaces a 404 during ref resolution as a not-found repository", async () => {
     mockFetch.mockResolvedValueOnce(makeResponse({ ok: false, status: 404 }));
 
     const result = await bitbucketAdapter.fetchFiles("https://bitbucket.org/workspace/repo");
 
-    expect(result.error).toBe("Repository, branch, or path not found");
+    expect(result.error).toBe("Repository 'workspace/repo' not found");
   });
 });
 

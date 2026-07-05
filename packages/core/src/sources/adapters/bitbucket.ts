@@ -13,10 +13,6 @@ interface BitbucketDirectoryResponse {
   next?: string;
 }
 
-interface BitbucketRepoResponse {
-  mainbranch?: { name?: string };
-}
-
 export function getBitbucketDisplayPath(itemPath: string, subPath?: string): string {
   if (subPath && itemPath.startsWith(subPath + "/")) {
     return itemPath.substring(subPath.length + 1);
@@ -117,6 +113,34 @@ async function fetchDirectoryContents(
 }
 
 /**
+ * Resolve a Bitbucket ref (an explicit branch, or the repo's default branch when
+ * none is given) to a commit hash by following the /src redirect and reading the
+ * resolved URL. Passing a branch name straight into /src/{ref}/{path} has two
+ * failure modes this avoids: a default branch that isn't "main", and branch
+ * names that contain a slash (e.g. "release/public"), which the path-based
+ * endpoint mis-routes into a 404.
+ */
+async function resolveBitbucketRef(
+  workspace: string,
+  repo: string,
+  branch: string | undefined,
+  signal?: AbortSignal,
+): Promise<string> {
+  const base = `https://api.bitbucket.org/2.0/repositories/${workspace}/${repo}/src`;
+  const url = branch ? `${base}/${branch}/` : base;
+  const response = await fetchWithRateLimitRetry(url, { signal });
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error(`Repository '${workspace}/${repo}' not found`);
+    }
+    throw classifyResponseError(response, `Bitbucket repository ${workspace}/${repo}`);
+  }
+  // The URL after the redirect carries the commit: .../src/{40-hex-commit}/...
+  const match = response.url?.match(/\/src\/([0-9a-f]{7,40})(?:[/?#]|$)/);
+  return match?.[1] ?? branch ?? "HEAD";
+}
+
+/**
  * Fetch files from Bitbucket repository
  */
 async function fetchBitbucketFiles(
@@ -134,26 +158,11 @@ async function fetchBitbucketFiles(
     }
 
     const { owner: workspace, repo, path: subPath } = parsed;
-    let branch = parsed.branch || "main";
 
-    // If no branch specified, get default branch
-    if (!branch) {
-      onStatus?.("Finding the default branch");
-      const repoResponse = await fetch(
-        `https://api.bitbucket.org/2.0/repositories/${workspace}/${repo}`,
-        { signal },
-      );
-
-      if (!repoResponse.ok) {
-        if (repoResponse.status === 404) {
-          throw new Error(`Repository '${workspace}/${repo}' not found`);
-        }
-        throw new Error("Failed to fetch repository information");
-      }
-
-      const repoData = (await repoResponse.json()) as BitbucketRepoResponse;
-      branch = repoData.mainbranch?.name || "main";
-    }
+    // Resolve the ref to a commit before listing (see resolveBitbucketRef): this
+    // is what fixes default branches that aren't "main" and slashed branch names.
+    onStatus?.("Finding the default branch");
+    const branch = await resolveBitbucketRef(workspace, repo, parsed.branch, signal);
 
     // Fetch file tree
     onStatus?.("Listing files");
