@@ -42,14 +42,19 @@ reader does not "improve" the ignore layer into a language detector.
 
 ## Surface-specific implementation notes
 
-- **CLI** — already walks with `globby` and an explicit `ignore` list; it just
-  needs to honor `.gitignore` too (globby's gitignore support, or the `ignore`
-  package). Cheap, no sandbox constraints.
-- **Web** — two gotchas. `.gitignore` is a hidden file (dropped by hidden-file
-  filtering) and `.git/` is pruned at walk time, so gitignore files must be read
-  from the drop *before* hidden filtering. And correct semantics (per-subtree
-  nesting, anchoring, `!` negation) need the pure-JS, browser-safe `ignore`
-  package — the repo's match-anywhere `pathMatches` is not gitignore semantics.
+- **CLI** — walks with node-`glob` (not `globby`) plus an explicit `ignore`
+  list. node-`glob` has no built-in `.gitignore` support, so honoring it means
+  reading the project's `.gitignore` and matching through the `ignore` package
+  (a new dependency). No sandbox constraints.
+- **Web** — the `.gitignore` file is still collected into `entries` (hidden-file
+  filtering only drops it from the *bundle*, not from ingestion), and `.git/` is
+  pruned at walk time, so its content is readable from `entries`. The real cost
+  is **hierarchical semantics**: a folder drop prefixes every path with the
+  project directory, and nested `.gitignore` files apply only to their own
+  subtree — so matching must strip the drop root and scope each `.gitignore` to
+  its directory, not run one flat matcher. That correctness surface (per-subtree
+  nesting, anchoring, `!` negation) is why this is a dedicated piece and needs
+  the pure-JS `ignore` package rather than the match-anywhere `pathMatches`.
 
 ## Consequences
 
