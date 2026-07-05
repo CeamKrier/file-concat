@@ -419,6 +419,9 @@ describe("adapter fetch flows", () => {
     expect(statuses.length).toBeGreaterThan(0);
     expect(statuses.some((s) => /listing/i.test(s))).toBe(true);
     expect(statuses.some((s) => /downloading/i.test(s))).toBe(true);
+    // Listing must carry a live count so a slow paginated tree walk shows real
+    // movement, not a static label. The one-blob fixture surfaces "1 found".
+    expect(statuses.some((s) => /\d+\s*found/i.test(s))).toBe(true);
   });
 
   it("fetches files from Bitbucket repositories", async () => {

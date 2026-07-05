@@ -64,6 +64,7 @@ async function fetchDirectoryContents(
   branch: string,
   path: string,
   signal?: AbortSignal,
+  onFilesFound?: (added: number) => void,
 ): Promise<Array<{ path: string; type: string; size?: number }>> {
   const items: Array<{ path: string; type: string; size?: number }> = [];
   let nextUrl: string | null =
@@ -84,6 +85,7 @@ async function fetchDirectoryContents(
 
     const data = (await response.json()) as BitbucketDirectoryResponse;
 
+    let pageFiles = 0;
     for (const item of data.values || []) {
       if (item.type === "commit_file") {
         items.push({
@@ -91,12 +93,22 @@ async function fetchDirectoryContents(
           type: "file",
           size: item.size,
         });
+        pageFiles++;
       } else if (item.type === "commit_directory") {
         // Recursively fetch subdirectory
-        const subItems = await fetchDirectoryContents(workspace, repo, branch, item.path, signal);
+        const subItems = await fetchDirectoryContents(
+          workspace,
+          repo,
+          branch,
+          item.path,
+          signal,
+          onFilesFound,
+        );
         items.push(...subItems);
       }
     }
+    // Tick per page (one network round-trip) so the walk shows live movement.
+    if (pageFiles > 0) onFilesFound?.(pageFiles);
 
     nextUrl = data.next || null;
   }
@@ -146,7 +158,11 @@ async function fetchBitbucketFiles(
     // Fetch file tree
     onStatus?.("Listing files");
     const startPath = subPath || "";
-    const files = await fetchDirectoryContents(workspace, repo, branch, startPath, signal);
+    let listed = 0;
+    const files = await fetchDirectoryContents(workspace, repo, branch, startPath, signal, (added) => {
+      listed += added;
+      onStatus?.(`Listing files… ${listed} found`);
+    });
 
     if (files.length === 0) {
       throw new Error("No files found in repository");

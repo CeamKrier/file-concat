@@ -110,8 +110,10 @@ async function fetchAllTreePages(
   projectId: string,
   branch: string,
   signal?: AbortSignal,
+  onStatus?: (message: string) => void,
 ): Promise<GitLabTreeItem[]> {
   const allItems: GitLabTreeItem[] = [];
+  let fileCount = 0;
   let page = 1;
   const perPage = 100;
 
@@ -132,6 +134,11 @@ async function fetchAllTreePages(
 
     const items = (await response.json()) as GitLabTreeItem[];
     allItems.push(...items);
+
+    // Tick a running file count per page so a slow, deeply-paginated tree walk
+    // shows real movement instead of a frozen "Listing files" label.
+    fileCount += items.filter((item) => item.type === "blob").length;
+    if (fileCount > 0) onStatus?.(`Listing files… ${fileCount} found`);
 
     // Check if there are more pages
     const totalPages = parseInt(response.headers.get("x-total-pages") || "1", 10);
@@ -181,7 +188,7 @@ async function fetchGitLabFiles(url: string, options?: FetchOptions): Promise<Re
 
     // Fetch file tree
     onStatus?.("Listing files");
-    const tree = await fetchAllTreePages(projectId, branch, signal);
+    const tree = await fetchAllTreePages(projectId, branch, signal, onStatus);
 
     // Filter to only blobs (files)
     const files = filterGitLabTreeItems(tree, subPath);
