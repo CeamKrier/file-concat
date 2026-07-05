@@ -9,6 +9,7 @@ import {
   generateProjectName,
   assembleOutput,
   BINARY_EXTENSIONS,
+  classifyBytes,
   type OutputStyle,
 } from "@fileconcat/core";
 import { loadConfig, type FileConcatConfig } from "../config.js";
@@ -165,8 +166,17 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
     }
 
     try {
-      const content = fs.readFileSync(fullPath, "utf-8");
-      processedFiles.push({ path: file, content });
+      // Classify by content, not extension: decodes odd encodings (e.g. UTF-16)
+      // correctly and catches a mislabeled binary the extension list missed.
+      const decoded = classifyBytes(fs.readFileSync(fullPath));
+      if (excludeBinary && decoded.classification === "binary") {
+        skippedBreakdown.binary++;
+        continue;
+      }
+      if (decoded.classification === "ambiguous") {
+        log.warn(`Kept (might be binary): ${file}`);
+      }
+      processedFiles.push({ path: file, content: decoded.text });
       totalSize += stats.size;
     } catch {
       skippedBreakdown.readError++;

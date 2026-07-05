@@ -224,4 +224,18 @@ describe("file-concat CLI", () => {
       expect(result.stderr).toContain("Parse mode: pdf, docx, xlsx, pptx, odt, ods, odp");
     });
   });
+
+  describe("encoding", () => {
+    it("decodes a BOM-less UTF-16LE source file as text, not mojibake", async () => {
+      const dir = makeTempDir("utf16");
+      const source = "public class Foo {\n  int x = 1;\n}\n";
+      fs.writeFileSync(path.join(dir, "Foo.java"), source, "utf16le");
+      const outFile = path.join(makeTempDir("utf16-out"), "out.xml");
+      const result = await runCli([dir, "-o", outFile], { cwd: dir });
+      expect(result.exitCode).toBe(0);
+      const written = fs.readFileSync(outFile, "utf-8");
+      expect(written).toContain("public class Foo");
+      expect(written).toContain("int x = 1");
+    });
+  });
 });
