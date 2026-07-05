@@ -238,6 +238,9 @@ importers:
 
   packages/core:
     dependencies:
+      ignore:
+        specifier: ^7.0.5
+        version: 7.0.5
       minimatch:
         specifier: ^10.1.1
         version: 10.1.1
