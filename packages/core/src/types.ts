@@ -64,6 +64,7 @@ export type LLMContextLimit = {
 
 // Import type for helper function
 import type { FilteredModel } from "./models/types";
+import type { TextClassification } from "./file-processing/text-classification";
 
 // Helper: FilteredModel'den LLMContextLimit olusturma (backward compat)
 export function modelToContextLimit(model: FilteredModel): LLMContextLimit {
@@ -85,6 +86,9 @@ export type OutputFormatPreference = "auto" | OutputFormat;
 export interface FileValidationResult {
   isValid: boolean;
   reason?: string;
+  /** How the content read: text, binary (excluded), or ambiguous (kept, flagged).
+   * Undefined when binary checking is off. */
+  classification?: TextClassification;
 }
 
 export interface GitHubFile {
