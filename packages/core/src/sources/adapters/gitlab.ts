@@ -148,9 +148,11 @@ async function fetchAllTreePages(
  * Fetch files from GitLab repository
  */
 async function fetchGitLabFiles(url: string, options?: FetchOptions): Promise<RepositoryContent> {
-  const { onProgress, signal } = options || {};
+  const { onProgress, onStatus, signal } = options || {};
 
   try {
+    onStatus?.("Connecting to GitLab");
+
     const parsed = parseGitLabUrl(url);
     if (!parsed.isValid || !parsed.owner || !parsed.repo) {
       throw new Error(parsed.error || "Invalid GitLab URL");
@@ -163,6 +165,7 @@ async function fetchGitLabFiles(url: string, options?: FetchOptions): Promise<Re
 
     // If no branch specified, try to get default branch
     if (!parsed.branch) {
+      onStatus?.("Finding the default branch");
       try {
         const projectResponse = await fetch(`https://gitlab.com/api/v4/projects/${projectId}`, {
           signal,
@@ -177,6 +180,7 @@ async function fetchGitLabFiles(url: string, options?: FetchOptions): Promise<Re
     }
 
     // Fetch file tree
+    onStatus?.("Listing files");
     const tree = await fetchAllTreePages(projectId, branch, signal);
 
     // Filter to only blobs (files)
@@ -186,6 +190,7 @@ async function fetchGitLabFiles(url: string, options?: FetchOptions): Promise<Re
       throw new Error(`Path '${subPath}' not found in branch '${branch}'`);
     }
 
+    onStatus?.(`Downloading ${files.length} ${files.length === 1 ? "file" : "files"}`);
     const progress = createProgressReporter({ totalFiles: files.length, onProgress });
 
     const filePromises = files.map(async (item) => {

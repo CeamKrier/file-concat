@@ -111,9 +111,11 @@ async function fetchBitbucketFiles(
   url: string,
   options?: FetchOptions,
 ): Promise<RepositoryContent> {
-  const { onProgress, signal } = options || {};
+  const { onProgress, onStatus, signal } = options || {};
 
   try {
+    onStatus?.("Connecting to Bitbucket");
+
     const parsed = parseBitbucketUrl(url);
     if (!parsed.isValid || !parsed.owner || !parsed.repo) {
       throw new Error(parsed.error || "Invalid Bitbucket URL");
@@ -124,6 +126,7 @@ async function fetchBitbucketFiles(
 
     // If no branch specified, get default branch
     if (!branch) {
+      onStatus?.("Finding the default branch");
       const repoResponse = await fetch(
         `https://api.bitbucket.org/2.0/repositories/${workspace}/${repo}`,
         { signal },
@@ -141,6 +144,7 @@ async function fetchBitbucketFiles(
     }
 
     // Fetch file tree
+    onStatus?.("Listing files");
     const startPath = subPath || "";
     const files = await fetchDirectoryContents(workspace, repo, branch, startPath, signal);
 
@@ -148,6 +152,7 @@ async function fetchBitbucketFiles(
       throw new Error("No files found in repository");
     }
 
+    onStatus?.(`Downloading ${files.length} ${files.length === 1 ? "file" : "files"}`);
     const progress = createProgressReporter({ totalFiles: files.length, onProgress });
 
     const filePromises = files.map(async (item) => {

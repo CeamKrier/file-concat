@@ -129,9 +129,11 @@ export function parseUrlSource(url: string): ParsedSourceUrl {
  * Fetch file from URL
  */
 async function fetchUrlFiles(url: string, options?: FetchOptions): Promise<RepositoryContent> {
-  const { onProgress, signal } = options || {};
+  const { onProgress, onStatus, signal } = options || {};
 
   try {
+    onStatus?.("Fetching page");
+
     const parsed = parseUrlSource(url);
     if (!parsed.isValid) {
       throw new Error(parsed.error || "Invalid URL");

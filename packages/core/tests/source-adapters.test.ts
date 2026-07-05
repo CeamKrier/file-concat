@@ -383,6 +383,44 @@ describe("adapter fetch flows", () => {
     expect(result.files[0].path).toBe("src/index.ts");
   });
 
+  it("reports fetch stages through onStatus so the UI is never silent", async () => {
+    mockFetch.mockImplementation((url: RequestInfo) => {
+      if (url === "https://gitlab.com/api/v4/projects/owner%2Frepo") {
+        return Promise.resolve(makeResponse({ json: { default_branch: "main" } }));
+      }
+      if (
+        url ===
+        "https://gitlab.com/api/v4/projects/owner%2Frepo/repository/tree?ref=main&recursive=true&per_page=100&page=1"
+      ) {
+        return Promise.resolve(
+          makeResponse({
+            json: [{ path: "src/index.ts", type: "blob", name: "index.ts" }],
+            headers: { "x-total-pages": "1" },
+          }),
+        );
+      }
+      if (
+        url ===
+        "https://gitlab.com/api/v4/projects/owner%2Frepo/repository/files/src%2Findex.ts/raw?ref=main"
+      ) {
+        return Promise.resolve(makeResponse({ text: "console.log(1)" }));
+      }
+      return Promise.resolve(makeResponse({ ok: false, status: 404 }));
+    });
+
+    const statuses: string[] = [];
+    await gitlabAdapter.fetchFiles("https://gitlab.com/owner/repo", {
+      onStatus: (message) => statuses.push(message),
+    });
+
+    // The first status must land before any network resolves, and the tree /
+    // download stages must be announced — that silent gap is what makes users
+    // think the tool has frozen and leave.
+    expect(statuses.length).toBeGreaterThan(0);
+    expect(statuses.some((s) => /listing/i.test(s))).toBe(true);
+    expect(statuses.some((s) => /downloading/i.test(s))).toBe(true);
+  });
+
   it("fetches files from Bitbucket repositories", async () => {
     mockFetch.mockImplementation((url: RequestInfo) => {
       if (url === "https://api.bitbucket.org/2.0/repositories/workspace/repo") {
