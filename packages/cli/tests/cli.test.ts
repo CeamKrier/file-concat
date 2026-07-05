@@ -4,6 +4,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execa, type Result } from "execa";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import pkg from "../package.json" with { type: "json" };
 import { FIXTURES_DIR, writePdfFixture } from "./build-fixtures.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -53,7 +54,7 @@ describe("file-concat CLI", () => {
     it("--version prints the version and exits 0", async () => {
       const result = await runCli(["--version"]);
       expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toBe("0.2.0");
+      expect(result.stdout.trim()).toBe(pkg.version);
     });
 
     it("--help prints usage and exits 0", async () => {
