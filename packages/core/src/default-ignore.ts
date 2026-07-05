@@ -19,6 +19,12 @@ export const DEFAULT_IGNORE_PATTERNS = [
   "Gemfile.lock",
   "composer.lock",
   "poetry.lock",
+  "uv.lock",
+  "Podfile.lock",
+  "mix.lock",
+  "flake.lock",
+  "pubspec.lock",
+  "packages.lock.json",
 
   // Build outputs
   "dist",
@@ -80,6 +86,44 @@ export const DEFAULT_IGNORE_PATTERNS = [
   "venv",
   ".venv",
   "*.egg-info",
+  ".eggs",
+  ".mypy_cache",
+  ".pytest_cache",
+  ".ruff_cache",
+  ".tox",
+  ".ipynb_checkpoints",
+
+  // JVM / Android / Gradle
+  ".gradle",
+  ".mvn",
+
+  // Ruby
+  ".bundle",
+
+  // iOS / Swift / Xcode
+  "Pods",
+  "Carthage",
+  "DerivedData",
+  "xcuserdata",
+
+  // Dart / Flutter
+  ".dart_tool",
+
+  // Terraform / IaC
+  ".terraform",
+
+  // Elixir / Erlang / Haskell
+  "_build",
+  ".stack-work",
+  "dist-newstyle",
+
+  // More JS/TS framework output
+  ".svelte-kit",
+  ".astro",
+  ".angular",
+  ".docusaurus",
+  ".pnp.js",
+  ".pnp.cjs",
 
   // Build artifacts
   "tsconfig.tsbuildinfo",
