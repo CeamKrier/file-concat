@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 import { program, type Command } from "commander";
+import pkg from "../package.json" with { type: "json" };
 import { concat } from "./commands/concat.js";
 
 program
   .name("file-concat")
   .description("Concatenate files for LLM context. Privacy-first and pipe-friendly.")
-  .version("0.2.0")
+  .version(pkg.version)
   .addHelpText(
     "after",
     `
