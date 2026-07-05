@@ -52,7 +52,7 @@ function friendlyFetchError(error: unknown, c: Classification): string | null {
   if (/abort/i.test(message)) return null;
   if (/not found|404/i.test(message))
     return `Couldn't find that one. Check the ${c.hostName} link is public and spelled right.`;
-  if (/rate limit|rate-limit|429/i.test(message))
+  if (/rate limit|rate-limit|429|too many requests/i.test(message))
     return `${c.hostName} is rate-limiting requests right now. Give it a minute and try again.`;
   if (/invalid|format|expected/i.test(message))
     return "Use a full repo URL, like github.com/owner/repo, rather than a profile or search page.";
