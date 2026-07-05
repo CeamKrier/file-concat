@@ -225,6 +225,61 @@ describe("file-concat CLI", () => {
     });
   });
 
+  describe("gitignore honoring", () => {
+    function makeGitignoreFixture(): string {
+      const dir = makeTempDir("gitignore");
+      // `private/` is not in the curated static default set, so its exclusion
+      // isolates the .gitignore delegation from the always-on default floor.
+      fs.writeFileSync(path.join(dir, ".gitignore"), "ignored.txt\nprivate/\n");
+      fs.writeFileSync(path.join(dir, "kept.txt"), "KEEP_ME");
+      fs.writeFileSync(path.join(dir, "ignored.txt"), "IGNORE_ME");
+      fs.mkdirSync(path.join(dir, "private"));
+      fs.writeFileSync(path.join(dir, "private", "artifact.txt"), "PRIVATE_ARTIFACT");
+      fs.mkdirSync(path.join(dir, "src"));
+      fs.writeFileSync(path.join(dir, "src", "main.txt"), "SRC_MAIN");
+      return dir;
+    }
+
+    it("excludes files matched by the project's .gitignore by default", async () => {
+      const dir = makeGitignoreFixture();
+      const outFile = path.join(makeTempDir("gi-out"), "out.xml");
+      const result = await runCli([dir, "-o", outFile], { cwd: dir });
+      expect(result.exitCode).toBe(0);
+      const written = fs.readFileSync(outFile, "utf-8");
+      expect(written).toContain("KEEP_ME");
+      expect(written).toContain("SRC_MAIN");
+      expect(written).not.toContain("IGNORE_ME");
+      expect(written).not.toContain("PRIVATE_ARTIFACT");
+    });
+
+    it("--no-gitignore keeps files the .gitignore would exclude", async () => {
+      const dir = makeGitignoreFixture();
+      const outFile = path.join(makeTempDir("gi-off"), "out.xml");
+      const result = await runCli([dir, "-o", outFile, "--no-gitignore"], { cwd: dir });
+      expect(result.exitCode).toBe(0);
+      const written = fs.readFileSync(outFile, "utf-8");
+      expect(written).toContain("IGNORE_ME");
+      expect(written).toContain("PRIVATE_ARTIFACT");
+    });
+
+    it("honors a nested .gitignore that re-includes a parent-ignored file", async () => {
+      const dir = makeTempDir("gitignore-nested");
+      fs.writeFileSync(path.join(dir, ".gitignore"), "*.txt\n");
+      fs.writeFileSync(path.join(dir, "root.txt"), "ROOT_TXT");
+      fs.mkdirSync(path.join(dir, "docs"));
+      fs.writeFileSync(path.join(dir, "docs", ".gitignore"), "!keep.txt\n");
+      fs.writeFileSync(path.join(dir, "docs", "keep.txt"), "DOCS_KEEP");
+      fs.writeFileSync(path.join(dir, "docs", "other.txt"), "DOCS_OTHER");
+      const outFile = path.join(makeTempDir("gi-nested-out"), "out.xml");
+      const result = await runCli([dir, "-o", outFile], { cwd: dir });
+      expect(result.exitCode).toBe(0);
+      const written = fs.readFileSync(outFile, "utf-8");
+      expect(written).toContain("DOCS_KEEP");
+      expect(written).not.toContain("DOCS_OTHER");
+      expect(written).not.toContain("ROOT_TXT");
+    });
+  });
+
   describe("encoding", () => {
     it("decodes a BOM-less UTF-16LE source file as text, not mojibake", async () => {
       const dir = makeTempDir("utf16");

@@ -25,6 +25,7 @@ function addSharedOptions(cmd: Command): Command {
     .option("--no-hidden", "Exclude hidden files")
     .option("--no-binary", "Exclude binary files")
     .option("-e, --exclude <patterns...>", "Glob patterns to exclude")
+    .option("--no-gitignore", "Do not honor the project's .gitignore files")
     .option("-c, --config <file>", "Config file path")
     .option("-s, --style <style>", "Output style: xml | markdown (default xml)")
     .option("--stdout", "Write concatenated output to stdout instead of a file")

@@ -34,6 +34,7 @@ file-concat ./my-repo --stdout | pbcopy              # pipe content straight to 
 | `--no-hidden` | Skip dotfiles. |
 | `--no-binary` | Skip files with known binary extensions. |
 | `-e, --exclude <patterns...>` | Glob patterns to exclude (in addition to the bundled defaults: `node_modules`, `.git`, build outputs, lock files, etc.). |
+| `--no-gitignore` | Do not honor the project's `.gitignore` files. By default every `.gitignore` in the tree (including nested ones) is read and its patterns are applied on top of the bundled defaults. |
 | `-c, --config <file>` | Path to a JSON config file (also auto-discovers `.fileconcatrc`, `.fileconcatrc.json`, `fileconcat.config.json`). |
 | `--parse [formats]` | Extract text from binary documents. With no value, enables every supported format. Comma-separated list (`--parse pdf,docx`) restricts to a subset. Supported: `pdf`, `docx`, `xlsx`, `pptx`, `odt`, `ods`, `odp`. |
 | `--stdout` | Write the concatenated output to stdout instead of a file. Mutually exclusive with `--json`. |
@@ -102,6 +103,7 @@ file-concat ./service --parse pdf,docx -o ctx.xml
 ### Defaults worth knowing
 
 - The bundled default ignore list mirrors the web app: `node_modules`, `.git`, common build outputs (`dist`, `build`, `.next`, etc.), and lock files. Combine with `--exclude` to add project-specific entries.
+- The project's own `.gitignore` files (including nested ones) are honored on top of that default set, so build and generated paths you already ignore stay out of the bundle — and secrets like `.env` are excluded transitively. Turn this off with `--no-gitignore`.
 - Binary files are skipped unless their extension is in the active `--parse` set.
 - The output schema matches the web app, so prompts that already work against [fileconcat.com](https://fileconcat.com) output keep working with CLI output.
 
