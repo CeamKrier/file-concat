@@ -34,6 +34,10 @@ export type IncomingFile = {
 
 export type FailedFile = { path: string; error: string };
 
+export type IngestPhase = "unpacking" | "reading" | "fetching";
+/** Live progress for the processing view. `total === 0` means indeterminate. */
+export type IngestProgress = { phase: IngestPhase; done: number; total: number } | null;
+
 export interface FileIngestion {
   entries: ContentEntry[];
   validations: Record<string, ValidationRecord>;
@@ -45,13 +49,10 @@ export interface FileIngestion {
   isDragging: boolean;
   /** True when the last batch unpacked at least one archive. */
   expandedArchive: boolean;
+  /** Live read/fetch progress for the processing view, or null when idle. */
+  progress: IngestProgress;
   ingestBatch: (incoming: IncomingFile[]) => Promise<void>;
-  ingestRepo: (
-    url: string,
-    sourceType: SourceType,
-    onProgress: (progress: DownloadProgress) => void,
-    signal: AbortSignal,
-  ) => Promise<void>;
+  ingestRepo: (url: string, sourceType: SourceType, signal: AbortSignal) => Promise<void>;
   setEntryContent: (path: string, content: string) => void;
   handleFileInput: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleDragEnter: (e: React.DragEvent) => void;
@@ -71,6 +72,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   const [processingStatus, setProcessingStatus] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [expandedArchive, setExpandedArchive] = useState(false);
+  const [progress, setProgress] = useState<IngestProgress>(null);
   const dragCounter = useRef(0);
 
   const ingestBatch = useCallback(
@@ -90,7 +92,13 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       const nextValidations: Record<string, ValidationRecord> = {};
       const nextFailed: FailedFile[] = [];
 
-      for (const entry of normalized) {
+      const total = normalized.length;
+      // Cap re-renders at ~100 progress ticks regardless of how large the drop is.
+      const tick = Math.max(1, Math.floor(total / 100));
+      setProgress({ phase: "reading", done: 0, total });
+
+      for (let i = 0; i < total; i++) {
+        const entry = normalized[i];
         const result = await validateFile(entry.file, config);
         nextValidations[entry.path] = {
           included: result.isValid,
@@ -111,6 +119,10 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           console.error(`Failed to read file ${entry.path}:`, error);
           nextFailed.push({ path: entry.path, error: "File could not be read" });
         }
+
+        if ((i + 1) % tick === 0 || i + 1 === total) {
+          setProgress({ phase: "reading", done: i + 1, total });
+        }
       }
 
       setEntries(nextEntries);
@@ -121,18 +133,16 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   );
 
   const ingestRepo = useCallback(
-    async (
-      url: string,
-      sourceType: SourceType,
-      onProgress: (progress: DownloadProgress) => void,
-      signal: AbortSignal,
-    ) => {
+    async (url: string, sourceType: SourceType, signal: AbortSignal) => {
       setIsRepoLoading(true);
       setSourceUrl(url);
+      setProgress({ phase: "fetching", done: 0, total: 0 });
       try {
         const adapter = defaultSourceRegistry.getByType(sourceType);
         if (!adapter) throw new Error("Unknown source type");
 
+        const onProgress = (p: DownloadProgress) =>
+          setProgress({ phase: "fetching", done: p.completedFiles, total: p.totalFiles });
         const { files, error } = await adapter.fetchFiles(url, { onProgress, signal });
         if (error) throw new Error(error);
 
@@ -246,6 +256,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     setProcessingStatus("");
     setIsDragging(false);
     setExpandedArchive(false);
+    setProgress(null);
     dragCounter.current = 0;
   }, []);
 
@@ -259,6 +270,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     processingStatus,
     isDragging,
     expandedArchive,
+    progress,
     ingestBatch,
     ingestRepo,
     setEntryContent,
