@@ -9,13 +9,14 @@ type FixtureSpec = {
   reason?: string;
   size?: number;
   type?: string;
+  content?: string;
 };
 
 function buildFixture(specs: FixtureSpec[]): {
   entries: ContentEntry[];
   validations: Record<string, ValidationRecord>;
 } {
-  const entries: ContentEntry[] = specs.map((s) => ({ path: s.path, content: "stub" }));
+  const entries: ContentEntry[] = specs.map((s) => ({ path: s.path, content: s.content ?? "stub" }));
   const validations: Record<string, ValidationRecord> = {};
   for (const s of specs) {
     validations[s.path] = {
@@ -94,17 +95,17 @@ describe("useFilterState", () => {
 
     rerender({ includePatterns: "**/*.tsx", ignorePatterns: "**/*.test.*" });
 
-    // Whitelist exclusivity: with a non-empty include list, the ignore list is
-    // skipped. The atomic-swap contract here is that count updates together —
-    // dist/* and node_modules/* drop out for missing the include match.
+    // Compose: the include list narrows to *.tsx, then the ignore list still
+    // subtracts *.test.* on top — so the test file drops out too, and dist/*
+    // and node_modules/* drop out for missing the include match.
     const included = result.current.fileStatuses
       .filter((s) => s.included)
       .map((s) => s.path)
       .sort();
-    expect(included).toEqual(["src/index.test.tsx", "src/index.tsx"]);
+    expect(included).toEqual(["src/index.tsx"]);
   });
 
-  it("treats ignorePatterns as skipped when includePatterns is non-empty (whitelist exclusivity)", () => {
+  it("applies ignorePatterns on top of a non-empty includePatterns (compose, not whitelist-exclusive)", () => {
     const { entries, validations } = buildFixture([
       { path: "src/a.tsx" },
       { path: "src/a.test.tsx" },
@@ -124,7 +125,10 @@ describe("useFilterState", () => {
       .filter((s) => s.included)
       .map((s) => s.path)
       .sort();
-    expect(included).toEqual(["src/a.test.tsx", "src/a.tsx", "src/b.tsx"]);
+    expect(included).toEqual(["src/a.tsx", "src/b.tsx"]);
+    expect(result.current.fileStatuses.find((s) => s.path === "src/a.test.tsx")?.reason).toBe(
+      "Matched ignore patterns",
+    );
   });
 
   it("toggleFile to exclude bumps manualOverrideCount and labels reason as manual", () => {
@@ -217,5 +221,70 @@ describe("useFilterState", () => {
       "Binary file",
       "File size exceeds 32MB limit",
     ]);
+  });
+
+  it("excludes files matched by a .gitignore riding along in entries", () => {
+    const { entries, validations } = buildFixture([
+      { path: ".gitignore", content: "build/\n" },
+      { path: "build/bundle.js" },
+      { path: "src/app.ts" },
+    ]);
+
+    const { result } = renderHook(() =>
+      useFilterState({ entries, validations, includePatterns: "", ignorePatterns: "" }),
+    );
+
+    const build = result.current.fileStatuses.find((s) => s.path === "build/bundle.js");
+    expect(build?.included).toBe(false);
+    expect(build?.reason).toBe("Matched .gitignore");
+    expect(result.current.fileStatuses.find((s) => s.path === "src/app.ts")?.included).toBe(true);
+  });
+
+  it("scopes a nested .gitignore to its subtree under the drop-root prefix", () => {
+    const { entries, validations } = buildFixture([
+      { path: "myproj/.gitignore", content: "dist/\n" },
+      { path: "myproj/dist/out.js" },
+      { path: "myproj/src/app.ts" },
+    ]);
+
+    const { result } = renderHook(() =>
+      useFilterState({ entries, validations, includePatterns: "", ignorePatterns: "" }),
+    );
+
+    expect(result.current.fileStatuses.find((s) => s.path === "myproj/dist/out.js")?.included).toBe(
+      false,
+    );
+    expect(result.current.fileStatuses.find((s) => s.path === "myproj/src/app.ts")?.included).toBe(
+      true,
+    );
+  });
+
+  it("still applies .gitignore when an include list is present (compose, not whitelist-exclusive)", () => {
+    // The trap this fixes: an include list used to disable every ignore source,
+    // so a gitignored path would re-appear the moment the user narrowed by type.
+    const { entries, validations } = buildFixture([
+      { path: ".gitignore", content: "generated/\n" },
+      { path: "src/app.ts" },
+      { path: "generated/schema.ts" },
+      { path: "README.md" },
+    ]);
+
+    const { result } = renderHook(() =>
+      useFilterState({
+        entries,
+        validations,
+        includePatterns: "**/*.ts",
+        ignorePatterns: "",
+      }),
+    );
+
+    const included = result.current.fileStatuses
+      .filter((s) => s.included)
+      .map((s) => s.path)
+      .sort();
+    expect(included).toEqual(["src/app.ts"]);
+    expect(
+      result.current.fileStatuses.find((s) => s.path === "generated/schema.ts")?.reason,
+    ).toBe("Matched .gitignore");
   });
 });

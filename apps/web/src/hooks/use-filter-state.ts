@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import type { FileStatus } from "@fileconcat/core";
-import { matchesAnyPattern } from "@fileconcat/core";
+import { collectGitignoreSources, createGitignoreMatcher, matchesAnyPattern } from "@fileconcat/core";
 
 import type { ContentEntry, ValidationRecord } from "./use-file-ingestion";
 
@@ -39,13 +39,38 @@ export function useFilterState({
 }: FilterStateInputs): FilterState {
   const [userToggled, setUserToggled] = useState<Record<string, ManualOverride>>({});
 
+  // .gitignore files ride along in `entries` — ingestion keeps them; only the
+  // bundle drops them. Compose them into a hierarchical matcher so nested
+  // .gitignore files apply per-subtree and the drop-root path prefix is honored.
+  const gitignore = useMemo(
+    () => createGitignoreMatcher(collectGitignoreSources(entries)),
+    [entries],
+  );
+
+  const hasIncludes = !!includePatterns?.trim();
+
+  // Compose model: a non-empty include list narrows the set, and both the
+  // ignore textarea (default noise + user patterns) and the project's
+  // .gitignore always subtract on top. An explicit include no longer disables
+  // ignores — the manual per-file toggle is the escape hatch for a one-off.
   const isExcludedPath = useCallback(
     (path: string): boolean => {
-      const hasIncludes = !!includePatterns?.trim();
-      if (hasIncludes) return !matchesAnyPattern(path, includePatterns);
-      return matchesAnyPattern(path, ignorePatterns);
+      if (hasIncludes && !matchesAnyPattern(path, includePatterns)) return true;
+      if (matchesAnyPattern(path, ignorePatterns)) return true;
+      return gitignore.ignores(path);
     },
-    [includePatterns, ignorePatterns],
+    [hasIncludes, includePatterns, ignorePatterns, gitignore],
+  );
+
+  const excludeReason = useCallback(
+    (path: string): string => {
+      if (hasIncludes && !matchesAnyPattern(path, includePatterns))
+        return "Outside include patterns";
+      if (matchesAnyPattern(path, ignorePatterns)) return "Matched ignore patterns";
+      if (gitignore.ignores(path)) return "Matched .gitignore";
+      return "Excluded";
+    },
+    [hasIncludes, includePatterns, ignorePatterns, gitignore],
   );
 
   const patternDecision = useCallback(
@@ -56,8 +81,6 @@ export function useFilterState({
     },
     [validations, isExcludedPath],
   );
-
-  const hasIncludes = !!includePatterns?.trim();
 
   const fileStatuses = useMemo<FileStatus[]>(() => {
     return entries.map((entry, index) => {
@@ -80,7 +103,7 @@ export function useFilterState({
       } else {
         included = baseIncluded && !isExcludedPath(entry.path);
         if (!included && baseIncluded) {
-          reason = hasIncludes ? "Outside include patterns" : "Matched ignore patterns";
+          reason = excludeReason(entry.path);
         }
       }
 
@@ -94,7 +117,7 @@ export function useFilterState({
         index,
       };
     });
-  }, [entries, validations, userToggled, isExcludedPath, hasIncludes]);
+  }, [entries, validations, userToggled, isExcludedPath, excludeReason]);
 
   const toggleFile = useCallback(
     (index: number) => {
