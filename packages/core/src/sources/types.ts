@@ -47,6 +47,13 @@ export interface ParsedSourceUrl {
 export interface FetchOptions {
   /** Progress callback */
   onProgress?: (progress: DownloadProgress) => void;
+  /**
+   * Coarse stage callback for the phases that run before per-file progress
+   * exists (connecting, resolving the branch, listing the tree). Lets the UI
+   * say what's happening instead of showing a silent spinner during the long
+   * pre-download window.
+   */
+  onStatus?: (message: string) => void;
   /** Abort signal */
   signal?: AbortSignal;
   /** Authentication token (optional) */

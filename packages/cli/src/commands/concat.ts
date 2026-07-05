@@ -8,7 +8,9 @@ import {
   generateFileTree,
   generateProjectName,
   assembleOutput,
+  createGitignoreMatcher,
   BINARY_EXTENSIONS,
+  classifyBytes,
   type OutputStyle,
 } from "@fileconcat/core";
 import { loadConfig, type FileConcatConfig } from "../config.js";
@@ -19,6 +21,7 @@ interface ConcatOptions {
   hidden?: boolean;
   binary?: boolean;
   exclude?: string[];
+  gitignore?: boolean;
   config?: string;
   style?: string;
   stdout?: boolean;
@@ -113,12 +116,41 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
     log.info(`Parse mode: ${[...parseSet].join(", ")}`);
   }
 
-  const files = await glob("**/*", {
+  let files = await glob("**/*", {
     cwd: basePath,
     nodir: true,
     dot: !excludeHidden,
     ignore: [...DEFAULT_GLOB_IGNORE, ...excludePatterns.flatMap(toGlobIgnore)],
   });
+
+  // node-`glob` has no native .gitignore support, so honor it explicitly: read
+  // every .gitignore in the tree (they may be hidden and nested) and filter the
+  // walk through the shared hierarchical matcher. Like --exclude, gitignored
+  // paths are simply dropped from the walk rather than counted as skipped.
+  if (options.gitignore !== false) {
+    const gitignoreFiles = await glob("**/.gitignore", {
+      cwd: basePath,
+      nodir: true,
+      dot: true,
+      ignore: [...DEFAULT_GLOB_IGNORE],
+    });
+    if (gitignoreFiles.length > 0) {
+      const sources = gitignoreFiles.map((rel) => {
+        const slash = rel.lastIndexOf("/");
+        return {
+          dir: slash === -1 ? "" : rel.slice(0, slash),
+          content: fs.readFileSync(path.join(basePath, rel), "utf-8"),
+        };
+      });
+      const matcher = createGitignoreMatcher(sources);
+      const before = files.length;
+      files = files.filter((file) => !matcher.ignores(file));
+      const removed = before - files.length;
+      if (removed > 0) {
+        log.info(`Honoring ${gitignoreFiles.length} .gitignore file(s): ${removed} paths skipped`);
+      }
+    }
+  }
 
   log.info(`Found ${files.length} files`);
 
@@ -165,8 +197,17 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
     }
 
     try {
-      const content = fs.readFileSync(fullPath, "utf-8");
-      processedFiles.push({ path: file, content });
+      // Classify by content, not extension: decodes odd encodings (e.g. UTF-16)
+      // correctly and catches a mislabeled binary the extension list missed.
+      const decoded = classifyBytes(fs.readFileSync(fullPath));
+      if (excludeBinary && decoded.classification === "binary") {
+        skippedBreakdown.binary++;
+        continue;
+      }
+      if (decoded.classification === "ambiguous") {
+        log.warn(`Kept (might be binary): ${file}`);
+      }
+      processedFiles.push({ path: file, content: decoded.text });
       totalSize += stats.size;
     } catch {
       skippedBreakdown.readError++;

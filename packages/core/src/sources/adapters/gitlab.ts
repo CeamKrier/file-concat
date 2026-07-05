@@ -110,8 +110,10 @@ async function fetchAllTreePages(
   projectId: string,
   branch: string,
   signal?: AbortSignal,
+  onStatus?: (message: string) => void,
 ): Promise<GitLabTreeItem[]> {
   const allItems: GitLabTreeItem[] = [];
+  let fileCount = 0;
   let page = 1;
   const perPage = 100;
 
@@ -133,6 +135,11 @@ async function fetchAllTreePages(
     const items = (await response.json()) as GitLabTreeItem[];
     allItems.push(...items);
 
+    // Tick a running file count per page so a slow, deeply-paginated tree walk
+    // shows real movement instead of a frozen "Listing files" label.
+    fileCount += items.filter((item) => item.type === "blob").length;
+    if (fileCount > 0) onStatus?.(`Listing files… ${fileCount} found`);
+
     // Check if there are more pages
     const totalPages = parseInt(response.headers.get("x-total-pages") || "1", 10);
     if (page >= totalPages || items.length < perPage) {
@@ -148,9 +155,11 @@ async function fetchAllTreePages(
  * Fetch files from GitLab repository
  */
 async function fetchGitLabFiles(url: string, options?: FetchOptions): Promise<RepositoryContent> {
-  const { onProgress, signal } = options || {};
+  const { onProgress, onStatus, signal } = options || {};
 
   try {
+    onStatus?.("Connecting to GitLab");
+
     const parsed = parseGitLabUrl(url);
     if (!parsed.isValid || !parsed.owner || !parsed.repo) {
       throw new Error(parsed.error || "Invalid GitLab URL");
@@ -163,6 +172,7 @@ async function fetchGitLabFiles(url: string, options?: FetchOptions): Promise<Re
 
     // If no branch specified, try to get default branch
     if (!parsed.branch) {
+      onStatus?.("Finding the default branch");
       try {
         const projectResponse = await fetch(`https://gitlab.com/api/v4/projects/${projectId}`, {
           signal,
@@ -177,7 +187,8 @@ async function fetchGitLabFiles(url: string, options?: FetchOptions): Promise<Re
     }
 
     // Fetch file tree
-    const tree = await fetchAllTreePages(projectId, branch, signal);
+    onStatus?.("Listing files");
+    const tree = await fetchAllTreePages(projectId, branch, signal, onStatus);
 
     // Filter to only blobs (files)
     const files = filterGitLabTreeItems(tree, subPath);
@@ -186,6 +197,7 @@ async function fetchGitLabFiles(url: string, options?: FetchOptions): Promise<Re
       throw new Error(`Path '${subPath}' not found in branch '${branch}'`);
     }
 
+    onStatus?.(`Downloading ${files.length} ${files.length === 1 ? "file" : "files"}`);
     const progress = createProgressReporter({ totalFiles: files.length, onProgress });
 
     const filePromises = files.map(async (item) => {

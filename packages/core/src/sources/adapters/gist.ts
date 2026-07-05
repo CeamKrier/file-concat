@@ -182,9 +182,11 @@ async function fetchGitLabSnippet(
  * Fetch files from Gist/Snippet
  */
 async function fetchGistFiles(url: string, options?: FetchOptions): Promise<RepositoryContent> {
-  const { onProgress, signal } = options || {};
+  const { onProgress, onStatus, signal } = options || {};
 
   try {
+    onStatus?.("Fetching gist");
+
     const parsed = parseGistUrl(url);
     if (!parsed.isValid || !parsed.gistId) {
       throw new Error(parsed.error || "Invalid Gist URL");

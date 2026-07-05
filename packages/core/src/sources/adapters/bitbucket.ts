@@ -13,10 +13,6 @@ interface BitbucketDirectoryResponse {
   next?: string;
 }
 
-interface BitbucketRepoResponse {
-  mainbranch?: { name?: string };
-}
-
 export function getBitbucketDisplayPath(itemPath: string, subPath?: string): string {
   if (subPath && itemPath.startsWith(subPath + "/")) {
     return itemPath.substring(subPath.length + 1);
@@ -64,6 +60,7 @@ async function fetchDirectoryContents(
   branch: string,
   path: string,
   signal?: AbortSignal,
+  onFilesFound?: (added: number) => void,
 ): Promise<Array<{ path: string; type: string; size?: number }>> {
   const items: Array<{ path: string; type: string; size?: number }> = [];
   let nextUrl: string | null =
@@ -84,6 +81,7 @@ async function fetchDirectoryContents(
 
     const data = (await response.json()) as BitbucketDirectoryResponse;
 
+    let pageFiles = 0;
     for (const item of data.values || []) {
       if (item.type === "commit_file") {
         items.push({
@@ -91,17 +89,55 @@ async function fetchDirectoryContents(
           type: "file",
           size: item.size,
         });
+        pageFiles++;
       } else if (item.type === "commit_directory") {
         // Recursively fetch subdirectory
-        const subItems = await fetchDirectoryContents(workspace, repo, branch, item.path, signal);
+        const subItems = await fetchDirectoryContents(
+          workspace,
+          repo,
+          branch,
+          item.path,
+          signal,
+          onFilesFound,
+        );
         items.push(...subItems);
       }
     }
+    // Tick per page (one network round-trip) so the walk shows live movement.
+    if (pageFiles > 0) onFilesFound?.(pageFiles);
 
     nextUrl = data.next || null;
   }
 
   return items;
+}
+
+/**
+ * Resolve a Bitbucket ref (an explicit branch, or the repo's default branch when
+ * none is given) to a commit hash by following the /src redirect and reading the
+ * resolved URL. Passing a branch name straight into /src/{ref}/{path} has two
+ * failure modes this avoids: a default branch that isn't "main", and branch
+ * names that contain a slash (e.g. "release/public"), which the path-based
+ * endpoint mis-routes into a 404.
+ */
+async function resolveBitbucketRef(
+  workspace: string,
+  repo: string,
+  branch: string | undefined,
+  signal?: AbortSignal,
+): Promise<string> {
+  const base = `https://api.bitbucket.org/2.0/repositories/${workspace}/${repo}/src`;
+  const url = branch ? `${base}/${branch}/` : base;
+  const response = await fetchWithRateLimitRetry(url, { signal });
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error(`Repository '${workspace}/${repo}' not found`);
+    }
+    throw classifyResponseError(response, `Bitbucket repository ${workspace}/${repo}`);
+  }
+  // The URL after the redirect carries the commit: .../src/{40-hex-commit}/...
+  const match = response.url?.match(/\/src\/([0-9a-f]{7,40})(?:[/?#]|$)/);
+  return match?.[1] ?? branch ?? "HEAD";
 }
 
 /**
@@ -111,43 +147,37 @@ async function fetchBitbucketFiles(
   url: string,
   options?: FetchOptions,
 ): Promise<RepositoryContent> {
-  const { onProgress, signal } = options || {};
+  const { onProgress, onStatus, signal } = options || {};
 
   try {
+    onStatus?.("Connecting to Bitbucket");
+
     const parsed = parseBitbucketUrl(url);
     if (!parsed.isValid || !parsed.owner || !parsed.repo) {
       throw new Error(parsed.error || "Invalid Bitbucket URL");
     }
 
     const { owner: workspace, repo, path: subPath } = parsed;
-    let branch = parsed.branch || "main";
 
-    // If no branch specified, get default branch
-    if (!branch) {
-      const repoResponse = await fetch(
-        `https://api.bitbucket.org/2.0/repositories/${workspace}/${repo}`,
-        { signal },
-      );
-
-      if (!repoResponse.ok) {
-        if (repoResponse.status === 404) {
-          throw new Error(`Repository '${workspace}/${repo}' not found`);
-        }
-        throw new Error("Failed to fetch repository information");
-      }
-
-      const repoData = (await repoResponse.json()) as BitbucketRepoResponse;
-      branch = repoData.mainbranch?.name || "main";
-    }
+    // Resolve the ref to a commit before listing (see resolveBitbucketRef): this
+    // is what fixes default branches that aren't "main" and slashed branch names.
+    onStatus?.("Finding the default branch");
+    const branch = await resolveBitbucketRef(workspace, repo, parsed.branch, signal);
 
     // Fetch file tree
+    onStatus?.("Listing files");
     const startPath = subPath || "";
-    const files = await fetchDirectoryContents(workspace, repo, branch, startPath, signal);
+    let listed = 0;
+    const files = await fetchDirectoryContents(workspace, repo, branch, startPath, signal, (added) => {
+      listed += added;
+      onStatus?.(`Listing files… ${listed} found`);
+    });
 
     if (files.length === 0) {
       throw new Error("No files found in repository");
     }
 
+    onStatus?.(`Downloading ${files.length} ${files.length === 1 ? "file" : "files"}`);
     const progress = createProgressReporter({ totalFiles: files.length, onProgress });
 
     const filePromises = files.map(async (item) => {

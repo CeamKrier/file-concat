@@ -1,6 +1,100 @@
 import { describe, expect, it } from "vitest";
 import { addLineNumbers } from "../src/file-processing/transform";
-import { isBinaryContent, isBinaryFile, validateFile } from "../src/file-processing/validation";
+import { validateFile } from "../src/file-processing/validation";
+import { classifyBytes, readFileAsText } from "../src/file-processing/text-classification";
+
+describe("classifyBytes", () => {
+  it("decodes UTF-16LE (with BOM) source as text, not binary", () => {
+    const source = "export const x = 1;\n";
+    const body = Buffer.from(source, "utf16le");
+    const bytes = new Uint8Array(body.length + 2);
+    bytes.set([0xff, 0xfe]);
+    bytes.set(body, 2);
+    const result = classifyBytes(bytes);
+    expect(result.classification).toBe("text");
+    expect(result.encoding).toBe("utf-16le");
+    expect(result.text).toBe(source);
+  });
+
+  it("decodes UTF-16BE (with BOM) source as text", () => {
+    const source = "class A {}\n";
+    const body = Buffer.from(source, "utf16le").swap16();
+    const bytes = new Uint8Array(body.length + 2);
+    bytes.set([0xfe, 0xff]);
+    bytes.set(body, 2);
+    const result = classifyBytes(bytes);
+    expect(result.classification).toBe("text");
+    expect(result.encoding).toBe("utf-16be");
+    expect(result.text).toBe(source);
+  });
+
+  it("strips the BOM from UTF-8 (with BOM) text", () => {
+    const source = "hello = 1\n";
+    const body = Buffer.from(source, "utf-8");
+    const bytes = new Uint8Array(body.length + 3);
+    bytes.set([0xef, 0xbb, 0xbf]);
+    bytes.set(body, 3);
+    const result = classifyBytes(bytes);
+    expect(result.classification).toBe("text");
+    expect(result.encoding).toBe("utf-8");
+    expect(result.text).toBe(source);
+  });
+
+  it("flags real binary content (PNG header: NUL- and control-heavy) as binary", () => {
+    const bytes = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+      0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x08, 0x06, 0x00, 0x00, 0x00, 0x5c, 0x72, 0xa8,
+    ]);
+    const result = classifyBytes(bytes);
+    expect(result.classification).toBe("binary");
+    expect(result.text).toBe("");
+  });
+
+  it("decodes BOM-less UTF-16LE (alternating NUL bytes) as text", () => {
+    const source = "const answer = 42;\n";
+    const bytes = new Uint8Array(Buffer.from(source, "utf16le"));
+    const result = classifyBytes(bytes);
+    expect(result.classification).toBe("text");
+    expect(result.encoding).toBe("utf-16le");
+    expect(result.text).toBe(source);
+  });
+
+  it("flags partly-garbled text (middle band) as ambiguous, still decoded", () => {
+    const ascii = "function totals() { return sum; } // ".repeat(3);
+    const control = "\x01\x02\x03\x04\x05\x06\x07\x08\x0e\x0f\x10\x11\x12\x13";
+    const source = ascii + control;
+    const result = classifyBytes(new TextEncoder().encode(source));
+    expect(result.classification).toBe("ambiguous");
+    expect(result.text).toContain("function totals");
+  });
+
+  it("treats empty input as text", () => {
+    const result = classifyBytes(new Uint8Array([]));
+    expect(result.classification).toBe("text");
+    expect(result.text).toBe("");
+  });
+
+  it("keeps text carrying a single stray NUL (the old any-NUL rule would drop it)", () => {
+    const source = "a".repeat(200) + "\0" + "b".repeat(50);
+    const result = classifyBytes(new TextEncoder().encode(source));
+    expect(result.classification).toBe("text");
+  });
+});
+
+describe("readFileAsText", () => {
+  it("reads a File's bytes, then classifies and decodes them", async () => {
+    const source = "let x = 1\n";
+    const body = Buffer.from(source, "utf16le");
+    const bytes = new Uint8Array(body.length + 2);
+    bytes.set([0xff, 0xfe]);
+    bytes.set(body, 2);
+    const file = new File([bytes], "x.ts");
+    const result = await readFileAsText(file);
+    expect(result.classification).toBe("text");
+    expect(result.encoding).toBe("utf-16le");
+    expect(result.text).toBe(source);
+  });
+});
 
 describe("addLineNumbers", () => {
   it("normalizes CRLF and CR", () => {
@@ -50,37 +144,47 @@ describe("validateFile", () => {
     expect(result.isValid).toBe(false);
     expect(result.reason).toBe("Binary file");
   });
-});
 
-describe("isBinaryContent", () => {
-  it("flags a prefix containing a NUL byte as binary", () => {
-    expect(isBinaryContent(new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x00, 0x01]))).toBe(true);
+  it("rejects a file whose content is binary regardless of a text extension", async () => {
+    const bytes = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+      0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x08, 0x06, 0x00, 0x00, 0x00, 0x5c, 0x72, 0xa8,
+    ]);
+    const file = new File([bytes], "mystery.txt");
+    const result = await validateFile(file, {
+      maxFileSizeMB: 10,
+      excludeHiddenFiles: false,
+      excludeBinaryFiles: true,
+    });
+
+    expect(result.isValid).toBe(false);
+    expect(result.reason).toBe("Binary file");
+    expect(result.classification).toBe("binary");
   });
 
-  it("treats pure text bytes as non-binary", () => {
-    expect(isBinaryContent(new TextEncoder().encode("export const x = 1;\n"))).toBe(false);
+  it("keeps an ambiguous-content file valid but flags its classification", async () => {
+    const ascii = "function totals() { return sum; } // ".repeat(3);
+    const control = "\x01\x02\x03\x04\x05\x06\x07\x08\x0e\x0f\x10\x11\x12\x13";
+    const file = new File([new TextEncoder().encode(ascii + control)], "app.log");
+    const result = await validateFile(file, {
+      maxFileSizeMB: 10,
+      excludeHiddenFiles: false,
+      excludeBinaryFiles: true,
+    });
+
+    expect(result.isValid).toBe(true);
+    expect(result.classification).toBe("ambiguous");
   });
 
-  it("treats empty input as non-binary", () => {
-    expect(isBinaryContent(new Uint8Array([]))).toBe(false);
-  });
-});
-
-describe("isBinaryFile", () => {
-  it("falls back to the extension allowlist when bytes can't be read", async () => {
-    // A bare mock has no slice()/arrayBuffer(), so the read throws and the
-    // extension fallback decides.
-    await expect(isBinaryFile({ name: "archive.zip", size: 1 } as File)).resolves.toBe(true);
-    await expect(isBinaryFile({ name: "note.txt", size: 1 } as File)).resolves.toBe(false);
-  });
-
-  it("processes a text file even under a binary-looking extension (content wins)", async () => {
+  it("keeps a text file that wears a binary-looking extension (content wins)", async () => {
     const file = new File([new TextEncoder().encode('<?xml version="1.0"?><svg/>')], "logo.ai");
-    await expect(isBinaryFile(file)).resolves.toBe(false);
-  });
+    const result = await validateFile(file, {
+      maxFileSizeMB: 10,
+      excludeHiddenFiles: false,
+      excludeBinaryFiles: true,
+    });
 
-  it("skips a file whose bytes are binary despite a text extension (content wins)", async () => {
-    const file = new File([new Uint8Array([0x89, 0x50, 0x00, 0x01, 0x02])], "data.txt");
-    await expect(isBinaryFile(file)).resolves.toBe(true);
+    expect(result.isValid).toBe(true);
+    expect(result.classification).toBe("text");
   });
 });

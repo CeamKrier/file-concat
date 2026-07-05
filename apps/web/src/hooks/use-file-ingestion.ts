@@ -1,6 +1,11 @@
 import { useCallback, useRef, useState } from "react";
-import type { DownloadProgress, ProcessingConfig, SourceType } from "@fileconcat/core";
-import { defaultSourceRegistry, validateFile } from "@fileconcat/core";
+import type {
+  DownloadProgress,
+  ProcessingConfig,
+  SourceType,
+  TextClassification,
+} from "@fileconcat/core";
+import { defaultSourceRegistry, readFileAsText, validateFile } from "@fileconcat/core";
 
 import { collectFromDataTransfer } from "~/lib/collect-from-drop";
 import { expandArchives } from "~/lib/expand-archives";
@@ -15,6 +20,8 @@ export type ContentEntry = { path: string; content: string };
 export type ValidationRecord = {
   included: boolean;
   reason?: string;
+  /** text / binary / ambiguous — undefined when binary checking is off. */
+  classification?: TextClassification;
   size: number;
   type: string;
 };
@@ -27,6 +34,19 @@ export type IncomingFile = {
 
 export type FailedFile = { path: string; error: string };
 
+export type IngestPhase = "unpacking" | "reading" | "fetching";
+/**
+ * Live progress for the processing view. `total === 0` means indeterminate.
+ * `note` is the current coarse stage ("Listing files", "Downloading files")
+ * shown while a numeric total isn't known yet, so the spinner is never silent.
+ */
+export type IngestProgress = {
+  phase: IngestPhase;
+  done: number;
+  total: number;
+  note?: string;
+} | null;
+
 export interface FileIngestion {
   entries: ContentEntry[];
   validations: Record<string, ValidationRecord>;
@@ -38,13 +58,10 @@ export interface FileIngestion {
   isDragging: boolean;
   /** True when the last batch unpacked at least one archive. */
   expandedArchive: boolean;
+  /** Live read/fetch progress for the processing view, or null when idle. */
+  progress: IngestProgress;
   ingestBatch: (incoming: IncomingFile[]) => Promise<void>;
-  ingestRepo: (
-    url: string,
-    sourceType: SourceType,
-    onProgress: (progress: DownloadProgress) => void,
-    signal: AbortSignal,
-  ) => Promise<void>;
+  ingestRepo: (url: string, sourceType: SourceType, signal: AbortSignal) => Promise<void>;
   setEntryContent: (path: string, content: string) => void;
   handleFileInput: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleDragEnter: (e: React.DragEvent) => void;
@@ -64,6 +81,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   const [processingStatus, setProcessingStatus] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [expandedArchive, setExpandedArchive] = useState(false);
+  const [progress, setProgress] = useState<IngestProgress>(null);
   const dragCounter = useRef(0);
 
   const ingestBatch = useCallback(
@@ -83,21 +101,36 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       const nextValidations: Record<string, ValidationRecord> = {};
       const nextFailed: FailedFile[] = [];
 
-      for (const entry of normalized) {
+      const total = normalized.length;
+      // Cap re-renders at ~100 progress ticks regardless of how large the drop is.
+      const tick = Math.max(1, Math.floor(total / 100));
+      setProgress({ phase: "reading", done: 0, total });
+
+      for (let i = 0; i < total; i++) {
+        const entry = normalized[i];
         const result = await validateFile(entry.file, config);
         nextValidations[entry.path] = {
           included: result.isValid,
           reason: result.reason,
+          classification: result.classification,
           size: entry.file.size,
           type: entry.file.type || "text/plain",
         };
 
         try {
-          const content = entry.content !== undefined ? entry.content : await entry.file.text();
+          // Decode through the core classifier so odd encodings (e.g. UTF-16)
+          // read as real text instead of UTF-8 mojibake. Remote sources already
+          // arrive decoded, so their content passes through untouched.
+          const content =
+            entry.content !== undefined ? entry.content : (await readFileAsText(entry.file)).text;
           nextEntries.push({ path: entry.path, content });
         } catch (error) {
           console.error(`Failed to read file ${entry.path}:`, error);
           nextFailed.push({ path: entry.path, error: "File could not be read" });
+        }
+
+        if ((i + 1) % tick === 0 || i + 1 === total) {
+          setProgress({ phase: "reading", done: i + 1, total });
         }
       }
 
@@ -109,19 +142,33 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   );
 
   const ingestRepo = useCallback(
-    async (
-      url: string,
-      sourceType: SourceType,
-      onProgress: (progress: DownloadProgress) => void,
-      signal: AbortSignal,
-    ) => {
+    async (url: string, sourceType: SourceType, signal: AbortSignal) => {
       setIsRepoLoading(true);
       setSourceUrl(url);
+      // Immediate feedback: the spinner shows a stage before the first network
+      // round-trip resolves, so a slow connect never reads as "frozen".
+      setProgress({ phase: "fetching", done: 0, total: 0, note: "Connecting…" });
       try {
         const adapter = defaultSourceRegistry.getByType(sourceType);
         if (!adapter) throw new Error("Unknown source type");
 
-        const { files, error } = await adapter.fetchFiles(url, { onProgress, signal });
+        // Coarse stages (connect / list / download) drive the heading during
+        // the pre-download window; numeric progress takes over once totals land.
+        const onStatus = (message: string) =>
+          setProgress((prev) => ({
+            phase: "fetching",
+            done: prev?.done ?? 0,
+            total: prev?.total ?? 0,
+            note: message,
+          }));
+        const onProgress = (p: DownloadProgress) =>
+          setProgress((prev) => ({
+            phase: "fetching",
+            done: p.completedFiles,
+            total: p.totalFiles,
+            note: prev?.note,
+          }));
+        const { files, error } = await adapter.fetchFiles(url, { onProgress, onStatus, signal });
         if (error) throw new Error(error);
 
         const incoming: IncomingFile[] = [];
@@ -205,6 +252,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       dragCounter.current = 0;
       setIsProcessing(true);
       setProcessingStatus("Scanning files...");
+      // Walking a large dropped folder can take a beat before the read loop
+      // starts reporting counts — show the stage so it isn't a silent spinner.
+      setProgress({ phase: "reading", done: 0, total: 0, note: "Scanning files…" });
 
       try {
         const { collected, failed } = await collectFromDataTransfer(e.dataTransfer.items, {
@@ -234,6 +284,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     setProcessingStatus("");
     setIsDragging(false);
     setExpandedArchive(false);
+    setProgress(null);
     dragCounter.current = 0;
   }, []);
 
@@ -247,6 +298,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     processingStatus,
     isDragging,
     expandedArchive,
+    progress,
     ingestBatch,
     ingestRepo,
     setEntryContent,

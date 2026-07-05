@@ -86,9 +86,11 @@ function parseGitHubUrl(url: string): ParsedSourceUrl {
  * Fetch files from GitHub repository
  */
 async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<RepositoryContent> {
-  const { onProgress, signal } = options || {};
+  const { onProgress, onStatus, signal } = options || {};
 
   try {
+    onStatus?.("Connecting to GitHub");
+
     const parsed = parseGitHubUrl(url);
     if (!parsed.isValid || !parsed.owner || !parsed.repo) {
       throw new Error(parsed.error || "Invalid GitHub URL");
@@ -99,6 +101,7 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
 
     // Get default branch if not specified
     if (!branch) {
+      onStatus?.("Finding the default branch");
       const repoResponse = await fetchWithRateLimitRetry(
         `https://api.github.com/repos/${owner}/${repo}`,
         { signal },
@@ -114,6 +117,7 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
     }
 
     // Get file tree
+    onStatus?.("Listing files");
     const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`;
     const treeResponse = await fetchWithRateLimitRetry(treeUrl, { signal });
 
@@ -132,6 +136,7 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
       throw new Error(`Path '${subPath}' not found in branch '${branch}'`);
     }
 
+    onStatus?.(`Downloading ${files.length} ${files.length === 1 ? "file" : "files"}`);
     const totalBytes = files.reduce((acc, file) => acc + (file.size || 0), 0);
     const progress = createProgressReporter({
       totalFiles: files.length,
