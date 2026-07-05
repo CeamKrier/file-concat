@@ -1,4 +1,4 @@
-import { Check, Copy, Download, FileWarning, Scissors } from "lucide-react";
+import { Check, Copy, Download, FileQuestion, FileWarning, Scissors, SlidersHorizontal } from "lucide-react";
 
 import { cn } from "~/lib/utils";
 import { InfoCard } from "./info-card";
@@ -23,6 +23,10 @@ type ResultViewProps = {
   onDownload: () => void;
   previewText: string;
   unsupported: UnsupportedFile[];
+  /** Included files that decoded as "ambiguous" — kept in, but worth a look. */
+  flaggedFiles: string[];
+  /** Open the "Adjust what's included" drawer. */
+  onAdjust: () => void;
   bigBundle: boolean;
   splitMode: SplitMode;
   onSplitModeChange: (mode: SplitMode) => void;
@@ -45,12 +49,14 @@ export function ResultView({
   onDownload,
   previewText,
   unsupported,
+  flaggedFiles,
+  onAdjust,
   bigBundle,
   splitMode,
   onSplitModeChange,
 }: ResultViewProps) {
-  const preview =
-    previewText.length > PREVIEW_LIMIT ? previewText.slice(0, PREVIEW_LIMIT) + "\n…" : previewText;
+  const truncated = previewText.length > PREVIEW_LIMIT;
+  const preview = truncated ? previewText.slice(0, PREVIEW_LIMIT) + "\n…" : previewText;
 
   return (
     <section className="animate-fade-up mx-auto w-full max-w-[720px] px-4 pt-12 motion-reduce:animate-none">
@@ -127,8 +133,41 @@ export function ResultView({
         />
       </div>
 
-      {(unsupported.length > 0 || bigBundle) && (
+      {(flaggedFiles.length > 0 || unsupported.length > 0 || bigBundle) && (
         <div className="mt-5 flex flex-col gap-3">
+          {flaggedFiles.length > 0 && (
+            <InfoCard
+              tone="info"
+              icon={FileQuestion}
+              title={`${flaggedFiles.length} ${flaggedFiles.length === 1 ? "file" : "files"} might not be plain text`}
+            >
+              <p>
+                {flaggedFiles.length === 1 ? "It was" : "They were"} kept in, but we couldn&apos;t
+                read {flaggedFiles.length === 1 ? "it" : "them"} cleanly. If the preview below looks
+                garbled, drop {flaggedFiles.length === 1 ? "it" : "them"} from the bundle.
+              </p>
+              <ul className="mt-2 flex flex-col gap-1">
+                {flaggedFiles.slice(0, 6).map((name) => (
+                  <li key={name} className="text-ink font-mono text-[11px]">
+                    {name}
+                  </li>
+                ))}
+                {flaggedFiles.length > 6 && (
+                  <li className="text-ink-faint font-mono text-[11px]">
+                    +{flaggedFiles.length - 6} more
+                  </li>
+                )}
+              </ul>
+              <button
+                type="button"
+                onClick={onAdjust}
+                className="text-ink focus-visible:ring-ring focus-visible:ring-offset-background rounded-input mt-2.5 inline-flex items-center gap-1.5 text-[13px] font-medium underline decoration-[oklch(var(--hairline))] underline-offset-4 transition-colors hover:decoration-current focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                Adjust what&apos;s included
+              </button>
+            </InfoCard>
+          )}
           {unsupported.length > 0 && (
             <InfoCard
               tone="info"
@@ -178,17 +217,19 @@ export function ResultView({
         </div>
       )}
 
-      <details className="group mt-4">
-        <summary className="text-ink-secondary hover:text-ink flex cursor-pointer list-none items-center gap-2 text-sm marker:content-['']">
-          <span className="text-ink-faint transition-transform duration-150 group-open:rotate-90">
-            ▸
-          </span>
-          Peek at what your AI receives
-        </summary>
-        <pre className="border-border bg-surface-inset text-code rounded-card mt-3 max-h-[420px] overflow-auto border p-4 font-mono text-xs leading-relaxed">
+      <div className="mt-6">
+        <div className="mb-2 flex items-baseline justify-between gap-3">
+          <h3 className="text-ink-secondary text-sm font-medium">What your AI receives</h3>
+          {truncated && (
+            <span className="text-ink-faint font-mono text-[11px]">
+              preview · first {fmt.format(PREVIEW_LIMIT)} chars
+            </span>
+          )}
+        </div>
+        <pre className="border-border bg-surface-inset text-code rounded-card max-h-[420px] overflow-auto border p-4 font-mono text-xs leading-relaxed">
           {preview}
         </pre>
-      </details>
+      </div>
     </section>
   );
 }

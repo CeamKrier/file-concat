@@ -228,6 +228,13 @@ export function AppFlow() {
     );
     return filter.fileStatuses.filter((s) => !s.included && !rejected.has(s.path)).length;
   }, [filter.fileStatuses, ingestion.validations]);
+  // Included files that decoded as "ambiguous" — kept in, flagged for a look.
+  const flaggedFiles = useMemo(() => {
+    const included = new Set(filter.fileStatuses.filter((s) => s.included).map((s) => s.path));
+    return Object.entries(ingestion.validations)
+      .filter(([path, v]) => v.classification === "ambiguous" && included.has(path))
+      .map(([path]) => path.split("/").pop() ?? path);
+  }, [ingestion.validations, filter.fileStatuses]);
   const bigBundle = tokens > MULTI_OUTPUT_LIMIT;
   const projectName = useMemo(
     () =>
@@ -446,6 +453,8 @@ export function AppFlow() {
               onDownload={output.download}
               previewText={previewText}
               unsupported={unsupported}
+              flaggedFiles={flaggedFiles}
+              onAdjust={() => setSettingsOpen(true)}
               bigBundle={bigBundle}
               splitMode={output.selectedFormat}
               onSplitModeChange={(mode) => setConfig({ defaultOutputFormat: mode })}
