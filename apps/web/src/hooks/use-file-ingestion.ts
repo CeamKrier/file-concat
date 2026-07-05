@@ -35,8 +35,17 @@ export type IncomingFile = {
 export type FailedFile = { path: string; error: string };
 
 export type IngestPhase = "unpacking" | "reading" | "fetching";
-/** Live progress for the processing view. `total === 0` means indeterminate. */
-export type IngestProgress = { phase: IngestPhase; done: number; total: number } | null;
+/**
+ * Live progress for the processing view. `total === 0` means indeterminate.
+ * `note` is the current coarse stage ("Listing files", "Downloading files")
+ * shown while a numeric total isn't known yet, so the spinner is never silent.
+ */
+export type IngestProgress = {
+  phase: IngestPhase;
+  done: number;
+  total: number;
+  note?: string;
+} | null;
 
 export interface FileIngestion {
   entries: ContentEntry[];
@@ -136,14 +145,30 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     async (url: string, sourceType: SourceType, signal: AbortSignal) => {
       setIsRepoLoading(true);
       setSourceUrl(url);
-      setProgress({ phase: "fetching", done: 0, total: 0 });
+      // Immediate feedback: the spinner shows a stage before the first network
+      // round-trip resolves, so a slow connect never reads as "frozen".
+      setProgress({ phase: "fetching", done: 0, total: 0, note: "Connecting…" });
       try {
         const adapter = defaultSourceRegistry.getByType(sourceType);
         if (!adapter) throw new Error("Unknown source type");
 
+        // Coarse stages (connect / list / download) drive the heading during
+        // the pre-download window; numeric progress takes over once totals land.
+        const onStatus = (message: string) =>
+          setProgress((prev) => ({
+            phase: "fetching",
+            done: prev?.done ?? 0,
+            total: prev?.total ?? 0,
+            note: message,
+          }));
         const onProgress = (p: DownloadProgress) =>
-          setProgress({ phase: "fetching", done: p.completedFiles, total: p.totalFiles });
-        const { files, error } = await adapter.fetchFiles(url, { onProgress, signal });
+          setProgress((prev) => ({
+            phase: "fetching",
+            done: p.completedFiles,
+            total: p.totalFiles,
+            note: prev?.note,
+          }));
+        const { files, error } = await adapter.fetchFiles(url, { onProgress, onStatus, signal });
         if (error) throw new Error(error);
 
         const incoming: IncomingFile[] = [];
@@ -227,6 +252,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       dragCounter.current = 0;
       setIsProcessing(true);
       setProcessingStatus("Scanning files...");
+      // Walking a large dropped folder can take a beat before the read loop
+      // starts reporting counts — show the stage so it isn't a silent spinner.
+      setProgress({ phase: "reading", done: 0, total: 0, note: "Scanning files…" });
 
       try {
         const { collected, failed } = await collectFromDataTransfer(e.dataTransfer.items, {

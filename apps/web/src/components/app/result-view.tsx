@@ -1,4 +1,4 @@
-import { Check, Copy, Download, FileQuestion, FileWarning, Scissors, SlidersHorizontal } from "lucide-react";
+import { Check, Copy, Download, EyeOff, FileQuestion, FileWarning, Scissors, SlidersHorizontal } from "lucide-react";
 
 import { cn } from "~/lib/utils";
 import { InfoCard } from "./info-card";
@@ -22,7 +22,10 @@ type ResultViewProps = {
   onCopy: () => void;
   onDownload: () => void;
   previewText: string;
+  /** Genuinely not combinable as text — binaries, archives, unreadable files. */
   unsupported: UnsupportedFile[];
+  /** Readable text held back by a default rule — hidden dotfiles, over the size cap. */
+  skippedByDefault: UnsupportedFile[];
   /** Included files that decoded as "ambiguous" — kept in, but worth a look. */
   flaggedFiles: string[];
   /** Open the "Adjust what's included" drawer. */
@@ -49,6 +52,7 @@ export function ResultView({
   onDownload,
   previewText,
   unsupported,
+  skippedByDefault,
   flaggedFiles,
   onAdjust,
   bigBundle,
@@ -133,7 +137,10 @@ export function ResultView({
         />
       </div>
 
-      {(flaggedFiles.length > 0 || unsupported.length > 0 || bigBundle) && (
+      {(flaggedFiles.length > 0 ||
+        unsupported.length > 0 ||
+        skippedByDefault.length > 0 ||
+        bigBundle) && (
         <div className="mt-5 flex flex-col gap-3">
           {flaggedFiles.length > 0 && (
             <InfoCard
@@ -191,6 +198,41 @@ export function ResultView({
                   </li>
                 )}
               </ul>
+            </InfoCard>
+          )}
+          {skippedByDefault.length > 0 && (
+            <InfoCard
+              tone="neutral"
+              icon={EyeOff}
+              title={`${skippedByDefault.length} text ${skippedByDefault.length === 1 ? "file" : "files"} left out by default`}
+            >
+              <p>
+                {skippedByDefault.length === 1 ? "It's" : "They're"} readable text, just kept out by
+                default: hidden dotfiles like <span className="text-ink">.gitignore</span>, or files
+                over the size cap. Add {skippedByDefault.length === 1 ? "it" : "any"} back if you
+                need {skippedByDefault.length === 1 ? "it" : "them"}.
+              </p>
+              <ul className="mt-2 flex flex-col gap-1">
+                {skippedByDefault.slice(0, 6).map((f) => (
+                  <li key={f.name} className="flex items-baseline gap-2 font-mono text-[11px]">
+                    <span className="text-ink">{f.name}</span>
+                    <span className="text-ink-faint">· {f.why}</span>
+                  </li>
+                ))}
+                {skippedByDefault.length > 6 && (
+                  <li className="text-ink-faint font-mono text-[11px]">
+                    +{skippedByDefault.length - 6} more
+                  </li>
+                )}
+              </ul>
+              <button
+                type="button"
+                onClick={onAdjust}
+                className="text-ink focus-visible:ring-ring focus-visible:ring-offset-background rounded-input mt-2.5 inline-flex items-center gap-1.5 text-[13px] font-medium underline decoration-[oklch(var(--hairline))] underline-offset-4 transition-colors hover:decoration-current focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                Adjust what&apos;s included
+              </button>
             </InfoCard>
           )}
           {bigBundle && (

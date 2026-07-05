@@ -141,23 +141,31 @@ export function AppFlow() {
 
   // --- result summary -------------------------------------------------------
   const filesCombined = filter.includedFileCount;
-  // Files the engine couldn't read as text (binaries, oversize) + read failures.
-  const unsupported = useMemo(() => {
-    const list: { name: string; why: string }[] = [];
-    const whyFor = (name: string, fallback: string) =>
+  // Two honest buckets for what didn't make it in. `notText` genuinely can't be
+  // combined (binary, archive, unreadable). `skippedByDefault` IS readable text,
+  // just held back by a default rule — hidden dotfiles or over the size cap — so
+  // it gets its own framing and stays one click from being re-included.
+  const { notText, skippedByDefault } = useMemo(() => {
+    const notText: { name: string; why: string }[] = [];
+    const skippedByDefault: { name: string; why: string }[] = [];
+    const archiveWhy = (name: string, fallback: string) =>
       /\.(7z|rar)$/i.test(name)
         ? "This archive type can't be opened in the browser. Unzip it first, or use .zip or .tar."
         : fallback;
     for (const [path, v] of Object.entries(ingestion.validations)) {
-      if (!v.included) {
-        const name = path.split("/").pop() ?? path;
-        list.push({ name, why: whyFor(name, v.reason ?? "not text") });
+      if (v.included) continue;
+      const name = path.split("/").pop() ?? path;
+      const reason = v.reason ?? "";
+      if (reason === "Hidden file" || /^File size exceeds/.test(reason)) {
+        skippedByDefault.push({ name, why: reason });
+      } else {
+        notText.push({ name, why: archiveWhy(name, reason || "Not text") });
       }
     }
     for (const f of ingestion.failedFiles) {
-      list.push({ name: f.path.split("/").pop() ?? f.path, why: f.error });
+      notText.push({ name: f.path.split("/").pop() ?? f.path, why: f.error });
     }
-    return list;
+    return { notText, skippedByDefault };
   }, [ingestion.validations, ingestion.failedFiles]);
   // "Noise" = valid text excluded by ignore patterns — not the non-text files above.
   const noiseSkipped = useMemo(() => {
@@ -224,12 +232,15 @@ export function AppFlow() {
   const progress = ingestion.progress;
   const percent =
     progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : null;
+  // The engine's live stage note wins as the heading (Connecting → Listing →
+  // Downloading), falling back to the phase name once files start streaming.
   const processingHeading =
-    progress?.phase === "fetching"
+    progress?.note ??
+    (progress?.phase === "fetching"
       ? "Fetching files"
       : progress?.phase === "unpacking"
         ? "Unpacking archive"
-        : "Reading files";
+        : "Reading files");
   const processingDetail =
     progress && progress.total > 0 ? `${progress.done} / ${progress.total} files` : processingLabel;
 
@@ -362,7 +373,8 @@ export function AppFlow() {
               onCopy={output.copy}
               onDownload={output.download}
               previewText={previewText}
-              unsupported={unsupported}
+              unsupported={notText}
+              skippedByDefault={skippedByDefault}
               flaggedFiles={flaggedFiles}
               onAdjust={() => setSettingsOpen(true)}
               bigBundle={bigBundle}
