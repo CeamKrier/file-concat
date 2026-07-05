@@ -1,6 +1,11 @@
 import { useCallback, useRef, useState } from "react";
-import type { DownloadProgress, ProcessingConfig, SourceType } from "@fileconcat/core";
-import { defaultSourceRegistry, validateFile } from "@fileconcat/core";
+import type {
+  DownloadProgress,
+  ProcessingConfig,
+  SourceType,
+  TextClassification,
+} from "@fileconcat/core";
+import { defaultSourceRegistry, readFileAsText, validateFile } from "@fileconcat/core";
 
 import { collectFromDataTransfer } from "~/lib/collect-from-drop";
 import { expandArchives } from "~/lib/expand-archives";
@@ -15,6 +20,8 @@ export type ContentEntry = { path: string; content: string };
 export type ValidationRecord = {
   included: boolean;
   reason?: string;
+  /** text / binary / ambiguous — undefined when binary checking is off. */
+  classification?: TextClassification;
   size: number;
   type: string;
 };
@@ -88,12 +95,17 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         nextValidations[entry.path] = {
           included: result.isValid,
           reason: result.reason,
+          classification: result.classification,
           size: entry.file.size,
           type: entry.file.type || "text/plain",
         };
 
         try {
-          const content = entry.content !== undefined ? entry.content : await entry.file.text();
+          // Decode through the core classifier so odd encodings (e.g. UTF-16)
+          // read as real text instead of UTF-8 mojibake. Remote sources already
+          // arrive decoded, so their content passes through untouched.
+          const content =
+            entry.content !== undefined ? entry.content : (await readFileAsText(entry.file)).text;
           nextEntries.push({ path: entry.path, content });
         } catch (error) {
           console.error(`Failed to read file ${entry.path}:`, error);
