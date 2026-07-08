@@ -62,6 +62,55 @@ Open decisions to resume with:
 - Sequencing agreed: (a) in-app crawl-to-markdown first, then (b) the
   `fileconcat.com/<url>` URL-addressable surface + API.
 
+## Vision-model image description / OCR (parked initiative)
+
+Captured 2026-07-08, not yet researched. Idea: close the two biggest content
+gaps at once by describing images with a vision model —
+
+1. **Image files**, excluded as binary today (the "images need a different tool"
+   line on the landing page).
+2. **Scanned / image-only PDFs**, where extraction yields nothing (the OCR gap;
+   `officeparser` surfaces "no extractable text").
+
+Premise correction to research from: **a Claude/ChatGPT/Gemini _subscription_
+does not grant API access.** "Use the plan the user already pays for" is not a
+path. The two real shapes are:
+
+- **BYO API key** — user pastes their own OpenAI/Anthropic/Google key, stored
+  locally; the browser calls the vision endpoint **directly** (browser→provider),
+  so FileConcat's server never sees the image or the key and the privacy brand
+  survives. Crux: CORS per provider (Anthropic allows via
+  `anthropic-dangerous-direct-browser-access`; Google AI Studio allows key in
+  request; OpenAI is the awkward one). Cost is pay-per-token, on the user, so it
+  needs explicit opt-in + a cost preview.
+- **Local WebGPU vision model** — a small VLM (moondream, Florence-2) via
+  transformers.js, fully offline, no key, free. Truest to the privacy brand;
+  cost is a heavy first-load download and weaker captions.
+
+Open questions to resume with: which shape (or offer both, local as default,
+BYO-key as the quality tier?); CORS reality per provider; consent + cost UX for
+the cloud path; model size/quality for the local path; whether the output labels
+described images distinctly from extracted text. — _large; needs deep research._
+
+## Persona positioning + marketing pages (decided; execution pending)
+
+Decided in the 2026-07-08 grill and recorded in **ADR-0006** (positioning) and
+**ADR-0005** (content-adaptive output tag): reposition from codebase-only to
+**codebase-anchor + invited document users** (register B). Target personas for
+v1 dedicated pages: **Developer (home) + Legal + Researcher** at `/for/<persona>`;
+writer / data / student stay "works for you too" without pages until search
+demand shows. Architecture is settled; what remains is **execution, not design**:
+
+- **Output classifier** — implement the CODE/DOC/OTHER tally in
+  `packages/core/src/file-processing/output.ts` (ADR-0005): adapt root tag +
+  summary noun + markdown/plain headers, and replace "default ignore patterns"
+  with plain language.
+- **Home rewording** for register B — h1 / subhead / trust bullets so the
+  document user sees themselves without displacing the developer flagship.
+- **`/for/legal` + `/for/researchers`** pages — each must clear the four-part
+  anti-thinness contract (ADR-0006): own workflow, real file types, one worked
+  example, persona hook. Shared shell, bespoke body.
+
 ## Verification / process
 
 - **Browser end-to-end for document extraction.** Build, typecheck, lint, 188
