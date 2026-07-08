@@ -27,7 +27,7 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
   other: {
     icon: FileQuestion,
     title: "Nothing text-like to combine",
-    body: "FileConcat bundles text (code, docs, configs and data) into one document. These files look binary or empty, so nothing was left to pack.",
+    body: "FileConcat bundles text (code, docs, configs and data) and pulls the text out of PDFs and Office files. These look binary or hold no extractable text, so nothing was left to pack.",
     cta: "Start over",
   },
 };
