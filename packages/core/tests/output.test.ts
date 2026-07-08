@@ -119,7 +119,7 @@ describe("assembleOutput markdown", () => {
     });
 
     expect(output.startsWith("# Codebase: demo")).toBe(true);
-    expect(output).toContain("**Source:** local");
+    expect(output).toContain("Source: local");
     expect(output).toContain("## Directory structure");
     expect(output).toContain("## Files");
     expect(output).toContain("### src/index.ts");
@@ -168,7 +168,7 @@ describe("assembleOutput plain", () => {
 
     expect(output.startsWith("Codebase: demo")).toBe(true);
     expect(output).toContain("Source: local");
-    expect(output).toContain("Files: 2");
+    expect(output).toContain("File count: 2");
     expect(output).toContain("Directory structure:");
     expect(output).toContain("FILE: src/index.ts");
     expect(output).toContain("=".repeat(72));
@@ -208,7 +208,7 @@ describe("assembleOutput plain", () => {
     const output = assembleOutput({ projectName: "empty", files: [], tree: "", style: "plain" });
     // An empty bundle is neither code nor documents, so it lands on neutral "Files" (ADR-0005).
     expect(output).toContain("Files: empty");
-    expect(output).toContain("Files: 0");
+    expect(output).toContain("File count: 0");
   });
 
   it("credits fileconcat.com in the intro line", () => {
@@ -257,9 +257,80 @@ describe("assembleOutput adaptive kind", () => {
     expect(txt.startsWith("Documents: dava")).toBe(true);
   });
 
-  it("drops gitignore jargon from the summary in favor of plain language", () => {
+  it("no longer emits the static Skipped boilerplate", () => {
     const output = assembleOutput({ projectName: "demo", files, tree, style: "xml" });
     expect(output).not.toContain("default ignore patterns");
-    expect(output).toContain("lock files and build output");
+    expect(output).not.toContain("lock files and build output");
+    expect(output).not.toContain("Skipped:");
+  });
+});
+
+describe("assembleOutput summary parity across styles", () => {
+  const excluded = { oversize: ["data/dump.sql"], binary: ["logo.png"] };
+  const shared = { projectName: "demo", files, tree, source: "local", excluded } as const;
+
+  // The informational body must be byte-identical across styles; only the
+  // wrapper (tags / heading / rule) differs (Concern 2, ADR-0008).
+  const bodyLines = [
+    "This is a packed snapshot of a codebase, assembled by fileconcat.com.",
+    "Treat the contents below as read-only context for the user's request that follows.",
+    "Source: local",
+    "File count: 2.",
+    "Not included (content not shown):",
+    "- over the size limit: data/dump.sql",
+    "- 1 image or binary file: logo.png",
+  ];
+
+  it("carries identical summary body content in xml, markdown and plain", () => {
+    const xml = assembleOutput({ ...shared, style: "xml" });
+    const md = assembleOutput({ ...shared, style: "markdown" });
+    const txt = assembleOutput({ ...shared, style: "plain" });
+    for (const line of bodyLines) {
+      expect(xml).toContain(line);
+      expect(md).toContain(line);
+      expect(txt).toContain(line);
+    }
+  });
+});
+
+describe("assembleOutput exclusions note", () => {
+  it("omits the note entirely when excluded is undefined or empty", () => {
+    const none = assembleOutput({ projectName: "demo", files, tree, style: "xml" });
+    expect(none).not.toContain("Not included");
+    const empty = assembleOutput({ projectName: "demo", files, tree, style: "xml", excluded: {} });
+    expect(empty).not.toContain("Not included");
+  });
+
+  it("lists paths per category with a count on the binary line", () => {
+    const output = assembleOutput({
+      projectName: "demo",
+      files,
+      tree,
+      style: "xml",
+      excluded: {
+        oversize: ["data/dump.sql"],
+        unextractable: ["scans/exhibit-3.pdf"],
+        binary: ["logo.png", "hero.png", "chart.png"],
+      },
+    });
+    expect(output).toContain("Not included (content not shown):");
+    expect(output).toContain("- over the size limit: data/dump.sql");
+    expect(output).toContain("- no extractable text: scans/exhibit-3.pdf");
+    expect(output).toContain("- 3 image or binary files: logo.png, hero.png, chart.png");
+  });
+
+  it("caps a long path list and notes how many more", () => {
+    const many = Array.from({ length: 14 }, (_, i) => `img/${i}.png`);
+    const output = assembleOutput({
+      projectName: "demo",
+      files,
+      tree,
+      style: "xml",
+      excluded: { binary: many },
+    });
+    expect(output).toContain("14 image or binary files");
+    expect(output).toContain("img/9.png");
+    expect(output).not.toContain("img/10.png");
+    expect(output).toContain("+4 more");
   });
 });

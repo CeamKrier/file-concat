@@ -12,6 +12,7 @@ import {
   BINARY_EXTENSIONS,
   classifyBytes,
   type OutputStyle,
+  type ExcludedSummary,
 } from "@fileconcat/core";
 import { loadConfig, type FileConcatConfig } from "../config.js";
 
@@ -155,7 +156,14 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
   log.info(`Found ${files.length} files`);
 
   const processedFiles: Array<{ path: string; content: string; language?: string }> = [];
-  const skippedBreakdown = { oversize: 0, binary: 0, readError: 0, parseFailed: 0 };
+  // Collect the *paths* skipped per reason so the bundle summary can name the
+  // content gaps (ADR-0008); counts for stderr/--json derive from `.length`.
+  const skipped = {
+    oversize: [] as string[],
+    binary: [] as string[],
+    readError: [] as string[],
+    parseFailed: [] as string[],
+  };
   let parsedCount = 0;
   let totalSize = 0;
 
@@ -164,7 +172,7 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
     const stats = fs.statSync(fullPath);
 
     if (stats.size > maxFileSizeMB * 1024 * 1024) {
-      skippedBreakdown.oversize++;
+      skipped.oversize.push(file);
       continue;
     }
 
@@ -177,7 +185,7 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
         const text = typeof result.value === "string" ? result.value.trim() : "";
         if (!text) {
           log.warn(`Skipped (no extractable text): ${file}`);
-          skippedBreakdown.parseFailed++;
+          skipped.parseFailed.push(file);
           continue;
         }
         processedFiles.push({ path: file, content: text, language: "text" });
@@ -186,13 +194,13 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         log.warn(`Skipped (parse failed): ${file} (${message})`);
-        skippedBreakdown.parseFailed++;
+        skipped.parseFailed.push(file);
       }
       continue;
     }
 
     if (excludeBinary && BINARY_EXTENSIONS.includes(ext)) {
-      skippedBreakdown.binary++;
+      skipped.binary.push(file);
       continue;
     }
 
@@ -201,7 +209,7 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
       // correctly and catches a mislabeled binary the extension list missed.
       const decoded = classifyBytes(fs.readFileSync(fullPath));
       if (excludeBinary && decoded.classification === "binary") {
-        skippedBreakdown.binary++;
+        skipped.binary.push(file);
         continue;
       }
       if (decoded.classification === "ambiguous") {
@@ -210,10 +218,24 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
       processedFiles.push({ path: file, content: decoded.text });
       totalSize += stats.size;
     } catch {
-      skippedBreakdown.readError++;
+      skipped.readError.push(file);
     }
   }
 
+  // Only the categories the model can't see in the tree; noise filtered by
+  // glob/.gitignore was already dropped from the walk and is never listed.
+  const excluded: ExcludedSummary = {};
+  if (skipped.oversize.length) excluded.oversize = skipped.oversize;
+  if (skipped.parseFailed.length) excluded.unextractable = skipped.parseFailed;
+  if (skipped.binary.length) excluded.binary = skipped.binary;
+  if (skipped.readError.length) excluded.unreadable = skipped.readError;
+
+  const skippedBreakdown = {
+    oversize: skipped.oversize.length,
+    binary: skipped.binary.length,
+    readError: skipped.readError.length,
+    parseFailed: skipped.parseFailed.length,
+  };
   const skippedCount =
     skippedBreakdown.oversize +
     skippedBreakdown.binary +
@@ -233,6 +255,7 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
     tree,
     style,
     source: `local:${path.basename(basePath)}`,
+    excluded,
   });
 
   if (writeToStdout) {

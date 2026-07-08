@@ -1,5 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
-import type { OutputFormat, OutputFormatPreference, OutputStyle } from "@fileconcat/core";
+import type {
+  ExcludedSummary,
+  OutputFormat,
+  OutputFormatPreference,
+  OutputStyle,
+} from "@fileconcat/core";
 import {
   MULTI_OUTPUT_LIMIT,
   assembleOutput,
@@ -19,6 +24,9 @@ const DOWNLOAD_THROTTLE_MS = 100;
 
 export interface OutputGenerationInputs {
   includedContents: ContentEntry[];
+  /** Real content gaps (oversize / unextractable / binary) reported in the
+   * bundle summary. Absent categories are simply not listed (ADR-0008). */
+  excluded: ExcludedSummary;
   tokens: number;
   sourceUrl: string | null;
   outputStyle: OutputStyle;
@@ -42,6 +50,7 @@ export interface OutputGeneration {
 
 export function useOutputGeneration({
   includedContents,
+  excluded,
   tokens,
   sourceUrl,
   outputStyle,
@@ -90,10 +99,11 @@ export function useOutputGeneration({
           style: outputStyle,
           source: sourceUrl ?? undefined,
           part,
+          excluded,
         }),
       };
     },
-    [outputStyle, sourceUrl],
+    [outputStyle, sourceUrl, excluded],
   );
 
   const copy = useCallback(async () => {

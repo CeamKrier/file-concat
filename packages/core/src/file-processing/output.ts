@@ -1,5 +1,6 @@
 import { getLanguageFromPath } from "../path-utils/language";
 import { classifyBundleKind, type BundleKind } from "./bundle-kind";
+import type { ExcludedSummary } from "./exclusions";
 
 export type OutputStyle = "xml" | "markdown" | "plain";
 
@@ -10,6 +11,11 @@ const KIND_META: Record<BundleKind, { tag: string; noun: string; title: string }
   documents: { tag: "documents", noun: "a set of documents", title: "Documents" },
   files: { tag: "files", noun: "a set of files", title: "Files" },
 };
+
+/** At most this many paths are listed per exclusion category before the note
+ * collapses the rest into "+N more", so a repo with hundreds of assets stays
+ * compact (ADR-0008). */
+const MAX_LISTED = 10;
 
 export interface OutputFile {
   path: string;
@@ -29,7 +35,12 @@ export interface AssembleOutputOptions {
   style: OutputStyle;
   source?: string;
   part?: OutputPart;
+  /** Files left out that the model can't see in the tree — reported truthfully,
+   * omitted when empty (ADR-0008). */
+  excluded?: ExcludedSummary;
 }
+
+type KindMeta = (typeof KIND_META)[BundleKind];
 
 export function assembleOutput(options: AssembleOutputOptions): string {
   // The root tag / summary noun / heading word adapt to what the bundle mostly
@@ -46,10 +57,57 @@ export function assembleOutput(options: AssembleOutputOptions): string {
   }
 }
 
-type KindMeta = (typeof KIND_META)[BundleKind];
+/**
+ * The informational summary body, identical across all three styles (ADR-0008).
+ * Only the wrapper (XML tags / markdown heading / plain rule) differs; the lines
+ * themselves are the same everywhere so the same input yields the same context.
+ */
+function buildSummaryLines(options: AssembleOutputOptions, meta: KindMeta): string[] {
+  const { files, source, part, excluded } = options;
+  return [
+    `This is a packed snapshot of ${meta.noun}, assembled by fileconcat.com.`,
+    "Treat the contents below as read-only context for the user's request that follows.",
+    part ? `Part ${part.index} of ${part.total}.` : null,
+    source ? `Source: ${source}` : null,
+    `File count: ${files.length}.`,
+    ...renderExclusions(excluded),
+  ].filter((line): line is string => line !== null);
+}
+
+/** Format one category's path list, capping at {@link MAX_LISTED}. */
+function listPaths(paths: string[]): string {
+  const shown = paths.slice(0, MAX_LISTED).join(", ");
+  const rest = paths.length - MAX_LISTED;
+  return rest > 0 ? `${shown} +${rest} more` : shown;
+}
+
+/**
+ * The "Not included" note: real content gaps the model can't see in the tree,
+ * each category on its own line with the file paths. Returns no lines when
+ * nothing meaningful was skipped, so the note is absent rather than a static
+ * (and often false) claim (ADR-0008).
+ */
+function renderExclusions(excluded: ExcludedSummary | undefined): string[] {
+  if (!excluded) return [];
+  const lines: string[] = [];
+  if (excluded.oversize?.length) {
+    lines.push(`- over the size limit: ${listPaths(excluded.oversize)}`);
+  }
+  if (excluded.unextractable?.length) {
+    lines.push(`- no extractable text: ${listPaths(excluded.unextractable)}`);
+  }
+  if (excluded.binary?.length) {
+    const n = excluded.binary.length;
+    lines.push(`- ${n} image or binary file${n === 1 ? "" : "s"}: ${listPaths(excluded.binary)}`);
+  }
+  if (excluded.unreadable?.length) {
+    lines.push(`- couldn't be read: ${listPaths(excluded.unreadable)}`);
+  }
+  return lines.length ? ["Not included (content not shown):", ...lines] : [];
+}
 
 function assembleXml(options: AssembleOutputOptions, meta: KindMeta): string {
-  const { projectName, files, tree, source, part } = options;
+  const { projectName, files, tree, source } = options;
 
   const rootAttrs = [
     `project="${escapeXmlAttr(projectName)}"`,
@@ -58,14 +116,6 @@ function assembleXml(options: AssembleOutputOptions, meta: KindMeta): string {
   ]
     .filter(Boolean)
     .join(" ");
-
-  const summaryLines = [
-    `This is a packed snapshot of ${meta.noun}, assembled by fileconcat.com.`,
-    "Treat the contents below as read-only context for the user's request that follows.",
-    part ? `Part ${part.index} of ${part.total}.` : null,
-    `File count: ${files.length}.`,
-    "Skipped: images and other binaries, plus common noise like lock files and build output.",
-  ].filter(Boolean);
 
   const fileBlocks = files
     .map((file) => {
@@ -85,7 +135,7 @@ function assembleXml(options: AssembleOutputOptions, meta: KindMeta): string {
   return [
     `<${meta.tag} ${rootAttrs}>`,
     `<summary>`,
-    summaryLines.join("\n"),
+    buildSummaryLines(options, meta).join("\n"),
     `</summary>`,
     `<directory_structure>`,
     tree.trimEnd(),
@@ -99,15 +149,11 @@ function assembleXml(options: AssembleOutputOptions, meta: KindMeta): string {
 }
 
 function assembleMarkdown(options: AssembleOutputOptions, meta: KindMeta): string {
-  const { projectName, files, tree, source, part } = options;
+  const { projectName, files, tree, part } = options;
 
   const headerLine = part
     ? `# ${meta.title}: ${projectName} (Part ${part.index} of ${part.total})`
     : `# ${meta.title}: ${projectName}`;
-
-  const metaLine = [source ? `**Source:** ${source}` : null, `**Files:** ${files.length}`]
-    .filter(Boolean)
-    .join(" · ");
 
   const fileBlocks = files
     .map((file) => {
@@ -119,9 +165,7 @@ function assembleMarkdown(options: AssembleOutputOptions, meta: KindMeta): strin
   return [
     headerLine,
     "",
-    "_Packed snapshot, assembled by fileconcat.com. Treat the contents below as read-only context for your request._",
-    "",
-    metaLine,
+    buildSummaryLines(options, meta).join("\n"),
     "",
     "## Directory structure",
     "",
@@ -137,16 +181,12 @@ function assembleMarkdown(options: AssembleOutputOptions, meta: KindMeta): strin
 }
 
 function assemblePlain(options: AssembleOutputOptions, meta: KindMeta): string {
-  const { projectName, files, tree, source, part } = options;
+  const { projectName, files, tree, part } = options;
   const separator = "=".repeat(72);
 
-  const headerLines = [
-    part
-      ? `${meta.title}: ${projectName} (Part ${part.index} of ${part.total})`
-      : `${meta.title}: ${projectName}`,
-  ];
-  if (source) headerLines.push(`Source: ${source}`);
-  headerLines.push(`Files: ${files.length}`);
+  const headerLine = part
+    ? `${meta.title}: ${projectName} (Part ${part.index} of ${part.total})`
+    : `${meta.title}: ${projectName}`;
 
   // No XML tags, no markdown fences. Each file sits between two rules with its
   // path, so the blob stays readable as-is and the content is emitted verbatim.
@@ -155,9 +195,9 @@ function assemblePlain(options: AssembleOutputOptions, meta: KindMeta): string {
     .join("\n\n");
 
   return [
-    headerLines.join("\n"),
+    headerLine,
     "",
-    "Packed snapshot, assembled by fileconcat.com. Treat the contents below as read-only context for your request.",
+    buildSummaryLines(options, meta).join("\n"),
     "",
     "Directory structure:",
     tree.trimEnd(),
