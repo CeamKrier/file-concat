@@ -25,6 +25,9 @@ takes long-form context.
 - Live token counting against the tokenizer most modern LLMs use, so
   you know how much of your context window the output consumes
   before you paste it.
+- Text extraction from documents — drop a PDF, Word, Excel, PowerPoint,
+  or OpenDocument file and its text is pulled out and included
+  automatically, entirely in the browser (nothing is uploaded).
 
 ## How it works
 
@@ -426,7 +429,13 @@ that the walker still pulled in.
 When a file is ingested, FileConcat checks two things and records the
 result in a sticky `validations` map:
 
-- Is the content binary? Binary files are excluded permanently.
+- Is the content binary? Genuine binaries (images, archives, media) are
+  excluded permanently. **Extractable documents** — PDF, Word, Excel,
+  PowerPoint, and OpenDocument files — are the exception: their text is
+  pulled out and included as text, right in the browser, instead of the
+  file being dropped. When a document carries no recoverable text (a
+  scanned image-only or encrypted PDF), it is surfaced as excluded rather
+  than silently dropped.
 - Does the file exceed the configured max size (default 32 MB)? Oversize
   files are excluded permanently.
 

@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
+import { Route as ForResearchersRouteImport } from './routes/for/researchers'
+import { Route as ForLegalRouteImport } from './routes/for/legal'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
 import { Route as ApiModelsRouteImport } from './routes/api/models'
 
@@ -30,6 +32,16 @@ const DocsIndexRoute = DocsIndexRouteImport.update({
   path: '/docs/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ForResearchersRoute = ForResearchersRouteImport.update({
+  id: '/for/researchers',
+  path: '/for/researchers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForLegalRoute = ForLegalRouteImport.update({
+  id: '/for/legal',
+  path: '/for/legal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocsSlugRoute = DocsSlugRouteImport.update({
   id: '/docs/$slug',
   path: '/docs/$slug',
@@ -46,6 +58,8 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRoute
   '/api/models': typeof ApiModelsRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/for/legal': typeof ForLegalRoute
+  '/for/researchers': typeof ForResearchersRoute
   '/docs/': typeof DocsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +67,8 @@ export interface FileRoutesByTo {
   '/app': typeof AppRoute
   '/api/models': typeof ApiModelsRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/for/legal': typeof ForLegalRoute
+  '/for/researchers': typeof ForResearchersRoute
   '/docs': typeof DocsIndexRoute
 }
 export interface FileRoutesById {
@@ -61,14 +77,38 @@ export interface FileRoutesById {
   '/app': typeof AppRoute
   '/api/models': typeof ApiModelsRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/for/legal': typeof ForLegalRoute
+  '/for/researchers': typeof ForResearchersRoute
   '/docs/': typeof DocsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/api/models' | '/docs/$slug' | '/docs/'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/api/models'
+    | '/docs/$slug'
+    | '/for/legal'
+    | '/for/researchers'
+    | '/docs/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/app' | '/api/models' | '/docs/$slug' | '/docs'
-  id: '__root__' | '/' | '/app' | '/api/models' | '/docs/$slug' | '/docs/'
+  to:
+    | '/'
+    | '/app'
+    | '/api/models'
+    | '/docs/$slug'
+    | '/for/legal'
+    | '/for/researchers'
+    | '/docs'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/api/models'
+    | '/docs/$slug'
+    | '/for/legal'
+    | '/for/researchers'
+    | '/docs/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,6 +116,8 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRoute
   ApiModelsRoute: typeof ApiModelsRoute
   DocsSlugRoute: typeof DocsSlugRoute
+  ForLegalRoute: typeof ForLegalRoute
+  ForResearchersRoute: typeof ForResearchersRoute
   DocsIndexRoute: typeof DocsIndexRoute
 }
 
@@ -102,6 +144,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/for/researchers': {
+      id: '/for/researchers'
+      path: '/for/researchers'
+      fullPath: '/for/researchers'
+      preLoaderRoute: typeof ForResearchersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for/legal': {
+      id: '/for/legal'
+      path: '/for/legal'
+      fullPath: '/for/legal'
+      preLoaderRoute: typeof ForLegalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs/$slug': {
       id: '/docs/$slug'
       path: '/docs/$slug'
@@ -124,6 +180,8 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRoute,
   ApiModelsRoute: ApiModelsRoute,
   DocsSlugRoute: DocsSlugRoute,
+  ForLegalRoute: ForLegalRoute,
+  ForResearchersRoute: ForResearchersRoute,
   DocsIndexRoute: DocsIndexRoute,
 }
 export const routeTree = rootRouteImport
