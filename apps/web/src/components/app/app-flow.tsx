@@ -183,6 +183,13 @@ export function AppFlow() {
       .filter(([path, v]) => v.classification === "ambiguous" && included.has(path))
       .map(([path]) => path.split("/").pop() ?? path);
   }, [ingestion.validations, filter.fileStatuses]);
+  // Included files whose text was extracted from a document (PDF/Office/ODF).
+  const extractedFiles = useMemo(() => {
+    const included = new Set(filter.fileStatuses.filter((s) => s.included).map((s) => s.path));
+    return Object.entries(ingestion.validations)
+      .filter(([path, v]) => v.extracted && included.has(path))
+      .map(([path]) => path.split("/").pop() ?? path);
+  }, [ingestion.validations, filter.fileStatuses]);
   const bigBundle = tokens > MULTI_OUTPUT_LIMIT;
   const projectName = useMemo(
     () =>
@@ -376,6 +383,7 @@ export function AppFlow() {
               unsupported={notText}
               skippedByDefault={skippedByDefault}
               flaggedFiles={flaggedFiles}
+              extractedFiles={extractedFiles}
               onAdjust={() => setSettingsOpen(true)}
               bigBundle={bigBundle}
               splitMode={output.selectedFormat}

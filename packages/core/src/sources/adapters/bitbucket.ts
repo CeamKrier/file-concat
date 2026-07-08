@@ -1,7 +1,8 @@
 import type { SourceAdapter, ParsedSourceUrl, FetchOptions } from "../types";
-import type { RepositoryContent, RepoFile } from "../../types";
+import type { RepositoryContent, RepoFile, FetchFailure } from "../../types";
 import { SOURCE_METADATA } from "../metadata";
 import { createProgressReporter } from "../progress";
+import { DEFAULT_DOWNLOAD_CONCURRENCY, pooledMap } from "../pooled-map";
 import { classifyResponseError, fetchWithRateLimitRetry } from "./_errors";
 
 /** Bitbucket URL regex patterns */
@@ -180,19 +181,20 @@ async function fetchBitbucketFiles(
     onStatus?.(`Downloading ${files.length} ${files.length === 1 ? "file" : "files"}`);
     const progress = createProgressReporter({ totalFiles: files.length, onProgress });
 
-    const filePromises = files.map(async (item) => {
+    const failures: FetchFailure[] = [];
+
+    const fetchedFiles = await pooledMap(files, DEFAULT_DOWNLOAD_CONCURRENCY, async (item) => {
       const contentUrl = `https://api.bitbucket.org/2.0/repositories/${workspace}/${repo}/src/${branch}/${item.path}`;
+      const displayPath = getBitbucketDisplayPath(item.path, subPath);
 
       try {
-        const response = await fetch(contentUrl, { signal });
+        const response = await fetchWithRateLimitRetry(contentUrl, { signal });
         if (!response.ok) {
           throw new Error(`Failed to fetch ${item.path}`);
         }
 
         const content = await response.text();
         progress.fileComplete(item.path);
-
-        const displayPath = getBitbucketDisplayPath(item.path, subPath);
 
         return {
           name: displayPath.split("/").pop() || "",
@@ -205,15 +207,17 @@ async function fetchBitbucketFiles(
         if (signal?.aborted) {
           throw new Error("Aborted");
         }
-        console.warn(`Failed to fetch ${item.path}:`, error);
+        failures.push({
+          path: displayPath,
+          reason: error instanceof Error ? error.message : "Download failed",
+        });
         return null;
       }
     });
 
-    const fetchedFiles = await Promise.all(filePromises);
     const validFiles = fetchedFiles.filter((file): file is RepoFile => file !== null);
 
-    return { files: validFiles };
+    return { files: validFiles, failures: failures.length ? failures : undefined };
   } catch (error) {
     if (error instanceof Error && (error.name === "AbortError" || error.message === "Aborted")) {
       throw new Error("AbortError");

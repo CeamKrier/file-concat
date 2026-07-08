@@ -1,7 +1,8 @@
 import type { SourceAdapter, ParsedSourceUrl, FetchOptions } from "../types";
-import type { RepositoryContent, RepoFile } from "../../types";
+import type { RepositoryContent, RepoFile, FetchFailure } from "../../types";
 import { SOURCE_METADATA } from "../metadata";
 import { createProgressReporter } from "../progress";
+import { DEFAULT_DOWNLOAD_CONCURRENCY, pooledMap } from "../pooled-map";
 import { classifyResponseError, fetchWithRateLimitRetry } from "./_errors";
 
 interface GitLabProjectResponse {
@@ -200,20 +201,21 @@ async function fetchGitLabFiles(url: string, options?: FetchOptions): Promise<Re
     onStatus?.(`Downloading ${files.length} ${files.length === 1 ? "file" : "files"}`);
     const progress = createProgressReporter({ totalFiles: files.length, onProgress });
 
-    const filePromises = files.map(async (item) => {
+    const failures: FetchFailure[] = [];
+
+    const fetchedFiles = await pooledMap(files, DEFAULT_DOWNLOAD_CONCURRENCY, async (item) => {
       const encodedPath = encodeURIComponent(item.path);
       const contentUrl = `https://gitlab.com/api/v4/projects/${projectId}/repository/files/${encodedPath}/raw?ref=${branch}`;
+      const displayPath = getGitLabDisplayPath(item.path, subPath);
 
       try {
-        const response = await fetch(contentUrl, { signal });
+        const response = await fetchWithRateLimitRetry(contentUrl, { signal });
         if (!response.ok) {
           throw new Error(`Failed to fetch ${item.path}`);
         }
 
         const content = await response.text();
         progress.fileComplete(item.path);
-
-        const displayPath = getGitLabDisplayPath(item.path, subPath);
 
         return {
           name: item.name,
@@ -226,15 +228,17 @@ async function fetchGitLabFiles(url: string, options?: FetchOptions): Promise<Re
         if (signal?.aborted) {
           throw new Error("Aborted");
         }
-        console.warn(`Failed to fetch ${item.path}:`, error);
+        failures.push({
+          path: displayPath,
+          reason: error instanceof Error ? error.message : "Download failed",
+        });
         return null;
       }
     });
 
-    const fetchedFiles = await Promise.all(filePromises);
     const validFiles = fetchedFiles.filter((file): file is RepoFile => file !== null);
 
-    return { files: validFiles };
+    return { files: validFiles, failures: failures.length ? failures : undefined };
   } catch (error) {
     if (error instanceof Error && (error.name === "AbortError" || error.message === "Aborted")) {
       throw new Error("AbortError");

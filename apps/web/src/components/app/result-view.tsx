@@ -1,4 +1,4 @@
-import { Check, Copy, Download, EyeOff, FileQuestion, FileWarning, Scissors, SlidersHorizontal } from "lucide-react";
+import { Check, Copy, Download, EyeOff, FileQuestion, FileText, FileWarning, Scissors, SlidersHorizontal } from "lucide-react";
 
 import { cn } from "~/lib/utils";
 import { InfoCard } from "./info-card";
@@ -28,6 +28,8 @@ type ResultViewProps = {
   skippedByDefault: UnsupportedFile[];
   /** Included files that decoded as "ambiguous" — kept in, but worth a look. */
   flaggedFiles: string[];
+  /** Included files whose text was extracted from a document (PDF/Office/ODF). */
+  extractedFiles: string[];
   /** Open the "Adjust what's included" drawer. */
   onAdjust: () => void;
   bigBundle: boolean;
@@ -54,6 +56,7 @@ export function ResultView({
   unsupported,
   skippedByDefault,
   flaggedFiles,
+  extractedFiles,
   onAdjust,
   bigBundle,
   splitMode,
@@ -138,10 +141,35 @@ export function ResultView({
       </div>
 
       {(flaggedFiles.length > 0 ||
+        extractedFiles.length > 0 ||
         unsupported.length > 0 ||
         skippedByDefault.length > 0 ||
         bigBundle) && (
         <div className="mt-5 flex flex-col gap-3">
+          {extractedFiles.length > 0 && (
+            <InfoCard
+              tone="info"
+              icon={FileText}
+              title={`Text extracted from ${extractedFiles.length} ${extractedFiles.length === 1 ? "document" : "documents"}`}
+            >
+              <p>
+                {extractedFiles.length === 1 ? "It was" : "They were"} included as extracted text —
+                the readable content pulled out of the document, not the original file bytes.
+              </p>
+              <ul className="mt-2 flex flex-col gap-1">
+                {extractedFiles.slice(0, 6).map((name) => (
+                  <li key={name} className="text-ink font-mono text-[11px]">
+                    {name}
+                  </li>
+                ))}
+                {extractedFiles.length > 6 && (
+                  <li className="text-ink-faint font-mono text-[11px]">
+                    +{extractedFiles.length - 6} more
+                  </li>
+                )}
+              </ul>
+            </InfoCard>
+          )}
           {flaggedFiles.length > 0 && (
             <InfoCard
               tone="info"

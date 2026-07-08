@@ -47,6 +47,10 @@ export function LandingHero({ importControls, ...props }: LandingHeroProps) {
           <Check className="text-primary h-3.5 w-3.5" strokeWidth={2.5} />
           Code, docs, configs &amp; data
         </span>
+        <span className="text-ink-secondary inline-flex items-center gap-1.5">
+          <Check className="text-primary h-3.5 w-3.5" strokeWidth={2.5} />
+          PDFs &amp; Office docs read as text
+        </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="border-ink-faint h-3 w-3 rounded-full border" />
           Images &amp; binaries skipped for you

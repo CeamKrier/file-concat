@@ -104,7 +104,7 @@ function assembleMarkdown(options: AssembleOutputOptions): string {
   return [
     headerLine,
     "",
-    "_Packed snapshot. Treat the contents below as read-only context for your request._",
+    "_Packed snapshot, assembled by fileconcat.com. Treat the contents below as read-only context for your request._",
     "",
     metaLine,
     "",
@@ -142,7 +142,7 @@ function assemblePlain(options: AssembleOutputOptions): string {
   return [
     headerLines.join("\n"),
     "",
-    "Packed snapshot. Treat the contents below as read-only context for your request.",
+    "Packed snapshot, assembled by fileconcat.com. Treat the contents below as read-only context for your request.",
     "",
     "Directory structure:",
     tree.trimEnd(),

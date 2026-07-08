@@ -1,4 +1,4 @@
-import { Archive, Check, Globe, ImageOff, Link2, Minus } from "lucide-react";
+import { Archive, Check, FileText, Globe, ImageOff, Link2, Minus } from "lucide-react";
 
 import { cn } from "~/lib/utils";
 import { InfoCard } from "../info-card";
@@ -9,6 +9,7 @@ const SKIPPED = ["Images", "node_modules", "*.lock", "Build output"];
 
 const EXTRAS = [
   { icon: Archive, text: "Archives unpack themselves" },
+  { icon: FileText, text: "PDFs & Office docs get read" },
   { icon: Link2, text: "Repos & Gists import by URL" },
   { icon: Globe, text: "Single web pages too" },
 ];

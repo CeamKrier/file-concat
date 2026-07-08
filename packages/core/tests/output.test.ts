@@ -101,6 +101,11 @@ describe("assembleOutput xml", () => {
     expect(output).toContain("<files>");
     expect(output).toContain("</files>");
   });
+
+  it("credits fileconcat.com in the summary", () => {
+    const output = assembleOutput({ projectName: "demo", files, tree, style: "xml" });
+    expect(output).toContain("fileconcat.com");
+  });
 });
 
 describe("assembleOutput markdown", () => {
@@ -143,6 +148,11 @@ describe("assembleOutput markdown", () => {
       part: { index: 1, total: 3 },
     });
     expect(output.startsWith("# Codebase: demo (Part 1 of 3)")).toBe(true);
+  });
+
+  it("credits fileconcat.com in the intro line", () => {
+    const output = assembleOutput({ projectName: "demo", files, tree, style: "markdown" });
+    expect(output).toContain("fileconcat.com");
   });
 });
 
@@ -198,5 +208,10 @@ describe("assembleOutput plain", () => {
     const output = assembleOutput({ projectName: "empty", files: [], tree: "", style: "plain" });
     expect(output).toContain("Codebase: empty");
     expect(output).toContain("Files: 0");
+  });
+
+  it("credits fileconcat.com in the intro line", () => {
+    const output = assembleOutput({ projectName: "demo", files, tree, style: "plain" });
+    expect(output).toContain("fileconcat.com");
   });
 });

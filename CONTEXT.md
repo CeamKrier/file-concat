@@ -11,8 +11,12 @@ A file whose bytes decode to legible text under a standard encoding (UTF-8, UTF-
 _Avoid_: "supported file", "code file" (docs, configs and data are text too)
 
 **Binary file**:
-A file whose bytes cannot be decoded to legible text (images, archives, executables, media, office documents). Detected by content, not by extension. Binary files are excluded from the bundle.
+A file whose bytes cannot be decoded to legible text and that carries no recoverable text either — images, archives, executables, media. Detected by content, not by extension. Binary files are excluded from the bundle. (Office documents are **not** binary in this sense — see Extractable document.)
 _Avoid_: "unsupported file", "invalid file"
+
+**Extractable document**:
+A file whose container bytes are not legible text, but whose format carries recoverable text — PDF, Word (`.docx`), Excel (`.xlsx`), PowerPoint (`.pptx`), and OpenDocument (`.odt`/`.ods`/`.odp`). FileConcat extracts the text and includes the **extracted text** in the bundle (never the original bytes), and does so automatically wherever the environment allows. When extraction yields nothing — a scanned image-only or encrypted PDF — the file is treated as non-extractable and surfaced with a "couldn't extract text" flag, never silently dropped.
+_Avoid_: "binary file" (its text is recoverable), "PDF support" / "parsing" (we include the extracted text, not the file)
 
 **Ambiguous file**:
 A file that decodes to partly-legible text — neither confidently text nor confidently binary (the narrow middle band of the printability check). FileConcat does its deterministic best and **includes it, flagged** ("might be binary"), so the user can drop it if the bundle shows garbage. Ambiguous files are never presumptively excluded.

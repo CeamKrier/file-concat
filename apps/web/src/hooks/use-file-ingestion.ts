@@ -5,10 +5,16 @@ import type {
   SourceType,
   TextClassification,
 } from "@fileconcat/core";
-import { defaultSourceRegistry, readFileAsText, validateFile } from "@fileconcat/core";
+import {
+  defaultSourceRegistry,
+  isExtractableDocument,
+  readFileAsText,
+  validateFile,
+} from "@fileconcat/core";
 
 import { collectFromDataTransfer } from "~/lib/collect-from-drop";
 import { expandArchives } from "~/lib/expand-archives";
+import { extractDocumentText } from "~/lib/extract-document";
 
 // Directories that never make it into memory. These are not user-editable;
 // dropping their contents into a browser tab would crash the page long before
@@ -24,6 +30,9 @@ export type ValidationRecord = {
   classification?: TextClassification;
   size: number;
   type: string;
+  /** True when this entry's content is text pulled out of an extractable
+   * document (PDF/Office/ODF) rather than the file's own bytes (ADR-0003). */
+  extracted?: boolean;
 };
 
 export type IncomingFile = {
@@ -108,6 +117,65 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
 
       for (let i = 0; i < total; i++) {
         const entry = normalized[i];
+        const tickProgress = () => {
+          if ((i + 1) % tick === 0 || i + 1 === total) {
+            setProgress({ phase: "reading", done: i + 1, total });
+          }
+        };
+
+        // Extractable document (PDF/Office/ODF): pull text out of the binary
+        // container and include that, instead of classifying its raw bytes
+        // (ADR-0003). Only local uploads carry real bytes — remote sources
+        // arrive already decoded, so they fall through to the normal path.
+        if (entry.content === undefined && isExtractableDocument(entry.path)) {
+          const size = entry.file.size;
+          const type = entry.file.type || "application/octet-stream";
+          if (size > config.maxFileSizeMB * 1024 * 1024) {
+            nextValidations[entry.path] = {
+              included: false,
+              reason: `File size exceeds ${config.maxFileSizeMB}MB`,
+              size,
+              type,
+            };
+          } else {
+            try {
+              const bytes = new Uint8Array(await entry.file.arrayBuffer());
+              const text = await extractDocumentText(bytes);
+              if (text) {
+                nextEntries.push({ path: entry.path, content: text });
+                nextValidations[entry.path] = {
+                  included: true,
+                  classification: "text",
+                  size,
+                  type,
+                  extracted: true,
+                };
+              } else {
+                // No recoverable text (scanned image-only or encrypted PDF) —
+                // surfaced as excluded, never silently dropped.
+                nextValidations[entry.path] = {
+                  included: false,
+                  reason: "No extractable text",
+                  classification: "binary",
+                  size,
+                  type,
+                };
+              }
+            } catch (error) {
+              console.error(`Failed to extract ${entry.path}:`, error);
+              nextValidations[entry.path] = {
+                included: false,
+                reason: "Couldn't extract text",
+                classification: "binary",
+                size,
+                type,
+              };
+            }
+          }
+          tickProgress();
+          continue;
+        }
+
         const result = await validateFile(entry.file, config);
         nextValidations[entry.path] = {
           included: result.isValid,
@@ -168,7 +236,11 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             total: p.totalFiles,
             note: prev?.note,
           }));
-        const { files, error } = await adapter.fetchFiles(url, { onProgress, onStatus, signal });
+        const { files, error, failures } = await adapter.fetchFiles(url, {
+          onProgress,
+          onStatus,
+          signal,
+        });
         if (error) throw new Error(error);
 
         const incoming: IncomingFile[] = [];
@@ -179,6 +251,15 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           incoming.push({ file: fileObj, path: remote.path, content: remote.content || "" });
         }
         await ingestBatch(incoming);
+        // ingestBatch replaces failedFiles with its own read failures, so append
+        // the adapter's download failures afterwards. Files that were listed but
+        // couldn't be fetched are surfaced, never silently dropped (ADR-0004).
+        if (failures?.length) {
+          setFailedFiles((prev) => [
+            ...prev,
+            ...failures.map((f) => ({ path: f.path, error: f.reason })),
+          ]);
+        }
       } catch (error) {
         if (error instanceof Error && error.name === "AbortError") {
           throw new Error("Repository fetch aborted");
