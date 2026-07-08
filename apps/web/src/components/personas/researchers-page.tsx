@@ -1,66 +1,77 @@
-import { Link } from "@tanstack/react-router";
-import { ArrowRight, Hash, ScanLine, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUp, Check, Hash, ScanLine } from "lucide-react";
 
+import { AppFlow } from "~/components/app/app-flow";
+import { DropZone, type DropZoneProps } from "~/components/app/drop-zone";
 import { InfoCard } from "~/components/app/info-card";
 import { MarketingSection } from "~/components/app/marketing/section";
-import { MockWindow, SiteFooter, SiteHeader } from "~/components/app/marketing";
+import { MockWindow } from "~/components/app/marketing";
 
 /**
- * /for/researchers — the Researcher persona page (ADR-0006). Leads with the
- * context-window / token budget, which is this persona's real constraint, so it
+ * /for/researchers — the Researcher persona page (ADR-0006). Hosts the real app
+ * flow: the hero embeds a working DropZone (via AppFlow's renderLanding slot), so
+ * a drop starts bundling in place instead of bouncing to the home route. Leads
+ * with the context-window / token budget, this persona's real constraint, so it
  * reads distinctly from /for/legal (which leads with confidentiality). Still
  * covers the four-part contract: workflow, file types, worked example, hook.
  */
 export function ResearchersPage() {
+  return <AppFlow renderLanding={(dropProps) => <ResearchersLanding {...dropProps} />} />;
+}
+
+function ResearchersLanding(dropProps: DropZoneProps) {
   return (
-    <div className="bg-background flex min-h-screen flex-col">
-      <SiteHeader />
-      <main className="flex-1">
-        <Hero />
-        <ContextWindow />
-        <Workflow />
-        <Inputs />
-        <WorkedExample />
-        <ClosingCta />
-      </main>
-      <SiteFooter />
-    </div>
+    <>
+      <Hero dropProps={dropProps} />
+      <ContextWindow />
+      <Workflow />
+      <Inputs />
+      <WorkedExample />
+      <ClosingCta />
+    </>
   );
 }
 
-function Hero() {
+const TRUST = ["Nothing is uploaded", "Token count shown before you paste", "PDFs, notes, and data"];
+
+function Hero({ dropProps }: { dropProps: DropZoneProps }) {
   return (
-    <section className="mx-auto w-full max-w-[1040px] px-4 pb-4 pt-16 sm:px-6 md:pt-20">
-      <div className="max-w-[640px]">
-        <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
-          <Hash className="text-primary h-3 w-3" strokeWidth={2.5} />
-          See the token count before you paste
-        </span>
+    <section className="mx-auto w-full max-w-[1040px] px-4 pb-4 pt-14 sm:px-6 md:pt-16">
+      <div className="grid items-center gap-10 lg:grid-cols-[1fr_minmax(340px,400px)] lg:gap-14">
+        <div className="min-w-0">
+          <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
+            <Hash className="text-primary h-3 w-3" strokeWidth={2.5} />
+            See the token count before you paste
+          </span>
 
-        <h1 className="font-display text-ink mt-6 text-balance text-[clamp(2rem,5.4vw,2.9rem)] font-bold leading-[1.06] tracking-[-0.025em]">
-          Turn a folder of papers into one context window.
-        </h1>
+          <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
+            Turn a folder of papers into one context window.
+          </h1>
 
-        <p className="text-ink-secondary mt-5 max-w-[54ch] text-[17px] leading-relaxed">
-          Drop the PDFs, your notes, and the data. FileConcat pulls the text out of every paper right
-          in your browser, packs it into one document, and shows you the token count so you know it
-          fits ChatGPT, Claude, or Gemini before you paste.
-        </p>
+          <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
+            Drop the PDFs, your notes, and the data. FileConcat pulls the text out of every paper
+            right in your browser, packs it into one document, and shows you the token count so you
+            know it fits ChatGPT, Claude, or Gemini before you paste.
+          </p>
 
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Link
-            to="/"
-            className="bg-primary text-primary-foreground rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-          >
-            Open FileConcat
-            <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
-          </Link>
+          <ul className="mt-6 space-y-2">
+            {TRUST.map((t) => (
+              <li key={t} className="text-ink-secondary flex items-center gap-2 text-[14px]">
+                <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
+                {t}
+              </li>
+            ))}
+          </ul>
+
           <a
             href="#example"
-            className="border-border-strong text-ink bg-surface rounded-input focus-visible:ring-ring focus-visible:ring-offset-background hover:bg-accent inline-flex items-center justify-center border px-6 py-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background mt-6 inline-flex rounded-sm text-[13px] underline decoration-[oklch(var(--border-strong))] underline-offset-[3px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
           >
             See a worked example
           </a>
+        </div>
+
+        <div className="min-w-0">
+          <DropZone {...dropProps} />
         </div>
       </div>
     </section>
@@ -272,6 +283,12 @@ function TokenChip({ value }: { value: string }) {
 }
 
 function ClosingCta() {
+  const toTop = () => {
+    if (typeof window === "undefined") return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+  };
+
   return (
     <MarketingSection labelledBy="research-cta" className="text-center">
       <h2
@@ -281,13 +298,14 @@ function ClosingCta() {
         Fit the whole literature in one prompt.
       </h2>
       <div className="mt-8">
-        <Link
-          to="/"
+        <button
+          type="button"
+          onClick={toTop}
           className="bg-primary text-primary-foreground rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
         >
-          Open FileConcat
-          <Sparkles className="h-4 w-4" strokeWidth={2.5} />
-        </Link>
+          Drop your reading folder
+          <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
+        </button>
       </div>
     </MarketingSection>
   );

@@ -19,6 +19,7 @@ import { MarketingSections, SiteFooter } from "./marketing";
 
 import { TopBar } from "./top-bar";
 import { LandingHero } from "./landing-hero";
+import type { DropZoneProps } from "./drop-zone";
 import { ProcessingView } from "./processing-view";
 import { ResultView } from "./result-view";
 import { ResultEmpty, type EmptyKind } from "./result-empty";
@@ -61,12 +62,23 @@ function friendlyFetchError(error: unknown, c: Classification): string | null {
   return "Couldn't fetch that link. Make sure it's public and try again.";
 }
 
+type AppFlowProps = {
+  /**
+   * Replace the default landing (home hero + marketing sections) with custom
+   * content — used by the persona routes to host the same flow under their own
+   * hero. Receives the wired drop handlers so an embedded DropZone starts the
+   * flow in place. When omitted, the home landing renders. Processing, result,
+   * TopBar, and the settings drawer are unaffected either way.
+   */
+  renderLanding?: (dropProps: DropZoneProps) => React.ReactNode;
+};
+
 /**
  * The single-page state machine: landing → processing → result, plus a drawer
  * (wired later). It owns the engine hooks and choreographs the views; the
  * processing narration runs for its full beat even when the work finishes early.
  */
-export function AppFlow() {
+export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   const { config, setConfig } = useConfig();
   // Wire the user's per-file size cap into ingestion. Binary + hidden filtering
   // stay on (from DEFAULT_CONFIG) so content-sniffing still runs.
@@ -279,6 +291,17 @@ export function AppFlow() {
     [begin, ingestion],
   );
 
+  // The wired drop handlers, shared by the default hero and any persona landing
+  // (via renderLanding) so an embedded DropZone starts the flow in place.
+  const dropProps: DropZoneProps = {
+    isDragging: ingestion.isDragging,
+    onDragEnter: ingestion.handleDragEnter,
+    onDragOver: ingestion.handleDragOver,
+    onDragLeave: ingestion.handleDragLeave,
+    onDrop,
+    onFileInput,
+  };
+
   const runImport = useCallback(() => {
     const c = classifyUrl(importUrl, importTab);
     if (c.kind === "empty" || c.kind === "bad") {
@@ -318,41 +341,39 @@ export function AppFlow() {
       />
 
       <main className="flex-1">
-        {phase === "landing" && (
-          <>
-            <LandingHero
-              isDragging={ingestion.isDragging}
-              onDragEnter={ingestion.handleDragEnter}
-              onDragOver={ingestion.handleDragOver}
-              onDragLeave={ingestion.handleDragLeave}
-              onDrop={onDrop}
-              onFileInput={onFileInput}
-              importControls={{
-                open: importOpen,
-                onOpen: () => setImportOpen(true),
-                panel: {
-                  tab: importTab,
-                  onTabChange: (t) => {
-                    setImportTab(t);
-                    setImportError(null);
+        {phase === "landing" &&
+          (renderLanding ? (
+            renderLanding(dropProps)
+          ) : (
+            <>
+              <LandingHero
+                {...dropProps}
+                importControls={{
+                  open: importOpen,
+                  onOpen: () => setImportOpen(true),
+                  panel: {
+                    tab: importTab,
+                    onTabChange: (t) => {
+                      setImportTab(t);
+                      setImportError(null);
+                    },
+                    url: importUrl,
+                    onUrlChange: (u) => {
+                      setImportUrl(u);
+                      setImportError(null);
+                    },
+                    error: importError,
+                    onFetch: runImport,
+                    isFetching: ingestion.isRepoLoading,
+                    onClose: () => setImportOpen(false),
                   },
-                  url: importUrl,
-                  onUrlChange: (u) => {
-                    setImportUrl(u);
-                    setImportError(null);
-                  },
-                  error: importError,
-                  onFetch: runImport,
-                  isFetching: ingestion.isRepoLoading,
-                  onClose: () => setImportOpen(false),
-                },
-              }}
-            />
-            <div className="mt-16">
-              <MarketingSections />
-            </div>
-          </>
-        )}
+                }}
+              />
+              <div className="mt-16">
+                <MarketingSections />
+              </div>
+            </>
+          ))}
 
         {phase === "processing" && (
           <ProcessingView percent={percent} heading={processingHeading} detail={processingDetail} />

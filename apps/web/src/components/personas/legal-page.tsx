@@ -1,66 +1,81 @@
-import { Link } from "@tanstack/react-router";
-import { ArrowRight, FileText, Lock, ScanLine } from "lucide-react";
+import { ArrowUp, Check, Lock, ScanLine } from "lucide-react";
 
+import { AppFlow } from "~/components/app/app-flow";
+import { DropZone, type DropZoneProps } from "~/components/app/drop-zone";
 import { InfoCard } from "~/components/app/info-card";
 import { MarketingSection } from "~/components/app/marketing/section";
-import { MockWindow, SiteFooter, SiteHeader } from "~/components/app/marketing";
+import { MockWindow } from "~/components/app/marketing";
 
 /**
- * /for/legal — the Legal persona page (ADR-0006). Confidentiality is the lede
- * because it is the persona's real constraint; the rest follows the four-part
- * anti-thinness contract (workflow, file types, worked example, hook). Kept
- * deliberately distinct from /for/researchers, which leads with token math.
+ * /for/legal — the Legal persona page (ADR-0006). Hosts the real app flow: the
+ * hero embeds a working DropZone (via AppFlow's renderLanding slot), so a drop
+ * starts bundling in place instead of bouncing to the home route. Confidentiality
+ * is the lede because it is the persona's real constraint; the rest follows the
+ * four-part anti-thinness contract. Kept distinct from /for/researchers, which
+ * leads with token math.
  */
 export function LegalPage() {
+  return <AppFlow renderLanding={(dropProps) => <LegalLanding {...dropProps} />} />;
+}
+
+function LegalLanding(dropProps: DropZoneProps) {
   return (
-    <div className="bg-background flex min-h-screen flex-col">
-      <SiteHeader />
-      <main className="flex-1">
-        <Hero />
-        <Confidentiality />
-        <Workflow />
-        <FileTypes />
-        <WorkedExample />
-        <ClosingCta />
-      </main>
-      <SiteFooter />
-    </div>
+    <>
+      <Hero dropProps={dropProps} />
+      <Confidentiality />
+      <Workflow />
+      <FileTypes />
+      <WorkedExample />
+      <ClosingCta />
+    </>
   );
 }
 
-function Hero() {
+const TRUST = [
+  "Nothing is uploaded",
+  "PDFs and Word read as text",
+  "Scanned pages flagged, never dropped",
+];
+
+function Hero({ dropProps }: { dropProps: DropZoneProps }) {
   return (
-    <section className="mx-auto w-full max-w-[1040px] px-4 pb-4 pt-16 sm:px-6 md:pt-20">
-      <div className="max-w-[640px]">
-        <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
-          <Lock className="text-primary h-3 w-3" strokeWidth={2.5} />
-          Runs on your computer. Nothing uploaded.
-        </span>
+    <section className="mx-auto w-full max-w-[1040px] px-4 pb-4 pt-14 sm:px-6 md:pt-16">
+      <div className="grid items-center gap-10 lg:grid-cols-[1fr_minmax(340px,400px)] lg:gap-14">
+        <div className="min-w-0">
+          <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
+            <Lock className="text-primary h-3 w-3" strokeWidth={2.5} />
+            Runs on your computer. Nothing uploaded.
+          </span>
 
-        <h1 className="font-display text-ink mt-6 text-balance text-[clamp(2rem,5.4vw,2.9rem)] font-bold leading-[1.06] tracking-[-0.025em]">
-          Bring a case file to ChatGPT or Claude. Privately.
-        </h1>
+          <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
+            Bring a case file to ChatGPT or Claude. Privately.
+          </h1>
 
-        <p className="text-ink-secondary mt-5 max-w-[54ch] text-[17px] leading-relaxed">
-          Drop the folder of contracts, filings, and rulings. FileConcat reads the PDFs and Word
-          files right here in your browser and gives back one clean document to paste into your
-          assistant. Nothing is uploaded, so privilege and client confidence stay intact.
-        </p>
+          <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
+            Drop the folder of contracts, filings, and rulings. FileConcat reads the PDFs and Word
+            files right here in your browser and gives back one clean document to paste into your
+            assistant. Nothing is uploaded, so privilege and client confidence stay intact.
+          </p>
 
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Link
-            to="/"
-            className="bg-primary text-primary-foreground rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-          >
-            Open FileConcat
-            <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
-          </Link>
+          <ul className="mt-6 space-y-2">
+            {TRUST.map((t) => (
+              <li key={t} className="text-ink-secondary flex items-center gap-2 text-[14px]">
+                <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
+                {t}
+              </li>
+            ))}
+          </ul>
+
           <a
             href="#example"
-            className="border-border-strong text-ink bg-surface rounded-input focus-visible:ring-ring focus-visible:ring-offset-background hover:bg-accent inline-flex items-center justify-center border px-6 py-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background mt-6 inline-flex rounded-sm text-[13px] underline decoration-[oklch(var(--border-strong))] underline-offset-[3px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
           >
             See a worked example
           </a>
+        </div>
+
+        <div className="min-w-0">
+          <DropZone {...dropProps} />
         </div>
       </div>
     </section>
@@ -150,8 +165,8 @@ function Workflow() {
                 {i + 1}
               </span>
               {i < STEPS.length - 1 && (
-                <ArrowRight
-                  className="text-ink-faint hidden h-4 w-4 sm:block"
+                <ArrowUp
+                  className="text-ink-faint hidden h-4 w-4 rotate-90 sm:block"
                   strokeWidth={2}
                   aria-hidden="true"
                 />
@@ -244,7 +259,7 @@ function WorkedExample() {
         </MockWindow>
 
         <div className="text-ink-faint flex items-center justify-center">
-          <ArrowRight className="hidden h-5 w-5 lg:block" strokeWidth={2} aria-hidden="true" />
+          <ArrowUp className="hidden h-5 w-5 rotate-90 lg:block" strokeWidth={2} aria-hidden="true" />
           <span className="font-mono text-[11px] lg:hidden">becomes</span>
         </div>
 
@@ -280,6 +295,12 @@ function TokenChip({ value }: { value: string }) {
 }
 
 function ClosingCta() {
+  const toTop = () => {
+    if (typeof window === "undefined") return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+  };
+
   return (
     <MarketingSection labelledBy="legal-cta" className="text-center">
       <h2
@@ -289,13 +310,14 @@ function ClosingCta() {
         Read the whole file without giving it away.
       </h2>
       <div className="mt-8">
-        <Link
-          to="/"
+        <button
+          type="button"
+          onClick={toTop}
           className="bg-primary text-primary-foreground rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
         >
-          Open FileConcat
-          <FileText className="h-4 w-4" strokeWidth={2.5} />
-        </Link>
+          Drop your case folder
+          <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
+        </button>
       </div>
     </MarketingSection>
   );

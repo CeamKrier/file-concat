@@ -3,7 +3,7 @@ import { Upload } from "lucide-react";
 
 import { cn } from "~/lib/utils";
 
-type DropZoneProps = {
+export type DropZoneProps = {
   isDragging: boolean;
   onDragEnter: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
