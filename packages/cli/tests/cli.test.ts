@@ -63,7 +63,8 @@ describe("file-concat CLI", () => {
       expect(result.stdout).toContain("Usage: file-concat");
       expect(result.stdout).toContain("--stdout");
       expect(result.stdout).toContain("--json");
-      expect(result.stdout).toContain("--parse");
+      expect(result.stdout).toContain("--no-parse");
+      expect(result.stdout).toContain("--line-numbers");
     });
   });
 
@@ -86,6 +87,27 @@ describe("file-concat CLI", () => {
       const written = fs.readFileSync(outFile, "utf-8");
       expect(written).toMatch(/^# Codebase: /m);
       expect(written).toContain("```typescript");
+    });
+
+    it("--style plain writes a .txt with no XML tags or markdown fences", async () => {
+      const dir = copyFixture("text-project");
+      const outFile = path.join(makeTempDir("plain-out"), "out.txt");
+      const result = await runCli([dir, "--style", "plain", "-o", outFile]);
+      expect(result.exitCode).toBe(0);
+      const written = fs.readFileSync(outFile, "utf-8");
+      expect(written).toMatch(/^Codebase: /m);
+      expect(written).toContain("Directory structure:");
+      expect(written).not.toContain("<codebase");
+      expect(written).not.toContain("```");
+    });
+
+    it("--line-numbers prefixes each file's lines with a line number", async () => {
+      const dir = copyFixture("text-project");
+      const outFile = path.join(makeTempDir("lines"), "out.xml");
+      const result = await runCli([dir, "--line-numbers", "-o", outFile]);
+      expect(result.exitCode).toBe(0);
+      const written = fs.readFileSync(outFile, "utf-8");
+      expect(written).toContain("   1 | ");
     });
 
     it("--no-hidden skips dotfiles", async () => {
@@ -180,49 +202,41 @@ describe("file-concat CLI", () => {
     });
   });
 
-  describe("parse mode", () => {
-    it("without --parse, PDF fixture is skipped as binary", async () => {
+  describe("document extraction", () => {
+    it("extracts the PDF fixture into the bundle by default", async () => {
       const dir = copyFixture("parse-project");
-      const outFile = path.join(makeTempDir("noparse"), "out.xml");
+      const outFile = path.join(makeTempDir("extract-default"), "out.xml");
       const result = await runCli([dir, "-o", outFile, "--json"]);
-      expect(result.exitCode).toBe(0);
-      const summary = JSON.parse(result.stdout);
-      expect(summary.parsed).toBe(0);
-      expect(summary.skippedBreakdown.binary).toBeGreaterThanOrEqual(0);
-      const written = fs.readFileSync(outFile, "utf-8");
-      expect(written).not.toContain("Hello fileconcat");
-      expect(written).toContain("notes.txt");
-    });
-
-    it("--parse pdf parses the hello.pdf fixture and embeds the extracted text", async () => {
-      const dir = copyFixture("parse-project");
-      const outFile = path.join(makeTempDir("parse-pdf"), "out.xml");
-      const result = await runCli([dir, "-o", outFile, "--parse", "pdf", "--json"]);
       expect(result.exitCode).toBe(0);
       const summary = JSON.parse(result.stdout);
       expect(summary.parsed).toBe(1);
       const written = fs.readFileSync(outFile, "utf-8");
       expect(written).toContain("Hello fileconcat");
       expect(written).toContain('language="text"');
+      expect(written).toContain("notes.txt");
     });
 
-    it("--parse pdf on a corrupt .pdf falls back to skippedBreakdown.parseFailed (no crash)", async () => {
+    it("--no-parse leaves documents out as binary", async () => {
+      const dir = copyFixture("parse-project");
+      const outFile = path.join(makeTempDir("noparse"), "out.xml");
+      const result = await runCli([dir, "-o", outFile, "--no-parse", "--json"]);
+      expect(result.exitCode).toBe(0);
+      const summary = JSON.parse(result.stdout);
+      expect(summary.parsed).toBe(0);
+      const written = fs.readFileSync(outFile, "utf-8");
+      expect(written).not.toContain("Hello fileconcat");
+      expect(written).toContain("notes.txt");
+    });
+
+    it("a corrupt document falls back to skippedBreakdown.parseFailed (no crash)", async () => {
       const dir = copyFixture("parse-project");
       fs.rmSync(path.join(dir, "hello.pdf"));
       const outFile = path.join(makeTempDir("corrupt"), "out.xml");
-      const result = await runCli([dir, "-o", outFile, "--parse", "pdf", "--json"]);
+      const result = await runCli([dir, "-o", outFile, "--json"]);
       expect(result.exitCode).toBe(0);
       const summary = JSON.parse(result.stdout);
       expect(summary.parsed).toBe(0);
       expect(summary.skippedBreakdown.parseFailed).toBe(1);
-    });
-
-    it("--parse without an argument enables every supported format", async () => {
-      const dir = copyFixture("parse-project");
-      const outFile = path.join(makeTempDir("parse-all"), "out.xml");
-      const result = await runCli([dir, "-o", outFile, "--parse"]);
-      expect(result.exitCode).toBe(0);
-      expect(result.stderr).toContain("Parse mode: pdf, docx, xlsx, pptx, odt, ods, odp");
     });
   });
 

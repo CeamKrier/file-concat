@@ -1,6 +1,6 @@
 # @fileconcat/cli
 
-Privacy-first CLI that concatenates a directory into a single LLM-ready blob. Bundles plain text files by default, and optionally extracts text from PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP. Everything runs locally; nothing is uploaded.
+Privacy-first CLI that concatenates a directory into a single LLM-ready blob. Bundles plain text files and, by default, extracts text from PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP. Everything runs locally; nothing is uploaded.
 
 The browser version of the same tool lives at [fileconcat.com](https://fileconcat.com).
 
@@ -17,9 +17,10 @@ After install the bin command is `file-concat`. Node 18 or newer.
 ## Quick start
 
 ```bash
-file-concat ./my-repo                                # writes output.xml
+file-concat ./my-repo                                # writes output.xml (PDFs/Office docs extracted to text)
 file-concat ./my-repo --style markdown -o ctx.md     # markdown output
-file-concat ./my-repo --parse pdf,docx -o ctx.xml    # extract text from PDF + DOCX
+file-concat ./my-repo --style plain -o ctx.txt       # plain-text output
+file-concat ./my-repo --no-parse                     # leave PDFs/Office docs out as binary
 file-concat ./my-repo --stdout | pbcopy              # pipe content straight to clipboard
 ```
 
@@ -28,15 +29,16 @@ file-concat ./my-repo --stdout | pbcopy              # pipe content straight to 
 | Flag | Description |
 | --- | --- |
 | `[path]` | Directory to process. Defaults to `.`. |
-| `-o, --output <file>` | Output path. Defaults to `output.xml` or `output.md` based on `--style`. Ignored when `--stdout` is set. |
-| `-s, --style <xml\|markdown>` | Output format. Defaults to `xml`. |
+| `-o, --output <file>` | Output path. Defaults to `output.xml`, `output.md`, or `output.txt` based on `--style`. Ignored when `--stdout` is set. |
+| `-s, --style <xml\|markdown\|plain>` | Output format. Defaults to `xml`. |
 | `-m, --max-size <mb>` | Per-file size cap. Files above this are skipped. Defaults to `32`. |
 | `--no-hidden` | Skip dotfiles. |
 | `--no-binary` | Skip files with known binary extensions. |
 | `-e, --exclude <patterns...>` | Glob patterns to exclude (in addition to the bundled defaults: `node_modules`, `.git`, build outputs, lock files, etc.). |
 | `--no-gitignore` | Do not honor the project's `.gitignore` files. By default every `.gitignore` in the tree (including nested ones) is read and its patterns are applied on top of the bundled defaults. |
 | `-c, --config <file>` | Path to a JSON config file (also auto-discovers `.fileconcatrc`, `.fileconcatrc.json`, `fileconcat.config.json`). |
-| `--parse [formats]` | Extract text from binary documents. With no value, enables every supported format. Comma-separated list (`--parse pdf,docx`) restricts to a subset. Supported: `pdf`, `docx`, `xlsx`, `pptx`, `odt`, `ods`, `odp`. |
+| `--no-parse` | Skip document text extraction. By default PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP are extracted to text; `--no-parse` leaves them out as binary instead. |
+| `--line-numbers` | Prefix each line of file content with its line number. Off by default. |
 | `--stdout` | Write the concatenated output to stdout instead of a file. Mutually exclusive with `--json`. |
 | `-q, --quiet` | Suppress progress logs on stderr. Errors still print. |
 | `--json` | Emit a single-line JSON summary on stdout when finished. Implies file output (cannot be combined with `--stdout`). |
@@ -77,7 +79,7 @@ Command-line flags override config-file values where they overlap.
      "style": "xml"
    }
    ```
-   `skippedBreakdown.parseFailed > 0` means at least one document under `--parse` could not be parsed (corrupt, password protected, unsupported variant). The summary appears on stdout, so harness code can pipe it directly into `JSON.parse`.
+   `skippedBreakdown.parseFailed > 0` means at least one document could not be extracted (corrupt, password protected, scanned/image-only, or an unsupported variant). The summary appears on stdout, so harness code can pipe it directly into `JSON.parse`.
 3. **Exit codes are stable.** `0` on success (including partial-skip outcomes), `1` on any fatal error or flag conflict. Errors are written to stderr with an `Error:` prefix.
 
 ### Recipes
@@ -94,23 +96,23 @@ Generate context plus a machine-readable summary for a wrapper script:
 file-concat ./service -o ctx.xml --json | jq '.parsed'
 ```
 
-Pull a PDF spec into the same blob as the surrounding code:
+A folder of PDFs/Word docs becomes one text blob (extraction is on by default):
 
 ```bash
-file-concat ./service --parse pdf,docx -o ctx.xml
+file-concat ./case-folder -o ctx.xml
 ```
 
 ### Defaults worth knowing
 
 - The bundled default ignore list mirrors the web app: `node_modules`, `.git`, common build outputs (`dist`, `build`, `.next`, etc.), and lock files. Combine with `--exclude` to add project-specific entries.
 - The project's own `.gitignore` files (including nested ones) are honored on top of that default set, so build and generated paths you already ignore stay out of the bundle — and secrets like `.env` are excluded transitively. Turn this off with `--no-gitignore`.
-- Binary files are skipped unless their extension is in the active `--parse` set.
+- PDF and Office documents are extracted to text by default (`--no-parse` to leave them out); other binary files are skipped.
 - The output schema matches the web app, so prompts that already work against [fileconcat.com](https://fileconcat.com) output keep working with CLI output.
 
 ## Limitations
 
-- v0.1 reads from local directories only. Remote sources (GitHub, GitLab, Bitbucket, Gist, URL) are available on the web app and tracked as roadmap for the CLI.
-- `--parse` extracts text only. Embedded images, charts, and equations are not OCR'd.
+- Reads from local directories only. Remote sources (GitHub, GitLab, Bitbucket, Gist, URL) are available on the web app and tracked as roadmap for the CLI.
+- Document extraction is text only. Embedded images, charts, and equations are not OCR'd.
 
 ## License
 

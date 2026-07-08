@@ -1,7 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { glob } from "glob";
-import { convert as convertOffice } from "officeparser";
 import {
   DEFAULT_GLOB_IGNORE,
   toGlobIgnore,
@@ -11,6 +10,9 @@ import {
   createGitignoreMatcher,
   BINARY_EXTENSIONS,
   classifyBytes,
+  isExtractableDocument,
+  extractDocument,
+  addLineNumbers,
   type OutputStyle,
   type ExcludedSummary,
 } from "@fileconcat/core";
@@ -28,26 +30,8 @@ interface ConcatOptions {
   stdout?: boolean;
   quiet?: boolean;
   json?: boolean;
-  parse?: boolean | string;
-}
-
-const PARSE_SUPPORTED_EXTS = ["pdf", "docx", "xlsx", "pptx", "odt", "ods", "odp"] as const;
-type ParseExt = (typeof PARSE_SUPPORTED_EXTS)[number];
-
-function resolveParseSet(value: boolean | string | undefined): Set<ParseExt> {
-  if (value === undefined || value === false) return new Set();
-  if (value === true) return new Set(PARSE_SUPPORTED_EXTS);
-  const requested = value
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
-  const result = new Set<ParseExt>();
-  for (const ext of requested) {
-    if ((PARSE_SUPPORTED_EXTS as readonly string[]).includes(ext)) {
-      result.add(ext as ParseExt);
-    }
-  }
-  return result;
+  parse?: boolean;
+  lineNumbers?: boolean;
 }
 
 interface Logger {
@@ -75,11 +59,15 @@ function resolveStyle(
   configStyle: OutputStyle | undefined,
 ): OutputStyle {
   const candidate = (option ?? configStyle ?? "xml").toLowerCase();
-  return candidate === "markdown" || candidate === "md" ? "markdown" : "xml";
+  if (candidate === "markdown" || candidate === "md") return "markdown";
+  if (candidate === "plain" || candidate === "text" || candidate === "txt") return "plain";
+  return "xml";
 }
 
 function defaultOutputPath(style: OutputStyle): string {
-  return style === "xml" ? "output.xml" : "output.md";
+  if (style === "markdown") return "output.md";
+  if (style === "plain") return "output.txt";
+  return "output.xml";
 }
 
 export async function concat(targetPath: string, options: ConcatOptions): Promise<void> {
@@ -108,13 +96,15 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
     ? null
     : options.output || config.output || defaultOutputPath(style);
 
-  const parseSet = resolveParseSet(options.parse);
+  // Documents are extracted by default (matching the web / ADR-0003); --no-parse
+  // sets this false and leaves PDFs/Office files to fall through as binary.
+  const extract = options.parse !== false;
 
   log.info(`Processing: ${basePath}`);
   log.info(`Output: ${outputPath ?? "stdout"} (${style})`);
   log.info(`Max file size: ${maxFileSizeMB}MB`);
-  if (parseSet.size > 0) {
-    log.info(`Parse mode: ${[...parseSet].join(", ")}`);
+  if (!extract) {
+    log.info("Document extraction: off (--no-parse)");
   }
 
   let files = await glob("**/*", {
@@ -176,13 +166,11 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
       continue;
     }
 
-    const ext = path.extname(file).slice(1).toLowerCase();
-    const shouldParse = parseSet.has(ext as ParseExt);
-
-    if (shouldParse) {
+    // Extractable documents (PDF/Office) go through the shared core extractor
+    // so the CLI and web agree on which formats qualify and how text is pulled.
+    if (extract && isExtractableDocument(file)) {
       try {
-        const result = await convertOffice(fullPath, "text");
-        const text = typeof result.value === "string" ? result.value.trim() : "";
+        const text = await extractDocument(fs.readFileSync(fullPath));
         if (!text) {
           log.warn(`Skipped (no extractable text): ${file}`);
           skipped.parseFailed.push(file);
@@ -199,6 +187,7 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
       continue;
     }
 
+    const ext = path.extname(file).slice(1).toLowerCase();
     if (excludeBinary && BINARY_EXTENSIONS.includes(ext)) {
       skipped.binary.push(file);
       continue;
@@ -249,9 +238,15 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
   const projectName = generateProjectName(processedFiles.map((f) => f.path));
   const tree = generateFileTree(processedFiles.map((f) => f.path));
 
+  // Line numbering is applied at emit time to the included content only, exactly
+  // as the web does (config.showLineNumbers → addLineNumbers).
+  const emitted = options.lineNumbers
+    ? processedFiles.map((f) => ({ ...f, content: addLineNumbers(f.content) }))
+    : processedFiles;
+
   const output = assembleOutput({
     projectName,
-    files: processedFiles,
+    files: emitted,
     tree,
     style,
     source: `local:${path.basename(basePath)}`,

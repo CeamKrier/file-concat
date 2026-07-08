@@ -21,21 +21,22 @@ For AI coding agents:
 function addSharedOptions(cmd: Command): Command {
   return cmd
     .argument("[path]", "Directory path to process", ".")
-    .option("-o, --output <file>", "Output file path (defaults to output.xml or output.md)")
+    .option("-o, --output <file>", "Output file path (defaults to output.xml, .md, or .txt)")
     .option("-m, --max-size <mb>", "Max file size in MB", "32")
     .option("--no-hidden", "Exclude hidden files")
     .option("--no-binary", "Exclude binary files")
     .option("-e, --exclude <patterns...>", "Glob patterns to exclude")
     .option("--no-gitignore", "Do not honor the project's .gitignore files")
     .option("-c, --config <file>", "Config file path")
-    .option("-s, --style <style>", "Output style: xml | markdown (default xml)")
+    .option("-s, --style <style>", "Output style: xml | markdown | plain (default xml)")
     .option("--stdout", "Write concatenated output to stdout instead of a file")
     .option("-q, --quiet", "Suppress progress logs on stderr (errors still print)")
     .option("--json", "Emit a single-line JSON summary on stdout when finished")
     .option(
-      "--parse [formats]",
-      "Extract text from binary docs. Use --parse for all (pdf,docx,xlsx,pptx,odt,ods,odp) or --parse pdf,docx for a subset",
-    );
+      "--no-parse",
+      "Skip PDF/Office text extraction (documents are extracted to text by default)",
+    )
+    .option("--line-numbers", "Prefix each line of file content with its line number");
 }
 
 async function runConcat(path: string, options: Parameters<typeof concat>[1]): Promise<void> {
