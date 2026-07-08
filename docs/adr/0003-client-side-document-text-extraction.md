@@ -44,6 +44,12 @@ must be an explicit, opt-in deviation from local processing — not the default.
   breaks PDF parsing. This is a maintenance obligation on `officeparser` bumps.
 - **Bundle weight on first document.** The first extractable document triggers a
   multi-MB chunk load. Acceptable because it is lazy and one-time per session.
-- **Shared core home.** The extractability predicate and the extraction call
-  belong in `packages/core` (`file-processing`), so the web and the CLI converge
-  on one definition of what an Extractable document is and how its text is pulled.
+- **Main-thread parsing for non-PDF formats.** PDF parsing runs in pdf.js's own
+  Web Worker, but the zip-based formats (docx/xlsx/pptx/odf) parse on the main
+  thread inside `officeparser`, so a very large office document can briefly block
+  the UI. A dedicated extraction worker is a possible follow-up, not shipped in v1.
+- **Shared core home.** The extractability predicate and the extraction call live
+  in `packages/core` (`file-processing`). The web app consumes them; the CLI still
+  calls `officeparser` directly (via its own `--parse` path) and migrates to the
+  shared module later, at which point both surfaces share one definition of what
+  an Extractable document is and how its text is pulled.
