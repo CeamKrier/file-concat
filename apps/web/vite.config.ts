@@ -54,7 +54,11 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ["@dqbd/tiktoken"],
+    // officeparser + its bundled pdf.js are heavy and client-only (loaded
+    // lazily via lib/extract-document → extract-document-client). Excluding
+    // them from dev pre-bundling keeps them out of the eager graph, same as
+    // tiktoken; the SSR guard keeps them out of the Cloudflare worker.
+    exclude: ["@dqbd/tiktoken", "officeparser", "pdfjs-dist"],
   },
   build: {
     // Disable sourcemaps in production for smaller bundle size
