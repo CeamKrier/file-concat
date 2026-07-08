@@ -79,6 +79,50 @@ describe("classifyBytes", () => {
     const result = classifyBytes(new TextEncoder().encode(source));
     expect(result.classification).toBe("text");
   });
+
+  it("flags a PNG with a text-heavy metadata header (AI Content Credentials) as binary", () => {
+    // ChatGPT/DALL-E PNGs prepend a large mostly-ASCII caBX (C2PA) chunk before
+    // the compressed IDAT, so an 8 KB content sniff reads only that text and
+    // never reaches the image data. The PNG signature is the ground truth.
+    const signature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+    const caBX = new TextEncoder().encode("caBXjumbf c2pa urn:uuid:1234-5678 ".repeat(500));
+    const bytes = new Uint8Array(signature.length + caBX.length);
+    bytes.set(signature);
+    bytes.set(caBX, signature.length);
+    const result = classifyBytes(bytes);
+    expect(result.classification).toBe("binary");
+    expect(result.text).toBe("");
+  });
+
+  it("flags a JPEG with a large text XMP header as binary", () => {
+    const signature = [0xff, 0xd8, 0xff, 0xe1];
+    const xmp = new TextEncoder().encode('<x:xmpmeta xmlns:x="adobe:ns:meta/"> '.repeat(500));
+    const bytes = new Uint8Array(signature.length + xmp.length);
+    bytes.set(signature);
+    bytes.set(xmp, signature.length);
+    expect(classifyBytes(bytes).classification).toBe("binary");
+  });
+
+  it("flags GIF and RIFF/WEBP signatures as binary", () => {
+    const gif = new TextEncoder().encode("GIF89a" + " ".repeat(100));
+    expect(classifyBytes(gif).classification).toBe("binary");
+    const webp = new Uint8Array(64);
+    webp.set(new TextEncoder().encode("RIFF"), 0);
+    webp.set(new TextEncoder().encode("WEBP"), 8);
+    expect(classifyBytes(webp).classification).toBe("binary");
+  });
+
+  it("does not mistake plain text that merely starts with letters for a signature", () => {
+    // "RIFF" without the WEBP/WAVE/AVI body tag, and "GIF" not followed by 87a/89a,
+    // are ordinary words, not container magic.
+    expect(classifyBytes(new TextEncoder().encode("GIFT ideas for the team\n")).classification).toBe(
+      "text",
+    );
+    expect(
+      classifyBytes(new TextEncoder().encode("RIFFRAFF is a word, not a container\n"))
+        .classification,
+    ).toBe("text");
+  });
 });
 
 describe("readFileAsText", () => {

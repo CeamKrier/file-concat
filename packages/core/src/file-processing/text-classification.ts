@@ -1,3 +1,5 @@
+import { matchesBinarySignature } from "./binary-signatures";
+
 /** How a file's bytes read: legible text, unreadable binary, or the narrow
  * middle band we can't be sure about (decoded but partly-garbled). */
 export type TextClassification = "text" | "binary" | "ambiguous";
@@ -84,6 +86,12 @@ function decode(bytes: Uint8Array): { text: string; encoding: string } {
  * of being read as UTF-8 mojibake.
  */
 export function classifyBytes(bytes: Uint8Array): DecodedText {
+  // Media containers (images, video) can lead with a large text metadata header
+  // — a C2PA/XMP block on AI-generated images — that a fixed-size content sniff
+  // would read as legible text. Their signature is the ground truth. See ADR-0007.
+  if (matchesBinarySignature(bytes)) {
+    return { classification: "binary", text: "", encoding: "binary" };
+  }
   const { text, encoding } = decode(bytes);
   const ratio = suspicionRatio(text);
   if (ratio > BINARY_RATIO) {
