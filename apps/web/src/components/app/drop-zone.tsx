@@ -10,6 +10,11 @@ export type DropZoneProps = {
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   onFileInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  /** Headline inside the target. Defaults to the generic home copy; persona
+   * pages pass their own ("Drag your case folder here"). */
+  title?: string;
+  /** The line under the headline. Defaults to the generic home copy. */
+  hint?: string;
 };
 
 /**
@@ -24,6 +29,8 @@ export function DropZone({
   onDragLeave,
   onDrop,
   onFileInput,
+  title = "Drag a folder or files here",
+  hint = "…and your file is ready a second later.",
 }: DropZoneProps) {
   const filesInput = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);
@@ -48,10 +55,8 @@ export function DropZone({
         />
       </div>
 
-      <h2 className="font-display text-ink text-lg font-semibold tracking-[-0.01em]">
-        Drag a folder or files here
-      </h2>
-      <p className="text-ink-muted mt-1.5 text-sm">…and your file is ready a second later.</p>
+      <h2 className="font-display text-ink text-lg font-semibold tracking-[-0.01em]">{title}</h2>
+      <p className="text-ink-muted mt-1.5 text-sm">{hint}</p>
 
       <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
         <button
