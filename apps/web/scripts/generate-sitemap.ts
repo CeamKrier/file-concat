@@ -40,6 +40,24 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    url: "/for/legal",
+    sourceFile: [
+      "apps/web/src/routes/for/legal.tsx",
+      "apps/web/src/components/personas/legal-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/for/researchers",
+    sourceFile: [
+      "apps/web/src/routes/for/researchers.tsx",
+      "apps/web/src/components/personas/researchers-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
     url: "/docs/quick-start",
     sourceFile: "apps/web/src/content/docs/quick-start.mdx",
     changefreq: "monthly",

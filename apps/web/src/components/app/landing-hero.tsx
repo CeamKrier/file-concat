@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, Minus } from "lucide-react";
 
 import { DropZone } from "./drop-zone";
 import { ImportPanel, ImportTrigger } from "./import-panel";
@@ -33,8 +33,8 @@ export function LandingHero({ importControls, ...props }: LandingHeroProps) {
         </h1>
 
         <p className="text-ink-secondary mt-4 max-w-[520px] text-[17px] leading-relaxed">
-          Drop a folder, files, or an archive. The noise gets stripped and out comes one clean
-          document for ChatGPT, Claude, or Gemini. No setup, no account.
+          Drop a repo, a folder of PDFs and docs, or an archive. The noise gets stripped and out
+          comes one clean document for ChatGPT, Claude, or Gemini. No setup, no account.
         </p>
       </div>
 
@@ -51,8 +51,8 @@ export function LandingHero({ importControls, ...props }: LandingHeroProps) {
           <Check className="text-primary h-3.5 w-3.5" strokeWidth={2.5} />
           PDFs &amp; Office docs read as text
         </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="border-ink-faint h-3 w-3 rounded-full border" />
+        <span className="text-ink-muted inline-flex items-center gap-1.5">
+          <Minus className="text-ink-faint h-3.5 w-3.5" strokeWidth={2.5} />
           Images &amp; binaries skipped for you
         </span>
       </div>

@@ -5,6 +5,7 @@ import { CliSection } from "./cli-section";
 import { CtaSection } from "./cta-section";
 
 export { SiteFooter } from "./site-footer";
+export { MockWindow } from "./mock-window";
 
 /** The marketing stack below the hero (sections A–E), landing view only. */
 export function MarketingSections() {

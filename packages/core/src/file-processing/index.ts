@@ -12,3 +12,5 @@ export { formatSize, calculateTotalSize } from "./size";
 export { addLineNumbers } from "./transform";
 export { assembleOutput } from "./output";
 export type { OutputStyle, OutputFile, OutputPart, AssembleOutputOptions } from "./output";
+export { classifyBundleKind } from "./bundle-kind";
+export type { BundleKind } from "./bundle-kind";

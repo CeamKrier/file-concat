@@ -30,6 +30,12 @@ export function SiteFooter() {
           <Link to="/docs" className={linkClass}>
             Docs
           </Link>
+          <Link to="/for/legal" className={linkClass}>
+            For lawyers
+          </Link>
+          <Link to="/for/researchers" className={linkClass}>
+            For researchers
+          </Link>
           <a
             href="https://github.com/CeamKrier/file-concat"
             target="_blank"
