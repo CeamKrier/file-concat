@@ -6,6 +6,7 @@ import {
   assembleOutput,
   generateFileTree,
   generateProjectName,
+  summarizeExclusions,
 } from "@fileconcat/core";
 
 import { useConfig } from "~/hooks/use-config";
@@ -118,6 +119,13 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       .map((e) => ({ path: e.path, content: transform ? transform(e.content) : e.content }));
   }, [ingestion.entries, filter.fileStatuses, config.showLineNumbers]);
 
+  // Real content gaps the model can't see in the tree (ADR-0008). Reported in
+  // the bundle summary; noise and user-deselected files are never listed.
+  const excluded = useMemo(
+    () => summarizeExclusions(filter.fileStatuses),
+    [filter.fileStatuses],
+  );
+
   const [estimatorReady, setEstimatorReady] = useState(false);
   useEffect(() => {
     void preloadTokenEstimator().then(() => setEstimatorReady(true));
@@ -131,6 +139,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
 
   const output = useOutputGeneration({
     includedContents,
+    excluded,
     tokens,
     sourceUrl: ingestion.sourceUrl,
     outputStyle: config.outputStyle,
@@ -148,8 +157,9 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       tree,
       style: config.outputStyle,
       source: ingestion.sourceUrl ?? undefined,
+      excluded,
     });
-  }, [includedContents, config.outputStyle, ingestion.sourceUrl]);
+  }, [includedContents, config.outputStyle, ingestion.sourceUrl, excluded]);
 
   // --- result summary -------------------------------------------------------
   const filesCombined = filter.includedFileCount;
