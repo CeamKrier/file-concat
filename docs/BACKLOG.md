@@ -92,24 +92,25 @@ BYO-key as the quality tier?); CORS reality per provider; consent + cost UX for
 the cloud path; model size/quality for the local path; whether the output labels
 described images distinctly from extracted text. — _large; needs deep research._
 
-## Persona positioning + marketing pages (decided; execution pending)
+## Persona positioning + marketing pages (SHIPPED 2026-07-08)
 
 Decided in the 2026-07-08 grill and recorded in **ADR-0006** (positioning) and
 **ADR-0005** (content-adaptive output tag): reposition from codebase-only to
 **codebase-anchor + invited document users** (register B). Target personas for
 v1 dedicated pages: **Developer (home) + Legal + Researcher** at `/for/<persona>`;
 writer / data / student stay "works for you too" without pages until search
-demand shows. Architecture is settled; what remains is **execution, not design**:
+demand shows. All three execution items shipped on `development`:
 
-- **Output classifier** — implement the CODE/DOC/OTHER tally in
-  `packages/core/src/file-processing/output.ts` (ADR-0005): adapt root tag +
-  summary noun + markdown/plain headers, and replace "default ignore patterns"
-  with plain language.
-- **Home rewording** for register B — h1 / subhead / trust bullets so the
-  document user sees themselves without displacing the developer flagship.
-- **`/for/legal` + `/for/researchers`** pages — each must clear the four-part
-  anti-thinness contract (ADR-0006): own workflow, real file types, one worked
-  example, persona hook. Shared shell, bespoke body.
+- ~~**Output classifier**~~ — DONE. `packages/core/src/file-processing/bundle-kind.ts`
+  tallies CODE/DOC/OTHER; `output.ts` adapts the root tag, summary noun, and
+  markdown/plain headers, and drops the gitignore jargon.
+- ~~**Home rewording**~~ — DONE. The hero subhead now names the document persona.
+- ~~**`/for/legal` + `/for/researchers`**~~ — DONE. Bespoke bodies (Legal leads
+  with confidentiality, Researcher with token budget), footer links + sitemap
+  entries for crawlability.
+
+Still deferred: **writer / data / student pages** (add when search demand shows;
+each must clear the four-part anti-thinness contract from ADR-0006).
 
 ## Verification / process
 
