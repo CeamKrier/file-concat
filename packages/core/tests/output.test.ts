@@ -206,12 +206,60 @@ describe("assembleOutput plain", () => {
 
   it("renders an empty files list without crashing", () => {
     const output = assembleOutput({ projectName: "empty", files: [], tree: "", style: "plain" });
-    expect(output).toContain("Codebase: empty");
+    // An empty bundle is neither code nor documents, so it lands on neutral "Files" (ADR-0005).
+    expect(output).toContain("Files: empty");
     expect(output).toContain("Files: 0");
   });
 
   it("credits fileconcat.com in the intro line", () => {
     const output = assembleOutput({ projectName: "demo", files, tree, style: "plain" });
     expect(output).toContain("fileconcat.com");
+  });
+});
+
+// The root tag, summary noun, and heading word follow what the bundle mostly
+// holds (ADR-0005): a repo stays a codebase, a folder of documents says so.
+describe("assembleOutput adaptive kind", () => {
+  const docs = [
+    { path: "dava/karar.pdf", content: "Karar metni." },
+    { path: "dava/dilekce.docx", content: "Dilekçe metni." },
+  ];
+  const docTree = "dava/\n";
+
+  it("wraps a document-dominated bundle in <documents>, not <codebase>", () => {
+    const output = assembleOutput({ projectName: "dava", files: docs, tree: docTree, style: "xml" });
+    expect(output.startsWith("<documents ")).toBe(true);
+    expect(output.trimEnd().endsWith("</documents>")).toBe(true);
+    expect(output).toContain("packed snapshot of a set of documents");
+    expect(output).not.toContain("<codebase");
+  });
+
+  it("keeps <codebase> for a source-dominated bundle", () => {
+    const output = assembleOutput({ projectName: "demo", files, tree, style: "xml" });
+    expect(output.startsWith("<codebase ")).toBe(true);
+    expect(output).toContain("packed snapshot of a codebase");
+  });
+
+  it("falls through to neutral <files> on a code/doc tie", () => {
+    const mixed = [
+      { path: "a.py", content: "x = 1\n" },
+      { path: "b.pdf", content: "text" },
+    ];
+    const output = assembleOutput({ projectName: "mix", files: mixed, tree: "a.py\nb.pdf\n", style: "xml" });
+    expect(output.startsWith("<files ")).toBe(true);
+    expect(output).toContain("packed snapshot of a set of files");
+  });
+
+  it("titles the markdown and plain headings by kind", () => {
+    const md = assembleOutput({ projectName: "dava", files: docs, tree: docTree, style: "markdown" });
+    const txt = assembleOutput({ projectName: "dava", files: docs, tree: docTree, style: "plain" });
+    expect(md.startsWith("# Documents: dava")).toBe(true);
+    expect(txt.startsWith("Documents: dava")).toBe(true);
+  });
+
+  it("drops gitignore jargon from the summary in favor of plain language", () => {
+    const output = assembleOutput({ projectName: "demo", files, tree, style: "xml" });
+    expect(output).not.toContain("default ignore patterns");
+    expect(output).toContain("lock files and build output");
   });
 });

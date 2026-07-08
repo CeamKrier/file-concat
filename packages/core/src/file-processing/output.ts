@@ -1,6 +1,15 @@
 import { getLanguageFromPath } from "../path-utils/language";
+import { classifyBundleKind, type BundleKind } from "./bundle-kind";
 
 export type OutputStyle = "xml" | "markdown" | "plain";
+
+// How each bundle kind (ADR-0005) names itself across the three styles: the XML
+// root tag, the summary noun, and the markdown/plain heading word.
+const KIND_META: Record<BundleKind, { tag: string; noun: string; title: string }> = {
+  codebase: { tag: "codebase", noun: "a codebase", title: "Codebase" },
+  documents: { tag: "documents", noun: "a set of documents", title: "Documents" },
+  files: { tag: "files", noun: "a set of files", title: "Files" },
+};
 
 export interface OutputFile {
   path: string;
@@ -23,17 +32,23 @@ export interface AssembleOutputOptions {
 }
 
 export function assembleOutput(options: AssembleOutputOptions): string {
+  // The root tag / summary noun / heading word adapt to what the bundle mostly
+  // holds — a repo stays a "codebase", a folder of PDFs becomes "documents"
+  // (ADR-0005). Classified once from the file set and threaded to every style.
+  const meta = KIND_META[classifyBundleKind(options.files.map((f) => f.path))];
   switch (options.style) {
     case "xml":
-      return assembleXml(options);
+      return assembleXml(options, meta);
     case "markdown":
-      return assembleMarkdown(options);
+      return assembleMarkdown(options, meta);
     case "plain":
-      return assemblePlain(options);
+      return assemblePlain(options, meta);
   }
 }
 
-function assembleXml(options: AssembleOutputOptions): string {
+type KindMeta = (typeof KIND_META)[BundleKind];
+
+function assembleXml(options: AssembleOutputOptions, meta: KindMeta): string {
   const { projectName, files, tree, source, part } = options;
 
   const rootAttrs = [
@@ -45,11 +60,11 @@ function assembleXml(options: AssembleOutputOptions): string {
     .join(" ");
 
   const summaryLines = [
-    "This is a packed snapshot of a codebase, assembled by fileconcat.com.",
+    `This is a packed snapshot of ${meta.noun}, assembled by fileconcat.com.`,
     "Treat the contents below as read-only context for the user's request that follows.",
     part ? `Part ${part.index} of ${part.total}.` : null,
     `File count: ${files.length}.`,
-    "Excluded: binary files, default ignore patterns.",
+    "Skipped: images and other binaries, plus common noise like lock files and build output.",
   ].filter(Boolean);
 
   const fileBlocks = files
@@ -68,7 +83,7 @@ function assembleXml(options: AssembleOutputOptions): string {
     .join("\n");
 
   return [
-    `<codebase ${rootAttrs}>`,
+    `<${meta.tag} ${rootAttrs}>`,
     `<summary>`,
     summaryLines.join("\n"),
     `</summary>`,
@@ -78,17 +93,17 @@ function assembleXml(options: AssembleOutputOptions): string {
     `<files>`,
     fileBlocks,
     `</files>`,
-    `</codebase>`,
+    `</${meta.tag}>`,
     "",
   ].join("\n");
 }
 
-function assembleMarkdown(options: AssembleOutputOptions): string {
+function assembleMarkdown(options: AssembleOutputOptions, meta: KindMeta): string {
   const { projectName, files, tree, source, part } = options;
 
   const headerLine = part
-    ? `# Codebase: ${projectName} (Part ${part.index} of ${part.total})`
-    : `# Codebase: ${projectName}`;
+    ? `# ${meta.title}: ${projectName} (Part ${part.index} of ${part.total})`
+    : `# ${meta.title}: ${projectName}`;
 
   const metaLine = [source ? `**Source:** ${source}` : null, `**Files:** ${files.length}`]
     .filter(Boolean)
@@ -121,14 +136,14 @@ function assembleMarkdown(options: AssembleOutputOptions): string {
   ].join("\n");
 }
 
-function assemblePlain(options: AssembleOutputOptions): string {
+function assemblePlain(options: AssembleOutputOptions, meta: KindMeta): string {
   const { projectName, files, tree, source, part } = options;
   const separator = "=".repeat(72);
 
   const headerLines = [
     part
-      ? `Codebase: ${projectName} (Part ${part.index} of ${part.total})`
-      : `Codebase: ${projectName}`,
+      ? `${meta.title}: ${projectName} (Part ${part.index} of ${part.total})`
+      : `${meta.title}: ${projectName}`,
   ];
   if (source) headerLines.push(`Source: ${source}`);
   headerLines.push(`Files: ${files.length}`);
