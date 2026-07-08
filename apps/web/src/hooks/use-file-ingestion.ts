@@ -168,7 +168,11 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             total: p.totalFiles,
             note: prev?.note,
           }));
-        const { files, error } = await adapter.fetchFiles(url, { onProgress, onStatus, signal });
+        const { files, error, failures } = await adapter.fetchFiles(url, {
+          onProgress,
+          onStatus,
+          signal,
+        });
         if (error) throw new Error(error);
 
         const incoming: IncomingFile[] = [];
@@ -179,6 +183,15 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           incoming.push({ file: fileObj, path: remote.path, content: remote.content || "" });
         }
         await ingestBatch(incoming);
+        // ingestBatch replaces failedFiles with its own read failures, so append
+        // the adapter's download failures afterwards. Files that were listed but
+        // couldn't be fetched are surfaced, never silently dropped (ADR-0004).
+        if (failures?.length) {
+          setFailedFiles((prev) => [
+            ...prev,
+            ...failures.map((f) => ({ path: f.path, error: f.reason })),
+          ]);
+        }
       } catch (error) {
         if (error instanceof Error && error.name === "AbortError") {
           throw new Error("Repository fetch aborted");

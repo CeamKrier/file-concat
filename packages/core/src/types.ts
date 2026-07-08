@@ -119,9 +119,22 @@ export interface RepoFile {
   download_url?: string;
 }
 
+export interface FetchFailure {
+  /** Display path of the file the adapter listed but could not retrieve. */
+  path: string;
+  /** Human-readable reason, surfaced to the user rather than swallowed. */
+  reason: string;
+}
+
 export interface RepositoryContent {
   files: RepoFile[];
   error?: string;
+  /**
+   * Files that were listed but could not be downloaded (network error,
+   * rate-limit, etc). Per ADR-0004 these are surfaced to the user instead of
+   * silently dropped. Absent when every listed file was fetched.
+   */
+  failures?: FetchFailure[];
 }
 
 export interface DownloadProgress {

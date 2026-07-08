@@ -238,6 +238,9 @@ importers:
 
   packages/core:
     dependencies:
+      fflate:
+        specifier: ^0.8.3
+        version: 0.8.3
       ignore:
         specifier: ^7.0.5
         version: 7.0.5

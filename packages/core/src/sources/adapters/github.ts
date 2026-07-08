@@ -1,7 +1,9 @@
+import { unzipSync } from "fflate";
 import type { SourceAdapter, ParsedSourceUrl, FetchOptions } from "../types";
-import type { RepositoryContent, RepoFile } from "../../types";
+import type { RepositoryContent, RepoFile, FetchFailure } from "../../types";
 import { SOURCE_METADATA } from "../metadata";
 import { createProgressReporter } from "../progress";
+import { DEFAULT_DOWNLOAD_CONCURRENCY, pooledMap } from "../pooled-map";
 import { classifyResponseError, fetchWithRateLimitRetry } from "./_errors";
 
 /** GitHub URL regex patterns */
@@ -21,6 +23,11 @@ interface GitHubTreeItem {
 
 interface GitHubTreeResponse {
   tree: GitHubTreeItem[];
+  /**
+   * GitHub sets this when the recursive tree exceeds ~100k entries or 7MB and
+   * the returned `tree` is therefore incomplete. Must not be ignored.
+   */
+  truncated?: boolean;
 }
 
 export function isGitHubTreeItemIncluded(
@@ -44,6 +51,41 @@ export function getGitHubDisplayPath(itemPath: string, subPath?: string): string
   }
 
   return itemPath;
+}
+
+/**
+ * Extract the files from a GitHub zipball (`/zipball/{ref}`). The archive wraps
+ * everything in a single top-level `owner-repo-<sha>/` directory, which we
+ * strip. Directory entries and (when `subPath` is set) files outside the
+ * subtree are dropped, and the subPath prefix is stripped from display paths so
+ * the result matches the selective per-file path (see {@link getGitHubDisplayPath}).
+ */
+export function extractZipballFiles(bytes: Uint8Array, subPath?: string): RepoFile[] {
+  const unzipped = unzipSync(bytes);
+  const decoder = new TextDecoder();
+  const files: RepoFile[] = [];
+
+  for (const [entryPath, data] of Object.entries(unzipped)) {
+    if (entryPath.endsWith("/")) continue; // directory entry
+
+    // Strip the single wrapping "owner-repo-<sha>/" top-level directory.
+    const slash = entryPath.indexOf("/");
+    const repoPath = slash === -1 ? entryPath : entryPath.slice(slash + 1);
+    if (!repoPath) continue;
+
+    if (!isGitHubTreeItemIncluded({ type: "blob", path: repoPath }, subPath)) continue;
+
+    const displayPath = getGitHubDisplayPath(repoPath, subPath);
+    files.push({
+      name: displayPath.split("/").pop() || "",
+      path: displayPath,
+      type: "text/plain",
+      size: data.length,
+      content: decoder.decode(data),
+    });
+  }
+
+  return files;
 }
 
 /**
@@ -130,6 +172,26 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
 
     const treeData = (await treeResponse.json()) as GitHubTreeResponse;
 
+    // Large repos: GitHub caps the recursive tree at ~100k entries / 7MB and
+    // flags it `truncated`. The listing is then incomplete, so rather than
+    // silently shipping a partial repo (ADR-0004) we pull the whole thing as a
+    // single zipball — one request, no per-file rate-limit fan-out.
+    if (treeData.truncated) {
+      onStatus?.("Large repository — downloading full archive");
+      const zipUrl = `https://api.github.com/repos/${owner}/${repo}/zipball/${branch}`;
+      const zipResponse = await fetchWithRateLimitRetry(zipUrl, { signal });
+      if (!zipResponse.ok) {
+        throw classifyResponseError(zipResponse, `GitHub archive ${owner}/${repo}@${branch}`);
+      }
+      const bytes = new Uint8Array(await zipResponse.arrayBuffer());
+      const archived = extractZipballFiles(bytes, subPath);
+      if (subPath && archived.length === 0) {
+        throw new Error(`Path '${subPath}' not found in branch '${branch}'`);
+      }
+      onStatus?.(`Extracted ${archived.length} ${archived.length === 1 ? "file" : "files"}`);
+      return { files: archived };
+    }
+
     const files = treeData.tree.filter((item) => isGitHubTreeItemIncluded(item, subPath));
 
     if (subPath && files.length === 0) {
@@ -144,11 +206,14 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
       onProgress,
     });
 
-    const filePromises = files.map(async (item) => {
+    const failures: FetchFailure[] = [];
+
+    const fetchedFiles = await pooledMap(files, DEFAULT_DOWNLOAD_CONCURRENCY, async (item) => {
       const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${item.path}`;
+      const displayPath = getGitHubDisplayPath(item.path, subPath);
 
       try {
-        const response = await fetch(rawUrl, { signal });
+        const response = await fetchWithRateLimitRetry(rawUrl, { signal });
         if (!response.ok) {
           throw new Error(`Failed to fetch ${item.path}`);
         }
@@ -182,9 +247,6 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
 
         const content = new TextDecoder().decode(allChunks);
 
-        // Adjust path if subdirectory
-        const displayPath = getGitHubDisplayPath(item.path, subPath);
-
         return {
           name: displayPath.split("/").pop() || "",
           path: displayPath,
@@ -197,15 +259,17 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
         if (error instanceof Error && error.message === "Aborted") {
           throw error;
         }
-        console.warn(`Failed to fetch ${item.path}:`, error);
+        failures.push({
+          path: displayPath,
+          reason: error instanceof Error ? error.message : "Download failed",
+        });
         return null;
       }
     });
 
-    const fetchedFiles = await Promise.all(filePromises);
     const validFiles = fetchedFiles.filter((file): file is RepoFile => file !== null);
 
-    return { files: validFiles };
+    return { files: validFiles, failures: failures.length ? failures : undefined };
   } catch (error) {
     if (error instanceof Error && (error.name === "AbortError" || error.message === "Aborted")) {
       throw new Error("AbortError");
