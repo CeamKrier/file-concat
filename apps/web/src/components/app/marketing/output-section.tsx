@@ -60,9 +60,9 @@ function OutputSample() {
     <div className="border-border bg-surface-inset rounded-card overflow-hidden border shadow-[0_24px_48px_-24px_oklch(var(--background))]">
       <div className="border-hairline flex items-center justify-between border-b px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <span className="bg-ink-faint/40 h-2 w-2 rounded-full" />
-          <span className="bg-ink-faint/40 h-2 w-2 rounded-full" />
-          <span className="bg-ink-faint/40 h-2 w-2 rounded-full" />
+          <span className="bg-ink-faint h-2 w-2 rounded-full" />
+          <span className="bg-ink-faint h-2 w-2 rounded-full" />
+          <span className="bg-ink-faint h-2 w-2 rounded-full" />
           <span className="text-ink-muted ml-2 font-mono text-[11.5px]">fileconcat-output.txt</span>
         </div>
         <span className="font-mono text-[11px]">

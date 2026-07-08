@@ -92,9 +92,9 @@ function TerminalBlock() {
   return (
     <div className="border-border-strong bg-surface-cli rounded-card overflow-hidden border">
       <div className="border-hairline flex items-center gap-2 border-b px-4 py-2.5">
-        <span className="bg-ink-faint/40 h-2 w-2 rounded-full" />
-        <span className="bg-ink-faint/40 h-2 w-2 rounded-full" />
-        <span className="bg-ink-faint/40 h-2 w-2 rounded-full" />
+        <span className="bg-ink-faint h-2 w-2 rounded-full" />
+        <span className="bg-ink-faint h-2 w-2 rounded-full" />
+        <span className="bg-ink-faint h-2 w-2 rounded-full" />
         <span className="text-ink-muted ml-2 font-mono text-[11.5px]">zsh</span>
       </div>
 
