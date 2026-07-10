@@ -15,6 +15,17 @@ export const LLM_CONTEXT_LIMITS: LLMContextLimit[] = [
 export const MULTI_OUTPUT_LIMIT = 100_000;
 export const MULTI_OUTPUT_CHUNK_SIZE = 32_000;
 
+/**
+ * Multi-part ("split into parts") output is currently disabled. It was built
+ * for LLMs with small per-paste or per-file upload limits; a bundle handed over
+ * as a file no longer touches a context window, and the old ~1 MB upload caps
+ * are gone — so the feature has no current justification and its "big bundle"
+ * card only added noise. The code is kept dormant behind this flag rather than
+ * deleted, ready to revive if a concrete limit (e.g. a small local-LLM context)
+ * makes splitting worthwhile again.
+ */
+export const SPLIT_OUTPUT_ENABLED = false;
+
 export const DEFAULT_CONFIG: ProcessingConfig = {
   maxFileSizeMB: 10,
   excludeHiddenFiles: true,

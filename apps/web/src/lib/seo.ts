@@ -182,7 +182,7 @@ export function generateHowToSchema() {
       {
         "@type": "HowToStep",
         name: "Export",
-        text: "Copy the bundle to your clipboard or download it as a single file. Large projects can be split into multiple chunks by size.",
+        text: "Copy the bundle to your clipboard or download it as a single file.",
         position: 4,
       },
       {

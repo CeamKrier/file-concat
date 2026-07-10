@@ -7,6 +7,7 @@ import type {
 } from "@fileconcat/core";
 import {
   MULTI_OUTPUT_LIMIT,
+  SPLIT_OUTPUT_ENABLED,
   assembleOutput,
   formatSize,
   generateFileTree,
@@ -61,8 +62,13 @@ export function useOutputGeneration({
   const [isGenerating, setIsGenerating] = useState(false);
 
   const recommendedFormat: OutputFormat = tokens > MULTI_OUTPUT_LIMIT ? "multi" : "single";
-  const selectedFormat: OutputFormat =
-    formatPreference === "auto" ? recommendedFormat : formatPreference;
+  // Split output is disabled (see SPLIT_OUTPUT_ENABLED): downloads stay single
+  // regardless of the persisted preference. Flip the flag to restore multi-part.
+  const selectedFormat: OutputFormat = !SPLIT_OUTPUT_ENABLED
+    ? "single"
+    : formatPreference === "auto"
+      ? recommendedFormat
+      : formatPreference;
 
   const chunks = useMemo(
     () => chunkContents(includedContents, chunkSizeKB * 1024),
@@ -130,14 +136,18 @@ export function useOutputGeneration({
 
       if (selectedFormat === "single") {
         const { projectName, text } = buildSingle(includedContents);
-        triggerDownload(text, `${projectName}_fileconcat.${extension}`, mimeType);
+        triggerDownload(text, outputFileName(projectName, extension), mimeType);
         return;
       }
 
       const total = chunks.length;
       for (let i = 0; i < total; i++) {
         const { projectName, text } = buildSingle(chunks[i], { index: i + 1, total });
-        triggerDownload(text, `${projectName}-fileconcat-part${i + 1}.${extension}`, mimeType);
+        triggerDownload(
+          text,
+          outputFileName(projectName, extension, { index: i + 1, total }),
+          mimeType,
+        );
         if (i < total - 1) {
           await new Promise((resolve) => setTimeout(resolve, DOWNLOAD_THROTTLE_MS));
         }
@@ -204,6 +214,21 @@ function chunkContents(files: ContentEntry[], target: number): ContentEntry[][] 
 
   if (current.length > 0) chunks.push(current);
   return chunks;
+}
+
+/**
+ * A single-file (or single-chunk) download carries no part suffix; only a
+ * genuine multi-part split (`total > 1`) is numbered. Keeping the one-part case
+ * un-suffixed is what stops a bundle that fits in one chunk from ever
+ * downloading as `…-part1`.
+ */
+function outputFileName(
+  projectName: string,
+  extension: string,
+  part?: { index: number; total: number },
+): string {
+  if (!part || part.total === 1) return `${projectName}_fileconcat.${extension}`;
+  return `${projectName}-fileconcat-part${part.index}.${extension}`;
 }
 
 function triggerDownload(text: string, fileName: string, mimeType: string) {

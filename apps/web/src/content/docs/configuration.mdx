@@ -1,28 +1,21 @@
 # Configuration
 
 FileConcat keeps its output and filtering choices in a few places: the
-result screen (the output format and the single-vs-split choice), the
-**Adjust what's included** drawer (filtering and cost knobs), and
+result screen (the output format), the **Adjust what's included**
+drawer (filtering and cost knobs), and
 `localStorage` (the defaults that survive a page reload). This page
 documents each one in the order you encounter it.
 
 ## Output controls on the result screen
 
-Once your file is ready, the result screen carries the two output
-choices.
+Once your file is ready, the result screen carries the output format
+choice.
 
 **Format** is a segmented control offering XML, Markdown, or Plain. XML
 wraps each file in named tags (recommended for Claude); Markdown uses
 fenced code blocks (recommended for assistants that emit Markdown
 themselves); Plain concatenates the files with lightweight separators
 and no markup.
-
-**Keep as one file / Split into parts** appears on the big-bundle card
-when the output is large enough to be awkward to paste in one go. Keep
-as one file produces a single blob ready to paste; Split into parts
-breaks the output so each part fits your model's per-turn limit. When
-you split, the parts are sized by a fixed engine target rather than a
-control you set.
 
 ## The Adjust what's included drawer
 
@@ -65,7 +58,6 @@ sessions:
 - `includePatterns` and `ignorePatterns` (your textareas)
 - `maxFileSizeMB`
 - `showLineNumbers`
-- `defaultOutputFormat` (single or multi)
 - `outputStyle` (xml, markdown, or plain)
 - `defaultSourceType` and `autoSwitchSource`
 
