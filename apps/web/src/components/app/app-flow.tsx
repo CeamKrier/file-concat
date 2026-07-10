@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DEFAULT_CONFIG,
   MULTI_OUTPUT_LIMIT,
+  SPLIT_OUTPUT_ENABLED,
   addLineNumbers,
   assembleOutput,
   generateFileTree,
@@ -212,7 +213,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       .filter(([path, v]) => v.extracted && included.has(path))
       .map(([path]) => path.split("/").pop() ?? path);
   }, [ingestion.validations, filter.fileStatuses]);
-  const bigBundle = tokens > MULTI_OUTPUT_LIMIT;
+  const bigBundle = SPLIT_OUTPUT_ENABLED && tokens > MULTI_OUTPUT_LIMIT;
   const projectName = useMemo(
     () =>
       ingestion.entries.length ? generateProjectName(ingestion.entries.map((e) => e.path)) : "",

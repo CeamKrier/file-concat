@@ -97,8 +97,8 @@ function ContextWindow() {
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
           The hard part of reading with a model is not the reading, it is the budget. FileConcat
-          counts the tokens as it bundles, so you see whether the whole pile lands in one window. When
-          it runs long, it splits into a few numbered parts you can feed in order.
+          counts the tokens as it bundles, so you see whether the whole pile lands in one window
+          before you ever paste it.
         </p>
         <p className="text-go-fg mt-5 inline-flex items-center gap-2 font-mono text-[12.5px]">
           <Hash className="text-primary h-4 w-4 shrink-0" strokeWidth={2} />
@@ -137,8 +137,8 @@ const STEPS = [
     body: "PDFs are extracted, notes and data pass straight through, boilerplate is dropped.",
   },
   {
-    title: "One document, sized to fit",
-    body: "You get a single file, or a few numbered parts when the pile runs past the window.",
+    title: "One document, counted up front",
+    body: "You get a single file, with the token count up front so you know whether it lands in one window.",
   },
 ];
 
