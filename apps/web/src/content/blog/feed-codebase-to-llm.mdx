@@ -1,0 +1,122 @@
+---
+title: "How to Feed Your Entire Codebase to an LLM"
+description: "Pack your whole repo into one AI-friendly text blob and paste it into ChatGPT or Claude. Import from GitHub, filter noise, and see token counts live."
+date: "2026-07-11"
+author: "CeamKrier"
+draft: false
+---
+
+Sometimes the thing you want to ask about is not one file, it is the whole project: how
+the pieces fit, where a bug is hiding, whether an approach holds across the codebase.
+For that, the model needs to see the repo, not a snippet of it.
+
+This guide covers how to feed your entire codebase to an LLM like ChatGPT or Claude: why
+pasting the raw folder rarely works, how to cut it down to what matters, and how to pull
+a repo straight from a URL. There is a spot to try it on your own repo partway down.
+
+## Why pasting a raw repo fails
+
+When you try to give ChatGPT or Claude your whole codebase by selecting the project
+folder and pasting everything, two things go wrong.
+
+The first is noise. A working checkout is mostly not your code: `node_modules`, build
+output, lock files, the `.git` directory, vendored dependencies, generated assets. Paste
+all of it and the signal you care about is buried under the parts you do not.
+
+The second is size. Every model has a ceiling on how much text it takes at once, and an
+installed repo runs past it easily. Fitting a large codebase into a context window is
+really a filtering problem, not a copy-paste one: the dependencies alone are usually
+larger than a chat box will accept.
+
+<BeforeAfter>
+  <Before label="the whole checkout" tokens="1,240,000">{`my-app/
+  node_modules/     # thousands of files
+  dist/             # build output
+  .git/
+  package-lock.json
+  src/              # the part you want
+  README.md`}</Before>
+  <After label="filtered bundle" tokens="31,000">{`my-app/
+  src/
+  package.json
+  README.md`}</After>
+</BeforeAfter>
+
+Those figures are illustrative, but the shape holds on almost any repo: the dependencies
+and build output are the bulk of the bytes and almost never what you want the model to
+read.
+
+## Cut the noise first
+
+The fix is to send a curated snapshot: your source, your config, your docs, and nothing
+that a fresh install or a build would regenerate.
+
+FileConcat does this by default. It leaves out lock files, build output, binaries, and
+the usual dependency directories, and it respects your `.gitignore` on top of that. The
+bundle starts as the signal, and you add back anything you actually want.
+
+<Callout type="tip" title="What the default filter already removes">
+  Dependency folders, build and cache directories, lock files, and binaries are left out
+  before you touch a single setting. Widen or narrow it with include and ignore patterns,
+  or toggle any one file back in. See [what the filter leaves out](/docs/file-filtering).
+</Callout>
+
+## Bring in a repo by URL
+
+You do not need the code checked out locally. Paste a public repository URL and FileConcat
+pulls the files, filters them the same way, and hands back one bundle. For most projects
+this is the best way to share a codebase with ChatGPT or Claude, and the fastest way to
+convert a GitHub repo to text for either one.
+
+<Steps>
+  <Step title="Paste the repository URL">
+    A public GitHub, GitLab, or Bitbucket URL is enough. FileConcat resolves the default
+    branch and lists the files. See [importing from GitHub](/docs/github-import).
+  </Step>
+  <Step title="Let the noise fall away">
+    The same default filter runs on the fetched tree, so dependencies, build output, and
+    lock files never make it into the bundle.
+  </Step>
+  <Step title="Copy the bundle">
+    You get one structured document with every file labeled by its path, plus a running
+    token count so you know it fits before you paste it.
+  </Step>
+</Steps>
+
+## Try it on your own repo
+
+Drop a project folder below, or open the full tool to paste a repository URL. It runs in
+your browser, there is no account, and nothing is uploaded to us.
+
+<TryIt title="Bundle your own project" hint="Drop a project folder. It runs here in your browser, nothing is uploaded." />
+
+## When a paste is the wrong tool
+
+Bundling a codebase into one prompt is the right move when you want a model to reason over
+a snapshot: review an approach, explain a module, find where something is defined. It is
+not the right move for everything.
+
+If the repo is too large to fit even after filtering, or you want the model to edit across
+many files and iterate, a single paste is the wrong shape. An agentic coding tool that
+reads files on demand, or a retrieval setup that fetches only the relevant parts, will
+serve you better there. Command-line packers like Repomix and gitingest cover the same
+bundle-a-git-repo need in the terminal; FileConcat's difference is that it runs in the
+browser, handles documents as well as code, and shows the token cost as you build.
+
+<Callout type="warn" title="A snapshot, not a live connection">
+  A pasted bundle is a point-in-time copy. The model does not see edits you make after you
+  paste, and it cannot pull in a file you left out. For back-and-forth work across a
+  changing tree, reach for a tool built to read the repo as it changes.
+</Callout>
+
+## Mind the token budget
+
+Because the ceiling is real, it helps to know the size of a bundle before you paste it.
+FileConcat counts tokens live as you include and exclude files, so you can trim until it
+fits instead of finding out when the chat box refuses it.
+
+<Callout type="tip">
+  Bundling a handful of loose files instead of a whole repo? The
+  [companion guide to combining files](/blog/combine-files-for-llm) covers that case, and
+  [how the token count works](/docs/token-estimation) explains the estimate.
+</Callout>
