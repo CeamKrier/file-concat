@@ -6,9 +6,9 @@ author: "CeamKrier"
 draft: true
 ---
 
-This is a draft placeholder that demonstrates the blog frontmatter format. It stays
-out of the public listing, the sitemap, and production until you flip `draft` to
-`false`. Delete it or turn it into the first real post.
+This is a draft scaffold that exercises the rich blog elements in context. It stays
+out of the public listing, the sitemap, and production until `draft` is flipped to
+`false`. The prose here is placeholder for the real Post 1.
 
 ## The problem
 
@@ -16,16 +16,57 @@ You have a folder of files and a chat box that takes one block of text. Pasting 
 one at a time loses structure, blows past what you can track, and gives the model no
 sense of how the files relate.
 
+<Callout type="note" title="What counts as one prompt">
+  Most chat boxes take a single block of text. The job is to turn many files into one
+  block that still tells the model where each file starts and ends.
+</Callout>
+
 ## Three ways to do it
 
-1. **Copy-paste by hand.** Fine for two or three files. Painful past that, and you
-   lose the paths that tell the model what it is looking at.
-2. **A `cat` pipeline.** `cat src/**/*.ts` gets you the bytes, but no file headers,
-   no filtering of lock files and build output, and no token count.
-3. **FileConcat.** Drop the folder, let the noise get filtered out, and copy one
-   structured document with every path labeled and the token cost shown up front.
+<Steps>
+  <Step title="Copy and paste by hand">
+    Fine for two or three files. Painful past that, and you lose the paths that tell
+    the model what it is looking at.
+  </Step>
+  <Step title="A cat pipeline">
+    `cat src/**/*.ts` gets you the bytes, but no file headers, no filtering of lock
+    files and build output, and no token count.
+  </Step>
+  <Step title="FileConcat">
+    Drop the folder, let the noise get filtered out, and copy one structured document
+    with every path labeled and the token cost shown up front.
+  </Step>
+</Steps>
 
-## Why structure matters
+## What the structure buys you
 
-An LLM reads a bundle better when each file is clearly delimited and named. That is
-the difference between "here is a wall of text" and "here is a project."
+An LLM reads a bundle better when each file is clearly delimited and named. That is the
+difference between a wall of text and a project it can navigate.
+
+<BeforeAfter>
+  <Before label="cat src/*.ts">{`export function add(a, b) {
+  return a + b
+}
+export function sub(a, b) {
+  return a - b
+}`}</Before>
+  <After label="project.xml" tokens="1,204">{`<file path="src/math.ts">
+export function add(a, b) {
+  return a + b
+}
+</file>`}</After>
+</BeforeAfter>
+
+<Callout type="warn" title="Paths matter more than you think">
+  Without the file paths, the model cannot tell an entry point from a helper. The
+  labels are the cheapest context you can give it.
+</Callout>
+
+## Now do it with your files
+
+<TryIt />
+
+<Callout type="tip">
+  Dropping a whole folder is usually faster than picking files. The default filter
+  already leaves out lockfiles, build output, and binaries.
+</Callout>

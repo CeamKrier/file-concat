@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 
 import { BlogShell } from "~/components/blog/blog-shell";
-import { MDXProviderWrapper } from "~/components/mdx-provider";
+import { BlogMDXProviderWrapper } from "~/components/blog/blog-mdx-provider";
 import { formatPostDate, getPostBySlug } from "~/lib/blog";
 import { generateSEOMeta } from "~/lib/seo";
 
@@ -66,9 +66,9 @@ function BlogPostPage() {
           </div>
         </header>
 
-        <MDXProviderWrapper>
+        <BlogMDXProviderWrapper>
           <Content />
-        </MDXProviderWrapper>
+        </BlogMDXProviderWrapper>
       </article>
     </BlogShell>
   );
