@@ -146,9 +146,14 @@ files together` (pos 55).
 
 ## Open decisions (resume here)
 
-- **Blog scope:** first target queries + cadence (deferred with content). The
-  how-to queries we already rank for but bury (`how to join files together`
-  pos 55, `how do you combine files` pos 74) are the natural first posts.
-- **Homepage CTR ceiling:** confirm no AI Overview / SERP feature sits above our
-  #1 for "file concat tool" (owner confirmed we are #1). If CTR stays ~0 after
-  reindex, the cause is a SERP feature, not the snippet.
+- **Blog content — planned, implementation deferred.** Keyword research +
+  content plan are in [blog-plan.md](./blog-plan.md): slate is Post 1 (combine
+  files how-to), Post 2 (codebase→LLM), Post 3 (combine documents); comparison
+  post deferred. Next session runs the exhaustive keyword-research pre-step, then
+  builds the rich-element MDX components and writes the posts. Key finding: the
+  category vocabulary is "codebase/repo→LLM", we speak "files/folder" — the blog
+  is how we enter it. Privacy claims are scoped: "nothing uploaded to us", never
+  claims about what the AI does with pasted text.
+- **Homepage CTR ceiling:** owner confirmed we are #1 for "file concat tool" with
+  no AI Overview above us, so the title/snippet fix has a high ceiling. If CTR
+  stays ~0 after reindex, revisit.
