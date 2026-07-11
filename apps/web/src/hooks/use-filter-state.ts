@@ -114,6 +114,8 @@ export function useFilterState({
         size,
         type,
         forceInclude,
+        classification: validation?.classification,
+        extracted: validation?.extracted,
         index,
       };
     });
@@ -123,6 +125,9 @@ export function useFilterState({
     (index: number) => {
       const status = fileStatuses[index];
       if (!status) return;
+      // Binary files are locked out of curation (ADR-0009) — there is no
+      // recoverable text to add, so the escape hatch does not apply.
+      if (status.classification === "binary") return;
       const target = !status.included;
       setUserToggled((prev) => {
         const next = { ...prev };
@@ -141,6 +146,9 @@ export function useFilterState({
         for (const i of indices) {
           const status = fileStatuses[i];
           if (!status) continue;
+          // Never force-include a binary when a whole directory is toggled on
+          // (ADR-0009); it stays locked out even inside an "include" sweep.
+          if (shouldInclude && status.classification === "binary") continue;
           if (shouldInclude === patternDecision(status.path)) delete next[status.path];
           else next[status.path] = shouldInclude ? "include" : "exclude";
         }

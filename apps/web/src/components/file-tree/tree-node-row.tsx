@@ -1,4 +1,14 @@
-import { ChevronDown, ChevronRight, File, Folder, FolderOpen, Check, X, Minus } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  File,
+  Folder,
+  FolderOpen,
+  Check,
+  X,
+  Minus,
+  Lock,
+} from "lucide-react";
 
 import { formatSize } from "@fileconcat/core";
 import { cn } from "~/lib/utils";
@@ -40,8 +50,13 @@ export function TreeNodeRow(props: TreeNodeRowProps): JSX.Element {
   const hasChildren = !!node.children && node.children.length > 0;
   const inclusionState = calculateInclusionState(node);
   const dimmed = inclusionState === "excluded";
+  // A binary file has no recoverable text, so it is locked out of curation
+  // (ADR-0009): its inclusion toggle and preview are both disabled.
+  const isBinary = node.type === "file" && node.status?.classification === "binary";
+  const canOpen = node.type === "file" && !isBinary;
 
   const handleInclusionToggle = (): void => {
+    if (isBinary) return;
     if (node.type === "file" && node.status && typeof node.status.index === "number") {
       onToggleFile(node.status.index);
     } else {
@@ -87,11 +102,17 @@ export function TreeNodeRow(props: TreeNodeRowProps): JSX.Element {
         <button
           type="button"
           onClick={handleInclusionToggle}
-          disabled={isProcessing}
-          className="rounded p-0.5 hover:bg-[oklch(var(--surface-inset))] disabled:opacity-50"
-          aria-label={`Toggle inclusion: ${inclusionState}`}
+          disabled={isProcessing || isBinary}
+          className={cn(
+            "rounded p-0.5 disabled:opacity-100",
+            isBinary
+              ? "cursor-default"
+              : "hover:bg-[oklch(var(--surface-inset))] disabled:opacity-50",
+          )}
+          aria-label={isBinary ? "Binary file — can't be included" : `Toggle inclusion: ${inclusionState}`}
+          title={isBinary ? "Not text — nothing to include" : undefined}
         >
-          {ICON_BY_STATE[inclusionState]}
+          {isBinary ? <Lock className="text-ink-faint h-4 w-4" /> : ICON_BY_STATE[inclusionState]}
         </button>
 
         <span
@@ -99,20 +120,21 @@ export function TreeNodeRow(props: TreeNodeRowProps): JSX.Element {
             "flex-1 truncate text-sm",
             node.type === "file"
               ? cn(
-                  "cursor-pointer font-mono hover:underline",
+                  "font-mono",
+                  canOpen && "cursor-pointer hover:underline",
                   dimmed ? "text-ink-faint" : "text-ink-secondary",
                 )
               : cn("font-medium", dimmed ? "text-ink-muted" : "text-ink"),
           )}
           title={node.path}
-          role={node.type === "file" ? "button" : undefined}
-          tabIndex={node.type === "file" ? 0 : -1}
+          role={canOpen ? "button" : undefined}
+          tabIndex={canOpen ? 0 : -1}
           onClick={(e) => {
             e.stopPropagation();
-            if (node.type === "file") onOpenFile?.(node.path);
+            if (canOpen) onOpenFile?.(node.path);
           }}
           onKeyDown={(e) => {
-            if (node.type === "file" && (e.key === "Enter" || e.key === " ")) {
+            if (canOpen && (e.key === "Enter" || e.key === " ")) {
               e.preventDefault();
               onOpenFile?.(node.path);
             }

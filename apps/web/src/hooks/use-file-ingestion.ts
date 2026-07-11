@@ -185,16 +185,23 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           type: entry.file.type || "text/plain",
         };
 
-        try {
-          // Decode through the core classifier so odd encodings (e.g. UTF-16)
-          // read as real text instead of UTF-8 mojibake. Remote sources already
-          // arrive decoded, so their content passes through untouched.
-          const content =
-            entry.content !== undefined ? entry.content : (await readFileAsText(entry.file)).text;
-          nextEntries.push({ path: entry.path, content });
-        } catch (error) {
-          console.error(`Failed to read file ${entry.path}:`, error);
-          nextFailed.push({ path: entry.path, error: "File could not be read" });
+        if (result.classification === "binary") {
+          // Binary: no recoverable text. Keep it visible in the tree (locked,
+          // ADR-0009) but never decode its bytes — a force-include must not be
+          // able to leak mojibake into the bundle, and decoding it is wasted work.
+          nextEntries.push({ path: entry.path, content: "" });
+        } else {
+          try {
+            // Decode through the core classifier so odd encodings (e.g. UTF-16)
+            // read as real text instead of UTF-8 mojibake. Remote sources already
+            // arrive decoded, so their content passes through untouched.
+            const content =
+              entry.content !== undefined ? entry.content : (await readFileAsText(entry.file)).text;
+            nextEntries.push({ path: entry.path, content });
+          } catch (error) {
+            console.error(`Failed to read file ${entry.path}:`, error);
+            nextFailed.push({ path: entry.path, error: "File could not be read" });
+          }
         }
 
         if ((i + 1) % tick === 0 || i + 1 === total) {

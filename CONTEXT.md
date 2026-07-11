@@ -11,7 +11,7 @@ A file whose bytes decode to legible text under a standard encoding (UTF-8, UTF-
 _Avoid_: "supported file", "code file" (docs, configs and data are text too)
 
 **Binary file**:
-A file whose bytes cannot be decoded to legible text and that carries no recoverable text either — images, archives, executables, media. Detected by content, not by extension: either the bytes fail to decode to legible text, or they open with a recognized binary media signature (so an image that leads with a large text metadata header is still binary — see ADR-0007). Binary files are excluded from the bundle. (Office documents are **not** binary in this sense — see Extractable document.)
+A file whose bytes cannot be decoded to legible text and that carries no recoverable text either — images, archives, executables, media. Detected by content, not by extension: either the bytes fail to decode to legible text, or they open with a recognized binary media signature (so an image that leads with a large text metadata header is still binary — see ADR-0007). Binary files are excluded from the bundle. Because there is no recoverable text, a binary is **not manually re-includable** — the curation escape hatch that pulls a Noise or over-size Text file back into the bundle does not apply, since there is nothing to add. (Office documents are **not** binary in this sense — see Extractable document.)
 _Avoid_: "unsupported file", "invalid file"
 
 **Extractable document**:
