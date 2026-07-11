@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { ArrowUpRight, Check, Copy, Loader2, RotateCcw } from "lucide-react";
+import { Check, Copy, Loader2, RotateCcw } from "lucide-react";
 import {
   DEFAULT_CONFIG,
   DEFAULT_IGNORE_STRING,
@@ -22,7 +21,10 @@ type Phase = "idle" | "processing" | "result";
  * tool: drop files or a folder and it runs the same ingestion + default noise
  * filtering + assembly engine right here, then hands back a copyable bundle and
  * a live token count. Everything runs in the browser, nothing is uploaded to us.
- * Filtering, imports, and per-file control live in the full tool it links to.
+ * Filtering, imports, and per-file control live in the full tool, reachable from
+ * the site header. This card never navigates away, so a drop is never discarded:
+ * the full tool starts fresh and can't receive this inline state, so linking to
+ * it from here would throw the user's files away.
  *
  * Default-exported so the blog MDX provider can lazy-load it: the engine and its
  * dependencies never enter the docs or the article's first chunk.
@@ -176,8 +178,8 @@ export default function TryIt({
                 </span>
               </div>
               <p className="text-ink-muted mt-1.5 text-[13px] leading-relaxed">
-                Filtered with the defaults: lockfiles, build output, and binaries are left out. Use
-                the full tool to change what is in or out.
+                Filtered with the defaults: lockfiles, build output, and binaries are left out. The
+                full tool lets you change what is in or out.
               </p>
 
               <div className="mt-4 flex flex-wrap items-center gap-2.5">
@@ -193,13 +195,6 @@ export default function TryIt({
                   )}
                   {copied ? "Copied" : "Copy bundle"}
                 </button>
-                <Link
-                  to="/"
-                  className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-surface-alt inline-flex items-center gap-1.5 rounded-sm px-1.5 py-1 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                >
-                  Open the full tool
-                  <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
-                </Link>
                 <StartOverButton onClick={startOver} className="ml-auto" />
               </div>
             </>
