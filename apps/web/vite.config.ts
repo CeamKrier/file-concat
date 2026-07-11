@@ -5,6 +5,8 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 import react from "@vitejs/plugin-react";
 import mdx from "@mdx-js/rollup";
 import remarkGfm from "remark-gfm";
+import remarkFrontmatter from "remark-frontmatter";
+import remarkMdxFrontmatter from "remark-mdx-frontmatter";
 import rehypePrismPlus from "rehype-prism-plus";
 import wasm from "vite-plugin-wasm";
 import topLevelAwait from "vite-plugin-top-level-await";
@@ -35,7 +37,10 @@ export default defineConfig({
     // React
     react(),
     mdx({
-      remarkPlugins: [remarkGfm],
+      // remark-frontmatter parses the leading `---` YAML block; the mdx-
+      // frontmatter plugin re-exports it as a named `frontmatter` export on
+      // each MDX module. Powers blog post metadata and docs SEO titles.
+      remarkPlugins: [remarkFrontmatter, remarkMdxFrontmatter, remarkGfm],
       rehypePlugins: [rehypePrismPlus],
       providerImportSource: "@mdx-js/react",
     }),

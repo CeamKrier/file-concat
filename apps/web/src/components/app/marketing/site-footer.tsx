@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { SiGithub, SiNpm } from "@icons-pack/react-simple-icons";
 
 import BMCLogo from "~/components/bmc-logo";
+import { hasPublishedPosts } from "~/lib/blog";
 import { LogoMark } from "../logo-mark";
 
 const linkClass =
@@ -30,6 +31,11 @@ export function SiteFooter() {
           <Link to="/docs" className={linkClass}>
             Docs
           </Link>
+          {hasPublishedPosts() && (
+            <Link to="/blog" className={linkClass}>
+              Blog
+            </Link>
+          )}
           <Link to="/for/legal" className={linkClass}>
             For lawyers
           </Link>

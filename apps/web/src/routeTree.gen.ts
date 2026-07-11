@@ -12,9 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
+import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as ForResearchersRouteImport } from './routes/for/researchers'
 import { Route as ForLegalRouteImport } from './routes/for/legal'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
+import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as ApiModelsRouteImport } from './routes/api/models'
 
 const AppRoute = AppRouteImport.update({
@@ -32,6 +34,11 @@ const DocsIndexRoute = DocsIndexRouteImport.update({
   path: '/docs/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ForResearchersRoute = ForResearchersRouteImport.update({
   id: '/for/researchers',
   path: '/for/researchers',
@@ -47,6 +54,11 @@ const DocsSlugRoute = DocsSlugRouteImport.update({
   path: '/docs/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiModelsRoute = ApiModelsRouteImport.update({
   id: '/api/models',
   path: '/api/models',
@@ -57,18 +69,22 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
   '/api/models': typeof ApiModelsRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/for/legal': typeof ForLegalRoute
   '/for/researchers': typeof ForResearchersRoute
+  '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
   '/api/models': typeof ApiModelsRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/for/legal': typeof ForLegalRoute
   '/for/researchers': typeof ForResearchersRoute
+  '/blog': typeof BlogIndexRoute
   '/docs': typeof DocsIndexRoute
 }
 export interface FileRoutesById {
@@ -76,9 +92,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
   '/api/models': typeof ApiModelsRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/for/legal': typeof ForLegalRoute
   '/for/researchers': typeof ForResearchersRoute
+  '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
 }
 export interface FileRouteTypes {
@@ -87,27 +105,33 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/api/models'
+    | '/blog/$slug'
     | '/docs/$slug'
     | '/for/legal'
     | '/for/researchers'
+    | '/blog/'
     | '/docs/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/app'
     | '/api/models'
+    | '/blog/$slug'
     | '/docs/$slug'
     | '/for/legal'
     | '/for/researchers'
+    | '/blog'
     | '/docs'
   id:
     | '__root__'
     | '/'
     | '/app'
     | '/api/models'
+    | '/blog/$slug'
     | '/docs/$slug'
     | '/for/legal'
     | '/for/researchers'
+    | '/blog/'
     | '/docs/'
   fileRoutesById: FileRoutesById
 }
@@ -115,9 +139,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRoute
   ApiModelsRoute: typeof ApiModelsRoute
+  BlogSlugRoute: typeof BlogSlugRoute
   DocsSlugRoute: typeof DocsSlugRoute
   ForLegalRoute: typeof ForLegalRoute
   ForResearchersRoute: typeof ForResearchersRoute
+  BlogIndexRoute: typeof BlogIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
 }
 
@@ -144,6 +170,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/for/researchers': {
       id: '/for/researchers'
       path: '/for/researchers'
@@ -165,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/models': {
       id: '/api/models'
       path: '/api/models'
@@ -179,9 +219,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRoute,
   ApiModelsRoute: ApiModelsRoute,
+  BlogSlugRoute: BlogSlugRoute,
   DocsSlugRoute: DocsSlugRoute,
   ForLegalRoute: ForLegalRoute,
   ForResearchersRoute: ForResearchersRoute,
+  BlogIndexRoute: BlogIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
 }
 export const routeTree = rootRouteImport

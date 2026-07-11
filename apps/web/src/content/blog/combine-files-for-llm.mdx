@@ -1,0 +1,31 @@
+---
+title: "How to combine multiple files into one prompt for ChatGPT or Claude"
+description: "Three ways to merge a folder of files into a single, well-structured document an LLM can read: manual copy-paste, a cat pipeline, and FileConcat."
+date: "2026-07-11"
+author: "CeamKrier"
+draft: true
+---
+
+This is a draft placeholder that demonstrates the blog frontmatter format. It stays
+out of the public listing, the sitemap, and production until you flip `draft` to
+`false`. Delete it or turn it into the first real post.
+
+## The problem
+
+You have a folder of files and a chat box that takes one block of text. Pasting them
+one at a time loses structure, blows past what you can track, and gives the model no
+sense of how the files relate.
+
+## Three ways to do it
+
+1. **Copy-paste by hand.** Fine for two or three files. Painful past that, and you
+   lose the paths that tell the model what it is looking at.
+2. **A `cat` pipeline.** `cat src/**/*.ts` gets you the bytes, but no file headers,
+   no filtering of lock files and build output, and no token count.
+3. **FileConcat.** Drop the folder, let the noise get filtered out, and copy one
+   structured document with every path labeled and the token cost shown up front.
+
+## Why structure matters
+
+An LLM reads a bundle better when each file is clearly delimited and named. That is
+the difference between "here is a wall of text" and "here is a project."
