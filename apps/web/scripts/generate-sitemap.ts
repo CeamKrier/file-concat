@@ -4,7 +4,7 @@
  */
 
 import { execFileSync } from "child_process";
-import { writeFileSync } from "fs";
+import { writeFileSync, readFileSync, readdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -26,12 +26,6 @@ const pages: SitemapEntry[] = [
     sourceFile: ["apps/web/src/routes/index.tsx", "apps/web/src/components/landing"],
     changefreq: "weekly",
     priority: 1.0,
-  },
-  {
-    url: "/app",
-    sourceFile: ["apps/web/src/routes/app.tsx", "apps/web/src/app.tsx"],
-    changefreq: "weekly",
-    priority: 0.9,
   },
   {
     url: "/docs",
@@ -118,6 +112,67 @@ const pages: SitemapEntry[] = [
     priority: 0.6,
   },
 ];
+
+/** Minimal `---`-delimited frontmatter reader: only the keys the sitemap needs. */
+function readFrontmatter(raw: string): Record<string, string | boolean> {
+  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!match) return {};
+  const out: Record<string, string | boolean> = {};
+  for (const line of match[1].split(/\r?\n/)) {
+    const idx = line.indexOf(":");
+    if (idx === -1) continue;
+    const key = line.slice(0, idx).trim();
+    const value = line
+      .slice(idx + 1)
+      .trim()
+      .replace(/^["']|["']$/g, "");
+    out[key] = value === "true" ? true : value === "false" ? false : value;
+  }
+  return out;
+}
+
+/**
+ * Blog posts are file-driven: every non-draft MDX under content/blog becomes a
+ * URL, and the /blog index only appears once at least one post is published.
+ */
+function blogEntries(): SitemapEntry[] {
+  const blogDir = join(REPO_ROOT, "apps/web/src/content/blog");
+  let files: string[];
+  try {
+    files = readdirSync(blogDir).filter((f) => f.endsWith(".mdx"));
+  } catch {
+    return [];
+  }
+
+  const posts = files
+    .map((file) => ({
+      slug: file.replace(/\.mdx$/, ""),
+      sourceFile: `apps/web/src/content/blog/${file}`,
+      frontmatter: readFrontmatter(readFileSync(join(blogDir, file), "utf8")),
+    }))
+    .filter((p) => p.frontmatter.draft !== true);
+
+  if (posts.length === 0) return [];
+
+  return [
+    {
+      url: "/blog",
+      sourceFile: "apps/web/src/routes/blog/index.tsx",
+      changefreq: "weekly",
+      priority: 0.7,
+    },
+    ...posts.map(
+      (p): SitemapEntry => ({
+        url: `/blog/${p.slug}`,
+        sourceFile: p.sourceFile,
+        changefreq: "monthly",
+        priority: 0.6,
+      }),
+    ),
+  ];
+}
+
+pages.push(...blogEntries());
 
 function gitLastModifiedDate(filePath: string): string | undefined {
   try {

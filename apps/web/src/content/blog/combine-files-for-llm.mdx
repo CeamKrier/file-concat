@@ -1,0 +1,119 @@
+---
+title: "How to Combine Multiple Files Into One for ChatGPT"
+description: "Turn several files into one clean, LLM-ready text blob for ChatGPT or Claude. Bundle folders and repos in your browser, with live token counts."
+date: "2026-07-11"
+author: "CeamKrier"
+draft: false
+---
+
+You have a handful of files that belong together: a few source files, some notes, a
+config or two. ChatGPT and Claude give you a single box. Getting everything from the
+folder into that box, in a shape the model can follow, is the small chore that sits
+between you and the actual question.
+
+This is a practical guide to how to combine multiple files into one for ChatGPT or
+Claude: what the quick approaches cost you, what a labeled bundle looks like, and a
+place partway down to try it on your own files.
+
+## Why one paste of everything falls short
+
+A chat box takes one block of text. When you paste file after file into it, the bytes
+arrive, but the boundaries do not. The model sees one long run of characters with no
+reliable signal for where `math.ts` ends and `date.ts` begins.
+
+Pasting them one at a time is how most people try to combine multiple text files into
+one for an AI prompt, and it is exactly where the structure leaks out. Handing over a
+stack of loose pages is not the same as handing over a labeled folder. Same content,
+very different odds the reader keeps track of it.
+
+<Callout type="note" title="What 'one prompt' actually is">
+  Most chat boxes accept a single block of text. The task is to turn many files into
+  one block that still tells the model where each file starts, ends, and sits in the
+  tree.
+</Callout>
+
+## Three ways to combine your files
+
+There are three common ways to merge text files into one for an LLM, and they trade
+effort against structure.
+
+<Steps>
+  <Step title="Copy and paste by hand">
+    Fine for two or three files. Past that it gets tedious, and every paste drops the
+    file path, the one label that tells the model what it is looking at.
+  </Step>
+  <Step title="Concatenate on the command line">
+    `cat src/*.ts` will concatenate multiple files into one file in a second. What it
+    will not do is add file headers, skip lock files and build output, or tell you how
+    large the result is. You get the bytes and none of the structure.
+  </Step>
+  <Step title="Bundle it with FileConcat">
+    Drop the folder in your browser. The noise gets filtered out, every file is wrapped
+    with its path, and you copy one structured document with the token cost shown up
+    front.
+  </Step>
+</Steps>
+
+The gap between the second and third option is what the rest of this guide is about.
+Here are the same two files, first as a raw `cat` dump, then as a labeled bundle:
+
+<BeforeAfter>
+  <Before label="cat src/*.ts">{`export function add(a, b) {
+  return a + b
+}
+export function formatDate(d) {
+  return d.toISOString()
+}`}</Before>
+  <After label="project.xml">{`<file path="src/math.ts">
+export function add(a, b) {
+  return a + b
+}
+</file>
+<file path="src/date.ts">
+export function formatDate(d) {
+  return d.toISOString()
+}
+</file>`}</After>
+</BeforeAfter>
+
+## Try it with your own files
+
+The fastest way to see the difference is on your own files. Drop a folder or a few
+files below. It runs entirely in your browser, there is no account, and nothing is
+uploaded to us. What you get back is one clean prompt you can drop into ChatGPT or
+Claude.
+
+<TryIt />
+
+## Why the labels matter
+
+The labels are not decoration. A file path is the cheapest context you can give a
+model: it says that `src/math.ts` is a module, that `date.ts` sits beside it, and that
+a file named `index.ts` is probably an entry point. Strip the paths and the model has
+to infer all of that from the code alone.
+
+The tree at the top of the bundle does the same job at a larger scale. It lets the
+model see the shape of the project before it reads a single line, the way you would
+glance at a file explorer before opening anything. That is what lets you combine
+multiple files into one prompt for an AI without turning it into a guessing game.
+
+<Callout type="warn" title="Paths are the cheapest context you can add">
+  If you keep only one thing from a raw `cat` dump, keep the file paths. A few extra
+  tokens of `path="..."` buy the model a map it would otherwise have to guess at.
+</Callout>
+
+## How many tokens is that?
+
+The other thing the chat box has is a ceiling: it accepts only so much text at once. So
+it helps to know the size of a bundle before you paste it, not after it bounces back.
+
+FileConcat [counts tokens live](/docs/token-estimation) as you build the bundle, and
+[the default filter](/docs/file-filtering) leaves out the parts you almost never want
+to send: lock files, build output, and binaries. Both keep the count down and the
+signal up.
+
+<Callout type="tip">
+  Working with a whole repository instead of a loose folder? You can paste a GitHub,
+  GitLab, or Bitbucket URL and bundle it the same way, filtering and token count
+  included. See [importing from GitHub](/docs/github-import).
+</Callout>

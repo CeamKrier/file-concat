@@ -30,3 +30,4 @@ dist-ssr
 # impeccable design-tool cache (regenerated locally)
 **/.impeccable/hook.cache.json
 .impeccable/live/
+google-search-console-api.json
