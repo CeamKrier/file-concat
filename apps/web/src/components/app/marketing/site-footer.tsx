@@ -11,7 +11,7 @@ const linkClass =
 export function SiteFooter() {
   return (
     <footer className="border-hairline border-t">
-      <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-8 px-4 py-12 sm:px-6 md:flex-row md:items-start md:justify-between md:gap-12">
+      <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-10 px-4 py-12 sm:px-6 md:flex-row md:items-start md:justify-between md:gap-12">
         <div className="max-w-[36ch] space-y-3">
           <span className="inline-flex items-center gap-2.5">
             <LogoMark size={24} />
@@ -24,42 +24,47 @@ export function SiteFooter() {
           </p>
         </div>
 
-        <nav aria-label="Footer" className="font-display flex flex-wrap gap-x-8 gap-y-3">
-          <Link to="/" className={linkClass}>
-            Open tool
-          </Link>
-          <Link to="/docs" className={linkClass}>
-            Docs
-          </Link>
-          {hasPublishedPosts() && (
-            <Link to="/blog" className={linkClass}>
-              Blog
+        <nav aria-label="Footer" className="font-display flex gap-x-12 sm:gap-x-16">
+          <div className="flex flex-col items-start gap-3">
+            <h2 className="text-ink text-[12.5px] font-semibold">Explore</h2>
+
+            <Link to="/docs" className={linkClass}>
+              Docs
             </Link>
-          )}
-          <Link to="/for/legal" className={linkClass}>
-            For lawyers
-          </Link>
-          <Link to="/for/researchers" className={linkClass}>
-            For researchers
-          </Link>
-          <a
-            href="https://github.com/CeamKrier/file-concat"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={linkClass}
-          >
-            <SiGithub className="h-3.5 w-3.5" />
-            GitHub
-          </a>
-          <a
-            href="https://www.npmjs.com/package/@fileconcat/cli"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={linkClass}
-          >
-            <SiNpm className="h-3.5 w-3.5" />
-            CLI on npm
-          </a>
+            {hasPublishedPosts() && (
+              <Link to="/blog" className={linkClass}>
+                Blog
+              </Link>
+            )}
+            <Link to="/for/legal" className={linkClass}>
+              For lawyers
+            </Link>
+            <Link to="/for/researchers" className={linkClass}>
+              For researchers
+            </Link>
+          </div>
+
+          <div className="flex flex-col items-start gap-3">
+            <h2 className="text-ink text-[12.5px] font-semibold">Open source</h2>
+            <a
+              href="https://github.com/CeamKrier/file-concat"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={linkClass}
+            >
+              <SiGithub className="h-3.5 w-3.5" />
+              GitHub
+            </a>
+            <a
+              href="https://www.npmjs.com/package/@fileconcat/cli"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={linkClass}
+            >
+              <SiNpm className="h-3.5 w-3.5" />
+              CLI on npm
+            </a>
+          </div>
         </nav>
       </div>
 
