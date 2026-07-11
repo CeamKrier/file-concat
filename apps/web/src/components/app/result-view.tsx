@@ -1,3 +1,4 @@
+import { useState, type ReactNode } from "react";
 import { Check, Copy, Download, EyeOff, FileQuestion, FileText, FileWarning, Scissors, SlidersHorizontal } from "lucide-react";
 
 import { cn } from "~/lib/utils";
@@ -156,18 +157,14 @@ export function ResultView({
                 {extractedFiles.length === 1 ? "It was" : "They were"} included as extracted text —
                 the readable content pulled out of the document, not the original file bytes.
               </p>
-              <ul className="mt-2 flex flex-col gap-1">
-                {extractedFiles.slice(0, 6).map((name) => (
+              <ExpandableList
+                items={extractedFiles}
+                renderItem={(name) => (
                   <li key={name} className="text-ink font-mono text-[11px]">
                     {name}
                   </li>
-                ))}
-                {extractedFiles.length > 6 && (
-                  <li className="text-ink-faint font-mono text-[11px]">
-                    +{extractedFiles.length - 6} more
-                  </li>
                 )}
-              </ul>
+              />
             </InfoCard>
           )}
           {flaggedFiles.length > 0 && (
@@ -181,26 +178,14 @@ export function ResultView({
                 read {flaggedFiles.length === 1 ? "it" : "them"} cleanly. If the preview below looks
                 garbled, drop {flaggedFiles.length === 1 ? "it" : "them"} from the bundle.
               </p>
-              <ul className="mt-2 flex flex-col gap-1">
-                {flaggedFiles.slice(0, 6).map((name) => (
+              <ExpandableList
+                items={flaggedFiles}
+                renderItem={(name) => (
                   <li key={name} className="text-ink font-mono text-[11px]">
                     {name}
                   </li>
-                ))}
-                {flaggedFiles.length > 6 && (
-                  <li className="text-ink-faint font-mono text-[11px]">
-                    +{flaggedFiles.length - 6} more
-                  </li>
                 )}
-              </ul>
-              <button
-                type="button"
-                onClick={onAdjust}
-                className="text-ink focus-visible:ring-ring focus-visible:ring-offset-background rounded-input mt-2.5 inline-flex items-center gap-1.5 text-[13px] font-medium underline decoration-[oklch(var(--hairline))] underline-offset-4 transition-colors hover:decoration-current focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-              >
-                <SlidersHorizontal className="h-3.5 w-3.5" />
-                Adjust what&apos;s included
-              </button>
+              />
             </InfoCard>
           )}
           {unsupported.length > 0 && (
@@ -213,19 +198,15 @@ export function ResultView({
                 These can&apos;t be combined as text, so they were skipped. Everything else made it
                 in.
               </p>
-              <ul className="mt-2 flex flex-col gap-1">
-                {unsupported.slice(0, 6).map((f) => (
+              <ExpandableList
+                items={unsupported}
+                renderItem={(f) => (
                   <li key={f.name} className="flex items-baseline gap-2 font-mono text-[11px]">
                     <span className="text-ink">{f.name}</span>
                     <span className="text-ink-faint">· {f.why}</span>
                   </li>
-                ))}
-                {unsupported.length > 6 && (
-                  <li className="text-ink-faint font-mono text-[11px]">
-                    +{unsupported.length - 6} more
-                  </li>
                 )}
-              </ul>
+              />
             </InfoCard>
           )}
           {skippedByDefault.length > 0 && (
@@ -240,27 +221,15 @@ export function ResultView({
                 over the size cap. Add {skippedByDefault.length === 1 ? "it" : "any"} back if you
                 need {skippedByDefault.length === 1 ? "it" : "them"}.
               </p>
-              <ul className="mt-2 flex flex-col gap-1">
-                {skippedByDefault.slice(0, 6).map((f) => (
+              <ExpandableList
+                items={skippedByDefault}
+                renderItem={(f) => (
                   <li key={f.name} className="flex items-baseline gap-2 font-mono text-[11px]">
                     <span className="text-ink">{f.name}</span>
                     <span className="text-ink-faint">· {f.why}</span>
                   </li>
-                ))}
-                {skippedByDefault.length > 6 && (
-                  <li className="text-ink-faint font-mono text-[11px]">
-                    +{skippedByDefault.length - 6} more
-                  </li>
                 )}
-              </ul>
-              <button
-                type="button"
-                onClick={onAdjust}
-                className="text-ink focus-visible:ring-ring focus-visible:ring-offset-background rounded-input mt-2.5 inline-flex items-center gap-1.5 text-[13px] font-medium underline decoration-[oklch(var(--hairline))] underline-offset-4 transition-colors hover:decoration-current focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-              >
-                <SlidersHorizontal className="h-3.5 w-3.5" />
-                Adjust what&apos;s included
-              </button>
+              />
             </InfoCard>
           )}
           {bigBundle && (
@@ -283,6 +252,18 @@ export function ResultView({
                 />
               </div>
             </InfoCard>
+          )}
+          {(unsupported.length > 0 ||
+            skippedByDefault.length > 0 ||
+            flaggedFiles.length > 0) && (
+            <button
+              type="button"
+              onClick={onAdjust}
+              className="border-border text-ink-secondary hover:text-ink hover:border-border-strong rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex w-full items-center justify-center gap-2 border px-4 py-2.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              Adjust what&apos;s included
+            </button>
           )}
         </div>
       )}
@@ -310,5 +291,41 @@ function Stat({ value, label }: { value: string; label: string }) {
       <span className="font-display text-ink text-2xl font-bold tabular-nums">{value}</span>
       <span className="text-ink-muted text-center text-xs">{label}</span>
     </div>
+  );
+}
+
+// Shows the first six entries, with a "Show all N" toggle that reveals the full
+// flat list (scroll-capped) so a long left-out list is never silently truncated.
+const PREVIEW_ROWS = 6;
+
+function ExpandableList<T>({
+  items,
+  renderItem,
+}: {
+  items: T[];
+  renderItem: (item: T) => ReactNode;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? items : items.slice(0, PREVIEW_ROWS);
+  return (
+    <>
+      <ul
+        className={cn(
+          "mt-2 flex flex-col gap-1",
+          expanded && items.length > 10 && "max-h-56 overflow-y-auto pr-1",
+        )}
+      >
+        {shown.map(renderItem)}
+      </ul>
+      {items.length > PREVIEW_ROWS && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="text-ink-faint hover:text-ink-secondary focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm mt-1.5 font-mono text-[11px] underline decoration-[oklch(var(--hairline))] underline-offset-2 transition-colors hover:decoration-current focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+        >
+          {expanded ? "Show less" : `Show all ${items.length}`}
+        </button>
+      )}
+    </>
   );
 }

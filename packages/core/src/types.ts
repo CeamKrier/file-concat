@@ -18,6 +18,13 @@ export type FileStatus = {
   forceInclude?: boolean;
   skipped?: boolean;
   skipReason?: string;
+  /** Content classification from ingest. A `binary` file is locked out of
+   * curation — no inclusion toggle, no preview — because it has no recoverable
+   * text to add (ADR-0009). */
+  classification?: TextClassification;
+  /** True when this file's content is text extracted from a document
+   * (PDF/Office/ODF) rather than the file's own bytes (ADR-0003). */
+  extracted?: boolean;
   index: number; // Required index for reliable matching
 };
 
