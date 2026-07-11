@@ -1,0 +1,110 @@
+---
+title: "Convert PDF to Text for an LLM Prompt"
+description: "Turn PDFs and DOCX files into clean text for an LLM prompt. Bundle many documents into one blob in your browser, with live token and cost counts."
+date: "2026-07-11"
+author: "CeamKrier"
+draft: false
+---
+
+Research and casework rarely arrive as one clean file. You have a handful of PDFs, a Word
+document of notes, maybe a spreadsheet of figures, and you want to ask a model about all of
+them together. The chat box only takes text, and a PDF is not text yet.
+
+This guide covers how to convert PDFs to text for an LLM prompt: why the file you drag in is
+not the text the model reads, how to turn a whole folder of documents into one blob, and
+where the limits are. There is a spot to try it on your own documents partway down. Nothing
+is uploaded to us; the extraction runs in your browser.
+
+## A PDF is not text yet
+
+A PDF, a Word document, or a slide deck is a container. The words are in there, but they are
+wrapped in layout, fonts, and positioning that a prompt cannot read directly. Before any of
+it can go into ChatGPT or Claude, the text has to be pulled out of the container.
+
+FileConcat does that extraction for PDFs, Word documents, spreadsheets, and slide decks, then
+folds the recovered text into one bundle alongside any plain notes or markdown you drop in.
+Several formats go in; one clean text file comes out.
+
+<BeforeAfter>
+  <Before label="what you dragged in">{`case-notes/
+  motion.pdf
+  exhibits.docx
+  timeline.xlsx
+  memo.md`}</Before>
+  <After label="one prompt-ready blob" tokens="18,400">{`combined.txt
+  motion.pdf      (text)
+  exhibits.docx   (text)
+  timeline.xlsx   (text)
+  memo.md`}</After>
+</BeforeAfter>
+
+<Callout type="note" title="Where the extraction happens">
+  The document bytes are read and the text is pulled out in your browser tab. The files are never
+  uploaded to us, and there is no account. What you do with the extracted text after you paste it
+  into ChatGPT or Claude is between you and them.
+</Callout>
+
+## Drop a whole folder of documents
+
+You do not have to convert each file one at a time. Give ChatGPT a whole folder of documents
+by dropping the folder here, and FileConcat extracts every readable one and combines the
+multiple PDFs into one text file for ChatGPT or Claude in a single pass. If the folder also
+carries the usual junk, the [default filter](/docs/file-filtering) skips it before it reaches
+the bundle.
+
+<Steps>
+  <Step title="Drop your documents">
+    A folder or a loose handful works. PDFs, Word documents, spreadsheets, slide decks, and plain
+    text or markdown all go in together.
+  </Step>
+  <Step title="The text is extracted in your browser">
+    Each document is opened and its text pulled out on your machine. Nothing is sent to us to do it.
+  </Step>
+  <Step title="Copy one bundle">
+    You get a single document with each file labeled by name, plus a live token count so you know it
+    fits before you paste it.
+  </Step>
+</Steps>
+
+## Try it on your own documents
+
+Drop a few PDFs or a folder of mixed documents below. It runs in your browser, there is no
+account, and nothing is uploaded to us. This is the same engine as the full tool, so what you
+copy here is ready to paste when you want to feed multiple PDFs to ChatGPT at once.
+
+<TryIt
+  title="Bundle your own documents"
+  hint="Drop a few PDFs or a folder of mixed documents. It runs here in your browser, nothing is uploaded."
+/>
+
+## What extraction can and cannot pull
+
+Extraction works on the text a document actually stores. A PDF exported from a word processor,
+a Word file, a slide deck: those carry their text, and it comes out clean.
+
+A scanned page is different. If a PDF is really a photograph of a page, there is no text inside
+it to pull, only an image. Reading words off an image needs OCR, which this version does not
+do. Encrypted or password-locked PDFs are the same story: locked bytes yield no text.
+
+<Callout type="warn" title="Scanned or image-only PDFs yield no text">
+  If a document is a scan or a photo of a page, there is no text layer to extract, and this version
+  does not run OCR. FileConcat flags the file as having no extractable text instead of dropping it
+  silently, so you always know what made it into the bundle and what did not.
+</Callout>
+
+## Mind the token and cost budget
+
+Documents add up faster than they look. A few long PDFs can run past a model's context window,
+and if you are paying per token, a bundle you paste a dozen times is a real line item. This is
+where a stack of case files or a pile of research papers gets expensive without warning.
+
+FileConcat counts tokens as you add and remove files, and it can show the cost for a given
+model, so you can trim to what matters first. That helps when you want to summarize multiple
+research papers with ChatGPT and only a few of them hold the section you actually care about.
+
+<Callout type="tip">
+  Combining loose files or a whole code project instead? The [guide to combining
+  files](/blog/combine-files-for-llm) and [feeding a codebase to an LLM](/blog/feed-codebase-to-llm)
+  cover those. To size a set of documents before you send it, see [how the token count
+  works](/docs/token-estimation) and [what a bundle costs across models](/docs/token-costs).
+</Callout>
