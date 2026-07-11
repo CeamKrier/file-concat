@@ -129,8 +129,10 @@ ship and we have GSC signal.
 
 ## Build sequence (next session)
 
-0. **Run the exhaustive keyword-research pre-step (spec below).** Finalize the
-   primary/secondary keyword + title/H1 per post from real data before writing.
+0. ~~**Run the exhaustive keyword-research pre-step (spec below).** Finalize the
+   primary/secondary keyword + title/H1 per post from real data before writing.~~
+   **DONE 2026-07-11** — output in [blog-keywords.md](./blog-keywords.md). Primary
+   /secondary keyword + title + H1 per post are locked there.
 1. Build the MDX components (`TryIt`, `Callout`, `Steps`, `BeforeAfter`) + the
    blog MDX provider. Verify in dev with the draft fixture.
 2. Write **Post 1**, screenshot-verify, flip `draft: false`, publish. (Footer
