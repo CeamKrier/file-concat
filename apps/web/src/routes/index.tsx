@@ -8,9 +8,9 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       ...generateSEOMeta({
-        title: "File concat tool. Combine files into one.",
+        title: "File concat tool. Combine files for an LLM",
         description:
-          "Free file concat tool. Combine files, a folder, or a repo into one clean document for ChatGPT, Claude, or Gemini. In your browser, nothing uploaded.",
+          "Free file concat tool. Turn a folder or repo into one LLM-ready document for ChatGPT or Claude. In your browser, nothing uploaded, live token counts.",
         url: "https://fileconcat.com",
       }),
       {
