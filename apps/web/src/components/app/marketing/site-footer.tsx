@@ -3,7 +3,10 @@ import { SiGithub, SiNpm } from "@icons-pack/react-simple-icons";
 
 import BMCLogo from "~/components/bmc-logo";
 import { hasPublishedPosts } from "~/lib/blog";
+import { DOCS_NAVIGATION } from "~/lib/docs-nav";
 import { LogoMark } from "../logo-mark";
+
+const docLinks = DOCS_NAVIGATION.flatMap((section) => section.links);
 
 const linkClass =
   "text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-1.5 rounded-sm text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2";
@@ -24,13 +27,22 @@ export function SiteFooter() {
           </p>
         </div>
 
-        <nav aria-label="Footer" className="font-display flex gap-x-12 sm:gap-x-16">
+        <nav
+          aria-label="Footer"
+          className="font-display flex flex-wrap gap-x-12 gap-y-8 sm:gap-x-16"
+        >
+          <div className="flex flex-col items-start gap-3">
+            <h2 className="text-ink text-[12.5px] font-semibold">Documentation</h2>
+            {docLinks.map((link) => (
+              <Link key={link.href} to={link.href} className={linkClass}>
+                {link.title}
+              </Link>
+            ))}
+          </div>
+
           <div className="flex flex-col items-start gap-3">
             <h2 className="text-ink text-[12.5px] font-semibold">Explore</h2>
 
-            <Link to="/docs" className={linkClass}>
-              Docs
-            </Link>
             {hasPublishedPosts() && (
               <Link to="/blog" className={linkClass}>
                 Blog
