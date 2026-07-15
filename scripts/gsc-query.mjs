@@ -15,7 +15,10 @@ import { dirname, join } from "node:path";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const KEY_PATH = process.env.GSC_KEY || join(REPO_ROOT, "google-search-console-api.json");
-const DAYS = Number(process.argv[2] || 90);
+// First arg selects the mode: `inspect` runs URL index-coverage inspection,
+// anything else (a number) is the analytics look-back window in days.
+const MODE = process.argv[2] === "inspect" ? "inspect" : "analytics";
+const DAYS = Number((MODE === "inspect" ? process.argv[3] : process.argv[2]) || 90);
 
 const b64url = (buf) =>
   Buffer.from(buf).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -90,6 +93,82 @@ function table(rows, keyLen = 40) {
   }
 }
 
+// --- URL index-coverage inspection ---------------------------------------
+
+async function sitemapUrls() {
+  const res = await fetch("https://fileconcat.com/sitemap.xml");
+  const xml = await res.text();
+  return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+}
+
+async function inspect(token, siteUrl, url) {
+  const json = await api(token, "/v1/urlInspection/index:inspect", {
+    inspectionUrl: url,
+    siteUrl,
+  });
+  return json.inspectionResult?.indexStatusResult || {};
+}
+
+async function sitemapStatus(token, siteUrl) {
+  try {
+    const json = await api(token, `/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/sitemaps`);
+    const maps = json.sitemap || [];
+    if (!maps.length) {
+      console.log("SITEMAP: none submitted to this property ⚠️\n");
+      return;
+    }
+    for (const m of maps) {
+      const last = m.lastDownloaded ? m.lastDownloaded.slice(0, 10) : "never";
+      const submitted = (m.contents || []).reduce((a, c) => a + Number(c.submitted || 0), 0);
+      console.log(
+        `SITEMAP: ${m.path}  lastDownloaded=${last}  submitted=${submitted}  pending=${!!m.isPending}  errors=${m.errors || 0}  warnings=${m.warnings || 0}`,
+      );
+    }
+    console.log("");
+  } catch (e) {
+    console.log(`SITEMAP: could not read (${e.message})\n`);
+  }
+}
+
+async function runInspection(token, siteUrl) {
+  await sitemapStatus(token, siteUrl);
+  const urls = await sitemapUrls();
+  console.log(`Inspecting ${urls.length} sitemap URLs against ${siteUrl}\n`);
+
+  const rows = [];
+  for (const url of urls) {
+    try {
+      const r = await inspect(token, siteUrl, url);
+      rows.push({ url, ...r });
+    } catch (e) {
+      rows.push({ url, coverageState: `ERR: ${e.message}`, verdict: "-" });
+    }
+  }
+
+  const path = (u) => u.replace(/^https?:\/\/fileconcat\.com/, "") || "/";
+  const crawl = (t) => (t ? t.slice(0, 10) : "never");
+  const indexed = rows.filter((r) => r.verdict === "PASS").length;
+
+  console.log(`${pad("path", 34)}${pad("verdict", 9)}${pad("coverageState", 42)}${pad("lastCrawl", 12)}robots`);
+  for (const r of rows) {
+    const canonMismatch =
+      r.googleCanonical && r.googleCanonical !== r.url ? "  ⚠canon" : "";
+    console.log(
+      `${pad(path(r.url), 34)}${pad(r.verdict || "-", 9)}${pad(r.coverageState || "-", 42)}${pad(crawl(r.lastCrawlTime), 12)}${(r.robotsTxtState || "-")}${canonMismatch}`,
+    );
+  }
+
+  console.log(`\n=== SUMMARY: ${indexed}/${rows.length} indexed ===`);
+  const buckets = {};
+  for (const r of rows) {
+    const k = (r.coverageState || "-").replace(/^ERR:.*/, "ERR");
+    buckets[k] = (buckets[k] || 0) + 1;
+  }
+  for (const [state, n] of Object.entries(buckets).sort((a, b) => b[1] - a[1])) {
+    console.log(`  ${rpad(n, 3)}  ${state}`);
+  }
+}
+
 async function main() {
   let key;
   try {
@@ -112,6 +191,12 @@ async function main() {
     process.exit(1);
   }
   const siteUrl = (entries.find((s) => s.siteUrl.startsWith("sc-domain:")) || entries[0]).siteUrl;
+
+  if (MODE === "inspect") {
+    await runInspection(token, siteUrl);
+    return;
+  }
+
   console.log(`Property: ${siteUrl}   window: ${isoDaysAgo(DAYS)} .. ${isoDaysAgo(1)} (${DAYS}d)\n`);
 
   const total = await query(token, siteUrl, [], 1);
