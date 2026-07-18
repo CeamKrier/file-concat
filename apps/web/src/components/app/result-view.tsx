@@ -1,5 +1,17 @@
 import { useState, type ReactNode } from "react";
-import { Check, Copy, Download, EyeOff, FileQuestion, FileText, FileWarning, Scissors, SlidersHorizontal } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Copy,
+  Download,
+  EyeOff,
+  FileQuestion,
+  FileText,
+  FileWarning,
+  Info,
+  Scissors,
+  SlidersHorizontal,
+} from "lucide-react";
 
 import { cn } from "~/lib/utils";
 import { InfoCard } from "./info-card";
@@ -93,6 +105,41 @@ export function ResultView({
         <Stat value={fmt.format(noiseSkipped)} label="noise files skipped" />
       </div>
 
+      {/* Everything the bundle held back or flagged, condensed to one honest line
+          so the format switch below can sit right on top of the preview it drives.
+          Details expand in place — never between the switch and its result. */}
+      <BundleNotes
+        extractedFiles={extractedFiles}
+        flaggedFiles={flaggedFiles}
+        unsupported={unsupported}
+        skippedByDefault={skippedByDefault}
+        onAdjust={onAdjust}
+      />
+
+      {bigBundle && (
+        <div className="mt-3">
+          <InfoCard
+            tone="neutral"
+            icon={Scissors}
+            title="Big bundle: splitting is optional, just easier to paste"
+          >
+            <p>One paste can be a lot for a chat box. Split it into parts, or keep it as one.</p>
+            <div className="mt-2.5">
+              <SegmentedControl
+                ariaLabel="Split mode"
+                size="sm"
+                value={splitMode}
+                onChange={onSplitModeChange}
+                options={[
+                  { value: "single", label: "Keep as one file" },
+                  { value: "multi", label: "Split into parts" },
+                ]}
+              />
+            </div>
+          </InfoCard>
+        </div>
+      )}
+
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">
         <button
           type="button"
@@ -125,6 +172,8 @@ export function ResultView({
         </button>
       </div>
 
+      {/* Format switch married to the preview it drives: press here, see it there,
+          nothing in between. */}
       <div className="mt-6 flex items-center justify-between gap-3">
         <span className="text-ink-faint font-mono text-[11px] uppercase tracking-[0.12em]">
           Format
@@ -141,12 +190,92 @@ export function ResultView({
         />
       </div>
 
-      {(flaggedFiles.length > 0 ||
-        extractedFiles.length > 0 ||
-        unsupported.length > 0 ||
-        skippedByDefault.length > 0 ||
-        bigBundle) && (
-        <div className="mt-5 flex flex-col gap-3">
+      <div className="mt-3">
+        <div className="mb-2 flex items-baseline justify-between gap-3">
+          <h3 className="text-ink-secondary text-sm font-medium">What your AI receives</h3>
+          {truncated && (
+            <span className="text-ink-faint font-mono text-[11px]">
+              preview · first {fmt.format(PREVIEW_LIMIT)} chars
+            </span>
+          )}
+        </div>
+        <pre className="border-border bg-surface-inset text-code rounded-card max-h-[420px] overflow-auto border p-4 font-mono text-xs leading-relaxed">
+          {preview}
+        </pre>
+      </div>
+    </section>
+  );
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1 px-3 py-5">
+      <span className="font-display text-ink text-2xl font-bold tabular-nums">{value}</span>
+      <span className="text-ink-muted text-center text-xs">{label}</span>
+    </div>
+  );
+}
+
+// The bundle's caveats — extracted, flagged, left-out, held-back files — kept to
+// a single honest summary line by default, with the full cards one click away.
+// Collapsed is the norm so the format switch stays glued to the preview; the
+// detail (and the "preview looks garbled" flag) still lives above the preview.
+function BundleNotes({
+  extractedFiles,
+  flaggedFiles,
+  unsupported,
+  skippedByDefault,
+  onAdjust,
+}: {
+  extractedFiles: string[];
+  flaggedFiles: string[];
+  unsupported: UnsupportedFile[];
+  skippedByDefault: UnsupportedFile[];
+  onAdjust: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const segments: string[] = [];
+  if (extractedFiles.length) segments.push(`${extractedFiles.length} extracted`);
+  if (flaggedFiles.length) segments.push(`${flaggedFiles.length} flagged`);
+  if (unsupported.length) segments.push(`${unsupported.length} left out`);
+  if (skippedByDefault.length) segments.push(`${skippedByDefault.length} held back`);
+
+  if (segments.length === 0) return null;
+
+  const canAdjust =
+    unsupported.length > 0 || skippedByDefault.length > 0 || flaggedFiles.length > 0;
+
+  return (
+    <div className="mt-6">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls="bundle-notes"
+        className="border-border bg-surface hover:border-border-strong rounded-input focus-visible:ring-ring focus-visible:ring-offset-background flex w-full items-center gap-3 border px-4 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+      >
+        <Info className="text-ink-faint h-4 w-4 shrink-0" strokeWidth={2} />
+        <span className="text-ink-secondary min-w-0 flex-1 truncate text-[13px]">
+          {segments.join(" · ")}
+        </span>
+        <span className="text-ink-faint inline-flex shrink-0 items-center gap-1 font-mono text-[11px] uppercase tracking-[0.08em]">
+          {open ? "Hide" : "Details"}
+          <ChevronDown
+            className={cn(
+              "h-3.5 w-3.5 transition-transform duration-200 motion-reduce:transition-none",
+              open && "rotate-180",
+            )}
+            strokeWidth={2}
+          />
+        </span>
+      </button>
+
+      {open && (
+        <div
+          id="bundle-notes"
+          className="animate-fade-up mt-3 flex flex-col gap-3 motion-reduce:animate-none"
+        >
           {extractedFiles.length > 0 && (
             <InfoCard
               tone="info"
@@ -232,30 +361,7 @@ export function ResultView({
               />
             </InfoCard>
           )}
-          {bigBundle && (
-            <InfoCard
-              tone="neutral"
-              icon={Scissors}
-              title="Big bundle: splitting is optional, just easier to paste"
-            >
-              <p>One paste can be a lot for a chat box. Split it into parts, or keep it as one.</p>
-              <div className="mt-2.5">
-                <SegmentedControl
-                  ariaLabel="Split mode"
-                  size="sm"
-                  value={splitMode}
-                  onChange={onSplitModeChange}
-                  options={[
-                    { value: "single", label: "Keep as one file" },
-                    { value: "multi", label: "Split into parts" },
-                  ]}
-                />
-              </div>
-            </InfoCard>
-          )}
-          {(unsupported.length > 0 ||
-            skippedByDefault.length > 0 ||
-            flaggedFiles.length > 0) && (
+          {canAdjust && (
             <button
               type="button"
               onClick={onAdjust}
@@ -267,29 +373,6 @@ export function ResultView({
           )}
         </div>
       )}
-
-      <div className="mt-6">
-        <div className="mb-2 flex items-baseline justify-between gap-3">
-          <h3 className="text-ink-secondary text-sm font-medium">What your AI receives</h3>
-          {truncated && (
-            <span className="text-ink-faint font-mono text-[11px]">
-              preview · first {fmt.format(PREVIEW_LIMIT)} chars
-            </span>
-          )}
-        </div>
-        <pre className="border-border bg-surface-inset text-code rounded-card max-h-[420px] overflow-auto border p-4 font-mono text-xs leading-relaxed">
-          {preview}
-        </pre>
-      </div>
-    </section>
-  );
-}
-
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="flex flex-col items-center gap-1 px-3 py-5">
-      <span className="font-display text-ink text-2xl font-bold tabular-nums">{value}</span>
-      <span className="text-ink-muted text-center text-xs">{label}</span>
     </div>
   );
 }
@@ -321,7 +404,7 @@ function ExpandableList<T>({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="text-ink-faint hover:text-ink-secondary focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm mt-1.5 font-mono text-[11px] underline decoration-[oklch(var(--hairline))] underline-offset-2 transition-colors hover:decoration-current focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+          className="text-ink-faint hover:text-ink-secondary focus-visible:ring-ring focus-visible:ring-offset-background mt-1.5 rounded-sm font-mono text-[11px] underline decoration-[oklch(var(--hairline))] underline-offset-2 transition-colors hover:decoration-current focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
         >
           {expanded ? "Show less" : `Show all ${items.length}`}
         </button>
