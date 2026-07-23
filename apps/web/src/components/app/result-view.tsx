@@ -9,6 +9,7 @@ import {
   FileText,
   FileWarning,
   Info,
+  RotateCcw,
   Scissors,
   SlidersHorizontal,
 } from "lucide-react";
@@ -34,6 +35,8 @@ type ResultViewProps = {
   isGenerating: boolean;
   onCopy: () => void;
   onDownload: () => void;
+  /** Clear all state and return to the landing drop zone. */
+  onStartOver: () => void;
   previewText: string;
   /** Genuinely not combinable as text — binaries, archives, unreadable files. */
   unsupported: UnsupportedFile[];
@@ -65,6 +68,7 @@ export function ResultView({
   isGenerating,
   onCopy,
   onDownload,
+  onStartOver,
   previewText,
   unsupported,
   skippedByDefault,
@@ -113,7 +117,6 @@ export function ResultView({
         flaggedFiles={flaggedFiles}
         unsupported={unsupported}
         skippedByDefault={skippedByDefault}
-        onAdjust={onAdjust}
       />
 
       {bigBundle && (
@@ -172,6 +175,28 @@ export function ResultView({
         </button>
       </div>
 
+      {/* Result-scoped actions live with the result, not the global header:
+          refine the bundle or start fresh, one step from Copy/Download and the
+          same on every viewport. Quiet by design — Copy stays the loud one. */}
+      <div className="mt-3 flex flex-col items-center justify-center gap-x-8 gap-y-1 sm:flex-row">
+        <button
+          type="button"
+          onClick={onAdjust}
+          className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-sm px-2 py-2 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+          Adjust what&apos;s included
+        </button>
+        <button
+          type="button"
+          onClick={onStartOver}
+          className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-sm px-2 py-2 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+        >
+          <RotateCcw className="h-4 w-4" />
+          Start over
+        </button>
+      </div>
+
       {/* Format switch married to the preview it drives: press here, see it there,
           nothing in between. */}
       <div className="mt-6 flex items-center justify-between gap-3">
@@ -225,13 +250,11 @@ function BundleNotes({
   flaggedFiles,
   unsupported,
   skippedByDefault,
-  onAdjust,
 }: {
   extractedFiles: string[];
   flaggedFiles: string[];
   unsupported: UnsupportedFile[];
   skippedByDefault: UnsupportedFile[];
-  onAdjust: () => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -242,9 +265,6 @@ function BundleNotes({
   if (skippedByDefault.length) segments.push(`${skippedByDefault.length} held back`);
 
   if (segments.length === 0) return null;
-
-  const canAdjust =
-    unsupported.length > 0 || skippedByDefault.length > 0 || flaggedFiles.length > 0;
 
   return (
     <div className="mt-6">
@@ -360,16 +380,6 @@ function BundleNotes({
                 )}
               />
             </InfoCard>
-          )}
-          {canAdjust && (
-            <button
-              type="button"
-              onClick={onAdjust}
-              className="border-border text-ink-secondary hover:text-ink hover:border-border-strong rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex w-full items-center justify-center gap-2 border px-4 py-2.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              Adjust what&apos;s included
-            </button>
           )}
         </div>
       )}
