@@ -345,11 +345,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
 
   return (
     <div className="bg-background flex min-h-screen flex-col">
-      <TopBar
-        view={phase}
-        onStartOver={startOver}
-        onOpenSettings={phase === "result" ? () => setSettingsOpen(true) : undefined}
-      />
+      <TopBar onStartOver={startOver} />
 
       <main className="flex-1">
         {phase === "landing" &&
@@ -411,6 +407,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               isGenerating={output.isGenerating}
               onCopy={output.copy}
               onDownload={output.download}
+              onStartOver={startOver}
               previewText={previewText}
               unsupported={notText}
               skippedByDefault={skippedByDefault}
