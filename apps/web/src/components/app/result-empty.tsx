@@ -32,14 +32,33 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
   },
 };
 
+const MAX_EXT_CHIPS = 16;
+
+// Aggregate what was dropped down to a count per extension. That's the signal
+// worth surfacing when nothing combined — "lots of .heic → maybe worth
+// supporting" — and it reads at a glance without putting anyone's actual
+// filenames on screen. Sorted by frequency, ties broken alphabetically.
+function extensionHistogram(files: string[]): { ext: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const name of files) {
+    const dot = name.lastIndexOf(".");
+    const ext = dot > 0 ? name.slice(dot).toLowerCase() : "no extension";
+    counts.set(ext, (counts.get(ext) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([ext, count]) => ({ ext, count }))
+    .sort((a, b) => b.count - a.count || a.ext.localeCompare(b.ext));
+}
+
 /**
  * The novice rescue. Reached when nothing combinable was found. Never a dead
  * end: explains what happened and offers the next step, tailored to the drop.
  */
 export function ResultEmpty({ droppedFiles, kind = "image", onStartOver }: ResultEmptyProps) {
   const { icon: Icon, title, body, cta } = COPY[kind];
-  const shown = droppedFiles.slice(0, 12);
-  const extra = droppedFiles.length - shown.length;
+  const extensions = extensionHistogram(droppedFiles);
+  const shownExts = extensions.slice(0, MAX_EXT_CHIPS);
+  const extraExts = extensions.length - shownExts.length;
 
   return (
     <section className="animate-fade-up mx-auto w-full max-w-[560px] px-4 pt-12 text-center motion-reduce:animate-none">
@@ -52,19 +71,20 @@ export function ResultEmpty({ droppedFiles, kind = "image", onStartOver }: Resul
         {body}
       </p>
 
-      {shown.length > 0 && (
+      {shownExts.length > 0 && (
         <div className="mt-5 flex flex-wrap justify-center gap-1.5">
-          {shown.map((name) => (
+          {shownExts.map(({ ext, count }) => (
             <span
-              key={name}
+              key={ext}
               className="border-border bg-surface-alt text-ink-muted rounded-chip border px-2 py-1 font-mono text-[11px]"
             >
-              {name}
+              {ext}
+              {count > 1 && <span className="text-ink-faint"> ·{count}</span>}
             </span>
           ))}
-          {extra > 0 && (
+          {extraExts > 0 && (
             <span className="text-ink-faint rounded-chip px-2 py-1 font-mono text-[11px]">
-              +{extra} more
+              +{extraExts} more {extraExts === 1 ? "type" : "types"}
             </span>
           )}
         </div>
