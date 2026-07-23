@@ -120,6 +120,12 @@ export function SettingsDrawer({
 }: SettingsDrawerProps) {
   const { models, isLoading, lastUpdated, refresh } = useModels();
   const [selectedModel, setSelectedModel] = useState<FilteredModel | null>(null);
+  // The Sheet is a modal dialog, so it scroll-locks the page via
+  // react-remove-scroll. Popovers portal to document.body by default, escaping
+  // that region, which kills wheel-scrolling inside them. Portal the model
+  // picker into the sheet content instead. setState ref keeps this reactive and
+  // stable across renders.
+  const [sheetContainer, setSheetContainer] = useState<HTMLDivElement | null>(null);
   // Pattern textareas are a developer tool — collapsed by default so a regular
   // user only meets the file tree. Programmers open this when they want globs.
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -132,7 +138,7 @@ export function SettingsDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent aria-describedby="drawer-desc">
+      <SheetContent ref={setSheetContainer} aria-describedby="drawer-desc">
         <SheetHeader>
           <SheetTitle>Fine-tune the output</SheetTitle>
           <SheetDescription id="drawer-desc">
@@ -239,6 +245,7 @@ export function SettingsDrawer({
                   isLoading={isLoading}
                   onRefresh={refresh}
                   lastUpdated={lastUpdated}
+                  portalContainer={sheetContainer}
                 />
                 <CostEstimate model={selectedModel} inputTokens={tokens} />
               </div>

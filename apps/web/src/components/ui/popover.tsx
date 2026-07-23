@@ -11,9 +11,14 @@ const PopoverAnchor = PopoverPrimitive.Anchor;
 
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
->(({ className, align = "center", sideOffset = 4, ...props }, ref) => (
-  <PopoverPrimitive.Portal>
+  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> & {
+    // Portal target. Defaults to document.body. Pass a node *inside* a modal
+    // dialog/sheet so react-remove-scroll doesn't block wheel scrolling in the
+    // popover (a body portal escapes the locked scroll region).
+    container?: React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Portal>["container"];
+  }
+>(({ className, align = "center", sideOffset = 4, container, ...props }, ref) => (
+  <PopoverPrimitive.Portal container={container}>
     <PopoverPrimitive.Content
       ref={ref}
       align={align}

@@ -14,6 +14,10 @@ interface ModelSelectorProps {
   isLoading?: boolean;
   onRefresh?: () => void;
   lastUpdated?: string | null;
+  // When rendered inside a modal Sheet/Dialog, pass the dialog content node so
+  // the popover portals inside the scroll-locked region and the list stays
+  // wheel-scrollable. Defaults to a document.body portal.
+  portalContainer?: HTMLElement | null;
 }
 
 // Favorite models storage
@@ -133,6 +137,7 @@ export function ModelSelector({
   isLoading,
   onRefresh,
   lastUpdated,
+  portalContainer,
 }: ModelSelectorProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -255,7 +260,11 @@ export function ModelSelector({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[min(380px,calc(100vw-2rem))] p-0" align="start">
+        <PopoverContent
+          container={portalContainer}
+          className="w-[min(380px,calc(100vw-2rem))] p-0"
+          align="start"
+        >
           <div className="flex items-center gap-2 border-b px-3 py-2">
             <Search className="text-muted-foreground h-4 w-4" />
             <Input
