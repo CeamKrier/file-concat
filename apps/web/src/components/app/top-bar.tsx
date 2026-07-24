@@ -12,22 +12,25 @@ const navLink =
 
 // Identity + global nav only. Result-scoped actions (adjust, start over) live
 // with the result in ResultView, not here — the header stays the same in every
-// phase so nothing crowds it on narrow viewports.
+// phase so nothing crowds it on narrow viewports. The brand mark is a home link
+// (matching the docs/blog headers) that also resets the in-page flow, so it works
+// from a persona route (/for/*) by navigating to "/", and on the home route the
+// same-route no-op still resets a mid-result flow back to a fresh landing.
 export function TopBar({ onStartOver }: TopBarProps) {
   return (
     <header className="z-sticky sticky top-0 border-b border-[oklch(var(--hairline))] bg-[oklch(var(--background)/0.82)] backdrop-blur-[10px]">
       <div className="mx-auto flex h-[52px] max-w-[1180px] items-center justify-between gap-2 px-4 sm:px-6">
-        <button
-          type="button"
+        <Link
+          to="/"
           onClick={onStartOver}
           className="focus-visible:ring-ring focus-visible:ring-offset-background group flex min-w-0 items-center gap-2.5 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-          aria-label="FileConcat — start over"
+          aria-label="FileConcat home"
         >
           <LogoMark size={26} />
           <span className="font-display text-ink truncate text-[18px] font-semibold tracking-[-0.01em]">
             FileConcat
           </span>
-        </button>
+        </Link>
 
         <nav className="flex shrink-0 items-center gap-1">
           <Link to="/docs" className={`hidden sm:inline-flex ${navLink}`}>
