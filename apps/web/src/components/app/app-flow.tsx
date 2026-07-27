@@ -228,9 +228,13 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     (isFolder
       ? `${projectName} (folder)`
       : `${ingestion.entries.length} ${ingestion.entries.length === 1 ? "file" : "files"}`);
+  // Sourced from validations, not entries: files that produce no content entry
+  // (unextractable or oversize documents, a zero-file remote) are exactly what
+  // lands on the empty state, and they carry a validation but no entry. Reading
+  // from entries would leave the histogram empty precisely when it is shown.
   const droppedFiles = useMemo(
-    () => ingestion.entries.map((e) => e.path.split("/").pop() ?? e.path),
-    [ingestion.entries],
+    () => Object.keys(ingestion.validations).map((p) => p.split("/").pop() ?? p),
+    [ingestion.validations],
   );
   // Tailor the empty-state rescue to what was actually dropped: a lone .7z is
   // an archive we can't open, not "an image". Archive wins (a .7z reads as a
