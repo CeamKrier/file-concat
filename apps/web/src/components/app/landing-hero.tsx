@@ -29,12 +29,13 @@ export function LandingHero({ importControls, ...props }: LandingHeroProps) {
         </span>
 
         <h1 className="font-display text-ink mt-6 text-balance text-[clamp(2rem,7vw,2.875rem)] font-bold leading-[1.04] tracking-[-0.025em]">
-          Combine files into one AI-ready document.
+          Merge all your files into one. Beat the AI upload limit.
         </h1>
 
         <p className="text-ink-secondary mt-4 max-w-[520px] text-[17px] leading-relaxed">
-          Drop a repo, a folder of PDFs and docs, or an archive. The noise gets stripped and out
-          comes one clean document for ChatGPT, Claude, or Gemini. No setup, no account.
+          Hit the file limit on ChatGPT, Claude, or Gemini? Combine a repo, or a folder of PDFs and
+          Office docs, into one clean file. It all gets read right here in your browser, even the
+          PDFs. No setup, no account.
         </p>
       </div>
 
@@ -49,7 +50,7 @@ export function LandingHero({ importControls, ...props }: LandingHeroProps) {
         </span>
         <span className="text-ink-secondary inline-flex items-center gap-1.5">
           <Check className="text-primary h-3.5 w-3.5" strokeWidth={2.5} />
-          PDFs &amp; Office docs read as text
+          PDFs &amp; Office docs read in-browser
         </span>
         <span className="text-ink-muted inline-flex items-center gap-1.5">
           <Minus className="text-ink-faint h-3.5 w-3.5" strokeWidth={2.5} />
