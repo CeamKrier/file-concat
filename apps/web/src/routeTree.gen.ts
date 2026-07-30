@@ -13,6 +13,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as HowToShareAllFilesWithAiRouteImport } from './routes/how-to/share-all-files-with-ai'
 import { Route as ForResearchersRouteImport } from './routes/for/researchers'
 import { Route as ForLegalRouteImport } from './routes/for/legal'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
@@ -39,6 +40,12 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
   path: '/blog/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HowToShareAllFilesWithAiRoute =
+  HowToShareAllFilesWithAiRouteImport.update({
+    id: '/how-to/share-all-files-with-ai',
+    path: '/how-to/share-all-files-with-ai',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ForResearchersRoute = ForResearchersRouteImport.update({
   id: '/for/researchers',
   path: '/for/researchers',
@@ -73,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/docs/$slug': typeof DocsSlugRoute
   '/for/legal': typeof ForLegalRoute
   '/for/researchers': typeof ForResearchersRoute
+  '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
 }
@@ -84,6 +92,7 @@ export interface FileRoutesByTo {
   '/docs/$slug': typeof DocsSlugRoute
   '/for/legal': typeof ForLegalRoute
   '/for/researchers': typeof ForResearchersRoute
+  '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/blog': typeof BlogIndexRoute
   '/docs': typeof DocsIndexRoute
 }
@@ -96,6 +105,7 @@ export interface FileRoutesById {
   '/docs/$slug': typeof DocsSlugRoute
   '/for/legal': typeof ForLegalRoute
   '/for/researchers': typeof ForResearchersRoute
+  '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
 }
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/for/legal'
     | '/for/researchers'
+    | '/how-to/share-all-files-with-ai'
     | '/blog/'
     | '/docs/'
   fileRoutesByTo: FileRoutesByTo
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/for/legal'
     | '/for/researchers'
+    | '/how-to/share-all-files-with-ai'
     | '/blog'
     | '/docs'
   id:
@@ -131,6 +143,7 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/for/legal'
     | '/for/researchers'
+    | '/how-to/share-all-files-with-ai'
     | '/blog/'
     | '/docs/'
   fileRoutesById: FileRoutesById
@@ -143,6 +156,7 @@ export interface RootRouteChildren {
   DocsSlugRoute: typeof DocsSlugRoute
   ForLegalRoute: typeof ForLegalRoute
   ForResearchersRoute: typeof ForResearchersRoute
+  HowToShareAllFilesWithAiRoute: typeof HowToShareAllFilesWithAiRoute
   BlogIndexRoute: typeof BlogIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
 }
@@ -175,6 +189,13 @@ declare module '@tanstack/react-router' {
       path: '/blog'
       fullPath: '/blog/'
       preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-to/share-all-files-with-ai': {
+      id: '/how-to/share-all-files-with-ai'
+      path: '/how-to/share-all-files-with-ai'
+      fullPath: '/how-to/share-all-files-with-ai'
+      preLoaderRoute: typeof HowToShareAllFilesWithAiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/for/researchers': {
@@ -223,6 +244,7 @@ const rootRouteChildren: RootRouteChildren = {
   DocsSlugRoute: DocsSlugRoute,
   ForLegalRoute: ForLegalRoute,
   ForResearchersRoute: ForResearchersRoute,
+  HowToShareAllFilesWithAiRoute: HowToShareAllFilesWithAiRoute,
   BlogIndexRoute: BlogIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
 }

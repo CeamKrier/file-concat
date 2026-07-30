@@ -52,6 +52,15 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    url: "/how-to/share-all-files-with-ai",
+    sourceFile: [
+      "apps/web/src/routes/how-to/share-all-files-with-ai.tsx",
+      "apps/web/src/components/how-to/share-all-files-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.7,
+  },
+  {
     url: "/docs/quick-start",
     sourceFile: "apps/web/src/content/docs/quick-start.mdx",
     changefreq: "monthly",

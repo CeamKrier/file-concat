@@ -48,6 +48,9 @@ export function SiteFooter() {
                 Blog
               </Link>
             )}
+            <Link to="/how-to/share-all-files-with-ai" className={linkClass}>
+              Share all your files with AI
+            </Link>
             <Link to="/for/legal" className={linkClass}>
               For lawyers
             </Link>
