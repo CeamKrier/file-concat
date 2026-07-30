@@ -60,6 +60,17 @@ limit.`; subhead leads with the platform file-limit pain + local extraction
   footer link (added under Explore); the user's 404 was a stale dev server (the
   route is correctly registered in `routeTree.gen.ts` and renders 200 on a fresh
   server).
+- **2026-07-30 — T5 pilot DONE (`/for/chatgpt-projects`).** First platform-axis
+  spoke off the how-to hub. Bespoke page (not a template row, so it earns its own
+  index entry): a ChatGPT-only cap breakdown that goes deeper than the hub table
+  (Project files 5 / 25 / 40, per-chat ~10, Custom GPT 20), a why-one-file-in-a-
+  Project section, a 30-document worked example, and a ChatGPT-specific FAQ +
+  FAQPage JSON-LD (`chatgpt-projects-faq.ts`, shared by page + route). Same
+  four-part anti-thinness contract as `/for/legal`. Spoke→hub internal link added;
+  footer link under Explore; sitemap now 20 URLs; route tree regenerated.
+  Typecheck + lint green, browser-verified end-to-end. Chose platform axis first
+  (highest-volume money query); build one, replicate quality once approved. Next:
+  claude-projects / notebooklm / gemini-gems, then the audience axis.
 
 ## Priority order (simplest x highest impact first)
 
@@ -80,6 +91,9 @@ limit.`; subhead leads with the platform file-limit pain + local extraction
       platform-limit table (sourced) + embedded tool; no manual how-to recipe.
 - [ ] **T5** Programmatic pages (platform axis: chatgpt-projects, claude-projects,
       notebooklm, gemini-gems; audience axis: accountants, consultants, HR).
+      **Pilot shipped 2026-07-30: `/for/chatgpt-projects`** (bespoke, hub-and-spoke,
+      not templated). Remaining platform: claude-projects, notebooklm, gemini-gems.
+      Audience: accountants (pairs with T6/S3 discovery), consultants, HR.
       `/vs/*` **deferred**. `/convert/*` **killed** (data does not support it).
 
 **Later / gated**
