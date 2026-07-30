@@ -81,6 +81,19 @@ limit.`; subhead leads with the platform file-limit pain + local extraction
   Explore. The hub limit table now links each platform row to its page (hub→spoke
   internal links for crawl). Sitemap 23 URLs, route tree regenerated, typecheck +
   lint green, all four browser-verified end-to-end.
+- **2026-07-30 — T5 audience axis COMPLETE, so T5 is done.** Added
+  `/for/accountants`, `/for/consultants`, `/for/hr` — bespoke persona pages on the
+  `/for/legal` four-part contract, each led by its own real constraint:
+  accountants on the confidentiality of client financials (statements and
+  spreadsheets read as text), consultants on synthesizing a whole engagement
+  (decks, reports, and data at once), HR on employee-PII confidentiality plus two
+  batch use cases (a policy set as one reference, a batch of CVs in one pass).
+  Each carries FAQ + FAQPage JSON-LD. **Footer redesigned** to fix the imbalance
+  (a single 11-link Documentation tower with Open source stranded beneath it):
+  brand moved on top, links now a balanced five-column grid — Documentation,
+  Reference, Guides, For your work (5 personas), Project (Blog + GitHub + npm).
+  Sitemap 26 URLs, route tree regenerated, typecheck + lint green, all three pages
+  and the footer browser-verified.
 
 ## Priority order (simplest x highest impact first)
 
@@ -99,11 +112,12 @@ limit.`; subhead leads with the platform file-limit pain + local extraction
 
 - [x] **T2** `/how-to/share-all-files-with-ai` — highest-intent single page;
       platform-limit table (sourced) + embedded tool; no manual how-to recipe.
-- [ ] **T5** Programmatic pages. **Platform axis COMPLETE 2026-07-30:**
-      `/for/chatgpt-projects`, `/for/claude-projects`, `/for/notebooklm`,
-      `/for/gemini-gems` (bespoke, hub-and-spoke, not templated). **Remaining =
-      audience axis:** accountants (pairs with T6/S3 discovery), consultants, HR.
-      `/vs/*` **deferred**. `/convert/*` **killed** (data does not support it).
+- [x] **T5** Programmatic pages — **COMPLETE 2026-07-30.** Platform axis
+      (`/for/chatgpt-projects`, `/for/claude-projects`, `/for/notebooklm`,
+      `/for/gemini-gems`) + audience axis (`/for/accountants`, `/for/consultants`,
+      `/for/hr`), all bespoke and hub-and-spoke. `/vs/*` **deferred**.
+      `/convert/*` **killed** (data does not support it). Watch GSC for which of
+      the seven gains impressions before deciding where to deepen.
 
 **Later / gated**
 
@@ -159,6 +173,7 @@ limit.`; subhead leads with the platform file-limit pain + local extraction
   Gated on the 3-5 lawyer/accountant interviews (customer discovery, not deferred).
 - **AI-citation blind spot** — the Clarity panel measures Copilot only; sample
   ChatGPT/Claude manually.
-- **Footer IA** — when the how-to / persona pages multiply (T5), give how-to its
-  own footer column; for now the single "Explore" column holds everything
-  (decided 2026-07-30).
+- ~~**Footer IA**~~ — **resolved 2026-07-30.** With the persona/platform pages
+  multiplied, the footer was rebuilt into a balanced five-column grid
+  (Documentation, Reference, Guides, For your work, Project) with the brand block
+  moved on top. No longer a single "Explore" catch-all.
