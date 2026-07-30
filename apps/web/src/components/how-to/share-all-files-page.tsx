@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { ArrowUp, Check, FileStack, Lock } from "lucide-react";
 
 import { AppFlow } from "~/components/app/app-flow";
@@ -83,16 +84,27 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
 /** Live per-platform caps, the substance a search lands on. Figures drift, so the
  * table carries a snapshot date and points at each provider for the current cap. */
 const LIMITS = [
-  { where: "ChatGPT Projects", caps: "Files per project", limit: "5 free, 25 on Plus, 40 on Pro" },
+  {
+    where: "ChatGPT Projects",
+    caps: "Files per project",
+    limit: "5 free, 25 on Plus, 40 on Pro",
+    href: "/for/chatgpt-projects",
+  },
   { where: "ChatGPT chat", caps: "Files per message", limit: "10 at a time" },
   { where: "Custom GPTs", caps: "Knowledge files", limit: "20" },
   {
     where: "Claude Projects",
     caps: "Files in project knowledge",
     limit: "Capped by the context window, not a file count",
+    href: "/for/claude-projects",
   },
-  { where: "Gemini Gems", caps: "Knowledge files", limit: "10" },
-  { where: "NotebookLM", caps: "Sources per notebook", limit: "50 free, 100 on Plus" },
+  { where: "Gemini Gems", caps: "Knowledge files", limit: "10", href: "/for/gemini-gems" },
+  {
+    where: "NotebookLM",
+    caps: "Sources per notebook",
+    limit: "50 free, 100 on Plus",
+    href: "/for/notebooklm",
+  },
 ];
 
 function Limits() {
@@ -129,7 +141,18 @@ function Limits() {
           <tbody>
             {LIMITS.map((row) => (
               <tr key={row.where} className="border-hairline border-b">
-                <td className="text-ink py-3 pr-4 font-medium">{row.where}</td>
+                <td className="text-ink py-3 pr-4 font-medium">
+                  {row.href ? (
+                    <Link
+                      to={row.href}
+                      className="hover:text-primary underline decoration-[oklch(var(--border-strong))] underline-offset-2 transition-colors duration-150"
+                    >
+                      {row.where}
+                    </Link>
+                  ) : (
+                    row.where
+                  )}
+                </td>
                 <td className="text-ink-secondary py-3 pr-4">{row.caps}</td>
                 <td className="text-ink-secondary py-3">{row.limit}</td>
               </tr>

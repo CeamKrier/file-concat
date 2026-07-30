@@ -41,6 +41,25 @@ export function SiteFooter() {
           </div>
 
           <div className="flex flex-col items-start gap-3">
+            <h2 className="text-ink text-[12.5px] font-semibold">Guides</h2>
+            <Link to="/how-to/share-all-files-with-ai" className={linkClass}>
+              Share all your files with AI
+            </Link>
+            <Link to="/for/chatgpt-projects" className={linkClass}>
+              For ChatGPT Projects
+            </Link>
+            <Link to="/for/claude-projects" className={linkClass}>
+              For Claude Projects
+            </Link>
+            <Link to="/for/gemini-gems" className={linkClass}>
+              For Gemini Gems
+            </Link>
+            <Link to="/for/notebooklm" className={linkClass}>
+              For NotebookLM
+            </Link>
+          </div>
+
+          <div className="flex flex-col items-start gap-3">
             <h2 className="text-ink text-[12.5px] font-semibold">Explore</h2>
 
             {hasPublishedPosts() && (
@@ -48,12 +67,6 @@ export function SiteFooter() {
                 Blog
               </Link>
             )}
-            <Link to="/how-to/share-all-files-with-ai" className={linkClass}>
-              Share all your files with AI
-            </Link>
-            <Link to="/for/chatgpt-projects" className={linkClass}>
-              For ChatGPT Projects
-            </Link>
             <Link to="/for/legal" className={linkClass}>
               For lawyers
             </Link>

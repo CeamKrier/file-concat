@@ -61,6 +61,33 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    url: "/for/claude-projects",
+    sourceFile: [
+      "apps/web/src/routes/for/claude-projects.tsx",
+      "apps/web/src/components/personas/claude-projects-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/for/gemini-gems",
+    sourceFile: [
+      "apps/web/src/routes/for/gemini-gems.tsx",
+      "apps/web/src/components/personas/gemini-gems-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/for/notebooklm",
+    sourceFile: [
+      "apps/web/src/routes/for/notebooklm.tsx",
+      "apps/web/src/components/personas/notebooklm-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
     url: "/how-to/share-all-files-with-ai",
     sourceFile: [
       "apps/web/src/routes/how-to/share-all-files-with-ai.tsx",

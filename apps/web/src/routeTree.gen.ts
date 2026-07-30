@@ -15,7 +15,10 @@ import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as HowToShareAllFilesWithAiRouteImport } from './routes/how-to/share-all-files-with-ai'
 import { Route as ForResearchersRouteImport } from './routes/for/researchers'
+import { Route as ForNotebooklmRouteImport } from './routes/for/notebooklm'
 import { Route as ForLegalRouteImport } from './routes/for/legal'
+import { Route as ForGeminiGemsRouteImport } from './routes/for/gemini-gems'
+import { Route as ForClaudeProjectsRouteImport } from './routes/for/claude-projects'
 import { Route as ForChatgptProjectsRouteImport } from './routes/for/chatgpt-projects'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
@@ -52,9 +55,24 @@ const ForResearchersRoute = ForResearchersRouteImport.update({
   path: '/for/researchers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ForNotebooklmRoute = ForNotebooklmRouteImport.update({
+  id: '/for/notebooklm',
+  path: '/for/notebooklm',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ForLegalRoute = ForLegalRouteImport.update({
   id: '/for/legal',
   path: '/for/legal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForGeminiGemsRoute = ForGeminiGemsRouteImport.update({
+  id: '/for/gemini-gems',
+  path: '/for/gemini-gems',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForClaudeProjectsRoute = ForClaudeProjectsRouteImport.update({
+  id: '/for/claude-projects',
+  path: '/for/claude-projects',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForChatgptProjectsRoute = ForChatgptProjectsRouteImport.update({
@@ -85,7 +103,10 @@ export interface FileRoutesByFullPath {
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/for/chatgpt-projects': typeof ForChatgptProjectsRoute
+  '/for/claude-projects': typeof ForClaudeProjectsRoute
+  '/for/gemini-gems': typeof ForGeminiGemsRoute
   '/for/legal': typeof ForLegalRoute
+  '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/blog/': typeof BlogIndexRoute
@@ -98,7 +119,10 @@ export interface FileRoutesByTo {
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/for/chatgpt-projects': typeof ForChatgptProjectsRoute
+  '/for/claude-projects': typeof ForClaudeProjectsRoute
+  '/for/gemini-gems': typeof ForGeminiGemsRoute
   '/for/legal': typeof ForLegalRoute
+  '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/blog': typeof BlogIndexRoute
@@ -112,7 +136,10 @@ export interface FileRoutesById {
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/for/chatgpt-projects': typeof ForChatgptProjectsRoute
+  '/for/claude-projects': typeof ForClaudeProjectsRoute
+  '/for/gemini-gems': typeof ForGeminiGemsRoute
   '/for/legal': typeof ForLegalRoute
+  '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/blog/': typeof BlogIndexRoute
@@ -127,7 +154,10 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/docs/$slug'
     | '/for/chatgpt-projects'
+    | '/for/claude-projects'
+    | '/for/gemini-gems'
     | '/for/legal'
+    | '/for/notebooklm'
     | '/for/researchers'
     | '/how-to/share-all-files-with-ai'
     | '/blog/'
@@ -140,7 +170,10 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/docs/$slug'
     | '/for/chatgpt-projects'
+    | '/for/claude-projects'
+    | '/for/gemini-gems'
     | '/for/legal'
+    | '/for/notebooklm'
     | '/for/researchers'
     | '/how-to/share-all-files-with-ai'
     | '/blog'
@@ -153,7 +186,10 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/docs/$slug'
     | '/for/chatgpt-projects'
+    | '/for/claude-projects'
+    | '/for/gemini-gems'
     | '/for/legal'
+    | '/for/notebooklm'
     | '/for/researchers'
     | '/how-to/share-all-files-with-ai'
     | '/blog/'
@@ -167,7 +203,10 @@ export interface RootRouteChildren {
   BlogSlugRoute: typeof BlogSlugRoute
   DocsSlugRoute: typeof DocsSlugRoute
   ForChatgptProjectsRoute: typeof ForChatgptProjectsRoute
+  ForClaudeProjectsRoute: typeof ForClaudeProjectsRoute
+  ForGeminiGemsRoute: typeof ForGeminiGemsRoute
   ForLegalRoute: typeof ForLegalRoute
+  ForNotebooklmRoute: typeof ForNotebooklmRoute
   ForResearchersRoute: typeof ForResearchersRoute
   HowToShareAllFilesWithAiRoute: typeof HowToShareAllFilesWithAiRoute
   BlogIndexRoute: typeof BlogIndexRoute
@@ -218,11 +257,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForResearchersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/for/notebooklm': {
+      id: '/for/notebooklm'
+      path: '/for/notebooklm'
+      fullPath: '/for/notebooklm'
+      preLoaderRoute: typeof ForNotebooklmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/for/legal': {
       id: '/for/legal'
       path: '/for/legal'
       fullPath: '/for/legal'
       preLoaderRoute: typeof ForLegalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for/gemini-gems': {
+      id: '/for/gemini-gems'
+      path: '/for/gemini-gems'
+      fullPath: '/for/gemini-gems'
+      preLoaderRoute: typeof ForGeminiGemsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for/claude-projects': {
+      id: '/for/claude-projects'
+      path: '/for/claude-projects'
+      fullPath: '/for/claude-projects'
+      preLoaderRoute: typeof ForClaudeProjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/for/chatgpt-projects': {
@@ -263,7 +323,10 @@ const rootRouteChildren: RootRouteChildren = {
   BlogSlugRoute: BlogSlugRoute,
   DocsSlugRoute: DocsSlugRoute,
   ForChatgptProjectsRoute: ForChatgptProjectsRoute,
+  ForClaudeProjectsRoute: ForClaudeProjectsRoute,
+  ForGeminiGemsRoute: ForGeminiGemsRoute,
   ForLegalRoute: ForLegalRoute,
+  ForNotebooklmRoute: ForNotebooklmRoute,
   ForResearchersRoute: ForResearchersRoute,
   HowToShareAllFilesWithAiRoute: HowToShareAllFilesWithAiRoute,
   BlogIndexRoute: BlogIndexRoute,
