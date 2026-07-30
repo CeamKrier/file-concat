@@ -35,14 +35,28 @@ export function DropZone({
   const filesInput = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);
 
+  // A dashed upload box reads as "click to browse", so a click that did nothing
+  // was a dead click. Open the files picker on any click inside the target,
+  // except clicks on the explicit buttons (they fire their own picker) and the
+  // synthetic clicks those buttons bubble up from the hidden inputs — without the
+  // `input` guard, pressing "Browse folder" would also fire the files picker,
+  // because `folderInput.click()` bubbles to this handler with the input as its
+  // target. Keyboard users reach the pickers through the buttons, so the
+  // container stays a plain region rather than a role="button" nesting buttons.
+  const openFilesOnClick = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button, input")) return;
+    filesInput.current?.click();
+  };
+
   return (
     <div
       onDragEnter={onDragEnter}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      onClick={openFilesOnClick}
       className={cn(
-        "rounded-panel relative flex flex-col items-center border-2 border-dashed px-6 py-12 text-center transition-colors duration-150",
+        "rounded-panel relative flex cursor-pointer flex-col items-center border-2 border-dashed px-6 py-12 text-center transition-colors duration-150",
         isDragging
           ? "border-primary bg-[oklch(var(--primary)/0.08)]"
           : "border-border-strong bg-surface-alt",
