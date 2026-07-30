@@ -13,8 +13,16 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as HowToShareAllFilesWithAiRouteImport } from './routes/how-to/share-all-files-with-ai'
 import { Route as ForResearchersRouteImport } from './routes/for/researchers'
+import { Route as ForNotebooklmRouteImport } from './routes/for/notebooklm'
 import { Route as ForLegalRouteImport } from './routes/for/legal'
+import { Route as ForHrRouteImport } from './routes/for/hr'
+import { Route as ForGeminiGemsRouteImport } from './routes/for/gemini-gems'
+import { Route as ForConsultantsRouteImport } from './routes/for/consultants'
+import { Route as ForClaudeProjectsRouteImport } from './routes/for/claude-projects'
+import { Route as ForChatgptProjectsRouteImport } from './routes/for/chatgpt-projects'
+import { Route as ForAccountantsRouteImport } from './routes/for/accountants'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as ApiModelsRouteImport } from './routes/api/models'
@@ -39,14 +47,55 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
   path: '/blog/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HowToShareAllFilesWithAiRoute =
+  HowToShareAllFilesWithAiRouteImport.update({
+    id: '/how-to/share-all-files-with-ai',
+    path: '/how-to/share-all-files-with-ai',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ForResearchersRoute = ForResearchersRouteImport.update({
   id: '/for/researchers',
   path: '/for/researchers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ForNotebooklmRoute = ForNotebooklmRouteImport.update({
+  id: '/for/notebooklm',
+  path: '/for/notebooklm',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ForLegalRoute = ForLegalRouteImport.update({
   id: '/for/legal',
   path: '/for/legal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForHrRoute = ForHrRouteImport.update({
+  id: '/for/hr',
+  path: '/for/hr',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForGeminiGemsRoute = ForGeminiGemsRouteImport.update({
+  id: '/for/gemini-gems',
+  path: '/for/gemini-gems',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForConsultantsRoute = ForConsultantsRouteImport.update({
+  id: '/for/consultants',
+  path: '/for/consultants',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForClaudeProjectsRoute = ForClaudeProjectsRouteImport.update({
+  id: '/for/claude-projects',
+  path: '/for/claude-projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForChatgptProjectsRoute = ForChatgptProjectsRouteImport.update({
+  id: '/for/chatgpt-projects',
+  path: '/for/chatgpt-projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForAccountantsRoute = ForAccountantsRouteImport.update({
+  id: '/for/accountants',
+  path: '/for/accountants',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocsSlugRoute = DocsSlugRouteImport.update({
@@ -71,8 +120,16 @@ export interface FileRoutesByFullPath {
   '/api/models': typeof ApiModelsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/for/accountants': typeof ForAccountantsRoute
+  '/for/chatgpt-projects': typeof ForChatgptProjectsRoute
+  '/for/claude-projects': typeof ForClaudeProjectsRoute
+  '/for/consultants': typeof ForConsultantsRoute
+  '/for/gemini-gems': typeof ForGeminiGemsRoute
+  '/for/hr': typeof ForHrRoute
   '/for/legal': typeof ForLegalRoute
+  '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
+  '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
 }
@@ -82,8 +139,16 @@ export interface FileRoutesByTo {
   '/api/models': typeof ApiModelsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/for/accountants': typeof ForAccountantsRoute
+  '/for/chatgpt-projects': typeof ForChatgptProjectsRoute
+  '/for/claude-projects': typeof ForClaudeProjectsRoute
+  '/for/consultants': typeof ForConsultantsRoute
+  '/for/gemini-gems': typeof ForGeminiGemsRoute
+  '/for/hr': typeof ForHrRoute
   '/for/legal': typeof ForLegalRoute
+  '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
+  '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/blog': typeof BlogIndexRoute
   '/docs': typeof DocsIndexRoute
 }
@@ -94,8 +159,16 @@ export interface FileRoutesById {
   '/api/models': typeof ApiModelsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/for/accountants': typeof ForAccountantsRoute
+  '/for/chatgpt-projects': typeof ForChatgptProjectsRoute
+  '/for/claude-projects': typeof ForClaudeProjectsRoute
+  '/for/consultants': typeof ForConsultantsRoute
+  '/for/gemini-gems': typeof ForGeminiGemsRoute
+  '/for/hr': typeof ForHrRoute
   '/for/legal': typeof ForLegalRoute
+  '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
+  '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
 }
@@ -107,8 +180,16 @@ export interface FileRouteTypes {
     | '/api/models'
     | '/blog/$slug'
     | '/docs/$slug'
+    | '/for/accountants'
+    | '/for/chatgpt-projects'
+    | '/for/claude-projects'
+    | '/for/consultants'
+    | '/for/gemini-gems'
+    | '/for/hr'
     | '/for/legal'
+    | '/for/notebooklm'
     | '/for/researchers'
+    | '/how-to/share-all-files-with-ai'
     | '/blog/'
     | '/docs/'
   fileRoutesByTo: FileRoutesByTo
@@ -118,8 +199,16 @@ export interface FileRouteTypes {
     | '/api/models'
     | '/blog/$slug'
     | '/docs/$slug'
+    | '/for/accountants'
+    | '/for/chatgpt-projects'
+    | '/for/claude-projects'
+    | '/for/consultants'
+    | '/for/gemini-gems'
+    | '/for/hr'
     | '/for/legal'
+    | '/for/notebooklm'
     | '/for/researchers'
+    | '/how-to/share-all-files-with-ai'
     | '/blog'
     | '/docs'
   id:
@@ -129,8 +218,16 @@ export interface FileRouteTypes {
     | '/api/models'
     | '/blog/$slug'
     | '/docs/$slug'
+    | '/for/accountants'
+    | '/for/chatgpt-projects'
+    | '/for/claude-projects'
+    | '/for/consultants'
+    | '/for/gemini-gems'
+    | '/for/hr'
     | '/for/legal'
+    | '/for/notebooklm'
     | '/for/researchers'
+    | '/how-to/share-all-files-with-ai'
     | '/blog/'
     | '/docs/'
   fileRoutesById: FileRoutesById
@@ -141,8 +238,16 @@ export interface RootRouteChildren {
   ApiModelsRoute: typeof ApiModelsRoute
   BlogSlugRoute: typeof BlogSlugRoute
   DocsSlugRoute: typeof DocsSlugRoute
+  ForAccountantsRoute: typeof ForAccountantsRoute
+  ForChatgptProjectsRoute: typeof ForChatgptProjectsRoute
+  ForClaudeProjectsRoute: typeof ForClaudeProjectsRoute
+  ForConsultantsRoute: typeof ForConsultantsRoute
+  ForGeminiGemsRoute: typeof ForGeminiGemsRoute
+  ForHrRoute: typeof ForHrRoute
   ForLegalRoute: typeof ForLegalRoute
+  ForNotebooklmRoute: typeof ForNotebooklmRoute
   ForResearchersRoute: typeof ForResearchersRoute
+  HowToShareAllFilesWithAiRoute: typeof HowToShareAllFilesWithAiRoute
   BlogIndexRoute: typeof BlogIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
 }
@@ -177,6 +282,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/how-to/share-all-files-with-ai': {
+      id: '/how-to/share-all-files-with-ai'
+      path: '/how-to/share-all-files-with-ai'
+      fullPath: '/how-to/share-all-files-with-ai'
+      preLoaderRoute: typeof HowToShareAllFilesWithAiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/for/researchers': {
       id: '/for/researchers'
       path: '/for/researchers'
@@ -184,11 +296,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForResearchersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/for/notebooklm': {
+      id: '/for/notebooklm'
+      path: '/for/notebooklm'
+      fullPath: '/for/notebooklm'
+      preLoaderRoute: typeof ForNotebooklmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/for/legal': {
       id: '/for/legal'
       path: '/for/legal'
       fullPath: '/for/legal'
       preLoaderRoute: typeof ForLegalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for/hr': {
+      id: '/for/hr'
+      path: '/for/hr'
+      fullPath: '/for/hr'
+      preLoaderRoute: typeof ForHrRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for/gemini-gems': {
+      id: '/for/gemini-gems'
+      path: '/for/gemini-gems'
+      fullPath: '/for/gemini-gems'
+      preLoaderRoute: typeof ForGeminiGemsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for/consultants': {
+      id: '/for/consultants'
+      path: '/for/consultants'
+      fullPath: '/for/consultants'
+      preLoaderRoute: typeof ForConsultantsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for/claude-projects': {
+      id: '/for/claude-projects'
+      path: '/for/claude-projects'
+      fullPath: '/for/claude-projects'
+      preLoaderRoute: typeof ForClaudeProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for/chatgpt-projects': {
+      id: '/for/chatgpt-projects'
+      path: '/for/chatgpt-projects'
+      fullPath: '/for/chatgpt-projects'
+      preLoaderRoute: typeof ForChatgptProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for/accountants': {
+      id: '/for/accountants'
+      path: '/for/accountants'
+      fullPath: '/for/accountants'
+      preLoaderRoute: typeof ForAccountantsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/docs/$slug': {
@@ -221,8 +382,16 @@ const rootRouteChildren: RootRouteChildren = {
   ApiModelsRoute: ApiModelsRoute,
   BlogSlugRoute: BlogSlugRoute,
   DocsSlugRoute: DocsSlugRoute,
+  ForAccountantsRoute: ForAccountantsRoute,
+  ForChatgptProjectsRoute: ForChatgptProjectsRoute,
+  ForClaudeProjectsRoute: ForClaudeProjectsRoute,
+  ForConsultantsRoute: ForConsultantsRoute,
+  ForGeminiGemsRoute: ForGeminiGemsRoute,
+  ForHrRoute: ForHrRoute,
   ForLegalRoute: ForLegalRoute,
+  ForNotebooklmRoute: ForNotebooklmRoute,
   ForResearchersRoute: ForResearchersRoute,
+  HowToShareAllFilesWithAiRoute: HowToShareAllFilesWithAiRoute,
   BlogIndexRoute: BlogIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
 }

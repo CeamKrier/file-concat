@@ -68,27 +68,17 @@ function buildIndex(pages: Map<string, PageRecord>): string {
 
   lines.push("# FileConcat");
   lines.push("");
-  lines.push(
-    "> Privacy-first tool that concatenates source files into one LLM-ready blob.",
-  );
-  lines.push(
-    "> Runs entirely in the browser, ships as both a web app at fileconcat.com",
-  );
-  lines.push("> and a published npm CLI `@fileconcat/cli` (bin: `file-concat`).");
+  lines.push("> Merge all your files into one to get past the file upload limit on ChatGPT,");
+  lines.push("> Claude, Gemini, and NotebookLM. Drop a repo or a folder of PDFs, Word, and");
+  lines.push("> Excel files; everything, even the PDFs, is read right in your browser and");
+  lines.push("> nothing is uploaded. Web app at fileconcat.com, plus a published npm CLI");
+  lines.push("> `@fileconcat/cli` (bin: `file-concat`).");
   lines.push("");
-  lines.push(
-    "These pages cover what the tool does, how to feed files into it, how the",
-  );
-  lines.push(
-    "filter pipeline decides what survives, and how to read the token counter.",
-  );
-  lines.push(
-    "Source code, schemas, and the CLI implementation live in the linked repo.",
-  );
+  lines.push("These pages cover what the tool does, how to feed files into it, how the");
+  lines.push("filter pipeline decides what survives, and how to read the token counter.");
+  lines.push("Source code, schemas, and the CLI implementation live in the linked repo.");
   lines.push("");
-  lines.push(
-    `Full content as a single file: ${BASE_URL}/llms-full.txt`,
-  );
+  lines.push(`Full content as a single file: ${BASE_URL}/llms-full.txt`);
   lines.push("");
 
   for (const section of DOCS_NAVIGATION) {
@@ -105,20 +95,12 @@ function buildIndex(pages: Map<string, PageRecord>): string {
 
   lines.push("## Source code");
   lines.push("");
-  lines.push(
-    `The FileConcat implementation is open source at ${REPO_URL}. The repo is a`,
-  );
-  lines.push(
-    "pnpm workspace with three members: `apps/web` (TanStack Start app deployed",
-  );
-  lines.push(
-    "to Cloudflare Workers), `packages/cli` (the published CLI), and",
-  );
+  lines.push(`The FileConcat implementation is open source at ${REPO_URL}. The repo is a`);
+  lines.push("pnpm workspace with three members: `apps/web` (TanStack Start app deployed");
+  lines.push("to Cloudflare Workers), `packages/cli` (the published CLI), and");
   lines.push("`packages/core` (the shared library both surfaces use).");
   lines.push("");
-  lines.push(
-    "To grab the full source as a single LLM-ready document, FileConcat can",
-  );
+  lines.push("To grab the full source as a single LLM-ready document, FileConcat can");
   lines.push("ingest its own repository. Two ways:");
   lines.push("");
   lines.push(`- Web: open ${BASE_URL}, switch to the GitHub tab, paste`);
@@ -136,16 +118,10 @@ function buildFull(pages: Map<string, PageRecord>): string {
 
   lines.push("# FileConcat documentation");
   lines.push("");
-  lines.push(
-    `Index: ${BASE_URL}/llms.txt`,
-  );
+  lines.push(`Index: ${BASE_URL}/llms.txt`);
   lines.push("");
-  lines.push(
-    `Generated from the MDX sources at ${REPO_URL}. Every page below is the`,
-  );
-  lines.push(
-    "raw Markdown content of the corresponding doc on fileconcat.com/docs.",
-  );
+  lines.push(`Generated from the MDX sources at ${REPO_URL}. Every page below is the`);
+  lines.push("raw Markdown content of the corresponding doc on fileconcat.com/docs.");
   lines.push("");
 
   for (const section of DOCS_NAVIGATION) {

@@ -8,15 +8,15 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       ...generateSEOMeta({
-        title: "File concat tool. Combine files for an LLM",
+        title: "Combine files for ChatGPT, Claude & Gemini",
         description:
-          "Free file concat tool. Turn a folder or repo into one LLM-ready document for ChatGPT or Claude. In your browser, nothing uploaded, live token counts.",
+          "Hit the file limit on ChatGPT, Claude, or Gemini? Combine all your files, even PDFs and Office docs, into one. It all runs in your browser, nothing uploaded.",
         url: "https://fileconcat.com",
       }),
       {
         name: "keywords",
         content:
-          "file concat, combine files, LLM, ChatGPT, Claude, Gemini, AI assistant, code sharing, GitHub import, token counter, npm cli",
+          "combine files, merge files, combine files for AI, chatgpt file limit, ai file upload limit, combine files for ChatGPT, combine files for Claude, merge PDFs for AI, combine Word documents, NotebookLM sources, GitHub import",
       },
     ],
     links: [{ rel: "canonical", href: "https://fileconcat.com" }],

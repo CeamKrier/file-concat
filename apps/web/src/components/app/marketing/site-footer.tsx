@@ -6,58 +6,101 @@ import { hasPublishedPosts } from "~/lib/blog";
 import { DOCS_NAVIGATION } from "~/lib/docs-nav";
 import { LogoMark } from "../logo-mark";
 
-const docLinks = DOCS_NAVIGATION.flatMap((section) => section.links);
+// Split the docs nav into two balanced footer columns: everything up to the last
+// section under "Documentation", and the final (Reference) section on its own, so
+// no single column towers over the rest of the footer.
+const docsPrimary = DOCS_NAVIGATION.slice(0, -1).flatMap((section) => section.links);
+const docsReference = DOCS_NAVIGATION[DOCS_NAVIGATION.length - 1];
 
 const linkClass =
   "text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-1.5 rounded-sm text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2";
 
+const columnClass = "flex flex-col items-start gap-3";
+const headingClass = "text-ink text-[12.5px] font-semibold";
+
 export function SiteFooter() {
   return (
     <footer className="border-hairline border-t">
-      <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-10 px-4 py-12 sm:px-6 md:flex-row md:items-start md:justify-between md:gap-12">
-        <div className="max-w-[36ch] space-y-3">
+      <div className="mx-auto w-full max-w-[1040px] px-4 py-12 sm:px-6">
+        <div className="flex flex-col gap-3">
           <span className="inline-flex items-center gap-2.5">
             <LogoMark size={24} />
             <span className="font-display text-ink text-[15px] font-semibold tracking-[-0.01em]">
               FileConcat
             </span>
           </span>
-          <p className="text-ink-muted text-[13px] leading-relaxed">
+          <p className="text-ink-muted max-w-[54ch] text-[13px] leading-relaxed">
             Drop a folder, get one file ChatGPT, Claude, or Gemini can read. Runs in your browser.
           </p>
         </div>
 
         <nav
           aria-label="Footer"
-          className="font-display flex flex-wrap gap-x-12 gap-y-8 sm:gap-x-16"
+          className="font-display mt-10 grid grid-cols-2 gap-x-8 gap-y-9 sm:grid-cols-3 lg:grid-cols-5"
         >
-          <div className="flex flex-col items-start gap-3">
-            <h2 className="text-ink text-[12.5px] font-semibold">Documentation</h2>
-            {docLinks.map((link) => (
+          <div className={columnClass}>
+            <h2 className={headingClass}>Documentation</h2>
+            {docsPrimary.map((link) => (
               <Link key={link.href} to={link.href} className={linkClass}>
                 {link.title}
               </Link>
             ))}
           </div>
 
-          <div className="flex flex-col items-start gap-3">
-            <h2 className="text-ink text-[12.5px] font-semibold">Explore</h2>
-
-            {hasPublishedPosts() && (
-              <Link to="/blog" className={linkClass}>
-                Blog
+          <div className={columnClass}>
+            <h2 className={headingClass}>{docsReference.title}</h2>
+            {docsReference.links.map((link) => (
+              <Link key={link.href} to={link.href} className={linkClass}>
+                {link.title}
               </Link>
-            )}
+            ))}
+          </div>
+
+          <div className={columnClass}>
+            <h2 className={headingClass}>Guides</h2>
+            <Link to="/how-to/share-all-files-with-ai" className={linkClass}>
+              Share all your files
+            </Link>
+            <Link to="/for/chatgpt-projects" className={linkClass}>
+              For ChatGPT Projects
+            </Link>
+            <Link to="/for/claude-projects" className={linkClass}>
+              For Claude Projects
+            </Link>
+            <Link to="/for/gemini-gems" className={linkClass}>
+              For Gemini Gems
+            </Link>
+            <Link to="/for/notebooklm" className={linkClass}>
+              For NotebookLM
+            </Link>
+          </div>
+
+          <div className={columnClass}>
+            <h2 className={headingClass}>For your work</h2>
             <Link to="/for/legal" className={linkClass}>
               For lawyers
+            </Link>
+            <Link to="/for/accountants" className={linkClass}>
+              For accountants
+            </Link>
+            <Link to="/for/consultants" className={linkClass}>
+              For consultants
+            </Link>
+            <Link to="/for/hr" className={linkClass}>
+              For HR
             </Link>
             <Link to="/for/researchers" className={linkClass}>
               For researchers
             </Link>
           </div>
 
-          <div className="flex flex-col items-start gap-3">
-            <h2 className="text-ink text-[12.5px] font-semibold">Open source</h2>
+          <div className={columnClass}>
+            <h2 className={headingClass}>Project</h2>
+            {hasPublishedPosts() && (
+              <Link to="/blog" className={linkClass}>
+                Blog
+              </Link>
+            )}
             <a
               href="https://github.com/CeamKrier/file-concat"
               target="_blank"

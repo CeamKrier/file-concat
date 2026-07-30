@@ -52,6 +52,75 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    url: "/for/accountants",
+    sourceFile: [
+      "apps/web/src/routes/for/accountants.tsx",
+      "apps/web/src/components/personas/accountants-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/for/consultants",
+    sourceFile: [
+      "apps/web/src/routes/for/consultants.tsx",
+      "apps/web/src/components/personas/consultants-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/for/hr",
+    sourceFile: ["apps/web/src/routes/for/hr.tsx", "apps/web/src/components/personas/hr-page.tsx"],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/for/chatgpt-projects",
+    sourceFile: [
+      "apps/web/src/routes/for/chatgpt-projects.tsx",
+      "apps/web/src/components/personas/chatgpt-projects-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/for/claude-projects",
+    sourceFile: [
+      "apps/web/src/routes/for/claude-projects.tsx",
+      "apps/web/src/components/personas/claude-projects-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/for/gemini-gems",
+    sourceFile: [
+      "apps/web/src/routes/for/gemini-gems.tsx",
+      "apps/web/src/components/personas/gemini-gems-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/for/notebooklm",
+    sourceFile: [
+      "apps/web/src/routes/for/notebooklm.tsx",
+      "apps/web/src/components/personas/notebooklm-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/how-to/share-all-files-with-ai",
+    sourceFile: [
+      "apps/web/src/routes/how-to/share-all-files-with-ai.tsx",
+      "apps/web/src/components/how-to/share-all-files-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.7,
+  },
+  {
     url: "/docs/quick-start",
     sourceFile: "apps/web/src/content/docs/quick-start.mdx",
     changefreq: "monthly",
