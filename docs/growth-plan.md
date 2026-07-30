@@ -71,6 +71,16 @@ limit.`; subhead leads with the platform file-limit pain + local extraction
   Typecheck + lint green, browser-verified end-to-end. Chose platform axis first
   (highest-volume money query); build one, replicate quality once approved. Next:
   claude-projects / notebooklm / gemini-gems, then the audience axis.
+- **2026-07-30 — T5 platform axis COMPLETE.** Added `/for/claude-projects`,
+  `/for/notebooklm`, `/for/gemini-gems` — replicated the pilot's _quality_, not a
+  template. Each leads with that platform's real constraint: Claude by size/tokens
+  (leans on the token counter, with a capacity bar), NotebookLM by sources (one
+  file = one source), Gemini by its ~10 knowledge slots. Each has its own cap
+  table, worked example, and FAQ + FAQPage JSON-LD. Footer restructured into a
+  dedicated **Guides** column (hub + 4 platform spokes); personas stay under
+  Explore. The hub limit table now links each platform row to its page (hub→spoke
+  internal links for crawl). Sitemap 23 URLs, route tree regenerated, typecheck +
+  lint green, all four browser-verified end-to-end.
 
 ## Priority order (simplest x highest impact first)
 
@@ -89,11 +99,10 @@ limit.`; subhead leads with the platform file-limit pain + local extraction
 
 - [x] **T2** `/how-to/share-all-files-with-ai` — highest-intent single page;
       platform-limit table (sourced) + embedded tool; no manual how-to recipe.
-- [ ] **T5** Programmatic pages (platform axis: chatgpt-projects, claude-projects,
-      notebooklm, gemini-gems; audience axis: accountants, consultants, HR).
-      **Pilot shipped 2026-07-30: `/for/chatgpt-projects`** (bespoke, hub-and-spoke,
-      not templated). Remaining platform: claude-projects, notebooklm, gemini-gems.
-      Audience: accountants (pairs with T6/S3 discovery), consultants, HR.
+- [ ] **T5** Programmatic pages. **Platform axis COMPLETE 2026-07-30:**
+      `/for/chatgpt-projects`, `/for/claude-projects`, `/for/notebooklm`,
+      `/for/gemini-gems` (bespoke, hub-and-spoke, not templated). **Remaining =
+      audience axis:** accountants (pairs with T6/S3 discovery), consultants, HR.
       `/vs/*` **deferred**. `/convert/*` **killed** (data does not support it).
 
 **Later / gated**
