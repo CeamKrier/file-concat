@@ -52,6 +52,30 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    url: "/for/accountants",
+    sourceFile: [
+      "apps/web/src/routes/for/accountants.tsx",
+      "apps/web/src/components/personas/accountants-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/for/consultants",
+    sourceFile: [
+      "apps/web/src/routes/for/consultants.tsx",
+      "apps/web/src/components/personas/consultants-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/for/hr",
+    sourceFile: ["apps/web/src/routes/for/hr.tsx", "apps/web/src/components/personas/hr-page.tsx"],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
     url: "/for/chatgpt-projects",
     sourceFile: [
       "apps/web/src/routes/for/chatgpt-projects.tsx",
