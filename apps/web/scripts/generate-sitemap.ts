@@ -52,6 +52,15 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    url: "/for/chatgpt-projects",
+    sourceFile: [
+      "apps/web/src/routes/for/chatgpt-projects.tsx",
+      "apps/web/src/components/personas/chatgpt-projects-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
     url: "/how-to/share-all-files-with-ai",
     sourceFile: [
       "apps/web/src/routes/how-to/share-all-files-with-ai.tsx",

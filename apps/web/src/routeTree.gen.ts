@@ -16,6 +16,7 @@ import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as HowToShareAllFilesWithAiRouteImport } from './routes/how-to/share-all-files-with-ai'
 import { Route as ForResearchersRouteImport } from './routes/for/researchers'
 import { Route as ForLegalRouteImport } from './routes/for/legal'
+import { Route as ForChatgptProjectsRouteImport } from './routes/for/chatgpt-projects'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as ApiModelsRouteImport } from './routes/api/models'
@@ -56,6 +57,11 @@ const ForLegalRoute = ForLegalRouteImport.update({
   path: '/for/legal',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ForChatgptProjectsRoute = ForChatgptProjectsRouteImport.update({
+  id: '/for/chatgpt-projects',
+  path: '/for/chatgpt-projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocsSlugRoute = DocsSlugRouteImport.update({
   id: '/docs/$slug',
   path: '/docs/$slug',
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/api/models': typeof ApiModelsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/for/chatgpt-projects': typeof ForChatgptProjectsRoute
   '/for/legal': typeof ForLegalRoute
   '/for/researchers': typeof ForResearchersRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
@@ -90,6 +97,7 @@ export interface FileRoutesByTo {
   '/api/models': typeof ApiModelsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/for/chatgpt-projects': typeof ForChatgptProjectsRoute
   '/for/legal': typeof ForLegalRoute
   '/for/researchers': typeof ForResearchersRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/api/models': typeof ApiModelsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/for/chatgpt-projects': typeof ForChatgptProjectsRoute
   '/for/legal': typeof ForLegalRoute
   '/for/researchers': typeof ForResearchersRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/api/models'
     | '/blog/$slug'
     | '/docs/$slug'
+    | '/for/chatgpt-projects'
     | '/for/legal'
     | '/for/researchers'
     | '/how-to/share-all-files-with-ai'
@@ -129,6 +139,7 @@ export interface FileRouteTypes {
     | '/api/models'
     | '/blog/$slug'
     | '/docs/$slug'
+    | '/for/chatgpt-projects'
     | '/for/legal'
     | '/for/researchers'
     | '/how-to/share-all-files-with-ai'
@@ -141,6 +152,7 @@ export interface FileRouteTypes {
     | '/api/models'
     | '/blog/$slug'
     | '/docs/$slug'
+    | '/for/chatgpt-projects'
     | '/for/legal'
     | '/for/researchers'
     | '/how-to/share-all-files-with-ai'
@@ -154,6 +166,7 @@ export interface RootRouteChildren {
   ApiModelsRoute: typeof ApiModelsRoute
   BlogSlugRoute: typeof BlogSlugRoute
   DocsSlugRoute: typeof DocsSlugRoute
+  ForChatgptProjectsRoute: typeof ForChatgptProjectsRoute
   ForLegalRoute: typeof ForLegalRoute
   ForResearchersRoute: typeof ForResearchersRoute
   HowToShareAllFilesWithAiRoute: typeof HowToShareAllFilesWithAiRoute
@@ -212,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForLegalRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/for/chatgpt-projects': {
+      id: '/for/chatgpt-projects'
+      path: '/for/chatgpt-projects'
+      fullPath: '/for/chatgpt-projects'
+      preLoaderRoute: typeof ForChatgptProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs/$slug': {
       id: '/docs/$slug'
       path: '/docs/$slug'
@@ -242,6 +262,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiModelsRoute: ApiModelsRoute,
   BlogSlugRoute: BlogSlugRoute,
   DocsSlugRoute: DocsSlugRoute,
+  ForChatgptProjectsRoute: ForChatgptProjectsRoute,
   ForLegalRoute: ForLegalRoute,
   ForResearchersRoute: ForResearchersRoute,
   HowToShareAllFilesWithAiRoute: HowToShareAllFilesWithAiRoute,
