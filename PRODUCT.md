@@ -8,7 +8,7 @@ brand
 
 People preparing local files for an LLM. The audience spans developers sharing whole codebases with Claude / GPT / Gemini, students bundling multi-file assignments, writers and researchers stitching documents together, and the occasional CLI power user who lives in `fileconcat <path>` from the terminal.
 
-Their context is short-attention and high-stakes: they have a real prompt to send, they want the blob ready in under a minute, and they want to know how many tokens it'll cost before they paste it anywhere. They reach for FileConcat because the alternative is a hand-rolled `cat` pipeline or copy-pasting one file at a time, and because they need to trust that nothing leaves their machine.
+Their context is short-attention and high-stakes: they have a real prompt to send, they want the blob ready in under a minute, and they want to know how many tokens it'll cost before they paste it anywhere. They reach for FileConcat because the alternative is a hand-rolled `cat` pipeline or copy-pasting one file at a time, and because they need to trust that their files aren't uploaded to a server to be read.
 
 The job to be done: turn N local files into one well-formatted, token-counted blob I can paste into an LLM, without uploading anything and without thinking about the tooling.
 
@@ -37,7 +37,7 @@ If the page could be mistaken for any of the above on a glance, it's the wrong p
 
 ## Design Principles
 
-1. **Trust through transparency, not claims.** Privacy is shown by how the product behaves (no network on file drop, processing visible in the browser, no account wall), not asserted in marketing copy. The fewer trust badges, the more trustworthy.
+1. **Trust through transparency, not claims.** Privacy is shown by how the product behaves: files are read and combined in the browser and never uploaded to be processed, and there is no account wall. It is stated accurately, never as an absolute ("0 requests", "nothing leaves your device") that a devtools check can refute, because anonymous product analytics (Microsoft Clarity) does run and is disclosed plainly on `/privacy` rather than papered over. The fewer trust badges, the more trustworthy.
 2. **Restraint is the brand.** Every element earns its place. Absence — empty space, missing decoration, the section we didn't add — is a design choice, not a vacancy. Inspired by quiet-utility references (Linear, Raycast, Height).
 3. **The tool is the landing.** The marketing surface should put the user closer to the workflow, not further from it. Hero copy explains less than the live tool below it does.
 4. **Precision over polish.** Token counts must be honest, file-type detection must be correct, the filter list must reflect what actually ships in the blob. A misleading number is a brand failure; an unornamented true number is a brand win.
