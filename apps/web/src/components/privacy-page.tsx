@@ -136,14 +136,16 @@ export function PrivacyPage() {
 
         <section className="text-ink-muted mt-12 flex flex-col gap-1.5 border-t border-[oklch(var(--hairline))] pt-8 text-[13px]">
           <p>
-            Questions? Email{" "}
+            Questions? Message{" "}
             <a
-              href="mailto:privacy@fileconcat.com"
+              href="https://twitter.com/CeamKrier"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-ink-secondary hover:text-ink underline decoration-[oklch(var(--border-strong))] underline-offset-[3px] transition-colors duration-150"
             >
-              privacy@fileconcat.com
-            </a>
-            .
+              @CeamKrier
+            </a>{" "}
+            on X.
           </p>
           <p className="font-mono text-[11.5px]">
             Last updated {LAST_UPDATED} ·{" "}
