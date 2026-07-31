@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
@@ -27,6 +28,11 @@ import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as ApiModelsRouteImport } from './routes/api/models'
 
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
@@ -117,6 +123,7 @@ const ApiModelsRoute = ApiModelsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/privacy': typeof PrivacyRoute
   '/api/models': typeof ApiModelsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
@@ -136,6 +143,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/privacy': typeof PrivacyRoute
   '/api/models': typeof ApiModelsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
@@ -156,6 +164,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/privacy': typeof PrivacyRoute
   '/api/models': typeof ApiModelsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/privacy'
     | '/api/models'
     | '/blog/$slug'
     | '/docs/$slug'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app'
+    | '/privacy'
     | '/api/models'
     | '/blog/$slug'
     | '/docs/$slug'
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/privacy'
     | '/api/models'
     | '/blog/$slug'
     | '/docs/$slug'
@@ -235,6 +247,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRoute
+  PrivacyRoute: typeof PrivacyRoute
   ApiModelsRoute: typeof ApiModelsRoute
   BlogSlugRoute: typeof BlogSlugRoute
   DocsSlugRoute: typeof DocsSlugRoute
@@ -254,6 +267,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app': {
       id: '/app'
       path: '/app'
@@ -379,6 +399,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRoute,
+  PrivacyRoute: PrivacyRoute,
   ApiModelsRoute: ApiModelsRoute,
   BlogSlugRoute: BlogSlugRoute,
   DocsSlugRoute: DocsSlugRoute,

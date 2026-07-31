@@ -7,7 +7,7 @@
 export const ACCOUNTANTS_FAQ = [
   {
     q: "Is it safe to use AI on confidential client financials?",
-    a: "The combining step is fully local: FileConcat reads every file in your browser and sends nothing to a server, so the documents never leave your computer. What you then paste into an assistant is your own choice, but preparing the file leaks nothing.",
+    a: "The combining step is fully local: FileConcat reads every file in your browser and never uploads it, so the documents are not sent to a server to be read. What you then paste into an assistant is your own choice, but preparing the file uploads nothing.",
   },
   {
     q: "Can it read bank statements and spreadsheets?",
@@ -19,6 +19,6 @@ export const ACCOUNTANTS_FAQ = [
   },
   {
     q: "Does anything get uploaded to a server?",
-    a: "No. Everything, including the PDFs, is read in your browser tab. Nothing is sent, nothing is stored, and there is no account to create.",
+    a: "No. Everything, including the PDFs, is read in your browser tab. Nothing is uploaded, and there is no account to create.",
   },
 ];

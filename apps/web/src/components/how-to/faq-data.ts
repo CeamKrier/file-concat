@@ -15,7 +15,7 @@ export const FAQ_ITEMS = [
   },
   {
     q: "Do my files get uploaded to a server?",
-    a: "No. Everything is read in your browser tab, including PDFs and Office documents. Nothing is sent, nothing is stored, and there is no account to create.",
+    a: "No. Everything is read in your browser tab, including PDFs and Office documents. Nothing is uploaded, and there is no account to create.",
   },
   {
     q: "Does this work for NotebookLM, Gemini Gems, and Custom GPTs too?",

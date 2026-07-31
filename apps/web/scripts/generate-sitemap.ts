@@ -34,6 +34,12 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    url: "/privacy",
+    sourceFile: ["apps/web/src/routes/privacy.tsx", "apps/web/src/components/privacy-page.tsx"],
+    changefreq: "yearly",
+    priority: 0.5,
+  },
+  {
     url: "/for/legal",
     sourceFile: [
       "apps/web/src/routes/for/legal.tsx",

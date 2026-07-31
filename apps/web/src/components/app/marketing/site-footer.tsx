@@ -126,7 +126,14 @@ export function SiteFooter() {
       <div className="border-hairline border-t">
         <div className="mx-auto flex w-full max-w-[1040px] flex-col items-start justify-between gap-3 px-4 py-5 sm:flex-row sm:items-center sm:px-6">
           <p className="text-ink-muted font-mono text-[11.5px]">
-            MIT · © {new Date().getFullYear()} FileConcat · built by{" "}
+            MIT · © {new Date().getFullYear()} FileConcat ·{" "}
+            <Link
+              to="/privacy"
+              className="text-ink-muted hover:text-ink decoration-[oklch(var(--border-strong))] underline underline-offset-[3px] transition-colors duration-150"
+            >
+              Privacy
+            </Link>{" "}
+            · built by{" "}
             <a
               href="https://twitter.com/CeamKrier"
               target="_blank"

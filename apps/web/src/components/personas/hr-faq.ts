@@ -19,6 +19,6 @@ export const HR_FAQ = [
   },
   {
     q: "Does anything get uploaded to a server?",
-    a: "No. Everything, including the PDFs, is read in your browser tab. Nothing is sent, nothing is stored, and there is no account to create.",
+    a: "No. Everything, including the PDFs, is read in your browser tab. Nothing is uploaded, and there is no account to create.",
   },
 ];

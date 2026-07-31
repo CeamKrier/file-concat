@@ -23,6 +23,6 @@ export const CHATGPT_PROJECTS_FAQ = [
   },
   {
     q: "Are my documents uploaded to a server?",
-    a: "No. Every file, including the PDFs and Office documents, is read in your browser tab. Nothing is sent, nothing is stored, and there is no account to create.",
+    a: "No. Every file, including the PDFs and Office documents, is read in your browser tab. Nothing is uploaded, and there is no account to create.",
   },
 ];

@@ -97,13 +97,12 @@ function Confidentiality() {
           id="legal-confidential"
           className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          The file never leaves your computer.
+          We don&rsquo;t upload your case file.
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
           Most tools that read a document upload it to a server first. FileConcat does the reading in
-          this browser tab. Nothing is sent, nothing is stored, and there is no account to create.
-          You can open your own network panel and watch: after the page loads, working through a
-          folder sends zero requests.
+          this browser tab, so your file is never uploaded to be read, and there is no account to
+          create.
         </p>
         <p className="text-go-fg mt-5 inline-flex items-center gap-2 font-mono text-[12.5px]">
           <Lock className="text-primary h-4 w-4 shrink-0" strokeWidth={2} />
@@ -126,8 +125,8 @@ function Confidentiality() {
             </li>
             <li className="flex items-center gap-3 bg-[oklch(var(--primary)/0.06)] px-4 py-3">
               <span className="bg-primary h-1.5 w-1.5 shrink-0 rounded-full" />
-              <span className="text-ink min-w-0 flex-1">0 bytes sent to any server</span>
-              <span className="text-go-fg shrink-0">private</span>
+              <span className="text-ink min-w-0 flex-1">one document, ready to paste</span>
+              <span className="text-go-fg shrink-0">no upload</span>
             </li>
           </ul>
         </MockWindow>
