@@ -35,7 +35,7 @@ function ShareLanding(dropProps: DropZoneProps) {
 
 const TRUST = [
   "No sign-up, no install",
-  "Files never leave the browser, not even PDFs",
+  "Nothing is uploaded, not even PDFs",
   "One file back in about a second",
 ];
 
