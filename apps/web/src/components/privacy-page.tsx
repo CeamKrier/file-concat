@@ -4,7 +4,7 @@ import { ArrowUpRight, Check } from "lucide-react";
 import { SiteFooter } from "~/components/app/marketing";
 import { TopBar } from "~/components/app/top-bar";
 
-const LAST_UPDATED = "July 31, 2026";
+const LAST_UPDATED = "August 3, 2026";
 
 /** Items that are never uploaded to a server. Scoped to the actual file work. */
 const STAYS = [
@@ -27,6 +27,10 @@ const COLLECTED = [
   {
     title: "Anonymous product analytics.",
     body: "We use Microsoft Clarity to see how the tool is used and fix what is confusing. Because it records on-screen activity, a session recording can include your file names, folder structure, and the on-screen preview of the combined output. It is not tied to an account or an identity.",
+  },
+  {
+    title: "Anonymous counts, kept by us.",
+    body: "So we know which formats to support next, we count things like a file type we could not read, how many files arrived at once as a range, and whether you copied or downloaded. No file names, no folder paths, no contents. Each count carries a random id that lasts for one page load, is never stored on your device, and is never reused, so nothing ties a count to you, to another visit, or to your files.",
   },
   {
     title: "Standard analytics signals.",

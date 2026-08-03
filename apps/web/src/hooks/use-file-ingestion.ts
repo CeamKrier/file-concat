@@ -15,6 +15,14 @@ import {
 import { collectFromDataTransfer } from "~/lib/collect-from-drop";
 import { expandArchives } from "~/lib/expand-archives";
 import { extractDocumentText } from "~/lib/extract-document";
+import { track, trackBatchSize, trackDistinct } from "~/lib/metrics";
+
+/** Final extension, lowercased — the only thing a counter ever carries from a path. */
+function extensionOf(path: string): string {
+  const name = path.split("/").pop() ?? path;
+  const dot = name.lastIndexOf(".");
+  return dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
+}
 
 // Directories that never make it into memory. These are not user-editable;
 // dropping their contents into a browser tab would crash the page long before
@@ -98,8 +106,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // Unpack any dropped/browsed zip archives before validation so their
       // contents flow through the same pipeline. Remote fetches arrive with
       // content set, so they are never treated as archives.
-      const { files: expanded, expandedCount } = await expandArchives(incoming);
+      const { files: expanded, expandedCount, unsupported } = await expandArchives(incoming);
       setExpandedArchive(expandedCount > 0);
+      trackDistinct("archive_unsupported", unsupported.map(extensionOf));
 
       const normalized = expanded.map((entry) => {
         const path = entry.path || entry.file.webkitRelativePath || entry.file.name;
@@ -109,6 +118,11 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       const nextEntries: ContentEntry[] = [];
       const nextValidations: Record<string, ValidationRecord> = {};
       const nextFailed: FailedFile[] = [];
+      // Counters are collected here and reported once per batch, deduplicated by
+      // extension (ADR-0013): a folder of 200 screenshots is one data point
+      // about png, not two hundred.
+      const unreadable: string[] = [];
+      const extractFailed: string[] = [];
 
       const total = normalized.length;
       // Cap re-renders at ~100 progress ticks regardless of how large the drop is.
@@ -153,6 +167,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
               } else {
                 // No recoverable text (scanned image-only or encrypted PDF) —
                 // surfaced as excluded, never silently dropped.
+                extractFailed.push(extensionOf(entry.path));
                 nextValidations[entry.path] = {
                   included: false,
                   reason: "No extractable text",
@@ -163,6 +178,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
               }
             } catch (error) {
               console.error(`Failed to extract ${entry.path}:`, error);
+              extractFailed.push(extensionOf(entry.path));
               nextValidations[entry.path] = {
                 included: false,
                 reason: "Couldn't extract text",
@@ -186,6 +202,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         };
 
         if (result.classification === "binary") {
+          // Which formats users bring that we cannot read at all. This is the
+          // demand signal that decides which reader to build next.
+          unreadable.push(extensionOf(entry.path));
           // Binary: no recoverable text. Keep it visible in the tree (locked,
           // ADR-0009) but never decode its bytes — a force-include must not be
           // able to leak mojibake into the bundle, and decoding it is wasted work.
@@ -212,6 +231,10 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setEntries(nextEntries);
       setValidations(nextValidations);
       setFailedFiles(nextFailed);
+
+      trackBatchSize(total);
+      trackDistinct("unreadable_ext", unreadable);
+      trackDistinct("extract_failed", extractFailed);
     },
     [config],
   );
@@ -220,6 +243,8 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     async (url: string, sourceType: SourceType, signal: AbortSignal) => {
       setIsRepoLoading(true);
       setSourceUrl(url);
+      // Which remote adapters actually earn their maintenance cost.
+      track("source_used", sourceType);
       // Immediate feedback: the spinner shows a stage before the first network
       // round-trip resolves, so a slow connect never reads as "frozen".
       setProgress({ phase: "fetching", done: 0, total: 0, note: "Connecting…" });

@@ -16,6 +16,7 @@ import { useFilterState } from "~/hooks/use-filter-state";
 import { useOutputGeneration } from "~/hooks/use-output-generation";
 import { estimateTokenCount, preloadTokenEstimator } from "~/lib/tokens";
 import { classifyUrl, type Classification, type ImportTab } from "~/lib/classify-url";
+import { trackEntrySurface } from "~/lib/metrics";
 
 import { MarketingSections, SiteFooter } from "./marketing";
 
@@ -95,6 +96,14 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     includePatterns: config.includePatterns,
     ignorePatterns: config.ignorePatterns,
   });
+
+  // The tool renders on the home route, every /for/* persona page and the
+  // how-to page. Recording which document a visit landed on is the only way to
+  // tell a converting surface from an SEO landing page (ADR-0013); paired with
+  // output_taken under the same page id it reads as a funnel.
+  useEffect(() => {
+    trackEntrySurface(window.location.pathname);
+  }, []);
 
   const [phase, setPhase] = useState<Phase>("landing");
   const [settingsOpen, setSettingsOpen] = useState(false);

@@ -6,6 +6,18 @@
     "nodejs_compat"
   ],
   "main": "@tanstack/react-start/server-entry",
+  // Product counters (ADR-0013). Anonymous, unlinked event rows written by
+  // /api/e. Create the database once with:
+  //   npx wrangler d1 create fileconcat-metrics
+  // then paste the returned id into database_id below.
+  "d1_databases": [
+    {
+      "binding": "METRICS",
+      "database_name": "fileconcat-metrics",
+      "database_id": "e21266a0-7ec4-4401-bf15-5063326e4a88",
+      "migrations_dir": "migrations"
+    }
+  ],
   "assets": {
     // Every non-asset URL routes through the SSR worker. We don't prerender
     // anything yet — @cloudflare/vite-plugin@1.22.0 overrides Vite 6's
