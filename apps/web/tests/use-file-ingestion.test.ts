@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { strToU8, zipSync } from "fflate";
 import { DEFAULT_CONFIG } from "@fileconcat/core";
 import { useFileIngestion } from "~/hooks/use-file-ingestion";
 
@@ -26,5 +27,31 @@ describe("useFileIngestion", () => {
     expect(entry?.content).toBe(source);
     expect(result.current.validations["Foo.java"].included).toBe(true);
     expect(result.current.validations["Foo.java"].classification).toBe("text");
+  });
+
+  it("unpacks an archive and routes each entry on its own bytes", async () => {
+    const zip = zipSync({
+      "src/main.ts": strToU8(`export const answer = 42;\n`),
+      "notes.md": strToU8(`# Notes\n`),
+    });
+    // Named `.bin`, not `.zip`: the route comes from the leading bytes, so the
+    // filename cannot decide whether this is opened (ADR-0011).
+    const file = new File([zip], "bundle.bin");
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([{ file, path: "bundle.bin" }]);
+    });
+
+    expect(result.current.expandedArchive).toBe(true);
+    // The folder keeps the whole filename: there is no archive suffix to strip
+    // off a name the router did not trust in the first place.
+    const paths = result.current.entries.map((e) => e.path).sort();
+    expect(paths).toEqual(["bundle.bin/notes.md", "bundle.bin/src/main.ts"]);
+    expect(result.current.entries.find((e) => e.path === "bundle.bin/src/main.ts")?.content).toBe(
+      "export const answer = 42;\n",
+    );
+    // The archive itself is replaced by its contents, not listed alongside them.
+    expect(result.current.validations["bundle.bin"]).toBeUndefined();
   });
 });

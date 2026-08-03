@@ -1,4 +1,15 @@
-// Binary file extensions for detection
+/**
+ * Extension denylist. Two jobs the content router does *not* do: the fallback
+ * in `validation.ts` for when a file's bytes cannot be read at all, and the
+ * CLI's `--exclude-binary` list, which skips a file before it is read whole.
+ *
+ * Every format the router extracts (`pdf`, `docx`, `rtf`, …) and every archive
+ * it expands (`zip`, `tar`, `gz`, …) is *also* listed here, deliberately.
+ * Routing is asked first on both surfaces, so the overlap is inert — it is not
+ * an inconsistency to tidy up. Removing `rtf`, for instance, would let raw
+ * `{\rtf1 ...}` markup into CLI bundles the moment `--no-parse` is passed.
+ * See ADR-0011.
+ */
 export const BINARY_EXTENSIONS = [
   "3dm", "3ds", "3g2", "3gp", "7z", "a", "aac", "adp", "afdesign", "afphoto",
   "afpub", "ai", "aif", "aiff", "alz", "ape", "apk", "appimage", "ar", "arj",

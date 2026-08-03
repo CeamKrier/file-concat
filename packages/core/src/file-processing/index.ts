@@ -1,10 +1,18 @@
 export { BINARY_EXTENSIONS } from "./binary-extensions";
-export {
-  EXTRACTABLE_DOCUMENT_EXTENSIONS,
-  isExtractableDocument,
-  extractDocument,
-} from "./extractable-document";
-export type { ExtractableDocumentExtension, ExtractDocumentOptions } from "./extractable-document";
+export { routeBytes, routeFile, ROUTER_SNIFF_BYTES } from "./routing";
+export type { FileRoute } from "./routing";
+export { canExpandArchive, expandArchive, isTarHeader, stripArchiveSuffix } from "./archives";
+export type { ArchiveEntry, ArchiveKind } from "./archives";
+export { createParserRegistry, extractOfficeDocument } from "./parsers";
+export type {
+  ExtractionNote,
+  ExtractionNoteKind,
+  ExtractionResult,
+  OfficeParserOptions,
+  ParserId,
+  ParserLoader,
+  ParserRegistry,
+} from "./parsers";
 export { validateFile } from "./validation";
 export { classifyBytes, readFileAsText } from "./text-classification";
 export type { DecodedText, TextClassification } from "./text-classification";
