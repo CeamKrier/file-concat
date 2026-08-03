@@ -19,6 +19,7 @@ const CODE_EXTENSIONS: ReadonlySet<string> = new Set([
   "bash", "zsh", "fish", "ps1", "html", "htm", "css", "scss", "sass", "less",
   "sql", "graphql", "gql", "proto", "r", "lua", "pl", "pm", "ex", "exs", "erl",
   "hrl", "clj", "cljs", "cljc", "dart", "vue", "svelte", "astro", "elm", "hs",
+  "ipynb",
 ]);
 
 /**
@@ -29,7 +30,7 @@ const CODE_EXTENSIONS: ReadonlySet<string> = new Set([
  */
 const PROSE_EXTENSIONS: ReadonlySet<string> = new Set([
   "md", "mdx", "markdown", "txt", "text", "rst", "org", "adoc", "asciidoc", "tex",
-  "pdf", "docx", "xlsx", "pptx", "odt", "ods", "odp", "rtf", "epub",
+  "pdf", "docx", "xlsx", "pptx", "odt", "ods", "odp", "rtf", "epub", "srt", "vtt",
 ]);
 
 type Bucket = "code" | "doc" | "other";

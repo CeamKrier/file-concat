@@ -28,6 +28,10 @@ takes long-form context.
 - Text extraction from documents — drop a PDF, Word, Excel, PowerPoint,
   or OpenDocument file and its text is pulled out and included
   automatically, entirely in the browser (nothing is uploaded).
+- The same for files that are technically text but unreadable as text:
+  a Jupyter notebook arrives as markdown instead of JSON wrapped around
+  base64 plots, and an `.srt` or `.vtt` caption track arrives as the
+  transcript instead of a timestamp every two seconds.
 
 ## How it works
 
@@ -430,9 +434,12 @@ result in a sticky `validations` map:
   excluded permanently. **Extractable documents** — PDF, Word, Excel,
   PowerPoint, and OpenDocument files — are the exception: their text is
   pulled out and included as text, right in the browser, instead of the
-  file being dropped. When a document carries no recoverable text (a
-  scanned image-only or encrypted PDF), it is surfaced as excluded rather
-  than silently dropped.
+  file being dropped. Jupyter notebooks and `.srt` / `.vtt` caption
+  tracks take the same path for the opposite reason: they are already
+  text, but the text is a serialization, so what lands in the bundle is
+  the document rather than the file. When a document carries no
+  recoverable text (a scanned image-only or encrypted PDF), it is
+  surfaced as excluded rather than silently dropped.
 - Does the file exceed the configured max size (default 32 MB)? Oversize
   files are excluded permanently.
 
@@ -731,7 +738,10 @@ flag set. `[path]` defaults to the current directory.
 | `--no-binary`             |       | binary files excluded      | Pass to force-exclude after a config opt-in                                          |
 | `--exclude <patterns...>` | `-e`  |                            | Repeatable; one or more glob patterns                                                |
 | `--config <file>`         | `-c`  |                            | Path to a JSON config file                                                           |
-| `--parse [formats]`       |       |                            | Extract text from PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP. Comma list or empty for all. |
+| `--no-parse`              |       | documents are extracted    | Pass to skip text extraction entirely — PDF/Office, notebooks and transcripts alike  |
+| `--expand-archives`       |       | archives left packed       | Unpack zip, tar and gzip archives and include their contents                         |
+| `--line-numbers`          |       |                            | Prefix each line of file content with its line number                                |
+| `--no-gitignore`          |       | `.gitignore` honored       | Pass to ignore the project's `.gitignore` files                                      |
 | `--stdout`                |       |                            | Write the concatenated output to stdout. Mutually exclusive with `--json`.           |
 | `--quiet`                 | `-q`  |                            | Suppress progress logs on stderr. Errors still print.                                |
 | `--json`                  |       |                            | Emit a single-line JSON summary on stdout when finished.                             |
@@ -777,21 +787,64 @@ JSON. A minimal example:
 
 Command-line flags override config-file values for the same fields.
 
-## Binary documents (PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP)
+## Documents (PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, RTF)
 
-By default the CLI skips files with binary extensions. Pass `--parse`
-to extract text from supported documents and inline it alongside your
-code. Available formats: PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP.
+Documents are extracted to text by default and inlined alongside your
+code. Pass `--no-parse` to turn that off and let them fall through as
+binaries instead.
 
 ```bash
-file-concat ./repo --parse                  # extract every supported format
-file-concat ./repo --parse pdf,docx         # restrict to a subset
+file-concat ./repo               # documents extracted (default)
+file-concat ./repo --no-parse    # documents left out as binary
 ```
 
-Parse failures (corrupt files, password-protected PDFs, unsupported
-variants) are logged to stderr and counted under
+Which files qualify is decided by their **leading bytes, not their
+name**. A `.docx` someone renamed `.zip` is extracted, a PDF with no
+extension at all is read, and a genuine `.zip` is never mistaken for
+the Office container that shares its signature.
+
+Parse failures (corrupt files, password-protected PDFs, scanned pages
+with no text layer) are logged to stderr and counted under
 `skippedBreakdown.parseFailed` in the JSON summary. They never fail
 the run.
+
+## Notebooks and transcripts (IPYNB, SRT, VTT)
+
+These are already text, so they used to go in whole — which meant
+base64 PNGs of every plot in a notebook, and a cue index plus a
+timestamp range for every two seconds of a transcript. Both are now
+rendered instead:
+
+- **`.ipynb`** becomes markdown. Prose cells verbatim, code cells fenced
+  in the notebook's own language, text output and tracebacks kept.
+  Images and other binary output are dropped and counted, so the summary
+  says how much was left behind.
+- **`.srt` / `.vtt`** become the transcript. Indices, timestamps and
+  styling go; a line that a rolling caption repeats in the next cue is
+  emitted once. Timestamps are dropped rather than thinned — a
+  transcript is read for what was said.
+
+Same rule as documents: the **leading bytes** decide, so a notebook
+saved as `.json` and a transcript saved as `.txt` are both recognized.
+`--no-parse` turns this off along with document extraction and leaves
+the raw file in the bundle.
+
+## Archives
+
+Archives are left packed by default. Walking a directory that happens
+to contain `assets.zip` is not a request to inline it, and doing so
+would bury the code you actually asked for. Pass `--expand-archives`
+when you do want the contents:
+
+```bash
+file-concat ./repo --expand-archives
+```
+
+Zip, tar, and gzip (including `.tar.gz`) are unpacked; each entry lands
+under a folder named after the archive and faces the same size, binary
+and extraction handling as a loose file. Nesting is one level deep — an
+archive inside an archive stays packed. `.rar` and `.7z` are recognized
+but cannot be opened yet, and are reported as skipped.
 
 ## For AI coding agents
 
@@ -838,10 +891,10 @@ script:
 file-concat ./service -o ctx.xml --json | jq '.parsed'
 ```
 
-Pull a PDF spec and its accompanying code into the same blob:
+Pull a shipped archive's contents in alongside the source:
 
 ```bash
-file-concat ./service --parse pdf,docx -o ctx.xml
+file-concat ./service --expand-archives -o ctx.xml
 ```
 
 ## See also

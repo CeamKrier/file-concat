@@ -1,4 +1,9 @@
-import { createParserRegistry, type ParserRegistry } from "@fileconcat/core";
+import {
+  createParserRegistry,
+  extractNotebook,
+  extractSubtitles,
+  type ParserRegistry,
+} from "@fileconcat/core";
 
 /**
  * The web's parser loader map (ADR-0012). Core routes; this decides what the
@@ -19,6 +24,11 @@ export const parsers: ParserRegistry = createParserRegistry({
     const mod = await import("./extract-document-client");
     return mod.extractOffice(bytes);
   },
+  // Not lazy, and deliberately: both are pure functions over text with no
+  // dependency behind them, so a dynamic import would buy a round trip and save
+  // a couple of KB. They are safe on the server for the same reason.
+  notebook: async (bytes) => extractNotebook(bytes),
+  subtitles: async (bytes) => extractSubtitles(bytes),
   // `epub` is routed but deliberately has no loader yet: officeparser gains it
   // in 7.5.1, which drags pdfjs-dist through a major version. Until then an
   // EPUB surfaces "couldn't extract text" — the documented behaviour for a

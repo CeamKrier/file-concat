@@ -43,7 +43,7 @@ flag set. `[path]` defaults to the current directory.
 | `--no-binary`             |       | binary files excluded      | Pass to force-exclude after a config opt-in                                          |
 | `--exclude <patterns...>` | `-e`  |                            | Repeatable; one or more glob patterns                                                |
 | `--config <file>`         | `-c`  |                            | Path to a JSON config file                                                           |
-| `--no-parse`              |       | documents are extracted    | Pass to skip PDF/Office text extraction entirely                                     |
+| `--no-parse`              |       | documents are extracted    | Pass to skip text extraction entirely — PDF/Office, notebooks and transcripts alike  |
 | `--expand-archives`       |       | archives left packed       | Unpack zip, tar and gzip archives and include their contents                         |
 | `--line-numbers`          |       |                            | Prefix each line of file content with its line number                                |
 | `--no-gitignore`          |       | `.gitignore` honored       | Pass to ignore the project's `.gitignore` files                                      |
@@ -112,6 +112,27 @@ Parse failures (corrupt files, password-protected PDFs, scanned pages
 with no text layer) are logged to stderr and counted under
 `skippedBreakdown.parseFailed` in the JSON summary. They never fail
 the run.
+
+## Notebooks and transcripts (IPYNB, SRT, VTT)
+
+These are already text, so they used to go in whole — which meant
+base64 PNGs of every plot in a notebook, and a cue index plus a
+timestamp range for every two seconds of a transcript. Both are now
+rendered instead:
+
+- **`.ipynb`** becomes markdown. Prose cells verbatim, code cells fenced
+  in the notebook's own language, text output and tracebacks kept.
+  Images and other binary output are dropped and counted, so the summary
+  says how much was left behind.
+- **`.srt` / `.vtt`** become the transcript. Indices, timestamps and
+  styling go; a line that a rolling caption repeats in the next cue is
+  emitted once. Timestamps are dropped rather than thinned — a
+  transcript is read for what was said.
+
+Same rule as documents: the **leading bytes** decide, so a notebook
+saved as `.json` and a transcript saved as `.txt` are both recognized.
+`--no-parse` turns this off along with document extraction and leaves
+the raw file in the bundle.
 
 ## Archives
 

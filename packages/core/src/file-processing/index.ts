@@ -3,7 +3,12 @@ export { routeBytes, routeFile, ROUTER_SNIFF_BYTES } from "./routing";
 export type { FileRoute } from "./routing";
 export { canExpandArchive, expandArchive, isTarHeader, stripArchiveSuffix } from "./archives";
 export type { ArchiveEntry, ArchiveKind } from "./archives";
-export { createParserRegistry, extractOfficeDocument } from "./parsers";
+export {
+  createParserRegistry,
+  extractNotebook,
+  extractOfficeDocument,
+  extractSubtitles,
+} from "./parsers";
 export type {
   ExtractionNote,
   ExtractionNoteKind,

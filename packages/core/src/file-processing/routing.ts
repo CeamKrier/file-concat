@@ -2,6 +2,7 @@ import type { ArchiveKind } from "./archives";
 import { isTarHeader } from "./archives";
 import { matchesBinarySignature } from "./binary-signatures";
 import type { ParserId } from "./parsers/types";
+import { matchTextualSignature, type TextualFormat } from "./text-signatures";
 
 /**
  * The router (ADR-0011). One decision point, reading a file's leading bytes.
@@ -65,6 +66,17 @@ const ARCHIVE_KINDS: Readonly<Record<string, ArchiveKind>> = {
   "7z": "7z",
 };
 
+/**
+ * Text-shaped format → the parser that renders it. These carry no magic number;
+ * see {@link ./text-signatures} for why they are routed rather than reshaped
+ * after classification.
+ */
+const TEXTUAL_PARSERS: Readonly<Record<TextualFormat, ParserId>> = {
+  ipynb: "notebook",
+  srt: "subtitles",
+  vtt: "subtitles",
+};
+
 type Detector = (bytes: Uint8Array) => Promise<{ ext: string } | undefined>;
 
 let detector: Promise<Detector> | null = null;
@@ -105,6 +117,14 @@ export async function routeBytes(prefix: Uint8Array): Promise<FileRoute> {
   // `file-type` identifies tar by the `ustar` magic, which pre-POSIX v7 tars do
   // not carry. Their header checksum still identifies them from content alone.
   if (isTarHeader(prefix)) return { kind: "expand", archive: "tar" };
+
+  // Formats whose signature is ASCII rather than a magic number. Checked after
+  // the detector so a real container always wins, and before falling through:
+  // these files *are* text, but the text is a serialization, not the document.
+  const textual = matchTextualSignature(prefix);
+  if (textual) {
+    return { kind: "extract", parserId: TEXTUAL_PARSERS[textual], format: textual };
+  }
 
   // Anything the detector recognizes but we have no branch for (images with
   // odd headers, audio, executables) is left to the byte classifier rather than
