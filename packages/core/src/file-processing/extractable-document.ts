@@ -6,6 +6,14 @@
  *
  * This list is the single source of truth for which formats qualify; both the
  * web app and the CLI route by it.
+ *
+ * Every extension here is *also* in `BINARY_EXTENSIONS`, deliberately. The two
+ * lists answer different questions: this one decides "can we recover text",
+ * `BINARY_EXTENSIONS` is the fallback for when bytes can't be read at all
+ * (`validation.ts`) plus the CLI's `--exclude-binary` denylist. Extraction is
+ * asked first on both surfaces, so the overlap is inert — do not "tidy it up".
+ * Removing `rtf` from `BINARY_EXTENSIONS`, for instance, would let raw
+ * `{\rtf1 ...}` markup into CLI bundles whenever extraction is switched off.
  */
 export const EXTRACTABLE_DOCUMENT_EXTENSIONS = [
   "pdf",
@@ -15,6 +23,10 @@ export const EXTRACTABLE_DOCUMENT_EXTENSIONS = [
   "odt",
   "ods",
   "odp",
+  // Supported by the bundled officeparser since 7.2.x. Worth calling out because
+  // RTF is plain ASCII: without this entry the content classifier reads it as a
+  // Text file and the bundle gets the markup instead of the prose.
+  "rtf",
 ] as const;
 
 export type ExtractableDocumentExtension = (typeof EXTRACTABLE_DOCUMENT_EXTENSIONS)[number];
@@ -52,5 +64,10 @@ export async function extractDocument(
   const { parseOffice } = await import("officeparser");
   const config = options.pdfWorkerSrc ? { pdfWorkerSrc: options.pdfWorkerSrc } : {};
   const ast = await parseOffice(bytes, config);
-  return ast.toText().trim();
+  // `.to("text")` replaces the deprecated `.toText()`. It also hands back a
+  // `messages` array of per-document warnings (skipped attachments, pages that
+  // yielded nothing) which we currently drop on the floor — that is the channel
+  // a structured extraction result should carry once callers can report it.
+  const { value } = await ast.to("text");
+  return value.trim();
 }

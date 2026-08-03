@@ -44,6 +44,10 @@ describe("isExtractableDocument", () => {
     expect(isExtractableDocument("Sheet.XlSx")).toBe(true);
   });
 
+  it("recognizes rtf, whose bytes would otherwise read as plain text", () => {
+    expect(isExtractableDocument("brief.rtf")).toBe(true);
+  });
+
   it("rejects plain text, code, and non-extractable binaries", () => {
     expect(isExtractableDocument("index.ts")).toBe(false);
     expect(isExtractableDocument("README.md")).toBe(false);
@@ -69,5 +73,17 @@ describe("extractDocument", () => {
   it("returns an empty string when the document carries no recoverable text", async () => {
     const text = await extractDocument(minimalDocx(""));
     expect(text).toBe("");
+  });
+
+  it("extracts the prose from an rtf, not its markup", async () => {
+    const rtf =
+      `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Times New Roman;}}\n` +
+      `\\f0\\fs24 Hello from RTF. \\par\n` +
+      `Second paragraph with \\b bold\\b0  text.\\par\n}`;
+    const text = await extractDocument(strToU8(rtf));
+    expect(text).toContain("Hello from RTF.");
+    expect(text).toContain("bold");
+    expect(text).not.toContain("\\rtf1");
+    expect(text).not.toContain("fonttbl");
   });
 });
