@@ -8,7 +8,7 @@ import type {
 import { defaultSourceRegistry, readFileAsText, validateFile } from "@fileconcat/core";
 
 import { collectFromDataTransfer } from "~/lib/collect-from-drop";
-import { track, trackBatchSize, trackDistinct } from "~/lib/metrics";
+import { track, trackBatchSize, trackDistinct, trackIngestDuration } from "~/lib/metrics";
 import { parsers } from "~/lib/parsers";
 import { prepareBatch } from "~/lib/prepare-batch";
 
@@ -98,6 +98,8 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
 
   const ingestBatch = useCallback(
     async (incoming: IncomingFile[]) => {
+      const startedAt = performance.now();
+
       // One pass decides every file's route from its own leading bytes and
       // unpacks the archives among them (ADR-0011), so nothing below sniffs a
       // file twice.
@@ -225,6 +227,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setFailedFiles(nextFailed);
 
       trackBatchSize(total);
+      trackIngestDuration(performance.now() - startedAt);
       trackDistinct("unreadable_ext", unreadable);
       trackDistinct("extract_failed", extractFailed);
     },

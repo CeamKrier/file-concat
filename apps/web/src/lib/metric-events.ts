@@ -18,6 +18,13 @@ export const METRIC_EVENTS = [
   "archive_unsupported",
   /** How many files arrived in one batch, as a bucket. */
   "batch_size",
+  /**
+   * How long a batch took end to end, as a bucket. Paired with `batch_size`:
+   * a slow ingest only matters if real drops are large, and measurement said
+   * they would have to be very large — 3000 files took 8.3 s while the page
+   * held 60 fps. This is what says whether that shape ever happens in the wild.
+   */
+  "ingest_ms",
   /** How large the produced bundle was, as a bucket. */
   "bundle_size",
   /** Which of the tool-hosting routes the visit landed on. */

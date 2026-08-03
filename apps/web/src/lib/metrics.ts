@@ -135,6 +135,15 @@ export function trackBatchSize(fileCount: number): void {
   track("batch_size", bucketLabel(fileCount, [1, 5, 20, 100, 500, 2000]));
 }
 
+/**
+ * Wall-clock for one batch. Only useful next to `batch_size` — the pair is what
+ * distinguishes "ingest is slow" from "someone dropped a monorepo", and only
+ * the second has ever been reproduced.
+ */
+export function trackIngestDuration(ms: number): void {
+  track("ingest_ms", bucketLabel(Math.round(ms), [250, 1_000, 5_000, 15_000, 60_000]));
+}
+
 export function trackBundleSize(chars: number): void {
   track("bundle_size", bucketLabel(chars, [10_000, 100_000, 1_000_000, 10_000_000]));
 }
