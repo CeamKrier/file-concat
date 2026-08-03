@@ -111,7 +111,9 @@ Single-purpose Commander program (`src/index.ts` → `src/commands/concat.ts`). 
 
 Vite **inlines dynamic imports in the SSR build**, so `await import("heavy")` alone does not keep `heavy` out of the Cloudflare worker bundle — the body lands in the SSR chunk anyway. The only thing that works is static dead-code elimination: guard with `if (import.meta.env.SSR) return …` *before* the import, which the SSR build replaces with `true` and then drops the rest.
 
-That is why several web modules come in pairs — `tokens.ts` / `tokens-client.ts`, `prepare-batch.ts` / `prepare-batch-client.ts`, `parsers.ts` → `extract-document-client.ts`. Follow the pattern for any new parser, wasm blob, or detector, and verify with `grep -rl <library-marker> apps/web/dist/server/` after a build.
+That is why several web modules come in pairs — `tokens.ts` / `tokens-client.ts`, `prepare-batch.ts` / `prepare-batch-client.ts`, `parsers.ts` → `extract-document-client.ts`. Follow the pattern for any new parser, wasm blob, or detector.
+
+`apps/web/scripts/check-worker-size.ts` runs as `postbuild` and watches this. It prunes SSR assets no server module references (Vite emits `?url` assets into the SSR output even when the importing module is dead code) and fails the build past a 1 MiB gzip budget. **The enforced Cloudflare limit is on the gzipped total, not the raw one** — the raw figure sits near 3 MiB and means nothing. The script's header comment is the authority; read it before changing the numbers.
 
 ## Source adapter gotcha
 
