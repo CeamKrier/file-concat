@@ -11,6 +11,8 @@
     "dev": "vite dev",
     "shot": "node scripts/shot.mjs",
     "build": "vite build",
+    "postbuild": "tsx scripts/check-worker-size.ts",
+    "check-worker-size": "tsx scripts/check-worker-size.ts",
     "preview": "vite preview",
     "start": "wrangler dev --config dist/server/wrangler.json",
     "deploy": "pnpm build && wrangler deploy",

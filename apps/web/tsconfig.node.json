@@ -2,7 +2,10 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "target": "ES2022",
-    "lib": ["ES2023"],
+    // DOM is here for the fetch globals (`RequestInfo`, `Response`) that the
+    // scripts reach through `@fileconcat/core`. Node has had them since 18;
+    // TypeScript only models them in the DOM lib.
+    "lib": ["ES2023", "DOM"],
     "module": "ESNext",
     "skipLibCheck": true,
 
@@ -20,5 +23,8 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["vite.config.ts"]
+  // Build-time code: the Vite config plus the prebuild/postbuild scripts.
+  // These run under `tsx` with no build step of their own, so this is the only
+  // thing that typechecks them.
+  "include": ["vite.config.ts", "scripts/**/*.ts"]
 }
