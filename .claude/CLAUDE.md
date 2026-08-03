@@ -67,7 +67,8 @@ The barrel `src/index.ts` re-exports five subsystems. When adding new functional
 
 - `file-processing/` — transform, size, validation, `binary-extensions`. The single source of truth for what counts as text, what gets skipped for size, and how files are turned into the output blob. Three parts deserve their own mention:
   - `routing.ts` — `routeBytes(prefix)` is the **one** decision point for what a file is. It reads leading bytes, never a filename, and returns `binary` / `extract(parserId)` / `expand(archiveKind)` / `unknown` (ADR-0011). Never reintroduce an extension list to decide extraction.
-  - `parsers/` — the parser contract and `createParserRegistry`. Core routes; **each platform registers its own loaders** (`apps/web/src/lib/parsers.ts`, `packages/cli/src/parsers.ts`), because tsup bundles core into the published CLI and `?url` is Vite-only syntax (ADR-0012).
+  - `text-signatures.ts` — the same idea for formats whose container *is* text: `WEBVTT`, an SRT cue, `{"cells": [{"cell_type":`, an RFC 5322 header block with an envelope header. These route to parsers like any container, so a notebook saved as `.json` still renders. Add a text-shaped format here, not as a post-classification transform — that would need the extension table ADR-0011 removed.
+  - `parsers/` — the parser contract and `createParserRegistry`. Core routes; **each platform registers its own loaders** (`apps/web/src/lib/parsers.ts`, `packages/cli/src/parsers.ts`), because tsup bundles core into the published CLI and `?url` is Vite-only syntax (ADR-0012). A parser with a dependency keeps the library call in the *platform* loader (`email`); a parser that is a pure function over text lives in core and is registered directly (`notebook`, `subtitles`).
   - `archives.ts` — bytes in, entries out. Shared by the web (always) and the CLI (behind `--expand-archives`).
 - `path-utils/` — `file-tree`, `language` (extension → language id), `project-name`, `skip-paths`. Used by both the web tree view and the CLI.
 - `default-ignore.ts` — gitignore-style defaults shared across web and CLI; do not duplicate ignore patterns elsewhere.
@@ -111,7 +112,7 @@ Single-purpose Commander program (`src/index.ts` → `src/commands/concat.ts`). 
 
 Vite **inlines dynamic imports in the SSR build**, so `await import("heavy")` alone does not keep `heavy` out of the Cloudflare worker bundle — the body lands in the SSR chunk anyway. The only thing that works is static dead-code elimination: guard with `if (import.meta.env.SSR) return …` *before* the import, which the SSR build replaces with `true` and then drops the rest.
 
-That is why several web modules come in pairs — `tokens.ts` / `tokens-client.ts`, `prepare-batch.ts` / `prepare-batch-client.ts`, `parsers.ts` → `extract-document-client.ts`. Follow the pattern for any new parser, wasm blob, or detector.
+That is why several web modules come in pairs — `tokens.ts` / `tokens-client.ts`, `prepare-batch.ts` / `prepare-batch-client.ts`, `parsers.ts` → `extract-document-client.ts` and `extract-email-client.ts`. Follow the pattern for any new parser, wasm blob, or detector.
 
 `apps/web/scripts/check-worker-size.ts` runs as `postbuild` and watches this. It prunes SSR assets no server module references (Vite emits `?url` assets into the SSR output even when the importing module is dead code) and fails the build past a 1 MiB gzip budget. **The enforced Cloudflare limit is on the gzipped total, not the raw one** — the raw figure sits near 3 MiB and means nothing. The script's header comment is the authority; read it before changing the numbers.
 
