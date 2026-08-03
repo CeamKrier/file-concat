@@ -116,6 +116,9 @@ importers:
       pdfjs-dist:
         specifier: 5.6.205
         version: 5.6.205
+      postal-mime:
+        specifier: ^2.7.5
+        version: 2.7.5
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -228,6 +231,9 @@ importers:
       officeparser:
         specifier: ^7.2.1
         version: 7.2.1
+      postal-mime:
+        specifier: ^2.7.5
+        version: 2.7.5
     devDependencies:
       '@fileconcat/core':
         specifier: workspace:*
@@ -272,6 +278,9 @@ importers:
       fast-check:
         specifier: ^4.8.0
         version: 4.8.0
+      postal-mime:
+        specifier: ^2.7.5
+        version: 2.7.5
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.19.1)(jsdom@29.1.1)
@@ -4037,6 +4046,9 @@ packages:
     resolution: {integrity: sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg==}
     engines: {node: '>=18'}
     hasBin: true
+
+  postal-mime@2.7.5:
+    resolution: {integrity: sha512-GNEXKvWFQnbgO5NlrGzVa0FmWzBZ24PersAWErttSg1Hjpf0ATxTwS5DOMGaOpTG6bUh5cTr7xi0jAD942wCJA==}
 
   postcss-import@15.1.0:
     resolution: {integrity: sha512-hpr+J05B2FVYUAXHeK1YyI267J/dDDhMU6B6civm8hSY1jYJnBXxzKDKDswzJmtLHryrjhnDjqqp/49t8FALew==}
@@ -8967,6 +8979,8 @@ snapshots:
       pathe: 2.0.3
 
   playwright-core@1.61.1: {}
+
+  postal-mime@2.7.5: {}
 
   postcss-import@15.1.0(postcss@8.5.6):
     dependencies:

@@ -8,6 +8,7 @@ export {
   extractNotebook,
   extractOfficeDocument,
   extractSubtitles,
+  formatEmail,
 } from "./parsers";
 export type {
   ExtractionNote,

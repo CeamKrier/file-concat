@@ -24,6 +24,11 @@ export const parsers: ParserRegistry = createParserRegistry({
     const mod = await import("./extract-document-client");
     return mod.extractOffice(bytes);
   },
+  email: async (bytes) => {
+    if (import.meta.env.SSR) return { text: "" };
+    const mod = await import("./extract-email-client");
+    return mod.extractEmail(bytes);
+  },
   // Not lazy, and deliberately: both are pure functions over text with no
   // dependency behind them, so a dynamic import would buy a round trip and save
   // a couple of KB. They are safe on the server for the same reason.

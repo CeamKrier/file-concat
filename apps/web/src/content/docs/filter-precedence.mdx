@@ -41,10 +41,11 @@ result in a sticky `validations` map:
   excluded permanently. **Extractable documents** — PDF, Word, Excel,
   PowerPoint, and OpenDocument files — are the exception: their text is
   pulled out and included as text, right in the browser, instead of the
-  file being dropped. Jupyter notebooks and `.srt` / `.vtt` caption
-  tracks take the same path for the opposite reason: they are already
-  text, but the text is a serialization, so what lands in the bundle is
-  the document rather than the file. When a document carries no
+  file being dropped. Jupyter notebooks, `.srt` / `.vtt` caption tracks
+  and saved `.eml` messages take the same path for the opposite reason:
+  they are already text, but the text is a serialization, so what lands
+  in the bundle is the document rather than the file. When a document
+  carries no
   recoverable text (a scanned image-only or encrypted PDF), it is
   surfaced as excluded rather than silently dropped.
 - Does the file exceed the configured max size (default 32 MB)? Oversize

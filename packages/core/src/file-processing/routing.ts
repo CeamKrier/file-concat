@@ -75,6 +75,7 @@ const TEXTUAL_PARSERS: Readonly<Record<TextualFormat, ParserId>> = {
   ipynb: "notebook",
   srt: "subtitles",
   vtt: "subtitles",
+  eml: "email",
 };
 
 type Detector = (bytes: Uint8Array) => Promise<{ ext: string } | undefined>;

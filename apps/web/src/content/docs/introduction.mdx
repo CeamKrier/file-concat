@@ -19,8 +19,10 @@ takes long-form context.
   automatically, entirely in the browser (nothing is uploaded).
 - The same for files that are technically text but unreadable as text:
   a Jupyter notebook arrives as markdown instead of JSON wrapped around
-  base64 plots, and an `.srt` or `.vtt` caption track arrives as the
-  transcript instead of a timestamp every two seconds.
+  base64 plots, an `.srt` or `.vtt` caption track arrives as the
+  transcript instead of a timestamp every two seconds, and a saved `.eml`
+  message arrives as the correspondence instead of MIME boundaries and
+  base64 attachments.
 
 ## How it works
 

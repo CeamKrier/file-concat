@@ -15,7 +15,7 @@
  * with no loader for an id answers "couldn't extract text", it does not
  * reclassify the file.
  */
-export type ParserId = "office" | "epub" | "notebook" | "subtitles";
+export type ParserId = "office" | "epub" | "notebook" | "subtitles" | "email";
 
 /**
  * What a parser could not recover. A **closed** set, deliberately: these are

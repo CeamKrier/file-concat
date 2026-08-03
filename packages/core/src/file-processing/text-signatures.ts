@@ -19,7 +19,7 @@
  */
 
 /** A text-shaped format the router can recognize. */
-export type TextualFormat = "ipynb" | "srt" | "vtt";
+export type TextualFormat = "ipynb" | "srt" | "vtt" | "eml";
 
 /**
  * How much of the prefix is decoded. Every signature below sits at the very
@@ -43,6 +43,46 @@ const NOTEBOOK_EVIDENCE = /"(cell_type|nbformat)"\s*:/;
  */
 const SRT_CUE =
   /^\uFEFF?\s*\d{1,6}[ \t]*\r?\n[ \t]*\d{1,3}:\d{2}:\d{2}[.,]\d{1,3}[ \t]*-->[ \t]*\d{1,3}:\d{2}:\d{2}[.,]\d{1,3}/;
+
+/** An RFC 5322 field line: a printable name, a colon, then the value. */
+const HEADER_LINE = /^[!-9;-~]+:/;
+
+/**
+ * Header names that only a real message carries. A file may well open with
+ * `From:` and `To:` without being an email — YAML, config, a template — so a
+ * message is recognized by its envelope, which nothing else writes by accident.
+ */
+const ENVELOPE_HEADERS = new Set([
+  "received",
+  "message-id",
+  "mime-version",
+  "return-path",
+  "delivered-to",
+]);
+
+/**
+ * A well-formed RFC 5322 header block with an envelope in it. Continuation
+ * lines (leading whitespace) belong to the field above; anything else before
+ * the blank line that ends the block disqualifies the file outright, which is
+ * what keeps a `key: value` config out.
+ */
+function looksLikeEmail(head: string): boolean {
+  let hasFrom = false;
+  let hasEnvelope = false;
+
+  for (const raw of head.split("\n")) {
+    const line = raw.replace(/\r$/, "");
+    if (line === "") break; // end of the header block
+    if (/^[ \t]/.test(line)) continue; // folded continuation
+
+    if (!HEADER_LINE.test(line)) return false;
+    const name = line.slice(0, line.indexOf(":")).toLowerCase();
+    if (name === "from") hasFrom = true;
+    if (ENVELOPE_HEADERS.has(name)) hasEnvelope = true;
+  }
+
+  return hasFrom && hasEnvelope;
+}
 
 /**
  * Decode the head of a file for signature matching, or `null` when it cannot be
@@ -72,6 +112,7 @@ export function matchTextualSignature(prefix: Uint8Array): TextualFormat | null 
 
   if (SRT_CUE.test(head)) return "srt";
   if (NOTEBOOK_CELLS.test(head) && NOTEBOOK_EVIDENCE.test(head)) return "ipynb";
+  if (looksLikeEmail(head)) return "eml";
 
   return null;
 }

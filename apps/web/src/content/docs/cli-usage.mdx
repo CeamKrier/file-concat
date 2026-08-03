@@ -113,12 +113,13 @@ with no text layer) are logged to stderr and counted under
 `skippedBreakdown.parseFailed` in the JSON summary. They never fail
 the run.
 
-## Notebooks and transcripts (IPYNB, SRT, VTT)
+## Notebooks, transcripts and messages (IPYNB, SRT, VTT, EML)
 
 These are already text, so they used to go in whole — which meant
-base64 PNGs of every plot in a notebook, and a cue index plus a
-timestamp range for every two seconds of a transcript. Both are now
-rendered instead:
+base64 PNGs of every plot in a notebook, MIME boundaries and base64
+attachments in a saved message, and a cue index plus a timestamp range
+for every two seconds of a transcript. All three are now rendered
+instead:
 
 - **`.ipynb`** becomes markdown. Prose cells verbatim, code cells fenced
   in the notebook's own language, text output and tracebacks kept.
@@ -128,9 +129,15 @@ rendered instead:
   styling go; a line that a rolling caption repeats in the next cue is
   emitted once. Timestamps are dropped rather than thinned — a
   transcript is read for what was said.
+- **`.eml`** becomes the correspondence: From, To, Cc, Date, Subject,
+  then the body, quoted-printable and MIME-encoded headers decoded, and
+  an HTML-only message flattened to its words. Attachments are named in
+  the text and counted, never inlined and never silently dropped.
 
 Same rule as documents: the **leading bytes** decide, so a notebook
-saved as `.json` and a transcript saved as `.txt` are both recognized.
+saved as `.json`, a transcript saved as `.txt`, and a message saved with
+no extension at all are recognized. `.msg` — Outlook's own format — is
+not read yet.
 `--no-parse` turns this off along with document extraction and leaves
 the raw file in the bundle.
 
