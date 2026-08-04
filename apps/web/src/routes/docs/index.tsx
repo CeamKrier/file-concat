@@ -11,6 +11,7 @@ export const Route = createFileRoute("/docs/")({
       description: "Learn how to use FileConcat to combine files for AI assistants.",
       url: "https://fileconcat.com/docs",
     }),
+    links: [{ rel: "canonical", href: "https://fileconcat.com/docs" }],
   }),
 });
 
