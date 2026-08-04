@@ -8,7 +8,8 @@ import type {
 import { defaultSourceRegistry, readFileAsText, validateFile } from "@fileconcat/core";
 
 import { collectFromDataTransfer } from "~/lib/collect-from-drop";
-import { track, trackBatchSize, trackDistinct, trackIngestDuration } from "~/lib/metrics";
+import { markerFor } from "~/lib/ecosystem-markers";
+import { addToTally, startRun, track, trackAmount, trackTally, type Tally } from "~/lib/metrics";
 import { parsers } from "~/lib/parsers";
 import { prepareBatch } from "~/lib/prepare-batch";
 
@@ -18,6 +19,22 @@ function extensionOf(path: string): string {
   const dot = name.lastIndexOf(".");
   return dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
 }
+
+/** Extensionless files are a real category, and the empty string is not a valid counter value. */
+const NO_EXTENSION = "none";
+
+const MB = 1024 * 1024;
+/**
+ * Cumulative on purpose: a 40 MB file counts in all three. These are the reading
+ * that decides where the oversize warning belongs, so "how many files are over
+ * 1 MB" has to include the ones that are far over it.
+ */
+const SIZE_THRESHOLDS = [
+  ["1mb", MB],
+  ["10mb", 10 * MB],
+  ["32mb", 32 * MB],
+] as const;
+type SizeThreshold = (typeof SIZE_THRESHOLDS)[number][0];
 
 // Directories that never make it into memory. These are not user-editable;
 // dropping their contents into a browser tab would crash the page long before
@@ -99,22 +116,35 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   const ingestBatch = useCallback(
     async (incoming: IncomingFile[]) => {
       const startedAt = performance.now();
+      // Everything recorded below belongs to this Run (ADR-0014): one drop and
+      // everything that follows it until the next drop replaces it.
+      startRun();
 
       // One pass decides every file's route from its own leading bytes and
       // unpacks the archives among them (ADR-0011), so nothing below sniffs a
       // file twice.
       const { files: routed, expandedCount, unsupported } = await prepareBatch(incoming);
       setExpandedArchive(expandedCount > 0);
-      trackDistinct("archive_unsupported", unsupported);
 
       const nextEntries: ContentEntry[] = [];
       const nextValidations: Record<string, ValidationRecord> = {};
       const nextFailed: FailedFile[] = [];
-      // Counters are collected here and reported once per batch, deduplicated by
-      // extension (ADR-0013): a folder of 200 screenshots is one data point
-      // about png, not two hundred.
-      const unreadable: string[] = [];
-      const extractFailed: string[] = [];
+      // Counters accumulate per extension and are reported once at the end
+      // (ADR-0014): a folder of 200 screenshots is one `png` row carrying its
+      // count and byte total, not two hundred rows. Row count therefore scales
+      // with extension variety, which is bounded, and not with file count.
+      const extensions: Tally = new Map();
+      const unreadable: Tally = new Map();
+      const extractFailed: Tally = new Map();
+      const archiveUnsupported: Tally = new Map();
+      const markers = new Set<string>();
+      let totalBytes = 0;
+      let maxFileBytes = 0;
+      const overThresholds: Record<SizeThreshold, number> = { "1mb": 0, "10mb": 0, "32mb": 0 };
+
+      for (const extension of unsupported) {
+        addToTally(archiveUnsupported, extension || NO_EXTENSION);
+      }
 
       const total = routed.length;
       // Cap re-renders at ~100 progress ticks regardless of how large the drop is.
@@ -123,6 +153,21 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
 
       for (let i = 0; i < total; i++) {
         const { item: entry, path, route } = routed[i];
+
+        // Composition of the drop, recorded for every file whatever happens to
+        // it below. The extension and the size are the whole payload; the name
+        // that carried them is only ever tested against the published marker
+        // list, never sent (ADR-0014).
+        const fileBytes = entry.file.size;
+        totalBytes += fileBytes;
+        if (fileBytes > maxFileBytes) maxFileBytes = fileBytes;
+        for (const [label, bound] of SIZE_THRESHOLDS) {
+          if (fileBytes > bound) overThresholds[label] += 1;
+        }
+        addToTally(extensions, extensionOf(path) || NO_EXTENSION, fileBytes);
+        const marker = markerFor(path);
+        if (marker !== null) markers.add(marker);
+
         const tickProgress = () => {
           if ((i + 1) % tick === 0 || i + 1 === total) {
             setProgress({ phase: "reading", done: i + 1, total });
@@ -160,7 +205,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                 // No recoverable text (scanned image-only or encrypted PDF, or
                 // a format this build ships no reader for) — surfaced as
                 // excluded, never silently dropped.
-                extractFailed.push(route.format);
+                addToTally(extractFailed, route.format, size);
                 nextValidations[path] = {
                   included: false,
                   reason: "No extractable text",
@@ -171,7 +216,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
               }
             } catch (error) {
               console.error(`Failed to extract ${path}:`, error);
-              extractFailed.push(route.format);
+              addToTally(extractFailed, route.format, size);
               nextValidations[path] = {
                 included: false,
                 reason: "Couldn't extract text",
@@ -198,7 +243,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           // Which formats users bring that we cannot read at all. This is the
           // demand signal that decides which reader to build next. An archive
           // we can't open (rar, 7z) lands here too, under its own extension.
-          unreadable.push(extensionOf(path));
+          addToTally(unreadable, extensionOf(path) || NO_EXTENSION, fileBytes);
           // Binary: no recoverable text. Keep it visible in the tree (locked,
           // ADR-0009) but never decode its bytes — a force-include must not be
           // able to leak mojibake into the bundle, and decoding it is wasted work.
@@ -226,10 +271,22 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setValidations(nextValidations);
       setFailedFiles(nextFailed);
 
-      trackBatchSize(total);
-      trackIngestDuration(performance.now() - startedAt);
-      trackDistinct("unreadable_ext", unreadable);
-      trackDistinct("extract_failed", extractFailed);
+      // `batch_size` is deliberately redundant with SUM(file_ext.n): it is the
+      // authoritative total, so the two disagreeing says extension rows went
+      // missing in transit rather than that the drop was small.
+      trackAmount("batch_size", { n: total, b: totalBytes });
+      trackAmount("ingest_ms", { n: performance.now() - startedAt });
+      if (maxFileBytes > 0) trackAmount("max_file_bytes", { b: maxFileBytes });
+      for (const [label] of SIZE_THRESHOLDS) {
+        if (overThresholds[label] > 0) {
+          trackAmount("files_over", { value: label, n: overThresholds[label] });
+        }
+      }
+      trackTally("file_ext", extensions);
+      for (const marker of markers) track("marker", marker);
+      trackTally("unreadable_ext", unreadable);
+      trackTally("extract_failed", extractFailed);
+      trackTally("archive_unsupported", archiveUnsupported);
     },
     [config],
   );

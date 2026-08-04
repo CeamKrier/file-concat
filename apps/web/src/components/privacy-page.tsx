@@ -3,8 +3,9 @@ import { ArrowUpRight, Check } from "lucide-react";
 
 import { SiteFooter } from "~/components/app/marketing";
 import { TopBar } from "~/components/app/top-bar";
+import { METRICS_RETENTION_DAYS } from "~/lib/metrics-retention";
 
-const LAST_UPDATED = "August 3, 2026";
+const LAST_UPDATED = "August 5, 2026";
 
 /** Items that are never uploaded to a server. Scoped to the actual file work. */
 const STAYS = [
@@ -30,7 +31,7 @@ const COLLECTED = [
   },
   {
     title: "Anonymous counts, kept by us.",
-    body: "So we know which formats to support next, we count things like a file type we could not read, how many files arrived at once as a range, and whether you copied or downloaded. No file names, no folder paths, no contents. Each count carries a random id that lasts for one page load, is never stored on your device, and is never reused, so nothing ties a count to you, to another visit, or to your files.",
+    body: `So we know which formats to support next and where the tool struggles, we count the file types in a drop (how many of each, how many bytes, and the size of the largest file), the number of files, how long reading them took, how large the combined result was, and whether you copied or downloaded. Filenames are checked against a short published list of project files such as package.json and go.mod, and only a match is recorded. Nothing else about a filename leaves your browser, and no folder path or file content ever does. Each count carries a random id that lasts for one page load, is never stored on your device, and is never reused, so nothing ties a count to you, to another visit, or to your files. We delete these counts after ${METRICS_RETENTION_DAYS} days.`,
   },
   {
     title: "Standard analytics signals.",

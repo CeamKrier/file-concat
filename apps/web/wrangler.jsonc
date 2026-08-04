@@ -6,7 +6,12 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
-  "main": "@tanstack/react-start/server-entry",
+  // Our own entry, not the framework's `@tanstack/react-start/server-entry`.
+  // The Cloudflare plugin builds whatever `main` names, so the framework default
+  // would win here regardless of TanStack's own src/server resolution — and that
+  // default forwards only `fetch`, leaving no place to hang the cron. src/server.ts
+  // reproduces its `fetch` exactly and adds `scheduled`.
+  "main": "./src/server.ts",
   "d1_databases": [
     {
       "binding": "METRICS",
@@ -25,6 +30,14 @@
       }
     }
   ],
+  // Nightly counter retention (ADR-0014). The window itself lives in
+  // src/lib/metrics-retention.ts, shared with the /privacy page so the stated
+  // and enforced numbers cannot drift. The `scheduled` handler this fires is on
+  // the custom entry at src/server.ts; the framework's default entry forwards
+  // only `fetch`, which is why that file exists.
+  "triggers": {
+    "crons": ["0 4 * * *"]
+  },
   "assets": {
     // Every non-asset URL routes through the SSR worker. We don't prerender
     // anything yet — @cloudflare/vite-plugin@1.22.0 overrides Vite 6's

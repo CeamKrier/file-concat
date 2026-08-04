@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   ExcludedSummary,
   OutputFormat,
@@ -14,7 +14,7 @@ import {
   generateProjectName,
 } from "@fileconcat/core";
 
-import { track, trackBundleSize } from "~/lib/metrics";
+import { currentRun, track, trackAmount } from "~/lib/metrics";
 
 import type { ContentEntry } from "./use-file-ingestion";
 
@@ -94,6 +94,30 @@ export function useOutputGeneration({
     return { single, multiple };
   }, [includedContents, chunks]);
 
+  /**
+   * The bundle's size is recorded once, when the bundle first exists — not when
+   * it is exported (ADR-0014). Hanging it off copy/download meant an abandoned
+   * run recorded no size at all, so "did they leave because the bundle was too
+   * big" could not be asked, and a run that was copied and then downloaded
+   * recorded the same bundle twice.
+   *
+   * The reading is the included content in bytes, which is what the UI shows and
+   * what exists before anything is assembled. It is taken at the first settled
+   * selection deliberately: that is the bundle the reader saw when they decided
+   * whether to keep going.
+   */
+  const sizedRun = useRef<number | null>(null);
+  useEffect(() => {
+    const run = currentRun();
+    if (run === null || run === sizedRun.current || includedContents.length === 0) return;
+    sizedRun.current = run;
+    const bytes = includedContents.reduce(
+      (acc, file) => acc + new TextEncoder().encode(file.content).length,
+      0,
+    );
+    trackAmount("bundle_size", { n: includedContents.length, b: bytes });
+  }, [includedContents]);
+
   const buildSingle = useCallback(
     (files: ContentEntry[], part?: { index: number; total: number }) => {
       const tree = generateFileTree(files.map((f) => f.path));
@@ -122,7 +146,6 @@ export function useOutputGeneration({
       setTimeout(() => setIsCopied(false), 2000);
       // Recorded after the write succeeds: a failed copy is not an outcome.
       track("output_taken", "copy");
-      trackBundleSize(text.length);
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
     }
@@ -143,15 +166,12 @@ export function useOutputGeneration({
         const { projectName, text } = buildSingle(includedContents);
         triggerDownload(text, outputFileName(projectName, extension), mimeType);
         track("output_taken", "download");
-        trackBundleSize(text.length);
         return;
       }
 
       const total = chunks.length;
-      let bundleChars = 0;
       for (let i = 0; i < total; i++) {
         const { projectName, text } = buildSingle(chunks[i], { index: i + 1, total });
-        bundleChars += text.length;
         triggerDownload(
           text,
           outputFileName(projectName, extension, { index: i + 1, total }),
@@ -161,9 +181,8 @@ export function useOutputGeneration({
           await new Promise((resolve) => setTimeout(resolve, DOWNLOAD_THROTTLE_MS));
         }
       }
-      // One multi-part download is one outcome, sized by the whole bundle.
+      // One multi-part download is one outcome, however many parts it wrote.
       track("output_taken", "download");
-      trackBundleSize(bundleChars);
     } catch (error) {
       console.error("Error generating output:", error);
     } finally {

@@ -29,3 +29,17 @@ _Avoid_: "corrupt file", "unknown file"
 **Noise file**:
 A file that is perfectly readable text but has near-zero value in an LLM bundle — lock files, build output, vendored dependencies, generated artifacts. Distinct from a Binary file (Noise _can_ be read; we just judge it not worth including). Excluded by a curated, ecosystem-aware default set, but always transparently surfaced and re-includable by the user.
 _Avoid_: "junk", "excluded file", "skipped file" (too broad — those also cover binaries)
+
+### Usage
+
+**Run**:
+One drop and everything that follows it until the next drop replaces it — the files that arrived, the curation applied to them, the bundle produced, and any number of exports taken from that bundle. A Run is the unit every usage question is asked about: "how large was it", "how long did it take", "was it abandoned" are all properties of a Run, never of a Visit. A Run that produces a bundle nobody exports is **abandoned**, and an abandoned Run is as much a measurement as a completed one.
+_Avoid_: "session", "upload" (nothing is uploaded), "job"
+
+**Visit**:
+One load of a document that hosts the tool. A Visit contains zero or more Runs, and a Visit with zero Runs is a **bounce**. Visits carry an identity that lives only as long as the page is open, so the Runs inside one Visit read as a sequence while nothing links a Visit to another Visit or to a person. Repeat use is therefore observable **within** a Visit and deliberately invisible across them.
+_Avoid_: "user", "session", "visitor" (all imply an identity that outlives the page)
+
+**Marker file**:
+A file whose *name* is on a fixed, published list and identifies the ecosystem a drop came from — `package.json`, `go.mod`, `Cargo.toml`, `pom.xml` and their peers. Markers exist so that recognizing an ecosystem never requires looking at an arbitrary file name: only membership in the list is ever observed, never the name of a file outside it.
+_Avoid_: "manifest" (too narrow), "config file" (most configs are not markers)
