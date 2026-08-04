@@ -80,11 +80,15 @@ export function useModels(): UseModelsReturn {
       const response = await fetch("/api/models");
 
       if (!response.ok) {
+        // `/api/models` answers errors as `{ error, message }`, but an upstream
+        // failure can also produce an HTML error page — hence the explicit
+        // shape and the status fallback.
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        const reason = (errorData as { error?: string }).error;
+        throw new Error(reason || `HTTP ${response.status}`);
       }
 
-      const data: ModelsRegistry = await response.json();
+      const data = (await response.json()) as ModelsRegistry;
       setRegistry(data);
       saveToCache(data);
     } catch (e) {

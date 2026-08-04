@@ -30,7 +30,16 @@ dist-ssr
 # impeccable design-tool cache (regenerated locally)
 **/.impeccable/hook.cache.json
 .impeccable/live/
+
+# Credentials. The repo is public, so these are ignored before they exist —
+# `.dev.vars` is where wrangler expects local secrets and it is one `touch`
+# away from being committed by anyone working here.
 google-search-console-api.json
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
 
 # Internal planning docs — kept locally, not published to the remote.
 # Rooted so it never matches the app's product docs (apps/web/src/content/docs).

@@ -1,6 +1,6 @@
 # @fileconcat/cli
 
-Privacy-first CLI that concatenates a directory into a single LLM-ready blob. Bundles plain text files and, by default, extracts text from PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP. Everything runs locally; nothing is uploaded.
+Privacy-first CLI that concatenates a directory into a single LLM-ready blob. Bundles plain text files and, by default, extracts text from PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, RTF, Jupyter notebooks, SRT/VTT caption tracks and EML messages. Everything runs locally; nothing is uploaded.
 
 The browser version of the same tool lives at [fileconcat.com](https://fileconcat.com).
 
@@ -37,7 +37,8 @@ file-concat ./my-repo --stdout | pbcopy              # pipe content straight to 
 | `-e, --exclude <patterns...>` | Glob patterns to exclude (in addition to the bundled defaults: `node_modules`, `.git`, build outputs, lock files, etc.). |
 | `--no-gitignore` | Do not honor the project's `.gitignore` files. By default every `.gitignore` in the tree (including nested ones) is read and its patterns are applied on top of the bundled defaults. |
 | `-c, --config <file>` | Path to a JSON config file (also auto-discovers `.fileconcatrc`, `.fileconcatrc.json`, `fileconcat.config.json`). |
-| `--no-parse` | Skip document text extraction. By default PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP are extracted to text; `--no-parse` leaves them out as binary instead. |
+| `--no-parse` | Skip text extraction. By default PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP and RTF are extracted to text, `.ipynb` is rendered as markdown, `.srt`/`.vtt` are reduced to the transcript, and `.eml` to the correspondence; `--no-parse` leaves documents out as binary and the rest in raw. |
+| `--expand-archives` | Unpack zip, tar and gzip archives and include their contents. Off by default: walking a directory that happens to contain an archive is not a request to inline it. |
 | `--line-numbers` | Prefix each line of file content with its line number. Off by default. |
 | `--stdout` | Write the concatenated output to stdout instead of a file. Mutually exclusive with `--json`. |
 | `-q, --quiet` | Suppress progress logs on stderr. Errors still print. |
@@ -107,6 +108,8 @@ file-concat ./case-folder -o ctx.xml
 - The bundled default ignore list mirrors the web app: `node_modules`, `.git`, common build outputs (`dist`, `build`, `.next`, etc.), and lock files. Combine with `--exclude` to add project-specific entries.
 - The project's own `.gitignore` files (including nested ones) are honored on top of that default set, so build and generated paths you already ignore stay out of the bundle — and secrets like `.env` are excluded transitively. Turn this off with `--no-gitignore`.
 - PDF and Office documents are extracted to text by default (`--no-parse` to leave them out); other binary files are skipped.
+- Jupyter notebooks, SRT/VTT caption tracks and EML messages are rendered rather than inlined raw. A notebook becomes markdown — prose, fenced code, text output — with base64 images dropped and counted; a caption track becomes the transcript, without indices, timestamps, or the line a rolling caption repeats in the next cue; a message becomes From/To/Cc/Date/Subject plus the decoded body, with attachments named but not inlined. Outlook's `.msg` is not read yet.
+- Which files count as documents or archives is decided by their leading bytes, not their name: a renamed `.docx` is still extracted, an extensionless PDF is still read, a notebook saved as `.json` is still rendered, and a real `.zip` is never mistaken for the Office container that shares its signature.
 - The output schema matches the web app, so prompts that already work against [fileconcat.com](https://fileconcat.com) output keep working with CLI output.
 
 ## Limitations

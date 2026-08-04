@@ -1,5 +1,3 @@
-import { isExtractableDocument } from "./extractable-document";
-
 /**
  * What a bundle is mostly made of, used to name the output's root tag and
  * summary noun (ADR-0005). Deliberately coarse — a hint for the consuming
@@ -21,19 +19,23 @@ const CODE_EXTENSIONS: ReadonlySet<string> = new Set([
   "bash", "zsh", "fish", "ps1", "html", "htm", "css", "scss", "sass", "less",
   "sql", "graphql", "gql", "proto", "r", "lua", "pl", "pm", "ex", "exs", "erl",
   "hrl", "clj", "cljs", "cljc", "dart", "vue", "svelte", "astro", "elm", "hs",
+  "ipynb",
 ]);
 
-/** Prose extensions — reads as documents, alongside extractable office formats. */
+/**
+ * Prose extensions — reads as documents. Includes the office formats the router
+ * extracts, but this is a *naming* heuristic over paths that already survived
+ * ingest, not a routing decision: nothing here decides whether a file is read,
+ * only what noun the summary uses (ADR-0011 keeps those two jobs apart).
+ */
 const PROSE_EXTENSIONS: ReadonlySet<string> = new Set([
-  "md", "mdx", "markdown", "txt", "text", "rst", "rtf", "org", "adoc", "asciidoc", "tex",
+  "md", "mdx", "markdown", "txt", "text", "rst", "org", "adoc", "asciidoc", "tex",
+  "pdf", "docx", "xlsx", "pptx", "odt", "ods", "odp", "rtf", "epub", "srt", "vtt", "eml",
 ]);
 
 type Bucket = "code" | "doc" | "other";
 
 function classifyFile(path: string): Bucket {
-  // Extractable documents (pdf/docx/xlsx/…) are documents by definition.
-  if (isExtractableDocument(path)) return "doc";
-
   const name = path.toLowerCase();
   // Extensionless build/config source that still reads as code.
   if (name.includes("dockerfile") || name.includes("makefile")) return "code";

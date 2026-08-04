@@ -23,7 +23,7 @@ After install the bin is `file-concat`. Node 18 or newer.
 ```bash
 file-concat ./service                                  # output.xml
 file-concat ./service --style markdown -o ctx.md
-file-concat ./service --parse pdf,docx -o ctx.xml      # extract PDF + DOCX text
+file-concat ./service --expand-archives -o ctx.xml     # unpack zip/tar/gz too
 file-concat ./service --stdout | claude -p             # pipe straight to a model
 file-concat ./service --json                           # one-line summary on stdout
 ```
@@ -34,7 +34,7 @@ Full flag reference: [`packages/cli/README.md`](packages/cli/README.md) and [the
 
 Project tree at the top so the model sees the structure before any file body. Then every file in its own `<file path="..." language="...">` block (or a fenced Markdown block under `--style markdown`). Binary files, lock files, and build output are dropped by default; the rest is shaped by include / ignore globs.
 
-Opt-in with `--parse` (CLI) or the web tool's parse toggle to extract plain text from PDF, DOCX, XLSX, PPTX, ODT, ODS, and ODP files. Failed parses count as skipped and the run continues.
+PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP and RTF are extracted to plain text by default on both surfaces (`--no-parse` turns it off in the CLI). Jupyter notebooks, `.srt` / `.vtt` caption tracks and saved `.eml` messages go the same way — a notebook arrives as markdown instead of JSON around base64 plots, a caption track as the transcript instead of a timestamp every two seconds, a message as the correspondence instead of MIME boundaries and base64 attachments. Which files qualify is decided by their leading bytes, not their name, so a renamed or extensionless document still gets read. Failed parses count as skipped and the run continues.
 
 ## Workspace layout
 

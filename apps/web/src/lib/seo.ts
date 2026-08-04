@@ -88,7 +88,7 @@ export function generateWebApplicationSchema() {
     "@type": "WebApplication",
     name: "FileConcat",
     description:
-      "Privacy-first tool that turns a folder into one structured file for AI assistants. Runs entirely in the browser at fileconcat.com, or as the @fileconcat/cli npm package in the terminal. Supports token estimation, glob filtering, GitHub / GitLab / Bitbucket import, and PDF / DOCX / XLSX / PPTX / ODF text extraction.",
+      "Privacy-first tool that turns a folder into one structured file for AI assistants. Runs entirely in the browser at fileconcat.com, or as the @fileconcat/cli npm package in the terminal. Supports token estimation, glob filtering, GitHub / GitLab / Bitbucket import, and PDF / DOCX / XLSX / PPTX / ODF / RTF text extraction.",
     url: BASE_URL,
     applicationCategory: "DeveloperApplication",
     operatingSystem: "Any modern browser",
@@ -128,7 +128,7 @@ export function generateCLISoftwareApplicationSchema() {
     name: "@fileconcat/cli",
     alternateName: "file-concat",
     description:
-      "Commander.js CLI that runs the same @fileconcat/core engine as fileconcat.com. Streams the bundle to stdout, progress to stderr, and a one-line JSON summary under --json. Opt-in PDF / DOCX / XLSX / PPTX / ODF parsing via --parse.",
+      "Commander.js CLI that runs the same @fileconcat/core engine as fileconcat.com. Streams the bundle to stdout, progress to stderr, and a one-line JSON summary under --json. Opt-in PDF / DOCX / XLSX / PPTX / ODF / RTF parsing via --parse.",
     applicationCategory: "DeveloperApplication",
     operatingSystem: "Linux, macOS, Windows",
     downloadUrl: CLI_NPM_URL,

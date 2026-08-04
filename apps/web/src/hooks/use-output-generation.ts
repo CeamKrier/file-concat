@@ -14,6 +14,8 @@ import {
   generateProjectName,
 } from "@fileconcat/core";
 
+import { track, trackBundleSize } from "~/lib/metrics";
+
 import type { ContentEntry } from "./use-file-ingestion";
 
 /**
@@ -118,6 +120,9 @@ export function useOutputGeneration({
       await navigator.clipboard.writeText(text);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
+      // Recorded after the write succeeds: a failed copy is not an outcome.
+      track("output_taken", "copy");
+      trackBundleSize(text.length);
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
     }
@@ -137,12 +142,16 @@ export function useOutputGeneration({
       if (selectedFormat === "single") {
         const { projectName, text } = buildSingle(includedContents);
         triggerDownload(text, outputFileName(projectName, extension), mimeType);
+        track("output_taken", "download");
+        trackBundleSize(text.length);
         return;
       }
 
       const total = chunks.length;
+      let bundleChars = 0;
       for (let i = 0; i < total; i++) {
         const { projectName, text } = buildSingle(chunks[i], { index: i + 1, total });
+        bundleChars += text.length;
         triggerDownload(
           text,
           outputFileName(projectName, extension, { index: i + 1, total }),
@@ -152,6 +161,9 @@ export function useOutputGeneration({
           await new Promise((resolve) => setTimeout(resolve, DOWNLOAD_THROTTLE_MS));
         }
       }
+      // One multi-part download is one outcome, sized by the whole bundle.
+      track("output_taken", "download");
+      trackBundleSize(bundleChars);
     } catch (error) {
       console.error("Error generating output:", error);
     } finally {

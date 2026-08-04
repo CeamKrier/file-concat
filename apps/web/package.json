@@ -11,6 +11,8 @@
     "dev": "vite dev",
     "shot": "node scripts/shot.mjs",
     "build": "vite build",
+    "postbuild": "tsx scripts/check-worker-size.ts",
+    "check-worker-size": "tsx scripts/check-worker-size.ts",
     "preview": "vite preview",
     "start": "wrangler dev --config dist/server/wrangler.json",
     "deploy": "pnpm build && wrangler deploy",
@@ -42,6 +44,7 @@
     "lucide-react": "^0.468.0",
     "minimatch": "^10.1.1",
     "pdfjs-dist": "5.6.205",
+    "postal-mime": "^2.7.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "rehype-prism-plus": "^2.0.0",
@@ -75,6 +78,6 @@
     "typescript": "~5.6.3",
     "vite": "^6.4.1",
     "vitest": "^2.1.9",
-    "wrangler": "^4.61.0"
+    "wrangler": "^4.118.0"
   }
 }

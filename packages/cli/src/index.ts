@@ -36,6 +36,7 @@ function addSharedOptions(cmd: Command): Command {
       "--no-parse",
       "Skip PDF/Office text extraction (documents are extracted to text by default)",
     )
+    .option("--expand-archives", "Unpack zip/tar/gz archives and include their contents")
     .option("--line-numbers", "Prefix each line of file content with its line number");
 }
 

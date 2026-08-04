@@ -5,16 +5,19 @@ import type {
   SourceType,
   TextClassification,
 } from "@fileconcat/core";
-import {
-  defaultSourceRegistry,
-  isExtractableDocument,
-  readFileAsText,
-  validateFile,
-} from "@fileconcat/core";
+import { defaultSourceRegistry, readFileAsText, validateFile } from "@fileconcat/core";
 
 import { collectFromDataTransfer } from "~/lib/collect-from-drop";
-import { expandArchives } from "~/lib/expand-archives";
-import { extractDocumentText } from "~/lib/extract-document";
+import { track, trackBatchSize, trackDistinct, trackIngestDuration } from "~/lib/metrics";
+import { parsers } from "~/lib/parsers";
+import { prepareBatch } from "~/lib/prepare-batch";
+
+/** Final extension, lowercased — the only thing a counter ever carries from a path. */
+function extensionOf(path: string): string {
+  const name = path.split("/").pop() ?? path;
+  const dot = name.lastIndexOf(".");
+  return dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
+}
 
 // Directories that never make it into memory. These are not user-editable;
 // dropping their contents into a browser tab would crash the page long before
@@ -95,43 +98,46 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
 
   const ingestBatch = useCallback(
     async (incoming: IncomingFile[]) => {
-      // Unpack any dropped/browsed zip archives before validation so their
-      // contents flow through the same pipeline. Remote fetches arrive with
-      // content set, so they are never treated as archives.
-      const { files: expanded, expandedCount } = await expandArchives(incoming);
-      setExpandedArchive(expandedCount > 0);
+      const startedAt = performance.now();
 
-      const normalized = expanded.map((entry) => {
-        const path = entry.path || entry.file.webkitRelativePath || entry.file.name;
-        return { ...entry, path };
-      });
+      // One pass decides every file's route from its own leading bytes and
+      // unpacks the archives among them (ADR-0011), so nothing below sniffs a
+      // file twice.
+      const { files: routed, expandedCount, unsupported } = await prepareBatch(incoming);
+      setExpandedArchive(expandedCount > 0);
+      trackDistinct("archive_unsupported", unsupported);
 
       const nextEntries: ContentEntry[] = [];
       const nextValidations: Record<string, ValidationRecord> = {};
       const nextFailed: FailedFile[] = [];
+      // Counters are collected here and reported once per batch, deduplicated by
+      // extension (ADR-0013): a folder of 200 screenshots is one data point
+      // about png, not two hundred.
+      const unreadable: string[] = [];
+      const extractFailed: string[] = [];
 
-      const total = normalized.length;
+      const total = routed.length;
       // Cap re-renders at ~100 progress ticks regardless of how large the drop is.
       const tick = Math.max(1, Math.floor(total / 100));
       setProgress({ phase: "reading", done: 0, total });
 
       for (let i = 0; i < total; i++) {
-        const entry = normalized[i];
+        const { item: entry, path, route } = routed[i];
         const tickProgress = () => {
           if ((i + 1) % tick === 0 || i + 1 === total) {
             setProgress({ phase: "reading", done: i + 1, total });
           }
         };
 
-        // Extractable document (PDF/Office/ODF): pull text out of the binary
-        // container and include that, instead of classifying its raw bytes
-        // (ADR-0003). Only local uploads carry real bytes — remote sources
-        // arrive already decoded, so they fall through to the normal path.
-        if (entry.content === undefined && isExtractableDocument(entry.path)) {
+        // A document container: pull the text out and include *that*, instead
+        // of classifying the container's raw bytes (ADR-0003). Which parser to
+        // load came from the bytes, not the filename, so a renamed `.docx` and
+        // an extensionless PDF both land here.
+        if (route.kind === "extract") {
           const size = entry.file.size;
           const type = entry.file.type || "application/octet-stream";
           if (size > config.maxFileSizeMB * 1024 * 1024) {
-            nextValidations[entry.path] = {
+            nextValidations[path] = {
               included: false,
               reason: `File size exceeds ${config.maxFileSizeMB}MB`,
               size,
@@ -140,10 +146,10 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           } else {
             try {
               const bytes = new Uint8Array(await entry.file.arrayBuffer());
-              const text = await extractDocumentText(bytes);
+              const { text } = await parsers.extract(route.parserId, bytes);
               if (text) {
-                nextEntries.push({ path: entry.path, content: text });
-                nextValidations[entry.path] = {
+                nextEntries.push({ path, content: text });
+                nextValidations[path] = {
                   included: true,
                   classification: "text",
                   size,
@@ -151,9 +157,11 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                   extracted: true,
                 };
               } else {
-                // No recoverable text (scanned image-only or encrypted PDF) —
-                // surfaced as excluded, never silently dropped.
-                nextValidations[entry.path] = {
+                // No recoverable text (scanned image-only or encrypted PDF, or
+                // a format this build ships no reader for) — surfaced as
+                // excluded, never silently dropped.
+                extractFailed.push(route.format);
+                nextValidations[path] = {
                   included: false,
                   reason: "No extractable text",
                   classification: "binary",
@@ -162,8 +170,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                 };
               }
             } catch (error) {
-              console.error(`Failed to extract ${entry.path}:`, error);
-              nextValidations[entry.path] = {
+              console.error(`Failed to extract ${path}:`, error);
+              extractFailed.push(route.format);
+              nextValidations[path] = {
                 included: false,
                 reason: "Couldn't extract text",
                 classification: "binary",
@@ -177,7 +186,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         }
 
         const result = await validateFile(entry.file, config);
-        nextValidations[entry.path] = {
+        nextValidations[path] = {
           included: result.isValid,
           reason: result.reason,
           classification: result.classification,
@@ -186,10 +195,14 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         };
 
         if (result.classification === "binary") {
+          // Which formats users bring that we cannot read at all. This is the
+          // demand signal that decides which reader to build next. An archive
+          // we can't open (rar, 7z) lands here too, under its own extension.
+          unreadable.push(extensionOf(path));
           // Binary: no recoverable text. Keep it visible in the tree (locked,
           // ADR-0009) but never decode its bytes — a force-include must not be
           // able to leak mojibake into the bundle, and decoding it is wasted work.
-          nextEntries.push({ path: entry.path, content: "" });
+          nextEntries.push({ path, content: "" });
         } else {
           try {
             // Decode through the core classifier so odd encodings (e.g. UTF-16)
@@ -197,10 +210,10 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             // arrive decoded, so their content passes through untouched.
             const content =
               entry.content !== undefined ? entry.content : (await readFileAsText(entry.file)).text;
-            nextEntries.push({ path: entry.path, content });
+            nextEntries.push({ path, content });
           } catch (error) {
-            console.error(`Failed to read file ${entry.path}:`, error);
-            nextFailed.push({ path: entry.path, error: "File could not be read" });
+            console.error(`Failed to read file ${path}:`, error);
+            nextFailed.push({ path, error: "File could not be read" });
           }
         }
 
@@ -212,6 +225,11 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setEntries(nextEntries);
       setValidations(nextValidations);
       setFailedFiles(nextFailed);
+
+      trackBatchSize(total);
+      trackIngestDuration(performance.now() - startedAt);
+      trackDistinct("unreadable_ext", unreadable);
+      trackDistinct("extract_failed", extractFailed);
     },
     [config],
   );
@@ -220,6 +238,8 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     async (url: string, sourceType: SourceType, signal: AbortSignal) => {
       setIsRepoLoading(true);
       setSourceUrl(url);
+      // Which remote adapters actually earn their maintenance cost.
+      track("source_used", sourceType);
       // Immediate feedback: the spinner shows a stage before the first network
       // round-trip resolves, so a slow connect never reads as "frozen".
       setProgress({ phase: "fetching", done: 0, total: 0, note: "Connecting…" });

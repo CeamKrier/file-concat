@@ -17,12 +17,14 @@
   },
   "dependencies": {
     "fflate": "^0.8.3",
+    "file-type": "^22.0.1",
     "ignore": "^7.0.5",
     "minimatch": "^10.1.1",
     "officeparser": "^7.2.1"
   },
   "devDependencies": {
     "fast-check": "^4.8.0",
+    "postal-mime": "^2.7.5",
     "vitest": "^2.1.8"
   }
 }

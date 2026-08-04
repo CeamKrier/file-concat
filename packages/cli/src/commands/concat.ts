@@ -9,14 +9,17 @@ import {
   assembleOutput,
   createGitignoreMatcher,
   BINARY_EXTENSIONS,
+  canExpandArchive,
   classifyBytes,
-  isExtractableDocument,
-  extractDocument,
+  expandArchive,
+  routeBytes,
+  ROUTER_SNIFF_BYTES,
   addLineNumbers,
   type OutputStyle,
   type ExcludedSummary,
 } from "@fileconcat/core";
 import { loadConfig, type FileConcatConfig } from "../config.js";
+import { parsers } from "../parsers.js";
 
 interface ConcatOptions {
   output?: string;
@@ -31,7 +34,34 @@ interface ConcatOptions {
   quiet?: boolean;
   json?: boolean;
   parse?: boolean;
+  expandArchives?: boolean;
   lineNumbers?: boolean;
+}
+
+/**
+ * One unit of work. Files found on disk are read lazily — the router only needs
+ * a prefix, so a large binary is identified and skipped without ever being read
+ * whole. Entries recovered from an archive already live in memory.
+ */
+type Source =
+  | { origin: "disk"; path: string; fullPath: string; size: number }
+  | { origin: "archive"; path: string; bytes: Uint8Array; size: number };
+
+function readPrefix(source: Source): Uint8Array {
+  if (source.origin === "archive") return source.bytes.subarray(0, ROUTER_SNIFF_BYTES);
+  const length = Math.min(ROUTER_SNIFF_BYTES, source.size);
+  const buffer = Buffer.alloc(length);
+  const fd = fs.openSync(source.fullPath, "r");
+  try {
+    fs.readSync(fd, buffer, 0, length, 0);
+  } finally {
+    fs.closeSync(fd);
+  }
+  return buffer;
+}
+
+function readAll(source: Source): Uint8Array {
+  return source.origin === "archive" ? source.bytes : fs.readFileSync(source.fullPath);
 }
 
 interface Logger {
@@ -99,12 +129,20 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
   // Documents are extracted by default (matching the web / ADR-0003); --no-parse
   // sets this false and leaves PDFs/Office files to fall through as binary.
   const extract = options.parse !== false;
+  // Archives are *not* expanded by default, unlike the web. Dropping a zip on
+  // the web is an explicit "process this"; walking a directory that happens to
+  // contain assets.zip is not, and inlining it would bury the code the user
+  // actually asked for. Opt in with --expand-archives.
+  const expandArchivesEnabled = !!options.expandArchives;
 
   log.info(`Processing: ${basePath}`);
   log.info(`Output: ${outputPath ?? "stdout"} (${style})`);
   log.info(`Max file size: ${maxFileSizeMB}MB`);
   if (!extract) {
     log.info("Document extraction: off (--no-parse)");
+  }
+  if (expandArchivesEnabled) {
+    log.info("Archive expansion: on (--expand-archives)");
   }
 
   let files = await glob("**/*", {
@@ -156,21 +194,51 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
   };
   let parsedCount = 0;
   let totalSize = 0;
+  let routeFailureReported = false;
 
-  for (const file of files) {
-    const fullPath = path.join(basePath, file);
-    const stats = fs.statSync(fullPath);
+  // Expanding an archive appends its entries here, so they flow through the
+  // same routing loop as files found on disk.
+  const queue: Source[] = files.map((file) => ({
+    origin: "disk",
+    path: file,
+    fullPath: path.join(basePath, file),
+    size: fs.statSync(path.join(basePath, file)).size,
+  }));
 
-    if (stats.size > maxFileSizeMB * 1024 * 1024) {
+  for (let i = 0; i < queue.length; i++) {
+    const source = queue[i];
+    const file = source.path;
+
+    if (source.size > maxFileSizeMB * 1024 * 1024) {
       skipped.oversize.push(file);
       continue;
     }
 
-    // Extractable documents (PDF/Office) go through the shared core extractor
-    // so the CLI and web agree on which formats qualify and how text is pulled.
-    if (extract && isExtractableDocument(file)) {
+    // One decision point, taken from the file's own leading bytes (ADR-0011):
+    // a renamed .docx is extracted, an extensionless PDF is read, and a plain
+    // .zip is told apart from the OOXML container that shares its signature.
+    //
+    // Routing is an enhancement, not a gate. If it fails — an unreadable file,
+    // or a detector that could not load — the file still goes down the ordinary
+    // content path, so a broken router degrades to the pre-router behaviour
+    // instead of emptying the bundle. The first failure is reported once,
+    // because a silent one makes an empty bundle look like an empty directory.
+    let route: Awaited<ReturnType<typeof routeBytes>> = { kind: "unknown" };
+    try {
+      route = await routeBytes(readPrefix(source));
+    } catch (err) {
+      if (!routeFailureReported) {
+        routeFailureReported = true;
+        const message = err instanceof Error ? err.message : String(err);
+        log.warn(`Content routing unavailable, falling back to extensions (${message})`);
+      }
+    }
+
+    // Document containers go through the shared registry, so the CLI and web
+    // agree on which formats qualify and how the text is pulled.
+    if (extract && route.kind === "extract") {
       try {
-        const text = await extractDocument(fs.readFileSync(fullPath));
+        const { text } = await parsers.extract(route.parserId, readAll(source));
         if (!text) {
           log.warn(`Skipped (no extractable text): ${file}`);
           skipped.parseFailed.push(file);
@@ -178,7 +246,7 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
         }
         processedFiles.push({ path: file, content: text, language: "text" });
         parsedCount++;
-        totalSize += stats.size;
+        totalSize += source.size;
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         log.warn(`Skipped (parse failed): ${file} (${message})`);
@@ -187,8 +255,42 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
       continue;
     }
 
+    // Archives, when asked for. Nesting is one level deep — an archive inside
+    // an archive stays packed, matching the web.
+    if (
+      expandArchivesEnabled &&
+      route.kind === "expand" &&
+      source.origin === "disk" &&
+      canExpandArchive(route.archive)
+    ) {
+      try {
+        const entries = expandArchive(readAll(source), route.archive, path.basename(file));
+        if (entries.length > 0) {
+          const dir = path.dirname(file);
+          for (const entry of entries) {
+            queue.push({
+              origin: "archive",
+              path: dir === "." ? entry.path : `${dir}/${entry.path}`,
+              bytes: entry.bytes,
+              size: entry.bytes.length,
+            });
+          }
+          log.info(`Expanded ${file}: ${entries.length} ${entries.length === 1 ? "entry" : "entries"}`);
+          continue;
+        }
+      } catch {
+        // Corrupt or unreadable archive: fall through and treat it as a file.
+      }
+    }
+
     const ext = path.extname(file).slice(1).toLowerCase();
     if (excludeBinary && BINARY_EXTENSIONS.includes(ext)) {
+      skipped.binary.push(file);
+      continue;
+    }
+    // A media container the router recognized by signature. Skipping here means
+    // a renamed .png is never read whole just to be thrown away.
+    if (excludeBinary && route.kind === "binary") {
       skipped.binary.push(file);
       continue;
     }
@@ -196,7 +298,7 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
     try {
       // Classify by content, not extension: decodes odd encodings (e.g. UTF-16)
       // correctly and catches a mislabeled binary the extension list missed.
-      const decoded = classifyBytes(fs.readFileSync(fullPath));
+      const decoded = classifyBytes(readAll(source));
       if (excludeBinary && decoded.classification === "binary") {
         skipped.binary.push(file);
         continue;
@@ -205,7 +307,7 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
         log.warn(`Kept (might be binary): ${file}`);
       }
       processedFiles.push({ path: file, content: decoded.text });
-      totalSize += stats.size;
+      totalSize += source.size;
     } catch {
       skipped.readError.push(file);
     }
