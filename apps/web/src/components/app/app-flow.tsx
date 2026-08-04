@@ -98,9 +98,10 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   });
 
   // The tool renders on the home route, every /for/* persona page and the
-  // how-to page. Recording which document a visit landed on is the only way to
-  // tell a converting surface from an SEO landing page (ADR-0013); paired with
-  // output_taken under the same page id it reads as a funnel.
+  // how-to page; paired with output_taken under the same page id this reads as
+  // a funnel. AppFlow remounts on client navigation while the page id lives on,
+  // so trackEntrySurface itself only records the first call of a page load —
+  // the counter describes the page load, not this component's lifetime.
   useEffect(() => {
     trackEntrySurface(window.location.pathname);
   }, []);

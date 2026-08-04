@@ -4,12 +4,13 @@ import { env } from "cloudflare:workers";
 import { METRIC_EVENTS, type MetricEvent } from "~/lib/metric-events";
 
 /**
- * Product counter sink (ADR-0013).
+ * Product counter sink (ADR-0013, revised by ADR-0014).
  *
  * Writes anonymous, unlinked event rows. It deliberately stores nothing about
  * the requester: no IP, no user agent, no country, no cookie. The only
- * identifier written is the client's page-lifetime id, which the browser
- * generates per page load and never reuses.
+ * identifier written is the client's page-lifetime id, plus a run counter that
+ * restarts at 1 with it — enough to read one visit as a sequence, never enough
+ * to link two.
  *
  * The connecting IP is read for exactly one purpose — as the rate limiter's
  * key — and never reaches the database or a log. Cloudflare's edge already
@@ -25,9 +26,17 @@ import { METRIC_EVENTS, type MetricEvent } from "~/lib/metric-events";
 /** Mirrors the client's cap. A larger batch is rejected, not truncated. */
 const MAX_EVENTS = 50;
 /** Comfortably above a full 50-event batch; anything larger is not ours. */
-const MAX_BODY_BYTES = 8 * 1024;
+const MAX_BODY_BYTES = 16 * 1024;
 const MAX_VALUE_LENGTH = 32;
 const MAX_PAGE_ID_LENGTH = 64;
+/**
+ * Quantities are attacker-controlled on an unauthenticated endpoint, so they get
+ * their own bound the way `value` has a pattern. ~1 TB of bytes, or 31 years in
+ * milliseconds: past that it is not a measurement of anything we do.
+ */
+const MAX_AMOUNT = 1e12;
+/** A page doing more than this many drops is not a reading we want to store. */
+const MAX_RUN = 1000;
 
 const ALLOWED: ReadonlySet<string> = new Set(METRIC_EVENTS);
 
@@ -42,10 +51,32 @@ const UNKNOWN_CLIENT = "no-connecting-ip";
 const VALUE_PATTERN = /^[a-z0-9._/+-]{1,32}$/;
 const PAGE_ID_PATTERN = /^[a-z0-9-]{8,64}$/i;
 
-type IncomingEvent = { n: string; v?: unknown };
+/** Wire shape: `n` name, `v` value, `q` quantity, `b` bytes, `r` run. */
+type IncomingEvent = { n: string; v?: unknown; q?: unknown; b?: unknown; r?: unknown };
 type IncomingBody = { s?: unknown; e?: unknown };
 
-type ValidEvent = { name: MetricEvent; value: string | null };
+type ValidEvent = {
+  name: MetricEvent;
+  value: string | null;
+  run: number | null;
+  /** The client's `q`, bound to the `n` column. */
+  count: number | null;
+  bytes: number | null;
+};
+
+/** Whole, non-negative, in range. Anything else becomes null rather than rejecting the event. */
+function validAmount(raw: unknown, max: number): number | null {
+  if (typeof raw !== "number" || !Number.isInteger(raw)) return null;
+  if (raw < 0 || raw > max) return null;
+  return raw;
+}
+
+function validValue(raw: unknown): string | null | undefined {
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw !== "string" || raw.length > MAX_VALUE_LENGTH) return undefined;
+  if (!VALUE_PATTERN.test(raw)) return undefined;
+  return raw;
+}
 
 function validEvents(raw: unknown): ValidEvent[] {
   if (!Array.isArray(raw) || raw.length === 0 || raw.length > MAX_EVENTS) return [];
@@ -55,13 +86,19 @@ function validEvents(raw: unknown): ValidEvent[] {
     if (!item || typeof item !== "object" || typeof item.n !== "string") continue;
     if (!ALLOWED.has(item.n)) continue;
 
-    if (item.v === undefined || item.v === null) {
-      out.push({ name: item.n as MetricEvent, value: null });
-      continue;
-    }
-    if (typeof item.v !== "string" || item.v.length > MAX_VALUE_LENGTH) continue;
-    if (!VALUE_PATTERN.test(item.v)) continue;
-    out.push({ name: item.n as MetricEvent, value: item.v });
+    // A malformed value drops the whole event: a counter with a mangled label is
+    // worse than a missing one, because it silently joins the wrong bucket.
+    const value = validValue(item.v);
+    if (value === undefined) continue;
+
+    const run = validAmount(item.r, MAX_RUN);
+    const count = validAmount(item.q, MAX_AMOUNT);
+    const bytes = validAmount(item.b, MAX_AMOUNT);
+
+    // Nothing to record: no label and no quantity says less than the name alone.
+    if (value === null && count === null && bytes === null) continue;
+
+    out.push({ name: item.n as MetricEvent, value, run, count, bytes });
   }
   return out;
 }
@@ -105,9 +142,11 @@ export const Route = createFileRoute("/api/e")({
 
           const ts = Math.floor(Date.now() / 1000);
           const insert = env.METRICS.prepare(
-            "INSERT INTO events (ts, page, name, value) VALUES (?, ?, ?, ?)",
+            "INSERT INTO events (ts, page, name, value, run, n, b) VALUES (?, ?, ?, ?, ?, ?, ?)",
           );
-          await env.METRICS.batch(events.map((e) => insert.bind(ts, page, e.name, e.value)));
+          await env.METRICS.batch(
+            events.map((e) => insert.bind(ts, page, e.name, e.value, e.run, e.count, e.bytes)),
+          );
         } catch (error) {
           // Never surfaced to the client — a counter must not turn into a bug
           // report about a feature nobody asked for. Logged, though: a silently
