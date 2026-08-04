@@ -6,10 +6,16 @@ import { METRIC_EVENTS, type MetricEvent } from "~/lib/metric-events";
 /**
  * Product counter sink (ADR-0013).
  *
- * Writes anonymous, unlinked event rows. It deliberately records nothing about
+ * Writes anonymous, unlinked event rows. It deliberately stores nothing about
  * the requester: no IP, no user agent, no country, no cookie. The only
- * identifier is the client's page-lifetime id, which the browser generates per
- * page load and never reuses.
+ * identifier written is the client's page-lifetime id, which the browser
+ * generates per page load and never reuses.
+ *
+ * The connecting IP is read for exactly one purpose — as the rate limiter's
+ * key — and never reaches the database or a log. Cloudflare's edge already
+ * terminates the connection, so this adds no exposure that the request itself
+ * did not; what would break the promise is persisting it, which nothing here
+ * does.
  *
  * The event-name allowlist is imported from the client module rather than
  * duplicated, so a counter cannot be recorded on one side and silently dropped
@@ -24,6 +30,13 @@ const MAX_VALUE_LENGTH = 32;
 const MAX_PAGE_ID_LENGTH = 64;
 
 const ALLOWED: ReadonlySet<string> = new Set(METRIC_EVENTS);
+
+/**
+ * Local `wrangler dev` sends no `CF-Connecting-IP`, so everything there shares
+ * one bucket. That is what makes the limiter testable without spoofing headers,
+ * and in production the header is always present.
+ */
+const UNKNOWN_CLIENT = "no-connecting-ip";
 
 /** Same shape the client normalizes to. Rejected rather than sanitized here. */
 const VALUE_PATTERN = /^[a-z0-9._/+-]{1,32}$/;
@@ -63,6 +76,22 @@ export const Route = createFileRoute("/api/e")({
         const noContent = new Response(null, { status: 204 });
 
         try {
+          // Before reading the body: an unauthenticated public write whose
+          // shape is documented in a public repo is worth bounding, and the
+          // scarce resource is D1 writes, not CPU. 30 requests per 10s is
+          // roughly ten times the busiest real client — it debounces 1.5s and
+          // batches up to 50 events, so even a huge drop sends a handful of
+          // requests. Answers 204 like every other rejection: the client never
+          // reads the body, and a 429 would only tell an abuser what to evade.
+          //
+          // This raises the cost of abuse rather than capping the daily total —
+          // the limiter is per-IP and per-colo. The backstop for the rest is
+          // that exceeding D1's quota throws into the catch below, so counters
+          // stop recording while the tool itself keeps working.
+          const clientKey = request.headers.get("CF-Connecting-IP") ?? UNKNOWN_CLIENT;
+          const { success } = await env.METRICS_LIMITER.limit({ key: clientKey });
+          if (!success) return noContent;
+
           const raw = await request.text();
           if (raw.length === 0 || raw.length > MAX_BODY_BYTES) return noContent;
 

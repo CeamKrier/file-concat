@@ -1,26 +1,28 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "file-concat",
-  // The token has access to more than one account, so every remote command
-  // (deploy, d1 --remote, tail) otherwise fails with "More than one account
-  // available but unable to select one in non-interactive mode". Not a secret:
-  // it identifies the account, it does not authenticate to it.
   "account_id": "0b39a832fa513101a0e94d2c56ffcde2",
   "compatibility_date": "2024-11-01",
   "compatibility_flags": [
     "nodejs_compat"
   ],
   "main": "@tanstack/react-start/server-entry",
-  // Product counters (ADR-0013). Anonymous, unlinked event rows written by
-  // /api/e. Create the database once with:
-  //   npx wrangler d1 create fileconcat-metrics
-  // then paste the returned id into database_id below.
   "d1_databases": [
     {
       "binding": "METRICS",
       "database_name": "fileconcat-metrics",
       "database_id": "e21266a0-7ec4-4401-bf15-5063326e4a88",
       "migrations_dir": "migrations"
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "METRICS_LIMITER",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 30,
+        "period": 10
+      }
     }
   ],
   "assets": {
