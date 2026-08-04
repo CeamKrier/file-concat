@@ -29,5 +29,5 @@
   // wrangler.jsonc and declares both the `Env` bindings and the `cloudflare:*`
   // runtime modules. It is committed so a fresh clone can `pnpm check` without
   // running wrangler first; rerun `wrangler types` after changing bindings.
-  "include": ["src", "src/**/*.mdx", "worker-configuration.d.ts"]
+  "include": ["src", "src/**/*.mdx", "tests", "worker-configuration.d.ts"]
 }
