@@ -109,6 +109,16 @@ export const DEFAULT_IGNORE_PATTERNS = [
   // Dart / Flutter
   ".dart_tool",
 
+  // Godot. Sidecars and caches only: `.uid` and `.import` are per-asset
+  // metadata the editor regenerates, and a single project brings hundreds of
+  // them. `.tscn` and `.tres` are deliberately absent — scenes and resources
+  // are the project's actual content, and a Godot developer asking about their
+  // game wants them in the bundle.
+  ".godot",
+  ".import",
+  "*.uid",
+  "*.import",
+
   // Terraform / IaC
   ".terraform",
 

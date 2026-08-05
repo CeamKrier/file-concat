@@ -55,4 +55,16 @@ describe("shouldSkipPath", () => {
   it("allows normal source files", () => {
     expect(shouldSkipPath("src/index.ts")).toBe(false);
   });
+
+  it("skips Godot sidecars but keeps scenes and resources", () => {
+    // The sidecars are regenerated metadata and a single project brings
+    // hundreds of them. Scenes and resources are the project's content, so
+    // their absence from the ignore list is a decision, not an oversight.
+    expect(shouldSkipPath("game/player.gd.uid")).toBe(true);
+    expect(shouldSkipPath("game/assets/icon.png.import")).toBe(true);
+    expect(shouldSkipPath("game/.godot/uid_cache.bin")).toBe(true);
+    expect(shouldSkipPath("game/scenes/main.tscn")).toBe(false);
+    expect(shouldSkipPath("game/scenes/theme.tres")).toBe(false);
+    expect(shouldSkipPath("game/player.gd")).toBe(false);
+  });
 });
