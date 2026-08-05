@@ -57,7 +57,31 @@ pnpm vitest run path/to/file     # single file
 pnpm vitest -t "pattern"         # by test name
 ```
 
-There is no root `test` script — Nx does not currently wire a `test` target.
+`pnpm test` from the root runs all three suites through Nx (`nx run-many -t test`):
+core, CLI and web. The CLI target builds itself first, because its suite drives
+the built `dist/index.js` rather than the source.
+
+`pnpm check` covers all three projects too. It used to cover only web and CLI —
+core's target was named `typecheck`, so `run-many -t check` skipped it and core's
+TypeScript was never checked by the root command. Core's target is now `check`.
+
+## CI
+
+`.github/workflows/ci.yml` runs typecheck, lint, all three suites and the web
+build on every push to `development` or `master`. The build step is there for
+`postbuild` (`apps/web/scripts/check-worker-size.ts`), which is the only guard
+against a client-only library reaching the SSR worker graph — nothing else in the
+pipeline would notice.
+
+**Push only, not `pull_request`.** Check runs attach by commit SHA, so the push
+run already appears on the PR; adding `pull_request` produced two identical
+checks and no YAML construct lets one trigger suppress the other. The merge
+result a `pull_request` run would test is the same tree here, because `master`
+only ever advances by merging `development`. The file's header comment says when
+to add it back: pull requests from forks.
+
+Steps after checkout carry `if: ${{ !cancelled() }}` so one failing step still
+reports the others. Before this existed the CLI suite sat red for a month.
 
 ## Architecture notes
 

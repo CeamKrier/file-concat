@@ -32,6 +32,7 @@
   },
   "license": "MIT",
   "type": "module",
+  "packageManager": "pnpm@10.13.1",
   "pnpm": {
     "overrides": {
       "@codemirror/state": "6.6.0",

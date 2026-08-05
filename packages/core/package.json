@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "check": "tsc --noEmit",
     "test": "vitest run"
   },
   "peerDependencies": {
