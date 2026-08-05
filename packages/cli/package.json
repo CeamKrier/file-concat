@@ -1,7 +1,7 @@
 {
     "name": "@fileconcat/cli",
-    "version": "0.3.0",
-    "description": "Privacy-first CLI for concatenating files into LLM context, with built-in PDF/DOCX/XLSX/PPTX/ODT/ODS/ODP text extraction",
+    "version": "0.4.0",
+    "description": "Privacy-first CLI for concatenating files into LLM context, with built-in text extraction for PDF, Office, RTF, Jupyter notebooks, SRT/VTT captions and EML messages",
     "type": "module",
     "main": "./dist/index.js",
     "bin": {
