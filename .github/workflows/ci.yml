@@ -9,16 +9,29 @@
 
 name: CI
 
+# Push only, deliberately. Running on `pull_request` as well produced two
+# identical checks on every PR: GitHub attaches check runs by commit SHA, so the
+# push run already shows up on the PR, and nothing in YAML lets one trigger
+# suppress the other.
+#
+# What a `pull_request` run would add is the *merge result* rather than the
+# branch tip. That is worth nothing here: every commit on `master` is a merge of
+# `development`, so `master` never advances on its own and the two are the same
+# tree. `master` is listed anyway, which catches a bad merge after the fact.
+#
+# What push gives back is the reason this file exists: a commit on `development`
+# is checked whether or not anyone has opened a PR yet. The month the CLI suite
+# sat red was exactly that window.
+#
+# If this repository ever takes pull requests from forks, add `pull_request:`
+# back — a fork's push does not run here, and an unchecked outside PR is worse
+# than a duplicate.
 on:
-  pull_request:
-    branches: [master, development]
-  # Merges into master arrive through a PR, but a direct push to development is
-  # normal here and should still be checked.
   push:
-    branches: [development]
+    branches: [development, master]
   workflow_dispatch:
 
-# A new push to the same PR makes the previous run's answer obsolete.
+# A newer commit on the same branch makes the previous run's answer obsolete.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

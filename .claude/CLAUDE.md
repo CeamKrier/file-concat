@@ -68,11 +68,17 @@ TypeScript was never checked by the root command. Core's target is now `check`.
 ## CI
 
 `.github/workflows/ci.yml` runs typecheck, lint, all three suites and the web
-build on every PR into `master` or `development`, and on direct pushes to
-`development`. The build step is there for `postbuild`
-(`apps/web/scripts/check-worker-size.ts`), which is the only guard against a
-client-only library reaching the SSR worker graph — nothing else in the pipeline
-would notice.
+build on every push to `development` or `master`. The build step is there for
+`postbuild` (`apps/web/scripts/check-worker-size.ts`), which is the only guard
+against a client-only library reaching the SSR worker graph — nothing else in the
+pipeline would notice.
+
+**Push only, not `pull_request`.** Check runs attach by commit SHA, so the push
+run already appears on the PR; adding `pull_request` produced two identical
+checks and no YAML construct lets one trigger suppress the other. The merge
+result a `pull_request` run would test is the same tree here, because `master`
+only ever advances by merging `development`. The file's header comment says when
+to add it back: pull requests from forks.
 
 Steps after checkout carry `if: ${{ !cancelled() }}` so one failing step still
 reports the others. Before this existed the CLI suite sat red for a month.
