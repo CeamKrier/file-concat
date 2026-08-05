@@ -57,7 +57,25 @@ pnpm vitest run path/to/file     # single file
 pnpm vitest -t "pattern"         # by test name
 ```
 
-There is no root `test` script — Nx does not currently wire a `test` target.
+`pnpm test` from the root runs all three suites through Nx (`nx run-many -t test`):
+core, CLI and web. The CLI target builds itself first, because its suite drives
+the built `dist/index.js` rather than the source.
+
+`pnpm check` covers all three projects too. It used to cover only web and CLI —
+core's target was named `typecheck`, so `run-many -t check` skipped it and core's
+TypeScript was never checked by the root command. Core's target is now `check`.
+
+## CI
+
+`.github/workflows/ci.yml` runs typecheck, lint, all three suites and the web
+build on every PR into `master` or `development`, and on direct pushes to
+`development`. The build step is there for `postbuild`
+(`apps/web/scripts/check-worker-size.ts`), which is the only guard against a
+client-only library reaching the SSR worker graph — nothing else in the pipeline
+would notice.
+
+Steps after checkout carry `if: ${{ !cancelled() }}` so one failing step still
+reports the others. Before this existed the CLI suite sat red for a month.
 
 ## Architecture notes
 

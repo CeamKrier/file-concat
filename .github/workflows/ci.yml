@@ -1,0 +1,76 @@
+# The guard this repository went without for too long. The CLI suite was red
+# from `e92f646` until it was noticed on 2026-08-04, purely because nothing ran
+# it between commits; a long-lived `development` branch will do that again.
+#
+# One job on purpose. The whole thing is a few minutes, and splitting it would
+# buy parallelism at the cost of installing the workspace more than once.
+# Every step after checkout carries `if: ${{ !cancelled() }}` so a lint failure
+# still reports whether the tests pass: one push, every answer.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [master, development]
+  # Merges into master arrive through a PR, but a direct push to development is
+  # normal here and should still be checked.
+  push:
+    branches: [development]
+  workflow_dispatch:
+
+# A new push to the same PR makes the previous run's answer obsolete.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: check, lint, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the version from the root `packageManager` field.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # `nx run-many` over three projects. Core carries its own `check` target,
+      # so this covers every package rather than the two it used to.
+      - name: Typecheck
+        if: ${{ !cancelled() }}
+        run: pnpm check
+
+      - name: Lint
+        if: ${{ !cancelled() }}
+        run: pnpm lint
+
+      # Core, CLI and web. The CLI target builds itself first: its suite drives
+      # the built `dist/index.js`, not the source.
+      - name: Test
+        if: ${{ !cancelled() }}
+        run: pnpm test
+
+      # Not redundant with the above. `postbuild` runs
+      # `apps/web/scripts/check-worker-size.ts`, which reproduces wrangler's
+      # gzip figure and fails past a 1 MiB budget. A client-only library
+      # statically imported into the SSR graph costs hundreds of KiB in a single
+      # commit and is invisible to every other step here.
+      #
+      # `prebuild` fetches the model catalog from models.dev. It falls back to
+      # the committed `apps/web/src/data/models.json` when that is unreachable,
+      # so an upstream outage does not fail the build.
+      - name: Build web (includes the worker size guard)
+        if: ${{ !cancelled() }}
+        run: pnpm build
