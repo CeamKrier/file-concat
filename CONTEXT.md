@@ -40,6 +40,14 @@ _Avoid_: "session", "upload" (nothing is uploaded), "job"
 One load of a document that hosts the tool. A Visit contains zero or more Runs, and a Visit with zero Runs is a **bounce**. Visits carry an identity that lives only as long as the page is open, so the Runs inside one Visit read as a sequence while nothing links a Visit to another Visit or to a person. Repeat use is therefore observable **within** a Visit and deliberately invisible across them.
 _Avoid_: "user", "session", "visitor" (all imply an identity that outlives the page)
 
+**Recording**:
+One Microsoft Clarity session: a replay of on-screen activity held by a third party. A Recording is **coarser than a Visit** — it can span several page loads, and therefore several Visits and several Runs — and unlike a Visit it carries device and geography and can tell a returning visitor from a new one. It is the only unit that sees the routes which write no counters (`/docs`, `/blog`, `/privacy`), and the only one with history from before the counter table existed. Nothing links a Recording to a Run: that is a deliberate refusal, not a missing feature (ADR-0016).
+_Avoid_: "session" on its own (it reads as Visit or Run, which are both narrower), "user", "replay of a Run"
+
+**Session tag**:
+A label attached to a Recording carrying a value from the counters' published vocabulary — the surface, the source, the size band, the kind of content we failed to read, the outcome. A Session tag exists so a Recording can be **found**, and is never a quantity: values accumulate over a Recording rather than describing it, so a tag says the Recording *contained* something, never that the Recording *was* it. Every number stays with the counters.
+_Avoid_: "event" (Clarity events are a separate, per-occurrence thing), "metric", "counter" (a tag is a handle, not a measurement)
+
 **Marker file**:
 A file whose *name* is on a fixed, published list and identifies the ecosystem a drop came from — `package.json`, `go.mod`, `Cargo.toml`, `pom.xml` and their peers. Markers exist so that recognizing an ecosystem never requires looking at an arbitrary file name: only membership in the list is ever observed, never the name of a file outside it.
 _Avoid_: "manifest" (too narrow), "config file" (most configs are not markers)

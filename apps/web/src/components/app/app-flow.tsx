@@ -17,6 +17,7 @@ import { useOutputGeneration } from "~/hooks/use-output-generation";
 import { estimateTokenCount, preloadTokenEstimator } from "~/lib/tokens";
 import { classifyUrl, type Classification, type ImportTab } from "~/lib/classify-url";
 import { trackEntrySurface } from "~/lib/metrics";
+import { tagSurface } from "~/lib/clarity-tags";
 
 import { MarketingSections, SiteFooter } from "./marketing";
 
@@ -104,6 +105,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // the counter describes the page load, not this component's lifetime.
   useEffect(() => {
     trackEntrySurface(window.location.pathname);
+    tagSurface(window.location.pathname);
   }, []);
 
   const [phase, setPhase] = useState<Phase>("landing");

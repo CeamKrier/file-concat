@@ -10,6 +10,7 @@ import { defaultSourceRegistry, readFileAsText, validateFile } from "@fileconcat
 import { collectFromDataTransfer } from "~/lib/collect-from-drop";
 import { markerFor } from "~/lib/ecosystem-markers";
 import { addToTally, startRun, track, trackAmount, trackTally, type Tally } from "~/lib/metrics";
+import { tagDrop, tagSource } from "~/lib/clarity-tags";
 import { parsers } from "~/lib/parsers";
 import { prepareBatch } from "~/lib/prepare-batch";
 
@@ -287,6 +288,15 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       trackTally("unreadable_ext", unreadable);
       trackTally("extract_failed", extractFailed);
       trackTally("archive_unsupported", archiveUnsupported);
+
+      // The same drop, said in Clarity's vocabulary so the recording can be
+      // found later (ADR-0016). Classes only: which kinds of content we failed
+      // to read, never which extension.
+      const gaps: string[] = [];
+      if (unreadable.size > 0) gaps.push("unreadable");
+      if (extractFailed.size > 0) gaps.push("extract_failed");
+      if (archiveUnsupported.size > 0) gaps.push("archive_unsupported");
+      tagDrop(totalBytes, gaps);
     },
     [config],
   );
@@ -297,6 +307,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setSourceUrl(url);
       // Which remote adapters actually earn their maintenance cost.
       track("source_used", sourceType);
+      tagSource(sourceType);
       // Immediate feedback: the spinner shows a stage before the first network
       // round-trip resolves, so a slow connect never reads as "frozen".
       setProgress({ phase: "fetching", done: 0, total: 0, note: "Connecting…" });
@@ -373,6 +384,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
 
       setSourceUrl(null);
       setIsProcessing(true);
+      tagSource("drop");
       try {
         const incoming: IncomingFile[] = Array.from(selected).map((file) => ({
           file,
@@ -420,6 +432,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // Walking a large dropped folder can take a beat before the read loop
       // starts reporting counts — show the stage so it isn't a silent spinner.
       setProgress({ phase: "reading", done: 0, total: 0, note: "Scanning files…" });
+      tagSource("drop");
 
       try {
         const { collected, failed } = await collectFromDataTransfer(e.dataTransfer.items, {

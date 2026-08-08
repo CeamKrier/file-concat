@@ -95,8 +95,12 @@ export function currentRun(): number | null {
  * Values are a closed shape by construction: lowercase, short, and limited to
  * the characters an extension / source type / marker name needs. A value that
  * cannot survive this is dropped rather than sent in a mangled form.
+ *
+ * Exported so the Clarity session tags (`./clarity-tags`) pass through the same
+ * filter: a value our own counters would refuse is not handed to a third party
+ * either.
  */
-function normalizeValue(value: string | undefined): string | undefined {
+export function normalizeValue(value: string | undefined): string | undefined {
   if (value === undefined) return undefined;
   const cleaned = value.toLowerCase().replace(/[^a-z0-9._/+-]/g, "");
   return cleaned.length > 0 && cleaned.length <= 32 ? cleaned : undefined;
@@ -239,6 +243,14 @@ export function addToTally(tally: Tally, key: string, bytes?: number): void {
 export function trackEntrySurface(pathname: string): void {
   if (entrySurfaceRecorded) return;
   entrySurfaceRecorded = true;
-  const route = pathname === "/" ? "home" : pathname.replace(/^\/+|\/+$/g, "").slice(0, 32);
-  track("entry_surface", route);
+  track("entry_surface", surfaceLabel(pathname));
+}
+
+/**
+ * The label a tool-hosting route is recorded under. Exported because the Clarity
+ * session tags record the same surface, and two instruments naming one page
+ * differently is a disagreement nobody can settle after the fact.
+ */
+export function surfaceLabel(pathname: string): string {
+  return pathname === "/" ? "home" : pathname.replace(/^\/+|\/+$/g, "").slice(0, 32);
 }
