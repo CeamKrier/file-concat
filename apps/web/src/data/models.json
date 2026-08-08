@@ -1,7 +1,20 @@
 {
-  "lastUpdated": "2026-08-04T21:45:17.970Z",
-  "totalModels": 284,
+  "lastUpdated": "2026-08-08T10:57:03.065Z",
+  "totalModels": 301,
   "textModels": [
+    {
+      "uid": "meta/muse-spark-1.2",
+      "name": "Muse Spark 1.2",
+      "providerId": "kilo",
+      "providerName": "Kilo Gateway",
+      "contextLimit": 1048576,
+      "outputLimit": 131072,
+      "inputCost": 1.25,
+      "outputCost": 4.25,
+      "hasReasoning": true,
+      "hasToolCall": true,
+      "releaseDate": "2026-08-05"
+    },
     {
       "uid": "alibaba/qwen3.8-max",
       "name": "Qwen3.8 Max",
@@ -122,8 +135,8 @@
     {
       "uid": "thinkingmachines/inkling",
       "name": "Inkling",
-      "providerId": "deepinfra",
-      "providerName": "Deep Infra",
+      "providerId": "openrouter",
+      "providerName": "OpenRouter",
       "contextLimit": 1048576,
       "outputLimit": 1048576,
       "inputCost": 0.95,
@@ -290,12 +303,12 @@
     {
       "uid": "zhipuai/glm-5.2",
       "name": "GLM-5.2",
-      "providerId": "nano-gpt",
-      "providerName": "NanoGPT",
+      "providerId": "openrouter",
+      "providerName": "OpenRouter",
       "contextLimit": 1000000,
       "outputLimit": 131072,
-      "inputCost": 0.42,
-      "outputCost": 1.32,
+      "inputCost": 0.252,
+      "outputCost": 0.792,
       "hasReasoning": true,
       "hasToolCall": true,
       "releaseDate": "2026-06-13"
@@ -563,12 +576,12 @@
     {
       "uid": "mistral/mistral-medium-2604",
       "name": "Mistral Medium 3.5",
-      "providerId": "evroc",
-      "providerName": "evroc",
+      "providerId": "cortecs",
+      "providerName": "Cortecs",
       "contextLimit": 262144,
       "outputLimit": 262144,
-      "inputCost": 1.725,
-      "outputCost": 6.9,
+      "inputCost": 1.671,
+      "outputCost": 5.57,
       "hasReasoning": true,
       "hasToolCall": true,
       "releaseDate": "2026-04-29"
@@ -810,8 +823,8 @@
     {
       "uid": "meta/muse-spark-1.1",
       "name": "Muse Spark 1.1",
-      "providerId": "kilo",
-      "providerName": "Kilo Gateway",
+      "providerId": "empiriolabs",
+      "providerName": "EmpirioLabs AI",
       "contextLimit": 1000000,
       "outputLimit": 32000,
       "inputCost": 1.25,
@@ -1044,12 +1057,12 @@
     {
       "uid": "mistral/mistral-small-2603",
       "name": "Mistral Small 4",
-      "providerId": "kilo",
-      "providerName": "Kilo Gateway",
+      "providerId": "cortecs",
+      "providerName": "Cortecs",
       "contextLimit": 256000,
       "outputLimit": 256000,
-      "inputCost": 0.15,
-      "outputCost": 0.6,
+      "inputCost": 0.143,
+      "outputCost": 0.568,
       "hasReasoning": true,
       "hasToolCall": true,
       "releaseDate": "2026-03-16"
@@ -1211,6 +1224,19 @@
       "releaseDate": "2026-02-23"
     },
     {
+      "uid": "alibaba/qwen3.5-flash",
+      "name": "Qwen3.5 Flash",
+      "providerId": "openrouter",
+      "providerName": "OpenRouter",
+      "contextLimit": 1000000,
+      "outputLimit": 65536,
+      "inputCost": 0.065,
+      "outputCost": 0.26,
+      "hasReasoning": true,
+      "hasToolCall": true,
+      "releaseDate": "2026-02-23"
+    },
+    {
       "uid": "google/gemini-3.1-pro-preview",
       "name": "Gemini 3.1 Pro Preview",
       "providerId": "nano-gpt",
@@ -1317,8 +1343,8 @@
     {
       "uid": "minimax/MiniMax-M2.5",
       "name": "MiniMax-M2.5",
-      "providerId": "openrouter",
-      "providerName": "OpenRouter",
+      "providerId": "inceptron",
+      "providerName": "Inceptron",
       "contextLimit": 204800,
       "outputLimit": 131072,
       "inputCost": 0.15,
@@ -1352,6 +1378,19 @@
       "hasReasoning": true,
       "hasToolCall": true,
       "releaseDate": "2026-02-05"
+    },
+    {
+      "uid": "alibaba/qwen3-coder-next",
+      "name": "Qwen3 Coder Next",
+      "providerId": "llmgateway",
+      "providerName": "LLM Gateway",
+      "contextLimit": 262144,
+      "outputLimit": 65536,
+      "inputCost": 0.108,
+      "outputCost": 0.675,
+      "hasReasoning": false,
+      "hasToolCall": true,
+      "releaseDate": "2026-02-03"
     },
     {
       "uid": "stepfun/step-3.5-flash",
@@ -1588,6 +1627,19 @@
       "releaseDate": "2025-12-01"
     },
     {
+      "uid": "deepseek/deepseek-v3.2",
+      "name": "DeepSeek V3.2",
+      "providerId": "crof",
+      "providerName": "CrofAI",
+      "contextLimit": 128000,
+      "outputLimit": 64000,
+      "inputCost": 0.18,
+      "outputCost": 0.35,
+      "hasReasoning": true,
+      "hasToolCall": true,
+      "releaseDate": "2025-12-01"
+    },
+    {
       "uid": "anthropic/claude-opus-4-5",
       "name": "Claude Opus 4.5 (latest)",
       "providerId": "anthropic",
@@ -1612,6 +1664,19 @@
       "hasReasoning": true,
       "hasToolCall": false,
       "releaseDate": "2025-11-20"
+    },
+    {
+      "uid": "xai/grok-4.1-fast",
+      "name": "Grok 4.1 Fast",
+      "providerId": "ofox",
+      "providerName": "Ofox",
+      "contextLimit": 2000000,
+      "outputLimit": 30000,
+      "inputCost": 0.2,
+      "outputCost": 0.5,
+      "hasReasoning": false,
+      "hasToolCall": true,
+      "releaseDate": "2025-11-19"
     },
     {
       "uid": "google/gemini-3-pro-preview",
@@ -1837,12 +1902,12 @@
     {
       "uid": "anthropic/claude-sonnet-4-5",
       "name": "Claude Sonnet 4.5 (latest)",
-      "providerId": "anthropic",
-      "providerName": "Anthropic",
+      "providerId": "cortecs",
+      "providerName": "Cortecs",
       "contextLimit": 200000,
       "outputLimit": 64000,
-      "inputCost": 3,
-      "outputCost": 15,
+      "inputCost": 2.989,
+      "outputCost": 14.945,
       "hasReasoning": true,
       "hasToolCall": true,
       "releaseDate": "2025-09-29"
@@ -1850,12 +1915,12 @@
     {
       "uid": "alibaba/qwen3-max",
       "name": "Qwen3 Max",
-      "providerId": "merge-gateway",
-      "providerName": "Merge Gateway",
+      "providerId": "ofox",
+      "providerName": "Ofox",
       "contextLimit": 262144,
       "outputLimit": 65536,
-      "inputCost": 0.359,
-      "outputCost": 1.434,
+      "inputCost": 0.36,
+      "outputCost": 1.43,
       "hasReasoning": false,
       "hasToolCall": true,
       "releaseDate": "2025-09-23"
@@ -1885,6 +1950,19 @@
       "hasReasoning": true,
       "hasToolCall": true,
       "releaseDate": "2025-09-15"
+    },
+    {
+      "uid": "swiss-ai/apertus-70b",
+      "name": "Apertus 70B",
+      "providerId": "regolo-ai",
+      "providerName": "Regolo AI",
+      "contextLimit": 65536,
+      "outputLimit": 8192,
+      "inputCost": 0.46,
+      "outputCost": 2.42,
+      "hasReasoning": false,
+      "hasToolCall": true,
+      "releaseDate": "2025-09-02"
     },
     {
       "uid": "sarvam/sarvam-105b",
@@ -1947,6 +2025,19 @@
       "outputLimit": 32000,
       "inputCost": 2.5,
       "outputCost": 10,
+      "hasReasoning": true,
+      "hasToolCall": true,
+      "releaseDate": "2025-08-21"
+    },
+    {
+      "uid": "deepseek/deepseek-v3.1",
+      "name": "DeepSeek-V3.1",
+      "providerId": "nano-gpt",
+      "providerName": "NanoGPT",
+      "contextLimit": 131072,
+      "outputLimit": 8192,
+      "inputCost": 0.2,
+      "outputCost": 0.7,
       "hasReasoning": true,
       "hasToolCall": true,
       "releaseDate": "2025-08-21"
@@ -2032,8 +2123,8 @@
     {
       "uid": "anthropic/claude-opus-4-1",
       "name": "Claude Opus 4.1 (latest)",
-      "providerId": "anthropic",
-      "providerName": "Anthropic",
+      "providerId": "cloudflare-ai-gateway",
+      "providerName": "Cloudflare AI Gateway",
       "contextLimit": 200000,
       "outputLimit": 32000,
       "inputCost": 15,
@@ -2160,6 +2251,19 @@
       "releaseDate": "2025-07-23"
     },
     {
+      "uid": "alibaba/qwen3-235b-a22b-instruct-2507",
+      "name": "Qwen3 235B-A22B Instruct 2507",
+      "providerId": "submodel",
+      "providerName": "submodel",
+      "contextLimit": 262144,
+      "outputLimit": 16384,
+      "inputCost": 0.2,
+      "outputCost": 0.3,
+      "hasReasoning": false,
+      "hasToolCall": true,
+      "releaseDate": "2025-07-21"
+    },
+    {
       "uid": "mistral/devstral-medium-2507",
       "name": "Devstral Medium",
       "providerId": "merge-gateway",
@@ -2238,6 +2342,19 @@
       "releaseDate": "2025-06-17"
     },
     {
+      "uid": "mistral/magistral-small-2506",
+      "name": "Magistral Small",
+      "providerId": "mistral",
+      "providerName": "Mistral",
+      "contextLimit": 131072,
+      "outputLimit": 8192,
+      "inputCost": 0.5,
+      "outputCost": 1.5,
+      "hasReasoning": true,
+      "hasToolCall": true,
+      "releaseDate": "2025-06-10"
+    },
+    {
       "uid": "openai/o3-pro",
       "name": "o3-pro",
       "providerId": "abacus",
@@ -2292,12 +2409,12 @@
     {
       "uid": "anthropic/claude-sonnet-4-0",
       "name": "Claude Sonnet 4 (latest)",
-      "providerId": "github-copilot",
-      "providerName": "GitHub Copilot",
+      "providerId": "cortecs",
+      "providerName": "Cortecs",
       "contextLimit": 200000,
       "outputLimit": 64000,
-      "inputCost": 3,
-      "outputCost": 15,
+      "inputCost": 2.898,
+      "outputCost": 14.493,
       "hasReasoning": true,
       "hasToolCall": true,
       "releaseDate": "2025-05-22"
@@ -2396,12 +2513,12 @@
     {
       "uid": "meta/llama-4-maverick-17b-instruct",
       "name": "Llama 4 Maverick 17B Instruct",
-      "providerId": "cortecs",
-      "providerName": "Cortecs",
+      "providerId": "abacus",
+      "providerName": "Abacus",
       "contextLimit": 1000000,
       "outputLimit": 16384,
-      "inputCost": 0.124,
-      "outputCost": 0.603,
+      "inputCost": 0.14,
+      "outputCost": 0.59,
       "hasReasoning": false,
       "hasToolCall": true,
       "releaseDate": "2025-04-05"
@@ -2448,12 +2565,12 @@
     {
       "uid": "alibaba/qwen3-coder-30b-a3b-instruct",
       "name": "Qwen3-Coder 30B-A3B Instruct",
-      "providerId": "cortecs",
-      "providerName": "Cortecs",
+      "providerId": "tensorx",
+      "providerName": "TensorX",
       "contextLimit": 262144,
       "outputLimit": 65536,
-      "inputCost": 0.053,
-      "outputCost": 0.222,
+      "inputCost": 0.06,
+      "outputCost": 0.25,
       "hasReasoning": false,
       "hasToolCall": true,
       "releaseDate": "2025-04"
@@ -2576,6 +2693,19 @@
       "releaseDate": "2025-01-19"
     },
     {
+      "uid": "deepseek/deepseek-v3",
+      "name": "DeepSeek-V3",
+      "providerId": "deepinfra",
+      "providerName": "Deep Infra",
+      "contextLimit": 131072,
+      "outputLimit": 8192,
+      "inputCost": 0.32,
+      "outputCost": 0.89,
+      "hasReasoning": false,
+      "hasToolCall": true,
+      "releaseDate": "2024-12-26"
+    },
+    {
       "uid": "openai/o3-mini",
       "name": "o3-mini",
       "providerId": "poe",
@@ -2610,6 +2740,19 @@
       "outputLimit": 8192,
       "inputCost": 0.052,
       "outputCost": 0.21,
+      "hasReasoning": false,
+      "hasToolCall": true,
+      "releaseDate": "2024-12-11"
+    },
+    {
+      "uid": "microsoft/phi-4-mini",
+      "name": "Phi-4-mini",
+      "providerId": "azure",
+      "providerName": "Azure",
+      "contextLimit": 128000,
+      "outputLimit": 4096,
+      "inputCost": 0.075,
+      "outputCost": 0.3,
       "hasReasoning": false,
       "hasToolCall": true,
       "releaseDate": "2024-12-11"
@@ -2678,6 +2821,19 @@
       "hasReasoning": false,
       "hasToolCall": true,
       "releaseDate": "2024-11-18"
+    },
+    {
+      "uid": "alibaba/qwen2.5-coder-0.5b",
+      "name": "Qwen2.5-Coder-0.5B",
+      "providerId": "pioneer",
+      "providerName": "Pioneer",
+      "contextLimit": 32768,
+      "outputLimit": 8192,
+      "inputCost": 0.1,
+      "outputCost": 0.1,
+      "hasReasoning": false,
+      "hasToolCall": false,
+      "releaseDate": "2024-11-12"
     },
     {
       "uid": "mistral/mistral-large-latest",
@@ -2758,6 +2914,45 @@
       "releaseDate": "2024-10-22"
     },
     {
+      "uid": "mistral/ministral-8b-instruct-2410",
+      "name": "Ministral 8B Instruct",
+      "providerId": "pioneer",
+      "providerName": "Pioneer",
+      "contextLimit": 131072,
+      "outputLimit": 8192,
+      "inputCost": 0.15,
+      "outputCost": 0.15,
+      "hasReasoning": false,
+      "hasToolCall": true,
+      "releaseDate": "2024-10-16"
+    },
+    {
+      "uid": "meta/llama-3.2-1b",
+      "name": "Llama-3.2-1B",
+      "providerId": "pioneer",
+      "providerName": "Pioneer",
+      "contextLimit": 131072,
+      "outputLimit": 8192,
+      "inputCost": 0.1,
+      "outputCost": 0.1,
+      "hasReasoning": false,
+      "hasToolCall": false,
+      "releaseDate": "2024-09-25"
+    },
+    {
+      "uid": "meta/llama-3.2-3b",
+      "name": "Llama-3.2-3B",
+      "providerId": "pioneer",
+      "providerName": "Pioneer",
+      "contextLimit": 131072,
+      "outputLimit": 8192,
+      "inputCost": 0.1,
+      "outputCost": 0.1,
+      "hasReasoning": false,
+      "hasToolCall": false,
+      "releaseDate": "2024-09-25"
+    },
+    {
       "uid": "mistral/pixtral-12b",
       "name": "Pixtral 12B",
       "providerId": "mistral",
@@ -2773,12 +2968,12 @@
     {
       "uid": "alibaba/qwen2-5-vl-72b-instruct",
       "name": "Qwen2.5-VL 72B Instruct",
-      "providerId": "nebius",
-      "providerName": "Nebius Token Factory",
+      "providerId": "cortecs",
+      "providerName": "Cortecs",
       "contextLimit": 131072,
       "outputLimit": 8192,
       "inputCost": 0.25,
-      "outputCost": 0.75,
+      "outputCost": 0.747,
       "hasReasoning": false,
       "hasToolCall": true,
       "releaseDate": "2024-09"
@@ -2885,6 +3080,19 @@
       "outputCost": 0.9,
       "hasReasoning": false,
       "hasToolCall": true,
+      "releaseDate": "2024-05-29"
+    },
+    {
+      "uid": "mistral/codestral-22b-v0.1",
+      "name": "Codestral-22B-v0.1",
+      "providerId": "pioneer",
+      "providerName": "Pioneer",
+      "contextLimit": 32768,
+      "outputLimit": 8192,
+      "inputCost": 0.3,
+      "outputCost": 0.9,
+      "hasReasoning": false,
+      "hasToolCall": false,
       "releaseDate": "2024-05-29"
     },
     {

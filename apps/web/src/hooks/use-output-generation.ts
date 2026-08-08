@@ -15,6 +15,7 @@ import {
 } from "@fileconcat/core";
 
 import { currentRun, track, trackAmount } from "~/lib/metrics";
+import { tagBundleReady, tagOutcome } from "~/lib/clarity-tags";
 
 import type { ContentEntry } from "./use-file-ingestion";
 
@@ -116,6 +117,8 @@ export function useOutputGeneration({
       0,
     );
     trackAmount("bundle_size", { n: includedContents.length, b: bytes });
+    // From here on, leaving without an export is abandonment (ADR-0016).
+    tagBundleReady();
   }, [includedContents]);
 
   const buildSingle = useCallback(
@@ -146,6 +149,7 @@ export function useOutputGeneration({
       setTimeout(() => setIsCopied(false), 2000);
       // Recorded after the write succeeds: a failed copy is not an outcome.
       track("output_taken", "copy");
+      tagOutcome("copied");
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
     }
@@ -166,6 +170,7 @@ export function useOutputGeneration({
         const { projectName, text } = buildSingle(includedContents);
         triggerDownload(text, outputFileName(projectName, extension), mimeType);
         track("output_taken", "download");
+        tagOutcome("downloaded");
         return;
       }
 
@@ -183,6 +188,7 @@ export function useOutputGeneration({
       }
       // One multi-part download is one outcome, however many parts it wrote.
       track("output_taken", "download");
+      tagOutcome("downloaded");
     } catch (error) {
       console.error("Error generating output:", error);
     } finally {
