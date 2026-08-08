@@ -53,3 +53,4 @@ google-search-console-api.json
 
 # Redesign working files — kept locally, not published to the remote.
 /redesign/
+.mcp.json
