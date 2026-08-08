@@ -8,62 +8,21 @@ FileConcat (fileconcat.com) — a privacy-first tool that concatenates files int
 
 ## Workspace layout
 
-pnpm workspace + Nx (`pnpm-workspace.yaml`, `nx.json`). Three members:
-
-| Path             | Name                | Role                                                                 |
-| ---------------- | ------------------- | -------------------------------------------------------------------- |
-| `apps/web`       | `@fileconcat/web`   | TanStack Start app deployed to Cloudflare Workers                    |
-| `packages/cli`   | `fileconcat`        | Commander CLI, published to npm, built with tsup                     |
-| `packages/core`  | `@fileconcat/core`  | Shared library: file processing, path utils, source adapters, models |
+pnpm workspace + Nx (`pnpm-workspace.yaml`, `nx.json`). Three members: `apps/web`, `packages/cli`, `packages/core`.
 
 `@fileconcat/core` is consumed via `workspace:*` and resolved at type-check time through the root `tsconfig.json` `paths` alias (`@fileconcat/core` → `packages/core/src/index.ts`). The web app duplicates that alias in `apps/web/app.config.ts` so Vite resolves the same source files at runtime — no build step is required to consume `core` in dev.
 
+Per-package guidance lives in `apps/web/CLAUDE.md`, `packages/core/CLAUDE.md` and `packages/cli/CLAUDE.md`; each loads only when you work under that directory.
+
 ## Common commands
 
-Run from the repo root unless noted. All build/check tasks go through Nx, so prefer the root scripts to get caching and task graph ordering.
+Run from the repo root unless noted. All build/check tasks go through Nx, so prefer the root scripts (`pnpm dev`, `pnpm build`, `pnpm check`, …) over per-package invocations, to get caching and task graph ordering.
 
-```bash
-pnpm dev              # nx run @fileconcat/web:dev   (Vite dev server)
-pnpm build            # nx run @fileconcat/web:build (web only)
-pnpm build:all        # nx run-many -t build         (every package)
-pnpm preview          # nx run @fileconcat/web:preview
-pnpm check            # nx run-many -t check         (tsc --noEmit per package)
-pnpm lint             # eslint .
-pnpm format           # prettier --write .
-```
+Core's Vitest suite must be run from inside `packages/core/` (`pnpm vitest run`, `pnpm vitest run <file>`, `pnpm vitest -t "<pattern>"`).
 
-Web app, from `apps/web/`:
+`pnpm test` from the root runs all three suites through Nx (`nx run-many -t test`): core, CLI and web. The CLI target builds itself first, because its suite drives the built `dist/index.js` rather than the source.
 
-```bash
-pnpm fetch-models       # refresh src/data/models.json from upstream pricing source
-pnpm generate-sitemap   # rewrite public/sitemap.xml
-pnpm prebuild           # runs both above (fires automatically before build)
-pnpm deploy             # pnpm build && wrangler deploy
-pnpm start              # node .output/server/index.mjs (run the built SSR server)
-```
-
-CLI, from `packages/cli/`:
-
-```bash
-pnpm dev                # tsx src/index.ts  (run from source)
-pnpm build              # tsup → dist/
-```
-
-Core tests use Vitest (`packages/core/vitest.config.ts`); run from inside `packages/core/`:
-
-```bash
-pnpm vitest run                  # full suite
-pnpm vitest run path/to/file     # single file
-pnpm vitest -t "pattern"         # by test name
-```
-
-`pnpm test` from the root runs all three suites through Nx (`nx run-many -t test`):
-core, CLI and web. The CLI target builds itself first, because its suite drives
-the built `dist/index.js` rather than the source.
-
-`pnpm check` covers all three projects too. It used to cover only web and CLI —
-core's target was named `typecheck`, so `run-many -t check` skipped it and core's
-TypeScript was never checked by the root command. Core's target is now `check`.
+`pnpm check` covers all three projects too. It used to cover only web and CLI — core's target was named `typecheck`, so `run-many -t check` skipped it and core's TypeScript was never checked by the root command. Core's target is now `check`; do not rename it back.
 
 ## CI
 
@@ -83,64 +42,15 @@ to add it back: pull requests from forks.
 Steps after checkout carry `if: ${{ !cancelled() }}` so one failing step still
 reports the others. Before this existed the CLI suite sat red for a month.
 
-## Architecture notes
-
-### `packages/core`
-
-The barrel `src/index.ts` re-exports five subsystems. When adding new functionality, place it in the matching subsystem and re-export from that subsystem's `index.ts` rather than from the root barrel directly.
-
-- `file-processing/` — transform, size, validation, `binary-extensions`. The single source of truth for what counts as text, what gets skipped for size, and how files are turned into the output blob. Three parts deserve their own mention:
-  - `routing.ts` — `routeBytes(prefix)` is the **one** decision point for what a file is. It reads leading bytes, never a filename, and returns `binary` / `extract(parserId)` / `expand(archiveKind)` / `unknown` (ADR-0011). Never reintroduce an extension list to decide extraction.
-  - `text-signatures.ts` — the same idea for formats whose container *is* text: `WEBVTT`, an SRT cue, `{"cells": [{"cell_type":`, an RFC 5322 header block with an envelope header. These route to parsers like any container, so a notebook saved as `.json` still renders. Add a text-shaped format here, not as a post-classification transform — that would need the extension table ADR-0011 removed.
-  - `parsers/` — the parser contract and `createParserRegistry`. Core routes; **each platform registers its own loaders** (`apps/web/src/lib/parsers.ts`, `packages/cli/src/parsers.ts`), because tsup bundles core into the published CLI and `?url` is Vite-only syntax (ADR-0012). A parser with a dependency keeps the library call in the *platform* loader (`email`); a parser that is a pure function over text lives in core and is registered directly (`notebook`, `subtitles`).
-  - `archives.ts` — bytes in, entries out. Shared by the web (always) and the CLI (behind `--expand-archives`).
-- `path-utils/` — `file-tree`, `language` (extension → language id), `project-name`, `skip-paths`. Used by both the web tree view and the CLI.
-- `default-ignore.ts` — gitignore-style defaults shared across web and CLI; do not duplicate ignore patterns elsewhere.
-- `models/` — LLM model catalog and `cost-calculator`. Consumed by the web's cost UI and refreshed via `apps/web/scripts/fetch-models.ts` → `apps/web/src/data/models.json`.
-- `sources/` — pluggable input sources. Each remote (`github`, `gitlab`, `bitbucket`, `gist`, `url`) is an adapter under `sources/adapters/`, registered in `default-registry.ts`. To add a new source, implement the adapter, register it, and the web `source-input` / CLI both pick it up automatically.
-
-### `apps/web`
-
-TanStack Start (file-routed React + SSR) targeting Cloudflare Workers. The Vite config (`apps/web/app.config.ts`) is the spine — it composes plugins in a strict order:
-
-1. `cloudflare({ viteEnvironment: { name: "ssr" } })` — must wrap the SSR build for the Workers runtime.
-2. `tanstackStart()` — must come **before** `react()`.
-3. `wasm()` + `topLevelAwait()` — required for `@dqbd/tiktoken` (excluded from `optimizeDeps` for the same reason).
-4. `react()`, then `mdx()` with `remark-gfm` + `rehype-prism-plus` and `providerImportSource: "@mdx-js/react"`.
-
-Manual `manualChunks` split tiktoken, CodeMirror, Radix, icons, file-type, and react-vendor — keep heavy deps in their own chunks when adding them.
-
-Routes live in `apps/web/src/routes/` (`__root.tsx`, `index.tsx`, `app.tsx`, `docs/index.tsx`, `docs/$slug.tsx`, `api/models.ts`). Docs content is MDX under `apps/web/src/content/docs/`; `docs/$slug.tsx` resolves slug → MDX file.
-
-Path aliases inside the web app: `@` and `~` → `apps/web/src`, plus the `@fileconcat/core` alias mentioned above.
-
-### `packages/cli`
-
-Single-purpose Commander program (`src/index.ts` → `src/commands/concat.ts`). The default command and the explicit `concat` command share the same flag set. Filtering, ignore handling, and output formatting all delegate to `@fileconcat/core` — keep CLI-specific code limited to argv parsing, file I/O, and progress reporting.
-
-## Deploy targets and build artifacts
-
-- The web build output lives in `apps/web/dist/` (the `@cloudflare/vite-plugin` v1.22+ convention; the older `.output/` directory is no longer produced). Vite emits `dist/client/` for static assets and `dist/server/index.js` plus a generated `dist/server/wrangler.json` derived from the hand-written `apps/web/wrangler.jsonc`. `pnpm start` runs the SSR worker via `node dist/server/index.js`.
-- **`main` in `apps/web/wrangler.jsonc` is the real worker entry, and it is now `./src/server.ts`.** It used to point at `@tanstack/react-start/server-entry`; that is the framework's *default* entry, which is built with `createServerEntry` and forwards **only** `fetch`, leaving nowhere to hang a cron. TanStack's own `src/server` convention does **not** help here: the Cloudflare plugin builds whatever `main` names, so the entry has to be named there. `src/server.ts` reproduces the default entry's `fetch` verbatim (`createStartHandler(defaultStreamHandler)`) and adds `scheduled` for the counter retention cron. The generated `dist/server/wrangler.json` still rewrites `main` to the emitted `index.js`; that part is unchanged. If you replace the entry, keep the `fetch` half identical or SSR breaks silently.
-- Worker code is split across `dist/server/assets/*.js` (`no_bundle: true` uploads each as its own module). **When checking whether something made it into the worker, grep the whole `dist/server` tree — `index.js` is a thin re-export and will not contain it.**
-- Both `dist/` and the legacy `.output/` are gitignored, alongside `.wrangler/` and `*.tsbuildinfo`.
-- `nodejs_compat` is required and already enabled.
-
-## Tooling conventions
-
-- pnpm 10.x is the package manager (see root `packageManager` field). Use `pnpm` for installs/scripts so the workspace protocol resolves.
-- TypeScript 5.6, strict, ESNext modules, `moduleResolution: "bundler"`. Per-package `tsconfig.json` extends the root one.
-- ESLint 9 flat config (`eslint.config.js`) with `typescript-eslint`, `react-hooks`, `react-refresh`. Lint runs from the root via `eslint .`.
-- Prettier 3 with `prettier-plugin-tailwindcss`. Settings in `.prettierrc`: `printWidth: 100`, double quotes, semicolons, 2-space, **`endOfLine: "crlf"`** (intentional — do not switch to lf).
-
 ## Keeping heavy code out of the SSR worker
 
-Vite **inlines dynamic imports in the SSR build**, so `await import("heavy")` alone does not keep `heavy` out of the Cloudflare worker bundle — the body lands in the SSR chunk anyway. The only thing that works is static dead-code elimination: guard with `if (import.meta.env.SSR) return …` *before* the import, which the SSR build replaces with `true` and then drops the rest.
+Vite **inlines dynamic imports in the SSR build**, so `await import("heavy")` alone does not keep `heavy` out of the Cloudflare worker bundle — the body lands in the SSR chunk anyway. The only thing that works is static dead-code elimination: guard with `if (import.meta.env.SSR) return …` _before_ the import, which the SSR build replaces with `true` and then drops the rest.
 
 That is why several web modules come in pairs — `tokens.ts` / `tokens-client.ts`, `prepare-batch.ts` / `prepare-batch-client.ts`, `parsers.ts` → `extract-document-client.ts` and `extract-email-client.ts`. Follow the pattern for any new parser, wasm blob, or detector.
 
 `apps/web/scripts/check-worker-size.ts` runs as `postbuild` and watches this. It prunes SSR assets no server module references (Vite emits `?url` assets into the SSR output even when the importing module is dead code) and fails the build past a 1 MiB gzip budget. **The enforced Cloudflare limit is on the gzipped total, not the raw one** — the raw figure sits near 3 MiB and means nothing. The script's header comment is the authority; read it before changing the numbers.
 
-## Source adapter gotcha
+## Tooling conventions
 
-When adding or modifying an adapter under `packages/core/src/sources/adapters/`, type the response payload of every `await response.json()` call explicitly. Without it `tsc --noEmit` (and therefore `pnpm check`) fails with implicit-any errors that only surface at the workspace level.
+- Use `pnpm` for installs/scripts so the workspace protocol resolves.
+- Prettier's `endOfLine: "crlf"` in `.prettierrc` is **intentional — do not switch to `lf`**.
