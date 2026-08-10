@@ -18,6 +18,33 @@ export interface OfficeParserOptions {
    * offline instead of the library's CDN default — see ADR-0003.
    */
   pdfWorkerSrc?: string;
+  /**
+   * Read the pixels of images the document carries, so a scanned page yields
+   * its text instead of nothing. Absent means no OCR, which is the default
+   * everywhere: recognition costs seconds per page and, left unconfigured,
+   * downloads its engine from a third party — neither is acceptable without
+   * the caller having asked.
+   */
+  ocr?: OcrOptions;
+}
+
+/**
+ * Where the recogniser comes from and what it should expect to read.
+ *
+ * Every path defaults to the library's own, which resolves to a CDN. Point
+ * them at same-origin copies to keep the ADR-0003 promise that using the tool
+ * makes no third-party request; the bytes being read never travel either way,
+ * but *that* a document was opened would.
+ */
+export interface OcrOptions {
+  /** Tesseract language code, `+`-joined for several (`"eng+deu"`). Defaults to English. */
+  language?: string;
+  /** Tesseract worker script URL. */
+  workerPath?: string;
+  /** Tesseract core (wasm) URL. */
+  corePath?: string;
+  /** Base URL for `.traineddata` language files. */
+  langPath?: string;
 }
 
 /**
@@ -52,6 +79,69 @@ function toNotes(messages: ReadonlyArray<{ code: string }>): ExtractionNote[] {
 }
 
 /**
+ * An image the library lifted out of a document. `name` is what the rendered
+ * text refers to it by; `ocrText` is present only when recognition ran and
+ * found something.
+ */
+interface ExtractedImage {
+  name?: string;
+  ocrText?: string;
+}
+
+/**
+ * Rendering to text writes `[Image: <name>]` where an extracted image sat and
+ * keeps any recognised text on the image itself, so OCR output never reaches a
+ * caller that reads only the string. Put each image's text where its
+ * placeholder stood, so a scanned page and a page that carried real text stay
+ * in reading order.
+ *
+ * An image that yielded nothing has its placeholder removed instead of left
+ * standing. That matters more than it looks: `[Image: page1.bmp]` is not
+ * content, but it *is* a non-empty string, and every caller decides whether a
+ * document was readable by asking whether the text is empty. Leaving it would
+ * turn an unreadable scan into a silent success carrying a filename.
+ *
+ * Only placeholders naming an image we actually received are touched, so a
+ * document whose own prose happens to contain that shape survives intact.
+ *
+ * Exported for its own tests: exercising it through {@link extractOfficeDocument}
+ * would mean running a real recogniser, which costs seconds per page and
+ * downloads a language model.
+ */
+export function resolveImagePlaceholders(text: string, images: readonly ExtractedImage[]): string {
+  let resolved = text;
+  for (const image of images) {
+    if (!image.name) continue;
+    // split/join rather than a regex: a filename is not a pattern, and escaping
+    // one to pretend otherwise is a bug waiting for the first odd character.
+    resolved = resolved.split(`[Image: ${image.name}]`).join(image.ocrText?.trim() ?? "");
+  }
+  return resolved;
+}
+
+function toLibraryConfig(options: OfficeParserOptions): Record<string, unknown> {
+  const config: Record<string, unknown> = {};
+  if (options.pdfWorkerSrc) config.pdfWorkerSrc = options.pdfWorkerSrc;
+  if (options.ocr) {
+    const { language, ...paths } = options.ocr;
+    // The two flags are inseparable. Recognition only ever runs over images the
+    // library has extracted, so `ocr` alone does nothing — and `extractAttachments`
+    // alone is worse than either, because it fills the text with `[Image: …]`
+    // placeholders that read as a successful extraction. Never expose one
+    // without the other.
+    config.ocr = true;
+    config.extractAttachments = true;
+    config.ocrConfig = {
+      ...(language ? { language } : {}),
+      // An unset path means "the library's default", which is a CDN. Passing
+      // one through only when we have it keeps that choice with the caller.
+      ...Object.fromEntries(Object.entries(paths).filter(([, value]) => Boolean(value))),
+    };
+  }
+  return config;
+}
+
+/**
  * Extract the recoverable text from a document's bytes. Empty text means the
  * document carries none — a scanned image-only or encrypted PDF — and callers
  * surface that rather than silently dropping the file (ADR-0003).
@@ -61,11 +151,11 @@ export async function extractOfficeDocument(
   options: OfficeParserOptions = {},
 ): Promise<ExtractionResult> {
   const { parseOffice } = await import("officeparser");
-  const config = options.pdfWorkerSrc ? { pdfWorkerSrc: options.pdfWorkerSrc } : {};
-  const ast = await parseOffice(bytes, config);
+  const ast = await parseOffice(bytes, toLibraryConfig(options));
   // `.to("text")` replaces the deprecated `.toText()`, and hands back the
   // per-document warnings that become our notes.
   const { value, messages } = await ast.to("text");
+  const text = resolveImagePlaceholders(value, ast.attachments ?? []).trim();
   const notes = toNotes(messages);
-  return notes.length > 0 ? { text: value.trim(), notes } : { text: value.trim() };
+  return notes.length > 0 ? { text, notes } : { text };
 }
