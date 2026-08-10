@@ -54,3 +54,11 @@ google-search-console-api.json
 # Redesign working files — kept locally, not published to the remote.
 /redesign/
 .mcp.json
+
+# Tesseract language models. Running OCR under node caches the model into the
+# working directory — 5.2 MB per language, downloaded from a CDN — so any OCR
+# run leaves one behind wherever it was started from. Nothing here should ever
+# be committed; the same files belong on our own origin (see the OCR options on
+# extractOfficeDocument), not in git.
+*.traineddata
+*.traineddata.gz
