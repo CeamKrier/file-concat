@@ -1,0 +1,16 @@
+{
+    "//": "tsconfig.json emits declarations and is rooted at src/, so it cannot also cover tests/ — rootDir has to contain every file in the project. This second project typechecks the suite and emits nothing. `check` runs both; without it the tests compile only inside vitest, which strips types rather than checking them, and a test can drift from the API it is meant to guard without anything failing.",
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "composite": false,
+        "declaration": false,
+        "declarationMap": false,
+        "emitDeclarationOnly": false,
+        "noEmit": true,
+        "rootDir": "."
+    },
+    "include": [
+        "src/**/*",
+        "tests/**/*"
+    ]
+}

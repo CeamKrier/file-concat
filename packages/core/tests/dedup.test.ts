@@ -40,7 +40,6 @@ const modelGen: fc.Arbitrary<FilteredModel> = fc.record({
 function model(overrides: Partial<FilteredModel>): FilteredModel {
   return {
     uid: "test/x",
-    id: "x",
     name: "x",
     providerId: "test",
     providerName: "Test",
