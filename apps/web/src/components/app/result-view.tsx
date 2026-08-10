@@ -15,6 +15,7 @@ import {
   Scissors,
   SlidersHorizontal,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { cn } from "~/lib/utils";
 import { InfoCard } from "./info-card";
@@ -48,14 +49,20 @@ type ResultViewProps = {
   flaggedFiles: string[];
   /** Included files whose text was extracted from a document (PDF/Office/ODF). */
   extractedFiles: string[];
-  /** Documents that opened but held no text — scans, which recognition can sometimes read. */
-  unreadDocuments: string[];
+  /** Every document in this Run that opened with no text in it, recovered or not. */
+  scannedDocumentCount: number;
   /** True while a recognition pass is running. */
   isReading: boolean;
   /** Recognition progress, or null when idle. */
   readProgress: { done: number; total: number } | null;
-  /** Run recognition over the unread documents; resolves to how many became readable. */
-  onReadUnread: () => Promise<number>;
+  /** How many documents recognition has already rescued in this Run. */
+  recoveredDocuments: number;
+  /** True when the last recognition pass ended on a stop rather than on its own. */
+  stoppedReading: boolean;
+  /** How to attribute the reading, already phrased: "as Turkish", "in 2 languages". */
+  readLanguageNote: string | null;
+  /** Open the reading dialog, where every recognition action lives. */
+  onCheckReading: () => void;
   /** Open the "Adjust what's included" drawer. */
   onAdjust: () => void;
   bigBundle: boolean;
@@ -84,10 +91,13 @@ export function ResultView({
   skippedByDefault,
   flaggedFiles,
   extractedFiles,
-  unreadDocuments,
+  scannedDocumentCount,
   isReading,
   readProgress,
-  onReadUnread,
+  recoveredDocuments,
+  stoppedReading,
+  readLanguageNote,
+  onCheckReading,
   onAdjust,
   bigBundle,
   splitMode,
@@ -138,10 +148,13 @@ export function ResultView({
           kind of thing the tool should say out loud, and the offer to fix it is
           worthless behind a disclosure nobody opens. */}
       <ScannedDocuments
-        documents={unreadDocuments}
+        total={scannedDocumentCount}
+        recovered={recoveredDocuments}
         isReading={isReading}
         progress={readProgress}
-        onRead={onReadUnread}
+        stopped={stoppedReading}
+        languageNote={readLanguageNote}
+        onCheck={onCheckReading}
       />
 
       {bigBundle && (
@@ -169,17 +182,30 @@ export function ResultView({
       )}
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        {/* Held while recognition runs. Text lands in the bundle only when the
+            pass ends, so an export taken mid-pass would quietly be missing every
+            scanned document — the card above says so, and offers the stop that
+            releases these immediately. */}
         <button
           type="button"
           onClick={onCopy}
+          disabled={isReading}
           className={cn(
-            "rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex flex-1 items-center justify-center gap-2 px-5 py-3 text-sm font-semibold transition-[filter,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+            "rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex flex-1 items-center justify-center gap-2 px-5 py-3 text-sm font-semibold transition-[filter,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60",
             isCopied
               ? "text-go-fg border-primary border bg-[oklch(var(--primary)/0.16)]"
               : "bg-primary text-primary-foreground hover:brightness-110",
           )}
         >
-          {isCopied ? (
+          {isReading ? (
+            <>
+              <LoaderCircle
+                className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                strokeWidth={2}
+              />{" "}
+              Still reading
+            </>
+          ) : isCopied ? (
             <>
               <Check className="h-4 w-4" strokeWidth={2.5} /> Copied to clipboard
             </>
@@ -192,7 +218,7 @@ export function ResultView({
         <button
           type="button"
           onClick={onDownload}
-          disabled={isGenerating}
+          disabled={isGenerating || isReading}
           className="bg-secondary text-ink border-border-strong rounded-input focus-visible:ring-ring focus-visible:ring-offset-background hover:bg-accent inline-flex items-center justify-center gap-2 border px-5 py-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60"
         >
           <Download className="h-4 w-4" />
@@ -267,119 +293,151 @@ function Stat({ value, label }: { value: string; label: string }) {
 }
 
 /**
- * Documents that opened but held no text, and the one thing that can change
- * that. A scan is a picture of a page: there are no characters in the file to
- * read, only pixels that look like characters, and reading those is a separate
- * and much slower job.
+ * Documents that opened but held no text. A scan is a picture of a page: there
+ * are no characters in the file to read, only pixels that look like characters,
+ * and reading those is a separate and much slower job.
  *
- * The cost is stated before the button, not after, because it is genuinely
- * felt — seconds per page and a one-time model download — and a person who
- * would rather not spend it should be able to decide without pressing anything.
+ * This card states the outcome and opens the door. It carries no action of its
+ * own: every recognition control after the drop lives in the reading dialog,
+ * because the one thing you need before changing a language is the text that
+ * language produced, and the text is in there. A picker out here would be an
+ * invitation to spend four seconds a page on a hunch.
  */
 function ScannedDocuments({
-  documents,
+  total,
+  recovered,
   isReading,
   progress,
-  onRead,
+  stopped,
+  languageNote,
+  onCheck,
 }: {
-  documents: string[];
+  total: number;
+  recovered: number;
   isReading: boolean;
   progress: { done: number; total: number } | null;
-  onRead: () => Promise<number>;
+  stopped: boolean;
+  languageNote: string | null;
+  onCheck: () => void;
 }) {
-  const [recovered, setRecovered] = useState(0);
-  const [attempted, setAttempted] = useState(false);
+  if (total === 0) return null;
 
-  if (documents.length === 0 && recovered === 0) return null;
+  const left = total - recovered;
+  const noun = (n: number) => (n === 1 ? "document" : "documents");
+  const asLanguage = languageNote ? ` ${languageNote}` : "";
 
-  const count = documents.length;
-  const noun = count === 1 ? "document" : "documents";
-
-  // Everything that could be read has been. Say so and stop offering.
-  if (count === 0) {
+  // A pass in flight outranks every reading of the counts. It is reachable out
+  // here only by closing the dialog mid-pass, which is allowed: the alternative
+  // is locking someone in a box for seconds a page. So this states the progress
+  // and sends them back to where the stop button is, rather than growing one.
+  if (isReading) {
+    const running = progress?.total ?? total;
     return (
-      <div className="mt-3">
-        <InfoCard
-          tone="go"
-          icon={Check}
-          title={`Read ${recovered} scanned ${recovered === 1 ? "document" : "documents"}`}
-        >
-          <p>
-            The text was recognised from the page images and added to the bundle. Worth a look at
-            the preview below, since recognition guesses at characters and is rarely perfect.
-          </p>
-        </InfoCard>
-      </div>
+      <ReadingCard
+        tone="info"
+        icon={ScanText}
+        title={`Reading ${progress ? `${Math.min(progress.done + 1, running)} of ${running}` : running}…`}
+        cta="Check the reading"
+        onCheck={onCheck}
+        busy
+      >
+        Recognising the page images, here in the browser. Copy and Download wait for it, because the
+        text lands in the bundle only when the pass ends.
+      </ReadingCard>
+    );
+  }
+
+  if (recovered === total) {
+    return (
+      <ReadingCard
+        tone="go"
+        icon={Check}
+        title={`Read ${recovered} scanned ${noun(recovered)}${asLanguage}`}
+        cta="Check the reading"
+        onCheck={onCheck}
+      >
+        Recognition guesses at characters, and a reading in the wrong language comes back looking
+        like a success. Worth a look before you trust it.
+      </ReadingCard>
+    );
+  }
+
+  if (recovered > 0) {
+    return (
+      <ReadingCard
+        tone="info"
+        icon={ScanText}
+        title={`Read ${recovered} of ${total} scanned documents${asLanguage}`}
+        cta="Check the reading"
+        onCheck={onCheck}
+      >
+        {stopped
+          ? `The page in hand finished, and everything read before you stopped is in the bundle. The other ${left} ${noun(left)} ${left === 1 ? "is" : "are"} still out.`
+          : `Nothing legible came back from the other ${left}. Another language is the thing worth ruling out.`}
+      </ReadingCard>
     );
   }
 
   return (
+    <ReadingCard
+      tone="info"
+      icon={ScanText}
+      title={
+        stopped
+          ? `Stopped, with ${total} scanned ${noun(total)} unread`
+          : `${total} scanned ${noun(total)} couldn't be read`
+      }
+      cta={stopped ? "Read them" : "Try another language"}
+      onCheck={onCheck}
+    >
+      {stopped
+        ? `Recognition never got to ${total === 1 ? "it" : "them"}, so ${total === 1 ? "it holds" : "they hold"} nothing yet.`
+        : `Recognition found no writing in ${total === 1 ? "it" : "them"} either. That usually means the ${noun(total)} ${total === 1 ? "is" : "are"} encrypted, the pages really are blank, or the language was wrong.`}
+    </ReadingCard>
+  );
+}
+
+/** One shape for all four states: a sentence, and the one door out of it. */
+function ReadingCard({
+  tone,
+  icon,
+  title,
+  cta,
+  onCheck,
+  busy = false,
+  children,
+}: {
+  tone: "info" | "go";
+  icon: LucideIcon;
+  title: string;
+  cta: string;
+  onCheck: () => void;
+  busy?: boolean;
+  children: ReactNode;
+}) {
+  return (
     <div className="mt-3">
-      <InfoCard
-        tone="info"
-        icon={ScanText}
-        title={
-          isReading
-            ? // `done` counts finished documents, so the one in hand is the next
-              // index — clamped, or the last document reads "3 of 2" for the
-              // moment between its result landing and the pass ending.
-              `Reading ${
-                progress
-                  ? `${Math.min(progress.done + 1, progress.total)} of ${progress.total}`
-                  : count
-              }…`
-            : attempted
-              ? `${count} ${noun} still couldn't be read`
-              : `${count} ${noun} had no text to read`
-        }
-      >
-        {isReading ? (
-          <div className="flex items-center gap-2.5" aria-live="polite">
-            <LoaderCircle
-              className="text-info h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
-              strokeWidth={2}
-            />
-            <p>
-              Recognising the page images. This runs here in the browser, so it takes a few seconds
-              a page.
-            </p>
-          </div>
-        ) : attempted ? (
-          <p>
-            Recognition found no writing in {count === 1 ? "it" : "them"} either. That usually means
-            the {noun} {count === 1 ? "is" : "are"} encrypted, or the pages really are blank.
+      <InfoCard tone={tone} icon={icon} title={title}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+          <p className="min-w-0 flex-1" aria-live={busy ? "polite" : undefined}>
+            {children}
           </p>
-        ) : (
-          <>
-            <p>
-              {count === 1
-                ? "It is a scan, a picture of a page with no text stored in the file."
-                : "They are scans, pictures of pages with no text stored in the file."}{" "}
-              Recognition can read the pixels instead: a few seconds a page, plus a one-time 5 MB
-              language download.
-            </p>
-            <button
-              type="button"
-              onClick={async () => {
-                setAttempted(true);
-                const read = await onRead();
-                setRecovered((r) => r + read);
-              }}
-              className="bg-secondary text-ink border-border-strong rounded-input focus-visible:ring-ring focus-visible:ring-offset-background hover:bg-accent mt-3 inline-flex items-center justify-center gap-2 border px-4 py-2 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-            >
+          <button
+            type="button"
+            onClick={onCheck}
+            className="bg-secondary text-ink border-border-strong rounded-input focus-visible:ring-ring focus-visible:ring-offset-background hover:bg-accent inline-flex shrink-0 items-center justify-center gap-2 border px-4 py-2 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+          >
+            {busy ? (
+              <LoaderCircle
+                className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+                strokeWidth={2}
+              />
+            ) : (
               <ScanText className="h-4 w-4" />
-              Read {count === 1 ? "it" : "them"} anyway
-            </button>
-          </>
-        )}
-        <ExpandableList
-          items={documents}
-          renderItem={(name) => (
-            <li key={name} className="text-ink font-mono text-[11px]">
-              {name}
-            </li>
-          )}
-        />
+            )}
+            {cta}
+          </button>
+        </div>
       </InfoCard>
     </div>
   );

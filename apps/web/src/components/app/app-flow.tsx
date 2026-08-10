@@ -18,6 +18,7 @@ import { estimateTokenCount, preloadTokenEstimator } from "~/lib/tokens";
 import { classifyUrl, type Classification, type ImportTab } from "~/lib/classify-url";
 import { trackEntrySurface } from "~/lib/metrics";
 import { tagSurface } from "~/lib/clarity-tags";
+import { ocrLanguageName, ocrLanguageOptions } from "~/lib/ocr-language";
 
 import { MarketingSections, SiteFooter } from "./marketing";
 
@@ -26,10 +27,15 @@ import { LandingHero } from "./landing-hero";
 import type { DropZoneProps } from "./drop-zone";
 import { ProcessingView } from "./processing-view";
 import { ResultView } from "./result-view";
-import { ResultEmpty, type EmptyKind } from "./result-empty";
+import { ResultEmpty } from "./result-empty";
+import { ReadingDialog } from "./reading-dialog";
+import { emptyKindFor } from "./empty-kind";
 import { SettingsDrawer } from "./settings-drawer";
 
 type Phase = "landing" | "processing" | "result";
+
+/** How much recognised text the reading dialog holds per document. */
+const SAMPLE_LIMIT = 2000;
 
 type ImportNarration = { label: string; note: string };
 
@@ -110,6 +116,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
 
   const [phase, setPhase] = useState<Phase>("landing");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [readingOpen, setReadingOpen] = useState(false);
   // The source identity shown under the spinner (import slug/host, else "").
   const [processingLabel, setProcessingLabel] = useState("");
 
@@ -206,11 +213,6 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     }
     return { notText, skippedByDefault };
   }, [ingestion.validations, ingestion.failedFiles, ingestion.unreadDocuments]);
-  // Documents that opened but held no text — offered to recognition, by name.
-  const unreadDocumentNames = useMemo(
-    () => ingestion.unreadDocuments.map((d) => d.path.split("/").pop() ?? d.path),
-    [ingestion.unreadDocuments],
-  );
   // "Noise" = valid text excluded by ignore patterns — not the non-text files above.
   const noiseSkipped = useMemo(() => {
     const rejected = new Set(
@@ -257,18 +259,10 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     () => Object.keys(ingestion.validations).map((p) => p.split("/").pop() ?? p),
     [ingestion.validations],
   );
-  // Tailor the empty-state rescue to what was actually dropped: a lone .7z is
-  // an archive we can't open, not "an image". Archive wins (a .7z reads as a
-  // binary otherwise); images next; everything else falls back to a generic.
-  const emptyKind = useMemo((): EmptyKind => {
-    if (droppedFiles.length === 0) return "other";
-    const ARCHIVE = /\.(7z|rar|zip|tar\.gz|tgz|tar|gz|bz2|xz)$/i;
-    const IMAGE = /\.(png|jpe?g|gif|webp|svg|bmp|ico|avif|heic|heif|tiff?)$/i;
-    if (droppedFiles.some((n) => ARCHIVE.test(n))) return "archive";
-    const images = droppedFiles.filter((n) => IMAGE.test(n)).length;
-    if (images > 0 && images >= droppedFiles.length / 2) return "image";
-    return "other";
-  }, [droppedFiles]);
+  const emptyKind = useMemo(
+    () => emptyKindFor(droppedFiles, ingestion.unreadDocuments.length),
+    [droppedFiles, ingestion.unreadDocuments],
+  );
 
   // --- flow control ---------------------------------------------------------
   // Runs `run`, showing the processing view driven by the engine's real
@@ -289,15 +283,76 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : null;
   // The engine's live stage note wins as the heading (Connecting → Listing →
   // Downloading), falling back to the phase name once files start streaming.
+  const isRecognising = progress?.phase === "recognising";
+  // Built once: sixty entries through Intl.DisplayNames and a sort, for a
+  // control most drops never render.
+  const languageOptions = useMemo(() => ocrLanguageOptions(), []);
+  // The tag a pass ran under is whatever the browser reported (`tr-TR`), while
+  // the control offers one canonical tag per model (`tr`). Matching on the model
+  // is what keeps the select from rendering blank on a tag it has no option for.
+  const readLocale =
+    languageOptions.find((o) => o.code === ingestion.readLanguage?.code)?.locale ?? null;
+  /**
+   * What to call the reading on the summary card. A scoped re-read can leave
+   * two documents read in two languages, and there is no honest single name for
+   * that, so the card counts them instead and the dialog says which is which.
+   */
+  const readLanguageNote = useMemo(() => {
+    const names = new Set(
+      Object.values(ingestion.readLanguages).map((language) => ocrLanguageName(language)),
+    );
+    if (names.size === 0) return null;
+    return names.size === 1 ? `as ${[...names][0]}` : `in ${names.size} languages`;
+  }, [ingestion.readLanguages]);
+  /**
+   * Every scanned document in this Run with whatever recognition made of it,
+   * for the dialog that lets a reading be checked and done again. Read or not,
+   * all of them: a document that came back in the wrong language reads as a
+   * success, so the ones that "worked" are exactly the ones worth looking at.
+   *
+   * Capped, because this is a spot-check and not a reader. A wrong language is
+   * obvious in the first line; the whole text is in the bundle.
+   */
+  const readingDocuments = useMemo(() => {
+    const stillUnread = new Set(ingestion.unreadDocuments.map((d) => d.path));
+    const contentByPath = new Map(ingestion.entries.map((e) => [e.path, e.content]));
+    return ingestion.scannedDocuments.map((d) => {
+      const text = stillUnread.has(d.path) ? "" : (contentByPath.get(d.path) ?? "");
+      const language = ingestion.readLanguages[d.path];
+      return {
+        path: d.path,
+        name: d.path.split("/").pop() ?? d.path,
+        text: text.length > SAMPLE_LIMIT ? `${text.slice(0, SAMPLE_LIMIT)}\n…` : text,
+        tried: ingestion.validations[d.path]?.recognitionTried === true,
+        language: language ? ocrLanguageName(language) : null,
+      };
+    });
+  }, [
+    ingestion.scannedDocuments,
+    ingestion.unreadDocuments,
+    ingestion.entries,
+    ingestion.validations,
+    ingestion.readLanguages,
+  ]);
   const processingHeading =
     progress?.note ??
     (progress?.phase === "fetching"
       ? "Fetching files"
       : progress?.phase === "unpacking"
         ? "Unpacking archive"
-        : "Reading files");
+        : isRecognising
+          ? "Reading scanned pages"
+          : "Reading files");
   const processingDetail =
-    progress && progress.total > 0 ? `${progress.done} / ${progress.total} files` : processingLabel;
+    progress && progress.total > 0
+      ? `${progress.done} / ${progress.total} ${isRecognising ? "documents" : "files"}`
+      : processingLabel;
+  // The one stage measured in seconds a page rather than files a second, and
+  // the only one anyone would want out of. Say what it is buying before they
+  // decide.
+  const processingAside = isRecognising
+    ? "These pages are pictures, not text. Recognition reads the pixels here in the browser, which takes a few seconds a page."
+    : undefined;
 
   const startOver = useCallback(() => {
     importAbortRef.current?.abort();
@@ -306,6 +361,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     filter.reset();
     output.reset();
     setPhase("landing");
+    setReadingOpen(false);
     setResultNote(null);
     setImportOpen(false);
     setImportUrl("");
@@ -408,12 +464,28 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
           ))}
 
         {phase === "processing" && (
-          <ProcessingView percent={percent} heading={processingHeading} detail={processingDetail} />
+          <ProcessingView
+            percent={percent}
+            heading={processingHeading}
+            detail={processingDetail}
+            aside={processingAside}
+            onStop={isRecognising ? ingestion.stopReading : undefined}
+            stopLabel="Skip the scanned pages"
+          />
         )}
 
         {phase === "result" &&
           (filesCombined === 0 ? (
-            <ResultEmpty droppedFiles={droppedFiles} kind={emptyKind} onStartOver={startOver} />
+            <ResultEmpty
+              droppedFiles={droppedFiles}
+              kind={emptyKind}
+              onStartOver={startOver}
+              isReading={ingestion.isReading}
+              readProgress={ingestion.readProgress}
+              stoppedReading={ingestion.stoppedReading}
+              onRead={ingestion.readUnreadDocuments}
+              onStopReading={ingestion.stopReading}
+            />
           ) : (
             <ResultView
               sourceLabel={sourceLabel}
@@ -438,10 +510,13 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               skippedByDefault={skippedByDefault}
               flaggedFiles={flaggedFiles}
               extractedFiles={extractedFiles}
-              unreadDocuments={unreadDocumentNames}
+              scannedDocumentCount={ingestion.scannedDocuments.length}
               isReading={ingestion.isReading}
               readProgress={ingestion.readProgress}
-              onReadUnread={ingestion.readUnreadDocuments}
+              recoveredDocuments={ingestion.recoveredDocuments}
+              stoppedReading={ingestion.stoppedReading}
+              readLanguageNote={readLanguageNote}
+              onCheckReading={() => setReadingOpen(true)}
               onAdjust={() => setSettingsOpen(true)}
               bigBundle={bigBundle}
               splitMode={output.selectedFormat}
@@ -451,6 +526,21 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       </main>
 
       {phase === "landing" && <SiteFooter />}
+
+      {/* Mounted alongside the result, not inside the card that opens it: a
+          pass started here keeps running while the dialog is closed, and the
+          card's own state has to be free to change underneath. */}
+      <ReadingDialog
+        open={readingOpen}
+        onOpenChange={setReadingOpen}
+        documents={readingDocuments}
+        language={readLocale}
+        languageOptions={languageOptions}
+        isReading={ingestion.isReading}
+        progress={ingestion.readProgress}
+        onRead={ingestion.readSelected}
+        onStop={ingestion.stopReading}
+      />
 
       <SettingsDrawer
         open={settingsOpen}

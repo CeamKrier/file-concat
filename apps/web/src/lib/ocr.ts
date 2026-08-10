@@ -7,8 +7,11 @@ import type { ExtractionResult } from "@fileconcat/core";
  * Cloudflare worker graph. A runtime `typeof window` check would not — see the
  * note in the root CLAUDE.md.
  */
-export async function readWithOcr(bytes: Uint8Array): Promise<ExtractionResult> {
+export async function readWithOcr(
+  bytes: Uint8Array,
+  language: string,
+): Promise<ExtractionResult> {
   if (import.meta.env.SSR) return { text: "" };
   const mod = await import("./extract-document-client");
-  return mod.extractOfficeWithOcr(bytes);
+  return mod.extractOfficeWithOcr(bytes, language);
 }

@@ -19,19 +19,22 @@ export function extractOffice(bytes: Uint8Array): Promise<ExtractionResult> {
  * reader found no text in — a scan, which is a picture of a page and carries no
  * characters to read.
  *
- * Deliberately not part of the parser registry: recognition costs seconds per
- * page and downloads a language model, so it is something a person asks for
- * once, over the few files that need it, and never something ingestion does on
- * its own.
+ * Reached only from the recognition stage of a drop, over the documents that
+ * already came back empty, so a drop with no scan in it never loads any of it.
  *
- * The engine and its model come from the library's own CDN. That is a
- * third-party request, which the tool already makes for analytics and discloses
- * on `/privacy`; what still never happens is the document leaving the browser,
- * since recognition runs here over bytes we already hold.
+ * The language comes from the browser's own settings; see `ocr-language.ts` for
+ * why it is one language and not several. The engine and its model come from
+ * the library's own CDN. That is a third-party request, which the tool already
+ * makes for analytics and discloses on `/privacy`; what still never happens is
+ * the document leaving the browser, since recognition runs here over bytes we
+ * already hold.
  */
-export function extractOfficeWithOcr(bytes: Uint8Array): Promise<ExtractionResult> {
+export function extractOfficeWithOcr(
+  bytes: Uint8Array,
+  language: string,
+): Promise<ExtractionResult> {
   return extractOfficeDocument(bytes, {
     pdfWorkerSrc: pdfWorkerUrl,
-    ocr: { language: "eng" },
+    ocr: { language },
   });
 }

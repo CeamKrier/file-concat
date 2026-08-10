@@ -73,6 +73,26 @@ export const METRIC_EVENTS = [
   "ocr_recovered",
   /** Wall-clock milliseconds for one recognition pass, in `n`. Only useful beside `ocr_recovered`. */
   "ocr_ms",
+  /**
+   * The language a recognition pass read in, as its tesseract code (`eng`,
+   * `tur`, …). Written once **per pass**, not per Run: an override makes a Run
+   * write this twice, once for the guess and once for the correction.
+   */
+  "ocr_lang",
+  /**
+   * The language someone switched **to** after seeing an automatic reading, as
+   * its tesseract code. Written only on a deliberate override, so this is how
+   * often the guess taken from the browser's own settings was wrong.
+   *
+   * **The denominator is Runs that recognised anything, not `SUM(ocr_lang.n)`**
+   * — an override inflates that sum by the very event being measured, so
+   * dividing by it understates the miss rate. Count distinct Runs carrying an
+   * `ocr_lang` row instead.
+   *
+   * A lower bound either way: it counts the people who noticed and acted, never
+   * the ones who took a bad reading and left.
+   */
+  "ocr_lang_changed",
 ] as const;
 
 export type MetricEvent = (typeof METRIC_EVENTS)[number];
