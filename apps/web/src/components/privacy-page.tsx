@@ -5,7 +5,7 @@ import { SiteFooter } from "~/components/app/marketing";
 import { TopBar } from "~/components/app/top-bar";
 import { METRICS_RETENTION_DAYS } from "~/lib/metrics-retention";
 
-const LAST_UPDATED = "August 5, 2026";
+const LAST_UPDATED = "August 10, 2026";
 
 /** Items that are never uploaded to a server. Scoped to the actual file work. */
 const STAYS = [
@@ -15,7 +15,7 @@ const STAYS = [
   },
   {
     title: "No third-party reads them.",
-    body: "PDF, Word, Excel, and the rest are extracted in your browser. There is no server API and no CDN in the path that sees your documents.",
+    body: "PDF, Word, Excel, and the rest are extracted in your browser. There is no server API and no upload step, so nothing outside this tab ever sees a document you dropped.",
   },
   {
     title: "No account, no storage.",
@@ -42,6 +42,10 @@ const COLLECTED = [
     body: "If you paste a GitHub, GitLab, or Bitbucket link, your browser fetches it directly from that host. That request goes to them, not to us.",
   },
   {
+    title: "Reading a scanned page, when you drop one.",
+    body: "A scanned PDF or Word file holds a picture of a page, not text, so there is nothing in the file to read. When you drop one, your browser downloads a text-recognition engine and one language file from jsDelivr, a public code CDN, and starts reading. What jsDelivr learns is what any file request tells a server: your IP address, and which file was asked for. Your document is not part of it. Recognition runs in this tab, on bytes already on your device, and the result goes nowhere but your screen. It happens only for documents that opened with no text in them, so a drop with no scan in it downloads nothing. You can stop a reading while it runs.",
+  },
+  {
     title: "Your settings.",
     body: "Filters and preferences are saved in your browser's local storage. They stay on your device and are never sent anywhere.",
   },
@@ -66,9 +70,16 @@ export function PrivacyPage() {
           </p>
         </header>
 
+        {/* The two halves are sequential, not parallel: the promise is three short
+            assertions, the accounting is six long disclosures. Setting them as
+            equal columns was a grid default the content never supported — it left
+            half the ledger empty beside the longer half and squeezed the
+            paragraphs that most need room to 38ch at tablet width. Stacked, they
+            share the one reading measure the header and the verification section
+            already use. */}
         <section
           aria-labelledby="inventory"
-          className="mt-14 grid gap-x-12 gap-y-10 border-t border-[oklch(var(--hairline))] pt-12 md:grid-cols-2"
+          className="mt-14 max-w-[640px] border-t border-[oklch(var(--hairline))] pt-12"
         >
           <h2 id="inventory" className="sr-only">
             What is and isn&rsquo;t sent
@@ -91,7 +102,10 @@ export function PrivacyPage() {
             </ul>
           </div>
 
-          <div className="min-w-0">
+          {/* Nearly three times the 20px between items. Proximity is what marks
+              the turn from what stays to what goes now that no column edge does,
+              and at twice the item gap the two halves still read as one run. */}
+          <div className="mt-14 min-w-0">
             <h3 className="text-ink font-display text-[13px] font-semibold uppercase tracking-[0.08em]">
               What we collect, and why
             </h3>
@@ -124,9 +138,10 @@ export function PrivacyPage() {
           </h2>
           <p className="text-ink-secondary mt-4 text-[15px] leading-relaxed">
             Open your browser&rsquo;s network panel and drop a folder. Your documents are never
-            uploaded. The requests you will see are the analytics beacon and, if you imported a repo,
-            that fetch, never your files. Any content blocker stops the analytics, and the whole app
-            is open source, so you can read exactly what it does.
+            uploaded. The requests you will see are the analytics beacon, the repository fetch if you
+            imported one, and the recognition download if a scanned page was in the drop. Never your
+            files. Any content blocker stops the analytics, and the whole app is open source, so you
+            can read exactly what it does.
           </p>
           <a
             href="https://github.com/CeamKrier/file-concat"

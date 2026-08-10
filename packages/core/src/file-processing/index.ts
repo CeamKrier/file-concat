@@ -14,6 +14,7 @@ export type {
   ExtractionNote,
   ExtractionNoteKind,
   ExtractionResult,
+  OcrOptions,
   OfficeParserOptions,
   ParserId,
   ParserLoader,

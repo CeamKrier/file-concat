@@ -10,7 +10,6 @@ import type { FilteredModel } from "../src/models/types";
 
 const baseModel: FilteredModel = {
   uid: "provider/model-a",
-  id: "model-a",
   name: "Model A",
   providerId: "provider",
   providerName: "Provider",
