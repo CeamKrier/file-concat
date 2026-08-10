@@ -9,7 +9,9 @@ import {
   FileText,
   FileWarning,
   Info,
+  LoaderCircle,
   RotateCcw,
+  ScanText,
   Scissors,
   SlidersHorizontal,
 } from "lucide-react";
@@ -46,6 +48,14 @@ type ResultViewProps = {
   flaggedFiles: string[];
   /** Included files whose text was extracted from a document (PDF/Office/ODF). */
   extractedFiles: string[];
+  /** Documents that opened but held no text — scans, which recognition can sometimes read. */
+  unreadDocuments: string[];
+  /** True while a recognition pass is running. */
+  isReading: boolean;
+  /** Recognition progress, or null when idle. */
+  readProgress: { done: number; total: number } | null;
+  /** Run recognition over the unread documents; resolves to how many became readable. */
+  onReadUnread: () => Promise<number>;
   /** Open the "Adjust what's included" drawer. */
   onAdjust: () => void;
   bigBundle: boolean;
@@ -74,6 +84,10 @@ export function ResultView({
   skippedByDefault,
   flaggedFiles,
   extractedFiles,
+  unreadDocuments,
+  isReading,
+  readProgress,
+  onReadUnread,
   onAdjust,
   bigBundle,
   splitMode,
@@ -117,6 +131,17 @@ export function ResultView({
         flaggedFiles={flaggedFiles}
         unsupported={unsupported}
         skippedByDefault={skippedByDefault}
+      />
+
+      {/* Scans are the one "left out" case with a remedy, so this stays out of
+          the collapsed notes above: a file silently contributing nothing is the
+          kind of thing the tool should say out loud, and the offer to fix it is
+          worthless behind a disclosure nobody opens. */}
+      <ScannedDocuments
+        documents={unreadDocuments}
+        isReading={isReading}
+        progress={readProgress}
+        onRead={onReadUnread}
       />
 
       {bigBundle && (
@@ -237,6 +262,125 @@ function Stat({ value, label }: { value: string; label: string }) {
     <div className="flex flex-col items-center gap-1 px-3 py-5">
       <span className="font-display text-ink text-2xl font-bold tabular-nums">{value}</span>
       <span className="text-ink-muted text-center text-xs">{label}</span>
+    </div>
+  );
+}
+
+/**
+ * Documents that opened but held no text, and the one thing that can change
+ * that. A scan is a picture of a page: there are no characters in the file to
+ * read, only pixels that look like characters, and reading those is a separate
+ * and much slower job.
+ *
+ * The cost is stated before the button, not after, because it is genuinely
+ * felt — seconds per page and a one-time model download — and a person who
+ * would rather not spend it should be able to decide without pressing anything.
+ */
+function ScannedDocuments({
+  documents,
+  isReading,
+  progress,
+  onRead,
+}: {
+  documents: string[];
+  isReading: boolean;
+  progress: { done: number; total: number } | null;
+  onRead: () => Promise<number>;
+}) {
+  const [recovered, setRecovered] = useState(0);
+  const [attempted, setAttempted] = useState(false);
+
+  if (documents.length === 0 && recovered === 0) return null;
+
+  const count = documents.length;
+  const noun = count === 1 ? "document" : "documents";
+
+  // Everything that could be read has been. Say so and stop offering.
+  if (count === 0) {
+    return (
+      <div className="mt-3">
+        <InfoCard
+          tone="go"
+          icon={Check}
+          title={`Read ${recovered} scanned ${recovered === 1 ? "document" : "documents"}`}
+        >
+          <p>
+            The text was recognised from the page images and added to the bundle. Worth a look at
+            the preview below, since recognition guesses at characters and is rarely perfect.
+          </p>
+        </InfoCard>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3">
+      <InfoCard
+        tone="info"
+        icon={ScanText}
+        title={
+          isReading
+            ? // `done` counts finished documents, so the one in hand is the next
+              // index — clamped, or the last document reads "3 of 2" for the
+              // moment between its result landing and the pass ending.
+              `Reading ${
+                progress
+                  ? `${Math.min(progress.done + 1, progress.total)} of ${progress.total}`
+                  : count
+              }…`
+            : attempted
+              ? `${count} ${noun} still couldn't be read`
+              : `${count} ${noun} had no text to read`
+        }
+      >
+        {isReading ? (
+          <div className="flex items-center gap-2.5" aria-live="polite">
+            <LoaderCircle
+              className="text-info h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
+              strokeWidth={2}
+            />
+            <p>
+              Recognising the page images. This runs here in the browser, so it takes a few seconds
+              a page.
+            </p>
+          </div>
+        ) : attempted ? (
+          <p>
+            Recognition found no writing in {count === 1 ? "it" : "them"} either. That usually means
+            the {noun} {count === 1 ? "is" : "are"} encrypted, or the pages really are blank.
+          </p>
+        ) : (
+          <>
+            <p>
+              {count === 1
+                ? "It is a scan, a picture of a page with no text stored in the file."
+                : "They are scans, pictures of pages with no text stored in the file."}{" "}
+              Recognition can read the pixels instead: a few seconds a page, plus a one-time 5 MB
+              language download.
+            </p>
+            <button
+              type="button"
+              onClick={async () => {
+                setAttempted(true);
+                const read = await onRead();
+                setRecovered((r) => r + read);
+              }}
+              className="bg-secondary text-ink border-border-strong rounded-input focus-visible:ring-ring focus-visible:ring-offset-background hover:bg-accent mt-3 inline-flex items-center justify-center gap-2 border px-4 py-2 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            >
+              <ScanText className="h-4 w-4" />
+              Read {count === 1 ? "it" : "them"} anyway
+            </button>
+          </>
+        )}
+        <ExpandableList
+          items={documents}
+          renderItem={(name) => (
+            <li key={name} className="text-ink font-mono text-[11px]">
+              {name}
+            </li>
+          )}
+        />
+      </InfoCard>
     </div>
   );
 }

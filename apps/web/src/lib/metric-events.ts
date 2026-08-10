@@ -64,6 +64,15 @@ export const METRIC_EVENTS = [
   "bundle_size",
   /** The terminal action: copy | download. May occur more than once per run. */
   "output_taken",
+  /**
+   * A format whose text OCR recovered after the ordinary reader returned
+   * nothing: `n` files totalling `b` bytes. Recognition only ever runs over the
+   * `extract_failed` set of the same Run, so the two are directly comparable and
+   * what OCR could *not* rescue is their difference — no third counter needed.
+   */
+  "ocr_recovered",
+  /** Wall-clock milliseconds for one recognition pass, in `n`. Only useful beside `ocr_recovered`. */
+  "ocr_ms",
 ] as const;
 
 export type MetricEvent = (typeof METRIC_EVENTS)[number];

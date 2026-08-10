@@ -11,6 +11,7 @@ import { collectFromDataTransfer } from "~/lib/collect-from-drop";
 import { markerFor } from "~/lib/ecosystem-markers";
 import { addToTally, startRun, track, trackAmount, trackTally, type Tally } from "~/lib/metrics";
 import { tagDrop, tagSource } from "~/lib/clarity-tags";
+import { readWithOcr } from "~/lib/ocr";
 import { parsers } from "~/lib/parsers";
 import { prepareBatch } from "~/lib/prepare-batch";
 
@@ -64,6 +65,14 @@ export type IncomingFile = {
 
 export type FailedFile = { path: string; error: string };
 
+/**
+ * A document we know how to open but found no text in — a scan, or an encrypted
+ * PDF. Recognition can sometimes read the first kind, so the handle is kept
+ * rather than discarded with the rest of the batch. A `File` is a reference to
+ * bytes on disk, not the bytes themselves, so holding a few costs nothing.
+ */
+export type UnreadDocument = { path: string; format: string; file: File };
+
 export type IngestPhase = "unpacking" | "reading" | "fetching";
 /**
  * Live progress for the processing view. `total === 0` means indeterminate.
@@ -81,6 +90,12 @@ export interface FileIngestion {
   entries: ContentEntry[];
   validations: Record<string, ValidationRecord>;
   failedFiles: FailedFile[];
+  /** Documents that opened but yielded no text; candidates for recognition. */
+  unreadDocuments: UnreadDocument[];
+  /** True while a recognition pass is running. */
+  isReading: boolean;
+  /** Recognition progress, or null when idle. */
+  readProgress: { done: number; total: number } | null;
   sourceUrl: string | null;
   isProcessing: boolean;
   isRepoLoading: boolean;
@@ -90,6 +105,11 @@ export interface FileIngestion {
   expandedArchive: boolean;
   /** Live read/fetch progress for the processing view, or null when idle. */
   progress: IngestProgress;
+  /**
+   * Re-read {@link unreadDocuments} with recognition and fold whatever it
+   * recovers into the bundle. Resolves to how many documents became readable.
+   */
+  readUnreadDocuments: () => Promise<number>;
   ingestBatch: (incoming: IncomingFile[]) => Promise<void>;
   ingestRepo: (url: string, sourceType: SourceType, signal: AbortSignal) => Promise<void>;
   setEntryContent: (path: string, content: string) => void;
@@ -105,6 +125,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   const [entries, setEntries] = useState<ContentEntry[]>([]);
   const [validations, setValidations] = useState<Record<string, ValidationRecord>>({});
   const [failedFiles, setFailedFiles] = useState<FailedFile[]>([]);
+  const [unreadDocuments, setUnreadDocuments] = useState<UnreadDocument[]>([]);
+  const [isReading, setIsReading] = useState(false);
+  const [readProgress, setReadProgress] = useState<{ done: number; total: number } | null>(null);
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRepoLoading, setIsRepoLoading] = useState(false);
@@ -137,6 +160,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       const extensions: Tally = new Map();
       const unreadable: Tally = new Map();
       const extractFailed: Tally = new Map();
+      const nextUnread: UnreadDocument[] = [];
       const archiveUnsupported: Tally = new Map();
       const markers = new Set<string>();
       let totalBytes = 0;
@@ -207,6 +231,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                 // a format this build ships no reader for) — surfaced as
                 // excluded, never silently dropped.
                 addToTally(extractFailed, route.format, size);
+                // Keep the handle: this is the shape recognition can sometimes
+                // read, and re-reading needs the bytes we are about to drop.
+                nextUnread.push({ path, format: route.format, file: entry.file });
                 nextValidations[path] = {
                   included: false,
                   reason: "No extractable text",
@@ -271,6 +298,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setEntries(nextEntries);
       setValidations(nextValidations);
       setFailedFiles(nextFailed);
+      setUnreadDocuments(nextUnread);
 
       // `batch_size` is deliberately redundant with SUM(file_ext.n): it is the
       // authoritative total, so the two disagreeing says extension rows went
@@ -452,10 +480,79 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     [ingestBatch],
   );
 
+  /**
+   * Read the documents ingestion could not, with recognition this time, and put
+   * whatever comes back into the bundle.
+   *
+   * Sequential on purpose. The recogniser keeps its own worker pool and a page
+   * takes seconds; racing whole documents at it would multiply peak memory for
+   * a total that is bounded by the same engine either way, and would make the
+   * progress count meaningless.
+   */
+  const readUnreadDocuments = useCallback(async () => {
+    if (unreadDocuments.length === 0 || isReading) return 0;
+    const startedAt = performance.now();
+    setIsReading(true);
+    setReadProgress({ done: 0, total: unreadDocuments.length });
+
+    const recovered: Tally = new Map();
+    const readEntries: ContentEntry[] = [];
+    const stillUnread: UnreadDocument[] = [];
+    const readValidations: Record<string, ValidationRecord> = {};
+
+    try {
+      for (let i = 0; i < unreadDocuments.length; i++) {
+        const document = unreadDocuments[i];
+        try {
+          const bytes = new Uint8Array(await document.file.arrayBuffer());
+          const { text } = await readWithOcr(bytes);
+          if (text) {
+            addToTally(recovered, document.format, document.file.size);
+            readEntries.push({ path: document.path, content: text });
+            readValidations[document.path] = {
+              included: true,
+              classification: "text",
+              size: document.file.size,
+              type: document.file.type || "application/octet-stream",
+              extracted: true,
+            };
+          } else {
+            // Recognition found nothing either: an encrypted PDF, or a page
+            // with no writing on it. Leave the file exactly as ingestion left
+            // it so the reason it is out of the bundle does not change.
+            stillUnread.push(document);
+          }
+        } catch (error) {
+          console.error(`Recognition failed for ${document.path}:`, error);
+          stillUnread.push(document);
+        }
+        setReadProgress({ done: i + 1, total: unreadDocuments.length });
+      }
+
+      if (readEntries.length > 0) {
+        setEntries((prev) => [...prev, ...readEntries]);
+        setValidations((prev) => ({ ...prev, ...readValidations }));
+      }
+      setUnreadDocuments(stillUnread);
+
+      // What recognition rescued, against the `extract_failed` rows of the same
+      // Run — the two together are what says whether this was worth building.
+      trackAmount("ocr_ms", { n: performance.now() - startedAt });
+      trackTally("ocr_recovered", recovered);
+      return readEntries.length;
+    } finally {
+      setIsReading(false);
+      setReadProgress(null);
+    }
+  }, [unreadDocuments, isReading]);
+
   const reset = useCallback(() => {
     setEntries([]);
     setValidations({});
     setFailedFiles([]);
+    setUnreadDocuments([]);
+    setIsReading(false);
+    setReadProgress(null);
     setSourceUrl(null);
     setIsProcessing(false);
     setIsRepoLoading(false);
@@ -470,6 +567,10 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     entries,
     validations,
     failedFiles,
+    unreadDocuments,
+    isReading,
+    readProgress,
+    readUnreadDocuments,
     sourceUrl,
     isProcessing,
     isRepoLoading,

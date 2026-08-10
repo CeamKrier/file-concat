@@ -187,8 +187,12 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       /\.(7z|rar)$/i.test(name)
         ? "This archive type can't be opened in the browser. Unzip it first, or use .zip or .tar."
         : fallback;
+    // A document that opened but held no text has its own card and its own
+    // remedy, so it must not also appear here as "isn't text" — a scan is text,
+    // it is just text nobody has read yet.
+    const unread = new Set(ingestion.unreadDocuments.map((d) => d.path));
     for (const [path, v] of Object.entries(ingestion.validations)) {
-      if (v.included) continue;
+      if (v.included || unread.has(path)) continue;
       const name = path.split("/").pop() ?? path;
       const reason = v.reason ?? "";
       if (reason === "Hidden file" || /^File size exceeds/.test(reason)) {
@@ -201,7 +205,12 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       notText.push({ name: f.path.split("/").pop() ?? f.path, why: f.error });
     }
     return { notText, skippedByDefault };
-  }, [ingestion.validations, ingestion.failedFiles]);
+  }, [ingestion.validations, ingestion.failedFiles, ingestion.unreadDocuments]);
+  // Documents that opened but held no text — offered to recognition, by name.
+  const unreadDocumentNames = useMemo(
+    () => ingestion.unreadDocuments.map((d) => d.path.split("/").pop() ?? d.path),
+    [ingestion.unreadDocuments],
+  );
   // "Noise" = valid text excluded by ignore patterns — not the non-text files above.
   const noiseSkipped = useMemo(() => {
     const rejected = new Set(
@@ -429,6 +438,10 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               skippedByDefault={skippedByDefault}
               flaggedFiles={flaggedFiles}
               extractedFiles={extractedFiles}
+              unreadDocuments={unreadDocumentNames}
+              isReading={ingestion.isReading}
+              readProgress={ingestion.readProgress}
+              onReadUnread={ingestion.readUnreadDocuments}
               onAdjust={() => setSettingsOpen(true)}
               bigBundle={bigBundle}
               splitMode={output.selectedFormat}
