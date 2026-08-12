@@ -259,9 +259,18 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     () => Object.keys(ingestion.validations).map((p) => p.split("/").pop() ?? p),
     [ingestion.validations],
   );
+  // Readable files sitting excluded in the tree. The one thing that makes the
+  // settings drawer worth offering from the empty state: without a row anyone
+  // could re-include, Adjust opens an empty room. Binaries are locked out of
+  // curation (ADR-0009), so they never count.
+  const adjustableCount = useMemo(
+    () =>
+      filter.fileStatuses.filter((s) => !s.included && s.classification !== "binary").length,
+    [filter.fileStatuses],
+  );
   const emptyKind = useMemo(
-    () => emptyKindFor(droppedFiles, ingestion.unreadDocuments.length),
-    [droppedFiles, ingestion.unreadDocuments],
+    () => emptyKindFor(droppedFiles, ingestion.unreadDocuments.length, adjustableCount),
+    [droppedFiles, ingestion.unreadDocuments, adjustableCount],
   );
 
   // --- flow control ---------------------------------------------------------
@@ -480,6 +489,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               droppedFiles={droppedFiles}
               kind={emptyKind}
               onStartOver={startOver}
+              onAdjust={adjustableCount > 0 ? () => setSettingsOpen(true) : undefined}
               isReading={ingestion.isReading}
               readProgress={ingestion.readProgress}
               stoppedReading={ingestion.stoppedReading}

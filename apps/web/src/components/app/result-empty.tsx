@@ -1,4 +1,13 @@
-import { Archive, FileQuestion, ImageOff, LoaderCircle, ScanText } from "lucide-react";
+import {
+  Archive,
+  FileQuestion,
+  FilterX,
+  ImageOff,
+  LoaderCircle,
+  RotateCcw,
+  ScanText,
+  SlidersHorizontal,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import type { EmptyKind } from "./empty-kind";
@@ -7,6 +16,8 @@ type ResultEmptyProps = {
   droppedFiles: string[];
   kind?: EmptyKind;
   onStartOver: () => void;
+  /** Open the settings drawer. Only passed when something is there to re-include. */
+  onAdjust?: () => void;
   /** True while a recognition pass is running. Only ever set for `scanned`. */
   isReading?: boolean;
   /** Recognition progress, or null when idle. */
@@ -44,6 +55,15 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
     body: "A scan stores an image of the page, so there are no characters in the file to pull out. Recognition reads the pixels instead: a few seconds a page, plus a one-time 5 MB language download.",
     cta: "Read the rest",
   },
+  // Not a rescue at all: the files are fine and the filters are the reason the
+  // bundle is empty. Leads with the drawer, because starting over would drop
+  // the same files into the same filters.
+  filtered: {
+    icon: FilterX,
+    title: "The filters left nothing in",
+    body: "These files are readable. Every one of them matched an ignore pattern, a .gitignore rule, or the hidden and oversize defaults, so there was nothing to pack.",
+    cta: "Adjust what's included",
+  },
   other: {
     icon: FileQuestion,
     title: "Nothing text-like to combine",
@@ -78,6 +98,7 @@ export function ResultEmpty({
   droppedFiles,
   kind = "image",
   onStartOver,
+  onAdjust,
   isReading = false,
   readProgress = null,
   stoppedReading = false,
@@ -85,6 +106,19 @@ export function ResultEmpty({
   onStopReading,
 }: ResultEmptyProps) {
   const { icon: Icon, title, body, cta } = COPY[kind];
+  // `filtered` leads with the drawer and keeps starting over as the quiet way
+  // out. Every other variant keeps its own CTA in front and offers the drawer
+  // underneath, but only when the drawer has a row to re-include: an Adjust
+  // that opens an empty tree is a worse dead end than no Adjust at all.
+  const adjust = onAdjust
+    ? { label: "Adjust what's included", icon: SlidersHorizontal, onClick: onAdjust }
+    : null;
+  const startOver = { label: "Start over", icon: RotateCcw, onClick: onStartOver };
+  const primary =
+    kind === "filtered"
+      ? (adjust ?? startOver)
+      : { label: cta, icon: null, onClick: onStartOver };
+  const secondary = kind === "filtered" ? (adjust ? startOver : null) : adjust;
   const extensions = extensionHistogram(droppedFiles);
   const shownExts = extensions.slice(0, MAX_EXT_CHIPS);
   const extraExts = extensions.length - shownExts.length;
@@ -128,15 +162,29 @@ export function ResultEmpty({
           onRead={onRead}
           onStop={onStopReading}
           onStartOver={onStartOver}
+          onAdjust={onAdjust}
         />
       ) : (
-        <button
-          type="button"
-          onClick={onStartOver}
-          className="bg-primary text-primary-foreground rounded-input focus-visible:ring-ring focus-visible:ring-offset-background mt-7 inline-flex items-center px-5 py-2.5 text-sm font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-        >
-          {cta}
-        </button>
+        <div className="mt-7 flex flex-col items-center gap-3">
+          <button
+            type="button"
+            onClick={primary.onClick}
+            className="bg-primary text-primary-foreground rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+          >
+            {primary.icon && <primary.icon className="h-4 w-4" strokeWidth={2} />}
+            {primary.label}
+          </button>
+          {secondary && (
+            <button
+              type="button"
+              onClick={secondary.onClick}
+              className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-sm px-2 py-1 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            >
+              <secondary.icon className="h-4 w-4" />
+              {secondary.label}
+            </button>
+          )}
+        </div>
       )}
     </section>
   );
@@ -157,6 +205,7 @@ function ReadAction({
   onRead,
   onStop,
   onStartOver,
+  onAdjust,
 }: {
   label: string;
   isReading: boolean;
@@ -165,7 +214,22 @@ function ReadAction({
   onRead: () => Promise<number>;
   onStop?: () => void;
   onStartOver: () => void;
+  onAdjust?: () => void;
 }) {
+  // The scans are not the only thing in the drop: when readable files were
+  // filtered out too, the drawer is still a way forward once recognition is
+  // over. Rendered only where the pass has stopped, so it never competes with
+  // the running one.
+  const adjustLink = onAdjust ? (
+    <button
+      type="button"
+      onClick={onAdjust}
+      className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-sm px-2 py-1 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+    >
+      <SlidersHorizontal className="h-4 w-4" />
+      Adjust what&apos;s included
+    </button>
+  ) : null;
   if (isReading) {
     return (
       <div className="mt-7 flex flex-col items-center gap-3">
@@ -215,6 +279,7 @@ function ReadAction({
         >
           Start over
         </button>
+        {adjustLink}
       </div>
     );
   }
@@ -225,13 +290,16 @@ function ReadAction({
         Recognition found no writing in them either. That usually means the documents are encrypted,
         or the pages really are blank.
       </p>
-      <button
-        type="button"
-        onClick={onStartOver}
-        className="bg-primary text-primary-foreground rounded-input focus-visible:ring-ring focus-visible:ring-offset-background mt-6 inline-flex items-center px-5 py-2.5 text-sm font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-      >
-        Start over
-      </button>
+      <div className="mt-6 flex flex-col items-center gap-3">
+        <button
+          type="button"
+          onClick={onStartOver}
+          className="bg-primary text-primary-foreground rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center px-5 py-2.5 text-sm font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+        >
+          Start over
+        </button>
+        {adjustLink}
+      </div>
     </>
   );
 }
