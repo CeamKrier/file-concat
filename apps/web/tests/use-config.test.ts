@@ -140,4 +140,50 @@ describe("useConfig localStorage migration", () => {
     expect(persisted.version).toBe(CONFIG_VERSION);
     expect(persisted).not.toHaveProperty("removeEmptyLines");
   });
+  it("repairs a v7 payload left without ignorePatterns by the capture bug", async () => {
+    // Every build shipped with `ignorePatterns` frozen as `undefined`, and
+    // JSON.stringify omits an undefined value, so anyone who saved a setting in
+    // that window holds a v7 config with the key simply absent. The version
+    // matched, so `useConfig` took it verbatim and noise filtering stayed off
+    // for that visitor forever. Bumping CONFIG_VERSION routes it through
+    // migration once, which is the only reason 8 exists.
+    const poisoned = {
+      version: 7,
+      maxFileSizeMB: 32,
+      includePatterns: "",
+      showLineNumbers: false,
+      defaultOutputFormat: "auto",
+      outputStyle: "xml",
+      chunkSizeKB: 32,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(poisoned));
+
+    const { result } = renderHook(() => useConfig());
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    expect(result.current.config.ignorePatterns).toBe(DEFAULT_IGNORE_STRING);
+    // Repaired on disk too, so the next load can take the verbatim path.
+    const persisted = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
+    expect(persisted.version).toBe(CONFIG_VERSION);
+    expect(persisted.ignorePatterns).toBe(DEFAULT_IGNORE_STRING);
+  });
+
+  it("keeps a deliberately emptied ignore list once the repair has run", async () => {
+    // The repair must not become a permanent guard: at the current version the
+    // stored value is authoritative, so someone who cleared the box keeps it
+    // cleared across reloads.
+    const cleared = {
+      version: CONFIG_VERSION,
+      ...baseV5Fields,
+      ignorePatterns: "",
+      defaultOutputFormat: "auto" as const,
+      chunkSizeKB: 32,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cleared));
+
+    const { result } = renderHook(() => useConfig());
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    expect(result.current.config.ignorePatterns).toBe("");
+  });
 });
