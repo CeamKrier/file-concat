@@ -153,7 +153,11 @@ describe("addLineNumbers", () => {
 });
 
 describe("validateFile", () => {
-  it("rejects files over size limit", async () => {
+  // The inverse of what this used to assert. A per-file byte cap lived here and
+  // silently dropped the one big file most drops are about; size is now a
+  // browser-cost question reported after the fact (ADR-0010), never a validity
+  // one. `maxFileSizeMB` stays on the type for the CLI's explicit --max-size.
+  it("no longer rejects a file for its size, whatever the config says", async () => {
     const file = { name: "big.txt", size: 2 * 1024 * 1024 } as File;
     const result = await validateFile(file, {
       maxFileSizeMB: 1,
@@ -161,8 +165,8 @@ describe("validateFile", () => {
       excludeBinaryFiles: false,
     });
 
-    expect(result.isValid).toBe(false);
-    expect(result.reason).toContain("1MB");
+    expect(result.isValid).toBe(true);
+    expect(result.reason).toBeUndefined();
   });
 
   it("rejects hidden files when configured", async () => {

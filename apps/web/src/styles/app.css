@@ -39,6 +39,11 @@
     --code-text: 0.7594 0.0241 84.6; /* #b8b0a0 */
     --go: 0.7788 0.1214 150.5; /* #7acd8e */
     --go-text: 0.8411 0.0874 152.9; /* #9fdcb0 */
+    /* Text-safe red, same relationship --go-text has to --go. `--destructive`
+       itself is a surface color (button fills) and measures 4.04:1 as small
+       text on --surface, under the AA floor PRODUCT.md sets. Used for the
+       context-overflow figure, which is the only red text in the app. */
+    --stop-text: 0.7 0.16 25;
     --info: 0.8067 0.109 82; /* #e3b96a amber heads-up (never alarm) */
     --neutral-info: 0.7121 0.0882 251.7; /* #79a6d8 optional / CLI context */
 

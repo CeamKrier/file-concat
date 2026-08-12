@@ -408,53 +408,48 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         if (route.kind === "extract") {
           const size = entry.file.size;
           const type = entry.file.type || "application/octet-stream";
-          if (size > config.maxFileSizeMB * 1024 * 1024) {
-            nextValidations[path] = {
-              included: false,
-              reason: `File size exceeds ${config.maxFileSizeMB}MB`,
-              size,
-              type,
-            };
-          } else {
-            try {
-              const bytes = new Uint8Array(await entry.file.arrayBuffer());
-              const { text } = await parsers.extract(route.parserId, bytes);
-              if (text) {
-                nextEntries.push({ path, content: text });
-                nextValidations[path] = {
-                  included: true,
-                  classification: "text",
-                  size,
-                  type,
-                  extracted: true,
-                };
-              } else {
-                // No recoverable text (scanned image-only or encrypted PDF, or
-                // a format this build ships no reader for) — surfaced as
-                // excluded, never silently dropped.
-                addToTally(extractFailed, route.format, size);
-                // Keep the handle: this is the shape recognition can sometimes
-                // read, and re-reading needs the bytes we are about to drop.
-                nextUnread.push({ path, format: route.format, file: entry.file });
-                nextValidations[path] = {
-                  included: false,
-                  reason: "No extractable text",
-                  classification: "binary",
-                  size,
-                  type,
-                };
-              }
-            } catch (error) {
-              console.error(`Failed to extract ${path}:`, error);
+          // No size gate. A big PDF used to be skipped here before extraction,
+          // and because nothing was pushed to `nextEntries` it never reached
+          // the tree either — invisible and un-re-includable, the worst shape
+          // a drop can take. Weight is reported after the fact instead.
+          try {
+            const bytes = new Uint8Array(await entry.file.arrayBuffer());
+            const { text } = await parsers.extract(route.parserId, bytes);
+            if (text) {
+              nextEntries.push({ path, content: text });
+              nextValidations[path] = {
+                included: true,
+                classification: "text",
+                size,
+                type,
+                extracted: true,
+              };
+            } else {
+              // No recoverable text (scanned image-only or encrypted PDF, or
+              // a format this build ships no reader for) — surfaced as
+              // excluded, never silently dropped.
               addToTally(extractFailed, route.format, size);
+              // Keep the handle: this is the shape recognition can sometimes
+              // read, and re-reading needs the bytes we are about to drop.
+              nextUnread.push({ path, format: route.format, file: entry.file });
               nextValidations[path] = {
                 included: false,
-                reason: "Couldn't extract text",
+                reason: "No extractable text",
                 classification: "binary",
                 size,
                 type,
               };
             }
+          } catch (error) {
+            console.error(`Failed to extract ${path}:`, error);
+            addToTally(extractFailed, route.format, size);
+            nextValidations[path] = {
+              included: false,
+              reason: "Couldn't extract text",
+              classification: "binary",
+              size,
+              type,
+            };
           }
           tickProgress();
           continue;

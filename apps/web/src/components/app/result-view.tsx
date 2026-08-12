@@ -14,10 +14,12 @@ import {
   ScanText,
   Scissors,
   SlidersHorizontal,
+  Weight,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { cn } from "~/lib/utils";
+import type { BundleWeight } from "~/lib/bundle-weight";
 import { InfoCard } from "./info-card";
 import { SegmentedControl } from "./segmented-control";
 
@@ -43,7 +45,7 @@ type ResultViewProps = {
   previewText: string;
   /** Genuinely not combinable as text — binaries, archives, unreadable files. */
   unsupported: UnsupportedFile[];
-  /** Readable text held back by a default rule — hidden dotfiles, over the size cap. */
+  /** Readable text held back by a default rule. Hidden dotfiles, since the size cap went. */
   skippedByDefault: UnsupportedFile[];
   /** Included files that decoded as "ambiguous" — kept in, but worth a look. */
   flaggedFiles: string[];
@@ -66,6 +68,8 @@ type ResultViewProps = {
   /** Open the "Adjust what's included" drawer. */
   onAdjust: () => void;
   bigBundle: boolean;
+  /** How heavy the bundle turned out, on both the model and browser axes. */
+  weight: BundleWeight;
   splitMode: SplitMode;
   onSplitModeChange: (mode: SplitMode) => void;
 };
@@ -100,6 +104,7 @@ export function ResultView({
   onCheckReading,
   onAdjust,
   bigBundle,
+  weight,
   splitMode,
   onSplitModeChange,
 }: ResultViewProps) {
@@ -126,12 +131,16 @@ export function ResultView({
         )}
       </div>
 
-      {/* One readout, three figures — not three metric cards. */}
+      {/* One readout, three figures — not three metric cards. The token figure
+          carries its own context-fit line, because a share of a window belongs
+          against the number it is a share of, not in a card further down. */}
       <div className="border-border bg-surface rounded-card mt-7 grid grid-cols-3 divide-x divide-[oklch(var(--hairline))] border">
         <Stat value={fmt.format(filesCombined)} label="files combined" />
-        <Stat value={fmt.format(tokens)} label="tokens" />
+        <Stat value={fmt.format(tokens)} label="tokens" hint={fitHint(weight)} />
         <Stat value={fmt.format(noiseSkipped)} label="noise files skipped" />
       </div>
+
+      <BundleWeightNote weight={weight} />
 
       {/* Everything the bundle held back or flagged, condensed to one honest line
           so the format switch below can sit right on top of the preview it drives.
@@ -283,11 +292,116 @@ export function ResultView({
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
+function Stat({
+  value,
+  label,
+  hint,
+}: {
+  value: string;
+  label: string;
+  hint?: { text: string; tone: "quiet" | "warn" | "over" } | null;
+}) {
   return (
     <div className="flex flex-col items-center gap-1 px-3 py-5">
       <span className="font-display text-ink text-2xl font-bold tabular-nums">{value}</span>
       <span className="text-ink-muted text-center text-xs">{label}</span>
+      {hint && (
+        <span
+          className={cn(
+            "text-center text-[11px] tabular-nums",
+            hint.tone === "quiet" && "text-ink-faint",
+            hint.tone === "warn" && "text-info",
+            hint.tone === "over" && "text-stop-fg",
+          )}
+        >
+          {hint.text}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The token figure's share of the chosen model's context window. Always shown
+ * once a model is known, quiet while there is room: a warning that only ever
+ * appears when something is wrong teaches nobody what the healthy state looks
+ * like, and this one costs a single muted line.
+ *
+ * Over 100% it switches from a percentage to a multiple, because "160%" reads
+ * as a near-miss and "1.6x" reads as what it is.
+ */
+function fitHint(weight: BundleWeight): { text: string; tone: "quiet" | "warn" | "over" } | null {
+  if (!weight.fit) return null;
+  const { level, ratio, modelName } = weight.fit;
+  if (level === "over") {
+    return { text: `${ratio.toFixed(1)}× ${modelName}`, tone: "over" };
+  }
+  // A real bundle that rounds to zero is not zero, and "0%" reads as a broken
+  // readout rather than a small one.
+  const percent = Math.round(ratio * 100);
+  return {
+    text: `${percent < 1 ? "<1" : percent}% of ${modelName}`,
+    tone: level === "tight" ? "warn" : "quiet",
+  };
+}
+
+/**
+ * What the removed per-file size cap used to decide on everyone's behalf.
+ *
+ * One card, never three. Model fit, browser cost and a dominant file are three
+ * sentences about one object, and stacking a card per axis would turn a heavy
+ * bundle into a wall of warnings — the exact overreaction the cap was. Tone
+ * follows the worst condition; nothing here blocks anything.
+ *
+ * It carries no action of its own either. The remedy is "leave some files out",
+ * and the quiet action row under Copy/Download already offers exactly that in
+ * the same viewport — a second Adjust link inside the card was the same door
+ * twice, 130px apart.
+ */
+function BundleWeightNote({ weight }: { weight: BundleWeight }) {
+  if (!weight.hasWarning) return null;
+
+  const over = weight.fit?.level === "over";
+  const tight = weight.fit?.level === "tight";
+  const title = over
+    ? `Bigger than ${weight.fit?.modelName}'s context window`
+    : tight
+      ? `Fills most of ${weight.fit?.modelName}'s context window`
+      : "A big bundle for one paste";
+
+  return (
+    <div className="mt-3">
+      <InfoCard tone={over ? "stop" : "info"} icon={Weight} title={title}>
+        {over && weight.fit && (
+          <p>
+            About {weight.fit.ratio.toFixed(1)}&times; the {fmt.format(weight.fit.contextLimit)}{" "}
+            tokens it can hold at once. Hand it over as a file rather than a paste, pick a model
+            with a bigger window, or leave some files out.
+          </p>
+        )}
+        {tight && weight.fit && (
+          <p>
+            That leaves roughly{" "}
+            {fmt.format(Math.max(0, Math.round(weight.fit.contextLimit * (1 - weight.fit.ratio))))}{" "}
+            tokens for your own prompt and the reply. The count is an estimate, so read this as
+            close rather than certain.
+          </p>
+        )}
+        {weight.isLarge && (
+          <p className={cn((over || tight) && "mt-1.5")}>
+            Past 1 MB the token figure is forecast from character count instead of measured, and
+            Copy can take a moment.
+          </p>
+        )}
+        {weight.dominant && (
+          <p className="mt-1.5">
+            {/* Floored, not rounded: a 99.9% share alongside two other files
+                must not print as "100% of it". */}
+            <span className="font-mono text-[12px]">{weight.dominant.path}</span> alone is{" "}
+            {Math.floor(weight.dominant.share * 100)}% of it.
+          </p>
+        )}
+      </InfoCard>
     </div>
   );
 }
@@ -568,9 +682,9 @@ function BundleNotes({
             >
               <p>
                 {skippedByDefault.length === 1 ? "It's" : "They're"} readable text, just kept out by
-                default: hidden dotfiles like <span className="text-ink">.gitignore</span>, or files
-                over the size cap. Add {skippedByDefault.length === 1 ? "it" : "any"} back if you
-                need {skippedByDefault.length === 1 ? "it" : "them"}.
+                default: hidden dotfiles like <span className="text-ink">.gitignore</span>. Add{" "}
+                {skippedByDefault.length === 1 ? "it" : "any"} back if you need{" "}
+                {skippedByDefault.length === 1 ? "it" : "them"}.
               </p>
               <ExpandableList
                 items={skippedByDefault}

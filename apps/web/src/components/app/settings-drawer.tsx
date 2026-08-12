@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { DEFAULT_IGNORE_STRING } from "@fileconcat/core";
-import type { FileStatus, FilteredModel, UserConfig } from "@fileconcat/core";
+import type { FileStatus, UserConfig } from "@fileconcat/core";
 
 import FileTree from "~/components/file-tree";
 import { CostEstimate } from "~/components/cost-estimate";
 import { ModelSelector } from "~/components/model-selector";
-import { useModels } from "~/hooks/use-models";
+import type { ModelPicker } from "~/hooks/use-selected-model";
 import { cn } from "~/lib/utils";
 
 import {
@@ -105,6 +105,8 @@ type SettingsDrawerProps = {
   onToggleMultipleFiles: (indices: number[], shouldInclude: boolean) => void;
   includedFileCount: number;
   tokens: number;
+  /** Owned by `app-flow` so the result screen can measure fit against it too. */
+  modelPicker: ModelPicker;
 };
 
 export function SettingsDrawer({
@@ -117,9 +119,9 @@ export function SettingsDrawer({
   onToggleMultipleFiles,
   includedFileCount,
   tokens,
+  modelPicker,
 }: SettingsDrawerProps) {
-  const { models, isLoading, lastUpdated, refresh } = useModels();
-  const [selectedModel, setSelectedModel] = useState<FilteredModel | null>(null);
+  const { models, selectedModel, setSelectedModel, isLoading, lastUpdated, refresh } = modelPicker;
   // The Sheet is a modal dialog, so it scroll-locks the page via
   // react-remove-scroll. Popovers portal to document.body by default, escaping
   // that region, which kills wheel-scrolling inside them. Portal the model
@@ -129,12 +131,6 @@ export function SettingsDrawer({
   // Pattern textareas are a developer tool — collapsed by default so a regular
   // user only meets the file tree. Programmers open this when they want globs.
   const [advancedOpen, setAdvancedOpen] = useState(false);
-
-  useEffect(() => {
-    if (selectedModel || models.length === 0) return;
-    const preferred = models.find((m) => m.name.toLowerCase().includes("sonnet")) ?? models[0];
-    setSelectedModel(preferred);
-  }, [models, selectedModel]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
