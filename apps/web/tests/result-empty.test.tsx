@@ -25,6 +25,59 @@ describe("the scanned rescue", () => {
     expect(emptyKindFor([], 0)).toBe("other");
   });
 
+  it("yields to nothing, but outranks the filters", () => {
+    expect(emptyKindFor(["scan.pdf"], 1, 4)).toBe("scanned");
+  });
+});
+
+/**
+ * The drop that is not broken at all: readable files, every one of them eaten
+ * by a pattern. Calling those binary was a lie, and Start over would have
+ * dropped the same files into the same filters.
+ */
+describe("the filtered rescue", () => {
+  it("outranks what the files look like, but only when a row can be re-included", () => {
+    expect(emptyKindFor(["a.min.js", "b.png"], 0, 1)).toBe("filtered");
+    expect(emptyKindFor(["a.png", "b.jpg"], 0, 0)).toBe("image");
+  });
+
+  it("leads with the drawer and keeps starting over underneath", async () => {
+    const onAdjust = vi.fn();
+    const onStartOver = vi.fn();
+    render(
+      <ResultEmpty
+        droppedFiles={["bundle.min.js"]}
+        kind="filtered"
+        onStartOver={onStartOver}
+        onAdjust={onAdjust}
+      />,
+    );
+
+    await act(async () =>
+      screen.getByRole("button", { name: /adjust what's included/i }).click(),
+    );
+    expect(onAdjust).toHaveBeenCalledOnce();
+    await act(async () => screen.getByRole("button", { name: /start over/i }).click());
+    expect(onStartOver).toHaveBeenCalledOnce();
+  });
+
+  it("offers the drawer under the other rescues too", () => {
+    render(
+      <ResultEmpty
+        droppedFiles={["a.png"]}
+        kind="image"
+        onStartOver={() => {}}
+        onAdjust={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /adjust what's included/i })).toBeTruthy();
+  });
+
+  it("never offers a drawer with nothing in it", () => {
+    render(<ResultEmpty droppedFiles={["a.png"]} kind="image" onStartOver={() => {}} />);
+    expect(screen.queryByRole("button", { name: /adjust/i })).toBeNull();
+  });
+
   it("reports the read already running, and offers the way out of it", async () => {
     const onStopReading = vi.fn();
     render(

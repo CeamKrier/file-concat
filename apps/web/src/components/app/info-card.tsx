@@ -2,7 +2,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { cn } from "~/lib/utils";
 
-export type InfoTone = "info" | "neutral" | "go";
+export type InfoTone = "info" | "neutral" | "go" | "stop";
 
 const TONE: Record<InfoTone, { wrap: string; icon: string }> = {
   // amber — informational heads-up, never an alarm
@@ -19,6 +19,13 @@ const TONE: Record<InfoTone, { wrap: string; icon: string }> = {
   go: {
     wrap: "border-[oklch(var(--primary)/0.3)] bg-[oklch(var(--primary)/0.08)]",
     icon: "text-primary",
+  },
+  // red — the fact has crossed a hard number. Reserved, and still never an
+  // alarm: the border and the icon carry it, body text stays at reading
+  // contrast, and nothing in this app is blocked by a red card.
+  stop: {
+    wrap: "border-[oklch(var(--destructive)/0.4)] bg-[oklch(var(--destructive)/0.07)]",
+    icon: "text-[oklch(var(--destructive))]",
   },
 };
 

@@ -31,12 +31,12 @@ export const validateFile = async (
     reason: undefined,
   };
 
-  // Size check
-  if (file.size > config.maxFileSizeMB * 1024 * 1024) {
-    result.isValid = false;
-    result.reason = `File size exceeds ${config.maxFileSizeMB}MB limit`;
-    return result;
-  }
+  // No size check. A per-file byte cap used to live here and silently dropped
+  // exactly the file people meant to bundle — usually the one big data file or
+  // log. Size is a browser-cost question, not a validity question, so it is
+  // surfaced on the result screen instead (`lib/bundle-weight.ts`, ADR-0010)
+  // and never blocks. `config.maxFileSizeMB` survives on the type for the CLI,
+  // which caps explicitly through its own `--max-size` flag.
 
   // Hidden file check
   if (config.excludeHiddenFiles && file.name.startsWith(".")) {

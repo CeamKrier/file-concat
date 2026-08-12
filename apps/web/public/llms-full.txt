@@ -664,9 +664,17 @@ and the preference persists in your config, but it is not currently a UI
 control. See [Token costs](/docs/token-costs) for why it is an expensive
 option.
 
-A per-file size limit still applies at ingestion: files larger than the
-configured maximum (`maxFileSizeMB`, default 32) are excluded from the
-output. It is a persisted value rather than a drawer control.
+There is no per-file size limit in the browser. A 32 MB cap used to apply at
+ingestion and silently drop anything above it, which meant the one large data
+file or log a bundle was usually about never arrived. Nothing is excluded for
+its size now. What a heavy bundle costs is reported on the result screen
+instead: how much of the selected model's context window it fills, whether it
+has passed the 1 MB mark where the token count becomes a forecast and Copy
+slows down, and which single file is carrying most of the weight.
+
+The `maxFileSizeMB` field survives in the persisted config, unread by the web
+app. The CLI still caps, but explicitly and visibly, through
+[`--max-size`](/docs/cli-usage).
 
 ## Persistent configuration
 
@@ -676,7 +684,7 @@ The full `UserConfig` shape lives in
 sessions:
 
 - `includePatterns` and `ignorePatterns` (your textareas)
-- `maxFileSizeMB`
+- `maxFileSizeMB` (kept for compatibility; the web app no longer reads it)
 - `showLineNumbers`
 - `outputStyle` (xml, markdown, or plain)
 - `defaultSourceType` and `autoSwitchSource`

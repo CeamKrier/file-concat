@@ -15,6 +15,8 @@ import { useFileIngestion } from "~/hooks/use-file-ingestion";
 import { useFilterState } from "~/hooks/use-filter-state";
 import { useOutputGeneration } from "~/hooks/use-output-generation";
 import { estimateTokenCount, preloadTokenEstimator } from "~/lib/tokens";
+import { weighBundle } from "~/lib/bundle-weight";
+import { useSelectedModel } from "~/hooks/use-selected-model";
 import { classifyUrl, type Classification, type ImportTab } from "~/lib/classify-url";
 import { trackEntrySurface } from "~/lib/metrics";
 import { tagSurface } from "~/lib/clarity-tags";
@@ -90,13 +92,13 @@ type AppFlowProps = {
  */
 export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   const { config, setConfig } = useConfig();
-  // Wire the user's per-file size cap into ingestion. Binary + hidden filtering
-  // stay on (from DEFAULT_CONFIG) so content-sniffing still runs.
-  const ingestionConfig = useMemo(
-    () => ({ ...DEFAULT_CONFIG, maxFileSizeMB: config.maxFileSizeMB }),
-    [config.maxFileSizeMB],
-  );
-  const ingestion = useFileIngestion(ingestionConfig);
+  // Binary + hidden filtering only. There is no size cap any more: nothing in
+  // ingestion reads `maxFileSizeMB`, and how heavy a bundle turned out is
+  // reported on the result screen instead of decided here.
+  const ingestion = useFileIngestion(DEFAULT_CONFIG);
+  // Owned here, not in the drawer: both the cost estimate and the result
+  // screen's context-fit line measure against the same chosen model.
+  const modelPicker = useSelectedModel();
   const filter = useFilterState({
     entries: ingestion.entries,
     validations: ingestion.validations,
@@ -185,8 +187,9 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   const filesCombined = filter.includedFileCount;
   // Two honest buckets for what didn't make it in. `notText` genuinely can't be
   // combined (binary, archive, unreadable). `skippedByDefault` IS readable text,
-  // just held back by a default rule — hidden dotfiles or over the size cap — so
-  // it gets its own framing and stays one click from being re-included.
+  // just held back by a default rule (hidden dotfiles; the size cap that used
+  // to land here is gone), so it gets its own framing and stays one click from
+  // being re-included.
   const { notText, skippedByDefault } = useMemo(() => {
     const notText: { name: string; why: string }[] = [];
     const skippedByDefault: { name: string; why: string }[] = [];
@@ -202,7 +205,10 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       if (v.included || unread.has(path)) continue;
       const name = path.split("/").pop() ?? path;
       const reason = v.reason ?? "";
-      if (reason === "Hidden file" || /^File size exceeds/.test(reason)) {
+      // Hidden dotfiles are the only occupant left. This also tested for
+      // "File size exceeds", which no path can produce since the per-file cap
+      // was removed — a dead branch that kept the old string in the bundle.
+      if (reason === "Hidden file") {
         skippedByDefault.push({ name, why: reason });
       } else {
         notText.push({ name, why: archiveWhy(name, reason || "Not text") });
@@ -237,6 +243,23 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       .map(([path]) => path.split("/").pop() ?? path);
   }, [ingestion.validations, filter.fileStatuses]);
   const bigBundle = SPLIT_OUTPUT_ENABLED && tokens > MULTI_OUTPUT_LIMIT;
+  // What the removed 32 MB per-file cap used to decide silently, reported
+  // instead. Measured over the files that actually made the bundle, so
+  // deselecting the heavy one in the drawer visibly moves it.
+  const weight = useMemo(
+    () =>
+      weighBundle({
+        files: includedContents,
+        tokens,
+        model: modelPicker.selectedModel
+          ? {
+              name: modelPicker.selectedModel.name,
+              contextLimit: modelPicker.selectedModel.contextLimit,
+            }
+          : null,
+      }),
+    [includedContents, tokens, modelPicker.selectedModel],
+  );
   const projectName = useMemo(
     () =>
       ingestion.entries.length ? generateProjectName(ingestion.entries.map((e) => e.path)) : "",
@@ -259,9 +282,18 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     () => Object.keys(ingestion.validations).map((p) => p.split("/").pop() ?? p),
     [ingestion.validations],
   );
+  // Readable files sitting excluded in the tree. The one thing that makes the
+  // settings drawer worth offering from the empty state: without a row anyone
+  // could re-include, Adjust opens an empty room. Binaries are locked out of
+  // curation (ADR-0009), so they never count.
+  const adjustableCount = useMemo(
+    () =>
+      filter.fileStatuses.filter((s) => !s.included && s.classification !== "binary").length,
+    [filter.fileStatuses],
+  );
   const emptyKind = useMemo(
-    () => emptyKindFor(droppedFiles, ingestion.unreadDocuments.length),
-    [droppedFiles, ingestion.unreadDocuments],
+    () => emptyKindFor(droppedFiles, ingestion.unreadDocuments.length, adjustableCount),
+    [droppedFiles, ingestion.unreadDocuments, adjustableCount],
   );
 
   // --- flow control ---------------------------------------------------------
@@ -480,6 +512,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               droppedFiles={droppedFiles}
               kind={emptyKind}
               onStartOver={startOver}
+              onAdjust={adjustableCount > 0 ? () => setSettingsOpen(true) : undefined}
               isReading={ingestion.isReading}
               readProgress={ingestion.readProgress}
               stoppedReading={ingestion.stoppedReading}
@@ -519,6 +552,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               onCheckReading={() => setReadingOpen(true)}
               onAdjust={() => setSettingsOpen(true)}
               bigBundle={bigBundle}
+              weight={weight}
               splitMode={output.selectedFormat}
               onSplitModeChange={(mode) => setConfig({ defaultOutputFormat: mode })}
             />
@@ -552,6 +586,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         onToggleMultipleFiles={filter.toggleMany}
         includedFileCount={filter.includedFileCount}
         tokens={tokens}
+        modelPicker={modelPicker}
       />
     </div>
   );

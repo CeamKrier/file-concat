@@ -74,6 +74,10 @@ export default {
           DEFAULT: "oklch(var(--go))",
           fg: "oklch(var(--go-text))",
         },
+        stop: {
+          DEFAULT: "oklch(var(--destructive))",
+          fg: "oklch(var(--stop-text))",
+        },
         info: "oklch(var(--info))",
         "neutral-info": "oklch(var(--neutral-info))",
         code: "oklch(var(--code-text))",
