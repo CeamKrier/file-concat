@@ -51,6 +51,13 @@ google-search-console-api.json
 # already covered above.
 /.claude/skills/pulse/
 
+# The napkin, for the same reason. It was tracked, and notes written while
+# reading the counters quoted the reading straight into a public file — Run
+# counts, per-extension Visit/day figures, a pointer to /docs/reviews/. Keeping
+# /docs/ private only works if nothing else repeats what it says. History still
+# holds the old entries; this stops the next one.
+/.claude/napkin.md
+
 # Redesign working files — kept locally, not published to the remote.
 /redesign/
 .mcp.json
