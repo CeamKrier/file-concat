@@ -39,8 +39,18 @@ export type ProcessingConfig = {
  * shape changes and update the `migrateConfig` handler in the web app
  * accordingly. The literal lives here so the type definition and every
  * migration consumer share one source of truth.
+ *
+ * 8 repairs data rather than changing shape. Every build shipped with
+ * `ignorePatterns` frozen as `undefined` (see `defaultConfig()` in
+ * `use-config.ts`), and `JSON.stringify` drops an `undefined` value entirely —
+ * so anyone who saved a setting in that window holds a v7 payload with no
+ * `ignorePatterns` key, and `useConfig` takes such a payload verbatim because
+ * the version matches. The bump forces those through `migrateConfig` once,
+ * where `pickIgnorePatterns` restores the default, and the repaired config is
+ * written back. One pass, not a permanent guard: the verbatim path has to keep
+ * working, or a deliberately-emptied ignore box could never survive a reload.
  */
-export const CONFIG_VERSION = 7;
+export const CONFIG_VERSION = 8;
 
 // User configuration with schema versioning for localStorage
 export type UserConfig = {
