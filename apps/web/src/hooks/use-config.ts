@@ -4,16 +4,33 @@ import { CONFIG_VERSION, DEFAULT_IGNORE_STRING } from "@fileconcat/core";
 
 const STORAGE_KEY = "fileconcat-config";
 
-const DEFAULT_CONFIG: UserConfig = {
-  version: CONFIG_VERSION,
-  maxFileSizeMB: 32,
-  includePatterns: "",
-  ignorePatterns: DEFAULT_IGNORE_STRING,
-  showLineNumbers: false,
-  defaultOutputFormat: "auto",
-  outputStyle: "xml",
-  chunkSizeKB: 32,
-};
+/**
+ * The defaults, built on call rather than frozen at module scope.
+ *
+ * This was an object literal here, and `ignorePatterns: DEFAULT_IGNORE_STRING`
+ * captured that import **by value** the moment this module's body ran. In the
+ * production chunk layout that is before core's `default-ignore` body, so the
+ * literal froze `undefined` and every visitor got an empty ignore list: no
+ * node_modules, no lockfiles, no `dist` filtered, and "0 noise files skipped".
+ * Dev never showed it, because unbundled ESM evaluates the dependency first.
+ *
+ * A function reads the binding at call time, after every module is
+ * initialised, which is correct under any chunking. **Never capture an
+ * imported constant in a module-scope literal in this app** — see
+ * `defaultIgnoreString()` below for the same reasoning applied to presets.
+ */
+function defaultConfig(): UserConfig {
+  return {
+    version: CONFIG_VERSION,
+    maxFileSizeMB: 32,
+    includePatterns: "",
+    ignorePatterns: DEFAULT_IGNORE_STRING,
+    showLineNumbers: false,
+    defaultOutputFormat: "auto",
+    outputStyle: "xml",
+    chunkSizeKB: 32,
+  };
+}
 
 function pickString(value: unknown, fallback: string): string {
   return typeof value === "string" && value.length > 0 ? value : fallback;
@@ -56,15 +73,16 @@ function pickOutputFormatPref(raw: Record<string, unknown>): OutputFormatPrefere
 }
 
 function migrateConfig(oldConfig: Record<string, unknown>): UserConfig {
+  const defaults = defaultConfig();
   return {
     version: CONFIG_VERSION,
-    maxFileSizeMB: pickNumber(oldConfig.maxFileSizeMB, DEFAULT_CONFIG.maxFileSizeMB),
-    includePatterns: pickString(oldConfig.includePatterns, DEFAULT_CONFIG.includePatterns),
+    maxFileSizeMB: pickNumber(oldConfig.maxFileSizeMB, defaults.maxFileSizeMB),
+    includePatterns: pickString(oldConfig.includePatterns, defaults.includePatterns),
     ignorePatterns: pickIgnorePatterns(oldConfig),
-    showLineNumbers: pickBoolean(oldConfig.showLineNumbers, DEFAULT_CONFIG.showLineNumbers),
+    showLineNumbers: pickBoolean(oldConfig.showLineNumbers, defaults.showLineNumbers),
     defaultOutputFormat: pickOutputFormatPref(oldConfig),
-    outputStyle: pickEnum(oldConfig.outputStyle, OUTPUT_STYLES, DEFAULT_CONFIG.outputStyle),
-    chunkSizeKB: pickNumber(oldConfig.chunkSizeKB, DEFAULT_CONFIG.chunkSizeKB),
+    outputStyle: pickEnum(oldConfig.outputStyle, OUTPUT_STYLES, defaults.outputStyle),
+    chunkSizeKB: pickNumber(oldConfig.chunkSizeKB, defaults.chunkSizeKB),
   };
 }
 
@@ -72,7 +90,9 @@ function migrateConfig(oldConfig: Record<string, unknown>): UserConfig {
  * Hook for persisting user configuration to localStorage
  */
 export function useConfig() {
-  const [config, setConfigState] = useState<UserConfig>(DEFAULT_CONFIG);
+  // Lazy initialiser: `defaultConfig` runs on first render, never at module
+  // scope, which is the whole point (see its comment).
+  const [config, setConfigState] = useState<UserConfig>(defaultConfig);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load config from localStorage on mount
@@ -111,9 +131,10 @@ export function useConfig() {
 
   // Reset to defaults
   const resetConfig = useCallback(() => {
-    setConfigState(DEFAULT_CONFIG);
+    const defaults = defaultConfig();
+    setConfigState(defaults);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_CONFIG));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults));
     } catch (error) {
       console.warn("Failed to reset config:", error);
     }
@@ -124,6 +145,6 @@ export function useConfig() {
     setConfig,
     resetConfig,
     isLoaded,
-    DEFAULT_CONFIG,
+    defaultConfig,
   };
 }

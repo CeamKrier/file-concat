@@ -28,72 +28,82 @@ type PresetGroup = { label: string; presets: Preset[] };
 // everyone — the labels themselves do the persona differentiation, so a
 // non-developer sees a clearly-labelled "Documents" set instead of a wall of
 // framework chips, without any persona-detection logic in the surface.
-const PRESET_GROUPS: PresetGroup[] = [
-  {
-    label: "General",
-    presets: [
-      // Resets to the honest default state: no include filter, standard noise
-      // still skipped. Matches the initial config, so it reads as active on load.
-      { name: "Everything readable", include: "", ignore: DEFAULT_IGNORE_STRING },
-      {
-        name: "Source only",
-        include: "src/**/*",
-        ignore: "**/*.test.*, **/*.spec.*, **/__tests__",
-      },
-    ],
-  },
-  {
-    label: "Code stacks",
-    presets: [
-      {
-        name: "React / Next",
-        include: "**/*.tsx, **/*.ts, **/*.jsx, **/*.js, **/*.css, **/*.json",
-        ignore:
-          "node_modules, .next, dist, build, coverage, **/*.test.*, **/*.spec.*, **/__tests__",
-      },
-      {
-        name: "Vue",
-        include: "**/*.vue, **/*.ts, **/*.js, **/*.css, **/*.json",
-        ignore: "node_modules, dist, .nuxt, coverage, **/*.test.*, **/*.spec.*",
-      },
-      {
-        name: "Python",
-        include: "**/*.py, **/*.pyi, **/*.toml, **/*.yaml, **/*.yml, **/*.json",
-        ignore: "__pycache__, .venv, venv, .pytest_cache, dist, build, *.egg-info, **/*_test.py",
-      },
-      {
-        name: "Go",
-        include: "**/*.go, **/*.mod, **/*.sum, **/*.yaml, **/*.yml",
-        ignore: "vendor, bin, **/*_test.go",
-      },
-      {
-        name: "Rust",
-        include: "**/*.rs, **/*.toml, **/*.md",
-        ignore: "target, **/*_test.rs",
-      },
-    ],
-  },
-  {
-    label: "Documents",
-    presets: [
-      {
-        name: "Documents",
-        include: "**/*.pdf, **/*.docx, **/*.xlsx, **/*.pptx, **/*.odt, **/*.md, **/*.txt, **/*.rtf",
-        ignore: DEFAULT_IGNORE_STRING,
-      },
-      {
-        name: "Notes (markdown & text)",
-        include: "**/*.md, **/*.mdx, **/*.txt, **/*.rst",
-        ignore: DEFAULT_IGNORE_STRING,
-      },
-      {
-        name: "Papers (PDF)",
-        include: "**/*.pdf",
-        ignore: DEFAULT_IGNORE_STRING,
-      },
-    ],
-  },
-];
+//
+// A function, not a module-scope literal. `DEFAULT_IGNORE_STRING` is an
+// imported binding, and capturing it at module scope froze `undefined` in the
+// production chunk layout, so four of these presets shipped an empty ignore
+// list and quietly turned noise filtering off when clicked. Same fix and same
+// reasoning as `defaultConfig()` in `use-config.ts`: read the binding at call
+// time, after every module body has run.
+function presetGroups(): PresetGroup[] {
+  return [
+    {
+      label: "General",
+      presets: [
+        // Resets to the honest default state: no include filter, standard noise
+        // still skipped. Matches the initial config, so it reads as active on load.
+        { name: "Everything readable", include: "", ignore: DEFAULT_IGNORE_STRING },
+        {
+          name: "Source only",
+          include: "src/**/*",
+          ignore: "**/*.test.*, **/*.spec.*, **/__tests__",
+        },
+      ],
+    },
+    {
+      label: "Code stacks",
+      presets: [
+        {
+          name: "React / Next",
+          include: "**/*.tsx, **/*.ts, **/*.jsx, **/*.js, **/*.css, **/*.json",
+          ignore:
+            "node_modules, .next, dist, build, coverage, **/*.test.*, **/*.spec.*, **/__tests__",
+        },
+        {
+          name: "Vue",
+          include: "**/*.vue, **/*.ts, **/*.js, **/*.css, **/*.json",
+          ignore: "node_modules, dist, .nuxt, coverage, **/*.test.*, **/*.spec.*",
+        },
+        {
+          name: "Python",
+          include: "**/*.py, **/*.pyi, **/*.toml, **/*.yaml, **/*.yml, **/*.json",
+          ignore: "__pycache__, .venv, venv, .pytest_cache, dist, build, *.egg-info, **/*_test.py",
+        },
+        {
+          name: "Go",
+          include: "**/*.go, **/*.mod, **/*.sum, **/*.yaml, **/*.yml",
+          ignore: "vendor, bin, **/*_test.go",
+        },
+        {
+          name: "Rust",
+          include: "**/*.rs, **/*.toml, **/*.md",
+          ignore: "target, **/*_test.rs",
+        },
+      ],
+    },
+    {
+      label: "Documents",
+      presets: [
+        {
+          name: "Documents",
+          include:
+            "**/*.pdf, **/*.docx, **/*.xlsx, **/*.pptx, **/*.odt, **/*.md, **/*.txt, **/*.rtf",
+          ignore: DEFAULT_IGNORE_STRING,
+        },
+        {
+          name: "Notes (markdown & text)",
+          include: "**/*.md, **/*.mdx, **/*.txt, **/*.rst",
+          ignore: DEFAULT_IGNORE_STRING,
+        },
+        {
+          name: "Papers (PDF)",
+          include: "**/*.pdf",
+          ignore: DEFAULT_IGNORE_STRING,
+        },
+      ],
+    },
+  ];
+}
 
 type SettingsDrawerProps = {
   open: boolean;
@@ -146,7 +156,7 @@ export function SettingsDrawer({
           <div className="flex flex-col gap-6">
             <Section label="Quick presets">
               <div className="flex flex-col gap-3">
-                {PRESET_GROUPS.map((group) => (
+                {presetGroups().map((group) => (
                   <div key={group.label}>
                     <p className="text-ink-faint mb-1.5 text-[11px]">{group.label}</p>
                     <div className="flex flex-wrap gap-1.5">
