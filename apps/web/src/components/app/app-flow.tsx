@@ -205,7 +205,10 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       if (v.included || unread.has(path)) continue;
       const name = path.split("/").pop() ?? path;
       const reason = v.reason ?? "";
-      if (reason === "Hidden file" || /^File size exceeds/.test(reason)) {
+      // Hidden dotfiles are the only occupant left. This also tested for
+      // "File size exceeds", which no path can produce since the per-file cap
+      // was removed — a dead branch that kept the old string in the bundle.
+      if (reason === "Hidden file") {
         skippedByDefault.push({ name, why: reason });
       } else {
         notText.push({ name, why: archiveWhy(name, reason || "Not text") });
