@@ -63,6 +63,16 @@ describe("canonicalModelKey", () => {
   it("preserves version dots", () => {
     expect(canonicalModelKey("glm-5.1")).not.toBe(canonicalModelKey("glm-5"));
   });
+
+  it("collapses punctuation standing between two separators", () => {
+    // Stripping punctuation *after* collapsing separators leaves the two
+    // separators that surrounded it as a double dash, so these never bucketed
+    // with the plain spelling of the same model. The property test finds it as
+    // "0 { 0", which is the same shape without a model attached.
+    expect(canonicalModelKey("Claude 3.5 / Sonnet")).toBe(canonicalModelKey("Claude 3.5 Sonnet"));
+    expect(canonicalModelKey("Qwen 2.5 + Coder")).toBe(canonicalModelKey("Qwen 2.5 Coder"));
+    expect(canonicalModelKey(canonicalModelKey("0 { 0"))).toBe(canonicalModelKey("0 { 0"));
+  });
 });
 
 describe("canonicalModelKey — properties", () => {
