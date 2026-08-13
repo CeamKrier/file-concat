@@ -81,6 +81,20 @@ export type FailedFile = { path: string; error: string };
  */
 export type ScannedDocument = { path: string; format: string; file: File };
 
+/**
+ * The formats where "no text came out" can honestly mean "the page is a
+ * picture". A scan is a photograph of a page, so it arrives inside a
+ * page-shaped document.
+ *
+ * A spreadsheet with no cells is empty, not scanned, and the same goes for an
+ * .eml with no body or a subtitle file with no cues. Sending one to recognition
+ * costs a 5 MB language download to read nothing, and — worse — standing in the
+ * scanned list is what makes the empty screen say "these pages are pictures"
+ * about a workbook. Formats absent here still surface as "no extractable text";
+ * they just stop being offered a rescue that cannot apply.
+ */
+const SCANNABLE_FORMATS = new Set(["pdf", "docx", "pptx", "odt", "odp", "rtf"]);
+
 export type IngestPhase = "unpacking" | "reading" | "fetching" | "recognising";
 /**
  * Live progress for the processing view. `total === 0` means indeterminate.
@@ -430,8 +444,11 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
               // excluded, never silently dropped.
               addToTally(extractFailed, route.format, size);
               // Keep the handle: this is the shape recognition can sometimes
-              // read, and re-reading needs the bytes we are about to drop.
-              nextUnread.push({ path, format: route.format, file: entry.file });
+              // read, and re-reading needs the bytes we are about to drop. Only
+              // for a format that could be a scan in the first place.
+              if (SCANNABLE_FORMATS.has(route.format)) {
+                nextUnread.push({ path, format: route.format, file: entry.file });
+              }
               nextValidations[path] = {
                 included: false,
                 reason: "No extractable text",

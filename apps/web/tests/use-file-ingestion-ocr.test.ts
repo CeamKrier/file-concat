@@ -12,11 +12,17 @@ import { DEFAULT_CONFIG } from "@fileconcat/core";
  */
 vi.mock("~/lib/prepare-batch", () => ({
   prepareBatch: (incoming: { file: File; path?: string }[]) => ({
-    files: incoming.map((item) => ({
-      item,
-      path: item.path ?? item.file.name,
-      route: { kind: "extract", parserId: "office", format: "pdf" },
-    })),
+    files: incoming.map((item) => {
+      const path = item.path ?? item.file.name;
+      return {
+        item,
+        path,
+        // Format off the extension. The real router reads bytes and never a
+        // name; this stub only has to hand the hook the same shape, and the
+        // format is what decides whether a document could be a scan.
+        route: { kind: "extract", parserId: "office", format: path.split(".").pop() },
+      };
+    }),
     expandedCount: 0,
     unsupported: [],
   }),
@@ -104,6 +110,24 @@ describe("recognition over a drop", () => {
 
     expect(result.current.validations["a.pdf"].recognitionTried).toBe(true);
     expect(result.current.unreadDocuments.map((d) => d.path)).toEqual(["a.pdf"]);
+  });
+});
+
+describe("a document that cannot hold a scan", () => {
+  it("leaves an empty spreadsheet out of recognition entirely", async () => {
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([scan("ledger.xlsx")]);
+    });
+
+    // A workbook with no cells is empty, not a picture of a page. Recognition
+    // there costs a 5 MB language download to read nothing, and standing in the
+    // scanned list makes the empty screen say the cells are pictures.
+    expect(attempts).toEqual([]);
+    expect(result.current.scannedDocuments).toHaveLength(0);
+    expect(result.current.unreadDocuments).toHaveLength(0);
+    // Still reported, never silently dropped.
+    expect(result.current.validations["ledger.xlsx"].included).toBe(false);
   });
 });
 
