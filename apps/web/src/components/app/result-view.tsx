@@ -67,6 +67,8 @@ type ResultViewProps = {
   onCheckReading: () => void;
   /** Open the "Adjust what's included" drawer. */
   onAdjust: () => void;
+  /** Open the same drawer, scrolled to the model picker. */
+  onChangeModel: () => void;
   bigBundle: boolean;
   /** How heavy the bundle turned out, on both the model and browser axes. */
   weight: BundleWeight;
@@ -103,6 +105,7 @@ export function ResultView({
   readLanguageNote,
   onCheckReading,
   onAdjust,
+  onChangeModel,
   bigBundle,
   weight,
   splitMode,
@@ -136,7 +139,7 @@ export function ResultView({
           against the number it is a share of, not in a card further down. */}
       <div className="border-border bg-surface rounded-card mt-7 grid grid-cols-3 divide-x divide-[oklch(var(--hairline))] border">
         <Stat value={fmt.format(filesCombined)} label="files combined" />
-        <Stat value={fmt.format(tokens)} label="tokens" hint={fitHint(weight)} />
+        <Stat value={fmt.format(tokens)} label="tokens" hint={fitHint(weight, onChangeModel)} />
         <Stat value={fmt.format(noiseSkipped)} label="noise files skipped" />
       </div>
 
@@ -299,23 +302,32 @@ function Stat({
 }: {
   value: string;
   label: string;
-  hint?: { text: string; tone: "quiet" | "warn" | "over" } | null;
+  hint?: { text: string; tone: "quiet" | "warn" | "over"; onClick: () => void } | null;
 }) {
   return (
     <div className="flex flex-col items-center gap-1 px-3 py-5">
       <span className="font-display text-ink text-2xl font-bold tabular-nums">{value}</span>
       <span className="text-ink-muted text-center text-xs">{label}</span>
+      {/* The share is stated against a model the reader may not have picked, so
+          the sentence itself is the way back to the picker. A dotted underline
+          at 11px is the whole affordance; the tone colour still carries the
+          warning. */}
       {hint && (
-        <span
+        <button
+          type="button"
+          onClick={hint.onClick}
+          title="Change model"
           className={cn(
-            "text-center text-[11px] tabular-nums",
-            hint.tone === "quiet" && "text-ink-faint",
+            "rounded-chip focus-visible:ring-ring focus-visible:ring-offset-surface text-center text-[11px] tabular-nums underline decoration-dotted underline-offset-[3px] transition-colors duration-150 hover:decoration-solid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+            // ink-faint reads at 3.17:1 here — fine for a whisper, not for
+            // something you are meant to click. ink-muted is the floor.
+            hint.tone === "quiet" && "text-ink-muted hover:text-ink-secondary",
             hint.tone === "warn" && "text-info",
             hint.tone === "over" && "text-stop-fg",
           )}
         >
           {hint.text}
-        </span>
+        </button>
       )}
     </div>
   );
@@ -330,11 +342,14 @@ function Stat({
  * Over 100% it switches from a percentage to a multiple, because "160%" reads
  * as a near-miss and "1.6x" reads as what it is.
  */
-function fitHint(weight: BundleWeight): { text: string; tone: "quiet" | "warn" | "over" } | null {
+function fitHint(
+  weight: BundleWeight,
+  onClick: () => void,
+): { text: string; tone: "quiet" | "warn" | "over"; onClick: () => void } | null {
   if (!weight.fit) return null;
   const { level, ratio, modelName } = weight.fit;
   if (level === "over") {
-    return { text: `${ratio.toFixed(1)}× ${modelName}`, tone: "over" };
+    return { text: `${ratio.toFixed(1)}× ${modelName}`, tone: "over", onClick };
   }
   // A real bundle that rounds to zero is not zero, and "0%" reads as a broken
   // readout rather than a small one.
@@ -342,6 +357,7 @@ function fitHint(weight: BundleWeight): { text: string; tone: "quiet" | "warn" |
   return {
     text: `${percent < 1 ? "<1" : percent}% of ${modelName}`,
     tone: level === "tight" ? "warn" : "quiet",
+    onClick,
   };
 }
 
