@@ -118,6 +118,13 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
 
   const [phase, setPhase] = useState<Phase>("landing");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Which part of the drawer the opener was asking for. Only the result's fit
+  // line asks for the model picker; every other door lands at the top.
+  const [settingsFocusModel, setSettingsFocusModel] = useState(false);
+  const openSettings = (focusModel = false) => {
+    setSettingsFocusModel(focusModel);
+    setSettingsOpen(true);
+  };
   const [readingOpen, setReadingOpen] = useState(false);
   // The source identity shown under the spinner (import slug/host, else "").
   const [processingLabel, setProcessingLabel] = useState("");
@@ -512,7 +519,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               droppedFiles={droppedFiles}
               kind={emptyKind}
               onStartOver={startOver}
-              onAdjust={adjustableCount > 0 ? () => setSettingsOpen(true) : undefined}
+              onAdjust={adjustableCount > 0 ? () => openSettings() : undefined}
               isReading={ingestion.isReading}
               readProgress={ingestion.readProgress}
               stoppedReading={ingestion.stoppedReading}
@@ -550,7 +557,8 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               stoppedReading={ingestion.stoppedReading}
               readLanguageNote={readLanguageNote}
               onCheckReading={() => setReadingOpen(true)}
-              onAdjust={() => setSettingsOpen(true)}
+              onAdjust={() => openSettings()}
+              onChangeModel={() => openSettings(true)}
               bigBundle={bigBundle}
               weight={weight}
               splitMode={output.selectedFormat}
@@ -587,6 +595,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         includedFileCount={filter.includedFileCount}
         tokens={tokens}
         modelPicker={modelPicker}
+        focusModel={settingsFocusModel}
       />
     </div>
   );

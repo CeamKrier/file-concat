@@ -46,15 +46,22 @@ export interface DedupAndPruneOptions {
 
 /**
  * Normalize a model name into a stable canonical key so that the same model
- * served by many providers collapses to one bucket. Lowercase, collapse
- * whitespace / underscores / dashes into single dashes, strip punctuation
- * except `.` (preserves versions like `4.6`).
+ * served by many providers collapses to one bucket. Lowercase, strip
+ * punctuation except `.` (preserves versions like `4.6`), collapse whitespace /
+ * underscores / dashes into single dashes.
+ *
+ * Punctuation goes *before* the separators collapse, and the order is the whole
+ * point: stripping afterwards leaves the two separators that surrounded the
+ * punctuation standing as `--`, so "Claude 3.5 / Sonnet" keyed as
+ * `claude-3.5--sonnet` and never met "Claude 3.5 Sonnet" in the same bucket.
+ * It also made the function non-idempotent, which is what the property test
+ * catches whenever its seed happens to generate the shape.
  */
 export function canonicalModelKey(name: string): string {
   return name
     .toLowerCase()
+    .replace(/[^a-z0-9.\s_-]/g, "")
     .replace(/[\s_-]+/g, "-")
-    .replace(/[^a-z0-9.-]/g, "")
     .replace(/^-+|-+$/g, "");
 }
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { DEFAULT_IGNORE_STRING } from "@fileconcat/core";
@@ -117,6 +117,8 @@ type SettingsDrawerProps = {
   tokens: number;
   /** Owned by `app-flow` so the result screen can measure fit against it too. */
   modelPicker: ModelPicker;
+  /** Opened from the result's fit line: land on the model picker, not the top. */
+  focusModel?: boolean;
 };
 
 export function SettingsDrawer({
@@ -130,6 +132,7 @@ export function SettingsDrawer({
   includedFileCount,
   tokens,
   modelPicker,
+  focusModel = false,
 }: SettingsDrawerProps) {
   const { models, selectedModel, setSelectedModel, isLoading, lastUpdated, refresh } = modelPicker;
   // The Sheet is a modal dialog, so it scroll-locks the page via
@@ -141,6 +144,22 @@ export function SettingsDrawer({
   // Pattern textareas are a developer tool — collapsed by default so a regular
   // user only meets the file tree. Programmers open this when they want globs.
   const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  // Arriving from the result's "x% of <model>" line, the drawer should already
+  // be showing the picker when it finishes sliding in. Instant, not smooth: the
+  // sheet is animating in at the same time, and a second motion on top of that
+  // reads as a glitch rather than as a scroll.
+  //
+  // A callback ref, not an effect on `open`: Radix's Portal gates its children
+  // behind a mounted state, so the sheet's body appears one commit *after*
+  // `open` flips and an effect here would run against a section that is not in
+  // the DOM yet. This fires exactly when the node lands.
+  const modelSection = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (node && focusModel) node.scrollIntoView({ block: "center" });
+    },
+    [focusModel],
+  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -242,20 +261,22 @@ export function SettingsDrawer({
               )}
             </div>
 
-            <Section label="Cost estimate">
-              <div className="flex flex-col gap-3">
-                <ModelSelector
-                  models={models}
-                  selectedModel={selectedModel}
-                  onSelect={setSelectedModel}
-                  isLoading={isLoading}
-                  onRefresh={refresh}
-                  lastUpdated={lastUpdated}
-                  portalContainer={sheetContainer}
-                />
-                <CostEstimate model={selectedModel} inputTokens={tokens} />
-              </div>
-            </Section>
+            <div ref={modelSection}>
+              <Section label="Cost estimate">
+                <div className="flex flex-col gap-3">
+                  <ModelSelector
+                    models={models}
+                    selectedModel={selectedModel}
+                    onSelect={setSelectedModel}
+                    isLoading={isLoading}
+                    onRefresh={refresh}
+                    lastUpdated={lastUpdated}
+                    portalContainer={sheetContainer}
+                  />
+                  <CostEstimate model={selectedModel} inputTokens={tokens} />
+                </div>
+              </Section>
+            </div>
           </div>
         </SheetBody>
 
