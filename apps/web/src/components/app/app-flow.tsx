@@ -18,7 +18,7 @@ import { estimateTokenCount, preloadTokenEstimator } from "~/lib/tokens";
 import { weighBundle } from "~/lib/bundle-weight";
 import { useSelectedModel } from "~/hooks/use-selected-model";
 import { classifyUrl, type Classification, type ImportTab } from "~/lib/classify-url";
-import { trackEntrySurface } from "~/lib/metrics";
+import { addToTally, currentRun, trackEntrySurface, trackTally, type Tally } from "~/lib/metrics";
 import { tagSurface } from "~/lib/clarity-tags";
 import { ocrLanguageName, ocrLanguageOptions } from "~/lib/ocr-language";
 
@@ -31,7 +31,7 @@ import { ProcessingView } from "./processing-view";
 import { ResultView } from "./result-view";
 import { ResultEmpty } from "./result-empty";
 import { ReadingDialog } from "./reading-dialog";
-import { emptyKindFor } from "./empty-kind";
+import { emptyKindFor, emptyReasonSlug } from "./empty-kind";
 import { SettingsDrawer } from "./settings-drawer";
 
 type Phase = "landing" | "processing" | "result";
@@ -302,6 +302,35 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     () => emptyKindFor(droppedFiles, ingestion.unreadDocuments.length, adjustableCount),
     [droppedFiles, ingestion.unreadDocuments, adjustableCount],
   );
+
+  /**
+   * Why the bundle came out empty, recorded once per Run. `bundle_size` is
+   * absent for every one of these Runs, which says the screen was reached and
+   * nothing else; this says whether a filter or the content did it.
+   *
+   * Reasons come from two lists because they answer for different files: a
+   * document that produced no entry (a scan, an unreadable container) has a
+   * validation and no file status, while a file the patterns ate has both and
+   * only the status carries which pattern. Keyed on validations so the first
+   * kind is not silently missing from the total.
+   */
+  const emptiedRun = useRef<number | null>(null);
+  useEffect(() => {
+    if (phase !== "result" || includedContents.length > 0) return;
+    const paths = Object.keys(ingestion.validations);
+    if (paths.length === 0) return;
+    const run = currentRun();
+    if (run === null || run === emptiedRun.current) return;
+    emptiedRun.current = run;
+
+    const statuses = new Map(filter.fileStatuses.map((s) => [s.path, s]));
+    const tally: Tally = new Map();
+    for (const path of paths) {
+      const reason = statuses.get(path)?.reason ?? ingestion.validations[path]?.reason;
+      addToTally(tally, emptyReasonSlug(reason));
+    }
+    trackTally("empty_reason", tally);
+  }, [phase, includedContents, filter.fileStatuses, ingestion.validations]);
 
   // --- flow control ---------------------------------------------------------
   // Runs `run`, showing the processing view driven by the engine's real

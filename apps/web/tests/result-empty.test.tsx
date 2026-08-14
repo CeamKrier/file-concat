@@ -1,7 +1,8 @@
 import { act, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ResultEmpty } from "~/components/app/result-empty";
-import { emptyKindFor } from "~/components/app/empty-kind";
+import { emptyKindFor, emptyReasonSlug } from "~/components/app/empty-kind";
+import { normalizeValue } from "~/lib/metrics";
 
 /**
  * A drop of nothing but scanned documents combines zero files, so it lands on
@@ -133,5 +134,52 @@ describe("the filtered rescue", () => {
   it("does not offer a read the flow cannot run", () => {
     render(<ResultEmpty droppedFiles={["a.png"]} kind="image" onStartOver={() => {}} />);
     expect(screen.queryByRole("button", { name: /read/i })).toBeNull();
+  });
+});
+
+/**
+ * The counter behind the screen. Every string here is produced somewhere else
+ * (`use-filter-state`'s `excludeReason`, core's `validateFile`,
+ * `use-file-ingestion`'s extract branch), so a rename over there lands as
+ * `other` and this is what notices.
+ */
+describe("the empty-reason counter", () => {
+  it("separates the three subtractions, which is the whole point of it", () => {
+    expect(emptyReasonSlug("Outside include patterns")).toBe("include");
+    expect(emptyReasonSlug("Matched ignore patterns")).toBe("ignore");
+    expect(emptyReasonSlug("Matched .gitignore")).toBe("gitignore");
+  });
+
+  it("keeps the content refusals apart from the filters", () => {
+    expect(emptyReasonSlug("Binary file")).toBe("binary");
+    expect(emptyReasonSlug("Hidden file")).toBe("hidden");
+    expect(emptyReasonSlug("No extractable text")).toBe("no-text");
+    expect(emptyReasonSlug("Couldn't extract text")).toBe("extract-error");
+    expect(emptyReasonSlug("Excluded manually")).toBe("manual");
+  });
+
+  it("counts an unknown reason instead of losing it", () => {
+    expect(emptyReasonSlug(undefined)).toBe("other");
+    expect(emptyReasonSlug("Something invented later")).toBe("other");
+  });
+
+  it("emits values the counter pipeline will actually accept", () => {
+    // `normalizeValue` strips anything outside [a-z0-9._/+-] and drops a value
+    // that ends up empty or over 32 chars, so a slug that fails it is a row
+    // that never arrives.
+    for (const reason of [
+      "Outside include patterns",
+      "Matched ignore patterns",
+      "Matched .gitignore",
+      "Excluded manually",
+      "Hidden file",
+      "Binary file",
+      "No extractable text",
+      "Couldn't extract text",
+      undefined,
+    ]) {
+      const slug = emptyReasonSlug(reason);
+      expect(normalizeValue(slug)).toBe(slug);
+    }
   });
 });
