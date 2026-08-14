@@ -31,3 +31,35 @@ export function emptyKindFor(
   if (images > 0 && images >= droppedFiles.length / 2) return "image";
   return "other";
 }
+
+/**
+ * The exclusion reasons a file can carry, as counter values. Keyed by the
+ * wording `use-filter-state`'s `excludeReason` and core's `validateFile`
+ * produce, because those are the two places a file is refused and neither has
+ * anything shorter to hand.
+ *
+ * A slug rather than the wording itself for two reasons: `normalizeValue`
+ * strips spaces, so `Matched ignore patterns` would land as
+ * `matchedignorepatterns`, and a copy edit in the tree would otherwise rename a
+ * counter value and silently split its history.
+ */
+const REASON_SLUGS: Record<string, string> = {
+  "Outside include patterns": "include",
+  "Matched ignore patterns": "ignore",
+  "Matched .gitignore": "gitignore",
+  "Excluded manually": "manual",
+  "Hidden file": "hidden",
+  "Binary file": "binary",
+  "No extractable text": "no-text",
+  "Couldn't extract text": "extract-error",
+};
+
+/**
+ * One counter value for one refused file. Anything unmapped becomes `other`
+ * rather than being dropped, so a reason added later still shows up as a
+ * quantity worth chasing instead of vanishing from the total.
+ */
+export function emptyReasonSlug(reason: string | undefined): string {
+  if (reason === undefined) return "other";
+  return REASON_SLUGS[reason] ?? "other";
+}

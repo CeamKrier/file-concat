@@ -93,6 +93,20 @@ export const METRIC_EVENTS = [
    * the ones who took a bad reading and left.
    */
   "ocr_lang_changed",
+  /**
+   * Why a Run that dropped files combined none of them: one row per exclusion
+   * reason, `n` files each. Written once per Run, and only when the bundle came
+   * out empty.
+   *
+   * The absence of `bundle_size` already says a Run reached the empty screen; it
+   * cannot say what emptied it, and the three subtractions (`include`, `ignore`,
+   * `gitignore`) are indistinguishable from outside. Without this, a drop the
+   * default noise list ate and a drop of nothing but scans are the same row.
+   *
+   * Values are the slugs in `components/app/empty-kind.ts`, not the tree's
+   * wording — the copy is free to change without renaming a counter value.
+   */
+  "empty_reason",
 ] as const;
 
 export type MetricEvent = (typeof METRIC_EVENTS)[number];
