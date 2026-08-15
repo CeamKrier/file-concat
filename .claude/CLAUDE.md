@@ -54,3 +54,20 @@ That is why several web modules come in pairs — `tokens.ts` / `tokens-client.t
 
 - Use `pnpm` for installs/scripts so the workspace protocol resolves.
 - Prettier's `endOfLine: "crlf"` in `.prettierrc` is **intentional — do not switch to `lf`**.
+
+## Tracked files the build rewrites
+
+`prebuild` regenerates `apps/web/public/sitemap.xml`, `apps/web/public/llms.txt`,
+`apps/web/public/llms-full.txt` and `apps/web/src/data/models.json`. They are
+tracked, so any `pnpm build` leaves them dirty in the working tree whether or not
+your change had anything to do with them.
+
+**Do not commit them.** The next build regenerates them anyway, and staging them
+puts a model-catalog refresh or a `lastmod` churn inside a commit that claims to
+be about something else. `git add` the files you actually edited, by path; never
+`git add -A` or `git add .` after a build. Leave them dirty and say so.
+
+The one thing that does need saying: if a change of yours *should* alter one of
+them (a new route or blog post changes the sitemap; a new docs page changes
+`llms.txt`), verify the regenerated file picked it up, then still leave it
+uncommitted.
