@@ -5,6 +5,7 @@ import {
   Copy,
   Download,
   EyeOff,
+  FileMinus,
   FileQuestion,
   FileText,
   FileWarning,
@@ -51,6 +52,8 @@ type ResultViewProps = {
   flaggedFiles: string[];
   /** Included files whose text was extracted from a document (PDF/Office/ODF). */
   extractedFiles: string[];
+  /** Included documents the reader opened but could not read all of, and what is missing. */
+  partialDocuments: UnsupportedFile[];
   /** Every document in this Run that opened with no text in it, recovered or not. */
   scannedDocumentCount: number;
   /** True while a recognition pass is running. */
@@ -97,6 +100,7 @@ export function ResultView({
   skippedByDefault,
   flaggedFiles,
   extractedFiles,
+  partialDocuments,
   scannedDocumentCount,
   isReading,
   readProgress,
@@ -150,6 +154,7 @@ export function ResultView({
           Details expand in place — never between the switch and its result. */}
       <BundleNotes
         extractedFiles={extractedFiles}
+        partialDocuments={partialDocuments}
         flaggedFiles={flaggedFiles}
         unsupported={unsupported}
         skippedByDefault={skippedByDefault}
@@ -579,11 +584,13 @@ function ReadingCard({
 // detail (and the "preview looks garbled" flag) still lives above the preview.
 function BundleNotes({
   extractedFiles,
+  partialDocuments,
   flaggedFiles,
   unsupported,
   skippedByDefault,
 }: {
   extractedFiles: string[];
+  partialDocuments: UnsupportedFile[];
   flaggedFiles: string[];
   unsupported: UnsupportedFile[];
   skippedByDefault: UnsupportedFile[];
@@ -592,6 +599,7 @@ function BundleNotes({
 
   const segments: string[] = [];
   if (extractedFiles.length) segments.push(`${extractedFiles.length} extracted`);
+  if (partialDocuments.length) segments.push(`${partialDocuments.length} partly read`);
   if (flaggedFiles.length) segments.push(`${flaggedFiles.length} flagged`);
   if (unsupported.length) segments.push(`${unsupported.length} left out`);
   if (skippedByDefault.length) segments.push(`${skippedByDefault.length} held back`);
@@ -643,6 +651,29 @@ function BundleNotes({
                 renderItem={(name) => (
                   <li key={name} className="text-ink font-mono text-[11px]">
                     {name}
+                  </li>
+                )}
+              />
+            </InfoCard>
+          )}
+          {partialDocuments.length > 0 && (
+            <InfoCard
+              tone="info"
+              icon={FileMinus}
+              title={`${partialDocuments.length} ${partialDocuments.length === 1 ? "document" : "documents"} came through incomplete`}
+            >
+              <p>
+                The text below {partialDocuments.length === 1 ? "it" : "them"} is real, just not all
+                of what the file holds. A model reading the bundle has no way to know that, so it is
+                worth checking the original before trusting an answer about{" "}
+                {partialDocuments.length === 1 ? "it" : "them"}.
+              </p>
+              <ExpandableList
+                items={partialDocuments}
+                renderItem={(f) => (
+                  <li key={f.name} className="flex items-baseline gap-2 font-mono text-[11px]">
+                    <span className="text-ink">{f.name}</span>
+                    <span className="text-ink-faint">· {f.why}</span>
                   </li>
                 )}
               />

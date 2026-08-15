@@ -249,6 +249,24 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       .filter(([path, v]) => v.extracted && included.has(path))
       .map(([path]) => path.split("/").pop() ?? path);
   }, [ingestion.validations, filter.fileStatuses]);
+  // Included documents whose text arrived incomplete. The reader says so
+  // (ADR-0008) and until now nobody read it, so a PDF that lost three pages
+  // reached the bundle looking exactly like one that lost none. Only the two
+  // kinds that cost content are surfaced: `ocr-failed` is what the scanned
+  // documents card is already about, and the other two describe files that
+  // produced no text at all and so are not in the bundle to caveat.
+  const partialDocuments = useMemo(() => {
+    const included = new Set(filter.fileStatuses.filter((s) => s.included).map((s) => s.path));
+    return Object.entries(ingestion.validations)
+      .filter(([path]) => included.has(path))
+      .flatMap(([path, v]) => {
+        const why = [
+          v.notes?.includes("pages-skipped") && "pages missing",
+          v.notes?.includes("attachments-skipped") && "images or charts unread",
+        ].filter((part): part is string => typeof part === "string");
+        return why.length === 0 ? [] : [{ name: path.split("/").pop() ?? path, why: why.join(", ") }];
+      });
+  }, [ingestion.validations, filter.fileStatuses]);
   const bigBundle = SPLIT_OUTPUT_ENABLED && tokens > MULTI_OUTPUT_LIMIT;
   // What the removed 32 MB per-file cap used to decide silently, reported
   // instead. Measured over the files that actually made the bundle, so
@@ -579,6 +597,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               skippedByDefault={skippedByDefault}
               flaggedFiles={flaggedFiles}
               extractedFiles={extractedFiles}
+              partialDocuments={partialDocuments}
               scannedDocumentCount={ingestion.scannedDocuments.length}
               isReading={ingestion.isReading}
               readProgress={ingestion.readProgress}

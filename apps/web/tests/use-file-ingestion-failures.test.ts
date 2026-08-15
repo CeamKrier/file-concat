@@ -35,6 +35,13 @@ vi.mock("~/lib/parsers", () => ({
       const path = new TextDecoder().decode(bytes);
       if (path.includes("locked")) throw new Error("[OfficeParser]: No password given");
       if (path.includes("broken")) throw new Error("[OfficeParser]: File is corrupted");
+      // A partial success: text came out, and the reader said what did not.
+      if (path.includes("partial")) {
+        return { text: "prose", notes: [{ kind: "pages-skipped", count: 3 }] };
+      }
+      if (path.includes("cdn")) {
+        return { text: "prose", notes: [{ kind: "cdn-fallback", count: 1 }] };
+      }
       return { text: "" };
     },
   },
@@ -98,6 +105,48 @@ describe("a document the reader could not open", () => {
     });
 
     expect(result.current.unreadDocuments).toHaveLength(0);
+  });
+});
+
+/**
+ * A document that opened, produced text, and lost part of itself on the way.
+ * The reader has always said so (ADR-0008) and nothing read it: both platforms
+ * destructured `{ text }` and dropped `notes` on the floor, so a PDF missing
+ * three pages reached the bundle looking exactly like one missing none.
+ */
+describe("a document the reader only partly read", () => {
+  it("keeps what was lost on the file, beside the text that did arrive", async () => {
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([doc("partial.pdf")]);
+    });
+
+    const record = result.current.validations["partial.pdf"];
+    expect(record.included).toBe(true);
+    expect(record.notes).toEqual(["pages-skipped"]);
+  });
+
+  it("counts every note kind, including the one nobody is shown", async () => {
+    // `cdn-fallback` means the self-hosted pdf.js worker did not load and the
+    // library fetched one from a CDN. There is nothing a reader of the bundle
+    // can do about it, so it reaches the counters and no further.
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([doc("partial.pdf"), doc("cdn.pdf")]);
+    });
+
+    expect(tallies.extract_note?.sort()).toEqual(["cdn-fallback", "pages-skipped"]);
+    expect(result.current.validations["cdn.pdf"].notes).toEqual(["cdn-fallback"]);
+  });
+
+  it("writes nothing when a document came through whole", async () => {
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([doc("scan.pdf")]);
+    });
+
+    expect(tallies.extract_note).toBeUndefined();
+    expect(result.current.validations["scan.pdf"].notes).toBeUndefined();
   });
 });
 

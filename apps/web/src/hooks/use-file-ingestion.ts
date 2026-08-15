@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import type {
   DownloadProgress,
+  ExtractionNoteKind,
   ProcessingConfig,
   SourceType,
   TextClassification,
@@ -68,6 +69,13 @@ export type ValidationRecord = {
    * a stopped pass say "not read yet" instead of "the page is blank".
    */
   recognitionTried?: boolean;
+  /**
+   * What the reader could not recover from this document, when it said so
+   * (ADR-0008). A parser reports these on partial successes too, so a record
+   * can carry both `extracted: true` and a note: the text arrived, part of the
+   * document did not.
+   */
+  notes?: ExtractionNoteKind[];
 };
 
 export type IncomingFile = {
@@ -382,6 +390,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       const unreadable: Tally = new Map();
       const extractFailed: Tally = new Map();
       const extractError: Tally = new Map();
+      const extractNotes: Tally = new Map();
       const nextUnread: ScannedDocument[] = [];
       const archiveUnsupported: Tally = new Map();
       const markers = new Set<string>();
@@ -434,7 +443,13 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           // a drop can take. Weight is reported after the fact instead.
           try {
             const bytes = new Uint8Array(await entry.file.arrayBuffer());
-            const { text } = await parsers.extract(route.parserId, bytes);
+            const { text, notes } = await parsers.extract(route.parserId, bytes);
+            // What the reader gave up on, counted once per document rather than
+            // once per lost page: the question these answer is "how many drops
+            // hit this", and a fifty-page PDF failing wholesale must not swamp
+            // the format that fails on one document in ten.
+            const kinds = notes?.map((note) => note.kind);
+            for (const kind of kinds ?? []) addToTally(extractNotes, kind, size);
             if (text) {
               nextEntries.push({ path, content: text });
               nextValidations[path] = {
@@ -443,6 +458,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                 size,
                 type,
                 extracted: true,
+                ...(kinds?.length ? { notes: kinds } : {}),
               };
             } else {
               // No recoverable text (scanned image-only or encrypted PDF, or
@@ -549,6 +565,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       trackTally("unreadable_ext", unreadable);
       trackTally("extract_failed", extractFailed);
       trackTally("extract_error", extractError);
+      trackTally("extract_note", extractNotes);
       trackTally("archive_unsupported", archiveUnsupported);
 
       // The same drop, said in Clarity's vocabulary so the recording can be
