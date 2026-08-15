@@ -1,0 +1,111 @@
+---
+title: "Convert a Word Document to Text for an LLM"
+description: "Turn DOCX files into text a model can read, with tables and reading order intact. Bundle a whole folder in your browser, with live token and cost counts."
+date: "2026-08-15"
+author: "CeamKrier"
+draft: false
+---
+
+A `.docx` is a zip file full of XML. Every word you typed is in there, and so is a great deal
+that is not words: the table you built, the order you put things in, the heading that told a
+reader where a section began. Getting a Word document into a prompt means getting the words out
+of that container, and the interesting question is what comes with them.
+
+This guide covers converting a Word document to text for an LLM prompt: what survives the trip,
+what flattens, and how to send a folder of them at once. There is a spot to try it on your own
+files partway down. Nothing is uploaded to us; the extraction runs in your browser.
+
+## The table is the part worth protecting
+
+Most of a Word document is prose, and prose survives anything. Tables do not. A three-column
+table is only readable while its cells stay apart and its rows stay whole, and that is exactly
+what a careless read gives up first.
+
+<BeforeAfter>
+  <Before label="what you dragged in">{`report.docx
+  Quarterly Report
+  Revenue by region
+  [ Region | Q1   | Q2   ]
+  [ EMEA   | 1200 | 1350 ]`}</Before>
+  <After label="what reaches your prompt">{`Quarterly Report
+Revenue by region, in thousands.
+
+| Region | Q1   | Q2   |
+| EMEA   | 1200 | 1350 |
+| APAC   | 980  | 1105 |`}</After>
+</BeforeAfter>
+
+Each row stays on its own line with its cells in column order, so the model can still tell that
+1350 is EMEA's second quarter and not APAC's first. Paragraphs keep the order you wrote them in,
+which matters more than it sounds: a document read out of order reads as a different argument.
+
+<Callout type="note" title="Where the extraction happens">
+  The document bytes are read and the text pulled out in your browser tab. The files are never
+  uploaded to us, and there is no account. What you do with the extracted text after you paste it
+  into ChatGPT or Claude is between you and them.
+</Callout>
+
+## Send the whole folder, not one file at a time
+
+A Word document rarely travels alone. The draft has an appendix in a spreadsheet, a reference
+in a PDF, and a page of notes in markdown, and the question you want to ask is about all of
+them together.
+
+<Steps>
+  <Step title="Drop your documents">
+    A folder or a loose handful. Word documents, PDFs, spreadsheets, slide decks, and plain text or
+    markdown all go in together.
+  </Step>
+  <Step title="Each one is opened in your browser">
+    The text is pulled out on your machine. If the [default filter](/docs/file-filtering) recognises
+    the usual junk in the folder, it skips it before it reaches the bundle.
+  </Step>
+  <Step title="Copy one bundle">
+    A single document with each file labeled by name, plus a live token count so you know it fits
+    before you paste it.
+  </Step>
+</Steps>
+
+## Try it on your own documents
+
+Drop a Word file below, or a folder with a few mixed in. It runs in your browser, there is no
+account, and nothing is uploaded to us.
+
+<TryIt
+  title="Bundle your own documents"
+  hint="Drop a Word file or a folder of mixed documents. It runs here in your browser, nothing is uploaded."
+/>
+
+## What flattens
+
+Headings arrive as ordinary lines of text. The word `Notes` on its own line was a section
+heading in Word and reads as a stray line of prose once extracted, because the level that made
+it a heading is styling, and styling is not text.
+
+In practice this costs less than it sounds, since a model infers structure from a short line
+followed by a paragraph about as well as you do. It costs something when the hierarchy is the
+question: if you need the model to know that four subsections sat under one heading and not
+another, say so in the prompt, or keep a markdown copy of the outline and drop that in too.
+
+Images, charts, and text boxes are not prose either. A diagram that carries the point of a page
+will not carry it into the bundle, so describe it in the question instead.
+
+<Callout type="tip" title="A scanned document still has a chance">
+  If a Word file is really a photograph of a page pasted into it, there is no text inside to pull.
+  When a document comes back with nothing, FileConcat runs a recognition pass over it in your
+  browser to read the words off the image, and tells you which files it recovered that way.
+</Callout>
+
+## Mind the token and cost budget
+
+Documents add up faster than they look, and a folder of drafts and appendices can run past a
+model's context window without any single file looking large. FileConcat counts tokens as you
+add and remove files and can show what a bundle costs for a given model, so you can trim to the
+documents that carry the answer first.
+
+<Callout type="tip">
+  Other formats in the same folder? [Converting PDFs to text](/blog/convert-pdf-to-text-for-llm) and
+  [getting a spreadsheet into a prompt](/blog/convert-excel-to-text-for-llm) cover those. To size a
+  set of documents before you send it, see [how the token count works](/docs/token-estimation) and
+  [what a bundle costs across models](/docs/token-costs).
+</Callout>

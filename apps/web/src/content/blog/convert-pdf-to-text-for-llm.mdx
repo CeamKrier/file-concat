@@ -83,13 +83,17 @@ Extraction works on the text a document actually stores. A PDF exported from a w
 a Word file, a slide deck: those carry their text, and it comes out clean.
 
 A scanned page is different. If a PDF is really a photograph of a page, there is no text inside
-it to pull, only an image. Reading words off an image needs OCR, which this version does not
-do. Encrypted or password-locked PDFs are the same story: locked bytes yield no text.
+it to pull, only an image. Reading words off an image takes recognition, and when a document
+comes back with nothing FileConcat runs a recognition pass over it in your browser and tells
+you which files it recovered that way. Encrypted or password-locked PDFs are the other story:
+locked bytes yield no text, and no amount of recognition changes that.
 
-<Callout type="warn" title="Scanned or image-only PDFs yield no text">
-  If a document is a scan or a photo of a page, there is no text layer to extract, and this version
-  does not run OCR. FileConcat flags the file as having no extractable text instead of dropping it
-  silently, so you always know what made it into the bundle and what did not.
+<Callout type="warn" title="A scan takes longer, and not every one comes back">
+  Recognition reads pixels rather than characters, so it costs seconds per page and it is not
+  perfect on a faint or crooked scan. A document it cannot read is flagged as having no extractable
+  text rather than dropped silently, so you always know what made it into the bundle and what did
+  not. Your file still never leaves the browser; the recognition engine itself is fetched from the
+  library's CDN the first time it runs, which the [privacy page](/privacy) sets out in full.
 </Callout>
 
 ## Mind the token and cost budget
@@ -103,8 +107,10 @@ model, so you can trim to what matters first. That helps when you want to summar
 research papers with ChatGPT and only a few of them hold the section you actually care about.
 
 <Callout type="tip">
-  Combining loose files or a whole code project instead? The [guide to combining
-  files](/blog/combine-files-for-llm) and [feeding a codebase to an LLM](/blog/feed-codebase-to-llm)
-  cover those. To size a set of documents before you send it, see [how the token count
-  works](/docs/token-estimation) and [what a bundle costs across models](/docs/token-costs).
+  One format in particular? [Word documents](/blog/convert-docx-to-text-for-llm) and
+  [spreadsheets](/blog/convert-excel-to-text-for-llm) each have their own traps. Combining loose
+  files or a whole code project instead? The [guide to combining files](/blog/combine-files-for-llm)
+  and [feeding a codebase to an LLM](/blog/feed-codebase-to-llm) cover those. To size a set of
+  documents before you send it, see [how the token count works](/docs/token-estimation) and [what a
+  bundle costs across models](/docs/token-costs).
 </Callout>

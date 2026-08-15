@@ -1,3 +1,4 @@
+import type { OfficeContentNode } from "officeparser";
 import type { ExtractionNote, ExtractionNoteKind, ExtractionResult } from "./types";
 
 /**
@@ -119,6 +120,57 @@ export function resolveImagePlaceholders(text: string, images: readonly Extracte
   return resolved;
 }
 
+/**
+ * Which renderer reproduces a document faithfully depends on what the document
+ * *is*, and the parsed tree answers that without consulting a filename: a
+ * workbook's top level is `sheet` nodes.
+ *
+ * The text renderer writes a spreadsheet row with **no separator between
+ * cells** — `EMEA12001350` where the sheet held `EMEA | 1200 | 1350` — so the
+ * values are not merely awkward to read, they cannot be recovered; and it drops
+ * the sheet names, so several sheets arrive as one undivided block. The csv
+ * renderer keeps both, and writes each sheet under a `# Sheet: <name>` line.
+ *
+ * Everywhere else the text renderer is the faithful one: it already lays a
+ * table out as aligned pipe rows, while csv keeps *only* tables — a docx
+ * rendered to csv is its tables and none of the prose around them.
+ */
+function isWorkbook(content: ReadonlyArray<{ type: string }> | undefined): boolean {
+  return content?.some((node) => node.type === "sheet") ?? false;
+}
+
+/**
+ * Write a `# Slide n` line at the top of each slide, matching the `# Sheet:`
+ * lines the csv renderer already writes for a workbook.
+ *
+ * A deck has no punctuation of its own. The text renderer emits every slide's
+ * lines one after another, so the last bullet of slide one and the title of
+ * slide two arrive as consecutive lines and a fifty-slide deck reads as one
+ * undivided list — the reader cannot tell which points belong together, which
+ * is most of what a slide *is*. No renderer option adds the boundary: markdown
+ * writes a bare `---` between slides, unnumbered, and drags an empty YAML
+ * frontmatter block and `{#anchor}` suffixes along with it.
+ *
+ * The generator visits each node before rendering it and takes mutations, so
+ * the marker is prepended as an ordinary paragraph rather than by patching the
+ * string afterwards, where slide text of our own shape would be indistinguishable
+ * from a marker we wrote.
+ */
+function markSlideStarts(): (node: OfficeContentNode) => void {
+  let seen = 0;
+  return (node) => {
+    if (node.type !== "slide") return;
+    seen += 1;
+    // The library's own number is the truthful one when it has it; the counter
+    // covers a deck whose slides carry no metadata.
+    const label = `# Slide ${node.metadata?.slideNumber ?? seen}`;
+    node.children = [
+      { type: "paragraph", text: label, children: [{ type: "text", text: label }] },
+      ...(node.children ?? []),
+    ];
+  };
+}
+
 function toLibraryConfig(options: OfficeParserOptions): Record<string, unknown> {
   const config: Record<string, unknown> = {};
   if (options.pdfWorkerSrc) config.pdfWorkerSrc = options.pdfWorkerSrc;
@@ -152,10 +204,21 @@ export async function extractOfficeDocument(
 ): Promise<ExtractionResult> {
   const { parseOffice } = await import("officeparser");
   const ast = await parseOffice(bytes, toLibraryConfig(options));
-  // `.to("text")` replaces the deprecated `.toText()`, and hands back the
+  // Recognised image text reaches us as `[Image: …]` placeholders in the
+  // rendered string, and csv has nowhere to write them. A workbook that carries
+  // any is therefore rendered as text: its cells run together, exactly as they
+  // did before this choice existed, but nothing OCR recovered is thrown away.
+  const carriesOcrText = (ast.attachments ?? []).some((image) => image.ocrText?.trim());
+  // `.to(…)` replaces the deprecated `.toText()`, and hands back the
   // per-document warnings that become our notes.
-  const { value, messages } = await ast.to("text");
-  const text = resolveImagePlaceholders(value, ast.attachments ?? []).trim();
+  const { value, messages } =
+    isWorkbook(ast.content) && !carriesOcrText
+      ? await ast.to("csv")
+      : await ast.to("text", { onNode: markSlideStarts() });
+  // Only the pdf and csv renderers can answer with bytes; both of ours are
+  // string-shaped, so this narrows a union rather than handling a real case.
+  const rendered = typeof value === "string" ? value : new TextDecoder().decode(value);
+  const text = resolveImagePlaceholders(rendered, ast.attachments ?? []).trim();
   const notes = toNotes(messages);
   return notes.length > 0 ? { text, notes } : { text };
 }
