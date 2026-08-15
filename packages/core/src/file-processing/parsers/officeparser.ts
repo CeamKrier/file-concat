@@ -334,7 +334,10 @@ function includePageFurniture(
       return true;
     });
     if (lines.length === 0) return [];
-    return [{ type: "paragraph", text: label, children: [{ type: "text", text: label }] }, ...lines];
+    return [
+      { type: "paragraph", text: label, children: [{ type: "text", text: label }] },
+      ...lines,
+    ];
   };
 
   content.unshift(...labelled("--- Page header ---", auxiliary?.headers ?? []));
@@ -527,11 +530,17 @@ export async function extractOfficeDocument(
   // any page of this PDF yield anything" without walking the tree. Read before
   // the furniture pass, which only ever removes lines.
   const anyPageHasText = ast.content.some((node) => node.type === "page" && !!node.text?.trim());
+  // Decided before anything is added to the tree, so which renderer runs can
+  // never depend on what we put there.
+  const asWorkbook = isWorkbook(ast.content) && !carriesOcrText;
   // Two passes over the whole tree rather than visitors: one compares pages
   // against each other, and the other reaches content that is not in the tree
-  // the renderer walks at all.
-  dropRunningFurniture(ast.content);
-  includePageFurniture(ast.content, ast.auxiliary);
+  // the renderer walks at all. Neither has anything to say about a workbook,
+  // and the csv renderer would write a paragraph of ours as a row.
+  if (!asWorkbook) {
+    dropRunningFurniture(ast.content);
+    includePageFurniture(ast.content, ast.auxiliary);
+  }
   // Each visitor restores one thing the text renderer drops. They are composed
   // rather than merged because they are independent of one another and of the
   // node types they act on.
@@ -544,14 +553,13 @@ export async function extractOfficeDocument(
   ];
   // `.to(…)` replaces the deprecated `.toText()`, and hands back the
   // per-document warnings that become our notes.
-  const { value, messages } =
-    isWorkbook(ast.content) && !carriesOcrText
-      ? await ast.to("csv")
-      : await ast.to("text", {
-          onNode: (node) => {
-            for (const visit of visitors) visit(node);
-          },
-        });
+  const { value, messages } = asWorkbook
+    ? await ast.to("csv")
+    : await ast.to("text", {
+        onNode: (node) => {
+          for (const visit of visitors) visit(node);
+        },
+      });
   // Only the pdf and csv renderers can answer with bytes; both of ours are
   // string-shaped, so this narrows a union rather than handling a real case.
   const rendered = typeof value === "string" ? value : new TextDecoder().decode(value);
