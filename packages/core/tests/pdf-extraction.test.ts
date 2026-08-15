@@ -169,6 +169,72 @@ describe("extractOfficeDocument — scanned PDFs", () => {
 });
 
 /**
+ * A paginated document repeats its title and a page number at every seam, so a
+ * forty-page report writes eighty lines that belong to no sentence and cut the
+ * ones that continue across a break. Both rules that thin this out are built so
+ * that being wrong is cheap: a repeat is only ever dropped while an identical
+ * copy stays, and a whole line is only dropped when it carries the page's own
+ * number.
+ */
+describe("extractOfficeDocument — running headers and footers", () => {
+  const page = (n: number, body: string) => ["Acme Quarterly Report", body, `${n}`];
+
+  it("keeps one copy of a header that repeats on every page", async () => {
+    const { text } = await extractOfficeDocument(
+      textLayerPdfPages([page(1, "Body one"), page(2, "Body two"), page(3, "Body three")]),
+    );
+
+    const lines = text.split("\n").map((line) => line.trim());
+    expect(lines.filter((line) => line === "Acme Quarterly Report")).toHaveLength(1);
+    // The copy that stays is the first, so nothing moves: the title still opens
+    // the document it belongs to.
+    expect(text.indexOf("Acme Quarterly Report")).toBeLessThan(text.indexOf("Body one"));
+    for (const body of ["Body one", "Body two", "Body three"]) expect(text).toContain(body);
+  });
+
+  it("drops a footer that is the page's own number", async () => {
+    const { text } = await extractOfficeDocument(
+      textLayerPdfPages([page(1, "Body one"), page(2, "Body two"), page(3, "Body three")]),
+    );
+
+    // `# Page n` says this already, and says it in the same words everywhere.
+    const lines = text.split("\n").map((line) => line.trim());
+    expect(lines.filter((line) => /^\d+$/.test(line))).toHaveLength(0);
+    expect(lines.filter((line) => line.startsWith("# Page "))).toHaveLength(3);
+  });
+
+  it("leaves a two-page document alone", async () => {
+    // Two pages sharing an edge line is coincidence often enough to matter, and
+    // four lines of furniture is not a problem worth a judgement call.
+    const { text } = await extractOfficeDocument(
+      textLayerPdfPages([page(1, "Body one"), page(2, "Body two")]),
+    );
+
+    const lines = text.split("\n").map((line) => line.trim());
+    expect(lines.filter((line) => line === "Acme Quarterly Report")).toHaveLength(2);
+    expect(lines.filter((line) => /^\d+$/.test(line))).toHaveLength(2);
+  });
+
+  it("keeps figures that differ, however much they look alike", async () => {
+    // The failure that would matter: three pages ending in the same words and
+    // different numbers, thinned out as though they were one repeated line.
+    // Nothing here is any page's own number, and none of the three is identical
+    // to another, so all three have to survive.
+    const { text } = await extractOfficeDocument(
+      textLayerPdfPages([
+        ["Ledger", "a", "Subtotal 1200"],
+        ["Ledger", "b", "Subtotal 2550"],
+        ["Ledger", "c", "Subtotal 3655"],
+      ]),
+    );
+
+    for (const total of ["Subtotal 1200", "Subtotal 2550", "Subtotal 3655"]) {
+      expect(text, `${total} was thinned out as furniture`).toContain(total);
+    }
+  });
+});
+
+/**
  * The library throws a bare `Error` for a locked document — no error code, no
  * `cause` — so the wording is the only thing to go on, and half of it comes
  * from pdf.js rather than officeparser. Verified against a real encrypted PDF

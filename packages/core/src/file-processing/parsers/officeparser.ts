@@ -256,6 +256,83 @@ function showLinkDestinations(node: OfficeContentNode): void {
   node.text = `${node.text} (${link.replace(/\s+/g, "")})`;
 }
 
+/** How long a line may be and still be taken for a page-number footer. */
+const FURNITURE_LINE_LIMIT = 80;
+
+/** The first and last content-bearing children of a page, which is where furniture sits. */
+function edgesOf(page: OfficeContentNode): { first?: OfficeContentNode; last?: OfficeContentNode } {
+  const lines = (page.children ?? []).filter((child) => child.text?.trim());
+  return { first: lines[0], last: lines[lines.length - 1] };
+}
+
+/**
+ * Thin out the running header and footer a paginated document repeats.
+ *
+ * A forty-page report writes its title and a page number into the text forty
+ * times each, at every page seam, so a paragraph continuing across a break is
+ * cut in half by a line belonging to neither side of it. None of it is content;
+ * all of it is read as content.
+ *
+ * Two rules, and both are chosen so that being wrong costs nothing:
+ *
+ * - **An identical line at the same page edge keeps its first occurrence and
+ *   loses the repeats.** Dropping a byte-identical copy of a string that is
+ *   still present cannot lose information, whatever the line turns out to be —
+ *   so this needs no judgement about whether it was really furniture. It is
+ *   deduplication, not detection.
+ * - **A line carrying the page's own number is dropped outright**, since that is
+ *   what `# Page n` now says, and says better. This one *is* a judgement, so it
+ *   is made narrow: the line has to be short, and the pattern has to hold on
+ *   all but at most one page (a cover page usually carries no footer). A stray
+ *   sentence mentioning a number cannot satisfy that across a whole document.
+ *
+ * Under three pages nothing is touched. Two pages sharing an edge line is
+ * coincidence often enough to matter, and the noise being fought does not exist
+ * at that length anyway.
+ */
+function dropRunningFurniture(content: readonly OfficeContentNode[]): void {
+  const pages = content.filter((node) => node.type === "page");
+  if (pages.length < 3) return;
+
+  const doomed = new Set<OfficeContentNode>();
+
+  for (const edge of ["first", "last"] as const) {
+    const lines = pages
+      .map((page, index) => ({
+        page,
+        node: edgesOf(page)[edge],
+        number: page.metadata?.pageNumber ?? index + 1,
+      }))
+      .filter((line) => line.node !== undefined);
+
+    // Its own page number, as a whole number rather than as digits inside a
+    // longer one: page 1 must not match the `1` in `2015`.
+    const numbered = lines.filter(
+      (line) =>
+        line.node!.text!.trim().length <= FURNITURE_LINE_LIMIT &&
+        new RegExp(`(?:^|\\D)${line.number}(?:\\D|$)`).test(line.node!.text!),
+    );
+    if (numbered.length >= 3 && numbered.length >= pages.length - 1) {
+      for (const line of numbered) doomed.add(line.node!);
+      continue;
+    }
+
+    const byText = new Map<string, OfficeContentNode[]>();
+    for (const line of lines) {
+      const key = line.node!.text!.trim().replace(/\s+/g, " ");
+      byText.set(key, [...(byText.get(key) ?? []), line.node!]);
+    }
+    for (const repeats of byText.values()) {
+      if (repeats.length >= 3) for (const node of repeats.slice(1)) doomed.add(node);
+    }
+  }
+
+  if (doomed.size === 0) return;
+  for (const page of pages) {
+    page.children = (page.children ?? []).filter((child) => !doomed.has(child));
+  }
+}
+
 /**
  * Number each footnote reference where it stands, and label its body to match.
  *
@@ -361,20 +438,24 @@ export async function extractOfficeDocument(
   // any is therefore rendered as text: its cells run together, exactly as they
   // did before this choice existed, but nothing OCR recovered is thrown away.
   const carriesOcrText = (ast.attachments ?? []).some((image) => image.ocrText?.trim());
-  // `.to(…)` replaces the deprecated `.toText()`, and hands back the
-  // per-document warnings that become our notes.
+  // A page node carries the text of everything under it, so this answers "did
+  // any page of this PDF yield anything" without walking the tree. Read before
+  // the furniture pass, which only ever removes lines.
+  const anyPageHasText = ast.content.some((node) => node.type === "page" && !!node.text?.trim());
+  // Comparing pages against each other needs all of them at once, so this is a
+  // pass over the tree rather than another visitor.
+  dropRunningFurniture(ast.content);
   // Each visitor restores one thing the text renderer drops. They are composed
   // rather than merged because they are independent of one another and of the
   // node types they act on.
-  // A page node carries the text of everything under it, so this answers "did
-  // any page of this PDF yield anything" without walking the tree.
-  const anyPageHasText = ast.content.some((node) => node.type === "page" && !!node.text?.trim());
   const visitors = [
     markSectionStarts(anyPageHasText),
     numberFootnotes(),
     showLinkDestinations,
     expandMergedCells(),
   ];
+  // `.to(…)` replaces the deprecated `.toText()`, and hands back the
+  // per-document warnings that become our notes.
   const { value, messages } =
     isWorkbook(ast.content) && !carriesOcrText
       ? await ast.to("csv")
