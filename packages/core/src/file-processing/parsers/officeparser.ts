@@ -140,30 +140,51 @@ function isWorkbook(content: ReadonlyArray<{ type: string }> | undefined): boole
 }
 
 /**
- * Write a `# Slide n` line at the top of each slide, matching the `# Sheet:`
- * lines the csv renderer already writes for a workbook.
+ * Write a `# Slide n` or `# Page n` line at the top of each slide and each PDF
+ * page, matching the `# Sheet:` lines the csv renderer already writes for a
+ * workbook.
  *
- * A deck has no punctuation of its own. The text renderer emits every slide's
- * lines one after another, so the last bullet of slide one and the title of
- * slide two arrive as consecutive lines and a fifty-slide deck reads as one
- * undivided list — the reader cannot tell which points belong together, which
- * is most of what a slide *is*. No renderer option adds the boundary: markdown
- * writes a bare `---` between slides, unnumbered, and drags an empty YAML
- * frontmatter block and `{#anchor}` suffixes along with it.
+ * Neither a deck nor a PDF has punctuation of its own. The text renderer emits
+ * every slide's and every page's lines one after another, so the last bullet of
+ * slide one and the title of slide two arrive as consecutive lines and a
+ * fifty-slide deck reads as one undivided list — the reader cannot tell which
+ * points belong together, which is most of what a slide *is*. No renderer
+ * option adds the boundary: markdown writes a bare `---` between slides,
+ * unnumbered, and drags an empty YAML frontmatter block and `{#anchor}`
+ * suffixes along with it.
+ *
+ * A page marker also carries something a slide marker does not. A page whose
+ * content is a scanned image contributes no text at all, and where the document
+ * has other pages that do, the file never looks empty and nothing anywhere said
+ * a page was lost. Marked, that page is a heading with nothing under it, which
+ * is at least visible.
  *
  * The generator visits each node before rendering it and takes mutations, so
  * the marker is prepended as an ordinary paragraph rather than by patching the
- * string afterwards, where slide text of our own shape would be indistinguishable
- * from a marker we wrote.
+ * string afterwards, where document text of our own shape would be
+ * indistinguishable from a marker we wrote.
+ *
+ * `markPages` is off for a document whose pages all came back empty, and that
+ * is not a detail: a marker is ours, not the document's, and a wholly scanned
+ * PDF answering with a list of headings instead of `""` would read as a
+ * successful extraction to every caller — the exact silent-success failure that
+ * an empty string exists to prevent (ADR-0003).
  */
-function markSlideStarts(): (node: OfficeContentNode) => void {
-  let seen = 0;
+function markSectionStarts(markPages: boolean): (node: OfficeContentNode) => void {
+  const seen = { slide: 0, page: 0 };
+
   return (node) => {
-    if (node.type !== "slide") return;
-    seen += 1;
-    // The library's own number is the truthful one when it has it; the counter
-    // covers a deck whose slides carry no metadata.
-    const label = `# Slide ${node.metadata?.slideNumber ?? seen}`;
+    // The library's own number is the truthful one when it has it; the counters
+    // cover a document whose sections carry no metadata.
+    let label;
+    if (node.type === "slide") {
+      seen.slide += 1;
+      label = `# Slide ${node.metadata?.slideNumber ?? seen.slide}`;
+    } else if (node.type === "page" && markPages) {
+      seen.page += 1;
+      label = `# Page ${node.metadata?.pageNumber ?? seen.page}`;
+    } else return;
+
     node.children = [
       { type: "paragraph", text: label, children: [{ type: "text", text: label }] },
       ...(node.children ?? []),
@@ -326,8 +347,11 @@ export async function extractOfficeDocument(
   // Each visitor restores one thing the text renderer drops. They are composed
   // rather than merged because they are independent of one another and of the
   // node types they act on.
+  // A page node carries the text of everything under it, so this answers "did
+  // any page of this PDF yield anything" without walking the tree.
+  const anyPageHasText = ast.content.some((node) => node.type === "page" && !!node.text?.trim());
   const visitors = [
-    markSlideStarts(),
+    markSectionStarts(anyPageHasText),
     numberFootnotes(),
     showLinkDestinations,
     expandMergedCells(),

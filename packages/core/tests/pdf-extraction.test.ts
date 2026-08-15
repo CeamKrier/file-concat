@@ -76,6 +76,32 @@ describe("extractOfficeDocument — PDFs with a text layer", () => {
     const result = await extractOfficeDocument(textLayerPdf(["clean"]));
     expect(result.notes).toBeUndefined();
   });
+
+  it("marks where each page begins", async () => {
+    // A PDF has no punctuation of its own, so the last line of one page and the
+    // first of the next arrive as consecutive lines. Sheets and slides already
+    // carry a boundary; pages carried none.
+    const { text } = await extractOfficeDocument(
+      textLayerPdfPages([["Page one body"], ["Page two body"]]),
+    );
+
+    expect(text).toContain("# Page 1");
+    expect(text).toContain("# Page 2");
+    expect(text.indexOf("# Page 1")).toBeLessThan(text.indexOf("Page one body"));
+    expect(text.indexOf("Page one body")).toBeLessThan(text.indexOf("# Page 2"));
+    expect(text.indexOf("# Page 2")).toBeLessThan(text.indexOf("Page two body"));
+  });
+
+  it("still shows a page that yielded no text", async () => {
+    // The document is not empty, so it never reaches the "no extractable text"
+    // path, and before the marker nothing anywhere said a page had been lost.
+    // A page with no drawn text stands in for the real case, a scanned one:
+    // both parse to a page carrying nothing.
+    const { text } = await extractOfficeDocument(textLayerPdfPages([["Page one body"], []]));
+
+    expect(text).toContain("Page one body");
+    expect(text).toContain("# Page 2");
+  });
 });
 
 /**
@@ -125,7 +151,9 @@ describe("extractOfficeDocument — scanned PDFs", () => {
   it("returns empty text for a page that is only an image", async () => {
     // This is the `extract_failed` case the counters record. Empty is the
     // contract: callers surface "no extractable text" rather than dropping the
-    // file silently (ADR-0003).
+    // file silently (ADR-0003). It also guards the page markers, which are ours
+    // rather than the document's: emitted here they would answer `# Page 1` and
+    // read as a successful extraction everywhere.
     const { text } = await extractOfficeDocument(imageOnlyPdf());
     expect(text).toBe("");
   });
