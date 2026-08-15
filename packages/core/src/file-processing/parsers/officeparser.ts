@@ -299,6 +299,48 @@ function showLinkDestinations(node: OfficeContentNode): void {
   node.text = `${node.text} (${link.replace(/\s+/g, "")})`;
 }
 
+/**
+ * Put a word processor document's page header and footer back into the text.
+ *
+ * They are parsed, and then set aside: the tree keeps them out of the main flow
+ * as `auxiliary`, and the text renderer walks only the flow. So a document
+ * stamped `CONFIDENTIAL - Internal Distribution Only` on every page arrives
+ * with no trace of it. That is the worse half of a contradiction the two paths
+ * used to have — a PDF repeated the same furniture at every seam while a docx
+ * silently discarded a confidentiality marking.
+ *
+ * Written once, labelled, in the same `--- … ---` shape the renderer already
+ * uses for collected notes. Once rather than per page because a word processor
+ * document has no pages until something lays it out, and because a repeat is
+ * exactly what the PDF path just stopped doing.
+ *
+ * Word writes up to three headers per section (default, first page, even
+ * pages) and more for a document with several, so identical ones are collapsed.
+ * A footer's page number is a field the reader computes rather than text, so
+ * what survives of `Page 3` is `Page`: worth writing, since the alternative is
+ * a document that never mentions a footer at all, but not worth pretending is
+ * the whole of it.
+ */
+function includePageFurniture(
+  content: OfficeContentNode[],
+  auxiliary: { headers?: OfficeContentNode[]; footers?: OfficeContentNode[] } | undefined,
+): void {
+  const labelled = (label: string, nodes: readonly OfficeContentNode[]): OfficeContentNode[] => {
+    const seen = new Set<string>();
+    const lines = nodes.filter((node) => {
+      const text = node.text?.trim();
+      if (!text || seen.has(text)) return false;
+      seen.add(text);
+      return true;
+    });
+    if (lines.length === 0) return [];
+    return [{ type: "paragraph", text: label, children: [{ type: "text", text: label }] }, ...lines];
+  };
+
+  content.unshift(...labelled("--- Page header ---", auxiliary?.headers ?? []));
+  content.push(...labelled("--- Page footer ---", auxiliary?.footers ?? []));
+}
+
 /** How long a line may be and still be taken for a page-number footer. */
 const FURNITURE_LINE_LIMIT = 80;
 
@@ -485,9 +527,11 @@ export async function extractOfficeDocument(
   // any page of this PDF yield anything" without walking the tree. Read before
   // the furniture pass, which only ever removes lines.
   const anyPageHasText = ast.content.some((node) => node.type === "page" && !!node.text?.trim());
-  // Comparing pages against each other needs all of them at once, so this is a
-  // pass over the tree rather than another visitor.
+  // Two passes over the whole tree rather than visitors: one compares pages
+  // against each other, and the other reaches content that is not in the tree
+  // the renderer walks at all.
   dropRunningFurniture(ast.content);
+  includePageFurniture(ast.content, ast.auxiliary);
   // Each visitor restores one thing the text renderer drops. They are composed
   // rather than merged because they are independent of one another and of the
   // node types they act on.

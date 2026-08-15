@@ -3,6 +3,7 @@ import { strToU8 } from "fflate";
 import { createParserRegistry } from "../src/file-processing/parsers/registry";
 import { extractOfficeDocument } from "../src/file-processing/parsers/officeparser";
 import {
+  furnitureDocx,
   minimalDocx,
   referencesDocx,
   tableDocx,
@@ -156,6 +157,24 @@ describe("extractOfficeDocument — structure survives extraction", () => {
     expect(rows[0]).toContain("Half-year totals");
     const widths = new Set(rows.map((line) => line.split("|").length));
     expect([...widths], `rows of differing width:\n${rows.join("\n")}`).toHaveLength(1);
+  });
+
+  it("keeps a page header and footer that sit outside the document body", async () => {
+    const { text } = await extractOfficeDocument(furnitureDocx());
+
+    // A confidentiality marking that reaches nobody is the worst shape this can
+    // take: the document says it on every page and the extract says it nowhere.
+    expect(text).toContain("--- Page header ---");
+    expect(text).toContain("CONFIDENTIAL - Internal Distribution Only");
+    expect(text).toContain("--- Page footer ---");
+    expect(text).toContain("The body of the document");
+
+    // Once, not once per header part. Word writes one per section and per
+    // first/even variant, and repeating furniture is the thing being fixed.
+    const lines = text.split("\n").map((line) => line.trim());
+    expect(lines.filter((l) => l === "CONFIDENTIAL - Internal Distribution Only")).toHaveLength(1);
+    // The marking belongs ahead of what it governs.
+    expect(text.indexOf("CONFIDENTIAL")).toBeLessThan(text.indexOf("The body of the document"));
   });
 
   it("marks where each slide of a deck begins", async () => {

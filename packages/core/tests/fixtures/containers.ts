@@ -81,6 +81,49 @@ export function tableDocx(): Uint8Array {
 }
 
 /**
+ * A `.docx` whose page header carries a confidentiality marking, plus a footer
+ * that is the literal prefix of a page-number field. Both live in their own
+ * parts of the package rather than in the document body, which is exactly why
+ * a reader that walks only the body loses them without noticing.
+ *
+ * The same header part is referenced twice, as Word does when a section has a
+ * different first page.
+ */
+export function furnitureDocx(): Uint8Array {
+  const part = (root: string, text: string) =>
+    XML_DECL +
+    `<w:${root} xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">` +
+    `<w:p><w:r><w:t>${text}</w:t></w:r></w:p>` +
+    `</w:${root}>`;
+
+  return zipSync({
+    "[Content_Types].xml": strToU8(
+      XML_DECL +
+        `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+        `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
+        `<Default Extension="xml" ContentType="application/xml"/>` +
+        `<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>` +
+        `</Types>`,
+    ),
+    "_rels/.rels": strToU8(
+      XML_DECL +
+        `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+        `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>` +
+        `</Relationships>`,
+    ),
+    "word/document.xml": strToU8(
+      XML_DECL +
+        `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>` +
+        `<w:p><w:r><w:t>The body of the document, which is all a reader sees today.</w:t></w:r></w:p>` +
+        `</w:body></w:document>`,
+    ),
+    "word/header1.xml": strToU8(part("hdr", "CONFIDENTIAL - Internal Distribution Only")),
+    "word/header2.xml": strToU8(part("hdr", "CONFIDENTIAL - Internal Distribution Only")),
+    "word/footer1.xml": strToU8(part("ftr", "Page")),
+  });
+}
+
+/**
  * A `.docx` whose meaning is not in its visible characters: a link whose
  * destination lives only in the relationships part, a second link whose text
  * already is its destination, and two claims in one sentence each carrying its
