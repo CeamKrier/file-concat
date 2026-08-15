@@ -172,6 +172,46 @@ function markSlideStarts(): (node: OfficeContentNode) => void {
 }
 
 /**
+ * Give a horizontally merged cell the columns it actually covers.
+ *
+ * A cell spanning three columns is a single child of its row, and the renderer
+ * lays a table out by position, so the row arrives one cell wide inside a three
+ * column table: `| Half-year totals |` sitting above `| Segment | Revenue |
+ * Cost |`. What comes out is not a parseable table at all, and a model aligning
+ * columns by position reads the merged heading as a value in the first column
+ * and finds no data for the other two. Merged header cells are ordinary in real
+ * business documents.
+ *
+ * The covered columns are filled with empty cells rather than with a repeat of
+ * the value, because that is what the document says: one heading standing over
+ * three columns, not the same heading three times.
+ *
+ * Only the span is trusted. The cells of a row that continues a *vertical*
+ * merge carry column indices one past where they sit, so `metadata.col` cannot
+ * be used to place anything.
+ *
+ * Rows are remembered because the renderer visits each one **twice** — once
+ * walking the table's children, and again inside its own table layout pass —
+ * and a second expansion would pad the row to five columns instead of three.
+ */
+function expandMergedCells(): (node: OfficeContentNode) => void {
+  const expandedRows = new WeakSet<OfficeContentNode>();
+
+  return (node) => {
+    if (node.type !== "row" || !node.children || expandedRows.has(node)) return;
+    expandedRows.add(node);
+
+    const expanded: OfficeContentNode[] = [];
+    for (const cell of node.children) {
+      expanded.push(cell);
+      const span = cell.type === "cell" ? (cell.metadata?.colSpan ?? 1) : 1;
+      for (let covered = 1; covered < span; covered++) expanded.push({ type: "cell", text: "" });
+    }
+    if (expanded.length !== node.children.length) node.children = expanded;
+  };
+}
+
+/**
  * Write each external link's destination after the text that carried it.
  *
  * The parsed tree keeps the URL on the run (`metadata.link`), and the text
@@ -286,7 +326,12 @@ export async function extractOfficeDocument(
   // Each visitor restores one thing the text renderer drops. They are composed
   // rather than merged because they are independent of one another and of the
   // node types they act on.
-  const visitors = [markSlideStarts(), numberFootnotes(), showLinkDestinations];
+  const visitors = [
+    markSlideStarts(),
+    numberFootnotes(),
+    showLinkDestinations,
+    expandMergedCells(),
+  ];
   const { value, messages } =
     isWorkbook(ast.content) && !carriesOcrText
       ? await ast.to("csv")

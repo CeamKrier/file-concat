@@ -30,12 +30,21 @@ const XML_DECL = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`;
 
 /**
  * A `.docx` carrying the structures a flat-text reader is most likely to
- * destroy: a heading, prose, and a three-column table. `minimalDocx` only ever
- * proved that *some* characters come out.
+ * destroy: a heading, prose, and a three-column table whose first row is a
+ * single heading merged across all three. `minimalDocx` only ever proved that
+ * *some* characters come out.
+ *
+ * `w:gridSpan` is what Word itself writes for a horizontal merge, so this is
+ * the same attribute a hand-authored document carries.
  */
 export function tableDocx(): Uint8Array {
-  const cell = (t: string) => `<w:tc><w:p><w:r><w:t>${t}</w:t></w:r></w:p></w:tc>`;
-  const row = (cells: readonly string[]) => `<w:tr>${cells.map(cell).join("")}</w:tr>`;
+  const cell = (t: string, span = 1) =>
+    `<w:tc>${span > 1 ? `<w:tcPr><w:gridSpan w:val="${span}"/></w:tcPr>` : ""}` +
+    `<w:p><w:r><w:t>${t}</w:t></w:r></w:p></w:tc>`;
+  // Wrapped rather than passed to `map` directly: `map` hands the index along,
+  // which this signature would read as a span.
+  const row = (cells: readonly string[]) =>
+    `<w:tr>${cells.map((c) => cell(c)).join("")}</w:tr>`;
   const para = (t: string, style?: string) =>
     `<w:p>${style ? `<w:pPr><w:pStyle w:val="${style}"/></w:pPr>` : ""}<w:r><w:t>${t}</w:t></w:r></w:p>`;
 
@@ -60,6 +69,7 @@ export function tableDocx(): Uint8Array {
         para("Quarterly Report", "Heading1") +
         para("Revenue by region, in thousands.") +
         `<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/></w:tblPr>` +
+        `<w:tr>${cell("Half-year totals", 3)}</w:tr>` +
         row(["Region", "Q1", "Q2"]) +
         row(["EMEA", "1200", "1350"]) +
         row(["APAC", "980", "1105"]) +

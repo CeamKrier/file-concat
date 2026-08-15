@@ -121,6 +121,18 @@ describe("extractOfficeDocument — structure survives extraction", () => {
     expect(text.indexOf("APAC")).toBeLessThan(text.indexOf("Headcount"));
   });
 
+  it("gives a merged header cell the columns it covers", async () => {
+    const { text } = await extractOfficeDocument(tableDocx());
+
+    // A row one cell wide inside a three-column table is not a table any more:
+    // aligned by position, the heading becomes a value in the first column and
+    // the other two columns lose their data.
+    const rows = text.split("\n").filter((line) => line.startsWith("|"));
+    expect(rows[0]).toContain("Half-year totals");
+    const widths = new Set(rows.map((line) => line.split("|").length));
+    expect([...widths], `rows of differing width:\n${rows.join("\n")}`).toHaveLength(1);
+  });
+
   it("marks where each slide of a deck begins", async () => {
     const { text } = await extractOfficeDocument(twoSlidePptx());
 
