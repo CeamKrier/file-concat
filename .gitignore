@@ -62,6 +62,16 @@ google-search-console-api.json
 /redesign/
 .mcp.json
 
+# Real-document fixtures for extraction-quality measurement. These are files
+# real software wrote (Word, Excel, a LaTeX engine) or a generator produced, and
+# they may be somebody's actual documents. The committed suite deliberately uses
+# hand-built bytes instead (see fixtures/pdf.ts) so a reader can see what makes
+# each one interesting; this directory is measurement input, not test data.
+# The generator script is tracked, its output is not.
+/packages/core/tests/fixtures/real/*
+!/packages/core/tests/fixtures/real/README.md
+!/packages/core/tests/fixtures/real/generate.mjs
+
 # Tesseract language models. Running OCR under node caches the model into the
 # working directory — 5.2 MB per language, downloaded from a CDN — so any OCR
 # run leaves one behind wherever it was started from. Nothing here should ever
