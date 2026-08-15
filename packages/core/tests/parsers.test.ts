@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import { strToU8 } from "fflate";
 import { createParserRegistry } from "../src/file-processing/parsers/registry";
 import { extractOfficeDocument } from "../src/file-processing/parsers/officeparser";
-import { minimalDocx, tableDocx, twoSheetXlsx, twoSlidePptx } from "./fixtures/containers";
+import {
+  minimalDocx,
+  referencesDocx,
+  tableDocx,
+  twoSheetXlsx,
+  twoSlidePptx,
+} from "./fixtures/containers";
 
 describe("createParserRegistry", () => {
   it("runs the loader a platform registered", async () => {
@@ -130,5 +136,45 @@ describe("extractOfficeDocument — structure survives extraction", () => {
   it("leaves a document that has no slides unmarked", async () => {
     const { text } = await extractOfficeDocument(tableDocx());
     expect(text).not.toContain("# Slide");
+  });
+});
+
+/**
+ * A link's destination and a footnote's marker are both carried outside the
+ * visible characters of a document, so losing them costs a reader nothing it
+ * can see. That is what makes them worth a test: the output stays fluent and
+ * plausible either way, and only an assertion tells the two apart.
+ */
+describe("extractOfficeDocument — references survive extraction", () => {
+  it("writes a link's destination beside its anchor text", async () => {
+    const { text } = await extractOfficeDocument(referencesDocx());
+
+    expect(text).toContain("our documentation (https://fileconcat.com/docs/introduction)");
+  });
+
+  it("does not repeat a destination that is already the visible text", async () => {
+    const { text } = await extractOfficeDocument(referencesDocx());
+
+    const feed = "https://example.org/feed.json";
+    expect(text).toContain(feed);
+    expect(text.split(feed).length - 1, `"${feed}" written more than once`).toBe(1);
+  });
+
+  it("marks each footnote reference and labels the matching body", async () => {
+    const { text } = await extractOfficeDocument(referencesDocx());
+
+    // Both claims sit in one sentence, so without the markers nothing says
+    // which of the two collected notes belongs to which claim.
+    expect(text).toContain("Revenue rose 12 percent[^1]");
+    expect(text).toContain("against a flat market[^2]");
+    expect(text).toContain("[^1] Measured on 2026-08-15.");
+    expect(text).toContain("[^2] Second note, on the same page.");
+  });
+
+  it("leaves a deck's speaker notes unnumbered", async () => {
+    // Speaker notes are not references: they are rendered under their own
+    // slide, so a marker beside one would point at nothing.
+    const { text } = await extractOfficeDocument(twoSlidePptx());
+    expect(text).not.toContain("[^");
   });
 });

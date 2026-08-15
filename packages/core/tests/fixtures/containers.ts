@@ -70,6 +70,79 @@ export function tableDocx(): Uint8Array {
 }
 
 /**
+ * A `.docx` whose meaning is not in its visible characters: a link whose
+ * destination lives only in the relationships part, a second link whose text
+ * already is its destination, and two claims in one sentence each carrying its
+ * own footnote. Flat text loses all of it silently unless the extractor writes
+ * the destinations and the markers out.
+ */
+export function referencesDocx(): Uint8Array {
+  const run = (t: string) => `<w:r><w:t>${t}</w:t></w:r>`;
+  const link = (id: string, t: string) => `<w:hyperlink r:id="${id}">${run(t)}</w:hyperlink>`;
+  const ref = (id: string) => `<w:r><w:footnoteReference w:id="${id}"/></w:r>`;
+  const footnote = (id: string, t: string) =>
+    `<w:footnote w:id="${id}"><w:p>${run(t)}</w:p></w:footnote>`;
+  const rel = (id: string, type: string, target: string, mode?: string) =>
+    `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${type}" ` +
+    `Target="${target}"${mode ? ` TargetMode="${mode}"` : ""}/>`;
+  const WORD_NS =
+    `xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ` +
+    `xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"`;
+
+  return zipSync({
+    "[Content_Types].xml": strToU8(
+      XML_DECL +
+        `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+        `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
+        `<Default Extension="xml" ContentType="application/xml"/>` +
+        `<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>` +
+        `<Override PartName="/word/footnotes.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml"/>` +
+        `</Types>`,
+    ),
+    "_rels/.rels": strToU8(
+      XML_DECL +
+        `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+        rel("rId1", "officeDocument", "word/document.xml") +
+        `</Relationships>`,
+    ),
+    "word/_rels/document.xml.rels": strToU8(
+      XML_DECL +
+        `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+        rel("rId1", "hyperlink", "https://fileconcat.com/docs/introduction", "External") +
+        rel("rId2", "hyperlink", "https://example.org/feed.json", "External") +
+        rel("rId3", "footnotes", "footnotes.xml") +
+        `</Relationships>`,
+    ),
+    "word/document.xml": strToU8(
+      XML_DECL +
+        `<w:document ${WORD_NS}><w:body>` +
+        `<w:p>` +
+        run("Revenue rose 12 percent") +
+        ref("1") +
+        run(" against a flat market") +
+        ref("2") +
+        run(".") +
+        `</w:p>` +
+        `<w:p>` +
+        run("Full methodology at ") +
+        link("rId1", "our documentation") +
+        run(" and the raw feed at ") +
+        link("rId2", "https://example.org/feed.json") +
+        run(".") +
+        `</w:p>` +
+        `</w:body></w:document>`,
+    ),
+    "word/footnotes.xml": strToU8(
+      XML_DECL +
+        `<w:footnotes ${WORD_NS}>` +
+        footnote("1", "Measured on 2026-08-15.") +
+        footnote("2", "Second note, on the same page.") +
+        `</w:footnotes>`,
+    ),
+  });
+}
+
+/**
  * A two-sheet `.xlsx`. Both halves matter: the cell values are adjacent numbers
  * that concatenate into a plausible-looking third number when a reader forgets
  * the separator, and the two sheets are what proves the boundary between them

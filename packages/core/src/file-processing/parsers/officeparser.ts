@@ -171,6 +171,78 @@ function markSlideStarts(): (node: OfficeContentNode) => void {
   };
 }
 
+/**
+ * Write each external link's destination after the text that carried it.
+ *
+ * The parsed tree keeps the URL on the run (`metadata.link`), and the text
+ * renderer emits only the run's characters, so `our documentation` reaches the
+ * bundle with nothing saying it pointed anywhere. Every reference in a linked
+ * document is then unrecoverable, and invisibly so: a model asked what a
+ * document cites can only answer from the anchor text.
+ *
+ * A run whose text already contains its destination is left alone, since
+ * repeating it adds nothing — which also makes this safe to run twice over the
+ * same tree. Internal links (`#anchor`) are skipped: they name a position in
+ * the same document, and flat text has nowhere to point.
+ */
+function showLinkDestinations(node: OfficeContentNode): void {
+  if (node.type !== "text" || node.metadata?.linkType !== "external") return;
+  const link = node.metadata.link;
+  if (!link || !node.text || node.text.includes(link)) return;
+  // Folded like the renderer's own metadata header: the URL is document-supplied
+  // and a line break in it would forge structure in a bundle a model reads as
+  // one document. A real URL has no whitespace to lose.
+  node.text = `${node.text} (${link.replace(/\s+/g, "")})`;
+}
+
+/**
+ * Number each footnote reference where it stands, and label its body to match.
+ *
+ * The tree attaches a note to the exact run that referenced it. The text
+ * renderer collects every note body under `--- Notes ---`, which is worth
+ * keeping, but drops the marker — so nothing says which note belongs to which
+ * claim, and two notes against two claims leave a model attributing them by
+ * coin flip.
+ *
+ * A slide's speaker notes are not footnotes: they carry no `noteType` and are
+ * rendered under their own slide rather than collected, so they are left alone.
+ *
+ * Keys are assigned in reference order rather than taken from the document,
+ * because footnotes and endnotes are numbered in separate sequences and both
+ * can carry id `1`. The note objects themselves key the map: the renderer
+ * collects those same objects, so a body is matched to its reference by
+ * identity rather than by anything the document supplied.
+ */
+function numberFootnotes(): (node: OfficeContentNode) => void {
+  const keys = new Map<OfficeContentNode, string>();
+  let assigned = 0;
+
+  return (node) => {
+    if (node.type === "note") {
+      const key = keys.get(node);
+      if (!key) return;
+      keys.delete(node);
+      node.children = [{ type: "text", text: `[^${key}] ` }, ...(node.children ?? [])];
+      return;
+    }
+
+    let markers = "";
+    for (const note of node.notes ?? []) {
+      if (note.type !== "note" || !note.metadata?.noteType || keys.has(note)) continue;
+      const key = String((assigned += 1));
+      keys.set(note, key);
+      markers += `[^${key}]`;
+    }
+    if (!markers) return;
+
+    // A reference usually follows a run of text and belongs at its end. When it
+    // opens a paragraph there is no run to append to, so the marker becomes a
+    // child of its own — a block node renders its children, never its `text`.
+    if (node.type === "text") node.text = `${node.text ?? ""}${markers}`;
+    else node.children = [...(node.children ?? []), { type: "text", text: markers }];
+  };
+}
+
 function toLibraryConfig(options: OfficeParserOptions): Record<string, unknown> {
   const config: Record<string, unknown> = {};
   if (options.pdfWorkerSrc) config.pdfWorkerSrc = options.pdfWorkerSrc;
@@ -211,10 +283,18 @@ export async function extractOfficeDocument(
   const carriesOcrText = (ast.attachments ?? []).some((image) => image.ocrText?.trim());
   // `.to(…)` replaces the deprecated `.toText()`, and hands back the
   // per-document warnings that become our notes.
+  // Each visitor restores one thing the text renderer drops. They are composed
+  // rather than merged because they are independent of one another and of the
+  // node types they act on.
+  const visitors = [markSlideStarts(), numberFootnotes(), showLinkDestinations];
   const { value, messages } =
     isWorkbook(ast.content) && !carriesOcrText
       ? await ast.to("csv")
-      : await ast.to("text", { onNode: markSlideStarts() });
+      : await ast.to("text", {
+          onNode: (node) => {
+            for (const visit of visitors) visit(node);
+          },
+        });
   // Only the pdf and csv renderers can answer with bytes; both of ours are
   // string-shaped, so this narrows a union rather than handling a real case.
   const rendered = typeof value === "string" ? value : new TextDecoder().decode(value);
