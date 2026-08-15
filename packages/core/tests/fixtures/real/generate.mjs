@@ -681,14 +681,36 @@ const CORPUS = [
         "The router reads the leading bytes of a file and never its name. " +
         "That decision is what lets a notebook saved with the wrong extension still render, " +
         "and what stops a zip renamed to docx from being handed to a word processor parser. ";
-      return renderPdf((doc) => {
-        for (let page = 1; page <= 3; page++) {
+      return renderPdf(
+        (doc) => {
           doc.addPage({ margins: { top: 90, bottom: 90, left: 72, right: 72 } });
-          doc.fontSize(9).text("FileConcat Technical Note — Routing", 72, 40);
-          doc.fontSize(11).text(body.repeat(6), 72, 90, { width: 468, align: "justify" });
-          doc.fontSize(9).text(`Page ${page} of 3`, 72, 740, { width: 468, align: "center" });
-        }
-      });
+          // One flowing block that pdfkit paginates itself, so a paragraph
+          // genuinely continues across the page break instead of restarting.
+          // 48 repeats is three pages with room to spare; one page holds ~19.
+          doc.fontSize(11).text(body.repeat(48), 72, 90, { width: 468, align: "justify" });
+
+          // Furniture is stamped afterwards, over whatever pages the flow
+          // produced. Written inline it lands below the bottom margin and
+          // pdfkit answers by starting a new page, which is how this fixture
+          // spent a while claiming three pages while being six: the footer of
+          // each page sat alone on the page after it. Measured with `pypdf`.
+          const pages = doc.bufferedPageRange();
+          for (let page = 0; page < pages.count; page++) {
+            doc.switchToPage(pages.start + page);
+            const bottom = doc.page.margins.bottom;
+            doc.page.margins.bottom = 0;
+            doc.fontSize(9).text("FileConcat Technical Note — Routing", 72, 40);
+            doc
+              .fontSize(9)
+              .text(`Page ${page + 1} of ${pages.count}`, 72, 740, {
+                width: 468,
+                align: "center",
+              });
+            doc.page.margins.bottom = bottom;
+          }
+        },
+        { bufferPages: true },
+      );
     },
   },
 
