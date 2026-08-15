@@ -122,6 +122,89 @@ export function textLayerPdf(lines: readonly string[]): Uint8Array {
 }
 
 /**
+ * A PDF whose text is placed at explicit coordinates, one entry per drawn run.
+ *
+ * A PDF has no notion of a column, a row or a cell: it holds glyphs at
+ * positions, and every structure a reader recovers is inferred from geometry.
+ * That is why the fixtures below are built from raw coordinates rather than
+ * from a "table" or "column" helper that would beg the question.
+ */
+export function positionedTextPdf(
+  runs: readonly { x: number; y: number; text: string; size?: number }[],
+): Uint8Array {
+  return assemblePdf([
+    ascii("<< /Type /Catalog /Pages 2 0 R >>"),
+    ascii("<< /Type /Pages /Kids [4 0 R] /Count 1 >>"),
+    ascii("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"),
+    ascii(
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] ` +
+        `/Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>`,
+    ),
+    stream(
+      "",
+      ascii(
+        runs
+          .map(
+            (r) =>
+              `BT /F1 ${r.size ?? 10} Tf ${r.x} ${r.y} Td (${pdfString(r.text)}) Tj ET`,
+          )
+          .join("\n"),
+      ),
+    ),
+  ]);
+}
+
+/**
+ * Two columns of prose, drawn the way a typesetter lays them out: the left and
+ * right column share a `y` for every row.
+ *
+ * That shared `y` is the whole point. A reader that orders glyphs by vertical
+ * position alone emits the left column's line and the right column's line as
+ * one line, and does it for every row on the page, so the text comes out
+ * spliced mid-sentence. The lines are long enough to fill their columns
+ * because prose wraps at the column edge, which is one of the signals that
+ * separates a column from a table.
+ */
+export function twoColumnPdf(): Uint8Array {
+  const runs: { x: number; y: number; text: string }[] = [];
+  for (let row = 0; row < 8; row++) {
+    const y = 700 - row * 20;
+    runs.push({ x: 72, y, text: `Left column line ${row + 1} of eight, filling it` });
+    runs.push({ x: 340, y, text: `Right column line ${row + 1} of eight, filling it` });
+  }
+  return positionedTextPdf(runs);
+}
+
+/**
+ * A table drawn as positioned text: four columns, sharing a `y` per row
+ * exactly as the two-column page does.
+ *
+ * The counter-example the column detector has to survive. Geometrically this
+ * page also has vertical gaps no text crosses, so a detector that looks only
+ * for gutters reorders it and reads each column top to bottom, turning the
+ * rows into nonsense. What separates it is shape: its columns are narrow and
+ * unequal, and its cells are short values sitting in wide slots rather than
+ * prose filling them.
+ */
+export function positionedTablePdf(): Uint8Array {
+  const rows = [
+    ["Region", "Q1", "Q2", "Total"],
+    ["EMEA", "1200", "1350", "2550"],
+    ["APAC", "980", "1010", "1990"],
+    ["AMER", "1440", "1510", "2950"],
+    ["LATAM", "310", "355", "665"],
+    ["MEA", "220", "240", "460"],
+  ];
+  const columnX = [72, 260, 340, 420];
+  const runs: { x: number; y: number; text: string }[] = [];
+  rows.forEach((cells, row) => {
+    const y = 700 - row * 20;
+    cells.forEach((text, column) => runs.push({ x: columnX[column], y, text }));
+  });
+  return positionedTextPdf(runs);
+}
+
+/**
  * A PDF whose page is nothing but a picture — the shape a scanner produces.
  * There is no `/Font` anywhere, so there is no text to read however hard a
  * parser tries; the only route to its content is OCR over the pixels.

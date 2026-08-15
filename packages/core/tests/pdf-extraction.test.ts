@@ -4,7 +4,13 @@ import {
   extractOfficeDocument,
   resolveImagePlaceholders,
 } from "../src/file-processing/parsers/officeparser";
-import { imageOnlyPdf, textLayerPdf, textLayerPdfPages } from "./fixtures/pdf";
+import {
+  imageOnlyPdf,
+  positionedTablePdf,
+  textLayerPdf,
+  textLayerPdfPages,
+  twoColumnPdf,
+} from "./fixtures/pdf";
 
 /**
  * PDF had no fixture until now, which left the format we see most often as the
@@ -69,6 +75,49 @@ describe("extractOfficeDocument — PDFs with a text layer", () => {
   it("returns no notes for a PDF that parsed cleanly", async () => {
     const result = await extractOfficeDocument(textLayerPdf(["clean"]));
     expect(result.notes).toBeUndefined();
+  });
+});
+
+/**
+ * These guard `patches/officeparser@7.6.1.patch`, which is the only thing
+ * making them pass: the library orders a page's glyphs by vertical position
+ * alone, which merges the columns of a multi-column page line by line. The
+ * patch is re-applied by pnpm on install and will stop applying the moment
+ * officeparser changes those files, so these tests are the tripwire that says
+ * the fix is gone. If they fail after a dependency bump, the patch needs
+ * re-deriving, not deleting.
+ *
+ * Measured 2026-08-15: officeparser 7.2.1 and 7.6.1 both merge these columns,
+ * while `pypdf` on the identical bytes reads them correctly, so the ordering
+ * was the defect rather than a limit of the format.
+ */
+describe("extractOfficeDocument — multi-column PDFs", () => {
+  it("reads columns one after another, not line by line across the gutter", async () => {
+    const { text } = await extractOfficeDocument(twoColumnPdf());
+
+    const lastLeft = text.lastIndexOf("Left column line");
+    const firstRight = text.indexOf("Right column line");
+    expect(firstRight).toBeGreaterThan(-1);
+    expect(lastLeft).toBeLessThan(firstRight);
+  });
+
+  it("keeps every line of both columns", async () => {
+    const { text } = await extractOfficeDocument(twoColumnPdf());
+
+    for (let row = 1; row <= 8; row++) {
+      expect(text).toContain(`Left column line ${row} of eight`);
+      expect(text).toContain(`Right column line ${row} of eight`);
+    }
+  });
+
+  it("leaves a table drawn as positioned text reading across its rows", async () => {
+    const { text } = await extractOfficeDocument(positionedTablePdf());
+
+    // Reordered as columns this would read "Region EMEA APAC …", which is the
+    // failure the width and fill guards exist to prevent.
+    expect(text).toContain("Region Q1 Q2 Total");
+    expect(text).toContain("EMEA 1200 1350 2550");
+    expect(text).toContain("LATAM 310 355 665");
   });
 });
 

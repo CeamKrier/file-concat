@@ -39,6 +39,9 @@
       "@codemirror/view": "6.43.1",
       "@codemirror/commands": "6.10.3",
       "@lezer/common": "1.5.2"
+    },
+    "patchedDependencies": {
+      "officeparser@7.6.1": "patches/officeparser@7.6.1.patch"
     }
   },
   "scripts": {
