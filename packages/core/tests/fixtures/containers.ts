@@ -68,6 +68,7 @@ export function tableDocx(): Uint8Array {
         `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>` +
         para("Quarterly Report", "Heading1") +
         para("Revenue by region, in thousands.") +
+        para("Method Notes", "Heading2") +
         `<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/></w:tblPr>` +
         `<w:tr>${cell("Half-year totals", 3)}</w:tr>` +
         row(["Region", "Q1", "Q2"]) +

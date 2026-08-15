@@ -121,6 +121,31 @@ describe("extractOfficeDocument — structure survives extraction", () => {
     expect(text.indexOf("APAC")).toBeLessThan(text.indexOf("Headcount"));
   });
 
+  it("keeps a heading at the level the document gave it", async () => {
+    const { text } = await extractOfficeDocument(tableDocx());
+
+    // Flat, a heading is indistinguishable from body text and from a caption,
+    // and nothing says which section a paragraph belongs to.
+    expect(text).toContain("# Quarterly Report");
+    expect(text).toContain("## Method Notes");
+    // Prose is not a heading, whatever it sits between.
+    expect(text).toContain("\nRevenue by region, in thousands.");
+  });
+
+  it("leaves a heading a parser only guessed at alone", async () => {
+    // 16pt and bold, which is all the RTF reader needs to call something a
+    // level-3 heading. It calls whole tables that, cell by cell, so a marker
+    // here would be noise wearing the shape of structure.
+    const rtf =
+      `{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Times New Roman;}}\n` +
+      `\\fs32\\b Looks Like A Heading\\b0\\fs24\\par\n` +
+      `Ordinary prose underneath.\\par\n}`;
+    const { text } = await extractOfficeDocument(strToU8(rtf));
+
+    expect(text).toContain("Looks Like A Heading");
+    expect(text).not.toContain("#");
+  });
+
   it("gives a merged header cell the columns it covers", async () => {
     const { text } = await extractOfficeDocument(tableDocx());
 

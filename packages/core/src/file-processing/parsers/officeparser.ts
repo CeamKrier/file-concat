@@ -193,6 +193,49 @@ function markSectionStarts(markPages: boolean): (node: OfficeContentNode) => voi
 }
 
 /**
+ * Write a heading at the level the document declared for it.
+ *
+ * The text renderer emits a heading as a bare line, so `Annual Review` (H1),
+ * `Regional Performance` (H2) and a centred caption are all the same thing by
+ * the time anyone reads them: a document's whole hierarchy arrives flat, and
+ * with it the answer to which section any paragraph belongs to.
+ *
+ * `#` repeated, which is what a model already reads as a heading and what the
+ * markers for a sheet, a slide and a page are shaped like. Markdown's own
+ * renderer is not the answer here even though it gets levels right: it also
+ * emits an empty `---`/`---` frontmatter block, hangs `{#anchor}` off every
+ * heading and drops sheet names.
+ *
+ * **A `heading` node is not evidence of a heading.** Only some parsers are told
+ * what a heading is; the rest infer one from how big and bold a line looks, and
+ * a level guessed that way says nothing. Measured 2026-08-15: the RTF parser
+ * called **every** block of a four-paragraph document a level-3 heading, table
+ * cells included, so marking those turned `| Region | Q1 |` into
+ * `| ### Region | ### Q1 |`; the PDF parser gave a paper's title level 3 on the
+ * same font-size reasoning.
+ *
+ * A named paragraph style is what separates the two: it exists only where the
+ * document itself said "this is Heading 2", and no parser invents one. The cost
+ * is that OpenDocument declares its levels through `text:h` without a style
+ * name, so `.odt` headings stay flat — one Run in sixty days, against the two
+ * formats this would otherwise damage.
+ *
+ * Levels past six are clamped, since `#######` is a heading in no reader, and a
+ * document nested that deep has said what it needs to by then.
+ */
+function markHeadingLevels(): (node: OfficeContentNode) => void {
+  const marked = new WeakSet<OfficeContentNode>();
+
+  return (node) => {
+    if (node.type !== "heading" || !node.metadata?.style || marked.has(node)) return;
+    if (!node.text?.trim()) return;
+    marked.add(node);
+    const level = Math.min(Math.max(node.metadata.level ?? 1, 1), 6);
+    node.children = [{ type: "text", text: `${"#".repeat(level)} ` }, ...(node.children ?? [])];
+  };
+}
+
+/**
  * Give a horizontally merged cell the columns it actually covers.
  *
  * A cell spanning three columns is a single child of its row, and the renderer
@@ -450,6 +493,7 @@ export async function extractOfficeDocument(
   // node types they act on.
   const visitors = [
     markSectionStarts(anyPageHasText),
+    markHeadingLevels(),
     numberFootnotes(),
     showLinkDestinations,
     expandMergedCells(),
