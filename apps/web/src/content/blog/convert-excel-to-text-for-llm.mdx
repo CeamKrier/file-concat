@@ -1,0 +1,114 @@
+---
+title: "Convert a Spreadsheet to Text for an LLM"
+description: "Turn Excel and other spreadsheets into text a model can actually read. Sheet names and cell boundaries survive, in your browser, with live token counts."
+date: "2026-08-15"
+author: "CeamKrier"
+draft: false
+---
+
+You have a workbook and a question about it. The chat box takes text, so the spreadsheet has to
+become text first, and that is where most of the answer quietly goes missing. A spreadsheet is
+not a document that happens to hold numbers. It is a grid, and the grid is half the meaning.
+
+This guide covers converting a spreadsheet to text for an LLM prompt: what a flattened read
+destroys, what actually reaches the model, and the two things a workbook always loses on the
+way out. There is a spot to try it on your own files partway down. Nothing is uploaded to us;
+the extraction runs in your browser.
+
+## A row is only data while its cells stay apart
+
+Take one row of a revenue sheet: the region, then two quarterly figures. Read it with the
+separators intact and it is three values. Read it without them and it is one long number that
+nobody, model or person, can take back apart.
+
+<BeforeAfter>
+  <Before label="the same rows flattened">{`RegionQ1Q2
+EMEA12001350
+APAC9801105`}</Before>
+  <After label="what reaches your prompt">{`# Sheet: Revenue
+Region,Q1,Q2
+EMEA,1200,1350
+APAC,980,1105`}</After>
+</BeforeAfter>
+
+`EMEA12001350` is not merely harder to read than `EMEA,1200,1350`. The two figures cannot be
+recovered from it at all, and neither can the boundary between them. A model given the left
+column will still answer your question; it will just answer it about numbers that were never
+in your sheet.
+
+The same applies one level up. A workbook with a Revenue tab and a Headcount tab is two tables,
+and if the tab names go missing they arrive as one undivided block with nothing saying which
+figures belong together.
+
+<Callout type="note" title="Where the extraction happens">
+  The workbook is opened and its cells read in your browser tab. The file is never uploaded to us,
+  and there is no account. What you do with the extracted text after you paste it into ChatGPT or
+  Claude is between you and them.
+</Callout>
+
+## What reaches the model
+
+Each sheet arrives under its own name, and each row keeps its cells separated in column order.
+That is the whole trick: the model can see which column a number sat in and which table it
+belonged to, which is what any question about a spreadsheet turns on.
+
+<Steps>
+  <Step title="Drop the workbook">
+    One file or a folder of them. Spreadsheets go in alongside PDFs, Word documents, slide decks,
+    and any plain notes or markdown you drop with them.
+  </Step>
+  <Step title="Every sheet is read in your browser">
+    Each tab is read separately and written under its own name, so a multi-sheet workbook keeps its
+    boundaries instead of merging into one block.
+  </Step>
+  <Step title="Copy one bundle">
+    You get a single document with each file labeled by name, plus a live token count so you know it
+    fits before you paste it.
+  </Step>
+</Steps>
+
+## Try it on your own workbook
+
+Drop a spreadsheet below, or a folder with a few of them mixed in with your other documents. It
+runs in your browser, there is no account, and nothing is uploaded to us.
+
+<TryIt
+  title="Bundle your own spreadsheets"
+  hint="Drop a workbook or a folder of mixed documents. It runs here in your browser, nothing is uploaded."
+/>
+
+## What a workbook loses on the way out
+
+Two things do not survive, and both are worth knowing before you trust an answer.
+
+**Formulas become their results.** A cell holding `=SUM(B2:B14)` reaches the bundle as the
+number it computed, not as the formula. For almost every question this is what you want, since
+the model can read the figure and reason about it. If your question is about the calculation
+itself rather than its output, that is the one case where the text will not hold the answer.
+
+**Dates become numbers.** Excel stores a date as a count of days and shows you a formatted date
+on top of it. Extraction reads what is stored, so a due-date column can arrive as `45000` rather
+than the date you see in the cell.
+
+<Callout type="warn" title="Check a date column before you paste">
+  If dates matter to your question, add a helper column with `TEXT(A2,"yyyy-mm-dd")` and include
+  that instead, or format the column as text before you export. It costs a minute and it stops the
+  model from reasoning about a number that looks like a quantity.
+</Callout>
+
+Charts, cell colours, and conditional formatting are not text either, so none of them come out.
+If the point of a sheet lives in its highlighting, say in the prompt what the highlighting meant.
+
+## Mind the token and cost budget
+
+Spreadsheets are the format most likely to blow a context window without looking like it. A
+sheet that fits on one screen can carry ten thousand rows below the fold, and every one of them
+is tokens. FileConcat counts as you add and remove files and can show the cost for a given
+model, so you can cut to the sheets that matter before you paste rather than after the bill.
+
+<Callout type="tip">
+  Working with other documents too? [Converting PDFs to text](/blog/convert-pdf-to-text-for-llm) and
+  [feeding a Word document to a model](/blog/convert-docx-to-text-for-llm) cover those. To size a set
+  of documents first, see [how the token count works](/docs/token-estimation) and [what a bundle costs
+  across models](/docs/token-costs).
+</Callout>
