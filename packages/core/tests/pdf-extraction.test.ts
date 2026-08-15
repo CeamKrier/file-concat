@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { routeBytes } from "../src/file-processing/routing";
 import {
   extractOfficeDocument,
+  isPasswordProtected,
   resolveImagePlaceholders,
 } from "../src/file-processing/parsers/officeparser";
 import {
@@ -164,6 +165,30 @@ describe("extractOfficeDocument — scanned PDFs", () => {
     // non-empty `[Image: …]` would read as a successful extraction everywhere.
     const { text } = await extractOfficeDocument(imageOnlyPdf());
     expect(text).not.toContain("[Image:");
+  });
+});
+
+/**
+ * The library throws a bare `Error` for a locked document — no error code, no
+ * `cause` — so the wording is the only thing to go on, and half of it comes
+ * from pdf.js rather than officeparser. Verified against a real encrypted PDF
+ * in the measurement corpus, which is generated and therefore cannot be a
+ * fixture here; what these pin down is the mapping, not the throw.
+ */
+describe("isPasswordProtected", () => {
+  it("recognises the wording a locked document fails with", () => {
+    expect(isPasswordProtected(new Error("[OfficeParser]: No password given"))).toBe(true);
+    expect(isPasswordProtected(new Error("[OfficeParser]: Incorrect password"))).toBe(true);
+  });
+
+  it("leaves every other failure alone", () => {
+    // Nothing here is actionable by the person holding the file, which is the
+    // whole distinction: telling them to unlock a corrupt file is worse than
+    // saying nothing.
+    expect(isPasswordProtected(new Error("[OfficeParser]: File is corrupted"))).toBe(false);
+    expect(isPasswordProtected(new Error("ZIP_TRUNCATED"))).toBe(false);
+    expect(isPasswordProtected("No password given")).toBe(false);
+    expect(isPasswordProtected(undefined)).toBe(false);
   });
 });
 

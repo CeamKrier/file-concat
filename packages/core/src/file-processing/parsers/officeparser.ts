@@ -327,6 +327,25 @@ function toLibraryConfig(options: OfficeParserOptions): Record<string, unknown> 
 }
 
 /**
+ * True when a document could not be opened because it is encrypted.
+ *
+ * Worth telling apart from every other reason a reader can fail, because it is
+ * the only one the person holding the file can do something about: "couldn't
+ * extract text" is a dead end, "password protected" is an instruction. It also
+ * separates the two populations behind `extract_failed` — a locked document is
+ * never a scan, so recognition can never rescue one.
+ *
+ * The message is the only signal available. `officeparser` throws a bare
+ * `Error` here with no `officeIssue` code and no `cause` (measured 2026-08-15
+ * against 7.6.1), and the readable half of the wording comes from pdf.js rather
+ * than from officeparser at all. Matching on it belongs here, beside the
+ * library call, rather than in each platform that catches the throw.
+ */
+export function isPasswordProtected(error: unknown): boolean {
+  return error instanceof Error && /password/i.test(error.message);
+}
+
+/**
  * Extract the recoverable text from a document's bytes. Empty text means the
  * document carries none — a scanned image-only or encrypted PDF — and callers
  * surface that rather than silently dropping the file (ADR-0003).

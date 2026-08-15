@@ -1,5 +1,5 @@
 export { createParserRegistry } from "./registry";
-export { extractOfficeDocument } from "./officeparser";
+export { extractOfficeDocument, isPasswordProtected } from "./officeparser";
 export type { OcrOptions, OfficeParserOptions } from "./officeparser";
 export { formatEmail } from "./email";
 export { extractNotebook } from "./notebook";

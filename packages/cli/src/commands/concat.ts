@@ -12,6 +12,7 @@ import {
   canExpandArchive,
   classifyBytes,
   expandArchive,
+  isPasswordProtected,
   routeBytes,
   ROUTER_SNIFF_BYTES,
   addLineNumbers,
@@ -248,8 +249,16 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
         parsedCount++;
         totalSize += source.size;
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        log.warn(`Skipped (parse failed): ${file} (${message})`);
+        // A locked document is named as such rather than under the reader's own
+        // wording: it is the one failure here the person running this can act
+        // on, and `[OfficeParser]: No password given` buries that under a
+        // library name they did not choose.
+        if (isPasswordProtected(err)) {
+          log.warn(`Skipped (password protected): ${file}`);
+        } else {
+          const message = err instanceof Error ? err.message : String(err);
+          log.warn(`Skipped (parse failed): ${file} (${message})`);
+        }
         skipped.parseFailed.push(file);
       }
       continue;

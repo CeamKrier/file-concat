@@ -52,6 +52,7 @@ const REASON_SLUGS: Record<string, string> = {
   "Binary file": "binary",
   "No extractable text": "no-text",
   "Couldn't extract text": "extract-error",
+  "Password protected": "encrypted",
 };
 
 /**

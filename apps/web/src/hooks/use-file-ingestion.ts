@@ -5,7 +5,12 @@ import type {
   SourceType,
   TextClassification,
 } from "@fileconcat/core";
-import { defaultSourceRegistry, readFileAsText, validateFile } from "@fileconcat/core";
+import {
+  defaultSourceRegistry,
+  isPasswordProtected,
+  readFileAsText,
+  validateFile,
+} from "@fileconcat/core";
 
 import { collectFromDataTransfer } from "~/lib/collect-from-drop";
 import { markerFor } from "~/lib/ecosystem-markers";
@@ -376,6 +381,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       const extensions: Tally = new Map();
       const unreadable: Tally = new Map();
       const extractFailed: Tally = new Map();
+      const extractError: Tally = new Map();
       const nextUnread: ScannedDocument[] = [];
       const archiveUnsupported: Tally = new Map();
       const markers = new Set<string>();
@@ -459,10 +465,19 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             }
           } catch (error) {
             console.error(`Failed to extract ${path}:`, error);
+            const locked = isPasswordProtected(error);
             addToTally(extractFailed, route.format, size);
+            // The subset of `extract_failed` where the reader threw. Only the
+            // other half can be a scan, so this is what makes "how many of
+            // these could recognition ever help" answerable.
+            addToTally(extractError, locked ? "encrypted" : "error", size);
             nextValidations[path] = {
               included: false,
-              reason: "Couldn't extract text",
+              // A locked file is the one failure the person holding it can act
+              // on, and it was reaching them as the same dead end as a corrupt
+              // one. Not queued for recognition either way: this document was
+              // never opened, so there is nothing for it to read.
+              reason: locked ? "Password protected" : "Couldn't extract text",
               classification: "binary",
               size,
               type,
@@ -533,6 +548,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       for (const marker of markers) track("marker", marker);
       trackTally("unreadable_ext", unreadable);
       trackTally("extract_failed", extractFailed);
+      trackTally("extract_error", extractError);
       trackTally("archive_unsupported", archiveUnsupported);
 
       // The same drop, said in Clarity's vocabulary so the recording can be

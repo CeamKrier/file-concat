@@ -50,6 +50,18 @@ export const METRIC_EVENTS = [
   "unreadable_ext",
   /** A format we do support whose reader returned nothing (scanned or encrypted). The OCR business case. */
   "extract_failed",
+  /**
+   * Why a reader failed, for the subset of `extract_failed` where it **threw**
+   * rather than answering with empty text: value `encrypted` | `error`.
+   *
+   * A strict subset, deliberately, so nothing about the existing series changes
+   * and the history stays comparable: `extract_failed` still counts every file
+   * no reader could turn into text. What this adds is the split the OCR
+   * business case needs, because **only the empty half can ever be a scan** —
+   * recognition cannot open a locked document, and until this existed the two
+   * populations were one number.
+   */
+  "extract_error",
   /** An archive we cannot open, by extension. */
   "archive_unsupported",
 
