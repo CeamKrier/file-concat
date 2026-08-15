@@ -193,6 +193,29 @@ function markSectionStarts(markPages: boolean): (node: OfficeContentNode) => voi
 }
 
 /**
+ * Drop the slide number a deck's speaker notes carry.
+ *
+ * A notes slide inherits a slide-number placeholder from the notes master, so
+ * the parsed note holds a line whose whole text is the slide's own number, and
+ * the renderer writes it out under the slide body. What arrives is a bare `3`
+ * on a line of its own, directly beneath whatever the slide said — under a
+ * table of figures it is indistinguishable from another figure.
+ *
+ * It is also redundant twice over: `# Slide 3` already stands above the slide,
+ * and says which slide it is where a reader will look for it.
+ *
+ * Matched against the note's own `slideNumber` rather than against "a line that
+ * is only digits", so a speaker note genuinely consisting of a number survives
+ * unless it happens to be that slide's number. Footnotes are untouched — they
+ * carry a `noteType` and no slide number.
+ */
+function dropSlideNumberFromNotes(node: OfficeContentNode): void {
+  if (node.type !== "note" || node.metadata?.slideNumber === undefined) return;
+  const number = String(node.metadata.slideNumber);
+  node.children = (node.children ?? []).filter((child) => child.text?.trim() !== number);
+}
+
+/**
  * Write a heading at the level the document declared for it.
  *
  * The text renderer emits a heading as a bare line, so `Annual Review` (H1),
@@ -546,6 +569,7 @@ export async function extractOfficeDocument(
   // node types they act on.
   const visitors = [
     markSectionStarts(anyPageHasText),
+    dropSlideNumberFromNotes,
     markHeadingLevels(),
     numberFootnotes(),
     showLinkDestinations,

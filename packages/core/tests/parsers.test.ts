@@ -189,6 +189,18 @@ describe("extractOfficeDocument — structure survives extraction", () => {
     expect(text.indexOf("# Slide 2")).toBeLessThan(text.indexOf("Risks"));
   });
 
+  it("drops the slide number a deck's speaker notes carry", async () => {
+    const { text } = await extractOfficeDocument(twoSlidePptx());
+
+    // The notes master's slide-number placeholder puts a bare `1` in slide
+    // one's notes, and the renderer writes it under the slide body — where,
+    // beneath a slide of figures, it reads as one more figure. `# Slide 1`
+    // above the slide already says which slide this is.
+    expect(text).toContain("Open with the counters");
+    const lines = text.split("\n").map((line) => line.trim());
+    expect(lines).not.toContain("1");
+  });
+
   it("leaves a document that has no slides unmarked", async () => {
     const { text } = await extractOfficeDocument(tableDocx());
     expect(text).not.toContain("# Slide");

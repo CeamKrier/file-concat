@@ -270,6 +270,11 @@ export function twoSheetXlsx(): Uint8Array {
  * A two-slide `.pptx`. The interesting part is the seam: the last line of slide
  * one and the title of slide two are both ordinary lines of text, so nothing
  * but an explicit marker can tell a reader where one slide ended.
+ *
+ * Slide one carries a speaker note shaped the way PowerPoint writes one: a
+ * sentence, plus a line holding nothing but the slide's number, which the notes
+ * master's slide-number placeholder puts there. Notes are found by path
+ * (`ppt/notesSlides/notesSlideN.xml`) and need no relationship entry.
  */
 export function twoSlidePptx(): Uint8Array {
   const slideXml = (lines: readonly string[]) =>
@@ -315,6 +320,7 @@ export function twoSlidePptx(): Uint8Array {
       slideXml(["Roadmap", "Ship the parser", "Measure quality"]),
     ),
     "ppt/slides/slide2.xml": strToU8(slideXml(["Risks", "Tables collapse", "Sheets merge"])),
+    "ppt/notesSlides/notesSlide1.xml": strToU8(slideXml(["Open with the counters", "1"])),
   });
 }
 
