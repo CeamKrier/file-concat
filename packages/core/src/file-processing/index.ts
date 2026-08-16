@@ -9,6 +9,7 @@ export {
   extractOfficeDocument,
   extractSubtitles,
   formatEmail,
+  isPasswordProtected,
 } from "./parsers";
 export type {
   ExtractionNote,

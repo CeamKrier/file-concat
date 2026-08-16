@@ -2,9 +2,18 @@ import { describe, expect, it } from "vitest";
 import { routeBytes } from "../src/file-processing/routing";
 import {
   extractOfficeDocument,
+  isPasswordProtected,
   resolveImagePlaceholders,
 } from "../src/file-processing/parsers/officeparser";
-import { imageOnlyPdf, textLayerPdf, textLayerPdfPages } from "./fixtures/pdf";
+import {
+  imageOnlyPdf,
+  positionedTablePdf,
+  tableWithEmptyCellPdf,
+  textLayerPdf,
+  textLayerPdfPages,
+  twoColumnPdf,
+  undecodableTextPdf,
+} from "./fixtures/pdf";
 
 /**
  * PDF had no fixture until now, which left the format we see most often as the
@@ -70,13 +79,170 @@ describe("extractOfficeDocument — PDFs with a text layer", () => {
     const result = await extractOfficeDocument(textLayerPdf(["clean"]));
     expect(result.notes).toBeUndefined();
   });
+
+  it("marks where each page begins", async () => {
+    // A PDF has no punctuation of its own, so the last line of one page and the
+    // first of the next arrive as consecutive lines. Sheets and slides already
+    // carry a boundary; pages carried none.
+    const { text } = await extractOfficeDocument(
+      textLayerPdfPages([["Page one body"], ["Page two body"]]),
+    );
+
+    expect(text).toContain("# Page 1");
+    expect(text).toContain("# Page 2");
+    expect(text.indexOf("# Page 1")).toBeLessThan(text.indexOf("Page one body"));
+    expect(text.indexOf("Page one body")).toBeLessThan(text.indexOf("# Page 2"));
+    expect(text.indexOf("# Page 2")).toBeLessThan(text.indexOf("Page two body"));
+  });
+
+  it("still shows a page that yielded no text", async () => {
+    // The document is not empty, so it never reaches the "no extractable text"
+    // path, and before the marker nothing anywhere said a page had been lost.
+    // A page with no drawn text stands in for the real case, a scanned one:
+    // both parse to a page carrying nothing.
+    const { text } = await extractOfficeDocument(textLayerPdfPages([["Page one body"], []]));
+
+    expect(text).toContain("Page one body");
+    expect(text).toContain("# Page 2");
+  });
+});
+
+/**
+ * These guard `patches/officeparser@7.6.1.patch`, which is the only thing
+ * making them pass: the library orders a page's glyphs by vertical position
+ * alone, which merges the columns of a multi-column page line by line. The
+ * patch is re-applied by pnpm on install and will stop applying the moment
+ * officeparser changes those files, so these tests are the tripwire that says
+ * the fix is gone. If they fail after a dependency bump, the patch needs
+ * re-deriving, not deleting.
+ *
+ * Measured 2026-08-15: officeparser 7.2.1 and 7.6.1 both merge these columns,
+ * while `pypdf` on the identical bytes reads them correctly, so the ordering
+ * was the defect rather than a limit of the format.
+ */
+describe("extractOfficeDocument — multi-column PDFs", () => {
+  it("reads columns one after another, not line by line across the gutter", async () => {
+    const { text } = await extractOfficeDocument(twoColumnPdf());
+
+    const lastLeft = text.lastIndexOf("Left column line");
+    const firstRight = text.indexOf("Right column line");
+    expect(firstRight).toBeGreaterThan(-1);
+    expect(lastLeft).toBeLessThan(firstRight);
+  });
+
+  it("keeps every line of both columns", async () => {
+    const { text } = await extractOfficeDocument(twoColumnPdf());
+
+    for (let row = 1; row <= 8; row++) {
+      expect(text).toContain(`Left column line ${row} of eight`);
+      expect(text).toContain(`Right column line ${row} of eight`);
+    }
+  });
+
+  it("leaves a table drawn as positioned text reading across its rows", async () => {
+    const { text } = await extractOfficeDocument(positionedTablePdf());
+
+    // Reordered as columns this would read "Region EMEA APAC …", which is the
+    // failure the width and fill guards exist to prevent.
+    expect(text).toContain("| Region | Q1 | Q2 | Total |");
+    expect(text).toContain("| EMEA | 1200 | 1350 | 2550 |");
+    expect(text).toContain("| LATAM | 310 | 355 | 665 |");
+  });
+});
+
+/**
+ * The second half of the same patch. A PDF has no cells, only glyphs at
+ * positions, so a table arrives as lines whose values are separated by nothing
+ * but a wider gap — and an empty cell is separated by nothing at all.
+ *
+ * Measured 2026-08-15: `pypdf` collapses these rows the same way on the same
+ * bytes, so unlike the column ordering above there is no reader to swap to.
+ * The geometry is all there is, and it is only still available inside the
+ * parser, which is why this lives in the patch rather than in our own code.
+ */
+describe("extractOfficeDocument — tables drawn as positioned text", () => {
+  it("keeps the slot an empty cell left behind", async () => {
+    const { text } = await extractOfficeDocument(tableWithEmptyCellPdf());
+
+    // The defect this fixes: "APAC 980 980", where the total has moved into the
+    // Q2 column and reads as a plausible figure for it.
+    expect(text).toContain("| APAC | 980 | | 980 |");
+    expect(text).not.toContain("APAC 980 980");
+    // The rows either side are untouched, so the empty cell is the only thing
+    // the pass reacted to.
+    expect(text).toContain("| EMEA | 1200 | 1350 | 2550 |");
+    expect(text).toContain("| AMER | 1440 | 1510 | 2950 |");
+  });
+
+  it("leaves prose alone", async () => {
+    // The guard against the interesting failure: prose lines have gaps too, and
+    // a pass that reads three of them as a table would put separators through
+    // the middle of sentences.
+    const { text } = await extractOfficeDocument(
+      textLayerPdf([
+        "A paragraph of ordinary prose that runs the width of the page.",
+        "A second line of it, long enough to hold gaps of its own.",
+        "A third, because three consecutive rows is what a table needs.",
+      ]),
+    );
+
+    expect(text).not.toContain("|");
+  });
+
+  it("leaves a multi-column page alone", async () => {
+    // Columns are ordered before this runs and never reach it, but the two
+    // passes read the same geometry and a page can only be one of them.
+    const { text } = await extractOfficeDocument(twoColumnPdf());
+
+    expect(text).not.toContain("|");
+  });
+});
+
+/**
+ * Found on a real document 2026-08-16, which is the first real PDF this project
+ * ever measured: a Turkish government e-document whose every font ships without
+ * a `/ToUnicode` map. 89% of its extracted text came out as characters nobody
+ * can read, and it reached the bundle looking like text. `pypdf` produced the
+ * identical mess from the identical bytes.
+ *
+ * The corpus this suite grew from is all generated, and generated documents are
+ * written by libraries that always write the map. Nothing in it fails this way.
+ */
+describe("extractOfficeDocument — text that cannot be decoded", () => {
+  it("leaves out what could not be decoded and says how much", async () => {
+    const { text, notes } = await extractOfficeDocument(undecodableTextPdf());
+
+    expect(text).toContain("A line that decodes");
+    // The whole point: what a model reads is only what a reader could vouch for.
+    const control = [...text].some((ch) => ch.charCodeAt(0) < 0x20 && !"\t\n\r".includes(ch));
+    expect(control).toBe(false);
+    expect(notes).toEqual([{ kind: "text-undecodable", count: 1 }]);
+  });
+
+  it("answers empty when nothing at all decoded", async () => {
+    // A page marker and nothing under it is the silent success ADR-0003 exists
+    // to prevent, so a document that decoded nowhere is unreadable rather than
+    // successfully empty.
+    const { text, notes } = await extractOfficeDocument(undecodableTextPdf(false));
+
+    expect(text).toBe("");
+    expect(notes).toEqual([{ kind: "text-undecodable", count: 1 }]);
+  });
+
+  it("says nothing about a document that decoded", async () => {
+    const { notes } = await extractOfficeDocument(textLayerPdf(["Ordinary readable prose"]));
+
+    expect(notes).toBeUndefined();
+  });
 });
 
 describe("extractOfficeDocument — scanned PDFs", () => {
   it("returns empty text for a page that is only an image", async () => {
     // This is the `extract_failed` case the counters record. Empty is the
     // contract: callers surface "no extractable text" rather than dropping the
-    // file silently (ADR-0003).
+    // file silently (ADR-0003). It also guards the page markers, which are ours
+    // rather than the document's: emitted here they would answer `# Page 1` and
+    // read as a successful extraction everywhere.
     const { text } = await extractOfficeDocument(imageOnlyPdf());
     expect(text).toBe("");
   });
@@ -87,6 +253,96 @@ describe("extractOfficeDocument — scanned PDFs", () => {
     // non-empty `[Image: …]` would read as a successful extraction everywhere.
     const { text } = await extractOfficeDocument(imageOnlyPdf());
     expect(text).not.toContain("[Image:");
+  });
+});
+
+/**
+ * A paginated document repeats its title and a page number at every seam, so a
+ * forty-page report writes eighty lines that belong to no sentence and cut the
+ * ones that continue across a break. Both rules that thin this out are built so
+ * that being wrong is cheap: a repeat is only ever dropped while an identical
+ * copy stays, and a whole line is only dropped when it carries the page's own
+ * number.
+ */
+describe("extractOfficeDocument — running headers and footers", () => {
+  const page = (n: number, body: string) => ["Acme Quarterly Report", body, `${n}`];
+
+  it("keeps one copy of a header that repeats on every page", async () => {
+    const { text } = await extractOfficeDocument(
+      textLayerPdfPages([page(1, "Body one"), page(2, "Body two"), page(3, "Body three")]),
+    );
+
+    const lines = text.split("\n").map((line) => line.trim());
+    expect(lines.filter((line) => line === "Acme Quarterly Report")).toHaveLength(1);
+    // The copy that stays is the first, so nothing moves: the title still opens
+    // the document it belongs to.
+    expect(text.indexOf("Acme Quarterly Report")).toBeLessThan(text.indexOf("Body one"));
+    for (const body of ["Body one", "Body two", "Body three"]) expect(text).toContain(body);
+  });
+
+  it("drops a footer that is the page's own number", async () => {
+    const { text } = await extractOfficeDocument(
+      textLayerPdfPages([page(1, "Body one"), page(2, "Body two"), page(3, "Body three")]),
+    );
+
+    // `# Page n` says this already, and says it in the same words everywhere.
+    const lines = text.split("\n").map((line) => line.trim());
+    expect(lines.filter((line) => /^\d+$/.test(line))).toHaveLength(0);
+    expect(lines.filter((line) => line.startsWith("# Page "))).toHaveLength(3);
+  });
+
+  it("leaves a two-page document alone", async () => {
+    // Two pages sharing an edge line is coincidence often enough to matter, and
+    // four lines of furniture is not a problem worth a judgement call.
+    const { text } = await extractOfficeDocument(
+      textLayerPdfPages([page(1, "Body one"), page(2, "Body two")]),
+    );
+
+    const lines = text.split("\n").map((line) => line.trim());
+    expect(lines.filter((line) => line === "Acme Quarterly Report")).toHaveLength(2);
+    expect(lines.filter((line) => /^\d+$/.test(line))).toHaveLength(2);
+  });
+
+  it("keeps figures that differ, however much they look alike", async () => {
+    // The failure that would matter: three pages ending in the same words and
+    // different numbers, thinned out as though they were one repeated line.
+    // Nothing here is any page's own number, and none of the three is identical
+    // to another, so all three have to survive.
+    const { text } = await extractOfficeDocument(
+      textLayerPdfPages([
+        ["Ledger", "a", "Subtotal 1200"],
+        ["Ledger", "b", "Subtotal 2550"],
+        ["Ledger", "c", "Subtotal 3655"],
+      ]),
+    );
+
+    for (const total of ["Subtotal 1200", "Subtotal 2550", "Subtotal 3655"]) {
+      expect(text, `${total} was thinned out as furniture`).toContain(total);
+    }
+  });
+});
+
+/**
+ * The library throws a bare `Error` for a locked document — no error code, no
+ * `cause` — so the wording is the only thing to go on, and half of it comes
+ * from pdf.js rather than officeparser. Verified against a real encrypted PDF
+ * in the measurement corpus, which is generated and therefore cannot be a
+ * fixture here; what these pin down is the mapping, not the throw.
+ */
+describe("isPasswordProtected", () => {
+  it("recognises the wording a locked document fails with", () => {
+    expect(isPasswordProtected(new Error("[OfficeParser]: No password given"))).toBe(true);
+    expect(isPasswordProtected(new Error("[OfficeParser]: Incorrect password"))).toBe(true);
+  });
+
+  it("leaves every other failure alone", () => {
+    // Nothing here is actionable by the person holding the file, which is the
+    // whole distinction: telling them to unlock a corrupt file is worse than
+    // saying nothing.
+    expect(isPasswordProtected(new Error("[OfficeParser]: File is corrupted"))).toBe(false);
+    expect(isPasswordProtected(new Error("ZIP_TRUNCATED"))).toBe(false);
+    expect(isPasswordProtected("No password given")).toBe(false);
+    expect(isPasswordProtected(undefined)).toBe(false);
   });
 });
 

@@ -50,6 +50,36 @@ export const METRIC_EVENTS = [
   "unreadable_ext",
   /** A format we do support whose reader returned nothing (scanned or encrypted). The OCR business case. */
   "extract_failed",
+  /**
+   * Why a reader failed, for the subset of `extract_failed` where it **threw**
+   * rather than answering with empty text: value `encrypted` | `error`.
+   *
+   * A strict subset, deliberately, so nothing about the existing series changes
+   * and the history stays comparable: `extract_failed` still counts every file
+   * no reader could turn into text. What this adds is the split the OCR
+   * business case needs, because **only the empty half can ever be a scan** —
+   * recognition cannot open a locked document, and until this existed the two
+   * populations were one number.
+   */
+  "extract_error",
+  /**
+   * What a reader could not recover from a document it *did* open: value is one
+   * of the ADR-0008 note kinds (`pages-skipped`, `attachments-skipped`,
+   * `ocr-failed`, `cdn-fallback`, `parser-unavailable`), `n` the documents
+   * carrying it.
+   *
+   * Orthogonal to `extract_failed`, not a subset of it: most of these are
+   * written for a document that came back with text, and say which part of it
+   * did not. Counted once per document rather than once per lost page, so one
+   * fifty-page failure cannot outweigh a format that fails on one document in
+   * ten.
+   *
+   * `cdn-fallback` is the one to watch rather than to tally: it means the
+   * self-hosted pdf.js worker did not load and the library fetched one from a
+   * CDN instead, which is a third-party request `/privacy` does not describe.
+   * A single row is a defect, not a distribution.
+   */
+  "extract_note",
   /** An archive we cannot open, by extension. */
   "archive_unsupported",
 

@@ -30,12 +30,21 @@ const XML_DECL = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`;
 
 /**
  * A `.docx` carrying the structures a flat-text reader is most likely to
- * destroy: a heading, prose, and a three-column table. `minimalDocx` only ever
- * proved that *some* characters come out.
+ * destroy: a heading, prose, and a three-column table whose first row is a
+ * single heading merged across all three. `minimalDocx` only ever proved that
+ * *some* characters come out.
+ *
+ * `w:gridSpan` is what Word itself writes for a horizontal merge, so this is
+ * the same attribute a hand-authored document carries.
  */
 export function tableDocx(): Uint8Array {
-  const cell = (t: string) => `<w:tc><w:p><w:r><w:t>${t}</w:t></w:r></w:p></w:tc>`;
-  const row = (cells: readonly string[]) => `<w:tr>${cells.map(cell).join("")}</w:tr>`;
+  const cell = (t: string, span = 1) =>
+    `<w:tc>${span > 1 ? `<w:tcPr><w:gridSpan w:val="${span}"/></w:tcPr>` : ""}` +
+    `<w:p><w:r><w:t>${t}</w:t></w:r></w:p></w:tc>`;
+  // Wrapped rather than passed to `map` directly: `map` hands the index along,
+  // which this signature would read as a span.
+  const row = (cells: readonly string[]) =>
+    `<w:tr>${cells.map((c) => cell(c)).join("")}</w:tr>`;
   const para = (t: string, style?: string) =>
     `<w:p>${style ? `<w:pPr><w:pStyle w:val="${style}"/></w:pPr>` : ""}<w:r><w:t>${t}</w:t></w:r></w:p>`;
 
@@ -59,12 +68,130 @@ export function tableDocx(): Uint8Array {
         `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>` +
         para("Quarterly Report", "Heading1") +
         para("Revenue by region, in thousands.") +
+        para("Method Notes", "Heading2") +
         `<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/></w:tblPr>` +
+        `<w:tr>${cell("Half-year totals", 3)}</w:tr>` +
         row(["Region", "Q1", "Q2"]) +
         row(["EMEA", "1200", "1350"]) +
         row(["APAC", "980", "1105"]) +
         `</w:tbl>` +
         `</w:body></w:document>`,
+    ),
+  });
+}
+
+/**
+ * A `.docx` whose page header carries a confidentiality marking, plus a footer
+ * that is the literal prefix of a page-number field. Both live in their own
+ * parts of the package rather than in the document body, which is exactly why
+ * a reader that walks only the body loses them without noticing.
+ *
+ * The same header part is referenced twice, as Word does when a section has a
+ * different first page.
+ */
+export function furnitureDocx(): Uint8Array {
+  const part = (root: string, text: string) =>
+    XML_DECL +
+    `<w:${root} xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">` +
+    `<w:p><w:r><w:t>${text}</w:t></w:r></w:p>` +
+    `</w:${root}>`;
+
+  return zipSync({
+    "[Content_Types].xml": strToU8(
+      XML_DECL +
+        `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+        `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
+        `<Default Extension="xml" ContentType="application/xml"/>` +
+        `<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>` +
+        `</Types>`,
+    ),
+    "_rels/.rels": strToU8(
+      XML_DECL +
+        `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+        `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>` +
+        `</Relationships>`,
+    ),
+    "word/document.xml": strToU8(
+      XML_DECL +
+        `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>` +
+        `<w:p><w:r><w:t>The body of the document, which is all a reader sees today.</w:t></w:r></w:p>` +
+        `</w:body></w:document>`,
+    ),
+    "word/header1.xml": strToU8(part("hdr", "CONFIDENTIAL - Internal Distribution Only")),
+    "word/header2.xml": strToU8(part("hdr", "CONFIDENTIAL - Internal Distribution Only")),
+    "word/footer1.xml": strToU8(part("ftr", "Page")),
+  });
+}
+
+/**
+ * A `.docx` whose meaning is not in its visible characters: a link whose
+ * destination lives only in the relationships part, a second link whose text
+ * already is its destination, and two claims in one sentence each carrying its
+ * own footnote. Flat text loses all of it silently unless the extractor writes
+ * the destinations and the markers out.
+ */
+export function referencesDocx(): Uint8Array {
+  const run = (t: string) => `<w:r><w:t>${t}</w:t></w:r>`;
+  const link = (id: string, t: string) => `<w:hyperlink r:id="${id}">${run(t)}</w:hyperlink>`;
+  const ref = (id: string) => `<w:r><w:footnoteReference w:id="${id}"/></w:r>`;
+  const footnote = (id: string, t: string) =>
+    `<w:footnote w:id="${id}"><w:p>${run(t)}</w:p></w:footnote>`;
+  const rel = (id: string, type: string, target: string, mode?: string) =>
+    `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${type}" ` +
+    `Target="${target}"${mode ? ` TargetMode="${mode}"` : ""}/>`;
+  const WORD_NS =
+    `xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ` +
+    `xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"`;
+
+  return zipSync({
+    "[Content_Types].xml": strToU8(
+      XML_DECL +
+        `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+        `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
+        `<Default Extension="xml" ContentType="application/xml"/>` +
+        `<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>` +
+        `<Override PartName="/word/footnotes.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml"/>` +
+        `</Types>`,
+    ),
+    "_rels/.rels": strToU8(
+      XML_DECL +
+        `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+        rel("rId1", "officeDocument", "word/document.xml") +
+        `</Relationships>`,
+    ),
+    "word/_rels/document.xml.rels": strToU8(
+      XML_DECL +
+        `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+        rel("rId1", "hyperlink", "https://fileconcat.com/docs/introduction", "External") +
+        rel("rId2", "hyperlink", "https://example.org/feed.json", "External") +
+        rel("rId3", "footnotes", "footnotes.xml") +
+        `</Relationships>`,
+    ),
+    "word/document.xml": strToU8(
+      XML_DECL +
+        `<w:document ${WORD_NS}><w:body>` +
+        `<w:p>` +
+        run("Revenue rose 12 percent") +
+        ref("1") +
+        run(" against a flat market") +
+        ref("2") +
+        run(".") +
+        `</w:p>` +
+        `<w:p>` +
+        run("Full methodology at ") +
+        link("rId1", "our documentation") +
+        run(" and the raw feed at ") +
+        link("rId2", "https://example.org/feed.json") +
+        run(".") +
+        `</w:p>` +
+        `</w:body></w:document>`,
+    ),
+    "word/footnotes.xml": strToU8(
+      XML_DECL +
+        `<w:footnotes ${WORD_NS}>` +
+        footnote("1", "Measured on 2026-08-15.") +
+        footnote("2", "Second note, on the same page.") +
+        `</w:footnotes>`,
     ),
   });
 }
@@ -143,6 +270,11 @@ export function twoSheetXlsx(): Uint8Array {
  * A two-slide `.pptx`. The interesting part is the seam: the last line of slide
  * one and the title of slide two are both ordinary lines of text, so nothing
  * but an explicit marker can tell a reader where one slide ended.
+ *
+ * Slide one carries a speaker note shaped the way PowerPoint writes one: a
+ * sentence, plus a line holding nothing but the slide's number, which the notes
+ * master's slide-number placeholder puts there. Notes are found by path
+ * (`ppt/notesSlides/notesSlideN.xml`) and need no relationship entry.
  */
 export function twoSlidePptx(): Uint8Array {
   const slideXml = (lines: readonly string[]) =>
@@ -188,6 +320,7 @@ export function twoSlidePptx(): Uint8Array {
       slideXml(["Roadmap", "Ship the parser", "Measure quality"]),
     ),
     "ppt/slides/slide2.xml": strToU8(slideXml(["Risks", "Tables collapse", "Sheets merge"])),
+    "ppt/notesSlides/notesSlide1.xml": strToU8(slideXml(["Open with the counters", "1"])),
   });
 }
 

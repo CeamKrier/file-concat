@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 import { strToU8 } from "fflate";
 import { createParserRegistry } from "../src/file-processing/parsers/registry";
 import { extractOfficeDocument } from "../src/file-processing/parsers/officeparser";
-import { minimalDocx, tableDocx, twoSheetXlsx, twoSlidePptx } from "./fixtures/containers";
+import {
+  furnitureDocx,
+  minimalDocx,
+  referencesDocx,
+  tableDocx,
+  twoSheetXlsx,
+  twoSlidePptx,
+} from "./fixtures/containers";
 
 describe("createParserRegistry", () => {
   it("runs the loader a platform registered", async () => {
@@ -115,6 +122,61 @@ describe("extractOfficeDocument — structure survives extraction", () => {
     expect(text.indexOf("APAC")).toBeLessThan(text.indexOf("Headcount"));
   });
 
+  it("keeps a heading at the level the document gave it", async () => {
+    const { text } = await extractOfficeDocument(tableDocx());
+
+    // Flat, a heading is indistinguishable from body text and from a caption,
+    // and nothing says which section a paragraph belongs to.
+    expect(text).toContain("# Quarterly Report");
+    expect(text).toContain("## Method Notes");
+    // Prose is not a heading, whatever it sits between.
+    expect(text).toContain("\nRevenue by region, in thousands.");
+  });
+
+  it("leaves a heading a parser only guessed at alone", async () => {
+    // 16pt and bold, which is all the RTF reader needs to call something a
+    // level-3 heading. It calls whole tables that, cell by cell, so a marker
+    // here would be noise wearing the shape of structure.
+    const rtf =
+      `{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Times New Roman;}}\n` +
+      `\\fs32\\b Looks Like A Heading\\b0\\fs24\\par\n` +
+      `Ordinary prose underneath.\\par\n}`;
+    const { text } = await extractOfficeDocument(strToU8(rtf));
+
+    expect(text).toContain("Looks Like A Heading");
+    expect(text).not.toContain("#");
+  });
+
+  it("gives a merged header cell the columns it covers", async () => {
+    const { text } = await extractOfficeDocument(tableDocx());
+
+    // A row one cell wide inside a three-column table is not a table any more:
+    // aligned by position, the heading becomes a value in the first column and
+    // the other two columns lose their data.
+    const rows = text.split("\n").filter((line) => line.startsWith("|"));
+    expect(rows[0]).toContain("Half-year totals");
+    const widths = new Set(rows.map((line) => line.split("|").length));
+    expect([...widths], `rows of differing width:\n${rows.join("\n")}`).toHaveLength(1);
+  });
+
+  it("keeps a page header and footer that sit outside the document body", async () => {
+    const { text } = await extractOfficeDocument(furnitureDocx());
+
+    // A confidentiality marking that reaches nobody is the worst shape this can
+    // take: the document says it on every page and the extract says it nowhere.
+    expect(text).toContain("--- Page header ---");
+    expect(text).toContain("CONFIDENTIAL - Internal Distribution Only");
+    expect(text).toContain("--- Page footer ---");
+    expect(text).toContain("The body of the document");
+
+    // Once, not once per header part. Word writes one per section and per
+    // first/even variant, and repeating furniture is the thing being fixed.
+    const lines = text.split("\n").map((line) => line.trim());
+    expect(lines.filter((l) => l === "CONFIDENTIAL - Internal Distribution Only")).toHaveLength(1);
+    // The marking belongs ahead of what it governs.
+    expect(text.indexOf("CONFIDENTIAL")).toBeLessThan(text.indexOf("The body of the document"));
+  });
+
   it("marks where each slide of a deck begins", async () => {
     const { text } = await extractOfficeDocument(twoSlidePptx());
 
@@ -127,8 +189,60 @@ describe("extractOfficeDocument — structure survives extraction", () => {
     expect(text.indexOf("# Slide 2")).toBeLessThan(text.indexOf("Risks"));
   });
 
+  it("drops the slide number a deck's speaker notes carry", async () => {
+    const { text } = await extractOfficeDocument(twoSlidePptx());
+
+    // The notes master's slide-number placeholder puts a bare `1` in slide
+    // one's notes, and the renderer writes it under the slide body — where,
+    // beneath a slide of figures, it reads as one more figure. `# Slide 1`
+    // above the slide already says which slide this is.
+    expect(text).toContain("Open with the counters");
+    const lines = text.split("\n").map((line) => line.trim());
+    expect(lines).not.toContain("1");
+  });
+
   it("leaves a document that has no slides unmarked", async () => {
     const { text } = await extractOfficeDocument(tableDocx());
     expect(text).not.toContain("# Slide");
+  });
+});
+
+/**
+ * A link's destination and a footnote's marker are both carried outside the
+ * visible characters of a document, so losing them costs a reader nothing it
+ * can see. That is what makes them worth a test: the output stays fluent and
+ * plausible either way, and only an assertion tells the two apart.
+ */
+describe("extractOfficeDocument — references survive extraction", () => {
+  it("writes a link's destination beside its anchor text", async () => {
+    const { text } = await extractOfficeDocument(referencesDocx());
+
+    expect(text).toContain("our documentation (https://fileconcat.com/docs/introduction)");
+  });
+
+  it("does not repeat a destination that is already the visible text", async () => {
+    const { text } = await extractOfficeDocument(referencesDocx());
+
+    const feed = "https://example.org/feed.json";
+    expect(text).toContain(feed);
+    expect(text.split(feed).length - 1, `"${feed}" written more than once`).toBe(1);
+  });
+
+  it("marks each footnote reference and labels the matching body", async () => {
+    const { text } = await extractOfficeDocument(referencesDocx());
+
+    // Both claims sit in one sentence, so without the markers nothing says
+    // which of the two collected notes belongs to which claim.
+    expect(text).toContain("Revenue rose 12 percent[^1]");
+    expect(text).toContain("against a flat market[^2]");
+    expect(text).toContain("[^1] Measured on 2026-08-15.");
+    expect(text).toContain("[^2] Second note, on the same page.");
+  });
+
+  it("leaves a deck's speaker notes unnumbered", async () => {
+    // Speaker notes are not references: they are rendered under their own
+    // slide, so a marker beside one would point at nothing.
+    const { text } = await extractOfficeDocument(twoSlidePptx());
+    expect(text).not.toContain("[^");
   });
 });
