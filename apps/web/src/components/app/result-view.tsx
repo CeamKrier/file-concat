@@ -52,7 +52,7 @@ type ResultViewProps = {
   flaggedFiles: string[];
   /** Included files whose text was extracted from a document (PDF/Office/ODF). */
   extractedFiles: string[];
-  /** Included documents the reader opened but could not read all of, and what is missing. */
+  /** Included documents that lost whole pages on the way out, and what is missing. */
   partialDocuments: UnsupportedFile[];
   /** Every document in this Run that opened with no text in it, recovered or not. */
   scannedDocumentCount: number;

@@ -249,23 +249,24 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       .filter(([path, v]) => v.extracted && included.has(path))
       .map(([path]) => path.split("/").pop() ?? path);
   }, [ingestion.validations, filter.fileStatuses]);
-  // Included documents whose text arrived incomplete. The reader says so
-  // (ADR-0008) and until now nobody read it, so a PDF that lost three pages
-  // reached the bundle looking exactly like one that lost none. Only the two
-  // kinds that cost content are surfaced: `ocr-failed` is what the scanned
-  // documents card is already about, and the other two describe files that
-  // produced no text at all and so are not in the bundle to caveat.
+  // Included documents that lost whole pages. The reader says so (ADR-0008) and
+  // until now nobody read it, so a PDF missing three pages reached the bundle
+  // looking exactly like one missing none.
+  //
+  // Only this one kind, out of five. `ocr-failed` is what the scanned documents
+  // card is already about, and `parser-unavailable` / `cdn-fallback` describe a
+  // file that produced no text at all, which is not in the bundle to caveat.
+  // `attachments-skipped` is the one deliberately left out: it is honest, but a
+  // notebook emits it for every markdown cell holding an image, and notebooks
+  // are the second most extracted format here — so the card would fire mostly
+  // on drops where nothing is wrong, and a caveat that is usually noise is one
+  // nobody reads on the day it matters. Every kind still reaches `extract_note`,
+  // so nothing is lost, it just goes to the counters instead of the screen.
   const partialDocuments = useMemo(() => {
     const included = new Set(filter.fileStatuses.filter((s) => s.included).map((s) => s.path));
     return Object.entries(ingestion.validations)
-      .filter(([path]) => included.has(path))
-      .flatMap(([path, v]) => {
-        const why = [
-          v.notes?.includes("pages-skipped") && "pages missing",
-          v.notes?.includes("attachments-skipped") && "images or charts unread",
-        ].filter((part): part is string => typeof part === "string");
-        return why.length === 0 ? [] : [{ name: path.split("/").pop() ?? path, why: why.join(", ") }];
-      });
+      .filter(([path, v]) => included.has(path) && v.notes?.includes("pages-skipped"))
+      .map(([path]) => ({ name: path.split("/").pop() ?? path, why: "pages missing" }));
   }, [ingestion.validations, filter.fileStatuses]);
   const bigBundle = SPLIT_OUTPUT_ENABLED && tokens > MULTI_OUTPUT_LIMIT;
   // What the removed 32 MB per-file cap used to decide silently, reported
