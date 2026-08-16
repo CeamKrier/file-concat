@@ -176,6 +176,38 @@ describe("extractSubtitles", () => {
     expect(text).not.toContain("metadata");
   });
 
+  it("does not read a cue's identifier out as dialogue", () => {
+    // WebVTT lets a cue carry a name above its timing line. `intro` is a label
+    // on the cue, and arriving as a line of transcript it reads as speech.
+    const named = ["WEBVTT", "", "intro", "00:00:01.000 --> 00:00:02.000", "Good evening.", ""];
+    expect(extractSubtitles(utf8(named.join("\n"))).text).toBe("Good evening.");
+  });
+
+  it("keeps a cue whose text is only a number", () => {
+    // The identifier used to be recognised by being a number rather than by
+    // sitting above the timing line, which deleted this line too.
+    const counted = ["1", "00:00:01,000 --> 00:00:02,000", "1999", ""];
+    expect(extractSubtitles(utf8(counted.join("\n"))).text).toBe("1999");
+  });
+
+  it("keeps the name a voice span carries", () => {
+    // The speaker is data, the tag around it is markup. Stripping both leaves a
+    // two-person interview as one monologue with no way back.
+    const spoken = [
+      "WEBVTT",
+      "",
+      "00:00:01.000 --> 00:00:02.000",
+      "<v Roger Bingham>It is a lovely day.",
+      "",
+      "00:00:02.000 --> 00:00:03.000",
+      "<v.loud Neil deGrasse Tyson>It is indeed.</v>",
+      "",
+    ];
+    expect(extractSubtitles(utf8(spoken.join("\n"))).text).toBe(
+      "Roger Bingham: It is a lovely day.\nNeil deGrasse Tyson: It is indeed.",
+    );
+  });
+
   it("answers 'couldn't extract' for a track with cues but no words", () => {
     const silent = "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n\n";
     expect(extractSubtitles(utf8(silent))).toEqual({ text: "" });

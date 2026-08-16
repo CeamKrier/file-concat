@@ -31,19 +31,27 @@ const ENTITIES: Readonly<Record<string, string>> = {
   "&rlm;": "",
 };
 
+/**
+ * A WebVTT voice span says who is speaking (`<v Roger Bingham>`), and it is the
+ * only place a caption track says it. Stripped along with the rest of the
+ * markup, a two-person interview arrives as one undifferentiated monologue and
+ * every attribution in it is unrecoverable — the same loss as a hyperlink whose
+ * destination is thrown away, and invisible in the same way, since what is left
+ * still reads as fluent speech.
+ *
+ * Kept as the label it already is. The optional classes (`<v.loud Roger>`) are
+ * styling and go.
+ */
+const VOICE_SPAN = /<v(?:\.[^\s>]+)*\s+([^>]+)>/g;
+
 /** Blocks that carry no speech: the WebVTT header and its metadata siblings. */
 function isMetadataBlock(block: string): boolean {
   return /^(WEBVTT|NOTE|STYLE|REGION)\b/.test(block);
 }
 
-/** A cue's own lines: its index and timing line are scaffolding, not speech. */
-function isScaffolding(line: string): boolean {
-  if (line.includes("-->")) return true;
-  return /^\d{1,6}$/.test(line);
-}
-
 function cleanLine(line: string): string {
   return line
+    .replace(VOICE_SPAN, "$1: ")
     .replace(INLINE_MARKUP, "")
     .replace(/&(amp|lt|gt|nbsp|lrm|rlm);/g, (match) => ENTITIES[match] ?? match)
     .replace(/\s+/g, " ")
@@ -65,9 +73,19 @@ export function extractSubtitles(bytes: Uint8Array): ExtractionResult {
   for (const block of source.split(/\n{2,}/)) {
     if (isMetadataBlock(block.trimStart())) continue;
 
-    for (const raw of block.split("\n")) {
-      const line = raw.trim();
-      if (!line || isScaffolding(line)) continue;
+    // A cue's scaffolding is its timing line and, directly above it, the
+    // optional identifier. Position is what identifies the identifier: both
+    // formats put it there and nowhere else, so a WebVTT cue labelled `intro`
+    // is recognised for what it is instead of being read out as dialogue.
+    //
+    // Matching it by shape instead — SubRip's identifier is always a number —
+    // is what this replaces, and that rule also deleted any cue whose whole
+    // text was a number. Blocks are split on blank lines, so the line below is
+    // never a gap.
+    const blockLines = block.split("\n");
+    for (let index = 0; index < blockLines.length; index++) {
+      const line = blockLines[index].trim();
+      if (!line || line.includes("-->") || blockLines[index + 1]?.includes("-->")) continue;
 
       const cleaned = cleanLine(line);
       // Rolling captions repeat the previous line in the next cue; a spoken
