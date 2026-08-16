@@ -15,3 +15,19 @@ export async function readWithOcr(
   const mod = await import("./extract-document-client");
   return mod.extractOfficeWithOcr(bytes, language);
 }
+
+/**
+ * The same facade for the other rescue: named pages of a PDF, drawn and then
+ * recognised, for a document whose fonts carry no character map. Same SSR guard
+ * and same reason — this path pulls pdf.js and the recogniser in behind it.
+ */
+export async function readPdfPagesWithOcr(
+  bytes: Uint8Array,
+  pages: readonly number[],
+  language: string,
+  onPage?: (done: number, total: number) => void,
+): Promise<Map<number, string>> {
+  if (import.meta.env.SSR) return new Map();
+  const mod = await import("./extract-document-client");
+  return mod.readPdfPages(bytes, pages, language, onPage);
+}

@@ -3,6 +3,7 @@ import { routeBytes } from "../src/file-processing/routing";
 import {
   extractOfficeDocument,
   isPasswordProtected,
+  replacePages,
   resolveImagePlaceholders,
 } from "../src/file-processing/parsers/officeparser";
 import {
@@ -12,6 +13,7 @@ import {
   textLayerPdf,
   textLayerPdfPages,
   twoColumnPdf,
+  undecodablePagePdf,
   undecodableTextPdf,
 } from "./fixtures/pdf";
 
@@ -226,7 +228,45 @@ describe("extractOfficeDocument — text that cannot be decoded", () => {
     const { text, notes } = await extractOfficeDocument(undecodableTextPdf(false));
 
     expect(text).toBe("");
-    expect(notes).toEqual([{ kind: "text-undecodable", count: 1 }]);
+    expect(notes).toEqual([{ kind: "text-undecodable", count: 1, pages: [1] }]);
+  });
+
+  it("names the page that was lost and leaves the page that decoded alone", async () => {
+    const { text, notes } = await extractOfficeDocument(undecodablePagePdf());
+
+    // Only the broken page is named, so a re-read never touches page two's own
+    // characters — the whole reason the note carries pages rather than a count.
+    expect(notes).toEqual([{ kind: "text-undecodable", count: 1, pages: [1] }]);
+    expect(text).toContain("The second page decodes");
+    expect(text).toContain("# Page 2");
+  });
+
+  it("does not name a page that merely lost a line", async () => {
+    // One line lost against one that read: the page still reads, and recognition
+    // would trade the document's own characters for a near-miss of them.
+    const { notes } = await extractOfficeDocument(undecodableTextPdf());
+
+    expect(notes?.[0].pages).toBeUndefined();
+  });
+});
+
+describe("replacePages", () => {
+  const document = ["# Page 1", "lost to a font", "# Page 2", "ordinary prose"].join("\n");
+
+  it("puts a re-read page back under its own marker", () => {
+    const merged = replacePages(document, new Map([[1, "what recognition read"]]));
+
+    expect(merged).toBe(
+      ["# Page 1", "what recognition read", "# Page 2", "ordinary prose"].join("\n"),
+    );
+  });
+
+  it("leaves a document alone when there is nothing to put back", () => {
+    expect(replacePages(document, new Map())).toBe(document);
+  });
+
+  it("ignores a page the document does not have", () => {
+    expect(replacePages(document, new Map([[7, "nowhere to go"]]))).toBe(document);
   });
 
   it("says nothing about a document that decoded", async () => {

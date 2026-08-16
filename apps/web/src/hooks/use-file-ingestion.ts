@@ -10,6 +10,7 @@ import {
   defaultSourceRegistry,
   isPasswordProtected,
   readFileAsText,
+  replacePages,
   validateFile,
 } from "@fileconcat/core";
 
@@ -17,7 +18,7 @@ import { collectFromDataTransfer } from "~/lib/collect-from-drop";
 import { markerFor } from "~/lib/ecosystem-markers";
 import { addToTally, startRun, track, trackAmount, trackTally, type Tally } from "~/lib/metrics";
 import { tagDrop, tagSource } from "~/lib/clarity-tags";
-import { readWithOcr } from "~/lib/ocr";
+import { readPdfPagesWithOcr, readWithOcr } from "~/lib/ocr";
 import { browserOcrLanguage, ocrLanguageFor, type OcrLanguage } from "~/lib/ocr-language";
 import { parsers } from "~/lib/parsers";
 import { prepareBatch } from "~/lib/prepare-batch";
@@ -92,7 +93,22 @@ export type FailedFile = { path: string; error: string };
  * rather than discarded with the rest of the batch. A `File` is a reference to
  * bytes on disk, not the bytes themselves, so holding a few costs nothing.
  */
-export type ScannedDocument = { path: string; format: string; file: File };
+export type ScannedDocument = {
+  path: string;
+  format: string;
+  file: File;
+  /**
+   * The pages recognition should re-read, when extraction could place what it
+   * lost. Absent for a scan, where the whole document is the work.
+   */
+  pages?: number[];
+  /**
+   * What extraction did recover, for a document that is already in the bundle
+   * with part of itself. The rescue puts its pages back into *this*, so the
+   * pages that decoded keep the document's own exact characters.
+   */
+  text?: string;
+};
 
 /**
  * The formats where "no text came out" can honestly mean "the page is a
@@ -280,7 +296,31 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           attempted.add(document.path);
           try {
             const bytes = new Uint8Array(await document.file.arrayBuffer());
-            const { text } = await readWithOcr(bytes, language.code);
+            let text = "";
+            if (document.pages && document.pages.length > 0) {
+              // A page whose fonts carry no character map: drawn, then read.
+              // Progress counts pages here because one such document can be the
+              // whole pass, and a document counter would sit still through it.
+              const read = await readPdfPagesWithOcr(
+                bytes,
+                document.pages,
+                language.code,
+                (done, total) =>
+                  setProgress({
+                    phase: "recognising",
+                    done: i,
+                    total: documents.length,
+                    note: `Page ${done + 1} of ${total}`,
+                  }),
+              );
+              if (read.size > 0) {
+                text = document.text
+                  ? replacePages(document.text, read)
+                  : [...read.values()].join("\n\n");
+              }
+            } else {
+              ({ text } = await readWithOcr(bytes, language.code));
+            }
             if (text) {
               addToTally(recovered, document.format, document.file.size);
               readEntries.push({ path: document.path, content: text });
@@ -291,7 +331,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                 type: document.file.type || "application/octet-stream",
                 extracted: true,
               };
-            } else {
+            } else if (!document.text) {
               // Recognition found nothing: an encrypted PDF, a page with no
               // writing on it, or a language this pass read it in cannot see.
               stillUnread.push(document);
@@ -304,17 +344,23 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                 recognitionTried: true,
               };
             }
+            // A document that came here with text of its own and gained nothing
+            // is left exactly as it was. It is already in the bundle with the
+            // part of itself that decoded, and calling it unread would take that
+            // back out — a failed rescue must not cost more than it found.
           } catch (error) {
             console.error(`Recognition failed for ${document.path}:`, error);
-            stillUnread.push(document);
-            readValidations[document.path] = {
-              included: false,
-              reason: "Couldn't be read",
-              classification: "binary",
-              size: document.file.size,
-              type: document.file.type || "application/octet-stream",
-              recognitionTried: true,
-            };
+            if (!document.text) {
+              stillUnread.push(document);
+              readValidations[document.path] = {
+                included: false,
+                reason: "Couldn't be read",
+                classification: "binary",
+                size: document.file.size,
+                type: document.file.type || "application/octet-stream",
+                recognitionTried: true,
+              };
+            }
           }
           setReadProgress({ done: i + 1, total: documents.length });
           setProgress({ phase: "recognising", done: i + 1, total: documents.length });
@@ -450,8 +496,25 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             // the format that fails on one document in ten.
             const kinds = notes?.map((note) => note.kind);
             for (const kind of kinds ?? []) addToTally(extractNotes, kind, size);
+            // Pages whose fonts carry no character map. Recognition can read
+            // them by drawing them, and the note says which ones — so this is a
+            // second reason to keep the file handle, beside a document that came
+            // back with nothing at all.
+            const undecodable = notes?.find((note) => note.kind === "text-undecodable");
+            const lostPages = undecodable?.pages ?? [];
             if (text) {
               nextEntries.push({ path, content: text });
+              // Already in the bundle, and still incomplete: the rescue replaces
+              // the lost pages inside this text rather than the whole document.
+              if (lostPages.length > 0) {
+                nextUnread.push({
+                  path,
+                  format: route.format,
+                  file: entry.file,
+                  pages: lostPages,
+                  text,
+                });
+              }
               nextValidations[path] = {
                 included: true,
                 classification: "text",
@@ -469,7 +532,15 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
               // read, and re-reading needs the bytes we are about to drop. Only
               // for a format that could be a scan in the first place.
               if (SCANNABLE_FORMATS.has(route.format)) {
-                nextUnread.push({ path, format: route.format, file: entry.file });
+                // With pages named, the rescue draws those pages; without, it is
+                // a scan and officeparser's own recognition over the embedded
+                // pictures is the path that reads it.
+                nextUnread.push({
+                  path,
+                  format: route.format,
+                  file: entry.file,
+                  ...(lostPages.length > 0 ? { pages: lostPages } : {}),
+                });
               }
               nextValidations[path] = {
                 included: false,
