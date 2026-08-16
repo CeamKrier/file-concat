@@ -205,6 +205,33 @@ export function positionedTablePdf(): Uint8Array {
 }
 
 /**
+ * The same table with one cell left empty, which is the shape that makes the
+ * loss invisible rather than merely awkward.
+ *
+ * A PDF draws nothing at all for an empty cell, so the row arrives as three
+ * values where the source had four. Joined by a single space, `APAC 980 980`
+ * reads as Q1 980, Q2 980, no total — every figure after the gap has moved one
+ * column left and changed meaning, and nothing in the text says so.
+ */
+export function tableWithEmptyCellPdf(): Uint8Array {
+  const rows = [
+    ["Region", "Q1", "Q2", "Total"],
+    ["EMEA", "1200", "1350", "2550"],
+    ["APAC", "980", "", "980"],
+    ["AMER", "1440", "1510", "2950"],
+  ];
+  const columnX = [72, 260, 340, 420];
+  const runs: { x: number; y: number; text: string }[] = [];
+  rows.forEach((cells, row) => {
+    const y = 700 - row * 20;
+    cells.forEach((text, column) => {
+      if (text) runs.push({ x: columnX[column], y, text });
+    });
+  });
+  return positionedTextPdf(runs);
+}
+
+/**
  * A PDF whose page is nothing but a picture — the shape a scanner produces.
  * There is no `/Font` anywhere, so there is no text to read however hard a
  * parser tries; the only route to its content is OCR over the pixels.

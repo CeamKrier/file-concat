@@ -1,8 +1,8 @@
 diff --git a/dist/officeparser.browser.mjs b/dist/officeparser.browser.mjs
-index 4d724eb7195f5708035a56b196b40a30c31405f2..e4e1576b9d8d7b9ba89590d98af61e72581097dc 100644
+index 4d724eb7195f5708035a56b196b40a30c31405f2..56c26bd62994379fdfae1737bb56e16bfb95538a 100644
 --- a/dist/officeparser.browser.mjs
 +++ b/dist/officeparser.browser.mjs
-@@ -1301,7 +1301,136 @@ ${F}
+@@ -1301,7 +1301,259 @@ ${F}
  `)&&(Ce.value+=`
  `)}else if(Je.tagName==="table:table"){let se=L(Je,ee,K,$,H,G);xe.push(se)}else(Je.tagName==="draw:frame"||Je.tagName==="draw:text-box")&&je(Je)}}};je(de);let ge=Ce.value;ge.endsWith(`
  `)&&(ge=ge.slice(0,-1));let Ne=G.take(ye);for(let qe=0;qe<Ne;qe++){(qe&1023)===0&&Kt($.abortSignal);let Le=de.getAttribute("table:style-name"),Ye=Le&&K[Le]?.backgroundColor,Je={type:"cell",text:ge,children:xe.length>0?qe===0?xe:JSON.parse(JSON.stringify(xe)):[],metadata:{row:U,col:me,...Ye?{backgroundColor:Ye}:{}}},se=Je.metadata;Se>1&&(se.colSpan=Se),we>1&&(se.rowSpan=we),$.includeRawContent&&(Je.rawContent=Rn(de,H,$)),te.push(Je),me++}}let fe=te.length===0?ue>0?1+G.take(ue-1):0:Math.min(ue,1+Math.floor(G.take(Math.max(0,(ue-1)*te.length))/te.length));for(let de=0;de<fe;de++){(de&255)===0&&Kt($.abortSignal);let xe={type:"row",children:de===0?te:JSON.parse(JSON.stringify(te))};de>0&&xe.children?.forEach(Ce=>{Ce.metadata&&"row"in Ce.metadata&&(Ce.metadata.row=U)}),$.includeRawContent&&(xe.rawContent=Rn(W,H,$)),X.push(xe),U++}}return{type:"table",children:X}};u&&(J=>{let ee=gn(J,{locator:e.includeRawContent}),K=Qe(ee,"office:body");if(!K)return;let $=fxe(e),H=Qe(ee,"office:automatic-styles");H&&D(H);let G=Qe(ee,"office:body");if(G){let z=ir(G,"office:text")[0]||ir(G,"office:presentation")[0]||ir(G,"office:spreadsheet")[0];if(z){let U=ir(z,"*"),W=z.tagName==="office:spreadsheet";for(let te of U)I(te,m,!1,J,W)}}let X=(z,U,W)=>{if(!e.includeBreakNodes||!z)return;let te=x[z],ae=W==="before"?te?.breakBefore:te?.breakAfter;ae&&U.push({type:"break",metadata:{breakType:ae}})};if(I=(z,U,W=!1,te="",ae=!1)=>{if(z.tagName==="text:p"){X(z.getAttribute("text:style-name"),U,"before");let ue=N(z,x,b,e,te),me=W||(z.getAttribute("text:style-name")||"").toLowerCase().includes("title")?"heading":"paragraph",fe={...ue.alignment?{alignment:ue.alignment}:{},...ue.style?{style:ue.style}:{},...ue.anchorIds?.length?{anchorIds:ue.anchorIds}:{}},de=z.getAttribute("xml:id")||z.getAttribute("text:id");de&&(fe.anchorIds||(fe.anchorIds=[]),fe.anchorIds.push(de));let xe={type:me,text:ue.text,children:ue.children,metadata:fe};me==="heading"&&xe.metadata&&(xe.metadata.level=xe.metadata.level||1),Object.keys(xe.metadata||{}).length===0&&delete xe.metadata,e.includeRawContent&&(xe.rawContent=Rn(z,te,e)),U.push(xe),X(z.getAttribute("text:style-name"),U,"after"),E=!1}else if(z.tagName==="text:h"){X(z.getAttribute("text:style-name"),U,"before");let ue=parseInt(z.getAttribute("text:outline-level")||"1"),me=N(z,x,b,e,te),fe={level:ue,...me.alignment?{alignment:me.alignment}:{},...me.style?{style:me.style}:{},...me.anchorIds?.length?{anchorIds:me.anchorIds}:{}},de=z.getAttribute("xml:id")||z.getAttribute("text:id");de&&(fe.anchorIds||(fe.anchorIds=[]),fe.anchorIds.push(de));let xe={type:"heading",text:me.text,children:me.children,metadata:fe};e.includeRawContent&&(xe.rawContent=Rn(z,te,e)),U.push(xe),X(z.getAttribute("text:style-name"),U,"after"),E=!1}else if(z.tagName==="table:table"){let ue=L(z,x,b,e,te,$);if(ae){ue.type="sheet";let fe=z.getAttribute("table:name");fe&&(ue.metadata={...ue.metadata,sheetName:fe})}let me=z.getAttribute("xml:id")||z.getAttribute("table:name");me&&(ue.metadata||(ue.metadata={}),ue.metadata.anchorIds=ue.metadata.anchorIds||[],ue.metadata.anchorIds.push(me)),e.includeRawContent&&(ue.rawContent=Rn(z,te,e)),U.push(ue),E=!1}else if(z.tagName==="text:list"){let ue=ir(z,"text:list-item"),me="unordered",fe=!1,xe=z.getAttribute("text:style-name")||z.getAttribute("xml:id");if(!xe){let qe=z.parentNode;for(;qe&&!xe&&!(qe.nodeName==="text:list"&&(xe=qe.getAttribute("text:style-name"),xe));)qe=qe.parentNode}if(xe){if(H){let qe=Ge(H,"text:list-style");for(let Le of qe)if(Le.getAttribute("style:name")===xe){let Ye=Ge(Le,"text:list-level-style-bullet"),Je=Ge(Le,"text:list-level-style-number"),se=Ge(Le,"text:list-level-style-image");Je.length>0?(me="ordered",fe=Je.some(he=>!!he.getAttribute("style:num-format"))):Ye.length>0?(me="unordered",fe=Ye.some(he=>!!he.getAttribute("text:bullet-char"))):se.length>0&&(me="unordered",fe=!0);break}}if(!fe&&p){let qe=Qe(p,"office:styles");if(qe){let Le=Ge(qe,"text:list-style");for(let Ye of Le)if(Ye.getAttribute("style:name")===xe){let Je=Ge(Ye,"text:list-level-style-bullet"),se=Ge(Ye,"text:list-level-style-number");se.length>0?(me="ordered",fe=se.some(he=>!!he.getAttribute("style:num-format"))):Je.length>0&&(me="unordered",fe=Je.some(he=>!!he.getAttribute("text:bullet-char")));break}}}}if(!fe){E=!1;for(let qe=0;qe<ue.length;qe++){let Le=ue[qe];if(Le.childNodes)for(let Ye=0;Ye<Le.childNodes.length;Ye++){let Je=Le.childNodes[Ye];zn(Je)&&I(Je,U,W,te)}}return}let Ce=h==="odp",ye=xe&&xe===A,Se=me===S,we;E&&(ye||Ce&&Se)?we=y:(we=xe||`list-${++C}`,y=we,S=me,A=xe),E=!0;let je=0,ge=z.parentNode;for(;ge;)ge.nodeName==="text:list"&&je++,ge=ge.parentNode;w[we]||(w[we]={});let Ne=je.toString();w[we][Ne]===void 0&&(w[we][Ne]=-1);for(let qe=0;qe<ue.length;qe++){let Le=ue[qe],Ye=!1;if(Le.childNodes)for(let Je=0;Je<Le.childNodes.length;Je++){let se=Le.childNodes[Je];if(zn(se)){let he=se;if(he.tagName==="text:p"||he.tagName==="text:h"){if(!Ye){w[we][Ne]++,Ye=!0;for(let Xe=je+1;Xe<10;Xe++)w[we][Xe.toString()]!==void 0&&(w[we][Xe.toString()]=-1)}let Ie=w[we][Ne],_e=N(he,x,b,e,te),st=q(_e);for(let Xe=0;Xe<st.length;Xe++){let ht=st[Xe];if(!ht.text.trim()&&ht.children.length===0)continue;let pt=Xe===0,yt={type:pt?"list":"paragraph",text:ht.text,children:ht.children,metadata:pt?{listType:me,indentation:je,itemIndex:Ie,listId:we,alignment:_e.alignment||"left",style:_e.style}:{alignment:_e.alignment||"left",style:_e.style}};if(pt&&he.tagName==="text:h"){let Pt=parseInt(he.getAttribute("text:outline-level")||"1");yt.metadata.level=Pt}e.includeRawContent&&(yt.rawContent=Rn(he,te,e)),U.push(yt)}}else he.tagName==="text:list"&&I(he,U,W,te)}}}}else if(z.tagName==="draw:frame"){let ue=z.getAttribute("presentation:class"),me=ue==="title"||ue==="sub-title",fe=Qe(z,"draw:text-box"),de=Qe(z,"draw:image"),xe=Qe(z,"table:table"),Ce=Qe(z,"draw:object");if(fe)I(fe,U,me||W,te);else if(xe){let ye=L(xe,x,b,e,te,$);e.includeRawContent&&(ye.rawContent=Rn(xe,te,e)),U.push(ye)}else if(de){let ye="",Se=Qe(z,"svg:title"),we=Qe(z,"svg:desc");Se&&Se.textContent?ye=Se.textContent:we&&we.textContent&&(ye=we.textContent);let je=de.getAttribute("xlink:href")||"";je&&(je=zb(je));let ge={attachmentName:je,...ye?{altText:ye}:{}},Ne=z.getAttribute("xml:id")||z.getAttribute("draw:name");Ne&&(ge.anchorIds=[Ne]);let qe={type:"image",text:"",children:[],metadata:ge};e.includeRawContent&&(qe.rawContent=Rn(z,te,e)),U.push(qe)}else if(Ce){let ye=Ce.getAttribute("xlink:href");if(ye){let Se=zb(ye),we=`${Se}/content.xml`,je=l.find(ge=>ge.path===we||ge.path.endsWith(we));if(je){let ge=gn(je.content.toString()),Ne=Qe(ge,"math");if(Ne){let qe=oD(Ne).trim(),Le={type:"paragraph",text:qe,children:[{type:"code",text:qe,metadata:{math:"block"}}]};e.includeRawContent&&(Le.rawContent=Rn(z,te,e)),U.push(Le)}else{let qe=Hb(je.content),Le={type:"chart",text:qe.rawTexts.join(" "),metadata:{attachmentName:Se,chartData:qe}};e.includeRawContent&&(Le.rawContent=Rn(z,te,e)),U.push(Le)}}else{let ge={type:"chart",text:"",metadata:{attachmentName:Se}};e.includeRawContent&&(ge.rawContent=Rn(z,te,e)),U.push(ge)}}}}else if(z.childNodes)for(let ue=0;ue<z.childNodes.length;ue++){let me=z.childNodes[ue];zn(me)&&I(me,U,W,te)}},h==="ods"){let z=Qe(K,"office:spreadsheet");if(z){let U=Ge(z,"table:table");for(let W=0;W<U.length;W++){let te=U[W],ae=te.getAttribute("table:name")||`Sheet${W+1}`,ue=[],me=Ge(te,"table:table-row"),fe=0;for(let xe=0;xe<me.length;xe++){Kt(e.abortSignal);let Ce=me[xe],ye=[],Se=Ge(Ce,"table:table-cell"),we=0,je=dD(Ce.getAttribute("table:number-rows-repeated"));for(let ge=0;ge<Se.length;ge++){let Ne=Se[ge],qe=dD(Ne.getAttribute("table:number-columns-repeated")),Le="",Ye=[],Je=Ge(Ne,"text:p");for(let Ie=0;Ie<Je.length;Ie++){let _e=Je[Ie],st=Ge(_e,"text:span");if(st.length>0)for(let Xe of st){let ht=Xe.getAttribute("text:style-name"),pt=QB({},ht?b[ht]:void 0),mt=Xe.textContent||"";Le+=mt;let yt={type:"text",text:mt,formatting:pt};Ye.push(yt)}else{let Xe=_e.textContent||"";if(Le+=Xe,Xe.trim()){let ht={type:"text",text:Xe,formatting:{}};Ye.push(ht)}}Ie<Je.length-1&&(Le+=`
@@ -23,7 +23,130 @@ index 4d724eb7195f5708035a56b196b40a30c31405f2..e4e1576b9d8d7b9ba89590d98af61e72
 +    var LINE = 3, YTOL = 7;
 +    var width = function (i) { return i.width || 0; };
 +    var rowMajor = function (a, b) { return Math.abs(b.y - a.y) > YTOL ? b.y - a.y : a.x - b.x; };
-+    var fallback = function () { items.sort(rowMajor); };
++
++    /* FileConcat: a table drawn as positioned text keeps its columns.
++     *
++     * The assembly below joins every item on a line with one space, so a row
++     * whose middle cell is empty arrives as "APAC 980 980" — every value after
++     * the gap reads as the column to its left, and nothing anywhere says a
++     * cell was empty. The figures are silently wrong rather than visibly
++     * missing, which is the worst shape a bundle can take.
++     *
++     * pypdf collapses the same rows on the same bytes, so there is no reader
++     * to swap to. A PDF holds no cells, only positioned glyphs, and that
++     * geometry is the only thing still carrying the structure at this point.
++     *
++     * Conservative in the same way the ordering above is: three consecutive
++     * rows or nothing happens, every cell start has to line up with another
++     * row's, and one cell that does not fit leaves the whole run alone rather
++     * than piping half of it. A page that reads as columns of prose never gets
++     * here, because this runs only where column ordering declined.
++     *
++     * Ceiling worth writing down: columns are matched on where a cell starts,
++     * so a right-aligned numeric column, whose values each start somewhere
++     * else, does not line up and the page is left exactly as it is today. */
++    var tables = function () {
++        for (var n = 0; n < items.length; n++) if (items[n].type !== 'text') return;
++        var body = items.filter(function (i) { return i.text && i.text.trim(); });
++        if (body.length < 6) return;
++
++        /* Rows cut where the assembly below cuts its lines, so what is measured
++         * here is what gets joined there. */
++        var rows = [], prevY = null;
++        body.forEach(function (i) {
++            if (prevY === null || Math.abs(i.y - prevY) > 5) rows.push([]);
++            rows[rows.length - 1].push(i);
++            prevY = i.y;
++        });
++
++        /* A gap of a full em is not a word space at any size, which is what
++         * keeps a two-word cell ("New York") in one piece. */
++        var cellsOf = function (row) {
++            var out = [[row[0]]];
++            for (var k = 1; k < row.length; k++) {
++                var prev = row[k - 1], gap = row[k].x - (prev.x + width(prev));
++                if (gap >= Math.max(4, prev.height || 0)) out.push([row[k]]);
++                else out[out.length - 1].push(row[k]);
++            }
++            return out;
++        };
++
++        var mark = function (run) {
++            var TOL = 4, starts = [];
++            run.forEach(function (row) { row.forEach(function (cell) { starts.push(cell[0].x); }); });
++            starts.sort(function (a, b) { return a - b; });
++
++            /* Where cells from more than one row start together is a column. A
++             * start no other row shares is one line's stray indent and makes no
++             * column, which is what a header centred over the column it names
++             * usually produces. */
++            var cols = [], at = null, seen = 0;
++            starts.forEach(function (x) {
++                if (at !== null && x - at <= TOL) { seen++; return; }
++                if (seen >= 2) cols.push(at);
++                at = x; seen = 1;
++            });
++            if (seen >= 2) cols.push(at);
++            if (cols.length < 2) return [];
++
++            /* Matched on the middle of a cell rather than its left edge, so a
++             * centred header still lands in the column it belongs to. */
++            var columnOf = function (cell) {
++                var end = cell[cell.length - 1];
++                var mid = (cell[0].x + end.x + width(end)) / 2, found = -1;
++                for (var c = 0; c < cols.length; c++) if (mid >= cols[c] - TOL) found = c;
++                return found;
++            };
++
++            /* Every row is placed before anything is written. */
++            var placed = [];
++            for (var r = 0; r < run.length; r++) {
++                var slot = [];
++                for (var i = 0; i < run[r].length; i++) {
++                    var c = columnOf(run[r][i]);
++                    if (c < 0 || slot[c]) return [];
++                    slot[c] = run[r][i];
++                }
++                placed.push(slot);
++            }
++
++            var bars = [];
++            placed.forEach(function (slot) {
++                var ref = slot.filter(Boolean)[0][0], first = null;
++                for (var c = 0; c < cols.length; c++) {
++                    var cell = slot[c];
++                    if (cell) {
++                        var last = cell[cell.length - 1];
++                        last.text = last.text + ' |';
++                        if (!first) first = cell[0];
++                    } else {
++                        /* An empty cell is a bar with nothing in front of it.
++                         * That is the whole point: the slot survives, so every
++                         * value after it stays in its own column. */
++                        var bar = { type: 'text', text: '|', x: cols[c], y: ref.y, width: 0, height: ref.height, fontName: ref.fontName, formatting: ref.formatting };
++                        bars.push(bar);
++                        if (!first) first = bar;
++                    }
++                }
++                first.text = '| ' + first.text;
++            });
++            return bars;
++        };
++
++        var runs = [], run = [];
++        var close = function () { if (run.length >= 3) runs.push(run); run = []; };
++        rows.forEach(function (row) {
++            var cells = cellsOf(row);
++            if (cells.length >= 2) run.push(cells); else close();
++        });
++        close();
++
++        var bars = [];
++        runs.forEach(function (each) { bars = bars.concat(mark(each)); });
++        if (bars.length > 0) { items.push.apply(items, bars); items.sort(rowMajor); }
++    };
++
++    var fallback = function () { items.sort(rowMajor); return tables(); };
 +
 +    /* Images only enter this array when attachment extraction or OCR is on.
 +     * Their placement drives where recognised text lands, so leave any page
@@ -141,10 +264,10 @@ index 4d724eb7195f5708035a56b196b40a30c31405f2..e4e1576b9d8d7b9ba89590d98af61e72
  `}));else{let se=Ye==="m:oMath"||Ye==="m:oMathPara"?[Le]:Ge(Le,"m:oMath");for(let he of se){let Ie=Xm(he);f9(Ie)||(Ne.text+=Ie,Ne.children?.push({type:"code",text:Ie,metadata:{math:Ye==="m:oMathPara"?"block":"inline"}}))}}}}}return z.filter(fe=>fe.text?.trim()||fe.children&&fe.children.length>0)};function F(H,G,X){let z=[];for(let U of Array.from(H?.childNodes||[])){if(!zn(U))continue;let W=U,te=W.tagName;if(te==="p:sp")z.push(...M(W,G,X));else if(te==="p:pic"){let ae=_(W,G,X);ae&&z.push(ae)}else if(te==="p:graphicFrame"){let ae=O(W,G,X);ae&&z.push(ae)}else te==="p:grpSp"&&z.push(...F(W,G,X))}return z}for(let H of g)if(H.path.match(s)){let G=H.path.match(/slide(\d+)\.xml\.rels/);if(G){let X=parseInt(G[1]);A[X]={};let z=gn(H.content.toString()),U=Ge(z,"Relationship");for(let W=0;W<U.length;W++){let te=U[W].getAttribute("Id"),ae=U[W].getAttribute("Type"),ue=U[W].getAttribute("Target");if(te&&ae&&ue){let me="other";ae.includes("relationships/image")?me="image":ae.includes("relationships/hyperlink")?me="hyperlink":ae.includes("relationships/chart")?me="chart":ae.includes("relationships/slide")?me="slide":ae.includes("relationships/notesSlide")?me="notes":ae.includes("relationships/comments")&&(me="comments");let fe=ue;ue.startsWith("http://")||ue.startsWith("https://")||(fe=fe.split("/").pop()||""),A[X][te]={type:me,target:fe}}}}}let B={},Q=[];for(let H of g){if(Kt(e.abortSignal),H.path.match(a)||H.path.match(o)||H.path.match(s)||H.path.match(l)||H.path.match(h)||H.path.match(c)||H.path.includes("comment")||H.path.match(m))continue;let G=H.content.toString(),X=gn(G,{locator:e.includeRawContent}),z=H.path.match(r),U=z?parseInt(z[1]):0,W=H.path.match(/slideMaster(\d+)\.xml/),te=W?parseInt(W[1]):0,ae=H.path.includes("notesSlide"),ue=H.path.includes("slideMaster"),me=ae?"note":ue?"slideMaster":"slide",fe=ue?te:U,de;ae?de={type:"note",children:[],metadata:{slideNumber:fe,noteId:`slide-note-${U}`}}:de={type:ue?"slideMaster":"slide",children:[],metadata:{slideNumber:fe}},e.includeRawContent&&(de.rawContent=Rn(X,G,e));let xe=Qe(X,"p:spTree");if(xe&&de.children?.push(...F(xe,fe,G)),de.children&&de.children.length>0){if(ue)Q.push(de);else if(ae)B[U]||(B[U]={type:"slide",children:[],metadata:{slideNumber:U}}),B[U].notes||(B[U].notes=[]),B[U].notes.push(de);else if(B[U]?(B[U].children=de.children,B[U].rawContent=de.rawContent):B[U]=de,!e.ignoreComments&&A[U]){let Ce=Object.values(A[U]).filter(ye=>ye.type==="comments");for(let ye of Ce){let Se=g.find(we=>we.path.endsWith(ye.target));if(Se){let we=gn(Se.content.toString()),je=Ge(we,"p:cm");for(let ge of je){let Ne=ge.getAttribute("authorId"),qe=Ne!==null?C[Ne]:void 0,Le=Ge(ge,"a:t").map(Ye=>Ye.textContent||"").join("");Le&&(B[U].comments||(B[U].comments=[]),B[U].comments.push({type:"comment",text:Le,children:[{type:"text",text:Le,formatting:{}}],metadata:qe&&qe.author?{author:qe.author}:void 0}))}}}}}}let Y=Object.keys(B).map(Number).sort((H,G)=>H-G);for(let H of Y)S.push(B[H]);let Z=[],J=g.filter(H=>H.path.match(/ppt\/media\/.*/)),ee=g.filter(H=>H.path.match(/ppt\/charts\/chart\d+\.xml/));if(e.extractAttachments){for(let G of J){let X=Hl(G.path.split("/").pop()||"image",G.content);if(Z.push(X),e.ocr&&X.mimeType.startsWith("image/"))try{X.ocrText=(await uf(G.content,{...e.ocrConfig})).trim()}catch(z){si("OCR_FAILED",e,X.name,z)}}for(let G of ee){let X={type:"chart",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",data:G.content.toString("base64"),name:G.path.split("/").pop()||"",extension:"xml"};Z.push(X);try{let z=await Hb(G.content);X.chartData=z}catch(z){si("CHART_DATA_EXTRACTION_FAILED",e,G.path,z)}}let H=G=>{for(let X of G){if("attachmentName"in(X.metadata||{})){let z=X.metadata,U=Z.find(W=>W.name===z.attachmentName);U&&(X.type==="image"&&(U.altText=z.altText,U.ocrText&&(X.text=U.ocrText)),X.type==="chart"&&(X.text=U.chartData?.rawTexts.join(e.newlineDelimiter)))}X.children&&H(X.children)}};H(S)}let K=()=>S.map(H=>{let G=X=>{let z="";return X.children?z+=X.children.map(G).filter(U=>U!="").join(X.children[0]?.children?e.newlineDelimiter:""):z+=X.text||"",z};return G(H)}).filter(H=>H!="").join(e.newlineDelimiter),$=Q.length>0?{slideMasters:Q}:void 0;return pr("pptx",x,S,Z,e,$,K)};be();var L5e={pngblip:"png",jpegblip:"jpeg",gifblip:"gif",tiffblip:"tiff",dibitmap:"bmp",wbitmap:"bmp"},_5e={png:"image/png",jpeg:"image/jpeg",gif:"image/gif",tiff:"image/tiff",bmp:"image/bmp"},Cee=class{constructor(e){P(this,"index",0);P(this,"buffer");P(this,"codePage",1252);P(this,"decoders",{});P(this,"pendingBytes",[]);P(this,"length");this.buffer=e,this.length=e.length}parse(){let e={type:"group",content:[]},t=[e];for(;this.index<this.length;){let i=this.buffer[this.index],s=t[t.length-1];if(i===123){this.index++,this.flushPendingText(s);let r={type:"group",content:[]};s.content.push(r),t.push(r)}else i===125?(this.index++,this.flushPendingText(s),t.length>1&&t.pop()):i===92?(this.index++,this.parseControl(s)):i===13||i===10?this.index++:this.parseText(s)}return this.flushPendingText(e),e}parseControl(e){if(this.index>=this.length)return;let t=this.buffer[this.index];if(t===123||t===125||t===92){this.pendingBytes.push(t),this.index++;return}if(t===39){if(this.index++,this.index+1<this.length){let o=String.fromCharCode(this.buffer[this.index],this.buffer[this.index+1]),l=parseInt(o,16);isNaN(l)||this.pendingBytes.push(l),this.index+=2}return}if(this.flushPendingText(e),t===42){e.content.push({type:"control",value:"*"}),this.index++;return}let i="";for(;this.index<this.length;){let o=this.buffer[this.index];if(o>=97&&o<=122||o>=65&&o<=90)i+=String.fromCharCode(o),this.index++;else break}let s,r=!1,a="";for(this.index<this.length&&this.buffer[this.index]===45&&(a+="-",this.index++);this.index<this.length;){let o=this.buffer[this.index];if(o>=48&&o<=57)a+=String.fromCharCode(o),this.index++,r=!0;else break}if(r&&(s=parseInt(a,10)),i!==""&&this.index<this.length&&this.buffer[this.index]===32&&this.index++,i==="bin"&&s!==void 0&&s>0){this.index+=s;return}i==="ansicpg"&&s!==void 0?this.codePage=s:i==="ansi"?this.codePage=1252:i==="mac"?this.codePage=1e4:i==="pc"?this.codePage=437:i==="pca"&&(this.codePage=850),e.content.push({type:"control",value:i,param:s}),(e.content.length===1&&e.type==="group"||e.content.length===2&&e.content[0].type==="control"&&e.content[0].value==="*")&&(e.destination=i)}parseText(e){for(;this.index<this.length;){let t=this.buffer[this.index];if(t===void 0||t===123||t===125||t===92||t===13||t===10)break;this.pendingBytes.push(t),this.index++}}flushPendingText(e){this.pendingBytes.length>0&&(e.content.push({type:"text",value:this.decodeBytes(this.pendingBytes,this.codePage)}),this.pendingBytes=[])}decodeBytes(e,t){let i=new Uint8Array(e);if(e.some(r=>r>127))try{return new TextDecoder("utf-8",{fatal:!0}).decode(i)}catch{}if(!this.decoders[t]){let r=`windows-${t}`;t===1e4?r="macintosh":t===437?r="ibm437":t===850&&(r="ibm850");try{this.decoders[t]=new TextDecoder(r)}catch{if(t!==1252)try{this.decoders[t]=new TextDecoder("windows-1252")}catch{return String.fromCharCode(...e)}else return String.fromCharCode(...e)}}let s=this.decoders[t].decode(i);if(t===1252&&/[\u0080-\u009F]/.test(s)){let r={"\x80":"\u20AC","\x82":"\u201A","\x83":"\u0192","\x84":"\u201E","\x85":"\u2026","\x86":"\u2020","\x87":"\u2021","\x88":"\u02C6","\x89":"\u2030","\x8A":"\u0160","\x8B":"\u2039","\x8C":"\u0152","\x8E":"\u017D","\x91":"\u2018","\x92":"\u2019","\x93":"\u201C","\x94":"\u201D","\x95":"\u2022","\x96":"\u2013","\x97":"\u2014","\x98":"\u02DC","\x99":"\u2122","\x9A":"\u0161","\x9B":"\u203A","\x9C":"\u0153","\x9E":"\u017E","\x9F":"\u0178"};return s.replace(/[\u0080-\u009F]/g,a=>r[a]||a)}return s}},gpe=async(n,e)=>{Kt(e.abortSignal);let i=new Cee(n).parse(),s=H5e(i),r=U5e(i),a=[],o=[],l=[],c=[],h=[],u=[],d=[],p={},m=a,g=0,b="left",x=!1,w,y,S,A=[],C,E,I=[],D=0,R=0,N=()=>I.length>0?I[I.length-1]:void 0,q=()=>{I.length===0&&I.push({rows:[],currentCells:[],currentCellContent:[],rowIndex:0})},L=!1,_=!1,V=0,O=[],M={isMergedContinuation:!1},F=0,B=0,Q={},Y=!1,Z=!1,J,ee,K={},$=!1,H,G,X={},z={},U,W=(se,he)=>se.bold!==he.bold||se.italic!==he.italic||se.underline!==he.underline||se.strikethrough!==he.strikethrough||se.size!==he.size||se.font!==he.font||se.color!==he.color||se.backgroundColor!==he.backgroundColor||se.subscript!==he.subscript||se.superscript!==he.superscript,te=()=>{if(d.length>0){let se=d.join(""),he={type:"text",text:se,formatting:{...p}};U&&(he.metadata={link:U,linkType:Ce(U)}),h.push(he),c.push(se),d=[]}},ae=!1,ue=()=>{te();let se=c.length>0||h.length>0;if(L&&!_&&!ae&&se){let he=[...c],Ie=[...h],_e=[...u];c=[],h=[],u=[],de(),c=he,h=Ie,u=_e}if(se){let he=c.join(""),Ie="paragraph",_e;if(y===void 0&&h.length>0){let Xe=h[0];if(Xe.type==="text"&&Xe.formatting?.bold){let ht=parseInt(Xe.formatting.size||"12");ht>=14&&he.length<300&&(ht>=22?y=1:ht>=18?y=2:ht>=16?y=3:y=4)}}if(!x&&g>300){let Xe=he.trim();(/^[\u2022\u00b7\-\u25cf\u25cb]/.test(Xe)||/^\d+[.\)]/.test(Xe))&&(x=!0,w=/^\d+[.\)]/.test(Xe)?"ordered":"unordered")}if(y!==void 0&&y>0)Ie="heading",_e={level:y},C=void 0,E=void 0;else if(x){Ie="list";let Xe=S||C,ht=w||E||"unordered",pt=0;if(Xe){z[Xe]||(z[Xe]={});let mt=Object.keys(z[Xe]).map(yt=>parseInt(yt));for(let yt of mt)yt>g&&delete z[Xe][yt];z[Xe][g]===void 0?z[Xe][g]=0:z[Xe][g]++,pt=z[Xe][g]}_e={listType:ht,indentation:g,listId:Xe||"",itemIndex:pt,alignment:b},Xe&&(C=Xe),ht&&(E=ht)}let st={type:Ie,text:he,children:h,formatting:void 0,metadata:{..._e,anchorIds:A.length>0?[...A]:void 0}};e.includeRawContent&&u.length>0&&(st.rawContent=u.join("")),L&&_?(q(),N().currentCellContent.push(st)):m.push(st),c=[],h=[],u=[],A=[]}},me=se=>{ue();let he=se||N();if(!he)return;let Ie={type:"cell",text:he.currentCellContent.map(_e=>_e.text).join(`
  `),children:[...he.currentCellContent],metadata:{row:he.rowIndex,col:he.currentCells.length}};return he.currentCellContent=[],Ie},fe=se=>{let he=se||N();if(!he)return;let Ie=me(he);if(Ie&&(Ie.children&&Ie.children.length>0||Ie.text)&&he.currentCells.push(Ie),he.currentCells.length>0){let _e={type:"row",text:he.currentCells.map(st=>st.text).filter(st=>st!=="").join(e.newlineDelimiter),children:[...he.currentCells]};he.rows.push(_e),he.currentCells=[],he.rowIndex++}},de=()=>{if(ae)return;ae=!0;let se=N();if(!se){ae=!1;return}if(fe(se),se.rows.length>0){V++;let he={type:"table",text:se.rows.map(Ie=>Ie.text).join(`
 diff --git a/dist/parsers/PdfParser.js b/dist/parsers/PdfParser.js
-index b06a0c5580706589d3dfe12903e12434251d0bce..ed7abe586e48b30cece4a80b5fc1750f742d8676 100644
+index b06a0c5580706589d3dfe12903e12434251d0bce..8b245cb41fe374bd5ec2d96d74974467bde84c55 100644
 --- a/dist/parsers/PdfParser.js
 +++ b/dist/parsers/PdfParser.js
-@@ -638,12 +638,136 @@ const parsePdf = async (buffer, config) => {
+@@ -638,12 +638,259 @@ const parsePdf = async (buffer, config) => {
              (0, errorUtils_js_1.logWarning)(types_js_1.OfficeWarningType.ANNOTATION_EXTRACTION_FAILED, config, pageNum, e);
          }
          // Sort items: Y descending (top to bottom), then X ascending (left to right)
@@ -169,7 +292,130 @@ index b06a0c5580706589d3dfe12903e12434251d0bce..ed7abe586e48b30cece4a80b5fc1750f
 +    var LINE = 3, YTOL = 7;
 +    var width = function (i) { return i.width || 0; };
 +    var rowMajor = function (a, b) { return Math.abs(b.y - a.y) > YTOL ? b.y - a.y : a.x - b.x; };
-+    var fallback = function () { items.sort(rowMajor); };
++
++    /* FileConcat: a table drawn as positioned text keeps its columns.
++     *
++     * The assembly below joins every item on a line with one space, so a row
++     * whose middle cell is empty arrives as "APAC 980 980" — every value after
++     * the gap reads as the column to its left, and nothing anywhere says a
++     * cell was empty. The figures are silently wrong rather than visibly
++     * missing, which is the worst shape a bundle can take.
++     *
++     * pypdf collapses the same rows on the same bytes, so there is no reader
++     * to swap to. A PDF holds no cells, only positioned glyphs, and that
++     * geometry is the only thing still carrying the structure at this point.
++     *
++     * Conservative in the same way the ordering above is: three consecutive
++     * rows or nothing happens, every cell start has to line up with another
++     * row's, and one cell that does not fit leaves the whole run alone rather
++     * than piping half of it. A page that reads as columns of prose never gets
++     * here, because this runs only where column ordering declined.
++     *
++     * Ceiling worth writing down: columns are matched on where a cell starts,
++     * so a right-aligned numeric column, whose values each start somewhere
++     * else, does not line up and the page is left exactly as it is today. */
++    var tables = function () {
++        for (var n = 0; n < items.length; n++) if (items[n].type !== 'text') return;
++        var body = items.filter(function (i) { return i.text && i.text.trim(); });
++        if (body.length < 6) return;
++
++        /* Rows cut where the assembly below cuts its lines, so what is measured
++         * here is what gets joined there. */
++        var rows = [], prevY = null;
++        body.forEach(function (i) {
++            if (prevY === null || Math.abs(i.y - prevY) > 5) rows.push([]);
++            rows[rows.length - 1].push(i);
++            prevY = i.y;
+         });
++
++        /* A gap of a full em is not a word space at any size, which is what
++         * keeps a two-word cell ("New York") in one piece. */
++        var cellsOf = function (row) {
++            var out = [[row[0]]];
++            for (var k = 1; k < row.length; k++) {
++                var prev = row[k - 1], gap = row[k].x - (prev.x + width(prev));
++                if (gap >= Math.max(4, prev.height || 0)) out.push([row[k]]);
++                else out[out.length - 1].push(row[k]);
++            }
++            return out;
++        };
++
++        var mark = function (run) {
++            var TOL = 4, starts = [];
++            run.forEach(function (row) { row.forEach(function (cell) { starts.push(cell[0].x); }); });
++            starts.sort(function (a, b) { return a - b; });
++
++            /* Where cells from more than one row start together is a column. A
++             * start no other row shares is one line's stray indent and makes no
++             * column, which is what a header centred over the column it names
++             * usually produces. */
++            var cols = [], at = null, seen = 0;
++            starts.forEach(function (x) {
++                if (at !== null && x - at <= TOL) { seen++; return; }
++                if (seen >= 2) cols.push(at);
++                at = x; seen = 1;
++            });
++            if (seen >= 2) cols.push(at);
++            if (cols.length < 2) return [];
++
++            /* Matched on the middle of a cell rather than its left edge, so a
++             * centred header still lands in the column it belongs to. */
++            var columnOf = function (cell) {
++                var end = cell[cell.length - 1];
++                var mid = (cell[0].x + end.x + width(end)) / 2, found = -1;
++                for (var c = 0; c < cols.length; c++) if (mid >= cols[c] - TOL) found = c;
++                return found;
++            };
++
++            /* Every row is placed before anything is written. */
++            var placed = [];
++            for (var r = 0; r < run.length; r++) {
++                var slot = [];
++                for (var i = 0; i < run[r].length; i++) {
++                    var c = columnOf(run[r][i]);
++                    if (c < 0 || slot[c]) return [];
++                    slot[c] = run[r][i];
++                }
++                placed.push(slot);
++            }
++
++            var bars = [];
++            placed.forEach(function (slot) {
++                var ref = slot.filter(Boolean)[0][0], first = null;
++                for (var c = 0; c < cols.length; c++) {
++                    var cell = slot[c];
++                    if (cell) {
++                        var last = cell[cell.length - 1];
++                        last.text = last.text + ' |';
++                        if (!first) first = cell[0];
++                    } else {
++                        /* An empty cell is a bar with nothing in front of it.
++                         * That is the whole point: the slot survives, so every
++                         * value after it stays in its own column. */
++                        var bar = { type: 'text', text: '|', x: cols[c], y: ref.y, width: 0, height: ref.height, fontName: ref.fontName, formatting: ref.formatting };
++                        bars.push(bar);
++                        if (!first) first = bar;
++                    }
++                }
++                first.text = '| ' + first.text;
++            });
++            return bars;
++        };
++
++        var runs = [], run = [];
++        var close = function () { if (run.length >= 3) runs.push(run); run = []; };
++        rows.forEach(function (row) {
++            var cells = cellsOf(row);
++            if (cells.length >= 2) run.push(cells); else close();
++        });
++        close();
++
++        var bars = [];
++        runs.forEach(function (each) { bars = bars.concat(mark(each)); });
++        if (bars.length > 0) { items.push.apply(items, bars); items.sort(rowMajor); }
++    };
++
++    var fallback = function () { items.sort(rowMajor); return tables(); };
 +
 +    /* Images only enter this array when attachment extraction or OCR is on.
 +     * Their placement drives where recognised text lands, so leave any page
@@ -268,7 +514,7 @@ index b06a0c5580706589d3dfe12903e12434251d0bce..ed7abe586e48b30cece4a80b5fc1750f
 +            var f = Math.min.apply(null, line.map(function (i) { return i.x; }));
 +            var t = Math.max.apply(null, line.map(function (i) { return i.x + width(i); }));
 +            if ((t - f) / cw >= 0.6) filled++;
-         });
++        });
 +        if (filled / ls.length < 0.6) return fallback();
 +    }
 +

@@ -8,6 +8,7 @@ import {
 import {
   imageOnlyPdf,
   positionedTablePdf,
+  tableWithEmptyCellPdf,
   textLayerPdf,
   textLayerPdfPages,
   twoColumnPdf,
@@ -142,9 +143,57 @@ describe("extractOfficeDocument — multi-column PDFs", () => {
 
     // Reordered as columns this would read "Region EMEA APAC …", which is the
     // failure the width and fill guards exist to prevent.
-    expect(text).toContain("Region Q1 Q2 Total");
-    expect(text).toContain("EMEA 1200 1350 2550");
-    expect(text).toContain("LATAM 310 355 665");
+    expect(text).toContain("| Region | Q1 | Q2 | Total |");
+    expect(text).toContain("| EMEA | 1200 | 1350 | 2550 |");
+    expect(text).toContain("| LATAM | 310 | 355 | 665 |");
+  });
+});
+
+/**
+ * The second half of the same patch. A PDF has no cells, only glyphs at
+ * positions, so a table arrives as lines whose values are separated by nothing
+ * but a wider gap — and an empty cell is separated by nothing at all.
+ *
+ * Measured 2026-08-15: `pypdf` collapses these rows the same way on the same
+ * bytes, so unlike the column ordering above there is no reader to swap to.
+ * The geometry is all there is, and it is only still available inside the
+ * parser, which is why this lives in the patch rather than in our own code.
+ */
+describe("extractOfficeDocument — tables drawn as positioned text", () => {
+  it("keeps the slot an empty cell left behind", async () => {
+    const { text } = await extractOfficeDocument(tableWithEmptyCellPdf());
+
+    // The defect this fixes: "APAC 980 980", where the total has moved into the
+    // Q2 column and reads as a plausible figure for it.
+    expect(text).toContain("| APAC | 980 | | 980 |");
+    expect(text).not.toContain("APAC 980 980");
+    // The rows either side are untouched, so the empty cell is the only thing
+    // the pass reacted to.
+    expect(text).toContain("| EMEA | 1200 | 1350 | 2550 |");
+    expect(text).toContain("| AMER | 1440 | 1510 | 2950 |");
+  });
+
+  it("leaves prose alone", async () => {
+    // The guard against the interesting failure: prose lines have gaps too, and
+    // a pass that reads three of them as a table would put separators through
+    // the middle of sentences.
+    const { text } = await extractOfficeDocument(
+      textLayerPdf([
+        "A paragraph of ordinary prose that runs the width of the page.",
+        "A second line of it, long enough to hold gaps of its own.",
+        "A third, because three consecutive rows is what a table needs.",
+      ]),
+    );
+
+    expect(text).not.toContain("|");
+  });
+
+  it("leaves a multi-column page alone", async () => {
+    // Columns are ordered before this runs and never reach it, but the two
+    // passes read the same geometry and a page can only be one of them.
+    const { text } = await extractOfficeDocument(twoColumnPdf());
+
+    expect(text).not.toContain("|");
   });
 });
 

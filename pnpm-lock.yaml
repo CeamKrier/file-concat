@@ -12,7 +12,7 @@ overrides:
 
 patchedDependencies:
   officeparser@7.6.1:
-    hash: 3263f3b6030b2b7c2d4e4269847aff516d00d0a4e8d7f5a6bc0caaf61e466adf
+    hash: c8a3d06755fde46770678f8d51d719cfa5b66ea202d2431da746267e2d537727
     path: patches/officeparser@7.6.1.patch
 
 importers:
@@ -235,7 +235,7 @@ importers:
         version: 11.1.0
       officeparser:
         specifier: ^7.6.1
-        version: 7.6.1(patch_hash=3263f3b6030b2b7c2d4e4269847aff516d00d0a4e8d7f5a6bc0caaf61e466adf)
+        version: 7.6.1(patch_hash=c8a3d06755fde46770678f8d51d719cfa5b66ea202d2431da746267e2d537727)
       postal-mime:
         specifier: ^2.7.5
         version: 2.7.5
@@ -275,7 +275,7 @@ importers:
         version: 10.1.1
       officeparser:
         specifier: ^7.6.1
-        version: 7.6.1(patch_hash=3263f3b6030b2b7c2d4e4269847aff516d00d0a4e8d7f5a6bc0caaf61e466adf)
+        version: 7.6.1(patch_hash=c8a3d06755fde46770678f8d51d719cfa5b66ea202d2431da746267e2d537727)
       typescript:
         specifier: '>=5.0.0'
         version: 5.6.3
@@ -9210,7 +9210,7 @@ snapshots:
 
   obug@2.1.3: {}
 
-  officeparser@7.6.1(patch_hash=3263f3b6030b2b7c2d4e4269847aff516d00d0a4e8d7f5a6bc0caaf61e466adf):
+  officeparser@7.6.1(patch_hash=c8a3d06755fde46770678f8d51d719cfa5b66ea202d2431da746267e2d537727):
     dependencies:
       '@xmldom/xmldom': 0.9.10
       fflate: 0.8.3
