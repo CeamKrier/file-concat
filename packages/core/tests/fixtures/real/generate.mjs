@@ -1021,15 +1021,28 @@ const CORPUS = [
     file: "gen-rtf-document.rtf",
     structures: ["headings via formatting", "bold and italic", "a bulleted list", "a two-column table"],
     async build() {
+      // Two things here have to be written the way a real writer writes them,
+      // because getting either wrong manufactures a defect that is not one.
+      //
+      // Inline formatting goes in a group, `{\b bold} and`, not as a bare
+      // toggle `\b bold\b0 and`. In the bare form the space after `\b0` is the
+      // control word's own delimiter and the RTF spec says to discard it, so
+      // the only correct reading of that source is `boldand`. Measured
+      // 2026-08-15 against striprtf as a second reader: identical output.
+      //
+      // A list needs an actual list declaration. `{\pntext\bullet\tab}` alone
+      // is the *fallback* text for a reader that cannot do lists, with nothing
+      // to fall back from, so dropping it is right and the resulting bare
+      // `First bullet` says nothing about how we read lists.
       const rtf =
         `{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Times New Roman;}}\n` +
         `\\fs32\\b Quarterly Report\\b0\\fs24\\par\n` +
         `Revenue by region, in thousands.\\par\n` +
-        `{\\pntext\\bullet\\tab}First bullet\\par\n` +
-        `{\\pntext\\bullet\\tab}Second bullet\\par\n` +
+        `{\\listtext\\tab}\\ls1\\ilvl0 First bullet\\par\n` +
+        `{\\listtext\\tab}\\ls1\\ilvl0 Second bullet\\par\n` +
         `\\trowd\\cellx3000\\cellx6000 Region\\cell Q1\\cell\\row\n` +
         `\\trowd\\cellx3000\\cellx6000 EMEA\\cell 1200\\cell\\row\n` +
-        `Closing prose with \\b bold\\b0 and \\i italic\\i0 .\\par\n}`;
+        `Closing prose with {\\b bold} and {\\i italic}.\\par\n}`;
       return Buffer.from(rtf, "utf8");
     },
   },
@@ -1135,10 +1148,17 @@ const CORPUS = [
 
 /* -------------------------------------------------------------------- main */
 
+// A substring of the file name, to rebuild one fixture without the four
+// document libraries the rest of the corpus needs installed. A filtered run
+// leaves the manifest alone: it describes the whole corpus, and rewriting it
+// from a subset would report the other twenty-six as gone.
+const only = process.argv[2];
+const selected = only ? CORPUS.filter((entry) => entry.file.includes(only)) : CORPUS;
+
 const written = [];
 const failed = [];
 
-for (const entry of CORPUS) {
+for (const entry of selected) {
   try {
     const bytes = await entry.build();
     writeFileSync(join(OUT, entry.file), bytes);
@@ -1148,7 +1168,9 @@ for (const entry of CORPUS) {
   }
 }
 
-writeFileSync(join(OUT, "manifest.json"), JSON.stringify({ written, failed }, null, 2));
+if (!only) {
+  writeFileSync(join(OUT, "manifest.json"), JSON.stringify({ written, failed }, null, 2));
+}
 
 for (const entry of written) {
   console.log(`ok    ${entry.file.padEnd(30)} ${String(entry.bytes).padStart(8)} B  ${entry.structures.length} structures`);
@@ -1156,4 +1178,6 @@ for (const entry of written) {
 for (const entry of failed) {
   console.log(`FAIL  ${entry.file.padEnd(30)} ${entry.error}`);
 }
-console.log(`\n${written.length} written, ${failed.length} failed -> manifest.json`);
+console.log(
+  `\n${written.length} written, ${failed.length} failed${only ? "" : " -> manifest.json"}`,
+);
