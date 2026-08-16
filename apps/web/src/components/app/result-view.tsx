@@ -428,9 +428,17 @@ function BundleWeightNote({ weight }: { weight: BundleWeight }) {
 }
 
 /**
- * Documents that opened but held no text. A scan is a picture of a page: there
- * are no characters in the file to read, only pixels that look like characters,
- * and reading those is a separate and much slower job.
+ * Documents the ordinary reader could not read, whatever stopped it. A scan is a
+ * picture of a page: there are no characters in the file, only pixels that look
+ * like characters. A page whose fonts carry no character map has the opposite
+ * problem — characters that decode to nothing anyone can read. Both end here,
+ * because the answer to both is to look at the page as a picture, which is a
+ * separate and much slower job.
+ *
+ * So the copy says "document" and not "scanned document": the word was true of
+ * everything this card described until page recognition arrived, and calling a
+ * government PDF with broken fonts a scan would be a plain untruth on the one
+ * card whose job is to say what happened.
  *
  * This card states the outcome and opens the door. It carries no action of its
  * own: every recognition control after the drop lives in the reading dialog,
@@ -487,7 +495,7 @@ function ScannedDocuments({
       <ReadingCard
         tone="go"
         icon={Check}
-        title={`Read ${recovered} scanned ${noun(recovered)}${asLanguage}`}
+        title={`Read ${recovered} ${noun(recovered)}${asLanguage}`}
         cta="Check the reading"
         onCheck={onCheck}
       >
@@ -502,7 +510,7 @@ function ScannedDocuments({
       <ReadingCard
         tone="info"
         icon={ScanText}
-        title={`Read ${recovered} of ${total} scanned documents${asLanguage}`}
+        title={`Read ${recovered} of ${total} documents${asLanguage}`}
         cta="Check the reading"
         onCheck={onCheck}
       >
@@ -519,8 +527,8 @@ function ScannedDocuments({
       icon={ScanText}
       title={
         stopped
-          ? `Stopped, with ${total} scanned ${noun(total)} unread`
-          : `${total} scanned ${noun(total)} couldn't be read`
+          ? `Stopped, with ${total} ${noun(total)} unread`
+          : `${total} ${noun(total)} couldn't be read`
       }
       cta={stopped ? "Read them" : "Try another language"}
       onCheck={onCheck}

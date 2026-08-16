@@ -47,12 +47,17 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
     cta: "Start over",
   },
   // The one variant that is not a dead end at all: the documents opened fine,
-  // they simply hold pictures of pages, and reading them is already under way
-  // by the time anyone sees this. The CTA is the way back in after a stop.
+  // there is simply nothing in them a reader can turn into characters, and
+  // reading them is already under way by the time anyone sees this. The CTA is
+  // the way back in after a stop.
+  //
+  // Two different causes land here and the copy has to hold both, because a
+  // document whose fonts carry no character map is not a scan and saying it is
+  // would be a plain untruth on the screen that explains the failure.
   scanned: {
     icon: ScanText,
-    title: "These pages are pictures, not text",
-    body: "A scan stores an image of the page, so there are no characters in the file to pull out. Recognition reads the pixels instead: a few seconds a page, plus a one-time 5 MB language download.",
+    title: "These pages can't be read as text",
+    body: "Either the page is a picture of text, or its fonts carry no map from what is stored back to letters. Either way there are no characters in the file to pull out. Recognition reads the pixels instead: a few seconds a page, plus a one-time 5 MB language download.",
     cta: "Read the rest",
   },
   // Not a rescue at all: the files are fine and the filters are the reason the
