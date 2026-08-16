@@ -569,16 +569,76 @@ function undecodable(line: string): boolean {
  * from it. What survives is the part that decoded, which is usually the plain
  * ASCII a document's identifiers are written in.
  */
-function dropUndecodableLines(text: string): { text: string; lost: number } {
+function dropUndecodableLines(text: string): { text: string; lost: number; pages: number[] } {
   const lines = text.split("\n");
   const kept = lines.filter((line) => !undecodable(line));
   const lost = lines.length - kept.length;
-  if (lost === 0) return { text, lost };
+  if (lost === 0) return { text, lost, pages: [] };
+  // Which pages the loss landed on, so a caller that can read a page another way
+  // re-reads those and leaves every other page at the exact text this extraction
+  // already produced. A page counts as past reading when its lost lines outnumber
+  // its surviving ones: below that the page still reads, and re-reading it would
+  // trade the document's own characters for a recogniser's near-miss.
+  // ponytail: a majority is the whole threshold. `extract_note` counts these per
+  // document, so it can be moved once there is more than one broken document to
+  // move it against.
+  const tally = new Map<number, { kept: number; lost: number }>();
+  let page = 0;
+  for (const line of lines) {
+    const marker = /^# Page (\d+)$/.exec(line);
+    if (marker) {
+      page = Number(marker[1]);
+      continue;
+    }
+    // Blank lines and our own markers are neither evidence of reading nor of
+    // loss, and a heading-only page must not read as a page that survived.
+    if (!line.trim() || line.startsWith("#")) continue;
+    const counts = tally.get(page) ?? { kept: 0, lost: 0 };
+    if (undecodable(line)) counts.lost += 1;
+    else counts.kept += 1;
+    tally.set(page, counts);
+  }
+  // Page 0 is whatever preceded the first marker, which belongs to no page.
+  const pages = [...tally]
+    .filter(([number, counts]) => number > 0 && counts.lost > counts.kept)
+    .map(([number]) => number);
+
   // Our own page and heading markers are all that can be left when a document
   // decoded nowhere. Answering with those is the silent success ADR-0003 exists
   // to prevent, so this is the empty case instead.
   const survives = kept.some((line) => line.trim() && !line.startsWith("#"));
-  return { text: survives ? kept.join("\n").trim() : "", lost };
+  return { text: survives ? kept.join("\n").trim() : "", lost, pages };
+}
+
+/**
+ * Put a re-read page back into an extraction, under the `# Page n` marker it
+ * belongs to.
+ *
+ * Recognition can read a page whose fonts carry no character map, but only that
+ * page: the rest of the document decoded exactly and OCR would only make it
+ * worse. So a rescue replaces sections rather than documents, and this is where
+ * the marker convention `markSectionStarts` writes is read back — the two have
+ * to move together, which is why they live in the same file.
+ *
+ * A page number with no marker in the text is ignored rather than appended: it
+ * would put text where the document does not have a page.
+ */
+export function replacePages(text: string, replacements: ReadonlyMap<number, string>): string {
+  if (replacements.size === 0) return text;
+  const out: string[] = [];
+  let dropping = false;
+  for (const line of text.split("\n")) {
+    const marker = /^# Page (\d+)$/.exec(line);
+    if (marker) {
+      const replacement = replacements.get(Number(marker[1]));
+      dropping = replacement !== undefined;
+      out.push(line);
+      if (replacement !== undefined && replacement.trim()) out.push(replacement.trim());
+      continue;
+    }
+    if (!dropping) out.push(line);
+  }
+  return out.join("\n").trim();
 }
 
 /**
@@ -636,8 +696,10 @@ export async function extractOfficeDocument(
   // string-shaped, so this narrows a union rather than handling a real case.
   const rendered = typeof value === "string" ? value : new TextDecoder().decode(value);
   const resolved = resolveImagePlaceholders(rendered, ast.attachments ?? []).trim();
-  const { text, lost } = dropUndecodableLines(resolved);
+  const { text, lost, pages } = dropUndecodableLines(resolved);
   const notes = toNotes(messages);
-  if (lost > 0) notes.push({ kind: "text-undecodable", count: lost });
+  if (lost > 0) {
+    notes.push({ kind: "text-undecodable", count: lost, ...(pages.length > 0 ? { pages } : {}) });
+  }
   return notes.length > 0 ? { text, notes } : { text };
 }

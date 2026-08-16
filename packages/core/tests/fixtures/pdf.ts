@@ -271,6 +271,48 @@ export function undecodableTextPdf(withReadableLine = true): Uint8Array {
 }
 
 /**
+ * Two pages, one of which cannot be decoded and one of which is ordinary prose.
+ *
+ * The shape that decides where a rescue is worth running: a document is not
+ * uniformly broken, and the page that decoded carries the document's own exact
+ * characters. Re-reading *that* page would trade them for a recogniser's
+ * near-miss, so the note has to say which page was lost and not merely that one
+ * was.
+ */
+export function undecodablePagePdf(): Uint8Array {
+  const broken = "<0175000301760003015D>";
+  return assemblePdf([
+    ascii("<< /Type /Catalog /Pages 2 0 R >>"),
+    ascii("<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>"),
+    ascii(
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] ` +
+        `/Resources << /Font << /F1 7 0 R >> >> /Contents 4 0 R >>`,
+    ),
+    stream("", ascii(`BT /F1 12 Tf 72 700 Td ${broken} Tj ET`)),
+    ascii(
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] ` +
+        `/Resources << /Font << /F2 9 0 R >> >> /Contents 6 0 R >>`,
+    ),
+    stream(
+      "",
+      ascii(
+        `BT /F2 12 Tf 72 720 Td (The second page decodes) Tj ET\n` +
+          `BT /F2 12 Tf 72 692 Td (and reads as ordinary prose) Tj ET`,
+      ),
+    ),
+    ascii(
+      `<< /Type /Font /Subtype /Type0 /BaseFont /NoSuchFont /Encoding /Identity-H ` +
+        `/DescendantFonts [8 0 R] >>`,
+    ),
+    ascii(
+      `<< /Type /Font /Subtype /CIDFontType2 /BaseFont /NoSuchFont ` +
+        `/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /DW 1000 >>`,
+    ),
+    ascii("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"),
+  ]);
+}
+
+/**
  * A PDF whose page is nothing but a picture — the shape a scanner produces.
  * There is no `/Font` anywhere, so there is no text to read however hard a
  * parser tries; the only route to its content is OCR over the pixels.

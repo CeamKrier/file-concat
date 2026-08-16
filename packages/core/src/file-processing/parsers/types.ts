@@ -49,6 +49,14 @@ export interface ExtractionNote {
   kind: ExtractionNoteKind;
   /** How many items the note covers, when the kind is countable. */
   count?: number;
+  /**
+   * The `# Page n` numbers the note covers, when the loss can be placed. Absent
+   * where it cannot — a format that has no page markers, or a loss too small to
+   * put a page beyond use. A caller that can re-read a page (recognition) uses
+   * this to re-read *only* those pages and leave the rest of the document at the
+   * exact text it already extracted.
+   */
+  pages?: number[];
 }
 
 /**

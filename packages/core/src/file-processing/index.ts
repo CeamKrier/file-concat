@@ -10,6 +10,7 @@ export {
   extractSubtitles,
   formatEmail,
   isPasswordProtected,
+  replacePages,
 } from "./parsers";
 export type {
   ExtractionNote,
