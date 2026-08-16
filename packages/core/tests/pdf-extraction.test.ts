@@ -12,6 +12,7 @@ import {
   textLayerPdf,
   textLayerPdfPages,
   twoColumnPdf,
+  undecodableTextPdf,
 } from "./fixtures/pdf";
 
 /**
@@ -194,6 +195,44 @@ describe("extractOfficeDocument — tables drawn as positioned text", () => {
     const { text } = await extractOfficeDocument(twoColumnPdf());
 
     expect(text).not.toContain("|");
+  });
+});
+
+/**
+ * Found on a real document 2026-08-16, which is the first real PDF this project
+ * ever measured: a Turkish government e-document whose every font ships without
+ * a `/ToUnicode` map. 89% of its extracted text came out as characters nobody
+ * can read, and it reached the bundle looking like text. `pypdf` produced the
+ * identical mess from the identical bytes.
+ *
+ * The corpus this suite grew from is all generated, and generated documents are
+ * written by libraries that always write the map. Nothing in it fails this way.
+ */
+describe("extractOfficeDocument — text that cannot be decoded", () => {
+  it("leaves out what could not be decoded and says how much", async () => {
+    const { text, notes } = await extractOfficeDocument(undecodableTextPdf());
+
+    expect(text).toContain("A line that decodes");
+    // The whole point: what a model reads is only what a reader could vouch for.
+    const control = [...text].some((ch) => ch.charCodeAt(0) < 0x20 && !"\t\n\r".includes(ch));
+    expect(control).toBe(false);
+    expect(notes).toEqual([{ kind: "text-undecodable", count: 1 }]);
+  });
+
+  it("answers empty when nothing at all decoded", async () => {
+    // A page marker and nothing under it is the silent success ADR-0003 exists
+    // to prevent, so a document that decoded nowhere is unreadable rather than
+    // successfully empty.
+    const { text, notes } = await extractOfficeDocument(undecodableTextPdf(false));
+
+    expect(text).toBe("");
+    expect(notes).toEqual([{ kind: "text-undecodable", count: 1 }]);
+  });
+
+  it("says nothing about a document that decoded", async () => {
+    const { notes } = await extractOfficeDocument(textLayerPdf(["Ordinary readable prose"]));
+
+    expect(notes).toBeUndefined();
   });
 });
 

@@ -36,7 +36,14 @@ export type ExtractionNoteKind =
    */
   | "cdn-fallback"
   /** This build registers no loader for the format the router picked (ADR-0011). */
-  | "parser-unavailable";
+  | "parser-unavailable"
+  /**
+   * Text came out of the document as characters nobody can read, and it was
+   * left out rather than passed on. A document whose fonts carry no character
+   * map extracts as glyph numbers read as if they were letters, which arrives
+   * looking like text and is not. Measured on a real one 2026-08-16.
+   */
+  | "text-undecodable";
 
 export interface ExtractionNote {
   kind: ExtractionNoteKind;

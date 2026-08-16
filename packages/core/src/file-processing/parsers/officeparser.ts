@@ -534,6 +534,54 @@ export function isPasswordProtected(error: unknown): boolean {
 }
 
 /**
+ * A C0 control character, tab and the line breaks excepted. Nothing writes one
+ * into a document on purpose.
+ */
+function undecodable(line: string): boolean {
+  for (let index = 0; index < line.length; index++) {
+    const code = line.charCodeAt(index);
+    // Tab, newline and carriage return are the three that mean something.
+    if (code < 0x20 && code !== 0x09 && code !== 0x0a && code !== 0x0d) return true;
+  }
+  return false;
+}
+
+/**
+ * Leave out the lines that came back as characters nobody can read.
+ *
+ * A PDF stores a character as a number and leaves it to the font to say which
+ * letter that number is. When the font carries no such map — no `/ToUnicode`,
+ * and codes that are really glyph numbers — a reader has nothing to decode
+ * with, and every reader available answers with the numbers read as if they
+ * were letters. Measured 2026-08-16 on a real Turkish government document:
+ * `pypdf` produced the identical mess from the identical bytes, so this is the
+ * file rather than our reader, and the embedded fonts do carry the map that
+ * would fix it. Nothing exposed to us reaches it.
+ *
+ * The tell is that the space glyph is mapped away with everything else, so it
+ * arrives as a control character rather than a space. That is the signal used
+ * here: measured across all 24 documents of the extraction corpus not one
+ * carries a single control character, and the real document carries 130, on
+ * lines holding 89% of its text.
+ *
+ * Left out rather than passed on, because unreadable text that *looks* like
+ * text is worse than an absence: a model reads it, believes it, and answers
+ * from it. What survives is the part that decoded, which is usually the plain
+ * ASCII a document's identifiers are written in.
+ */
+function dropUndecodableLines(text: string): { text: string; lost: number } {
+  const lines = text.split("\n");
+  const kept = lines.filter((line) => !undecodable(line));
+  const lost = lines.length - kept.length;
+  if (lost === 0) return { text, lost };
+  // Our own page and heading markers are all that can be left when a document
+  // decoded nowhere. Answering with those is the silent success ADR-0003 exists
+  // to prevent, so this is the empty case instead.
+  const survives = kept.some((line) => line.trim() && !line.startsWith("#"));
+  return { text: survives ? kept.join("\n").trim() : "", lost };
+}
+
+/**
  * Extract the recoverable text from a document's bytes. Empty text means the
  * document carries none — a scanned image-only or encrypted PDF — and callers
  * surface that rather than silently dropping the file (ADR-0003).
@@ -587,7 +635,9 @@ export async function extractOfficeDocument(
   // Only the pdf and csv renderers can answer with bytes; both of ours are
   // string-shaped, so this narrows a union rather than handling a real case.
   const rendered = typeof value === "string" ? value : new TextDecoder().decode(value);
-  const text = resolveImagePlaceholders(rendered, ast.attachments ?? []).trim();
+  const resolved = resolveImagePlaceholders(rendered, ast.attachments ?? []).trim();
+  const { text, lost } = dropUndecodableLines(resolved);
   const notes = toNotes(messages);
+  if (lost > 0) notes.push({ kind: "text-undecodable", count: lost });
   return notes.length > 0 ? { text, notes } : { text };
 }

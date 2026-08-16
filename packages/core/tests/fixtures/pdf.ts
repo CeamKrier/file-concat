@@ -232,6 +232,45 @@ export function tableWithEmptyCellPdf(): Uint8Array {
 }
 
 /**
+ * A page whose text cannot be decoded into characters, beside a line that can.
+ *
+ * A PDF stores a character as a number and leaves it to the font to say which
+ * letter that number is. This one's font is `Identity-H` with no `/ToUnicode`
+ * and nothing embedded, which is the real shape of the defect: the numbers are
+ * glyph ids in a font nobody has, so there is no map from them to letters and
+ * every reader answers with the numbers read as if they were characters.
+ *
+ * The tell is the space: at 0x0003 it comes back as a control character rather
+ * than a space, which is why the words run together.
+ */
+export function undecodableTextPdf(withReadableLine = true): Uint8Array {
+  // "readable" in glyph ids nobody can resolve, with 0x0003 where spaces went.
+  const broken = "<0175000301760003015D>";
+  const readable = withReadableLine ? `BT /F2 12 Tf 72 720 Td (A line that decodes) Tj ET\n` : "";
+  return assemblePdf([
+    ascii("<< /Type /Catalog /Pages 2 0 R >>"),
+    ascii("<< /Type /Pages /Kids [3 0 R] /Count 1 >>"),
+    ascii(
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] ` +
+        `/Resources << /Font << /F1 5 0 R /F2 7 0 R >> >> /Contents 4 0 R >>`,
+    ),
+    stream(
+      "",
+      ascii(readable + `BT /F1 12 Tf 72 700 Td ${broken} Tj ET`),
+    ),
+    ascii(
+      `<< /Type /Font /Subtype /Type0 /BaseFont /NoSuchFont /Encoding /Identity-H ` +
+        `/DescendantFonts [6 0 R] >>`,
+    ),
+    ascii(
+      `<< /Type /Font /Subtype /CIDFontType2 /BaseFont /NoSuchFont ` +
+        `/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /DW 1000 >>`,
+    ),
+    ascii("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"),
+  ]);
+}
+
+/**
  * A PDF whose page is nothing but a picture — the shape a scanner produces.
  * There is no `/Font` anywhere, so there is no text to read however hard a
  * parser tries; the only route to its content is OCR over the pixels.
