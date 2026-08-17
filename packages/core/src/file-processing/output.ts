@@ -21,6 +21,10 @@ export interface OutputFile {
   path: string;
   content: string;
   language?: string;
+  /** Some or all of this file's text came from recognition — read off pixels
+   * rather than carried by the format. The bundle says so, because a guess at
+   * the characters must not read as the file's own (ADR-0017). */
+  recognised?: boolean;
 }
 
 export interface OutputPart {
@@ -70,8 +74,23 @@ function buildSummaryLines(options: AssembleOutputOptions, meta: KindMeta): stri
     part ? `Part ${part.index} of ${part.total}.` : null,
     source ? `Source: ${source}` : null,
     `File count: ${files.length}.`,
+    ...renderRecognised(files),
     ...renderExclusions(excluded),
   ].filter((line): line is string => line !== null);
+}
+
+/**
+ * Names the files whose text is a machine reading of pixels rather than
+ * characters the format spelled out (ADR-0017). Says "text below" rather than
+ * naming the file, because a PDF whose undecodable pages alone were redrawn is
+ * part extraction and part guess.
+ */
+function renderRecognised(files: OutputFile[]): string[] {
+  const paths = files.filter((f) => f.recognised).map((f) => f.path);
+  if (!paths.length) return [];
+  return [
+    `- text below was read by recognition, a guess at the characters rather than the file's own: ${listPaths(paths)}`,
+  ];
 }
 
 /** Format one category's path list, capping at {@link MAX_LISTED}. */
