@@ -74,10 +74,11 @@ export function FilteringSection() {
       </div>
 
       <div className="mx-auto mt-5 max-w-[760px]">
-        <InfoCard tone="info" icon={ImageOff} title="Images need a different tool">
+        <InfoCard tone="info" icon={ImageOff} title="Images are skipped, unless you say otherwise">
           <p>
-            Images aren&apos;t text, so they can&apos;t be combined into the document. Reading them
-            takes a vision model, which is a separate job from bundling files.
+            An image isn&apos;t text, so it never joins the bundle on its own. If one is holding
+            writing, FileConcat can read the writing off it here in the browser, on request.
+            Describing what a picture shows is a different job and still needs a vision model.
           </p>
         </InfoCard>
       </div>
