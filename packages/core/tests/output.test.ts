@@ -334,3 +334,38 @@ describe("assembleOutput exclusions note", () => {
     expect(output).toContain("+4 more");
   });
 });
+
+describe("assembleOutput recognition note", () => {
+  const scan = { path: "scans/receipt.pdf", content: "TOTAL 42.00", recognised: true };
+
+  it("names the recognised files and calls the characters a guess", () => {
+    const output = assembleOutput({
+      projectName: "demo",
+      files: [...files, scan],
+      tree,
+      style: "xml",
+    });
+    expect(output).toContain(
+      "- text below was read by recognition, a guess at the characters rather than the file's own: scans/receipt.pdf",
+    );
+  });
+
+  it("says nothing when no file was recognised", () => {
+    const output = assembleOutput({ projectName: "demo", files, tree, style: "xml" });
+    expect(output).not.toContain("read by recognition");
+  });
+
+  it("caps the list like every other path list", () => {
+    const many = Array.from({ length: 13 }, (_, i) => ({
+      path: `scans/${i}.pdf`,
+      content: "x",
+      recognised: true,
+    }));
+    const output = assembleOutput({ projectName: "demo", files: many, tree, style: "xml" });
+    // The paths also appear as file blocks, so assert against the line itself.
+    const line = output.split("\n").find((l) => l.includes("read by recognition"))!;
+    expect(line).toContain("scans/9.pdf");
+    expect(line).not.toContain("scans/10.pdf");
+    expect(line).toContain("+3 more");
+  });
+});

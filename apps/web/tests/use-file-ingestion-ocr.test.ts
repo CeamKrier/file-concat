@@ -10,17 +10,24 @@ import { DEFAULT_CONFIG } from "@fileconcat/core";
  * document's standing after a pass, which is the part that decides whether a
  * second language can quietly delete the first one's text.
  */
+/** Extension → the format the real router would report for an image's bytes. */
+const IMAGE_FORMATS: Record<string, string> = { png: "png", jpg: "jpeg", webp: "webp" };
+
 vi.mock("~/lib/prepare-batch", () => ({
   prepareBatch: (incoming: { file: File; path?: string }[]) => ({
     files: incoming.map((item) => {
       const path = item.path ?? item.file.name;
+      const extension = path.split(".").pop() ?? "";
       return {
         item,
         path,
         // Format off the extension. The real router reads bytes and never a
         // name; this stub only has to hand the hook the same shape, and the
-        // format is what decides whether a document could be a scan.
-        route: { kind: "extract", parserId: "office", format: path.split(".").pop() },
+        // format is what decides whether a document could be a scan — or, for
+        // an image, whether recognition can be offered over it at all.
+        route: IMAGE_FORMATS[extension]
+          ? { kind: "binary", format: IMAGE_FORMATS[extension] }
+          : { kind: "extract", parserId: "office", format: extension },
       };
     }),
     expandedCount: 0,
@@ -47,14 +54,30 @@ vi.mock("~/lib/ocr", () => ({
     onDocumentRead?.(path);
     return { text: READINGS.get(path)?.[language] ?? "" };
   },
+  // An image's bytes are a real PNG header, so this one keys on the name.
+  recogniseImageWithOcr: async (file: File, language: string) => {
+    attempts.push({ path: file.name, language });
+    onDocumentRead?.(file.name);
+    return { text: READINGS.get(file.name)?.[language] ?? "", confidence: 90 };
+  },
 }));
 
+/** counter name → the rows it was last written with. Only non-empty writes. */
+type Row = { n: number; b: number };
+const TALLIES = new Map<string, Map<string, Row>>();
+
 vi.mock("~/lib/metrics", () => ({
-  addToTally: (tally: Map<string, unknown>, key: string) => tally.set(key, {}),
+  // Faithful enough to assert quantities on, which the old no-op stub was not.
+  addToTally: (tally: Map<string, Row>, key: string, bytes = 0) => {
+    const row = tally.get(key) ?? { n: 0, b: 0 };
+    tally.set(key, { n: row.n + 1, b: row.b + bytes });
+  },
   startRun: () => {},
   track: () => {},
   trackAmount: () => {},
-  trackTally: () => {},
+  trackTally: (name: string, tally: Map<string, Row>) => {
+    if (tally.size > 0) TALLIES.set(name, new Map(tally));
+  },
 }));
 
 vi.mock("~/lib/clarity-tags", () => ({ tagDrop: () => {}, tagSource: () => {} }));
@@ -66,10 +89,18 @@ function scan(path: string): { file: File; path: string } {
   return { file: new File([path], path.split("/").pop() ?? path), path };
 }
 
+/** An image, with bytes the core classifier really does call binary — the stub
+ * router says `binary`, but `validateFile` is the genuine article here. */
+function image(path: string): { file: File; path: string } {
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...Array(64).fill(7)]);
+  return { file: new File([png], path.split("/").pop() ?? path), path };
+}
+
 const originalLanguages = Object.getOwnPropertyDescriptor(navigator, "languages");
 
 beforeEach(() => {
   READINGS.clear();
+  TALLIES.clear();
   attempts = [];
   onDocumentRead = null;
   Object.defineProperty(navigator, "languages", { value: ["en-US"], configurable: true });
@@ -90,7 +121,10 @@ describe("recognition over a drop", () => {
     });
 
     expect(attempts).toEqual([{ path: "a.pdf", language: "tur" }]);
-    expect(result.current.entries).toEqual([{ path: "a.pdf", content: "Merve Çakır" }]);
+    // Flagged, so the bundle can say the characters are a guess (ADR-0017).
+    expect(result.current.entries).toEqual([
+      { path: "a.pdf", content: "Merve Çakır", recognised: true },
+    ]);
     expect(result.current.readLanguage?.code).toBe("tur");
     // Recovered is derived from the two lists, so it can never drift from them.
     expect(result.current.recoveredDocuments).toBe(1);
@@ -110,6 +144,89 @@ describe("recognition over a drop", () => {
 
     expect(result.current.validations["a.pdf"].recognitionTried).toBe(true);
     expect(result.current.unreadDocuments.map((d) => d.path)).toEqual(["a.pdf"]);
+  });
+});
+
+describe("images", () => {
+  it("offers them without reading them", async () => {
+    READINGS.set("shot.png", { eng: "TOTAL 42.00" });
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([image("shot.png")]);
+    });
+
+    // The whole of ADR-0017: an image is a candidate, and nothing happens until
+    // someone asks. A reading was available and was deliberately not taken.
+    expect(attempts).toEqual([]);
+    expect(result.current.scannedDocuments.map((d) => d.path)).toEqual(["shot.png"]);
+    expect(result.current.unreadDocuments.map((d) => d.path)).toEqual(["shot.png"]);
+    expect(result.current.validations["shot.png"].recognitionTried).toBeUndefined();
+  });
+
+  it("reads the document in a mixed drop and leaves the images alone", async () => {
+    READINGS.set("a.pdf", { eng: "Statement" });
+    READINGS.set("one.png", { eng: "ignored" });
+    READINGS.set("two.webp", { eng: "ignored" });
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([scan("a.pdf"), image("one.png"), image("two.webp")]);
+    });
+
+    // A document earned its pass by failing extraction first; the images did not.
+    expect(attempts).toEqual([{ path: "a.pdf", language: "eng" }]);
+    expect(result.current.entries.find((e) => e.path === "a.pdf")?.content).toBe("Statement");
+    expect(result.current.unreadDocuments.map((d) => d.path)).toEqual(["one.png", "two.webp"]);
+  });
+
+  it("puts a chosen image's reading into the bundle, marked as a guess", async () => {
+    READINGS.set("receipt.png", { deu: "SUMME 42,00" });
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([image("receipt.png"), image("logo.png")]);
+    });
+    await act(async () => {
+      await result.current.readSelected(["receipt.png"], "de");
+    });
+
+    expect(attempts).toEqual([{ path: "receipt.png", language: "deu" }]);
+    expect(result.current.entries.find((e) => e.path === "receipt.png")).toEqual({
+      path: "receipt.png",
+      content: "SUMME 42,00",
+      recognised: true,
+    });
+    // Recognition turns a Binary file into a Text file for this Run, or the
+    // curation lock (ADR-0009) would keep it out of the bundle it just joined.
+    expect(result.current.validations["receipt.png"].classification).toBe("text");
+    // The one nobody chose is untouched, still on offer.
+    expect(result.current.unreadDocuments.map((d) => d.path)).toEqual(["logo.png"]);
+    expect(result.current.validations["logo.png"].recognitionTried).toBeUndefined();
+  });
+
+  it("counts the offer and the take separately, which is the whole measurement", async () => {
+    READINGS.set("receipt.png", { eng: "SUMME 42,00" });
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([image("receipt.png"), image("logo.png")]);
+    });
+
+    // Offered at ingest, whether or not anyone ever presses anything. Without
+    // this, "never pressed" and "pressed, found nothing" are the same number.
+    expect(TALLIES.get("ocr_offered")?.get("png")?.n).toBe(2);
+    expect(TALLIES.get("ocr_read")).toBeUndefined();
+
+    await act(async () => {
+      await result.current.readSelected(["receipt.png", "logo.png"], "en");
+    });
+
+    // Both were opened; only one cleared the floor, and the confidence band is
+    // recorded for both — the rejections are what say whether the floor is right.
+    expect(TALLIES.get("ocr_read")?.get("png")?.n).toBe(2);
+    expect(TALLIES.get("ocr_conf")?.get("90")?.n).toBe(2);
+    expect(TALLIES.get("ocr_recovered")?.get("png")?.n).toBe(1);
   });
 });
 

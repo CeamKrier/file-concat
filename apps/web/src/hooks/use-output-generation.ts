@@ -237,6 +237,7 @@ function chunkContents(files: ContentEntry[], target: number): ContentEntry[][] 
         const end = Math.min((i + 1) * target, fileSize);
         chunks.push([
           {
+            ...file,
             path: `${file.path} (part ${i + 1}/${parts})`,
             content: file.content.slice(start, end),
           },

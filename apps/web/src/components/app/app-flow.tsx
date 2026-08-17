@@ -32,6 +32,7 @@ import { ResultView } from "./result-view";
 import { ResultEmpty } from "./result-empty";
 import { ReadingDialog } from "./reading-dialog";
 import { emptyKindFor, emptyReasonSlug } from "./empty-kind";
+import { isRecognisableImage } from "~/hooks/use-file-ingestion";
 import { SettingsDrawer } from "./settings-drawer";
 
 type Phase = "landing" | "processing" | "result";
@@ -145,7 +146,11 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     const transform = config.showLineNumbers ? addLineNumbers : null;
     return ingestion.entries
       .filter((e) => included.has(e.path))
-      .map((e) => ({ path: e.path, content: transform ? transform(e.content) : e.content }));
+      .map((e) => ({
+        path: e.path,
+        content: transform ? transform(e.content) : e.content,
+        recognised: e.recognised,
+      }));
   }, [ingestion.entries, filter.fileStatuses, config.showLineNumbers]);
 
   // Real content gaps the model can't see in the tree (ADR-0008). Reported in
@@ -317,9 +322,37 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       filter.fileStatuses.filter((s) => !s.included && s.classification !== "binary").length,
     [filter.fileStatuses],
   );
+  /**
+   * The two populations recognition can read, told apart by format (ADR-0017).
+   * They share every mechanism and differ in one thing: a document's pass starts
+   * by itself, so an unread document is a gap, while an unread image is only an
+   * offer nobody has taken. One count for both would say neither.
+   */
+  const recognition = useMemo(() => {
+    const isImage = (d: { format: string }) => isRecognisableImage(d.format);
+    const images = ingestion.scannedDocuments.filter(isImage);
+    const unreadImages = ingestion.unreadDocuments.filter(isImage);
+    return {
+      imageCount: images.length,
+      recognisedImages: images.length - unreadImages.length,
+      unreadDocumentCount: ingestion.unreadDocuments.length - unreadImages.length,
+      // Only the ones no pass has been over yet. Once recognition has looked and
+      // found nothing, the offer is spent and the empty screen says so instead.
+      offerableImageCount: unreadImages.filter(
+        (d) => ingestion.validations[d.path]?.recognitionTried !== true,
+      ).length,
+    };
+  }, [ingestion.scannedDocuments, ingestion.unreadDocuments, ingestion.validations]);
+
   const emptyKind = useMemo(
-    () => emptyKindFor(droppedFiles, ingestion.unreadDocuments.length, adjustableCount),
-    [droppedFiles, ingestion.unreadDocuments, adjustableCount],
+    () =>
+      emptyKindFor(
+        droppedFiles,
+        recognition.unreadDocumentCount,
+        adjustableCount,
+        recognition.offerableImageCount,
+      ),
+    [droppedFiles, recognition, adjustableCount],
   );
 
   /**
@@ -573,6 +606,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               stoppedReading={ingestion.stoppedReading}
               onRead={ingestion.readUnreadDocuments}
               onStopReading={ingestion.stopReading}
+              onOfferRead={() => setReadingOpen(true)}
             />
           ) : (
             <ResultView
@@ -599,10 +633,16 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               flaggedFiles={flaggedFiles}
               extractedFiles={extractedFiles}
               partialDocuments={partialDocuments}
-              scannedDocumentCount={ingestion.scannedDocuments.length}
+              scannedDocumentCount={
+                ingestion.scannedDocuments.length - recognition.imageCount
+              }
+              imageCount={recognition.imageCount}
+              recognisedImages={recognition.recognisedImages}
               isReading={ingestion.isReading}
               readProgress={ingestion.readProgress}
-              recoveredDocuments={ingestion.recoveredDocuments}
+              recoveredDocuments={
+                ingestion.recoveredDocuments - recognition.recognisedImages
+              }
               stoppedReading={ingestion.stoppedReading}
               readLanguageNote={readLanguageNote}
               onCheckReading={() => setReadingOpen(true)}

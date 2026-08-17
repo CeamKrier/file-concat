@@ -40,6 +40,70 @@ export function extractOfficeWithOcr(
 }
 
 /**
+ * The longest side an image is scaled to before it is read. Recognition works
+ * from roughly 300 DPI and a phone photo arrives at several times that, where
+ * the extra pixels cost seconds and buy nothing. A guess, like the floor in
+ * `ocr.ts`; `ocr_conf` is what will say whether it is set too low.
+ */
+const MAX_IMAGE_SIDE = 2000;
+
+/**
+ * Read the writing off an image (ADR-0017). Returns the reading and tesseract's
+ * mean confidence in it; the caller decides whether that clears the floor.
+ *
+ * The picture goes through a canvas first, for two reasons that both bite. A
+ * PNG is transparent where nothing is drawn, and black-on-transparent reads as
+ * black-on-black — the same trap as a rendered PDF page. And an oversized image
+ * is scaled down there rather than sent whole.
+ *
+ * A format the browser cannot decode goes to the recogniser untouched: TIFF is
+ * the live case, since no current browser gives `createImageBitmap` a TIFF and
+ * tesseract reads one directly.
+ */
+export async function recogniseImage(
+  file: File,
+  language: string,
+): Promise<{ text: string; confidence: number }> {
+  const { createWorker } = await import("tesseract.js");
+  const image = await flattenImage(file);
+  const worker = await createWorker(language);
+  try {
+    const { data } = await worker.recognize(image);
+    return { text: data.text.trim(), confidence: data.confidence };
+  } finally {
+    await worker.terminate();
+  }
+}
+
+/** The image on an opaque white ground, scaled to {@link MAX_IMAGE_SIDE}, or the
+ * original file when the browser cannot decode it. */
+async function flattenImage(file: File): Promise<Blob> {
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    return file;
+  }
+  try {
+    const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) return file;
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve));
+    canvas.width = 0;
+    canvas.height = 0;
+    return blob ?? file;
+  } finally {
+    bitmap.close();
+  }
+}
+
+/**
  * How large the page is drawn before it is read. Measured 2026-08-16 against the
  * real document that prompted this: at 2 every row of its border-crossing table
  * came back correct in 900 ms, at 3 a date came back as `24106/2024` for 1682 ms,

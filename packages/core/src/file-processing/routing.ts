@@ -18,8 +18,14 @@ import { matchTextualSignature, type TextualFormat } from "./text-signatures";
 export const ROUTER_SNIFF_BYTES = 8192;
 
 export type FileRoute =
-  /** A known media/executable container. Nothing is loaded and nothing is decoded. */
-  | { kind: "binary" }
+  /**
+   * A known media/executable container. Nothing is loaded and nothing is
+   * decoded. `format` is set when a signature named it (`png`, `mp4`, …), so a
+   * caller can offer recognition over the raster ones — see
+   * {@link RECOGNISABLE_IMAGE_FORMATS}. Absent when the byte classifier, not a
+   * signature, is what called the file binary.
+   */
+  | { kind: "binary"; format?: string }
   /** A document container: load `parserId` and include the text it recovers. */
   | { kind: "extract"; parserId: ParserId; format: string }
   /** An archive: unpack it, and let every entry face classification on its own. */
@@ -102,7 +108,8 @@ function loadDetector(): Promise<Detector> {
 export async function routeBytes(prefix: Uint8Array): Promise<FileRoute> {
   // Cheap and synchronous, and it settles the most common binaries (images,
   // video) without loading the detector at all. See ADR-0007.
-  if (matchesBinarySignature(prefix)) return { kind: "binary" };
+  const signature = matchesBinarySignature(prefix);
+  if (signature) return { kind: "binary", format: signature };
 
   const fileTypeFromBuffer = await loadDetector();
   const detected = await fileTypeFromBuffer(prefix);

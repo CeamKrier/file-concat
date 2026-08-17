@@ -10,7 +10,8 @@ import {
 } from "~/components/ui/dialog";
 import { cn } from "~/lib/utils";
 
-/** One scanned document, as the reading dialog needs to talk about it. */
+/** One file recognition can read — a scanned document or an image — as the
+ * reading dialog needs to talk about it. */
 export type ReadingDocument = {
   path: string;
   /** Basename, which is all anyone reads in a list. */
@@ -70,7 +71,7 @@ export function ReadingDialog({
           </DialogTitle>
           <DialogDescription className="text-ink-secondary text-[13px] leading-relaxed">
             Recognition guesses at characters, so a reading in the wrong language comes back looking
-            like a success. This is what it made of each document.
+            like a success. This is what it made of each file.
           </DialogDescription>
         </DialogHeader>
         {/* Remounts on every open, so the selection and the language below start
@@ -232,7 +233,7 @@ function ReadingPanel({
                   checked={selected.has(document.path)}
                   onChange={() => toggle(document.path)}
                   disabled={isReading}
-                  aria-label={`Read ${document.name} again`}
+                  aria-label={`Read ${document.name}`}
                   className="accent-primary border-border-strong focus-visible:ring-ring focus-visible:ring-offset-surface mt-1 h-4 w-4 shrink-0 cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               )}
@@ -343,7 +344,7 @@ function ReadingPanel({
             <ScanText className="h-4 w-4" strokeWidth={2} />
             {paths.length === 0
               ? "Nothing selected"
-              : `Read ${paths.length} ${paths.length === 1 ? "document" : "documents"}`}
+              : `Read ${paths.length} ${paths.length === 1 ? "file" : "files"}`}
           </button>
         )}
       </div>

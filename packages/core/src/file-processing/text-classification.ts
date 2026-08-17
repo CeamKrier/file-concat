@@ -89,7 +89,7 @@ export function classifyBytes(bytes: Uint8Array): DecodedText {
   // Media containers (images, video) can lead with a large text metadata header
   // — a C2PA/XMP block on AI-generated images — that a fixed-size content sniff
   // would read as legible text. Their signature is the ground truth. See ADR-0007.
-  if (matchesBinarySignature(bytes)) {
+  if (matchesBinarySignature(bytes) !== null) {
     return { classification: "binary", text: "", encoding: "binary" };
   }
   const { text, encoding } = decode(bytes);
