@@ -28,6 +28,12 @@ type ResultEmptyProps = {
   onRead?: () => Promise<number>;
   /** Abandon the rest of a running pass. */
   onStopReading?: () => void;
+  /**
+   * Open the reading dialog. Only for `recognisable`: an image's pass is never
+   * automatic, and the language and the subset are both worth choosing before
+   * spending seconds an image (ADR-0017).
+   */
+  onOfferRead?: () => void;
 };
 
 // One rescue component, three voices, keyed by what was actually dropped. The
@@ -39,6 +45,15 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
     title: "These look like images, not text",
     body: "FileConcat bundles text (code, docs, configs and data) into one document. Images and binaries can't be combined this way, so nothing was left to pack.",
     cta: "Try a folder of files instead",
+  },
+  // Images, before anyone has looked. Not a dead end and not a promise either:
+  // recognition reads writing off pixels, and whether these particular pixels
+  // hold any is a thing only trying can settle (ADR-0017).
+  recognisable: {
+    icon: ScanText,
+    title: "These are images",
+    body: "Text can be read off them, here in the browser. FileConcat won't do it on its own, because an icon and a photographed page look alike until the work is done: a few seconds an image, plus a one-time 5 MB language download.",
+    cta: "Read them",
   },
   archive: {
     icon: Archive,
@@ -109,6 +124,7 @@ export function ResultEmpty({
   stoppedReading = false,
   onRead,
   onStopReading,
+  onOfferRead,
 }: ResultEmptyProps) {
   const { icon: Icon, title, body, cta } = COPY[kind];
   // `filtered` leads with the drawer and keeps starting over as the quiet way
@@ -122,8 +138,18 @@ export function ResultEmpty({
   const primary =
     kind === "filtered"
       ? (adjust ?? startOver)
-      : { label: cta, icon: null, onClick: onStartOver };
-  const secondary = kind === "filtered" ? (adjust ? startOver : null) : adjust;
+      : kind === "recognisable" && onOfferRead
+        ? { label: cta, icon: ScanText, onClick: onOfferRead }
+        : { label: cta, icon: null, onClick: onStartOver };
+  // Every variant but `filtered` puts Start over in front, so Adjust underneath
+  // is enough. `recognisable` is the exception: its front button is the offer,
+  // so without this there is no way out of the screen except taking it.
+  const secondary =
+    kind === "filtered"
+      ? (adjust ? startOver : null)
+      : kind === "recognisable"
+        ? startOver
+        : adjust;
   const extensions = extensionHistogram(droppedFiles);
   const shownExts = extensions.slice(0, MAX_EXT_CHIPS);
   const extraExts = extensions.length - shownExts.length;
@@ -169,6 +195,11 @@ export function ResultEmpty({
           onStartOver={onStartOver}
           onAdjust={onAdjust}
         />
+      ) : kind === "recognisable" && isReading ? (
+        // A pass someone started from the dialog, seen from the screen behind
+        // it. The dialog carries its own stop; this one is for the case where it
+        // was closed mid-pass.
+        <ReadingProgress progress={readProgress} onStop={onStopReading} />
       ) : (
         <div className="mt-7 flex flex-col items-center gap-3">
           <button
@@ -192,6 +223,43 @@ export function ResultEmpty({
         </div>
       )}
     </section>
+  );
+}
+
+/** A pass in flight, and the way out of it. Shared by both variants that can
+ * have one running behind them. */
+function ReadingProgress({
+  progress,
+  onStop,
+}: {
+  progress: { done: number; total: number } | null;
+  onStop?: () => void;
+}) {
+  return (
+    <div className="mt-7 flex flex-col items-center gap-3">
+      <div className="text-ink-secondary flex items-center gap-2.5 text-sm" aria-live="polite">
+        <LoaderCircle
+          className="text-info h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
+          strokeWidth={2}
+        />
+        {/* `done` counts finished files, so the one in hand is the next index.
+            Clamped, or the last one reads "3 of 2" for the moment between its
+            result landing and the pass ending. */}
+        <span>
+          Reading
+          {progress ? ` ${Math.min(progress.done + 1, progress.total)} of ${progress.total}` : ""}…
+        </span>
+      </div>
+      {onStop && (
+        <button
+          type="button"
+          onClick={onStop}
+          className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm px-2 py-1 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+        >
+          Stop reading
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -235,34 +303,7 @@ function ReadAction({
       Adjust what&apos;s included
     </button>
   ) : null;
-  if (isReading) {
-    return (
-      <div className="mt-7 flex flex-col items-center gap-3">
-        <div className="text-ink-secondary flex items-center gap-2.5 text-sm" aria-live="polite">
-          <LoaderCircle
-            className="text-info h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
-            strokeWidth={2}
-          />
-          {/* `done` counts finished documents, so the one in hand is the next
-              index. Clamped, or the last one reads "3 of 2" for the moment
-              between its result landing and the pass ending. */}
-          <span>
-            Reading
-            {progress ? ` ${Math.min(progress.done + 1, progress.total)} of ${progress.total}` : ""}…
-          </span>
-        </div>
-        {onStop && (
-          <button
-            type="button"
-            onClick={onStop}
-            className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm px-2 py-1 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-          >
-            Stop reading
-          </button>
-        )}
-      </div>
-    );
-  }
+  if (isReading) return <ReadingProgress progress={progress} onStop={onStop} />;
 
   // Stopped with nothing recovered, so the screen never changed. Offer the way
   // back in; the pages already read (if any) took the flow to the result view.

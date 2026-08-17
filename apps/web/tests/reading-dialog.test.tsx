@@ -76,7 +76,7 @@ describe("the reading dialog", () => {
       documents: [doc("a.pdf", "one"), doc("b.pdf", "two")],
     });
 
-    await userEvent.click(screen.getByRole("button", { name: "Read 2 documents" }));
+    await userEvent.click(screen.getByRole("button", { name: "Read 2 files" }));
     expect(onRead).toHaveBeenCalledWith(["scans/a.pdf", "scans/b.pdf"], "tr");
   });
 
@@ -85,7 +85,7 @@ describe("the reading dialog", () => {
       documents: [doc("a.pdf", "already read"), doc("b.pdf", "", false)],
     });
 
-    await userEvent.click(screen.getByRole("button", { name: "Read 1 document" }));
+    await userEvent.click(screen.getByRole("button", { name: "Read 1 file" }));
     expect(onRead).toHaveBeenCalledWith(["scans/b.pdf"], "tr");
   });
 
@@ -96,9 +96,9 @@ describe("the reading dialog", () => {
 
     // Both start ticked (everything is read), so untick the English one and
     // send just the Arabic one through an Arabic pass.
-    await userEvent.click(screen.getByRole("checkbox", { name: "Read en.pdf again" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Read en.pdf" }));
     await userEvent.selectOptions(screen.getByRole("combobox"), "ar");
-    await userEvent.click(screen.getByRole("button", { name: "Read 1 document" }));
+    await userEvent.click(screen.getByRole("button", { name: "Read 1 file" }));
 
     expect(onRead).toHaveBeenCalledWith(["scans/ar.pdf"], "ar");
   });
@@ -107,7 +107,7 @@ describe("the reading dialog", () => {
     open({ documents: [doc("a.pdf", "one")] });
 
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Read 1 document" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Read 1 file" })).toBeEnabled();
   });
 
   it("refuses an empty pass rather than silently reading everything", async () => {
@@ -115,8 +115,8 @@ describe("the reading dialog", () => {
       documents: [doc("a.pdf", "one"), doc("b.pdf", "two")],
     });
 
-    await userEvent.click(screen.getByRole("checkbox", { name: "Read a.pdf again" }));
-    await userEvent.click(screen.getByRole("checkbox", { name: "Read b.pdf again" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Read a.pdf" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Read b.pdf" }));
 
     const button = screen.getByRole("button", { name: "Nothing selected" });
     expect(button).toBeDisabled();

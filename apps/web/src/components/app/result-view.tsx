@@ -56,6 +56,10 @@ type ResultViewProps = {
   partialDocuments: UnsupportedFile[];
   /** Every document in this Run that opened with no text in it, recovered or not. */
   scannedDocumentCount: number;
+  /** Images in this Run recognition could be offered over, read or not. */
+  imageCount: number;
+  /** How many of those a pass has already read. */
+  recognisedImages: number;
   /** True while a recognition pass is running. */
   isReading: boolean;
   /** Recognition progress, or null when idle. */
@@ -102,6 +106,8 @@ export function ResultView({
   extractedFiles,
   partialDocuments,
   scannedDocumentCount,
+  imageCount,
+  recognisedImages,
   isReading,
   readProgress,
   recoveredDocuments,
@@ -171,6 +177,17 @@ export function ResultView({
         progress={readProgress}
         stopped={stoppedReading}
         languageNote={readLanguageNote}
+        onCheck={onCheckReading}
+      />
+
+      {/* Its own card, never a row inside the one above. An image was never
+          promised as text, so it is not a gap in the bundle the way a scan is —
+          it is an offer, and the two must not be read as one number. */}
+      <RecognisableImages
+        total={imageCount}
+        read={recognisedImages}
+        isReading={isReading}
+        progress={readProgress}
         onCheck={onCheckReading}
       />
 
@@ -536,6 +553,86 @@ function ScannedDocuments({
       {stopped
         ? `Recognition never got to ${total === 1 ? "it" : "them"}, so ${total === 1 ? "it holds" : "they hold"} nothing yet.`
         : `Recognition found no writing in ${total === 1 ? "it" : "them"} either. That usually means the ${noun(total)} ${total === 1 ? "is" : "are"} encrypted, the pages really are blank, or the language was wrong.`}
+    </ReadingCard>
+  );
+}
+
+/**
+ * The other population recognition can read: images (ADR-0017). A separate card
+ * from the one above and deliberately so — a scan is a document that failed to
+ * deliver what its format promised, while an image promised nothing, so folding
+ * the two into one count would invent a gap that is not there.
+ *
+ * Which is also why the untried state is an offer and not a warning: nobody
+ * knows whether these hold writing, and the copy must not imply they do. The
+ * word "document" never appears here.
+ */
+function RecognisableImages({
+  total,
+  read,
+  isReading,
+  progress,
+  onCheck,
+}: {
+  total: number;
+  read: number;
+  isReading: boolean;
+  progress: { done: number; total: number } | null;
+  onCheck: () => void;
+}) {
+  if (total === 0) return null;
+
+  const noun = (n: number) => (n === 1 ? "image" : "images");
+
+  if (isReading) {
+    const running = progress?.total ?? total;
+    return (
+      <ReadingCard
+        tone="info"
+        icon={ScanText}
+        title={`Reading ${progress ? `${Math.min(progress.done + 1, running)} of ${running}` : running}…`}
+        cta="Check the reading"
+        onCheck={onCheck}
+        busy
+      >
+        Recognising the pictures, here in the browser. Copy and Download wait for it, because the
+        text lands in the bundle only when the pass ends.
+      </ReadingCard>
+    );
+  }
+
+  if (read > 0) {
+    return (
+      <ReadingCard
+        tone="go"
+        icon={Check}
+        title={
+          read < total
+            ? `Read ${read} of ${total} ${noun(total)}`
+            : total === 1
+              ? "Read the image"
+              : `Read all ${total} images`
+        }
+        cta="Check the reading"
+        onCheck={onCheck}
+      >
+        {read === total
+          ? "Recognition guesses at characters, so the words in the bundle are close rather than exact. Worth a look before you trust them."
+          : `Nothing legible came back from the other ${total - read}. That is the ordinary answer for a picture with no writing in it.`}
+      </ReadingCard>
+    );
+  }
+
+  return (
+    <ReadingCard
+      tone="info"
+      icon={ScanText}
+      title={`${total} ${noun(total)} might be holding text`}
+      cta="Read them"
+      onCheck={onCheck}
+    >
+      Recognition can read writing off a picture, here in the browser. It is never started for you:
+      a few seconds an image, and only you know whether these are pages or decoration.
     </ReadingCard>
   );
 }

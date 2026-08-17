@@ -32,6 +32,42 @@ describe("the scanned rescue", () => {
 });
 
 /**
+ * A drop of nothing but images. Not a dead end while the offer stands, and a
+ * dead end the moment recognition has been over them and found nothing — which
+ * is exactly when the old `image` copy becomes true (ADR-0017).
+ */
+describe("the image offer", () => {
+  it("replaces the image dead end while the offer is untaken", () => {
+    expect(emptyKindFor(["a.png", "b.jpg"], 0, 0, 2)).toBe("recognisable");
+    // Spent: a pass looked and found nothing, so there is nothing left to offer.
+    expect(emptyKindFor(["a.png", "b.jpg"], 0, 0, 0)).toBe("image");
+  });
+
+  it("yields to the rescues that are not about images", () => {
+    expect(emptyKindFor(["scan.pdf", "a.png"], 1, 0, 1)).toBe("scanned");
+    expect(emptyKindFor(["a.min.js", "a.png"], 0, 1, 1)).toBe("filtered");
+  });
+
+  it("opens the reading dialog rather than starting a pass on its own", async () => {
+    const onOfferRead = vi.fn();
+    render(
+      <ResultEmpty
+        droppedFiles={["shot.png"]}
+        kind="recognisable"
+        onStartOver={vi.fn()}
+        onOfferRead={onOfferRead}
+      />,
+    );
+
+    expect(screen.getByText("These are images")).toBeTruthy();
+    await act(async () => {
+      screen.getByRole("button", { name: /read them/i }).click();
+    });
+    expect(onOfferRead).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
  * The drop that is not broken at all: readable files, every one of them eaten
  * by a pattern. Calling those binary was a lie, and Start over would have
  * dropped the same files into the same filters.

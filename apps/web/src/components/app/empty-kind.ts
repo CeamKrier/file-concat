@@ -1,4 +1,4 @@
-export type EmptyKind = "image" | "archive" | "scanned" | "filtered" | "other";
+export type EmptyKind = "image" | "recognisable" | "archive" | "scanned" | "filtered" | "other";
 
 /**
  * Which rescue a drop that combined nothing earns, from what was dropped and
@@ -20,6 +20,7 @@ export function emptyKindFor(
   droppedFiles: string[],
   unreadDocumentCount: number,
   excludedReadableCount = 0,
+  offerableImageCount = 0,
 ): EmptyKind {
   if (droppedFiles.length === 0) return "other";
   if (unreadDocumentCount > 0) return "scanned";
@@ -27,6 +28,11 @@ export function emptyKindFor(
   const ARCHIVE = /\.(7z|rar|zip|tar\.gz|tgz|tar|gz|bz2|xz)$/i;
   const IMAGE = /\.(png|jpe?g|gif|webp|svg|bmp|ico|avif|heic|heif|tiff?)$/i;
   if (droppedFiles.some((n) => ARCHIVE.test(n))) return "archive";
+  // Images whose pixels might hold writing and that nobody has tried yet: an
+  // offer, not a dead end (ADR-0017). Once a pass has been over them the count
+  // is zero and the drop falls through to `image`, which is finally telling the
+  // truth when it does — recognition looked and found nothing.
+  if (offerableImageCount > 0) return "recognisable";
   const images = droppedFiles.filter((n) => IMAGE.test(n)).length;
   if (images > 0 && images >= droppedFiles.length / 2) return "image";
   return "other";
