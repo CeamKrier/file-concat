@@ -46,7 +46,15 @@ export const METRIC_EVENTS = [
   "max_file_bytes",
   /** How many files exceeded a named threshold: value `1mb` | `10mb` | `32mb`, count in `n`. */
   "files_over",
-  /** An extension whose bytes we could not turn into text at all. Drives which format to build next. */
+  /**
+   * An extension whose bytes we could not turn into text at all. Drives which
+   * format to build next.
+   *
+   * Written **at ingest**, before recognition is even offered, so an image this
+   * Run later reads still sits in here. That is deliberate — the series has to
+   * stay comparable across the build that added image recognition — but it means
+   * this is never the count of what stayed unread. `ocr_read` is.
+   */
   "unreadable_ext",
   /** A format we do support whose reader returned nothing (scanned or encrypted). The OCR business case. */
   "extract_failed",
@@ -95,10 +103,16 @@ export const METRIC_EVENTS = [
   /** The terminal action: copy | download. May occur more than once per run. */
   "output_taken",
   /**
-   * A format whose text OCR recovered after the ordinary reader returned
-   * nothing: `n` files totalling `b` bytes. Recognition only ever runs over the
-   * `extract_failed` set of the same Run, so the two are directly comparable and
-   * what OCR could *not* rescue is their difference — no third counter needed.
+   * A format whose text recognition recovered: `n` files totalling `b` bytes.
+   *
+   * This used to say that recognition ran over exactly the `extract_failed` set
+   * of the same Run, so what it could not rescue was their difference and no
+   * third counter was needed. **That is no longer true.** Images never reach the
+   * extract branch and their pass does not start by itself (ADR-0017), so for an
+   * image format the difference would fold "never pressed" together with
+   * "pressed, found nothing" — the one distinction that decides what to do next.
+   * For image formats read `ocr_offered` / `ocr_read` / this, in that order. The
+   * document half of the series is unchanged.
    */
   "ocr_recovered",
   /** Wall-clock milliseconds for one recognition pass, in `n`. Only useful beside `ocr_recovered`. */
@@ -123,6 +137,37 @@ export const METRIC_EVENTS = [
    * the ones who took a bad reading and left.
    */
   "ocr_lang_changed",
+  /**
+   * An image recognition was **offered** over, by format (`png`, `jpeg`, …):
+   * `n` files totalling `b` bytes. Written once per Run at the end of ingest,
+   * over every image the router named as a candidate — whether or not anyone
+   * then pressed anything.
+   *
+   * The denominator for `ocr_read`, and the whole bet ADR-0017 rests on: an
+   * offer nobody takes is not answered by a better recogniser.
+   */
+  "ocr_offered",
+  /**
+   * An image a recognition pass actually **opened**, by format: `n` files
+   * totalling `b` bytes. A strict subset of `ocr_offered` in the same Run.
+   *
+   * Images only, so the ratio to `ocr_offered` means something. Documents are
+   * never offered — their pass starts by itself — and are counted by
+   * `ocr_recovered` alone.
+   */
+  "ocr_read",
+  /**
+   * How confident tesseract was in a reading, as a band of ten (`0`, `10`, …
+   * `90`), `n` readings each. Written per image read, kept or rejected, since
+   * the rejections are exactly what says whether the floor sits in the right
+   * place.
+   *
+   * Banded rather than exact, unlike every other quantity here (ADR-0014): a
+   * mean confidence is already an average over words, so its last digit carries
+   * nothing, and a band keeps the row count at ten however many images a Run
+   * brings.
+   */
+  "ocr_conf",
   /**
    * Why a Run that dropped files combined none of them: one row per exclusion
    * reason, `n` files each. Written once per Run, and only when the bundle came

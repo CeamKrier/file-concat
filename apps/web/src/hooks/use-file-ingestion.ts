@@ -10,6 +10,7 @@ import {
   defaultSourceRegistry,
   isPasswordProtected,
   readFileAsText,
+  RECOGNISABLE_IMAGE_FORMATS,
   replacePages,
   validateFile,
 } from "@fileconcat/core";
@@ -18,7 +19,7 @@ import { collectFromDataTransfer } from "~/lib/collect-from-drop";
 import { markerFor } from "~/lib/ecosystem-markers";
 import { addToTally, startRun, track, trackAmount, trackTally, type Tally } from "~/lib/metrics";
 import { tagDrop, tagSource } from "~/lib/clarity-tags";
-import { readPdfPagesWithOcr, readWithOcr } from "~/lib/ocr";
+import { readPdfPagesWithOcr, readWithOcr, recogniseImageWithOcr } from "~/lib/ocr";
 import { browserOcrLanguage, ocrLanguageFor, type OcrLanguage } from "~/lib/ocr-language";
 import { parsers } from "~/lib/parsers";
 import { prepareBatch } from "~/lib/prepare-batch";
@@ -51,7 +52,13 @@ type SizeThreshold = (typeof SIZE_THRESHOLDS)[number][0];
 // any pattern could filter them. Everything else honors the live filter rail.
 const HARDCODED_PRUNE_DIRS = new Set([".git", "node_modules"]);
 
-export type ContentEntry = { path: string; content: string };
+export type ContentEntry = {
+  path: string;
+  content: string;
+  /** Set when recognition produced some or all of this content, so the bundle
+   * can say the characters are a guess (ADR-0017). */
+  recognised?: true;
+};
 
 export type ValidationRecord = {
   included: boolean;
@@ -88,10 +95,16 @@ export type IncomingFile = {
 export type FailedFile = { path: string; error: string };
 
 /**
- * A document we know how to open but found no text in — a scan, or an encrypted
- * PDF. Recognition can sometimes read the first kind, so the handle is kept
- * rather than discarded with the rest of the batch. A `File` is a reference to
- * bytes on disk, not the bytes themselves, so holding a few costs nothing.
+ * A file recognition might be able to read: a document we know how to open but
+ * found no text in (a scan, or an encrypted PDF), or an image, whose pixels
+ * might hold writing and whose format promises nothing either way. The handle is
+ * kept rather than discarded with the rest of the batch. A `File` is a reference
+ * to bytes on disk, not the bytes themselves, so holding a few costs nothing.
+ *
+ * One list holds both populations and {@link ScannedDocument.format} tells them
+ * apart, because everything downstream — the pass, the stop, the language
+ * re-read — is identical for the two. What differs is only who starts it: a
+ * document's pass begins by itself, an image's never does (ADR-0017).
  */
 export type ScannedDocument = {
   path: string;
@@ -123,6 +136,19 @@ export type ScannedDocument = {
  * they just stop being offered a rescue that cannot apply.
  */
 const SCANNABLE_FORMATS = new Set(["pdf", "docx", "pptx", "odt", "odp", "rtf"]);
+
+/** Whether a {@link ScannedDocument} is an image rather than a document — the
+ * one thing that decides whether its pass starts by itself. */
+export function isRecognisableImage(format: string): boolean {
+  return RECOGNISABLE_IMAGE_FORMATS.has(format);
+}
+
+/** A mean confidence as a band of ten, the shape `ocr_conf` records. Averaged
+ * over words already, so the last digit carries nothing worth a row. */
+function confidenceBand(confidence: number): string {
+  const floor = Math.floor(Math.max(0, confidence) / 10) * 10;
+  return String(Math.min(90, floor));
+}
 
 export type IngestPhase = "unpacking" | "reading" | "fetching" | "recognising";
 /**
@@ -276,6 +302,11 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setReadLanguage(language);
 
       const recovered: Tally = new Map();
+      // Images only, both of them: `ocr_read` is measured against `ocr_offered`
+      // and documents are never offered, so mixing them in would make the ratio
+      // mean nothing (ADR-0017).
+      const imagesRead: Tally = new Map();
+      const confidences: Tally = new Map();
       const readEntries: ContentEntry[] = [];
       const stillUnread: ScannedDocument[] = [];
       const readValidations: Record<string, ValidationRecord> = {};
@@ -295,49 +326,69 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           }
           attempted.add(document.path);
           try {
-            const bytes = new Uint8Array(await document.file.arrayBuffer());
             let text = "";
-            if (document.pages && document.pages.length > 0) {
-              // A page whose fonts carry no character map: drawn, then read.
-              // Progress counts pages here because one such document can be the
-              // whole pass, and a document counter would sit still through it.
-              const read = await readPdfPagesWithOcr(
-                bytes,
-                document.pages,
-                language.code,
-                (done, total) =>
-                  setProgress({
-                    phase: "recognising",
-                    done: i,
-                    total: documents.length,
-                    note: `Page ${done + 1} of ${total}`,
-                  }),
-              );
-              if (read.size > 0) {
-                text = document.text
-                  ? replacePages(document.text, read)
-                  : [...read.values()].join("\n\n");
-              }
+            if (isRecognisableImage(document.format)) {
+              // An image: the whole file is the picture, so it goes to the
+              // recogniser as it is. No bytes are read here — the `File` is a
+              // reference and the recogniser decodes it itself.
+              const reading = await recogniseImageWithOcr(document.file, language.code);
+              addToTally(imagesRead, document.format, document.file.size);
+              addToTally(confidences, confidenceBand(reading.confidence));
+              text = reading.text;
             } else {
-              ({ text } = await readWithOcr(bytes, language.code));
+              const bytes = new Uint8Array(await document.file.arrayBuffer());
+              if (document.pages && document.pages.length > 0) {
+                // A page whose fonts carry no character map: drawn, then read.
+                // Progress counts pages here because one such document can be
+                // the whole pass, and a document counter would sit still
+                // through it.
+                const read = await readPdfPagesWithOcr(
+                  bytes,
+                  document.pages,
+                  language.code,
+                  (done, total) =>
+                    setProgress({
+                      phase: "recognising",
+                      done: i,
+                      total: documents.length,
+                      note: `Page ${done + 1} of ${total}`,
+                    }),
+                );
+                if (read.size > 0) {
+                  text = document.text
+                    ? replacePages(document.text, read)
+                    : [...read.values()].join("\n\n");
+                }
+              } else {
+                ({ text } = await readWithOcr(bytes, language.code));
+              }
             }
             if (text) {
               addToTally(recovered, document.format, document.file.size);
-              readEntries.push({ path: document.path, content: text });
+              readEntries.push({ path: document.path, content: text, recognised: true });
               readValidations[document.path] = {
                 included: true,
                 classification: "text",
                 size: document.file.size,
                 type: document.file.type || "application/octet-stream",
-                extracted: true,
+                // A document's text was extracted and then patched by
+                // recognition; an image's was never extracted at all, and
+                // saying so would put a PNG under "text extracted from 1
+                // document". The bundle's recognition line covers both.
+                ...(isRecognisableImage(document.format) ? {} : { extracted: true }),
               };
             } else if (!document.text) {
               // Recognition found nothing: an encrypted PDF, a page with no
               // writing on it, or a language this pass read it in cannot see.
+              // An image is left saying what it was, because it never promised
+              // text in the first place — "no extractable text" would read as a
+              // failure on a photograph that simply has no writing in it.
               stillUnread.push(document);
               readValidations[document.path] = {
                 included: false,
-                reason: "No extractable text",
+                reason: isRecognisableImage(document.format)
+                  ? "Binary file"
+                  : "No extractable text",
                 classification: "binary",
                 size: document.file.size,
                 type: document.file.type || "application/octet-stream",
@@ -400,6 +451,10 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         // Run — the two together are what says whether this was worth building.
         trackAmount("ocr_ms", { n: performance.now() - startedAt });
         trackTally("ocr_recovered", recovered);
+        trackTally("ocr_read", imagesRead);
+        // Rejections included: they are what says whether the floor sits in the
+        // right place, which is the only way those two guesses ever move.
+        trackTally("ocr_conf", confidences);
         track("ocr_lang", language.code);
         return readEntries.length;
       } finally {
@@ -438,6 +493,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       const extractError: Tally = new Map();
       const extractNotes: Tally = new Map();
       const nextUnread: ScannedDocument[] = [];
+      const imagesOffered: Tally = new Map();
       const archiveUnsupported: Tally = new Map();
       const markers = new Set<string>();
       let totalBytes = 0;
@@ -588,6 +644,14 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           // demand signal that decides which reader to build next. An archive
           // we can't open (rar, 7z) lands here too, under its own extension.
           addToTally(unreadable, extensionOf(path) || NO_EXTENSION, fileBytes);
+          // An image the router named from its own bytes: a candidate for
+          // recognition, never a subject of it until someone asks (ADR-0017).
+          // Every image is a candidate and no signal separates the receipt from
+          // the icon, so the offer is made and the work is not.
+          if (route.kind === "binary" && route.format && isRecognisableImage(route.format)) {
+            nextUnread.push({ path, format: route.format, file: entry.file });
+            addToTally(imagesOffered, route.format, fileBytes);
+          }
           // Binary: no recoverable text. Keep it visible in the tree (locked,
           // ADR-0009) but never decode its bytes — a force-include must not be
           // able to leak mojibake into the bundle, and decoding it is wasted work.
@@ -638,6 +702,10 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       trackTally("extract_error", extractError);
       trackTally("extract_note", extractNotes);
       trackTally("archive_unsupported", archiveUnsupported);
+      // The offer, whether or not it is ever taken — the denominator `ocr_read`
+      // is measured against, and the one number that says whether ADR-0017's bet
+      // was right.
+      trackTally("ocr_offered", imagesOffered);
 
       // The same drop, said in Clarity's vocabulary so the recording can be
       // found later (ADR-0016). Classes only: which kinds of content we failed
@@ -653,7 +721,13 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // ever over documents that already came back empty, so a drop with no
       // scan in it never touches this. Awaited last so the counters above are
       // the drop's own, unmixed with what recognition then rescued.
-      if (nextUnread.length > 0) await readDocuments(nextUnread, browserOcrLanguage());
+      //
+      // Images are filtered out and left for the offer: a document earned its
+      // pass by failing an honest attempt first, and an image offers no such
+      // evidence (ADR-0017). A drop with one scan and twenty-six screenshots
+      // reads the scan and offers the screenshots.
+      const autoRead = nextUnread.filter((d) => !isRecognisableImage(d.format));
+      if (autoRead.length > 0) await readDocuments(autoRead, browserOcrLanguage());
     },
     [config, readDocuments],
   );
