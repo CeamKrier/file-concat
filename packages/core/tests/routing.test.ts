@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { gzipSync, strToU8 } from "fflate";
+import { RECOGNISABLE_IMAGE_FORMATS } from "../src/file-processing/binary-signatures";
 import { routeBytes } from "../src/file-processing/routing";
 import { makeTar, minimalDocx, minimalEpub, minimalOdt, plainZip } from "./fixtures/containers";
 
@@ -86,9 +87,21 @@ describe("routeBytes", () => {
     expect(await routeBytes(sevenZip)).toEqual({ kind: "expand", archive: "7z" });
   });
 
-  it("settles known media containers without loading a parser", async () => {
+  it("settles known media containers without loading a parser, and names the format", async () => {
     const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...Array(32).fill(7)]);
-    expect(await routeBytes(png)).toEqual({ kind: "binary" });
+    // The name is what lets a caller offer recognition over the raster set
+    // (ADR-0017) — and it comes from the bytes, so a `.dat` named PNG gets it too.
+    expect(await routeBytes(png)).toEqual({ kind: "binary", format: "png" });
+    expect(RECOGNISABLE_IMAGE_FORMATS.has("png")).toBe(true);
+  });
+
+  it("names the ISO base-media family too, and keeps it out of the recognisable set", async () => {
+    const mp4 = new Uint8Array([
+      0, 0, 0, 0x18, ...strToU8("ftypmp42"), ...Array(32).fill(0),
+    ]);
+    const route = await routeBytes(mp4);
+    expect(route).toEqual({ kind: "binary", format: "iso-bmff" });
+    expect(RECOGNISABLE_IMAGE_FORMATS.has("iso-bmff")).toBe(false);
   });
 
   it("abstains on plain source, leaving the byte classifier to decide", async () => {
