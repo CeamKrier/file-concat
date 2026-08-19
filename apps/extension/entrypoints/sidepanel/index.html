@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <title>FileConcat Clipper</title>
     <style>
-      /* Ported from apps/web/src/styles/app.css. The popup cannot load the
+      /* Ported from apps/web/src/styles/app.css. The panel cannot load the
          brand webfonts without shipping them, so the warm-dark palette, the
          hairlines and the radius carry the identity and type falls back to the
          system stack. */
@@ -25,16 +25,24 @@
         --info: #e3b96a;
         --stop: #e08c7a;
         --radius: 0.5rem;
+        --settle: 180ms cubic-bezier(0.16, 1, 0.3, 1);
       }
 
       * {
         box-sizing: border-box;
       }
 
+      html,
       body {
-        width: 360px;
+        height: 100%;
+      }
+
+      /* A panel is a column with a floor, not a card that grows. The two lists
+         scroll against each other so a 30-video page can never push the tray
+         out of reach, and Send never leaves the screen. */
+      body {
         margin: 0;
-        max-height: 580px;
+        min-width: 280px;
         display: flex;
         flex-direction: column;
         background: var(--background);
@@ -52,6 +60,7 @@
         gap: 8px;
         padding: 12px 14px;
         border-bottom: 1px solid var(--hairline);
+        flex: none;
       }
 
       h1 {
@@ -67,15 +76,28 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        max-width: 170px;
+        min-width: 0;
+      }
+
+      main {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
       }
 
       section {
         padding: 12px 14px;
         border-bottom: 1px solid var(--hairline);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
       }
 
-      section:last-of-type {
+      /* Now is bounded by its content; the tray takes what is left, because the
+         tray is the thing that accumulates over a session. */
+      #tray-section {
+        flex: 1;
         border-bottom: 0;
       }
 
@@ -87,6 +109,7 @@
         margin-bottom: 8px;
         color: var(--text-muted);
         font-size: 11px;
+        flex: none;
       }
 
       .note {
@@ -94,23 +117,28 @@
         color: var(--text-muted);
       }
 
-      ul:not(:empty) {
+      ul {
         list-style: none;
-        margin: 0 0 10px;
+        margin: 0;
+        padding: 0;
+        min-height: 0;
+      }
+
+      ul:not(:empty) {
         padding: 3px;
-        max-height: 168px;
         overflow-y: auto;
         overscroll-behavior: contain;
         border: 1px solid var(--hairline);
         border-radius: var(--radius);
       }
 
-      #tray-list:not(:empty) {
-        max-height: 140px;
+      #page-list:not(:empty) {
+        max-height: 40vh;
+        margin-bottom: 10px;
       }
 
-      ul:empty {
-        margin: 0;
+      #tray-list:not(:empty) {
+        flex: 0 1 auto;
       }
 
       /* A row is the label, so the whole strip is the hit target. */
@@ -150,6 +178,7 @@
 
       .row-text {
         min-width: 0;
+        flex: 1;
       }
 
       .row-title {
@@ -166,6 +195,95 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      /* A tray row carries its own fate. The state is a word, never a colour
+         alone, and a finished row says nothing at all — quiet is the success
+         state, and the folder it landed in is more use than the word "done". */
+      .tray-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        padding: 6px 8px;
+        border-radius: calc(var(--radius) - 2px);
+        position: relative;
+      }
+
+      .tray-row:hover {
+        background: var(--card);
+      }
+
+      .state {
+        flex: none;
+        font-size: 11px;
+        color: var(--text-muted);
+        padding-top: 1px;
+      }
+
+      .tray-row[data-state="fetching"] .state {
+        color: var(--info);
+      }
+
+      .tray-row[data-state="failed"] .state {
+        color: var(--stop);
+      }
+
+      .tray-row[data-state="failed"] .row-meta {
+        color: var(--stop);
+        white-space: normal;
+      }
+
+      /* The one authored moment: a row arrives unsettled and resolves. Pending
+         work is literally out of focus until it is real. */
+      .tray-row[data-state="queued"],
+      .tray-row[data-state="fetching"] {
+        opacity: 0.62;
+        filter: blur(0.4px);
+      }
+
+      .tray-row {
+        transition:
+          opacity var(--settle),
+          filter var(--settle);
+      }
+
+      /* A fetching row draws its own hairline, so activity is visible per row
+         rather than in one shared status line. */
+      .tray-row[data-state="fetching"]::after {
+        content: "";
+        position: absolute;
+        left: 8px;
+        right: 8px;
+        bottom: 2px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--info), transparent);
+        animation: sweep 1.1s linear infinite;
+      }
+
+      @keyframes sweep {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(100%);
+        }
+      }
+
+      .remove {
+        flex: none;
+        width: auto;
+        padding: 0 2px;
+        border: 0;
+        background: none;
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.2;
+        cursor: pointer;
+        transition: color var(--settle);
+      }
+
+      .remove:hover {
+        color: var(--stop);
       }
 
       button {
@@ -217,12 +335,13 @@
       }
 
       footer {
+        flex: none;
         padding: 12px 14px;
         border-top: 1px solid var(--hairline);
         background: var(--surface-inset);
       }
 
-      /* Status carries an icon-free text prefix rather than colour alone. */
+      /* Status carries a text prefix rather than colour alone. */
       #status {
         margin: 8px 0 0;
         min-height: 16px;
@@ -245,6 +364,21 @@
       [hidden] {
         display: none !important;
       }
+
+      @media (prefers-reduced-motion: reduce) {
+        .tray-row {
+          transition: none;
+        }
+        .tray-row[data-state="queued"],
+        .tray-row[data-state="fetching"] {
+          filter: none;
+        }
+        .tray-row[data-state="fetching"]::after {
+          animation: none;
+          background: var(--info);
+          right: 70%;
+        }
+      }
     </style>
   </head>
   <body>
@@ -253,31 +387,33 @@
       <span class="origin" id="origin"></span>
     </header>
 
-    <section id="page-section">
-      <div class="label">
-        <span id="page-label">This page</span>
-        <button class="link" id="select-all" type="button" hidden>Select all</button>
-      </div>
-      <p class="note" id="page-note" hidden></p>
-      <ul id="page-list"></ul>
-      <label class="toggle" id="comments-row" hidden>
-        <input type="checkbox" id="comments" />
-        <span>
-          Include comments
-          <span class="hint">Top 20 per video. Up to 45% more tokens on a short one.</span>
-        </span>
-      </label>
-      <button id="clip" type="button" hidden>Clip this video</button>
-    </section>
+    <main>
+      <section id="page-section">
+        <div class="label">
+          <span id="page-label">Now</span>
+          <button class="link" id="select-all" type="button" hidden>Select all</button>
+        </div>
+        <p class="note" id="page-note" hidden></p>
+        <ul id="page-list"></ul>
+        <label class="toggle" id="comments-row" hidden>
+          <input type="checkbox" id="comments" />
+          <span>
+            Include comments
+            <span class="hint">Top 20 per video. Up to 45% more tokens on a short one.</span>
+          </span>
+        </label>
+        <button id="clip" type="button" hidden>Clip this video</button>
+      </section>
 
-    <section id="tray-section">
-      <div class="label">
-        <span id="tray-label">Tray</span>
-        <button class="link" id="clear" type="button" hidden>Clear</button>
-      </div>
-      <p class="note" id="tray-note" hidden>Nothing clipped yet.</p>
-      <ul id="tray-list"></ul>
-    </section>
+      <section id="tray-section">
+        <div class="label">
+          <span id="tray-label">Tray</span>
+          <button class="link" id="clear" type="button" hidden>Clear</button>
+        </div>
+        <p class="note" id="tray-note" hidden>Nothing clipped yet.</p>
+        <ul id="tray-list"></ul>
+      </section>
+    </main>
 
     <footer>
       <button class="primary" id="send" type="button" disabled>Send to FileConcat</button>

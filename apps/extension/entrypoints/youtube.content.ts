@@ -18,7 +18,7 @@ import {
   type Comment,
   type TranscriptSegment,
 } from "../src/markdown";
-import type { PageReport, SiteRequest, SiteResponse } from "../src/messages";
+import type { NavSignal, PageReport, SiteRequest, SiteResponse } from "../src/messages";
 
 const INNERTUBE = "https://www.youtube.com/youtubei/v1";
 const TRANSCRIPT_PANEL_ID = "PAmodern_transcript_view";
@@ -209,6 +209,14 @@ function pageVideos(): PageReport["videos"] {
     const id = new URL(anchor.href, location.origin).searchParams.get("v");
     if (!id) continue;
     const text = anchor.textContent?.trim() ?? "";
+    // A link inside a description or community post carries the URL as its own
+    // text, and a URL outruns most titles, so it would win the contest below.
+    // Observed once on a channel page, as a tray row titled
+    // "https://www.youtube.com/watch?v=xsVTq…". Skipping the anchor entirely
+    // also drops ids that appear only in prose, which are not videos this page
+    // loaded; measured on a channel page (22 videos) and a search page (23),
+    // that dropped none of them.
+    if (/^(https?:\/\/|www\.)/i.test(text)) continue;
     const entry = found.get(id) ?? { title: "" };
     // The thumbnail link's text is the duration overlay, so the longer of a
     // card's two links is the title and the clock-shaped one is the length.
@@ -244,6 +252,16 @@ export default defineContentScript({
   matches: ["*://*.youtube.com/*"],
   runAt: "document_idle",
   main() {
+    // A YouTube navigation replaces the page without a load Chrome reports, so
+    // the panel would keep showing the page you came from. YouTube announces
+    // its own; the panel debounces because the DOM lands after the event.
+    //
+    // ponytail: YouTube's own event. A site without one needs a history patch
+    // or a URL poll — write that when the second such handler arrives, not now.
+    document.addEventListener("yt-navigate-finish", () => {
+      void browser.runtime.sendMessage({ type: "fc:nav" } satisfies NavSignal).catch(() => {});
+    });
+
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       const request = message as SiteRequest;
       if (request?.type !== "fc:page" && request?.type !== "fc:clip") return;

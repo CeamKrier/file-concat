@@ -35,11 +35,20 @@ video and a bigger bundle, measured 2026-08-18 at +45% tokens on a 7-minute
 video (2,365 -> 3,421) and +7% on one whose transcript dwarfs them. The choice
 sticks between sessions.
 
-Open a YouTube watch page and the popup offers **Clip this video**. On a
-channel's Videos tab or a search page it lists every video the page has already
-loaded — scroll first to load more — with checkboxes. Clippings collect in a
-tray that survives closing the popup, and **Send to FileConcat** pushes the
-selected ones into an open fileconcat.com tab, opening one if there is none.
+Click the toolbar icon to open the side panel. It stays open while you browse
+and **Now** re-reports itself on every tab switch and every YouTube navigation,
+so it never describes the page you came from. On a watch page it offers **Clip
+this video**; on a channel's Videos tab or a search page it lists every video
+the page has already loaded — scroll first to load more — with checkboxes.
+
+Clips land in the tray straight away and settle there. Each row carries its own
+state, so one failure says so on its own row and names the reason while its
+neighbours carry on; a failed row costs nothing but the space it sits in and
+can be removed with the × on the row. **Send to FileConcat** pushes every
+finished row into an open fileconcat.com tab, opening one if there is none.
+
+Closing the panel does not stop a batch: the clipping runs in the service
+worker, and the panel reads the result whenever you open it again.
 
 A push is one drop, so it replaces whatever the tab held before. That is
 survivable because the tray keeps the last 50 clippings: send the set again.
@@ -48,9 +57,10 @@ survivable because the tray keeps the last 50 clippings: send the set again.
 
 | File | Role |
 | --- | --- |
-| `entrypoints/youtube.content.ts` | Content script on youtube.com. Two innertube POSTs per video, no HTML parsing beyond the client version. |
+| `entrypoints/youtube.content.ts` | Content script on youtube.com. Two innertube POSTs per video, no HTML parsing beyond the client version. Announces YouTube's own soft navigations. |
 | `entrypoints/fileconcat.content.ts` | Content script on fileconcat.com. Relays a batch to the page with `window.postMessage`. |
-| `entrypoints/popup/` | The tray, the page listing, and the send action. |
+| `entrypoints/background.ts` | The service worker. Owns the tray, every clip and the send, because the panel can be closed mid-batch. |
+| `entrypoints/sidepanel/` | The panel: Now, the tray, and the send action. A view — nothing here has a duration. |
 | `src/markdown.ts` | Renders a clipping. The obsidian-clipper frontmatter shape lives here, and so does the only test. |
 
 The build is [WXT](https://wxt.dev). `entrypoints/` is the manifest: match
@@ -63,8 +73,13 @@ The web app's half is `apps/web/src/hooks/use-clipper-push.ts`, wired in
 `app-flow.tsx`. It receives files, not records — the whole reason the web app
 gains no new concepts (ADR-0018).
 
-There is no service worker. Nothing needs to outlive the popup, and the tray
-lives in `chrome.storage.local`.
+The panel and the worker share no protocol beyond `chrome.storage.local`: the
+worker writes, the panel renders `storage.onChanged`. A panel that was shut for
+a whole batch opens onto the finished result with no catch-up message to miss.
+
+The first pass had no service worker, because dismissing a popup *was*
+abandoning the batch. A side panel is closed the way a drawer is closed, so the
+work had to move somewhere that outlives it.
 
 ## Local development
 
