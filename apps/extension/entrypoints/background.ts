@@ -10,6 +10,7 @@ import type { Clipping } from "../src/markdown";
 import {
   STATUS_KEY,
   TRAY_KEY,
+  type FetchRequest,
   type PanelRequest,
   type PushRequest,
   type SiteRequest,
@@ -136,6 +137,22 @@ export default defineBackground(() => {
   browser.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 
   browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    // A content script the page's CSP will not let reach a host.
+    if ((message as FetchRequest)?.type === "fc:fetch") {
+      const { url } = message as FetchRequest;
+      fetch(url)
+        .then(async (response) => {
+          if (!response.ok) throw new Error(`${new URL(url).hostname} answered ${response.status}.`);
+          return response.text();
+        })
+        .then(
+          (body) => sendResponse({ ok: true, value: body } satisfies SiteResponse<string>),
+          (error: unknown) =>
+            sendResponse({ ok: false, error: String((error as Error)?.message ?? error) } satisfies SiteResponse<never>),
+        );
+      return true;
+    }
+
     const request = message as PanelRequest;
     const done = () => sendResponse({ ok: true });
     switch (request?.type) {

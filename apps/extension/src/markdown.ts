@@ -240,6 +240,75 @@ export function renderArticleClipping(clip: ArticleClipping): string {
   return [`${frontmatter}\n![](${clip.url})`, clip.body].join("\n\n") + "\n";
 }
 
+export interface HnComment {
+  author: string;
+  created: string;
+  /** 0 for a top-level comment; nesting is rendered as indentation. */
+  depth: number;
+  text: string;
+}
+
+export interface HnClipping {
+  id: string;
+  title: string;
+  author: string;
+  created: string;
+  points: number;
+  /** Where a link submission points. Absent for an Ask HN or a text post. */
+  url?: string;
+  /** The submission's own text, for an Ask HN. */
+  text: string;
+  comments: HnComment[];
+  clippedOn: string;
+}
+
+export function hnUrl(id: string): string {
+  return `https://news.ycombinator.com/item?id=${id}`;
+}
+
+export function renderHnClipping(clip: HnClipping): string {
+  const url = hnUrl(clip.id);
+  const frontmatter = [
+    "---",
+    `title: ${yamlString(clip.title)}`,
+    `source: ${yamlString(url)}`,
+    "author:",
+    `  - ${yamlString(`[[${clip.author}]]`)}`,
+    `published: ${isoDate(clip.created)}`,
+    `created: ${clip.clippedOn}`,
+    `description: ${yamlString(clip.text.slice(0, DESCRIPTION_PREVIEW_CHARS))}`,
+    "tags:",
+    '  - "clippings"',
+    "---",
+  ].join("\n");
+
+  const parts = [`${frontmatter}\n![](${url})`, `_${clip.points} points · ${clip.comments.length} comments_`];
+  if (clip.url) parts.push(`[${clip.url}](${clip.url})`);
+  if (clip.text.trim()) parts.push(hardBreaks(clip.text));
+  parts.push("## Comments", renderHnComments(clip.comments));
+  return parts.join("\n\n") + "\n";
+}
+
+/**
+ * The whole tree, nested by indentation. Unlike Reddit and YouTube there is no
+ * "of how many" to state: Algolia returns every comment the thread has, so the
+ * count in the header is the count.
+ */
+function renderHnComments(comments: HnComment[]): string {
+  if (comments.length === 0) return "_None._";
+  return comments
+    .map((comment) => {
+      const indent = "  ".repeat(Math.min(comment.depth, 8));
+      const text = comment.text
+        .replace(/\n{2,}/g, "\n")
+        .split("\n")
+        .map((line) => `${indent}${line}`)
+        .join("\n");
+      return `${indent}**${comment.author}** · ${isoDate(comment.created)}\n${text}`;
+    })
+    .join("\n\n");
+}
+
 /**
  * Windows-hostile characters plus the separators that would turn one clipping
  * into a folder. Length is capped well under any filesystem limit because the

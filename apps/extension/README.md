@@ -2,8 +2,8 @@
 
 An MV3 browser extension that clips web pages into Markdown and hands the
 rendered `.md` files to an open fileconcat.com tab, where they join a bundle
-like any dropped file. Articles anywhere, plus YouTube transcripts and Reddit
-threads.
+like any dropped file. Articles anywhere, plus YouTube transcripts, Reddit
+threads and Hacker News discussions.
 
 ## Load it
 
@@ -45,6 +45,12 @@ On YouTube: a watch page offers **Clip this video**; a channel's Videos tab or a
 search page lists every video the page has loaded, with checkboxes. **Include
 comments** is off by default — two more requests and up to 45% more tokens.
 
+On Hacker News: a thread offers **Clip this thread** and
+`hn.algolia.com/api/v1/items/<id>` returns the entire comment tree in one
+request — no auth, no paging, nothing to opt into. Measured 2026-08-19 on a
+638-comment thread: 264,851 characters nested eight levels deep. The front page
+lists its 30 stories with checkboxes.
+
 Anywhere else: if the page reads as an article, the panel offers **Clip this
 page**. Readability decides what the body is and Turndown renders it, which
 covers Substack, Medium, documentation, news and blogs without a site-specific
@@ -83,6 +89,7 @@ the app is the only thing that clears a bundle.
 | --- | --- |
 | `entrypoints/youtube.content.ts` | Content script on youtube.com. Two innertube POSTs per video, no HTML parsing beyond the client version. |
 | `entrypoints/reddit.content.ts` | Content script on reddit.com. Reads `shreddit-post` / `shreddit-comment` attributes; no API. |
+| `entrypoints/hn.content.ts` | Content script on news.ycombinator.com. One Algolia request per thread, whole tree. |
 | `entrypoints/article.content.ts` | The catch-all, everywhere else. Readability picks the body, Turndown renders it. |
 | `src/announce.ts` | One poll per page, telling the panel when the path or the item count changed. |
 | `entrypoints/fileconcat.content.ts` | Content script on fileconcat.com. Relays a batch to the page with `window.postMessage`. |
@@ -132,6 +139,12 @@ so a push lands in `pnpm dev`. Chrome match patterns ignore ports, so
   `<shreddit-comment>` in it. The markup is the API: `shreddit-post` and
   `shreddit-comment` carry author, score, depth and timestamps as attributes,
   and the page's own expand buttons are how you get more.
+- **Hacker News blocks the request its own clipping needs.** HN serves
+  `default-src 'self'`, and a content script's `fetch` runs under the page's
+  CSP, so Algolia is unreachable from there — `TypeError: Failed to fetch`. The
+  service worker fetches from the extension's origin under `host_permissions`,
+  where no page policy applies; that is what `fc:fetch` is for, and any future
+  handler behind a strict CSP can use it.
 - **A same-origin link is worth less than it costs.** Its href is a path on the
   site the anchor text already names, and this bundle is billed by the token:
   flattening those to plain text cut 27% off an MDN page, 22% off a Wikipedia

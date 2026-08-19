@@ -27,7 +27,13 @@ export default defineContentScript({
   matches: ["<all_urls>"],
   // The sites with their own handler, plus the app itself. Two scripts
   // answering `fc:page` on one page is a race over which reply the panel keeps.
-  excludeMatches: ["*://*.youtube.com/*", "*://*.reddit.com/*", "https://fileconcat.com/*", "http://localhost/*"],
+  excludeMatches: [
+    "*://*.youtube.com/*",
+    "*://*.reddit.com/*",
+    "*://news.ycombinator.com/*",
+    "https://fileconcat.com/*",
+    "http://localhost/*",
+  ],
   runAt: "document_idle",
   main() {
     // An SPA doc site swaps its article without a load; the title is the

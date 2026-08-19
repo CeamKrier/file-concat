@@ -36,6 +36,19 @@ export interface NavSignal {
   type: "fc:nav";
 }
 
+/**
+ * Site content script -> background: fetch this and hand me the body.
+ *
+ * A content script's `fetch` runs under the page's CSP, so Hacker News —
+ * `default-src 'self'` — blocks the one request its clipping needs. The worker
+ * fetches from the extension's own origin under `host_permissions`, where no
+ * page policy applies.
+ */
+export interface FetchRequest {
+  type: "fc:fetch";
+  url: string;
+}
+
 /** Panel -> background. Everything the panel wants done outlives the panel. */
 export type PanelRequest =
   | { type: "fc:start"; tabId: number; items: { id: string; title: string }[]; option: boolean }

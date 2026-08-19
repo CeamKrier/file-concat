@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   clippingPath,
+  renderHnClipping,
   renderRedditClipping,
   renderYouTubeClipping,
   sanitizeFilename,
@@ -195,5 +196,56 @@ describe("article turndown", () => {
     const out = md("<figure><img src=/a.png><figcaption>A diagram</figcaption></figure>");
     expect(out).toContain("_A diagram_");
     expect(out).not.toContain("a.png");
+  });
+});
+
+describe("renderHnClipping", () => {
+  const base = {
+    id: "49345263",
+    title: "The Amazon tax",
+    author: "herbertl",
+    created: "2026-08-18T11:00:00.000Z",
+    points: 896,
+    text: "",
+    comments: [],
+    clippedOn: "2026-08-19",
+  };
+
+  it("matches the YouTube clipping's frontmatter shape", () => {
+    const md = renderHnClipping(base);
+    expect(md).toContain('source: "https://news.ycombinator.com/item?id=49345263"');
+    expect(md).toContain('  - "[[herbertl]]"');
+    expect(md).toContain("published: 2026-08-18");
+    expect(md).toContain('  - "clippings"');
+  });
+
+  it("nests the tree by depth", () => {
+    const md = renderHnClipping({
+      ...base,
+      comments: [
+        { author: "a", created: "2026-08-18T11:00:00.000Z", depth: 0, text: "top" },
+        { author: "b", created: "2026-08-18T11:00:00.000Z", depth: 1, text: "reply" },
+        { author: "c", created: "2026-08-18T11:00:00.000Z", depth: 2, text: "deeper" },
+      ],
+    });
+    expect(md).toContain("**a** · 2026-08-18\ntop");
+    expect(md).toContain("  **b** · 2026-08-18\n  reply");
+    expect(md).toContain("    **c** · 2026-08-18\n    deeper");
+  });
+
+  it("states no total, because Algolia returns the whole thread", () => {
+    // Reddit and YouTube say "N of M"; here the count is the count, and
+    // claiming a fraction would be the lie.
+    const md = renderHnClipping({
+      ...base,
+      comments: [{ author: "a", created: "2026-08-18T11:00:00.000Z", depth: 0, text: "x" }],
+    });
+    expect(md).toContain("_896 points · 1 comments_");
+    expect(md).not.toContain("in total");
+  });
+
+  it("keeps a link submission's target and an Ask HN's text", () => {
+    expect(renderHnClipping({ ...base, url: "https://example.com/a" })).toContain("[https://example.com/a]");
+    expect(renderHnClipping({ ...base, text: "What do you use?" })).toContain("What do you use?");
   });
 });

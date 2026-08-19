@@ -112,6 +112,11 @@ function renderPage() {
   ui.pageNote.hidden = true;
   ui.selectAll.hidden = true;
   ui.clip.hidden = true;
+  // A list page with nothing ticked leaves this disabled, and only the list
+  // branch ever re-enables it — so browsing from a subreddit or a front page to
+  // a single item used to arrive at a dead Clip button. Now is meant to stay
+  // current as you browse, which makes that the ordinary path, not an edge.
+  ui.clip.disabled = false;
 
   // The handler says whether it has an opt-in and what it is called, so the
   // panel carries no site's vocabulary.
