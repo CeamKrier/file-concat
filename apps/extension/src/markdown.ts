@@ -206,6 +206,40 @@ function renderRedditComments(clip: RedditClipping): string {
   return [heading, ...blocks].join("\n\n");
 }
 
+export interface ArticleClipping {
+  title: string;
+  /** Readability's byline, or the page's own author meta. Often absent. */
+  author: string;
+  siteName: string;
+  url: string;
+  /** ISO-ish, straight from the page. Empty when it publishes no date. */
+  published: string;
+  excerpt: string;
+  /** The article body, already Markdown. */
+  body: string;
+  clippedOn: string;
+}
+
+export function renderArticleClipping(clip: ArticleClipping): string {
+  const frontmatter = [
+    "---",
+    `title: ${yamlString(clip.title)}`,
+    `source: ${yamlString(clip.url)}`,
+    "author:",
+    // A page with no byline gets the publication, because "who said this" is
+    // the question the field answers and the site is the honest fallback.
+    `  - ${yamlString(`[[${clip.author || clip.siteName}]]`)}`,
+    `published: ${clip.published ? isoDate(clip.published) : ""}`,
+    `created: ${clip.clippedOn}`,
+    `description: ${yamlString(clip.excerpt.slice(0, DESCRIPTION_PREVIEW_CHARS))}`,
+    "tags:",
+    '  - "clippings"',
+    "---",
+  ].join("\n");
+
+  return [`${frontmatter}\n![](${clip.url})`, clip.body].join("\n\n") + "\n";
+}
+
 /**
  * Windows-hostile characters plus the separators that would turn one clipping
  * into a folder. Length is capped well under any filesystem limit because the

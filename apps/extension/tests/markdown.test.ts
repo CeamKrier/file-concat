@@ -5,6 +5,7 @@ import {
   renderYouTubeClipping,
   sanitizeFilename,
 } from "../src/markdown";
+import { turndown } from "../src/article";
 
 const clip = {
   videoId: "_s2h7X-c2jE",
@@ -161,5 +162,38 @@ describe("renderRedditClipping", () => {
       "[https://example.com/x](https://example.com/x)",
     );
     expect(renderRedditClipping(base)).not.toContain("](https://example.com");
+  });
+});
+
+describe("article turndown", () => {
+  const md = (html: string, base = "https://example.com/post") => turndown(base).turndown(html);
+
+  it("drops a same-origin href and keeps its text", () => {
+    // A path on this site that the anchor text already names is pure token
+    // cost in a bundle billed by the token.
+    expect(md('<p>see <a href="/other">the other page</a></p>')).toBe("see the other page");
+    expect(md('<p><a href="https://example.com/x">absolute same origin</a></p>')).toBe("absolute same origin");
+  });
+
+  it("keeps an external href, which points somewhere the prose does not say", () => {
+    expect(md('<p><a href="https://elsewhere.org/x">elsewhere</a></p>')).toBe("[elsewhere](https://elsewhere.org/x)");
+  });
+
+  it("keeps a mailto but never a javascript: href", () => {
+    // `javascript:void(0)` parses as a valid URL with a null origin, so an
+    // origin comparison alone would keep it and the clipping would carry a
+    // dead link dressed as a citation.
+    expect(md('<p><a href="javascript:void(0)">click</a></p>')).toBe("click");
+    expect(md('<p><a href="mailto:a@b.c">mail</a></p>')).toBe("[mail](mailto:a@b.c)");
+  });
+
+  it("flattens a bare fragment, which is same-origin by definition", () => {
+    expect(md('<p><a href="#notes">see notes</a></p>')).toBe("see notes");
+  });
+
+  it("keeps a figure's caption and drops its chrome", () => {
+    const out = md("<figure><img src=/a.png><figcaption>A diagram</figcaption></figure>");
+    expect(out).toContain("_A diagram_");
+    expect(out).not.toContain("a.png");
   });
 });

@@ -2,7 +2,8 @@
 
 An MV3 browser extension that clips web pages into Markdown and hands the
 rendered `.md` files to an open fileconcat.com tab, where they join a bundle
-like any dropped file. YouTube transcripts and Reddit threads today.
+like any dropped file. Articles anywhere, plus YouTube transcripts and Reddit
+threads.
 
 ## Load it
 
@@ -44,6 +45,13 @@ On YouTube: a watch page offers **Clip this video**; a channel's Videos tab or a
 search page lists every video the page has loaded, with checkboxes. **Include
 comments** is off by default — two more requests and up to 45% more tokens.
 
+Anywhere else: if the page reads as an article, the panel offers **Clip this
+page**. Readability decides what the body is and Turndown renders it, which
+covers Substack, Medium, documentation, news and blogs without a site-specific
+line of code. Measured 2026-08-19 on four unrelated sites — MDN 4,641 chars,
+Wikipedia 28,132, a Substack post 39,509 out of a 201,046-character page, a
+Cloudflare blog post 2,858 — with no navigation in any of them.
+
 On Reddit: a thread offers **Clip this post** and takes the post plus the
 comments the page has rendered. **Expand more comments** is off by default; it
 clicks the thread's own "more replies" three rounds deep, measured
@@ -75,6 +83,7 @@ the app is the only thing that clears a bundle.
 | --- | --- |
 | `entrypoints/youtube.content.ts` | Content script on youtube.com. Two innertube POSTs per video, no HTML parsing beyond the client version. |
 | `entrypoints/reddit.content.ts` | Content script on reddit.com. Reads `shreddit-post` / `shreddit-comment` attributes; no API. |
+| `entrypoints/article.content.ts` | The catch-all, everywhere else. Readability picks the body, Turndown renders it. |
 | `src/announce.ts` | One poll per page, telling the panel when the path or the item count changed. |
 | `entrypoints/fileconcat.content.ts` | Content script on fileconcat.com. Relays a batch to the page with `window.postMessage`. |
 | `entrypoints/background.ts` | The service worker. Owns the tray, every clip and the send, because the panel can be closed mid-batch. |
@@ -123,6 +132,16 @@ so a push lands in `pnpm dev`. Chrome match patterns ignore ports, so
   `<shreddit-comment>` in it. The markup is the API: `shreddit-post` and
   `shreddit-comment` carry author, score, depth and timestamps as attributes,
   and the page's own expand buttons are how you get more.
+- **A same-origin link is worth less than it costs.** Its href is a path on the
+  site the anchor text already names, and this bundle is billed by the token:
+  flattening those to plain text cut 27% off an MDN page, 22% off a Wikipedia
+  article and 13% off a blog post. External links stay, because they point
+  somewhere the prose does not say. Watch the scheme, not just the origin —
+  `javascript:void(0)` parses as a valid URL whose origin is `null`, so an
+  origin test alone keeps it and the clipping carries a dead link.
+- **`isProbablyReaderable`'s `minContentLength` is per paragraph**, not per
+  page. Setting it to 400 to mean "a real article" rejected MDN, Wikipedia and
+  Substack alike. The length check belongs on the finished body.
 - **A page being "loaded" says nothing about it being full.** A subreddit holds
   3 posts when Chrome reports the tab complete and 27 a moment later. `Now` is
   driven by a poll over the item count, not by load events, which is also what

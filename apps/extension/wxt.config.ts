@@ -6,14 +6,12 @@ import { defineConfig } from "wxt";
 export default defineConfig({
   manifest: {
     name: "FileConcat Clipper",
-    description: "Clip YouTube transcripts and Reddit threads to Markdown and hand them to an open fileconcat.com tab.",
+    description: "Clip articles, YouTube transcripts and Reddit threads to Markdown and hand them to an open fileconcat.com tab.",
     permissions: ["storage", "unlimitedStorage", "sidePanel"],
-    host_permissions: [
-      "*://*.youtube.com/*",
-      "*://*.reddit.com/*",
-      "https://fileconcat.com/*",
-      "http://localhost/*",
-    ],
+    // The article handler is the catch-all, so the host list is the web. That
+    // is the cost of "any article", and it is the feature rather than a side
+    // effect of it; nothing is read from a page until you ask for it.
+    host_permissions: ["<all_urls>"],
     // No `default_popup`: the action click opens the panel instead, which
     // the background asks for with `setPanelBehavior`.
     action: { default_title: "FileConcat Clipper" },

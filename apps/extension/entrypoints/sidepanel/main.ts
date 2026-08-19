@@ -21,9 +21,10 @@ import {
 /** YouTube settles its DOM after announcing a navigation, and a tab switch can
  *  arrive in a burst. One pause absorbs both. */
 const SETTLE_MS = 250;
-/** Where a content script of ours runs. Anywhere else, Now says so instead of
- *  sending a message into a tab that was never going to answer. */
-const SUPPORTED = /^https?:\/\/([^/]*\.)?(youtube|reddit)\.com\//;
+/** Where a content script of ours runs: any page on the web, now that the
+ *  article handler is the catch-all. Anywhere else — `chrome://`, a PDF viewer,
+ *  the new tab page — Now says so instead of messaging a tab that cannot answer. */
+const SUPPORTED = /^https?:\/\//;
 const NO_PAGE: PageReport = { site: "", kind: "other", noun: "item", items: [] };
 
 const STATE_LABEL: Record<TrayItem["state"], string> = {
@@ -123,7 +124,7 @@ function renderPage() {
 
   if (page.kind === "other") {
     ui.pageLabel.textContent = "Now";
-    ui.pageNote.textContent = "Open a YouTube video or channel, or a Reddit thread or subreddit, to clip from it.";
+    ui.pageNote.textContent = "Nothing to clip here. Open an article, a YouTube video or channel, or a Reddit thread.";
     ui.pageNote.hidden = false;
     return;
   }
