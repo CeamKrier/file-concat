@@ -10,6 +10,7 @@
 // is what the transcript panel itself calls.
 
 import { browser, defineContentScript } from "#imports";
+import { announceChanges } from "../src/announce";
 import {
   clippingPath,
   renderYouTubeClipping,
@@ -18,7 +19,7 @@ import {
   type Comment,
   type TranscriptSegment,
 } from "../src/markdown";
-import type { NavSignal, PageReport, SiteRequest, SiteResponse } from "../src/messages";
+import type { PageReport, SiteRequest, SiteResponse } from "../src/messages";
 
 const INNERTUBE = "https://www.youtube.com/youtubei/v1";
 const TRANSCRIPT_PANEL_ID = "PAmodern_transcript_view";
@@ -202,7 +203,7 @@ async function clipVideo(videoId: string, grouped: boolean, comments: boolean): 
  * carries 46 video ids of which only the 30 real ones are visible. Without this
  * the listing shows the previous channel until you reload the page.
  */
-function pageVideos(): PageReport["videos"] {
+function pageVideos(): PageReport["items"] {
   const found = new Map<string, { title: string; duration?: string }>();
   for (const anchor of document.querySelectorAll<HTMLAnchorElement>('a[href*="/watch?v="]')) {
     if (!anchor.checkVisibility()) continue;
@@ -224,16 +225,28 @@ function pageVideos(): PageReport["videos"] {
     if (/^(\d+:)?\d?\d:\d\d$/.test(text)) entry.duration = text;
     found.set(id, entry);
   }
-  return [...found].map(([id, { title, duration }]) => ({ id, title: title || id, duration }));
+  return [...found].map(([id, { title, duration }]) => ({ id, title: title || id, meta: duration }));
 }
 
+const OPTION = {
+  label: "Include comments",
+  hint: "Top 20 per video. Up to 45% more tokens on a short one.",
+};
+
 function report(): PageReport {
+  const base = { site: "youtube", noun: "video" } as const;
   if (location.pathname === "/watch") {
     const id = new URL(location.href).searchParams.get("v");
-    return { kind: id ? "watch" : "other", videos: id ? [{ id, title: document.title.replace(/ - YouTube$/, "") }] : [] };
+    if (!id) return { ...base, kind: "other", items: [] };
+    return {
+      ...base,
+      kind: "single",
+      items: [{ id, title: document.title.replace(/ - YouTube$/, "") }],
+      option: OPTION,
+    };
   }
-  const videos = pageVideos();
-  return { kind: videos.length ? "list" : "other", videos };
+  const items = pageVideos();
+  return { ...base, kind: items.length ? "list" : "other", items, option: items.length ? OPTION : undefined };
 }
 
 async function handle(request: SiteRequest): Promise<PageReport | Clipping[]> {
@@ -243,7 +256,7 @@ async function handle(request: SiteRequest): Promise<PageReport | Clipping[]> {
   const grouped = request.ids.length > 1;
   for (const [index, id] of request.ids.entries()) {
     if (index > 0) await new Promise((resolve) => setTimeout(resolve, CLIP_SPACING_MS));
-    clippings.push(await clipVideo(id, grouped, request.comments));
+    clippings.push(await clipVideo(id, grouped, request.option));
   }
   return clippings;
 }
@@ -252,15 +265,10 @@ export default defineContentScript({
   matches: ["*://*.youtube.com/*"],
   runAt: "document_idle",
   main() {
-    // A YouTube navigation replaces the page without a load Chrome reports, so
-    // the panel would keep showing the page you came from. YouTube announces
-    // its own; the panel debounces because the DOM lands after the event.
-    //
-    // ponytail: YouTube's own event. A site without one needs a history patch
-    // or a URL poll — write that when the second such handler arrives, not now.
-    document.addEventListener("yt-navigate-finish", () => {
-      void browser.runtime.sendMessage({ type: "fc:nav" } satisfies NavSignal).catch(() => {});
-    });
+    // A navigation replaces the page without a load Chrome reports, and
+    // scrolling a channel loads more videos without any navigation at all.
+    // Both are "where am I, and how much is here".
+    announceChanges(() => `${location.pathname}${location.search}:${pageVideos().length}`);
 
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       const request = message as SiteRequest;

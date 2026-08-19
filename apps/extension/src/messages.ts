@@ -1,11 +1,32 @@
 import type { Clipping } from "./markdown";
 
 /** Background -> site content script. */
-export type SiteRequest = { type: "fc:page" } | { type: "fc:clip"; ids: string[]; comments: boolean };
+export type SiteRequest = { type: "fc:page" } | { type: "fc:clip"; ids: string[]; option: boolean };
 
+export interface PageItem {
+  id: string;
+  title: string;
+  /** One line under the title: a duration, a score, whatever the site counts. */
+  meta?: string;
+}
+
+/**
+ * What a page offers, in the site's own words.
+ *
+ * The panel knows no site. A handler says which noun to use and what its one
+ * opt-in is called, so adding a source touches its own content script and the
+ * match pattern on it — which is the whole of the `matches` / `report` / `clip`
+ * shape, minus an interface nobody would implement twice.
+ */
 export interface PageReport {
-  kind: "watch" | "list" | "other";
-  videos: { id: string; title: string; duration?: string }[];
+  /** Namespaces the opt-in so YouTube's and Reddit's are remembered apart. */
+  site: string;
+  kind: "single" | "list" | "other";
+  /** Singular, lower case: "video", "post". The panel builds its labels from it. */
+  noun: string;
+  items: PageItem[];
+  /** The site's one opt-in, or absent where it has none. Always off by default. */
+  option?: { label: string; hint: string };
 }
 
 export type SiteResponse<T> = { ok: true; value: T } | { ok: false; error: string };
@@ -17,7 +38,7 @@ export interface NavSignal {
 
 /** Panel -> background. Everything the panel wants done outlives the panel. */
 export type PanelRequest =
-  | { type: "fc:start"; tabId: number; items: { id: string; title: string }[]; comments: boolean }
+  | { type: "fc:start"; tabId: number; items: { id: string; title: string }[]; option: boolean }
   | { type: "fc:send" }
   | { type: "fc:remove"; id: string }
   | { type: "fc:clear" };
@@ -54,8 +75,10 @@ export interface Status {
  * entire batch opens onto the finished result with no catch-up message to miss.
  */
 export const TRAY_KEY = "tray";
-export const COMMENTS_KEY = "includeComments";
 export const STATUS_KEY = "status";
+/** Per site, because "include comments" and "expand more comments" are not the
+ *  same promise and should not share one remembered answer. */
+export const OPTIONS_KEY = "options";
 
 /** Background -> fileconcat.com content script. */
 export interface PushRequest {

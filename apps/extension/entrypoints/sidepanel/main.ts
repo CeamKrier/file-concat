@@ -7,7 +7,7 @@
 
 import { browser } from "#imports";
 import {
-  COMMENTS_KEY,
+  OPTIONS_KEY,
   STATUS_KEY,
   TRAY_KEY,
   type PageReport,
@@ -21,6 +21,10 @@ import {
 /** YouTube settles its DOM after announcing a navigation, and a tab switch can
  *  arrive in a burst. One pause absorbs both. */
 const SETTLE_MS = 250;
+/** Where a content script of ours runs. Anywhere else, Now says so instead of
+ *  sending a message into a tab that was never going to answer. */
+const SUPPORTED = /^https?:\/\/([^/]*\.)?(youtube|reddit)\.com\//;
+const NO_PAGE: PageReport = { site: "", kind: "other", noun: "item", items: [] };
 
 const STATE_LABEL: Record<TrayItem["state"], string> = {
   queued: "Queued",
@@ -35,8 +39,10 @@ const ui = {
   pageLabel: el("page-label"),
   pageNote: el("page-note"),
   pageList: el<HTMLUListElement>("page-list"),
-  commentsRow: el("comments-row"),
-  comments: el<HTMLInputElement>("comments"),
+  optionRow: el("option-row"),
+  optionLabel: el("option-label"),
+  optionHint: el("option-hint"),
+  option: el<HTMLInputElement>("option"),
   selectAll: el<HTMLButtonElement>("select-all"),
   clip: el<HTMLButtonElement>("clip"),
   trayLabel: el("tray-label"),
@@ -48,8 +54,10 @@ const ui = {
 };
 
 let tray: TrayItem[] = [];
-let page: PageReport = { kind: "other", videos: [] };
+let page: PageReport = NO_PAGE;
 let activeTabId: number | undefined;
+/** One remembered answer per site, so YouTube's and Reddit's stay apart. */
+let options: Record<string, boolean> = {};
 
 const tell = (request: PanelRequest) => browser.runtime.sendMessage(request);
 
@@ -103,29 +111,37 @@ function renderPage() {
   ui.pageNote.hidden = true;
   ui.selectAll.hidden = true;
   ui.clip.hidden = true;
-  ui.commentsRow.hidden = page.kind === "other";
+
+  // The handler says whether it has an opt-in and what it is called, so the
+  // panel carries no site's vocabulary.
+  ui.optionRow.hidden = !page.option;
+  if (page.option) {
+    ui.optionLabel.childNodes[0].nodeValue = `${page.option.label} `;
+    ui.optionHint.textContent = page.option.hint;
+    ui.option.checked = options[page.site] === true;
+  }
 
   if (page.kind === "other") {
     ui.pageLabel.textContent = "Now";
-    ui.pageNote.textContent = "Open a YouTube video, channel or search page to clip from it.";
+    ui.pageNote.textContent = "Open a YouTube video or channel, or a Reddit thread or subreddit, to clip from it.";
     ui.pageNote.hidden = false;
     return;
   }
 
-  if (page.kind === "watch") {
-    ui.pageLabel.textContent = "Now · this video";
-    ui.pageNote.textContent = page.videos[0].title;
+  if (page.kind === "single") {
+    ui.pageLabel.textContent = `Now · this ${page.noun}`;
+    ui.pageNote.textContent = page.items[0].title;
     ui.pageNote.hidden = false;
-    ui.clip.textContent = "Clip this video";
+    ui.clip.textContent = `Clip this ${page.noun}`;
     ui.clip.hidden = false;
     return;
   }
 
-  ui.pageLabel.textContent = `Now · ${page.videos.length} on this page`;
+  ui.pageLabel.textContent = `Now · ${page.items.length} on this page`;
   ui.selectAll.hidden = false;
   ui.selectAll.textContent = "Select all";
-  for (const video of page.videos) {
-    ui.pageList.append(checkboxRow(video.id, video.title, video.duration ?? ""));
+  for (const item of page.items) {
+    ui.pageList.append(checkboxRow(item.id, item.title, item.meta ?? ""));
   }
   ui.clip.hidden = false;
   renderClipButton();
@@ -135,7 +151,12 @@ function renderClipButton() {
   if (page.kind !== "list") return;
   const count = selected(ui.pageList).length;
   ui.clip.disabled = count === 0;
-  ui.clip.textContent = count === 0 ? "Select videos to clip" : count === 1 ? "Clip 1 video" : `Clip ${count} videos`;
+  ui.clip.textContent =
+    count === 0
+      ? `Select ${page.noun}s to clip`
+      : count === 1
+        ? `Clip 1 ${page.noun}`
+        : `Clip ${count} ${page.noun}s`;
 }
 
 function trayRow(item: TrayItem): HTMLLIElement {
@@ -196,19 +217,19 @@ async function refreshNow() {
   activeTabId = tab?.id;
   ui.origin.textContent = tab?.url ? new URL(tab.url).hostname.replace(/^www\./, "") : "";
 
-  if (!tab?.id || !tab.url || !/^https?:\/\/([^/]*\.)?youtube\.com\//.test(tab.url)) {
-    page = { kind: "other", videos: [] };
+  if (!tab?.id || !tab.url || !SUPPORTED.test(tab.url)) {
+    page = NO_PAGE;
     renderPage();
     return;
   }
   try {
     const request: SiteRequest = { type: "fc:page" };
     const response = (await browser.tabs.sendMessage(tab.id, request)) as SiteResponse<PageReport> | undefined;
-    page = response?.ok ? response.value : { kind: "other", videos: [] };
+    page = response?.ok ? response.value : NO_PAGE;
   } catch {
     // A tab that predates the extension has no content script in it. Saying so
     // beats an empty listing that looks like a page with nothing on it.
-    page = { kind: "other", videos: [] };
+    page = NO_PAGE;
     renderPage();
     ui.pageNote.textContent = "Reload this tab — it was open before the extension was.";
     ui.pageNote.hidden = false;
@@ -225,14 +246,14 @@ const refreshSoon = () => {
 
 function clip() {
   const items =
-    page.kind === "watch"
-      ? [{ id: page.videos[0].id, title: page.videos[0].title }]
+    page.kind === "single"
+      ? [{ id: page.items[0].id, title: page.items[0].title }]
       : selected(ui.pageList).map((id) => ({
           id,
-          title: page.videos.find((video) => video.id === id)?.title ?? id,
+          title: page.items.find((item) => item.id === id)?.title ?? id,
         }));
   if (items.length === 0 || activeTabId === undefined) return;
-  void tell({ type: "fc:start", tabId: activeTabId, items, comments: ui.comments.checked });
+  void tell({ type: "fc:start", tabId: activeTabId, items, option: ui.option.checked });
 }
 
 ui.selectAll.addEventListener("click", () => {
@@ -243,7 +264,11 @@ ui.selectAll.addEventListener("click", () => {
   renderClipButton();
 });
 ui.pageList.addEventListener("change", renderClipButton);
-ui.comments.addEventListener("change", () => void browser.storage.local.set({ [COMMENTS_KEY]: ui.comments.checked }));
+ui.option.addEventListener("change", () => {
+  if (!page.site) return;
+  options = { ...options, [page.site]: ui.option.checked };
+  void browser.storage.local.set({ [OPTIONS_KEY]: options });
+});
 ui.clip.addEventListener("click", clip);
 ui.clear.addEventListener("click", () => void tell({ type: "fc:clear" }));
 ui.send.addEventListener("click", () => void tell({ type: "fc:send" }));
@@ -269,9 +294,9 @@ browser.runtime.onMessage.addListener((message) => {
 });
 
 async function start() {
-  const stored = await browser.storage.local.get([TRAY_KEY, COMMENTS_KEY, STATUS_KEY]);
+  const stored = await browser.storage.local.get([TRAY_KEY, OPTIONS_KEY, STATUS_KEY]);
   tray = Array.isArray(stored[TRAY_KEY]) ? (stored[TRAY_KEY] as TrayItem[]) : [];
-  ui.comments.checked = stored[COMMENTS_KEY] === true;
+  options = (stored[OPTIONS_KEY] as Record<string, boolean> | undefined) ?? {};
   say(stored[STATUS_KEY] as Status | undefined);
   renderTray();
   await refreshNow();

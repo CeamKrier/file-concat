@@ -115,6 +115,97 @@ function renderComments(clip: YouTubeClipping): string {
   return [heading, ...blocks].join("\n\n");
 }
 
+export interface RedditComment {
+  author: string;
+  /** ISO timestamp from the `created` attribute. */
+  created: string;
+  score: string;
+  /** 0 for a top-level comment; nesting is rendered as indentation. */
+  depth: number;
+  text: string;
+}
+
+export interface RedditClipping {
+  id: string;
+  title: string;
+  author: string;
+  /** With the `r/` prefix, as Reddit writes it. */
+  subreddit: string;
+  score: string;
+  /** ISO timestamp from the post's `created-timestamp`. */
+  created: string;
+  permalink: string;
+  /** The post's own text. Empty for a link or image post. */
+  body: string;
+  /** Where a link post points, when that is not Reddit itself. */
+  linkUrl?: string;
+  comments: RedditComment[];
+  /** How many the post has in total, against however many we could reach. */
+  commentTotal: number;
+  /**
+   * False when the clipping was taken from a listing rather than the thread,
+   * where comments are not in the markup at all. The difference has to reach
+   * the reader: no comments and "we never looked" are not the same claim.
+   */
+  commentsAvailable: boolean;
+  clippedOn: string;
+}
+
+export function redditUrl(permalink: string): string {
+  return `https://www.reddit.com${permalink}`;
+}
+
+export function renderRedditClipping(clip: RedditClipping): string {
+  const url = redditUrl(clip.permalink);
+  const frontmatter = [
+    "---",
+    `title: ${yamlString(clip.title)}`,
+    `source: ${yamlString(url)}`,
+    "author:",
+    `  - ${yamlString(`[[u/${clip.author}]]`)}`,
+    `published: ${isoDate(clip.created)}`,
+    `created: ${clip.clippedOn}`,
+    `description: ${yamlString(clip.body.slice(0, DESCRIPTION_PREVIEW_CHARS))}`,
+    "tags:",
+    '  - "clippings"',
+    "---",
+  ].join("\n");
+
+  const facts = `${clip.subreddit} · ${clip.score} points · ${clip.commentTotal} comments`;
+  const parts = [`${frontmatter}\n![](${url})`, `_${facts}_`];
+  if (clip.linkUrl) parts.push(`[${clip.linkUrl}](${clip.linkUrl})`);
+  if (clip.body.trim()) parts.push(hardBreaks(clip.body));
+  parts.push("## Comments", renderRedditComments(clip));
+  return parts.join("\n\n") + "\n";
+}
+
+/**
+ * Nesting is two spaces per level of `depth`, which is Markdown's own way of
+ * saying "this replies to that" and survives being flattened into a prompt.
+ */
+function renderRedditComments(clip: RedditClipping): string {
+  if (!clip.commentsAvailable) {
+    return `_Not read: this was clipped from a listing, where the ${clip.commentTotal} comments are not on the page. Open the thread to clip them._`;
+  }
+  if (clip.comments.length === 0) {
+    return clip.commentTotal === 0 ? "_None._" : `_None loaded, of ${clip.commentTotal}._`;
+  }
+  const heading = `_${clip.commentTotal} in total, ${clip.comments.length} on the page._`;
+  const blocks = clip.comments.map((comment) => {
+    const indent = "  ".repeat(Math.min(comment.depth, 8));
+    const badges = [`${comment.score} points`, isoDate(comment.created)].filter(Boolean).join(" · ");
+    const text = comment.text
+      .replace(/\r\n/g, "\n")
+      .replace(/\n{2,}/g, "\n")
+      .trim()
+      .split("\n")
+      .map((line) => `${indent}${line}`)
+      .join("\n");
+    return `${indent}**u/${comment.author}** · ${badges}\n${text}`;
+  });
+  return [heading, ...blocks].join("\n\n");
+}
+
 /**
  * Windows-hostile characters plus the separators that would turn one clipping
  * into a folder. Length is capped well under any filesystem limit because the
@@ -150,4 +241,10 @@ export interface Clipping {
   markdown: string;
   source: string;
   clippedAt: number;
+  /**
+   * A read that could not reach everything the source has — a Reddit post taken
+   * from a listing, where the comments are not in the markup. Set so a poorer
+   * read never overwrites a richer one already in the tray.
+   */
+  partial?: boolean;
 }

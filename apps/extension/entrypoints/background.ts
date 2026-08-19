@@ -51,7 +51,7 @@ async function patch(id: string, change: Partial<TrayItem>) {
   await write(items.map((item) => (item.id === id ? { ...item, ...change } : item)));
 }
 
-async function clip(tabId: number, items: { id: string; title: string }[], comments: boolean) {
+async function clip(tabId: number, items: { id: string; title: string }[], option: boolean) {
   const queued: TrayItem[] = items.map((item) => ({ ...item, state: "queued", addedAt: Date.now() }));
   await write([...queued, ...(await read())]);
 
@@ -61,13 +61,20 @@ async function clip(tabId: number, items: { id: string; title: string }[], comme
     if (index > 0) await new Promise((resolve) => setTimeout(resolve, CLIP_SPACING_MS));
     await patch(item.id, { state: "fetching" });
     try {
-      const request: SiteRequest = { type: "fc:clip", ids: [item.id], comments };
+      const request: SiteRequest = { type: "fc:clip", ids: [item.id], option };
       const response = (await browser.tabs.sendMessage(tabId, request)) as SiteResponse<Clipping[]> | undefined;
       if (!response) throw new Error("This page stopped answering. Reload it and clip again.");
       if (!response.ok) throw new Error(response.error);
       const clipping = response.value[0];
       if (!clipping) throw new Error("Nothing came back for this one.");
-      await patch(item.id, { state: "done", clipping, title: clipping.path.split("/").pop() ?? item.title });
+      // Bulk-clipping a subreddit must not silently downgrade a thread already
+      // clipped in full: a partial read keeps the row but not the file.
+      const held = (await read()).find((row) => row.id === item.id)?.clipping;
+      if (clipping.partial && held && !held.partial) {
+        await patch(item.id, { state: "done" });
+      } else {
+        await patch(item.id, { state: "done", clipping, title: clipping.path.split("/").pop() ?? item.title });
+      }
     } catch (error) {
       await patch(item.id, { state: "failed", error: String((error as Error)?.message ?? error) });
     }
@@ -133,7 +140,7 @@ export default defineBackground(() => {
     const done = () => sendResponse({ ok: true });
     switch (request?.type) {
       case "fc:start":
-        void clip(request.tabId, request.items, request.comments).then(done);
+        void clip(request.tabId, request.items, request.option).then(done);
         return true;
       case "fc:send":
         void send().then(done);

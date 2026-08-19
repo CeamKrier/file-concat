@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { clippingPath, renderYouTubeClipping, sanitizeFilename } from "../src/markdown";
+import {
+  clippingPath,
+  renderRedditClipping,
+  renderYouTubeClipping,
+  sanitizeFilename,
+} from "../src/markdown";
 
 const clip = {
   videoId: "_s2h7X-c2jE",
@@ -97,5 +102,64 @@ describe("clippingPath", () => {
     expect(clippingPath("../../etc/passwd")).toBe("etc-passwd.md");
     expect(sanitizeFilename("C:\\Windows|nul")).toBe("C-Windows-nul");
     expect(sanitizeFilename("   ...   ")).toBe("untitled");
+  });
+});
+
+describe("renderRedditClipping", () => {
+  const base = {
+    id: "1vsf9eg",
+    title: "Thoughts About Scaling Law",
+    author: "pmttyji",
+    subreddit: "r/LocalLLaMA",
+    score: "238",
+    created: "2026-08-19T07:18:00.945000+0000",
+    permalink: "/r/LocalLLaMA/comments/1vsf9eg/thoughts/",
+    body: "Scaling, but not only of parameters.",
+    comments: [],
+    commentTotal: 36,
+    commentsAvailable: true,
+    clippedOn: "2026-08-19",
+  };
+
+  it("matches the YouTube clipping's frontmatter shape", () => {
+    const md = renderRedditClipping(base);
+    expect(md).toContain('title: "Thoughts About Scaling Law"');
+    expect(md).toContain('source: "https://www.reddit.com/r/LocalLLaMA/comments/1vsf9eg/thoughts/"');
+    expect(md).toContain('  - "[[u/pmttyji]]"');
+    expect(md).toContain("published: 2026-08-19");
+    expect(md).toContain('  - "clippings"');
+  });
+
+  it("nests replies by depth", () => {
+    const md = renderRedditClipping({
+      ...base,
+      comments: [
+        { author: "a", created: "2026-08-19T00:00:00+0000", score: "9", depth: 0, text: "top" },
+        { author: "b", created: "2026-08-19T00:00:00+0000", score: "2", depth: 1, text: "reply" },
+      ],
+    });
+    expect(md).toContain("**u/a** · 9 points");
+    expect(md).toContain("  **u/b** · 2 points");
+    // The count it took against the count that exists, so nobody reads 2 of 36
+    // as all of them.
+    expect(md).toContain("_36 in total, 2 on the page._");
+  });
+
+  it("says a listing clip never looked, rather than implying there were none", () => {
+    const md = renderRedditClipping({ ...base, commentsAvailable: false });
+    expect(md).toContain("Not read: this was clipped from a listing");
+    expect(md).not.toContain("_None._");
+  });
+
+  it("distinguishes a thread with no comments from one whose comments did not load", () => {
+    expect(renderRedditClipping({ ...base, commentTotal: 0 })).toContain("_None._");
+    expect(renderRedditClipping({ ...base, commentTotal: 12 })).toContain("_None loaded, of 12._");
+  });
+
+  it("keeps a link post's destination and drops a self-post's", () => {
+    expect(renderRedditClipping({ ...base, linkUrl: "https://example.com/x" })).toContain(
+      "[https://example.com/x](https://example.com/x)",
+    );
+    expect(renderRedditClipping(base)).not.toContain("](https://example.com");
   });
 });

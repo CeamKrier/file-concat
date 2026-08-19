@@ -6,9 +6,14 @@ import { defineConfig } from "wxt";
 export default defineConfig({
   manifest: {
     name: "FileConcat Clipper",
-    description: "Clip YouTube transcripts to Markdown and hand them to an open fileconcat.com tab.",
+    description: "Clip YouTube transcripts and Reddit threads to Markdown and hand them to an open fileconcat.com tab.",
     permissions: ["storage", "unlimitedStorage", "sidePanel"],
-    host_permissions: ["*://*.youtube.com/*", "https://fileconcat.com/*", "http://localhost/*"],
+    host_permissions: [
+      "*://*.youtube.com/*",
+      "*://*.reddit.com/*",
+      "https://fileconcat.com/*",
+      "http://localhost/*",
+    ],
     // No `default_popup`: the action click opens the panel instead, which
     // the background asks for with `setPanelBehavior`.
     action: { default_title: "FileConcat Clipper" },

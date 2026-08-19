@@ -2,7 +2,7 @@
 
 An MV3 browser extension that clips web pages into Markdown and hands the
 rendered `.md` files to an open fileconcat.com tab, where they join a bundle
-like any dropped file. YouTube transcripts today; Reddit and X later.
+like any dropped file. YouTube transcripts and Reddit threads today.
 
 ## Load it
 
@@ -36,10 +36,23 @@ video (2,365 -> 3,421) and +7% on one whose transcript dwarfs them. The choice
 sticks between sessions.
 
 Click the toolbar icon to open the side panel. It stays open while you browse
-and **Now** re-reports itself on every tab switch and every YouTube navigation,
-so it never describes the page you came from. On a watch page it offers **Clip
-this video**; on a channel's Videos tab or a search page it lists every video
-the page has already loaded — scroll first to load more — with checkboxes.
+and **Now** re-reports itself on every tab switch, every navigation, and
+whenever the page grows — so it never describes the page you came from, and
+scrolling a feed to load more updates it without a click.
+
+On YouTube: a watch page offers **Clip this video**; a channel's Videos tab or a
+search page lists every video the page has loaded, with checkboxes. **Include
+comments** is off by default — two more requests and up to 45% more tokens.
+
+On Reddit: a thread offers **Clip this post** and takes the post plus the
+comments the page has rendered. **Expand more comments** is off by default; it
+clicks the thread's own "more replies" three rounds deep, measured
+2026-08-19 as 25 comments on load and 38 of 41 after expanding. A subreddit
+lists the posts it has loaded, with checkboxes, and clipping from there fetches
+each post's page for its full body — but **not its comments**, which Reddit
+renders on the client and a fetch never sees. That clipping says so in place of
+its comment section rather than reading as a thread with none, and it will
+never overwrite a fuller clipping of the same post already in the tray.
 
 Clips land in the tray straight away and settle there. Each row carries its own
 state, so one failure says so on its own row and names the reason while its
@@ -60,7 +73,9 @@ the app is the only thing that clears a bundle.
 
 | File | Role |
 | --- | --- |
-| `entrypoints/youtube.content.ts` | Content script on youtube.com. Two innertube POSTs per video, no HTML parsing beyond the client version. Announces YouTube's own soft navigations. |
+| `entrypoints/youtube.content.ts` | Content script on youtube.com. Two innertube POSTs per video, no HTML parsing beyond the client version. |
+| `entrypoints/reddit.content.ts` | Content script on reddit.com. Reads `shreddit-post` / `shreddit-comment` attributes; no API. |
+| `src/announce.ts` | One poll per page, telling the panel when the path or the item count changed. |
 | `entrypoints/fileconcat.content.ts` | Content script on fileconcat.com. Relays a batch to the page with `window.postMessage`. |
 | `entrypoints/background.ts` | The service worker. Owns the tray, every clip and the send, because the panel can be closed mid-batch. |
 | `entrypoints/sidepanel/` | The panel: Now, the tray, and the send action. A view — nothing here has a duration. |
@@ -91,7 +106,7 @@ The manifest matches `http://localhost/*` as well as `https://fileconcat.com/*`
 so a push lands in `pnpm dev`. Chrome match patterns ignore ports, so
 `localhost:5173` is covered.
 
-## Two things not to rediscover
+## Things not to rediscover
 
 - **`youtubei/v1/get_transcript` is gone.** It answers `400 FAILED_PRECONDITION`
   for every request shape, including from inside youtube.com's own origin with
@@ -102,3 +117,13 @@ so a push lands in `pnpm dev`. Chrome match patterns ignore ports, so
   reach. Everything the innertube calls need is either scraped from an inline
   script (the client version) or built from the video id (the panel params).
   No API key, no `visitorData`, no cookies.
+- **Reddit has no route worth using.** `.json` answers 403 from inside
+  reddit.com itself, and `/svc/shreddit/more-comments/...` — which did work
+  once — now answers 200 with the whole 299KB challenge page and zero
+  `<shreddit-comment>` in it. The markup is the API: `shreddit-post` and
+  `shreddit-comment` carry author, score, depth and timestamps as attributes,
+  and the page's own expand buttons are how you get more.
+- **A page being "loaded" says nothing about it being full.** A subreddit holds
+  3 posts when Chrome reports the tab complete and 27 a moment later. `Now` is
+  driven by a poll over the item count, not by load events, which is also what
+  makes scrolling for more work.
