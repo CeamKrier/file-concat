@@ -5,6 +5,8 @@ import {
   renderRedditClipping,
   renderYouTubeClipping,
   sanitizeFilename,
+  uniquePaths,
+  type Clipping,
 } from "../src/markdown";
 import { turndown } from "../src/article";
 
@@ -104,6 +106,25 @@ describe("clippingPath", () => {
     expect(clippingPath("../../etc/passwd")).toBe("etc-passwd.md");
     expect(sanitizeFilename("C:\\Windows|nul")).toBe("C-Windows-nul");
     expect(sanitizeFilename("   ...   ")).toBe("untitled");
+  });
+});
+
+describe("uniquePaths", () => {
+  const at = (path: string): Clipping => ({ path, markdown: "", source: path, clippedAt: 0 });
+  const paths = (clippings: Clipping[]) => uniquePaths(clippings).map((clipping) => clipping.path);
+
+  it("leaves a batch with no collision exactly as it was", () => {
+    const files = [at("A.md"), at("Ahrefs/B.md")];
+    expect(uniquePaths(files)).toEqual(files);
+  });
+
+  it("lets the first keep the name and suffixes the rest", () => {
+    expect(paths([at("X.md"), at("X.md")])).toEqual(["X.md", "X-2.md"]);
+    expect(paths([at("X.md"), at("X.md"), at("X.md")])).toEqual(["X.md", "X-2.md", "X-3.md"]);
+  });
+
+  it("terminates on a name the suffix rule cannot substitute into", () => {
+    expect(paths([at("X"), at("X")])).toEqual(["X", "X-2.md"]);
   });
 });
 

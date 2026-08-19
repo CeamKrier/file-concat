@@ -31,8 +31,6 @@ const TRANSCRIPT_PANEL_ID = "PAmodern_transcript_view";
  * enough.
  */
 const COMMENT_SECTION = "comment-item-section";
-/** Requests go out one at a time; this is the pause between them. */
-const CLIP_SPACING_MS = 400;
 
 interface PlayerResponse {
   videoDetails?: { title?: string; author?: string; shortDescription?: string };
@@ -249,16 +247,9 @@ function report(): PageReport {
   return { ...base, kind: items.length ? "list" : "other", items, option: items.length ? OPTION : undefined };
 }
 
-async function handle(request: SiteRequest): Promise<PageReport | Clipping[]> {
+async function handle(request: SiteRequest): Promise<PageReport | Clipping> {
   if (request.type === "fc:page") return report();
-
-  const clippings: Clipping[] = [];
-  const grouped = request.ids.length > 1;
-  for (const [index, id] of request.ids.entries()) {
-    if (index > 0) await new Promise((resolve) => setTimeout(resolve, CLIP_SPACING_MS));
-    clippings.push(await clipVideo(id, grouped, request.option));
-  }
-  return clippings;
+  return clipVideo(request.id, request.grouped, request.option);
 }
 
 export default defineContentScript({
@@ -282,7 +273,7 @@ export default defineContentScript({
       const request = message as SiteRequest;
       if (request?.type !== "fc:page" && request?.type !== "fc:clip") return;
       handle(request).then(
-        (value) => sendResponse({ ok: true, value } satisfies SiteResponse<PageReport | Clipping[]>),
+        (value) => sendResponse({ ok: true, value } satisfies SiteResponse<PageReport | Clipping>),
         (error: unknown) =>
           sendResponse({ ok: false, error: String((error as Error)?.message ?? error) } satisfies SiteResponse<never>),
       );

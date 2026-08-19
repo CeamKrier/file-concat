@@ -6,7 +6,7 @@
 // and reports by writing `chrome.storage.local`; the panel is a view.
 
 import { browser, defineBackground } from "#imports";
-import type { Clipping } from "../src/markdown";
+import { uniquePaths, type Clipping } from "../src/markdown";
 import {
   STATUS_KEY,
   TRAY_KEY,
@@ -60,17 +60,21 @@ async function clip(tabId: number, items: { id: string; title: string }[], optio
   const queued: TrayItem[] = items.map((item) => ({ ...item, state: "queued", addedAt: Date.now() }));
   await write([...queued, ...(await read())]);
 
+  // Read once, here: whether this is a batch is a fact about the selection, and
+  // the handler sees only its own item.
+  const grouped = items.length > 1;
+
   // One id per request, which is what buys a row its own state: a batch that
   // answered once could only ever report the batch.
   for (const [index, item] of items.entries()) {
     if (index > 0) await new Promise((resolve) => setTimeout(resolve, CLIP_SPACING_MS));
     await patch(item.id, { state: "fetching" });
     try {
-      const request: SiteRequest = { type: "fc:clip", ids: [item.id], option };
-      const response = (await browser.tabs.sendMessage(tabId, request)) as SiteResponse<Clipping[]> | undefined;
+      const request: SiteRequest = { type: "fc:clip", id: item.id, grouped, option };
+      const response = (await browser.tabs.sendMessage(tabId, request)) as SiteResponse<Clipping> | undefined;
       if (!response) throw new Error("This page stopped answering. Reload it and clip again.");
       if (!response.ok) throw new Error(response.error);
-      const clipping = response.value[0];
+      const clipping = response.value;
       if (!clipping) throw new Error("Nothing came back for this one.");
       // Bulk-clipping a subreddit must not silently downgrade a thread already
       // clipped in full: a partial read keeps the row but not the file.
@@ -105,7 +109,9 @@ async function deliver(tabId: number, request: PushRequest): Promise<boolean> {
  * across a tab switch, which is the point of it.
  */
 async function send() {
-  const files = (await read()).filter((item) => item.state === "done" && item.clipping).map((item) => item.clipping!);
+  const files = uniquePaths(
+    (await read()).filter((item) => item.state === "done" && item.clipping).map((item) => item.clipping!),
+  );
   if (files.length === 0) return;
   await say("Sending…", "working");
   try {

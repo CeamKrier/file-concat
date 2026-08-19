@@ -44,8 +44,8 @@ export default defineContentScript({
       const request = message as SiteRequest;
       if (request?.type !== "fc:page" && request?.type !== "fc:clip") return;
       try {
-        const value = request.type === "fc:page" ? report() : [clip()];
-        sendResponse({ ok: true, value } satisfies SiteResponse<PageReport | Clipping[]>);
+        const value = request.type === "fc:page" ? report() : clip();
+        sendResponse({ ok: true, value } satisfies SiteResponse<PageReport | Clipping>);
       } catch (error) {
         sendResponse({
           ok: false,

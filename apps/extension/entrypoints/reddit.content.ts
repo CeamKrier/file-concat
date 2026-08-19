@@ -15,9 +15,6 @@ import {
   posts,
 } from "../src/reddit";
 
-/** Requests go out one at a time; this is the pause between them. */
-const CLIP_SPACING_MS = 400;
-
 const OPTION = {
   label: "Expand more comments",
   hint: "Clicks the thread's own “more replies”, three rounds. Slower, and never all of them.",
@@ -63,16 +60,9 @@ async function clip(id: string, grouped: boolean, expand: boolean): Promise<Clip
   };
 }
 
-async function handle(request: SiteRequest): Promise<PageReport | Clipping[]> {
+async function handle(request: SiteRequest): Promise<PageReport | Clipping> {
   if (request.type === "fc:page") return report();
-
-  const clippings: Clipping[] = [];
-  const grouped = request.ids.length > 1;
-  for (const [index, id] of request.ids.entries()) {
-    if (index > 0) await new Promise((resolve) => setTimeout(resolve, CLIP_SPACING_MS));
-    clippings.push(await clip(id, grouped, request.option));
-  }
-  return clippings;
+  return clip(request.id, request.grouped, request.option);
 }
 
 export default defineContentScript({
@@ -87,7 +77,7 @@ export default defineContentScript({
       const request = message as SiteRequest;
       if (request?.type !== "fc:page" && request?.type !== "fc:clip") return;
       handle(request).then(
-        (value) => sendResponse({ ok: true, value } satisfies SiteResponse<PageReport | Clipping[]>),
+        (value) => sendResponse({ ok: true, value } satisfies SiteResponse<PageReport | Clipping>),
         (error: unknown) =>
           sendResponse({ ok: false, error: String((error as Error)?.message ?? error) } satisfies SiteResponse<never>),
       );

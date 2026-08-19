@@ -336,6 +336,28 @@ export function clippingPath(title: string, channel?: string): string {
 }
 
 /**
+ * Two clippings can land on one path — two posts titled alike in one subreddit,
+ * or two articles from different sites that share a headline, since the tray
+ * collects across pages before a single send. The web app keys a pushed batch by
+ * path, so a collision is not a clash the user sees but a file that quietly
+ * never arrives. The first occurrence keeps the name and later ones take `-2`,
+ * `-3`; the item id is no good as the suffix because an article's id is its
+ * whole URL. The loop is there for the list that already contains a real `X-2`.
+ */
+export function uniquePaths(clippings: Clipping[]): Clipping[] {
+  const taken = new Set<string>();
+  return clippings.map((clipping) => {
+    let path = clipping.path;
+    // Rebuilt from the stem rather than by substituting into the name: a path
+    // that does not end in `.md` would leave a `replace` unmatched, the string
+    // unchanged and this loop spinning forever inside the service worker.
+    for (let n = 2; taken.has(path); n++) path = `${clipping.path.replace(/\.md$/, "")}-${n}.md`;
+    taken.add(path);
+    return path === clipping.path ? clipping : { ...clipping, path };
+  });
+}
+
+/**
  * A rendered clipping: the `.md` file that crosses over to fileconcat.com, plus
  * the bit of provenance the tray needs to list it.
  */

@@ -1,7 +1,12 @@
 import type { Clipping } from "./markdown";
 
 /** Background -> site content script. */
-export type SiteRequest = { type: "fc:page" } | { type: "fc:clip"; ids: string[]; option: boolean };
+export type SiteRequest =
+  | { type: "fc:page" }
+  // `grouped` is told, not inferred. It is a property of the user's selection,
+  // which only the panel and the worker can see, and the worker sends one id
+  // per request so a handler asked to guess from what it holds always sees one.
+  | { type: "fc:clip"; id: string; grouped: boolean; option: boolean };
 
 export interface PageItem {
   id: string;
