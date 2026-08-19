@@ -90,4 +90,34 @@ describe("useFileIngestion, appending", () => {
     expect(result.current.entries.map((e) => e.path)).toContain("shots/a.png");
     expect(result.current.scannedDocuments.length).toBe(scannedBefore);
   });
+
+  it("clears a stale failure when the same path reads successfully on append", async () => {
+    // `File.slice()` returns a plain Blob, so the router's and validator's
+    // leading-byte sniffs still succeed on this file — only the full read
+    // `readFileAsText` does is broken, which is what actually lands a path in
+    // `failedFiles`.
+    const unreadable = new File(["placeholder"], "notes/broken.txt");
+    Object.defineProperty(unreadable, "arrayBuffer", {
+      value: () => Promise.reject(new Error("simulated read failure")),
+    });
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([{ file: unreadable, path: "notes/broken.txt" }]);
+    });
+    expect(result.current.failedFiles.map((f) => f.path)).toEqual(["notes/broken.txt"]);
+    expect(result.current.entries.map((e) => e.path)).not.toContain("notes/broken.txt");
+
+    await act(async () => {
+      await result.current.ingestBatch([text("now readable\n", "notes/broken.txt")], {
+        append: true,
+      });
+    });
+
+    // The fixed copy read fine this time; the earlier failure record must not
+    // survive next to it.
+    expect(result.current.failedFiles).toEqual([]);
+    expect(result.current.entries.map((e) => e.path)).toEqual(["notes/broken.txt"]);
+    expect(result.current.entries[0].content).toBe("now readable\n");
+  });
 });

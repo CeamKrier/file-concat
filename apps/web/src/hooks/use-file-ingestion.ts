@@ -703,11 +703,37 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         // Merging keeps a re-clipped file where it already sits rather than
         // moving it to the end: the same path is one file in the bundle, and
         // the newer read of it wins.
+        //
+        // `mergeByPath` only overwrites paths present in the incoming list —
+        // it never removes one. A path this batch actually read (it is in
+        // `nextEntries`) has to be taken out of the *old* failed/scanned/unread
+        // records by hand first, or a file that failed last time and reads
+        // fine now keeps a stale failure sitting next to its working content.
+        // `scannedDocuments` and `unreadDocuments` are pruned by the same set
+        // so the two stay in lockstep: `recoveredDocuments` is their length
+        // difference, and dropping a path from one but not the other would
+        // count a re-dropped file as a rescue that never happened.
+        const readPaths = new Set(nextEntries.map((e) => e.path));
         setEntries((prev) => mergeByPath(prev, nextEntries));
         setValidations((prev) => ({ ...prev, ...nextValidations }));
-        setFailedFiles((prev) => mergeByPath(prev, nextFailed));
-        setScannedDocuments((prev) => mergeByPath(prev, nextUnread));
-        setUnreadDocuments((prev) => mergeByPath(prev, nextUnread));
+        setFailedFiles((prev) =>
+          mergeByPath(
+            prev.filter((f) => !readPaths.has(f.path)),
+            nextFailed,
+          ),
+        );
+        setScannedDocuments((prev) =>
+          mergeByPath(
+            prev.filter((d) => !readPaths.has(d.path)),
+            nextUnread,
+          ),
+        );
+        setUnreadDocuments((prev) =>
+          mergeByPath(
+            prev.filter((d) => !readPaths.has(d.path)),
+            nextUnread,
+          ),
+        );
         // Languages are keyed by path and describe files that are still here,
         // so unlike a replacing drop this one keeps them.
       } else {
