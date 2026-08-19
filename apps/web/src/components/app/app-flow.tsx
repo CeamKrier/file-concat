@@ -11,6 +11,7 @@ import {
 } from "@fileconcat/core";
 
 import { useConfig } from "~/hooks/use-config";
+import { useClipperPush } from "~/hooks/use-clipper-push";
 import { useFileIngestion } from "~/hooks/use-file-ingestion";
 import { useFilterState } from "~/hooks/use-filter-state";
 import { useOutputGeneration } from "~/hooks/use-output-generation";
@@ -32,7 +33,7 @@ import { ResultView } from "./result-view";
 import { ResultEmpty } from "./result-empty";
 import { ReadingDialog } from "./reading-dialog";
 import { emptyKindFor, emptyReasonSlug } from "./empty-kind";
-import { isRecognisableImage } from "~/hooks/use-file-ingestion";
+import { isRecognisableImage, type IncomingFile } from "~/hooks/use-file-ingestion";
 import { SettingsDrawer } from "./settings-drawer";
 
 type Phase = "landing" | "processing" | "result";
@@ -501,6 +502,18 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       void begin(() => ingestion.handleFileInput(e));
     },
     [begin, ingestion],
+  );
+
+  // Clippings from the browser extension arrive as finished `.md` files and
+  // take the same road as a drop, so a push is one Run exactly like one drop.
+  useClipperPush(
+    useCallback(
+      (files: IncomingFile[]) => {
+        setResultNote(null);
+        void begin(() => ingestion.ingestBatch(files));
+      },
+      [begin, ingestion],
+    ),
   );
 
   // The wired drop handlers, shared by the default hero and any persona landing
