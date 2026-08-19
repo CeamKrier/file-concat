@@ -28,6 +28,10 @@ const PUSH_ATTEMPTS = 24;
 const PUSH_RETRY_MS = 250;
 /** Requests go out one at a time; this is the pause between them. */
 const CLIP_SPACING_MS = 400;
+/** `fc:fetch` runs with this extension's own permissions and cookies, so a
+ *  content script cannot point it at an arbitrary host — only the ones the
+ *  handlers actually call. */
+const FETCH_ALLOWLIST = ["hn.algolia.com"];
 
 const read = async (): Promise<TrayItem[]> => {
   const stored = await browser.storage.local.get(TRAY_KEY);
@@ -140,9 +144,20 @@ export default defineBackground(() => {
     // A content script the page's CSP will not let reach a host.
     if ((message as FetchRequest)?.type === "fc:fetch") {
       const { url } = message as FetchRequest;
+      const host = (() => {
+        try {
+          return new URL(url).hostname;
+        } catch {
+          return "";
+        }
+      })();
+      if (!FETCH_ALLOWLIST.includes(host)) {
+        sendResponse({ ok: false, error: `${host || url} is not on the fetch allowlist.` } satisfies SiteResponse<never>);
+        return true;
+      }
       fetch(url)
         .then(async (response) => {
-          if (!response.ok) throw new Error(`${new URL(url).hostname} answered ${response.status}.`);
+          if (!response.ok) throw new Error(`${host} answered ${response.status}.`);
           return response.text();
         })
         .then(
