@@ -268,7 +268,15 @@ export default defineContentScript({
     // A navigation replaces the page without a load Chrome reports, and
     // scrolling a channel loads more videos without any navigation at all.
     // Both are "where am I, and how much is here".
-    announceChanges(() => `${location.pathname}${location.search}:${pageVideos().length}`);
+    //
+    // The count in the key is the raw anchor count, not `pageVideos().length`:
+    // this only needs to change when the real count changes, and
+    // `checkVisibility()` on every anchor forces a style/layout pass every
+    // 800ms for the tab's whole life. The panel re-asks with `fc:page` on
+    // change and gets the filtered, deduped list from `pageVideos()` then.
+    announceChanges(
+      () => `${location.pathname}${location.search}:${document.querySelectorAll('a[href*="/watch?v="]').length}`,
+    );
 
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       const request = message as SiteRequest;
