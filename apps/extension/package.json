@@ -1,0 +1,20 @@
+{
+    "name": "@fileconcat/extension",
+    "private": true,
+    "version": "0.1.0",
+    "description": "Browser extension that clips web pages into Markdown and hands them to an open fileconcat.com tab",
+    "type": "module",
+    "scripts": {
+        "dev": "wxt",
+        "build": "wxt build",
+        "zip": "wxt zip",
+        "postinstall": "wxt prepare",
+        "check": "wxt prepare && tsc --noEmit",
+        "test": "vitest run"
+    },
+    "devDependencies": {
+        "typescript": "^5.6.3",
+        "vitest": "^4.1.8",
+        "wxt": "^0.21.4"
+    }
+}

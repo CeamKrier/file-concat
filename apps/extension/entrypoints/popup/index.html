@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>FileConcat Clipper</title>
+    <style>
+      /* Ported from apps/web/src/styles/app.css. The popup cannot load the
+         brand webfonts without shipping them, so the warm-dark palette, the
+         hairlines and the radius carry the identity and type falls back to the
+         system stack. */
+      :root {
+        --background: #16130f;
+        --card: #1c1812;
+        --surface-inset: #120f0a;
+        --foreground: #f1ebe0;
+        --text-secondary: #b3a994;
+        --text-muted: #8d8472;
+        --text-faint: #6f675a;
+        --hairline: #221d16;
+        --border: #2c261d;
+        --border-strong: #342d22;
+        --go: #7acd8e;
+        --go-text: #9fdcb0;
+        --go-ink: #11261a;
+        --info: #e3b96a;
+        --stop: #e08c7a;
+        --radius: 0.5rem;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        width: 360px;
+        margin: 0;
+        max-height: 580px;
+        display: flex;
+        flex-direction: column;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+        font-size: 13px;
+        line-height: 1.45;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--hairline);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .origin {
+        color: var(--text-muted);
+        font-size: 11px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 170px;
+      }
+
+      section {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--hairline);
+      }
+
+      section:last-of-type {
+        border-bottom: 0;
+      }
+
+      .label {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+        color: var(--text-muted);
+        font-size: 11px;
+      }
+
+      .note {
+        margin: 0;
+        color: var(--text-muted);
+      }
+
+      ul:not(:empty) {
+        list-style: none;
+        margin: 0 0 10px;
+        padding: 3px;
+        max-height: 168px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        border: 1px solid var(--hairline);
+        border-radius: var(--radius);
+      }
+
+      #tray-list:not(:empty) {
+        max-height: 140px;
+      }
+
+      ul:empty {
+        margin: 0;
+      }
+
+      /* A row is the label, so the whole strip is the hit target. */
+      li label,
+      .toggle {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        padding: 6px 8px;
+        border-radius: calc(var(--radius) - 2px);
+        cursor: pointer;
+      }
+
+      li label:hover,
+      .toggle:hover {
+        background: var(--card);
+      }
+
+      /* The toggle sits in the same row idiom as a video, one step in from the
+         section edge, so it reads as part of the act it changes. */
+      .toggle {
+        margin: 0 0 10px -8px;
+      }
+
+      li input[type="checkbox"],
+      .toggle input[type="checkbox"] {
+        margin: 2px 0 0;
+        accent-color: var(--go);
+        flex: none;
+      }
+
+      .hint {
+        display: block;
+        color: var(--text-muted);
+        font-size: 11px;
+      }
+
+      .row-text {
+        min-width: 0;
+      }
+
+      .row-title {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .row-meta {
+        display: block;
+        color: var(--text-muted);
+        font-size: 11px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      button {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--card);
+        color: var(--foreground);
+        font: inherit;
+        font-weight: 500;
+        cursor: pointer;
+      }
+
+      button:hover:not(:disabled) {
+        border-color: var(--border-strong);
+      }
+
+      button.primary {
+        background: var(--go);
+        border-color: var(--go);
+        color: var(--go-ink);
+        font-weight: 600;
+      }
+
+      button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--go);
+        outline-offset: 2px;
+      }
+
+      .link {
+        width: auto;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--text-muted);
+        font-size: 11px;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .link:hover:not(:disabled) {
+        color: var(--foreground);
+      }
+
+      footer {
+        padding: 12px 14px;
+        border-top: 1px solid var(--hairline);
+        background: var(--surface-inset);
+      }
+
+      /* Status carries an icon-free text prefix rather than colour alone. */
+      #status {
+        margin: 8px 0 0;
+        min-height: 16px;
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      #status[data-tone="working"] {
+        color: var(--info);
+      }
+
+      #status[data-tone="done"] {
+        color: var(--go-text);
+      }
+
+      #status[data-tone="error"] {
+        color: var(--stop);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>FileConcat Clipper</h1>
+      <span class="origin" id="origin"></span>
+    </header>
+
+    <section id="page-section">
+      <div class="label">
+        <span id="page-label">This page</span>
+        <button class="link" id="select-all" type="button" hidden>Select all</button>
+      </div>
+      <p class="note" id="page-note" hidden></p>
+      <ul id="page-list"></ul>
+      <label class="toggle" id="comments-row" hidden>
+        <input type="checkbox" id="comments" />
+        <span>
+          Include comments
+          <span class="hint">Top 20 per video. Up to 45% more tokens on a short one.</span>
+        </span>
+      </label>
+      <button id="clip" type="button" hidden>Clip this video</button>
+    </section>
+
+    <section id="tray-section">
+      <div class="label">
+        <span id="tray-label">Tray</span>
+        <button class="link" id="clear" type="button" hidden>Clear</button>
+      </div>
+      <p class="note" id="tray-note" hidden>Nothing clipped yet.</p>
+      <ul id="tray-list"></ul>
+    </section>
+
+    <footer>
+      <button class="primary" id="send" type="button" disabled>Send to FileConcat</button>
+      <p id="status" role="status" aria-live="polite"></p>
+    </footer>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

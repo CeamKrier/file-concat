@@ -1,0 +1,9 @@
+{
+    "extends": "./.wxt/tsconfig.json",
+    "compilerOptions": {
+        // WXT's generated config turns this on. The sources predate it and P1
+        // is a build migration, not a strictness pass — turn it on in its own
+        // change, with the index accesses it flags.
+        "noUncheckedIndexedAccess": false
+    }
+}
