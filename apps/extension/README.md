@@ -50,8 +50,11 @@ finished row into an open fileconcat.com tab, opening one if there is none.
 Closing the panel does not stop a batch: the clipping runs in the service
 worker, and the panel reads the result whenever you open it again.
 
-A push is one drop, so it replaces whatever the tab held before. That is
-survivable because the tray keeps the last 50 clippings: send the set again.
+A push **extends** the tab's bundle rather than replacing it, de-duplicating by
+path, so a repo and the discussion about it can sit in one bundle in either
+order and re-sending the same clipping does not double it. The tray keeps the
+last 50 clippings, so sending the set again is always safe. **Start over** in
+the app is the only thing that clears a bundle.
 
 ## How it works
 
@@ -71,7 +74,8 @@ declaration.
 
 The web app's half is `apps/web/src/hooks/use-clipper-push.ts`, wired in
 `app-flow.tsx`. It receives files, not records — the whole reason the web app
-gains no new concepts (ADR-0018).
+gains no new concepts (ADR-0018) — and asks `ingestBatch` for an append, the
+same road the app's own **Add files** button takes.
 
 The panel and the worker share no protocol beyond `chrome.storage.local`: the
 worker writes, the panel renders `storage.onChanged`. A panel that was shut for
