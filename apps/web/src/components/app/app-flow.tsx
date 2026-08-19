@@ -506,14 +506,28 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
 
   // Clippings from the browser extension arrive as finished `.md` files and
   // take the same road as a drop, so a push is one Run exactly like one drop.
+  //
+  // It appends, because the thing the extension exists for is a repo *and* the
+  // discussion about it. A push that replaced the bundle could never produce
+  // that in either order.
   useClipperPush(
     useCallback(
       (files: IncomingFile[]) => {
         setResultNote(null);
-        void begin(() => ingestion.ingestBatch(files));
+        void begin(() => ingestion.ingestBatch(files, { append: true }));
       },
       [begin, ingestion],
     ),
+  );
+
+  // The same road for the drop's own gesture: without this the extension would
+  // be able to do something the app's primary gesture cannot.
+  const onAddFiles = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setResultNote(null);
+      void begin(() => ingestion.handleFileInput(e, { append: true }));
+    },
+    [begin, ingestion],
   );
 
   // The wired drop handlers, shared by the default hero and any persona landing
@@ -640,6 +654,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               onCopy={output.copy}
               onDownload={output.download}
               onStartOver={startOver}
+              onAddFiles={onAddFiles}
               previewText={previewText}
               unsupported={notText}
               skippedByDefault={skippedByDefault}

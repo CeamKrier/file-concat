@@ -30,6 +30,15 @@ export const METRIC_EVENTS = [
   /** Wall-clock milliseconds for one ingest, in `n`. Only useful beside `batch_size`. */
   "ingest_ms",
   /**
+   * How many files the bundle already held when an append landed, in `n`.
+   * Written only by an append, so its row count is how often one happened, and
+   * `n = 0` is an append that had nothing to append to — a replace wearing
+   * another name. That distinction is the whole question the affordance raises:
+   * whether clippings and dropped files genuinely end up in one bundle, or
+   * whether people still start over every time.
+   */
+  "append_to",
+  /**
    * One row per file extension in the drop: `n` files totalling `b` bytes.
    * Capped at the most common few, remainder folded into `other` — folded, never
    * silently truncated, since a dropped tail reads as full coverage later.
