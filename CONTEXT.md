@@ -34,6 +34,10 @@ _Avoid_: "corrupt file", "unknown file"
 A file that is perfectly readable text but has near-zero value in an LLM bundle — lock files, build output, vendored dependencies, generated artifacts. Distinct from a Binary file (Noise _can_ be read; we just judge it not worth including). Excluded by a curated, ecosystem-aware default set, but always transparently surfaced and re-includable by the user.
 _Avoid_: "junk", "excluded file", "skipped file" (too broad — those also cover binaries)
 
+**Clipping**:
+A Text file the tool *produces* from a web page rather than reads from a disk — a video's transcript, a forum thread, a post and its replies — rendered as Markdown under a header that names where it came from. Once it is in a Run nothing tells it apart from a dropped file: it is curated, counted, and exported by exactly the same rules, and a Clipping whose page held an image sends that image through **Recognition** like any other file rather than reading it on the way in. What sets it apart is only where its text was beforehand — a dropped file's text already existed on the device and survives being discarded, a Clipping's did not and does not. That asymmetry is the whole reason recent Clippings are kept somewhere outside the Run, while dropped files never are.
+_Avoid_: "scrape" (says how, and says it hostilely), "download" (nothing lands on the disk on the way in), "import" (that word is taken by remote repository sources)
+
 ### Usage
 
 **Run**:
