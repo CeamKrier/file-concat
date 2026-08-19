@@ -22,7 +22,11 @@ interface AlgoliaNode {
   children: AlgoliaNode[];
 }
 
-export const isItem = (search = location.search) => new URLSearchParams(search).has("id");
+// `id` alone also matches /user, /threads, /submitted and /favorites, which
+// all carry it for a username. Without the path check, "Clip this thread" was
+// offered on those pages and clipItem() then asked Algolia for a user id.
+export const isItem = (search = location.search, path = location.pathname) =>
+  path === "/item" && new URLSearchParams(search).has("id");
 export const itemId = (search = location.search) => new URLSearchParams(search).get("id") ?? "";
 export const isFrontPage = (path = location.pathname) =>
   ["/", "/news", "/newest", "/best", "/ask", "/show", "/front"].includes(path);
