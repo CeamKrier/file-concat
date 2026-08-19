@@ -98,10 +98,24 @@ export const STATUS_KEY = "status";
  *  same promise and should not share one remembered answer. */
 export const OPTIONS_KEY = "options";
 
-/** Background -> fileconcat.com content script. */
+/**
+ * Background -> fileconcat.com content script.
+ *
+ * Answered with `SiteResponse<number>`, where the number is how many files the
+ * *page* said it took. The bridge is in every fileconcat.com tab, including
+ * /docs and /privacy, which never mount the listener that takes a batch, so a
+ * resolved `sendMessage` proves nothing on its own.
+ */
 export interface PushRequest {
   type: "fc:push";
   files: Clipping[];
+  /**
+   * How long the bridge waits for that answer, in ms. Told rather than fixed:
+   * a tab that has been open a while replies in a postMessage round trip, while
+   * one opened a moment ago has to hydrate first, and only the worker knows
+   * which of the two it is pushing into.
+   */
+  waitMs: number;
 }
 
 /** The shape the fileconcat.com page listens for on `window.postMessage`. */

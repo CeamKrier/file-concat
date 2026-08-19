@@ -19,13 +19,30 @@ import {
   type TrayItem,
 } from "../src/messages";
 
-/** Enough to re-send a session's worth of work after a push replaced the last. */
+/** Enough to hold a session's worth of work and re-send the whole set. */
 const TRAY_LIMIT = 50;
 const FILECONCAT_TABS = ["https://fileconcat.com/*", "http://localhost/*"];
 const FILECONCAT_URL = "https://fileconcat.com/";
-/** 24 x 250ms, twice: enough for a cold dev server plus one reload. */
+/** 24 x 250ms: enough for a cold dev server to come up and inject the bridge. */
 const PUSH_ATTEMPTS = 24;
 const PUSH_RETRY_MS = 250;
+/**
+ * A tab that has been open for a while either has the bridge in it or never
+ * will — Chrome rejects `sendMessage` immediately when nothing is listening —
+ * so retrying a candidate only buys the one caught mid-navigation. Two attempts
+ * is that; the full 24 would be six seconds of nothing per wrong tab, and
+ * `tabs.query` can hand back several.
+ */
+const CANDIDATE_ATTEMPTS = 2;
+/**
+ * How long the bridge waits for the page to take the batch. A candidate is
+ * already loaded, so `ready` is a postMessage round trip away and 1.5s is a
+ * wide margin — and this one is paid again for every wrong tab, so it cannot be
+ * generous. A tab opened a moment ago has to hydrate first, which on a cold dev
+ * server is seconds, and that wait is only ever paid once.
+ */
+const CANDIDATE_WAIT_MS = 1_500;
+const FRESH_TAB_WAIT_MS = 8_000;
 /** Requests go out one at a time; this is the pause between them. */
 const CLIP_SPACING_MS = 400;
 /** `fc:fetch` runs with this extension's own permissions and cookies, so a
@@ -90,17 +107,27 @@ async function clip(tabId: number, items: { id: string; title: string }[], optio
   }
 }
 
-/** Retries because a tab that is still loading has no content script yet. */
-async function deliver(tabId: number, request: PushRequest): Promise<boolean> {
-  for (let attempt = 0; attempt < PUSH_ATTEMPTS; attempt++) {
+/**
+ * Pushes into one tab and returns what the *page* said, not what the wire did.
+ *
+ * `tabs.sendMessage` resolving proves only that the bridge content script is in
+ * that tab, and the bridge is in every fileconcat.com tab: /docs, /blog and
+ * /privacy carry it and never mount the listener that takes a batch. So
+ * "delivered" here means acknowledged by the page, and nothing less.
+ *
+ * Retries because a tab that is still loading has no content script yet.
+ */
+async function deliver(tabId: number, request: PushRequest, attempts: number): Promise<SiteResponse<number>> {
+  for (let attempt = 0; attempt < attempts; attempt++) {
     try {
-      await browser.tabs.sendMessage(tabId, request);
-      return true;
+      const response = (await browser.tabs.sendMessage(tabId, request)) as SiteResponse<number> | undefined;
+      // The bridge always answers. Anything in that tab that does not is not it.
+      return response ?? { ok: false, error: "That tab did not answer." };
     } catch {
-      await new Promise((resolve) => setTimeout(resolve, PUSH_RETRY_MS));
+      if (attempt < attempts - 1) await new Promise((resolve) => setTimeout(resolve, PUSH_RETRY_MS));
     }
   }
-  return false;
+  return { ok: false, error: "No FileConcat page in that tab." };
 }
 
 /**
@@ -108,38 +135,66 @@ async function deliver(tabId: number, request: PushRequest): Promise<boolean> {
  * batch is across. Unlike the popup this can focus freely: a panel stays open
  * across a tab switch, which is the point of it.
  */
-async function send() {
+async function sendOnce() {
   const files = uniquePaths(
     (await read()).filter((item) => item.state === "done" && item.clipping).map((item) => item.clipping!),
   );
   if (files.length === 0) return;
   await say("Sending…", "working");
   try {
-    const [existing] = await browser.tabs.query({ url: FILECONCAT_TABS });
-    const tab = existing ?? (await browser.tabs.create({ url: FILECONCAT_URL, active: false }));
-    if (tab.id === undefined) throw new Error("Could not open a FileConcat tab.");
+    // Every match is a guess. `tabs.query` returns them in no particular order,
+    // so a /docs tab can come back ahead of the tool; `http://localhost/*`
+    // ignores the port, so any dev server on the machine matches too. They are
+    // tried in turn and the first one the page itself acknowledges wins.
+    const candidates = await browser.tabs.query({ url: FILECONCAT_TABS });
+    let accepted: { tabId: number; windowId?: number; count: number } | null = null;
 
-    const request: PushRequest = { type: "fc:push", files };
-    if (!(await deliver(tab.id, request))) {
-      // Chrome does not inject content scripts into tabs that were already open
-      // when the extension was installed or reloaded, so the first push after
-      // either lands on a tab with no bridge in it. One reload fixes that, and
-      // is safe here because a failed delivery means the tab holds none of this
-      // work.
-      await browser.tabs.reload(tab.id);
-      if (!(await deliver(tab.id, request))) {
-        throw new Error("No answer from the FileConcat tab. Check it loads, then send again.");
+    for (const candidate of candidates) {
+      if (candidate.id === undefined) continue;
+      const request: PushRequest = { type: "fc:push", files, waitMs: CANDIDATE_WAIT_MS };
+      const answer = await deliver(candidate.id, request, CANDIDATE_ATTEMPTS);
+      if (answer.ok) {
+        accepted = { tabId: candidate.id, windowId: candidate.windowId, count: answer.value };
+        break;
       }
     }
 
-    await browser.tabs.update(tab.id, { active: true });
-    if (tab.windowId !== undefined) await browser.windows.update(tab.windowId, { focused: true });
-    // The tray keeps what it sent. A push replaces whatever the tab held
-    // before, so the way back from a mistake is to send the set again.
-    await say(`${files.length} sent. They are in the tab now.`, "done");
+    if (!accepted) {
+      // A new tab covers what the candidates could not, including the case a
+      // reload used to: Chrome does not inject content scripts into tabs that
+      // were already open when the extension was installed or reloaded, so the
+      // first push after either finds a tab with no bridge in it. Reloading was
+      // the old fix and it threw away whatever bundle the user had assembled in
+      // that tab by hand, with no undo — for a batch that tab never held.
+      const tab = await browser.tabs.create({ url: FILECONCAT_URL, active: false });
+      if (tab.id === undefined) throw new Error("Could not open a FileConcat tab.");
+      const request: PushRequest = { type: "fc:push", files, waitMs: FRESH_TAB_WAIT_MS };
+      const answer = await deliver(tab.id, request, PUSH_ATTEMPTS);
+      if (!answer.ok) throw new Error(answer.error);
+      accepted = { tabId: tab.id, windowId: tab.windowId, count: answer.value };
+    }
+
+    await browser.tabs.update(accepted.tabId, { active: true });
+    if (accepted.windowId !== undefined) await browser.windows.update(accepted.windowId, { focused: true });
+    // The page's count, not `files.length`: it is the only number here that
+    // anything outside this worker has vouched for. It says the batch crossed
+    // and was accepted, not that the tab finished reading it, so the line stops
+    // there. The tray keeps what it sent, and a push appends to the tab and
+    // replaces same-path files, so re-sending a corrected set fixes one in place.
+    await say(`${accepted.count} sent. The tab took them.`, "done");
   } catch (error) {
     await say(String((error as Error)?.message ?? error), "error");
   }
+}
+
+/**
+ * Sends run one at a time. Two quick clicks used to put two batches in flight
+ * at once against a bridge that holds exactly one, and the first vanished.
+ */
+let queue: Promise<void> = Promise.resolve();
+function send(): Promise<void> {
+  queue = queue.then(sendOnce, sendOnce);
+  return queue;
 }
 
 export default defineBackground(() => {
