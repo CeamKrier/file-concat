@@ -388,13 +388,20 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // --- flow control ---------------------------------------------------------
   // Runs `run`, showing the processing view driven by the engine's real
   // progress, then reveals the result the moment work resolves — no padding, no
-  // scripted steps. Rethrows so an import can recover (drop / browse swallow
-  // their own errors, so they never reject here).
+  // scripted steps. The `finally` is what keeps a rejecting `run` from
+  // stranding the UI on the processing screen forever: drop / browse already
+  // swallow their own errors, but a caller that doesn't (the extension push)
+  // still needs the phase to move on. The rejection itself isn't caught here —
+  // it propagates so an import's own try/catch can recover, or, unhandled,
+  // surfaces in the console instead of failing silently.
   const begin = useCallback(async (run: () => Promise<void>, opts?: { label?: string }) => {
     setProcessingLabel(opts?.label ?? "");
     setPhase("processing");
-    await run();
-    setPhase("result");
+    try {
+      await run();
+    } finally {
+      setPhase("result");
+    }
   }, []);
 
   // Honest progress, straight from the ingestion engine. A `null` percent is
