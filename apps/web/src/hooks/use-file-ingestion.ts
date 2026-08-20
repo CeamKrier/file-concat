@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   DownloadProgress,
   ExtractionNoteKind,
@@ -139,6 +139,13 @@ const SCANNABLE_FORMATS = new Set(["pdf", "docx", "pptx", "odt", "odp", "rtf"]);
 
 /** Whether a {@link ScannedDocument} is an image rather than a document — the
  * one thing that decides whether its pass starts by itself. */
+/** Prev order preserved, same path replaced in place, newcomers appended. */
+function mergeByPath<T extends { path: string }>(prev: T[], next: T[]): T[] {
+  const byPath = new Map(prev.map((item) => [item.path, item]));
+  for (const item of next) byPath.set(item.path, item);
+  return [...byPath.values()];
+}
+
 export function isRecognisableImage(format: string): boolean {
   return RECOGNISABLE_IMAGE_FORMATS.has(format);
 }
@@ -149,6 +156,15 @@ function confidenceBand(confidence: number): string {
   const floor = Math.floor(Math.max(0, confidence) / 10) * 10;
   return String(Math.min(90, floor));
 }
+
+/**
+ * `append` extends the bundle instead of replacing it, de-duplicating by path
+ * so re-clipping a video updates its file where it already sits rather than
+ * doubling it. The first drop on an empty screen never asks for it: replacing
+ * nothing is what starting over means, and an append onto an empty bundle is
+ * the same act anyway.
+ */
+export type IngestOptions = { append?: boolean };
 
 export type IngestPhase = "unpacking" | "reading" | "fetching" | "recognising";
 /**
@@ -230,14 +246,14 @@ export interface FileIngestion {
    * it would be a plain untruth on the summary card.
    */
   readLanguages: Record<string, OcrLanguage>;
-  ingestBatch: (incoming: IncomingFile[]) => Promise<void>;
+  ingestBatch: (incoming: IncomingFile[], options?: IngestOptions) => Promise<void>;
   ingestRepo: (url: string, sourceType: SourceType, signal: AbortSignal) => Promise<void>;
   setEntryContent: (path: string, content: string) => void;
-  handleFileInput: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  handleFileInput: (e: React.ChangeEvent<HTMLInputElement>, options?: IngestOptions) => Promise<void>;
   handleDragEnter: (e: React.DragEvent) => void;
   handleDragLeave: (e: React.DragEvent) => void;
   handleDragOver: (e: React.DragEvent) => void;
-  handleDrop: (e: React.DragEvent) => Promise<void>;
+  handleDrop: (e: React.DragEvent, options?: IngestOptions) => Promise<void>;
   reset: () => void;
 }
 
@@ -263,6 +279,13 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   const [stoppedReading, setStoppedReading] = useState(false);
   const [readLanguage, setReadLanguage] = useState<OcrLanguage | null>(null);
   const [readLanguages, setReadLanguages] = useState<Record<string, OcrLanguage>>({});
+  // Read by `ingestBatch` to report what an append landed on top of. A ref
+  // rather than a dependency, so adding this does not re-create every ingest
+  // callback on each entry change.
+  const entryCountRef = useRef(0);
+  useEffect(() => {
+    entryCountRef.current = entries.length;
+  }, [entries.length]);
 
   /**
    * Read the documents ingestion could not, with recognition this time, and put
@@ -468,7 +491,8 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   );
 
   const ingestBatch = useCallback(
-    async (incoming: IncomingFile[]) => {
+    async (incoming: IncomingFile[], options?: IngestOptions) => {
+      const append = options?.append === true;
       const startedAt = performance.now();
       // Everything recorded below belongs to this Run (ADR-0014): one drop and
       // everything that follows it until the next drop replaces it.
@@ -478,7 +502,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // unpacks the archives among them (ADR-0011), so nothing below sniffs a
       // file twice.
       const { files: routed, expandedCount, unsupported } = await prepareBatch(incoming);
-      setExpandedArchive(expandedCount > 0);
+      setExpandedArchive((prev) => (append ? prev || expandedCount > 0 : expandedCount > 0));
 
       const nextEntries: ContentEntry[] = [];
       const nextValidations: Record<string, ValidationRecord> = {};
@@ -675,19 +699,63 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         }
       }
 
-      setEntries(nextEntries);
-      setValidations(nextValidations);
-      setFailedFiles(nextFailed);
-      setScannedDocuments(nextUnread);
-      setUnreadDocuments(nextUnread);
-      // A new drop replaces every other list here, so this one cannot keep the
-      // last drop's paths either.
-      setReadLanguages({});
+      if (append) {
+        // Merging keeps a re-clipped file where it already sits rather than
+        // moving it to the end: the same path is one file in the bundle, and
+        // the newer read of it wins.
+        //
+        // `mergeByPath` only overwrites paths present in the incoming list —
+        // it never removes one. A path this batch actually read (it is in
+        // `nextEntries`) has to be taken out of the *old* failed/scanned/unread
+        // records by hand first, or a file that failed last time and reads
+        // fine now keeps a stale failure sitting next to its working content.
+        // `scannedDocuments` and `unreadDocuments` are pruned by the same set
+        // so the two stay in lockstep: `recoveredDocuments` is their length
+        // difference, and dropping a path from one but not the other would
+        // count a re-dropped file as a rescue that never happened.
+        const readPaths = new Set(nextEntries.map((e) => e.path));
+        setEntries((prev) => mergeByPath(prev, nextEntries));
+        setValidations((prev) => ({ ...prev, ...nextValidations }));
+        setFailedFiles((prev) =>
+          mergeByPath(
+            prev.filter((f) => !readPaths.has(f.path)),
+            nextFailed,
+          ),
+        );
+        setScannedDocuments((prev) =>
+          mergeByPath(
+            prev.filter((d) => !readPaths.has(d.path)),
+            nextUnread,
+          ),
+        );
+        setUnreadDocuments((prev) =>
+          mergeByPath(
+            prev.filter((d) => !readPaths.has(d.path)),
+            nextUnread,
+          ),
+        );
+        // Languages are keyed by path and describe files that are still here,
+        // so unlike a replacing drop this one keeps them.
+      } else {
+        setEntries(nextEntries);
+        setValidations(nextValidations);
+        setFailedFiles(nextFailed);
+        setScannedDocuments(nextUnread);
+        setUnreadDocuments(nextUnread);
+        // A new drop replaces every other list here, so this one cannot keep
+        // the last drop's paths either.
+        setReadLanguages({});
+      }
 
       // `batch_size` is deliberately redundant with SUM(file_ext.n): it is the
       // authoritative total, so the two disagreeing says extension rows went
       // missing in transit rather than that the drop was small.
       trackAmount("batch_size", { n: total, b: totalBytes });
+      // What the bundle held when this append landed. Zero means an append that
+      // had nothing to append to, which is a replace wearing another name — so
+      // this is the counter that says whether bundles genuinely get mixed, not
+      // just whether the button gets pressed.
+      if (append) trackAmount("append_to", { n: entryCountRef.current });
       trackAmount("ingest_ms", { n: performance.now() - startedAt });
       if (maxFileBytes > 0) trackAmount("max_file_bytes", { b: maxFileBytes });
       for (const [label] of SIZE_THRESHOLDS) {
@@ -809,11 +877,11 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   }, []);
 
   const handleFileInput = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>, options?: IngestOptions) => {
       const selected = e.target.files;
       if (!selected || selected.length === 0) return;
 
-      setSourceUrl(null);
+      if (!options?.append) setSourceUrl(null);
       setIsProcessing(true);
       tagSource("drop");
       try {
@@ -821,7 +889,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           file,
           path: file.webkitRelativePath || file.name,
         }));
-        await ingestBatch(incoming);
+        await ingestBatch(incoming, options);
       } catch (error) {
         console.error("Error processing files:", error);
       } finally {
@@ -852,10 +920,10 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   }, []);
 
   const handleDrop = useCallback(
-    async (e: React.DragEvent) => {
+    async (e: React.DragEvent, options?: IngestOptions) => {
       e.preventDefault();
       e.stopPropagation();
-      setSourceUrl(null);
+      if (!options?.append) setSourceUrl(null);
       setIsDragging(false);
       dragCounter.current = 0;
       setIsProcessing(true);
@@ -871,7 +939,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         });
         const incoming: IncomingFile[] = collected.map(({ file, path }) => ({ file, path }));
         setProcessingStatus(`Processing ${incoming.length} files...`);
-        await ingestBatch(incoming);
+        await ingestBatch(incoming, options);
         if (failed.length > 0) setFailedFiles((prev) => [...prev, ...failed]);
       } catch (error) {
         console.error("Error processing files:", error);

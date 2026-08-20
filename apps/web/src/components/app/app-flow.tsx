@@ -11,6 +11,7 @@ import {
 } from "@fileconcat/core";
 
 import { useConfig } from "~/hooks/use-config";
+import { useClipperPush } from "~/hooks/use-clipper-push";
 import { useFileIngestion } from "~/hooks/use-file-ingestion";
 import { useFilterState } from "~/hooks/use-filter-state";
 import { useOutputGeneration } from "~/hooks/use-output-generation";
@@ -32,7 +33,7 @@ import { ResultView } from "./result-view";
 import { ResultEmpty } from "./result-empty";
 import { ReadingDialog } from "./reading-dialog";
 import { emptyKindFor, emptyReasonSlug } from "./empty-kind";
-import { isRecognisableImage } from "~/hooks/use-file-ingestion";
+import { isRecognisableImage, type IncomingFile } from "~/hooks/use-file-ingestion";
 import { SettingsDrawer } from "./settings-drawer";
 
 type Phase = "landing" | "processing" | "result";
@@ -387,13 +388,20 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // --- flow control ---------------------------------------------------------
   // Runs `run`, showing the processing view driven by the engine's real
   // progress, then reveals the result the moment work resolves — no padding, no
-  // scripted steps. Rethrows so an import can recover (drop / browse swallow
-  // their own errors, so they never reject here).
+  // scripted steps. The `finally` is what keeps a rejecting `run` from
+  // stranding the UI on the processing screen forever: drop / browse already
+  // swallow their own errors, but a caller that doesn't (the extension push)
+  // still needs the phase to move on. The rejection itself isn't caught here —
+  // it propagates so an import's own try/catch can recover, or, unhandled,
+  // surfaces in the console instead of failing silently.
   const begin = useCallback(async (run: () => Promise<void>, opts?: { label?: string }) => {
     setProcessingLabel(opts?.label ?? "");
     setPhase("processing");
-    await run();
-    setPhase("result");
+    try {
+      await run();
+    } finally {
+      setPhase("result");
+    }
   }, []);
 
   // Honest progress, straight from the ingestion engine. A `null` percent is
@@ -499,6 +507,32 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setResultNote(null);
       void begin(() => ingestion.handleFileInput(e));
+    },
+    [begin, ingestion],
+  );
+
+  // Clippings from the browser extension arrive as finished `.md` files and
+  // take the same road as a drop, so a push is one Run exactly like one drop.
+  //
+  // It appends, because the thing the extension exists for is a repo *and* the
+  // discussion about it. A push that replaced the bundle could never produce
+  // that in either order.
+  useClipperPush(
+    useCallback(
+      (files: IncomingFile[]) => {
+        setResultNote(null);
+        void begin(() => ingestion.ingestBatch(files, { append: true }));
+      },
+      [begin, ingestion],
+    ),
+  );
+
+  // The same road for the drop's own gesture: without this the extension would
+  // be able to do something the app's primary gesture cannot.
+  const onAddFiles = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setResultNote(null);
+      void begin(() => ingestion.handleFileInput(e, { append: true }));
     },
     [begin, ingestion],
   );
@@ -627,6 +661,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               onCopy={output.copy}
               onDownload={output.download}
               onStartOver={startOver}
+              onAddFiles={onAddFiles}
               previewText={previewText}
               unsupported={notText}
               skippedByDefault={skippedByDefault}

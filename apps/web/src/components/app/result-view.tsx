@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
   Check,
   ChevronDown,
@@ -6,6 +6,7 @@ import {
   Download,
   EyeOff,
   FileMinus,
+  FilePlus,
   FileQuestion,
   FileText,
   FileWarning,
@@ -43,6 +44,8 @@ type ResultViewProps = {
   onDownload: () => void;
   /** Clear all state and return to the landing drop zone. */
   onStartOver: () => void;
+  /** Add files to this bundle instead of replacing it. */
+  onAddFiles: (e: React.ChangeEvent<HTMLInputElement>) => void;
   previewText: string;
   /** Genuinely not combinable as text — binaries, archives, unreadable files. */
   unsupported: UnsupportedFile[];
@@ -99,6 +102,7 @@ export function ResultView({
   onCopy,
   onDownload,
   onStartOver,
+  onAddFiles,
   previewText,
   unsupported,
   skippedByDefault,
@@ -121,6 +125,9 @@ export function ResultView({
   splitMode,
   onSplitModeChange,
 }: ResultViewProps) {
+  // A hidden input behind a real button, the same idiom the drop zone uses: the
+  // native file picker with a label we control.
+  const addInput = useRef<HTMLInputElement>(null);
   const truncated = previewText.length > PREVIEW_LIMIT;
   const preview = truncated ? previewText.slice(0, PREVIEW_LIMIT) + "\n…" : previewText;
 
@@ -264,6 +271,25 @@ export function ResultView({
           refine the bundle or start fresh, one step from Copy/Download and the
           same on every viewport. Quiet by design — Copy stays the loud one. */}
       <div className="mt-3 flex flex-col items-center justify-center gap-x-8 gap-y-1 sm:flex-row">
+        {/* Grow it, refine it, discard it — in that order, because that is the
+            order they get reached for. Add files keeps the bundle and extends
+            it; only Start over throws anything away. */}
+        <button
+          type="button"
+          onClick={() => addInput.current?.click()}
+          className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-sm px-2 py-2 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+        >
+          <FilePlus className="h-4 w-4" />
+          Add files
+        </button>
+        <input
+          ref={addInput}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={onAddFiles}
+          aria-label="Add files to this bundle"
+        />
         <button
           type="button"
           onClick={onAdjust}
