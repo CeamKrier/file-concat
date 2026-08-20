@@ -129,7 +129,8 @@ function renderPage() {
 
   if (page.kind === "other") {
     ui.pageLabel.textContent = "Now";
-    ui.pageNote.textContent = "Nothing to clip here. Open an article, a YouTube video or channel, or a Reddit thread.";
+    ui.pageNote.textContent =
+      "Nothing to clip here. Open an article, a YouTube video or channel, or a Reddit or Hacker News thread.";
     ui.pageNote.hidden = false;
     return;
   }
