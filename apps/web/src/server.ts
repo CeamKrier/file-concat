@@ -19,7 +19,25 @@ import { pruneCounters } from "~/lib/metrics-retention";
  * the default entry's.
  */
 
-const fetch = createStartHandler(defaultStreamHandler);
+const startFetch = createStartHandler(defaultStreamHandler);
+
+/**
+ * A hashed asset the store no longer holds is not worker business.
+ *
+ * `wrangler.jsonc` runs the worker first only for the document routes, so a
+ * request under `/assets/` reaches this handler for exactly one reason: the
+ * file is gone, which after any deploy is every chunk the previous build
+ * emitted. Left alone, the router renders its 404 page and the browser gets an
+ * HTML body from a `.js` URL — a wasted SSR render answering a question about a
+ * file with a page about the site. The import rejects either way; recovering
+ * from that is TanStack Router's job and it already reloads once.
+ */
+const fetch: typeof startFetch = (request, ...rest) => {
+  if (new URL(request.url).pathname.startsWith("/assets/")) {
+    return new Response(null, { status: 404 });
+  }
+  return startFetch(request, ...rest);
+};
 
 export default {
   fetch,
