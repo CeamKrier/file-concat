@@ -12,6 +12,7 @@ import {
   TRAY_KEY,
   type FetchRequest,
   type PanelRequest,
+  type PushAnswer,
   type PushRequest,
   type SiteRequest,
   type SiteResponse,
@@ -117,10 +118,10 @@ async function clip(tabId: number, items: { id: string; title: string }[], optio
  *
  * Retries because a tab that is still loading has no content script yet.
  */
-async function deliver(tabId: number, request: PushRequest, attempts: number): Promise<SiteResponse<number>> {
+async function deliver(tabId: number, request: PushRequest, attempts: number): Promise<PushAnswer> {
   for (let attempt = 0; attempt < attempts; attempt++) {
     try {
-      const response = (await browser.tabs.sendMessage(tabId, request)) as SiteResponse<number> | undefined;
+      const response = (await browser.tabs.sendMessage(tabId, request)) as PushAnswer | undefined;
       // The bridge always answers. Anything in that tab that does not is not it.
       return response ?? { ok: false, error: "That tab did not answer." };
     } catch {
@@ -154,9 +155,12 @@ async function sendOnce() {
       const request: PushRequest = { type: "fc:push", files, waitMs: CANDIDATE_WAIT_MS };
       const answer = await deliver(candidate.id, request, CANDIDATE_ATTEMPTS);
       if (answer.ok) {
-        accepted = { tabId: candidate.id, windowId: candidate.windowId, count: answer.value };
+        accepted = { tabId: candidate.id, windowId: candidate.windowId, count: answer.count };
         break;
       }
+      // A refusal is about the batch, not the tab. Walking on would open a
+      // fresh tab to be refused by the same limit and leave it standing.
+      if (answer.final) throw new Error(answer.error);
     }
 
     if (!accepted) {
@@ -170,8 +174,16 @@ async function sendOnce() {
       if (tab.id === undefined) throw new Error("Could not open a FileConcat tab.");
       const request: PushRequest = { type: "fc:push", files, waitMs: FRESH_TAB_WAIT_MS };
       const answer = await deliver(tab.id, request, PUSH_ATTEMPTS);
-      if (!answer.ok) throw new Error(answer.error);
-      accepted = { tabId: tab.id, windowId: tab.windowId, count: answer.value };
+      // A tab this worker just opened on the tool's own page has not "gone
+      // somewhere that is not the tool", which is what the bridge's timeout
+      // says. Only a refusal is the page's own words and worth repeating.
+      if (!answer.ok)
+        throw new Error(
+          answer.final
+            ? answer.error
+            : "Opened a FileConcat tab and it never took the batch. Let it load, then send again.",
+        );
+      accepted = { tabId: tab.id, windowId: tab.windowId, count: answer.count };
     }
 
     await browser.tabs.update(accepted.tabId, { active: true });

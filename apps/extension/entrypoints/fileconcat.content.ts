@@ -6,7 +6,7 @@
 // one listener and knows nothing about ids (ADR-0018).
 
 import { browser, defineContentScript } from "#imports";
-import { PUSH_CHANNEL, PUSH_VERSION, type PushRequest, type SiteResponse } from "../src/messages";
+import { PUSH_CHANNEL, PUSH_VERSION, type PushAnswer, type PushRequest } from "../src/messages";
 import type { Clipping } from "../src/markdown";
 
 export default defineContentScript({
@@ -15,7 +15,7 @@ export default defineContentScript({
   main() {
     let pending: Clipping[] | null = null;
     /** Set while a push is waiting on the page's verdict; holds its reply. */
-    let waiting: ((answer: SiteResponse<number>) => void) | null = null;
+    let waiting: ((answer: PushAnswer) => void) | null = null;
 
     const post = (payload: Record<string, unknown>) =>
       window.postMessage({ channel: PUSH_CHANNEL, version: PUSH_VERSION, ...payload }, location.origin);
@@ -29,7 +29,7 @@ export default defineContentScript({
      * to navigate onto a route that does mount — and then arrive, long after
      * the user had given up on it and re-sent.
      */
-    const finish = (answer: SiteResponse<number>) => {
+    const finish = (answer: PushAnswer) => {
       const reply = waiting;
       pending = null;
       waiting = null;
@@ -51,9 +51,14 @@ export default defineContentScript({
       // The page's verdict, which is the only thing that knows a batch actually
       // landed. `received` promises that it crossed and was accepted, not that
       // ingestion finished, so that is the most the worker may claim from it.
-      if (event.data.type === "received") finish({ ok: true, value: Number(event.data.count) || 0 });
+      if (event.data.type === "received") finish({ ok: true, count: Number(event.data.count) || 0 });
+      // Final: the page read this batch and would refuse it in any tab.
       if (event.data.type === "rejected")
-        finish({ ok: false, error: String(event.data.reason ?? "The tab refused the batch.") });
+        finish({
+          ok: false,
+          error: String(event.data.reason ?? "The tab refused the batch."),
+          final: true,
+        });
     });
 
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {

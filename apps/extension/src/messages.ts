@@ -101,10 +101,10 @@ export const OPTIONS_KEY = "options";
 /**
  * Background -> fileconcat.com content script.
  *
- * Answered with `SiteResponse<number>`, where the number is how many files the
- * *page* said it took. The bridge is in every fileconcat.com tab, including
- * /docs and /privacy, which never mount the listener that takes a batch, so a
- * resolved `sendMessage` proves nothing on its own.
+ * Answered with a {@link PushAnswer} carrying how many files the *page* said it
+ * took. The bridge is in every fileconcat.com tab, including /docs and
+ * /privacy, which never mount the listener that takes a batch, so a resolved
+ * `sendMessage` proves nothing on its own.
  */
 export interface PushRequest {
   type: "fc:push";
@@ -117,6 +117,16 @@ export interface PushRequest {
    */
   waitMs: number;
 }
+
+/**
+ * What the bridge answers a push with: the page's own verdict.
+ *
+ * `final` marks a verdict only the page could have given — it read the batch
+ * and refused it. Every other failure means "not here", and the worker's answer
+ * to that is to try somewhere else. A refusal travels with the batch, so trying
+ * somewhere else can only earn the same refusal and one stray tab.
+ */
+export type PushAnswer = { ok: true; count: number } | { ok: false; error: string; final?: boolean };
 
 /** The shape the fileconcat.com page listens for on `window.postMessage`. */
 export const PUSH_CHANNEL = "fileconcat-clipper";
