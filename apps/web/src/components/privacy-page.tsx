@@ -5,7 +5,7 @@ import { SiteFooter } from "~/components/app/marketing";
 import { TopBar } from "~/components/app/top-bar";
 import { METRICS_RETENTION_DAYS } from "~/lib/metrics-retention";
 
-const LAST_UPDATED = "August 10, 2026";
+const LAST_UPDATED = "August 20, 2026";
 
 /** Items that are never uploaded to a server. Scoped to the actual file work. */
 const STAYS = [
@@ -48,6 +48,35 @@ const COLLECTED = [
   {
     title: "Your settings.",
     body: "Filters and preferences are saved in your browser's local storage. They stay on your device and are never sent anywhere.",
+  },
+];
+
+/** The clipper's own account. It reads pages rather than files, so none of the
+ *  items above describe it. */
+const CLIPPER = [
+  {
+    title: "It reads a page only when you ask it to.",
+    body: "Nothing is read because you happened to visit it. The panel names what the page in front of you offers, and that page becomes a file when you press a button. There is no background crawling, and no record is kept of where you have been.",
+  },
+  {
+    title: "Clippings stay in your browser until you send them.",
+    body: "The tray holds the last 50 in the browser's own extension storage, on your device. Nothing in it reaches us. Removing a row or clearing the tray deletes it outright.",
+  },
+  {
+    title: "Sending is a handoff between two things on your device.",
+    body: "Send hands the files to an open FileConcat tab in the same browser. There is no upload step and no server of ours anywhere between the extension and that tab.",
+  },
+  {
+    title: "Once they arrive, they are files like any other.",
+    body: "A clipping that reaches the tool is treated exactly like a document you dropped, so everything above applies to it. That includes the session recording, which can show a clipping's file name and the on-screen preview of the combined output.",
+  },
+  {
+    title: "Three requests, each to the site you are already on.",
+    body: "Clipping a video asks YouTube for its transcript. Clipping a Reddit post from a listing asks Reddit for that post's page, the same way clicking through to it would. Clipping a Hacker News thread asks hn.algolia.com for its comments, because Hacker News blocks that request from its own page. None of the three go to us.",
+  },
+  {
+    title: "It asks for access to all sites.",
+    body: "Because any page can be an article, and the reader that finds an article's body works everywhere rather than on a list of sites we picked in advance. That permission is what makes the clip button possible on the page you are actually on. It is not what decides whether a page gets read, which is still only ever your button press.",
   },
 ];
 
@@ -124,6 +153,36 @@ export function PrivacyPage() {
               ))}
             </ul>
           </div>
+        </section>
+
+        {/* The browser extension is a second surface with a different shape of
+            risk: the tool reads files you hand it, the clipper reads pages you
+            are already on. Folding it into the two lists above would have put
+            "never uploaded" over content that never came off your disk in the
+            first place, so it gets its own account. */}
+        <section
+          aria-labelledby="clipper"
+          className="mt-12 max-w-[640px] border-t border-[oklch(var(--hairline))] pt-12"
+        >
+          <h2
+            id="clipper"
+            className="font-display text-ink text-[clamp(1.4rem,3vw,1.7rem)] font-bold leading-[1.15] tracking-[-0.02em]"
+          >
+            The browser extension.
+          </h2>
+          <p className="text-ink-secondary mt-4 text-[15px] leading-relaxed">
+            FileConcat Clipper turns a page you are reading into a Markdown file and hands it to an
+            open FileConcat tab. It is a separate thing to install, and everything below is true
+            only if you installed it.
+          </p>
+          <ul className="mt-6 space-y-5">
+            {CLIPPER.map((item) => (
+              <li key={item.title} className="text-[14.5px] leading-relaxed">
+                <span className="text-ink font-medium">{item.title}</span>{" "}
+                <span className="text-ink-secondary">{item.body}</span>
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section
