@@ -21,15 +21,19 @@ Matches manifest version `0.1.0`.
 FileConcat Clipper
 ```
 
-**Summary** (132 max, 121 used)
+**Summary** (132 max, 127 used)
 
 ```
-Clip any article, YouTube transcript, Reddit or Hacker News thread to Markdown and send it to your fileconcat.com bundle.
+Clip Reddit and Hacker News threads, YouTube transcripts and any article to Markdown, straight into your fileconcat.com bundle.
 ```
 
-The dashboard prefills this from the manifest `description`, which is a shorter
-line that names only three of the four sources. Overwrite it with the above.
-Changing the manifest to match is optional and needs a rebuild.
+Leads with threads on purpose. Page-to-Markdown is the commodity half of this
+and every bookmarklet does it. What nothing else on the page does is take a
+discussion with its nesting, scores and authors intact.
+
+The dashboard prefills this field from the manifest `description`, which is an
+older line in the other order. Overwrite it. Changing the manifest to match is
+optional and needs a rebuild.
 
 **Category**
 
@@ -46,29 +50,38 @@ English (United States)
 **Description** (16,000 max)
 
 ```
-FileConcat Clipper turns the page you are reading into a Markdown file and hands
-it to an open fileconcat.com tab, where it joins a bundle you can copy or
-download in one piece. It is for anyone who assembles reading material for an
-LLM and is tired of pasting pages in one at a time.
+FileConcat Clipper turns what you are reading into Markdown files and hands them
+to an open fileconcat.com tab, where they join a bundle you can copy or download
+in one piece. It is for anyone who assembles reading material for an LLM and is
+tired of pasting pages in one at a time.
+
+Copying a page into Markdown is the easy half. What is actually hard to get out
+of a browser is a discussion, and that is what this is built around.
 
 WHAT IT CLIPS
 
-Any article. If a page reads as an article, the panel offers to clip it.
-Mozilla's Readability picks the body and Turndown renders it, which covers
-Substack, Medium, documentation sites, news and blogs with no per-site code.
-Navigation, sidebars, cookie bars and footers are left behind.
+Reddit threads, whole. The post and its comments, with every author, score and
+level of nesting kept, so a reply reads as a reply to the thing above it rather
+than as one more paragraph. "Expand more comments" clicks the thread's own "more
+replies" three rounds deep, and it is off by default because it is slower.
 
-YouTube. A watch page gives you the video's description and its full transcript.
-A channel's Videos tab or a search page lists every video the page has loaded,
-with checkboxes, so a playlist's worth of transcripts is one click. Comments are
+Hacker News threads, whole. The entire comment tree in one request, however deep
+it runs. Measured on a 638-comment thread: 264,851 characters, nested eight
+levels down, none of which was on screen when you pressed the button.
+
+Listings, one item at a time. A subreddit, a Hacker News front page, a YouTube
+channel or a search page lists what it has loaded with a checkbox on each row.
+Tick the ones you want and each is opened and read on its own, so a session of
+scrolling becomes a set of files rather than one flattened page of headlines.
+
+YouTube transcripts. A watch page gives you the video's description and its full
+transcript, which is not text that was on the page to begin with. Comments are
 an opt-in extra, off by default, because they cost up to 45% more tokens.
 
-Reddit. A thread gives you the post and its comments, with authors, scores and
-nesting kept. Expanding the thread's own "more replies" is an opt-in extra. A
-subreddit lists the posts it has loaded, with checkboxes.
-
-Hacker News. A thread gives you the entire comment tree, however deep, in one
-request. The front page lists its stories with checkboxes.
+Any article. Everywhere else, if a page reads as an article, the panel offers to
+clip it. Mozilla's Readability picks the body and Turndown renders it, which
+covers Substack, Medium, documentation sites, news and blogs with no per-site
+code. Navigation, sidebars, cookie bars and footers are left behind.
 
 HOW IT WORKS
 
@@ -103,13 +116,22 @@ The extension and the site are both at github.com/CeamKrier/file-concat.
 
 **Store icon** — `assets/store-icon-128.png` (128x128 PNG)
 
-**Screenshots** — 1280x800 PNG, upload in this order:
+**Screenshots** — 1280x800 PNG, upload in this order. The order is the argument
+rather than a tour of the features: the store shows the first one largest, so it
+is a nested thread there and not the article a bookmarklet would also manage.
 
-| File                              | What it shows                                                                                |
-| --------------------------------- | -------------------------------------------------------------------------------------------- |
-| `assets/screenshot-1-article.png` | A Wikipedia article beside the panel offering "Clip this page", one file in the tray         |
-| `assets/screenshot-2-youtube.png` | A YouTube channel beside the panel listing 30 videos with checkboxes and the comments toggle |
-| `assets/screenshot-3-bundle.png`  | Five clippings landing in fileconcat.com as one 36,640-token bundle                          |
+| File                                     | What it shows                                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `assets/screenshot-1-reddit-thread.png`  | An r/rust thread mid-discussion beside the panel offering "Clip this post" and its expand toggle |
+| `assets/screenshot-2-reddit-listing.png` | The subreddit that thread came from, 27 posts with checkboxes, four ticked                       |
+| `assets/screenshot-3-hn-thread.png`      | A Hacker News tree beside a tray already holding six clippings                                   |
+| `assets/screenshot-4-youtube.png`        | A YouTube channel, 30 videos with checkboxes and the comments toggle                             |
+| `assets/screenshot-5-bundle.png`         | All nine clippings landing in fileconcat.com as one bundle with a token count                    |
+
+`screenshot-5-bundle.png` is not in `assets/` yet. It is the only shot with
+fileconcat.com in it, so it can only be taken against production, and the page
+guard that used to refuse a file name carrying an ellipsis has to be live first
+or the send inside that shot fails. Run the script again once it has deployed.
 
 **Small promo tile** — `assets/promo-tile-440x280.png`. Optional, and only used
 in placements the store chooses. Skip the 1400x560 marquee until an editorial
@@ -260,16 +282,11 @@ then drops it back to draft.
 
 ---
 
-## Open before submitting
+## Closed before submitting
 
-1. **Privacy policy.** `https://fileconcat.com/privacy` is written entirely
-   about the web app and never mentions the extension. It needs a section
-   covering what the extension reads, that the tray is local, and that clipped
-   files reach the site's own analytics the same way dropped files do.
+1. **Privacy policy.** `https://fileconcat.com/privacy` covered only the web app
+   and never mentioned the extension. It now carries its own section, live since
+   2026-08-20, which is what makes that URL an honest answer to the form.
 
-2. **The panel's empty-state line is out of date.** It reads "Nothing to clip
-   here. Open an article, a YouTube video or channel, or a Reddit thread" and
-   omits Hacker News, which has been a supported source since the second pass.
-   It is visible in `screenshot-3-bundle.png`, beside a tray full of
-   hacker-news clippings. Fixing the string means re-shooting that one
-   screenshot.
+2. **The panel's empty-state line named three sources out of four.** Hacker News
+   was missing from it. Fixed, and the screenshots were re-shot.
