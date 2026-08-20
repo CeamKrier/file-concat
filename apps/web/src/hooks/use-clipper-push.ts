@@ -46,7 +46,12 @@ function clippedFiles(data: unknown): Verdict | null {
     const file = entry as { path?: unknown; markdown?: unknown };
     if (typeof file.path !== "string" || typeof file.markdown !== "string")
       return { ok: false, reason: "A file in that push was not a path and Markdown." };
-    if (!file.path || file.path.includes(".."))
+    // `..` is traversal only as a whole segment. As a substring it is an
+    // ellipsis, and titles are full of them: a Reddit thread called "Wait...
+    // what?" clips to "Wait... what.md" and this refused it, along with every
+    // other file in the batch it happened to travel in. Measured on a real
+    // subreddit, where one of nine clippings failed the whole send.
+    if (!file.path || file.path.split("/").some((segment) => segment === "" || segment === "." || segment === ".."))
       return { ok: false, reason: "A file in that push had a path this page will not take." };
     total += file.markdown.length;
     if (total > MAX_CHARS)
