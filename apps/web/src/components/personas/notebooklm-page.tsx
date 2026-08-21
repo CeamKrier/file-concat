@@ -56,9 +56,10 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           </h1>
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
-            A notebook caps how many sources you can add, and a big research pile blows past it
-            fast. Drop the whole folder here instead. Everything, even the PDFs, is read in your
-            browser and packed into one file, so a stack of documents becomes a single source.
+            A notebook takes 50 sources on the free plan and 100 with a paid one, and a big
+            research pile blows past that fast. Drop the whole folder here instead. Everything,
+            even the PDFs, is read in your browser and packed into one file, so a stack of
+            documents becomes a single source.
           </p>
 
           <ul className="mt-6 space-y-2">

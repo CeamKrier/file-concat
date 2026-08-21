@@ -7,7 +7,7 @@
 export const CHATGPT_PROJECTS_FAQ = [
   {
     q: "How many files can I add to a ChatGPT Project?",
-    a: "A ChatGPT Project holds 5 files on the free tier, 25 on Plus, and 40 on Pro. OpenAI adjusts these numbers, so check the current one. Combining your documents into a single file first means the whole set takes just one of those slots.",
+    a: "A ChatGPT Project holds 5 files on the free tier, 25 on Plus, and 40 on Pro. Some people call these the Project's sources; ChatGPT itself lists them as files. OpenAI adjusts these numbers, so check the current one. Combining your documents into a single file first means the whole set takes just one of those slots.",
   },
   {
     q: "Does combining files count as one file in my Project?",

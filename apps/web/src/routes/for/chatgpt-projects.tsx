@@ -19,15 +19,21 @@ export const Route = createFileRoute("/for/chatgpt-projects")({
   head: () => ({
     meta: [
       ...generateSEOMeta({
-        title: "Get past the ChatGPT Projects file limit",
+        // Titled as the question, and answered in the first clause of the
+        // description, because the demand this page actually draws is a
+        // counting one: the queries reaching it are phrasings of "how many
+        // sources can you add to a ChatGPT project". A snippet that opens by
+        // promising to get you "past the limit" never states the number the
+        // question asked for, and the number itself was three sections down.
+        title: "ChatGPT Projects file limit: how many files a Project holds",
         description:
-          "Hit the ChatGPT Projects file limit? Combine a whole folder, even PDFs and Office docs, into one file that takes a single Project slot. Read in your browser, nothing uploaded.",
+          "A ChatGPT Project holds 5 files on Free, 25 on Plus and 40 on Pro. Hit the cap? Combine a whole folder, PDFs and Office docs included, into one file that takes a single Project slot. Read in your browser, nothing uploaded.",
         url: "https://fileconcat.com/for/chatgpt-projects",
       }),
       {
         name: "keywords",
         content:
-          "chatgpt project file limit, add more files to chatgpt project, chatgpt projects file limit, how many files chatgpt project, combine files for chatgpt, custom gpt knowledge files, chatgpt upload limit, bypass chatgpt file limit",
+          "chatgpt project file limit, chatgpt project sources limit, how many sources can you add to a chatgpt project, add more files to chatgpt project, chatgpt projects file limit, how many files chatgpt project, combine files for chatgpt, custom gpt knowledge files, chatgpt upload limit, bypass chatgpt file limit",
       },
     ],
     links: [{ rel: "canonical", href: "https://fileconcat.com/for/chatgpt-projects" }],
