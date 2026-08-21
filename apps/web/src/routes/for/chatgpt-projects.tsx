@@ -32,9 +32,15 @@ export const Route = createFileRoute("/for/chatgpt-projects")({
         // happens if I hit my file limit" with "combine file data". That is the
         // sentence this page exists to be the answer to, so the title claims it
         // and the numbers ride along in the description as supporting fact.
+        // No figures in here, deliberately. A meta description cannot carry the
+        // "as of August 2026, check the current cap" that every number on this
+        // page travels with, and Google caches it, so a tier list here is a
+        // confident assertion with no way to age honestly. The caps live in the
+        // table below the fold, next to their snapshot date and a link to the
+        // help centre, and that is the only place on this page they belong.
         title: "Get past the ChatGPT Projects file limit",
         description:
-          "Hit the ChatGPT Projects file limit? Combine a whole folder, even PDFs and Office docs, into one file that takes a single Project slot. A Project holds 5 files on Free, 25 on Go and Plus, and 40 on Pro, Edu, Business and Enterprise. Read in your browser, nothing uploaded.",
+          "Hit the ChatGPT Projects file limit? Combine a whole folder, even PDFs and Office docs, into one file that takes a single Project slot. Read in your browser, nothing uploaded.",
         url: "https://fileconcat.com/for/chatgpt-projects",
       }),
       {

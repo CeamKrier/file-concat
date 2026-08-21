@@ -58,10 +58,9 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           </h1>
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
-            Right now a Project holds 5 files on Free, 25 on Go and Plus, and 40 on Pro, Edu,
-            Business and Enterprise, and you can hit that fast. Drop the whole folder here instead.
-            Everything, even the PDFs, is read right in your browser and comes back as one file, so
-            all your documents take a single Project slot.
+            A Project caps how many files you can add, and on the lower plans you can hit it fast.
+            Drop the whole folder here instead. Everything, even the PDFs, is read right in your
+            browser and comes back as one file, so all your documents take a single Project slot.
           </p>
 
           <ul className="mt-6 space-y-2">
