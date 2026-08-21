@@ -123,7 +123,7 @@ is a nested thread there and not the article a bookmarklet would also manage.
 | File                                     | What it shows                                                                                    |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `assets/screenshot-1-reddit-thread.png`  | An r/rust thread mid-discussion beside the panel offering "Clip this post" and its expand toggle |
-| `assets/screenshot-2-reddit-listing.png` | The subreddit that thread came from, 27 posts with checkboxes, four ticked                       |
+| `assets/screenshot-2-reddit-listing.png` | The subreddit that thread came from, 24 posts with checkboxes, four ticked                       |
 | `assets/screenshot-3-hn-thread.png`      | A Hacker News tree beside a tray already holding six clippings                                   |
 | `assets/screenshot-4-youtube.png`        | A YouTube channel, 30 videos with checkboxes and the comments toggle                             |
 | `assets/screenshot-5-bundle.png`         | All nine clippings landing in fileconcat.com as one bundle with a token count                    |

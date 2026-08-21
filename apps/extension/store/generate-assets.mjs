@@ -166,20 +166,56 @@ const showsAnAd = (page) =>
     }),
   );
 
+/** Post kinds whose card is mostly picture. Measured on r/rust: a `gif` card is
+ *  598px tall and an `image` card 672px against an 800px viewport, so one of
+ *  them owns the frame on its own. `link` and `text` cards run 130-290px. */
+const MEDIA_POSTS = ["gif", "image", "video", "gallery", "multi_media", "rich_video"];
+
+/** Fraction of the viewport a media post may occupy before it owns the shot. A
+ *  card peeking in at the bottom edge is what a feed looks like; half a screen
+ *  of somebody's game capture is not. */
+const MEDIA_SHARE = 0.3;
+
+/** Whether a media post is taking over the frame right now.
+ *
+ *  Reads `post-type` off the post element rather than measuring the picture,
+ *  because the picture is not reachable: Reddit renders it inside a shadow
+ *  root, where `querySelectorAll("img, video")` returns nothing and a geometry
+ *  check passes every frame while looking like it works. The attribute sits on
+ *  the light-DOM host and says what the card is without guessing.
+ *
+ *  Any intersection at all was the first rule and it rejected all twenty
+ *  offsets on r/rust, which is media-dense enough that no clean stretch of it
+ *  exists. What the shot cannot carry is a media post *dominating*, so that is
+ *  what this measures. */
+const showsAMediaPost = (page) =>
+  page.evaluate(
+    ([kinds, share]) =>
+      [...document.querySelectorAll("shreddit-post[post-type]")].some((post) => {
+        if (!kinds.includes(post.getAttribute("post-type"))) return false;
+        const box = post.getBoundingClientRect();
+        const visible = Math.min(box.bottom, window.innerHeight) - Math.max(box.top, 0);
+        return visible > window.innerHeight * share;
+      }),
+    [MEDIA_POSTS, MEDIA_SHARE],
+  );
+
 /**
- * Frames the page on a stretch with no ad slot in it.
+ * Frames the page on a stretch with no ad slot and no media post in it.
  *
  * Every offset is a legitimate view of the page, so this picks between them
  * rather than hiding anything: an advertiser's logo in the middle of a store
- * screenshot is somebody else's brand in our listing. Reddit injects a slot
- * into a comment tree and into a subreddit feed alike, so both go through it.
+ * screenshot is somebody else's brand in our listing, and a full-width GIF is
+ * somebody else's content taking the space the argument needed. Reddit injects
+ * an ad slot into a comment tree and into a subreddit feed alike, so both go
+ * through it.
  */
 async function frameWithoutAds(page, selector, from = 4, to = 16) {
   for (let index = from; index <= to; index++) {
     await scrollTo(page, selector, index);
-    if (!(await showsAnAd(page))) return index;
+    if (!(await showsAnAd(page)) && !(await showsAMediaPost(page))) return index;
   }
-  throw new Error(`every frame from ${from} to ${to} had an ad in it`);
+  throw new Error(`every frame from ${from} to ${to} had an ad or a media post in it`);
 }
 
 /** Chrome draws a hairline where the panel meets the page. Without one the two
@@ -283,7 +319,7 @@ try {
   await panelShows("reddit.com", (state) => state.rows >= 10);
   // Framed before ticking, not after: scrolling a feed loads more posts, `Now`
   // re-reports itself when it grows and the re-render takes the ticks with it.
-  console.log(`reddit feed: framed at post ${await frameWithoutAds(reddit, "shreddit-post", 1, 8)}`);
+  console.log(`reddit feed: framed at post ${await frameWithoutAds(reddit, "shreddit-post", 1, 20)}`);
   await tick(4, "Clip 4 posts");
   await reddit.bringToFront();
   await sleep(1000);
