@@ -7,7 +7,7 @@
 export const NOTEBOOKLM_FAQ = [
   {
     q: "How many sources can I add to a NotebookLM notebook?",
-    a: "NotebookLM allows 50 sources on the free plan and 100 with a paid plan. Combining your documents into one file means a whole pile of documents arrives as a single source, so it fits well under the cap.",
+    a: "NotebookLM allows 50 sources on the free plan and 300 with a paid plan. Combining your documents into one file means a whole pile of documents arrives as a single source, so it fits well under the cap.",
   },
   {
     // The one query on this page that arrives mid-problem rather than

@@ -7,7 +7,15 @@
 export const CHATGPT_PROJECTS_FAQ = [
   {
     q: "How many files can I add to a ChatGPT Project?",
-    a: "A ChatGPT Project holds 5 files on the free tier, 25 on Plus, and 40 on Pro. Some people call these the Project's sources; ChatGPT itself lists them as files. OpenAI adjusts these numbers, so check the current one. Combining your documents into a single file first means the whole set takes just one of those slots.",
+    a: "A ChatGPT Project holds 5 files on Free, 25 on Go and Plus, and 40 on Pro, Edu, Business and Enterprise, and only 10 can be uploaded at once. ChatGPT calls them the project's sources, which is why the limit gets searched for by that word as often as by \"files\". OpenAI adjusts these numbers, so check the current one. Combining your documents into a single file first means the whole set takes just one of those slots.",
+  },
+  {
+    // OpenAI's own answer to this names combining, and says so before it names
+    // anything else worth doing. Worth quoting rather than paraphrasing: the
+    // page is claiming the half of the question the vendor documents but does
+    // not solve.
+    q: "What should I do when a Project will not take any more files?",
+    a: "OpenAI's own advice is to remove older uploads, combine file data, or split the work across several projects. Removing means losing context and splitting means the chats stop sharing it, so combining is the one that keeps everything in front of the model. Drop the folder here and the whole set comes back as one file that fills a single slot.",
   },
   {
     q: "Does combining files count as one file in my Project?",

@@ -87,7 +87,7 @@ const LIMITS = [
   {
     where: "ChatGPT Projects",
     caps: "Files per project",
-    limit: "5 free, 25 on Plus, 40 on Pro",
+    limit: "5 free, 25 on Go and Plus, 40 on Pro and above",
     href: "/for/chatgpt-projects",
   },
   { where: "ChatGPT chat", caps: "Files per message", limit: "10 at a time" },
@@ -102,7 +102,7 @@ const LIMITS = [
   {
     where: "NotebookLM",
     caps: "Sources per notebook",
-    limit: "50 free, 100 on Plus",
+    limit: "50 free, 300 on Pro",
     href: "/for/notebooklm",
   },
 ];
@@ -162,7 +162,7 @@ function Limits() {
       </div>
 
       <p className="text-ink-faint mx-auto mt-4 max-w-[760px] text-[12.5px] leading-relaxed">
-        Figures as of July 2026, and providers change them often. Check the current cap in each
+        Figures as of August 2026, and providers change them often. Check the current cap in each
         provider&rsquo;s help center: <SourceLink href="https://help.openai.com">OpenAI</SourceLink>
         , <SourceLink href="https://support.anthropic.com">Anthropic</SourceLink>,{" "}
         <SourceLink href="https://support.google.com/notebooklm">NotebookLM</SourceLink>,{" "}

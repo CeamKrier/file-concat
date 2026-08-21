@@ -19,15 +19,22 @@ export const Route = createFileRoute("/for/chatgpt-projects")({
   head: () => ({
     meta: [
       ...generateSEOMeta({
-        // Titled as the question, and answered in the first clause of the
-        // description, because the demand this page actually draws is a
-        // counting one: the queries reaching it are phrasings of "how many
-        // sources can you add to a ChatGPT project". A snippet that opens by
-        // promising to get you "past the limit" never states the number the
-        // question asked for, and the number itself was three sections down.
-        title: "ChatGPT Projects file limit: how many files a Project holds",
+        // The title stays on the remedy, deliberately, after looking at the
+        // SERP for the counting queries this page draws. Google answers them
+        // with an AI Overview that lists every tier and cites OpenAI's own help
+        // centre, which is not a citation anyone outranks: it is the vendor
+        // documenting its own product. Competing for the count there wins
+        // neither the click nor the mention.
+        //
+        // What that overview does *not* name is anyone who solves the problem
+        // it leaves behind. It ends by offering to help "combine your
+        // documents" and cites nobody for it, and OpenAI's own FAQ answers "what
+        // happens if I hit my file limit" with "combine file data". That is the
+        // sentence this page exists to be the answer to, so the title claims it
+        // and the numbers ride along in the description as supporting fact.
+        title: "Get past the ChatGPT Projects file limit",
         description:
-          "A ChatGPT Project holds 5 files on Free, 25 on Plus and 40 on Pro. Hit the cap? Combine a whole folder, PDFs and Office docs included, into one file that takes a single Project slot. Read in your browser, nothing uploaded.",
+          "Hit the ChatGPT Projects file limit? Combine a whole folder, even PDFs and Office docs, into one file that takes a single Project slot. A Project holds 5 files on Free, 25 on Go and Plus, and 40 on Pro, Edu, Business and Enterprise. Read in your browser, nothing uploaded.",
         url: "https://fileconcat.com/for/chatgpt-projects",
       }),
       {
