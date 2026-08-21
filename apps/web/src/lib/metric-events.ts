@@ -191,6 +191,28 @@ export const METRIC_EVENTS = [
    * wording — the copy is free to change without renaming a counter value.
    */
   "empty_reason",
+
+  // --- not tied to a run ---
+
+  /**
+   * An uncaught JavaScript error, as `<source>/<kind>`: where it surfaced
+   * (`error` a sync throw, `rejection` an unhandled promise, `boundary` a render
+   * React caught and replaced the page with) and what it was (an allowlisted
+   * `Error.name`, `chunk` for a stale asset after a deploy, `foreign` for a
+   * third-party script, `other` for the rest).
+   *
+   * The message never leaves the browser. It carries asset URLs and whatever a
+   * thrown string happened to hold, so `lib/js-errors.ts` matches it there and
+   * sends only what it decided.
+   *
+   * Written once per distinct value per page load, not once per throw, so a
+   * render loop firing the same error five hundred times writes one row. The
+   * number worth having is how many visits hit it, and the row count is that.
+   *
+   * It carries a Run when one is open, which is what says whether a crash
+   * belongs to a drop or to the page around it.
+   */
+  "js_error",
 ] as const;
 
 export type MetricEvent = (typeof METRIC_EVENTS)[number];
