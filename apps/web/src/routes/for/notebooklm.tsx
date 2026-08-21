@@ -24,9 +24,12 @@ export const Route = createFileRoute("/for/notebooklm")({
         // documentation, and an AI Overview cites it rather than us. The half
         // worth claiming is the one the count leaves behind, which for this
         // page is a notebook that has just refused another source.
+        // Same rule as /for/chatgpt-projects: no figures in a meta description,
+        // because it cannot carry the snapshot date and the link that make a
+        // vendor's number safe to state.
         title: "Get past the NotebookLM source limit",
         description:
-          "Hit the NotebookLM source limit? Combine a whole research pile, even PDFs and Office docs, into one file that lands as a single source. A notebook takes 50 sources on the free plan and 300 with a paid one. Read in your browser, nothing uploaded.",
+          "Hit the NotebookLM source limit? Combine a whole research pile, even PDFs and Office docs, into one file that lands as a single source. Read in your browser, nothing uploaded.",
         url: "https://fileconcat.com/for/notebooklm",
       }),
       {
