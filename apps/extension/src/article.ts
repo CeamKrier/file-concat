@@ -70,8 +70,36 @@ export function turndown(base: string): TurndownService {
   return service;
 }
 
+/**
+ * Whether the panel should offer to clip this page.
+ *
+ * `isProbablyReaderable` is the fast path and it is wrong in one direction: it
+ * scores `p`, `pre` and `article` nodes only, so text kept anywhere else counts
+ * for nothing however much of it there is. An arXiv abstract lives in a
+ * `blockquote`. Measured 2026-08-21 over the six most recent cs.CL papers: all
+ * six refused, each holding 1,269 to 1,804 characters of abstract, and all six
+ * clipped correctly the moment Readability was actually asked.
+ *
+ * Lowering `minContentLength` does not reach it, since the node was never in
+ * the candidate set to be measured.
+ *
+ * So when the cheap check says no, the question is settled by doing the work.
+ * The offer and the clip now pass and fail together, which they did not before:
+ * a page could be offered and then throw, or be refused while holding a perfect
+ * clipping.
+ *
+ * ponytail: the slow path parses again when the user then clips. One parse per
+ * navigation, only on pages currently being turned away. Cache the result if a
+ * profile ever says it matters.
+ */
 export function looksLikeArticle(): boolean {
-  return isProbablyReaderable(document);
+  if (isProbablyReaderable(document)) return true;
+  try {
+    clipArticle();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function articleTitle(): string {

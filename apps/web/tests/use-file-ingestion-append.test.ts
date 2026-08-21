@@ -1,9 +1,26 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CONFIG } from "@fileconcat/core";
 import { useFileIngestion } from "~/hooks/use-file-ingestion";
 
 const text = (body: string, path: string) => ({ file: new File([body], path), path });
+
+/** Every `append_to` this file's ingests wrote, in order. */
+const APPENDS: { value?: string; n?: number }[] = [];
+
+vi.mock("~/lib/metrics", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~/lib/metrics")>()),
+  trackAmount: (name: string, amounts: { value?: string; n?: number }) => {
+    if (name === "append_to") APPENDS.push(amounts);
+  },
+  trackTally: () => {},
+  track: () => {},
+  startRun: () => {},
+}));
+
+beforeEach(() => {
+  APPENDS.length = 0;
+});
 
 /**
  * A bundle can hold a repo and the discussion about it, in either order. Before
@@ -18,7 +35,7 @@ describe("useFileIngestion, appending", () => {
       await result.current.ingestBatch([text("export const a = 1;\n", "src/a.ts")]);
     });
     await act(async () => {
-      await result.current.ingestBatch([text("# Talk\n", "youtube/talk.md")], { append: true });
+      await result.current.ingestBatch([text("# Talk\n", "youtube/talk.md")], { append: "manual" });
     });
 
     expect(result.current.entries.map((e) => e.path)).toEqual(["src/a.ts", "youtube/talk.md"]);
@@ -33,7 +50,7 @@ describe("useFileIngestion, appending", () => {
     });
     await act(async () => {
       await result.current.ingestBatch([text("export const a = 1;\n", "src/a.ts")], {
-        append: true,
+        append: "manual",
       });
     });
 
@@ -50,7 +67,7 @@ describe("useFileIngestion, appending", () => {
     });
     await act(async () => {
       await result.current.ingestBatch([text("# Talk, with comments\n", "youtube/talk.md")], {
-        append: true,
+        append: "manual",
       });
     });
 
@@ -82,7 +99,7 @@ describe("useFileIngestion, appending", () => {
     const scannedBefore = result.current.scannedDocuments.length;
 
     await act(async () => {
-      await result.current.ingestBatch([text("# Talk\n", "youtube/talk.md")], { append: true });
+      await result.current.ingestBatch([text("# Talk\n", "youtube/talk.md")], { append: "manual" });
     });
 
     // The image is still in the bundle and still offerable to recognition; an
@@ -110,7 +127,7 @@ describe("useFileIngestion, appending", () => {
 
     await act(async () => {
       await result.current.ingestBatch([text("now readable\n", "notes/broken.txt")], {
-        append: true,
+        append: "manual",
       });
     });
 
@@ -119,5 +136,31 @@ describe("useFileIngestion, appending", () => {
     expect(result.current.failedFiles).toEqual([]);
     expect(result.current.entries.map((e) => e.path)).toEqual(["notes/broken.txt"]);
     expect(result.current.entries[0].content).toBe("now readable\n");
+  });
+
+  /**
+   * The clipper push and the `Add files` button call the same road, so without
+   * a value on the row any rate computed over appends answers for neither, and
+   * the only way to tell them apart afterwards is to guess from what arrived.
+   */
+  it("records which affordance appended, and nothing at all when none did", async () => {
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([text("export const a = 1;\n", "src/a.ts")]);
+    });
+    expect(APPENDS).toEqual([]);
+
+    await act(async () => {
+      await result.current.ingestBatch([text("# Talk\n", "hn/talk.md")], { append: "clipper" });
+    });
+    await act(async () => {
+      await result.current.ingestBatch([text("b\n", "src/b.ts")], { append: "manual" });
+    });
+
+    // `n` is what the bundle already held, so it climbs: one file, then two.
+    expect(APPENDS).toEqual([
+      { value: "clipper", n: 1 },
+      { value: "manual", n: 2 },
+    ]);
   });
 });

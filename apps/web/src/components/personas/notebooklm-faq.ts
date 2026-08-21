@@ -7,7 +7,14 @@
 export const NOTEBOOKLM_FAQ = [
   {
     q: "How many sources can I add to a NotebookLM notebook?",
-    a: "NotebookLM allows 50 sources on the free plan and 100 with a paid plan. Combining your documents into one file means a whole pile of documents arrives as a single source, so it fits well under the cap.",
+    a: "NotebookLM allows 50 sources on the free plan and 300 with a paid plan. Combining your documents into one file means a whole pile of documents arrives as a single source, so it fits well under the cap.",
+  },
+  {
+    // The one query on this page that arrives mid-problem rather than
+    // mid-research: people paste the notebook's own refusal into a search box.
+    // Answered as a question about the situation, not as the message itself.
+    q: "What can I do when a notebook will not take any more sources?",
+    a: "The notebook has reached its source cap, so the fix is to make the next batch arrive as fewer sources rather than to delete what is already there. Combine the documents you were about to add into one file and add that: however many went in, the notebook counts one source. The file tree at the top keeps each document labeled, so citations still point at the right one.",
   },
   {
     q: "Is there a size limit per source in NotebookLM?",

@@ -30,12 +30,20 @@ export const METRIC_EVENTS = [
   /** Wall-clock milliseconds for one ingest, in `n`. Only useful beside `batch_size`. */
   "ingest_ms",
   /**
-   * How many files the bundle already held when an append landed, in `n`.
+   * How many files the bundle already held when an append landed, in `n`, and
+   * which affordance asked, in `value`: `clipper` for an extension push,
+   * `manual` for the `Add files` button.
+   *
    * Written only by an append, so its row count is how often one happened, and
    * `n = 0` is an append that had nothing to append to — a replace wearing
    * another name. That distinction is the whole question the affordance raises:
    * whether clippings and dropped files genuinely end up in one bundle, or
    * whether people still start over every time.
+   *
+   * **Rows written before 2026-08-22 carry no value.** The two call sites
+   * shared one road and nothing recorded which, so those rows are a mixed
+   * population: any rate computed over them answers for neither affordance,
+   * and the only way to split them is to guess from what arrived.
    */
   "append_to",
   /**
@@ -191,6 +199,28 @@ export const METRIC_EVENTS = [
    * wording — the copy is free to change without renaming a counter value.
    */
   "empty_reason",
+
+  // --- not tied to a run ---
+
+  /**
+   * An uncaught JavaScript error, as `<source>/<kind>`: where it surfaced
+   * (`error` a sync throw, `rejection` an unhandled promise, `boundary` a render
+   * React caught and replaced the page with) and what it was (an allowlisted
+   * `Error.name`, `chunk` for a stale asset after a deploy, `foreign` for a
+   * third-party script, `other` for the rest).
+   *
+   * The message never leaves the browser. It carries asset URLs and whatever a
+   * thrown string happened to hold, so `lib/js-errors.ts` matches it there and
+   * sends only what it decided.
+   *
+   * Written once per distinct value per page load, not once per throw, so a
+   * render loop firing the same error five hundred times writes one row. The
+   * number worth having is how many visits hit it, and the row count is that.
+   *
+   * It carries a Run when one is open, which is what says whether a crash
+   * belongs to a drop or to the page around it.
+   */
+  "js_error",
 ] as const;
 
 export type MetricEvent = (typeof METRIC_EVENTS)[number];

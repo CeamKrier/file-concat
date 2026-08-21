@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { Button } from "~/components/ui/button";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
+import { recordError } from "~/lib/js-errors";
+
 interface ErrorBoundaryProps {
   error: Error;
   reset?: () => void;
@@ -23,6 +25,10 @@ interface ErrorBoundaryProps {
 export function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
   useEffect(() => {
     console.error(error);
+    // React swallows a render error, so this never reaches the window listener.
+    // Without it the loudest failure the app has — the whole page replaced — is
+    // the one thing the counter cannot see.
+    recordError("boundary", error);
   }, [error]);
 
   return (

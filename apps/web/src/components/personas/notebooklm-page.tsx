@@ -56,9 +56,10 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           </h1>
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
-            A notebook caps how many sources you can add, and a big research pile blows past it
-            fast. Drop the whole folder here instead. Everything, even the PDFs, is read in your
-            browser and packed into one file, so a stack of documents becomes a single source.
+            A notebook takes 50 sources on the free plan and 300 with a paid one, and a big
+            research pile blows past that fast. Drop the whole folder here instead. Everything,
+            even the PDFs, is read in your browser and packed into one file, so a stack of
+            documents becomes a single source.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -141,7 +142,7 @@ const CAPS = [
   {
     where: "Sources per notebook",
     caps: "How many sources you can add",
-    limit: "50 on free, 100 on paid",
+    limit: "50 on free, 300 on paid",
   },
   {
     where: "Size per source",
@@ -195,7 +196,7 @@ function WhereItStops() {
       </div>
 
       <p className="text-ink-faint mx-auto mt-4 max-w-[720px] text-[12.5px] leading-relaxed">
-        Figures as of July 2026, and Google changes them often. Check the current numbers in the{" "}
+        Figures as of August 2026, and Google changes them often. Check the current numbers in the{" "}
         <a
           href="https://support.google.com/notebooklm"
           target="_blank"

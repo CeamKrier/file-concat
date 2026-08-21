@@ -18,6 +18,12 @@ type ResultEmptyProps = {
   onStartOver: () => void;
   /** Open the settings drawer. Only passed when something is there to re-include. */
   onAdjust?: () => void;
+  /**
+   * True when an include pattern is what emptied the bundle. Only read for
+   * `filtered`, and only to swap the body: the title and the CTA are true
+   * either way, and the ignore-pattern wording is not.
+   */
+  byInclude?: boolean;
   /** True while a recognition pass is running. Only ever set for `scanned`. */
   isReading?: boolean;
   /** Recognition progress, or null when idle. */
@@ -92,6 +98,20 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
   },
 };
 
+/**
+ * `filtered`'s body, when an include pattern is what emptied the bundle rather
+ * than an ignore rule. The default body names ignore patterns, .gitignore and
+ * the hidden/oversize defaults, and for this case every one of those is a plain
+ * untruth: nothing matched anything, the files fell *outside* a list instead.
+ *
+ * Worth its own sentence because the two are fixed in opposite directions —
+ * one by removing a rule, the other by widening or clearing a list — and
+ * because an include list survives in `fileconcat-config` between drops, so the
+ * one doing this is often left over from a preset picked for something else.
+ */
+const FILTERED_BY_INCLUDE =
+  "These files are readable. An include pattern is on and none of them matched it, so there was nothing to pack. It stays set between drops, so it may be left over from an earlier one.";
+
 const MAX_EXT_CHIPS = 16;
 
 // Aggregate what was dropped down to a count per extension. That's the signal
@@ -119,6 +139,7 @@ export function ResultEmpty({
   kind = "image",
   onStartOver,
   onAdjust,
+  byInclude = false,
   isReading = false,
   readProgress = null,
   stoppedReading = false,
@@ -126,7 +147,8 @@ export function ResultEmpty({
   onStopReading,
   onOfferRead,
 }: ResultEmptyProps) {
-  const { icon: Icon, title, body, cta } = COPY[kind];
+  const { icon: Icon, title, cta } = COPY[kind];
+  const body = kind === "filtered" && byInclude ? FILTERED_BY_INCLUDE : COPY[kind].body;
   // `filtered` leads with the drawer and keeps starting over as the quiet way
   // out. Every other variant keeps its own CTA in front and offers the drawer
   // underneath, but only when the drawer has a row to re-include: an Adjust

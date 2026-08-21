@@ -123,15 +123,16 @@ is a nested thread there and not the article a bookmarklet would also manage.
 | File                                     | What it shows                                                                                    |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `assets/screenshot-1-reddit-thread.png`  | An r/rust thread mid-discussion beside the panel offering "Clip this post" and its expand toggle |
-| `assets/screenshot-2-reddit-listing.png` | The subreddit that thread came from, 27 posts with checkboxes, four ticked                       |
+| `assets/screenshot-2-reddit-listing.png` | The subreddit that thread came from, 24 posts with checkboxes, four ticked                       |
 | `assets/screenshot-3-hn-thread.png`      | A Hacker News tree beside a tray already holding six clippings                                   |
 | `assets/screenshot-4-youtube.png`        | A YouTube channel, 30 videos with checkboxes and the comments toggle                             |
 | `assets/screenshot-5-bundle.png`         | All nine clippings landing in fileconcat.com as one bundle with a token count                    |
 
-`screenshot-5-bundle.png` is not in `assets/` yet. It is the only shot with
-fileconcat.com in it, so it can only be taken against production, and the page
-guard that used to refuse a file name carrying an ellipsis has to be live first
-or the send inside that shot fails. Run the script again once it has deployed.
+All five are in `assets/`, taken 2026-08-21 in one session.
+`screenshot-5-bundle.png` is the only shot with fileconcat.com in it, so it can
+only be taken against production, and it had to wait for the page guard that
+used to refuse a file name carrying an ellipsis to deploy. That send is now in
+the picture: nine clippings, 47,868 tokens, "9 sent. The tab took them."
 
 **Small promo tile** — `assets/promo-tile-440x280.png`. Optional, and only used
 in placements the store chooses. Skip the 1400x560 marquee until an editorial
@@ -237,8 +238,8 @@ to clip, and it never leaves the device.
 https://fileconcat.com/privacy
 ```
 
-That page does not mention the extension yet. It has to before this field is
-answered honestly. See the open item at the bottom of this file.
+That page carries its own section on the extension, live since 2026-08-20,
+which is what makes this an honest answer. See the closed item at the bottom.
 
 ---
 

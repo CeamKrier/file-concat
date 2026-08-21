@@ -19,15 +19,20 @@ export const Route = createFileRoute("/for/notebooklm")({
   head: () => ({
     meta: [
       ...generateSEOMeta({
+        // Same call as /for/chatgpt-projects, for the same reason: a counting
+        // question about a vendor's own product is answered by that vendor's
+        // documentation, and an AI Overview cites it rather than us. The half
+        // worth claiming is the one the count leaves behind, which for this
+        // page is a notebook that has just refused another source.
         title: "Get past the NotebookLM source limit",
         description:
-          "Hit the NotebookLM source limit? Combine a whole research pile, even PDFs and Office docs, into one file that lands as a single source. Read in your browser, nothing uploaded.",
+          "Hit the NotebookLM source limit? Combine a whole research pile, even PDFs and Office docs, into one file that lands as a single source. A notebook takes 50 sources on the free plan and 300 with a paid one. Read in your browser, nothing uploaded.",
         url: "https://fileconcat.com/for/notebooklm",
       }),
       {
         name: "keywords",
         content:
-          "notebooklm source limit, notebooklm source limit workaround, add more sources to notebooklm, combine files for notebooklm, notebooklm 50 sources, notebooklm max sources, notebooklm source size limit",
+          "notebooklm source limit, notebooklm sources limit, notebook has reached the source limit, how many files can notebooklm handle, notebooklm source limit workaround, add more sources to notebooklm, combine files for notebooklm, notebooklm 50 sources, notebooklm max sources, notebooklm source size limit",
       },
     ],
     links: [{ rel: "canonical", href: "https://fileconcat.com/for/notebooklm" }],

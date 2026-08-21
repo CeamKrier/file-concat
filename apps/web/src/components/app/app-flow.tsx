@@ -324,6 +324,23 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     [filter.fileStatuses],
   );
   /**
+   * Whether an include pattern is what excluded anything, so the empty screen
+   * can stop naming ignore rules that were never involved. Once `empty_reason`
+   * was deployed an include pattern turned out to be the most common single
+   * reason a bundle came out empty, and the screen was sending every one of
+   * those people to look for an ignore rule that did not exist.
+   *
+   * Goes through `emptyReasonSlug` rather than comparing the wording here, so a
+   * copy edit in `excludeReason` cannot leave this silently matching nothing.
+   */
+  const excludedByInclude = useMemo(
+    () =>
+      filter.fileStatuses.some(
+        (s) => !s.included && emptyReasonSlug(s.reason) === "include",
+      ),
+    [filter.fileStatuses],
+  );
+  /**
    * The two populations recognition can read, told apart by format (ADR-0017).
    * They share every mechanism and differ in one thing: a document's pass starts
    * by itself, so an unread document is a gap, while an unread image is only an
@@ -521,7 +538,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     useCallback(
       (files: IncomingFile[]) => {
         setResultNote(null);
-        void begin(() => ingestion.ingestBatch(files, { append: true }));
+        void begin(() => ingestion.ingestBatch(files, { append: "clipper" }));
       },
       [begin, ingestion],
     ),
@@ -532,7 +549,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   const onAddFiles = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setResultNote(null);
-      void begin(() => ingestion.handleFileInput(e, { append: true }));
+      void begin(() => ingestion.handleFileInput(e, { append: "manual" }));
     },
     [begin, ingestion],
   );
@@ -635,6 +652,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               kind={emptyKind}
               onStartOver={startOver}
               onAdjust={adjustableCount > 0 ? () => openSettings() : undefined}
+              byInclude={excludedByInclude}
               isReading={ingestion.isReading}
               readProgress={ingestion.readProgress}
               stoppedReading={ingestion.stoppedReading}
