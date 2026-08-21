@@ -155,6 +155,13 @@ so a push lands in `pnpm dev`. Chrome match patterns ignore ports, so
 - **`isProbablyReaderable`'s `minContentLength` is per paragraph**, not per
   page. Setting it to 400 to mean "a real article" rejected MDN, Wikipedia and
   Substack alike. The length check belongs on the finished body.
+- **Neither of its thresholds is the reason it says no most often.** It scores
+  `p`, `pre` and `article` nodes and nothing else, so a page keeping its text in
+  a `blockquote`, a `dd` or a `td` scores zero however much of it there is. All
+  six most recent arXiv cs.CL abstracts were refused this way, each holding
+  1,269 to 1,804 characters, and no threshold reaches a node that was never a
+  candidate. `looksLikeArticle` therefore falls back to running `clipArticle`
+  and asking whether a clipping came out.
 - **A page being "loaded" says nothing about it being full.** A subreddit holds
   3 posts when Chrome reports the tab complete and 27 a moment later. `Now` is
   driven by a poll over the item count, not by load events, which is also what
