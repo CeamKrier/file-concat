@@ -30,12 +30,20 @@ export const METRIC_EVENTS = [
   /** Wall-clock milliseconds for one ingest, in `n`. Only useful beside `batch_size`. */
   "ingest_ms",
   /**
-   * How many files the bundle already held when an append landed, in `n`.
+   * How many files the bundle already held when an append landed, in `n`, and
+   * which affordance asked, in `value`: `clipper` for an extension push,
+   * `manual` for the `Add files` button.
+   *
    * Written only by an append, so its row count is how often one happened, and
    * `n = 0` is an append that had nothing to append to — a replace wearing
    * another name. That distinction is the whole question the affordance raises:
    * whether clippings and dropped files genuinely end up in one bundle, or
    * whether people still start over every time.
+   *
+   * **Rows written before 2026-08-22 carry no value.** The two call sites
+   * shared one road and nothing recorded which, so those rows are a mixed
+   * population: any rate computed over them answers for neither affordance,
+   * and the only way to split them is to guess from what arrived.
    */
   "append_to",
   /**

@@ -538,7 +538,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     useCallback(
       (files: IncomingFile[]) => {
         setResultNote(null);
-        void begin(() => ingestion.ingestBatch(files, { append: true }));
+        void begin(() => ingestion.ingestBatch(files, { append: "clipper" }));
       },
       [begin, ingestion],
     ),
@@ -549,7 +549,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   const onAddFiles = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setResultNote(null);
-      void begin(() => ingestion.handleFileInput(e, { append: true }));
+      void begin(() => ingestion.handleFileInput(e, { append: "manual" }));
     },
     [begin, ingestion],
   );

@@ -163,8 +163,15 @@ function confidenceBand(confidence: number): string {
  * doubling it. The first drop on an empty screen never asks for it: replacing
  * nothing is what starting over means, and an append onto an empty bundle is
  * the same act anyway.
+ *
+ * It carries which affordance asked, rather than a boolean, because the two
+ * are the same road and nothing downstream could tell them apart. A boolean
+ * plus a separate source would allow an append with no source, which is the
+ * hole this closes: `append_to` rows written before 2026-08-22 carry no value
+ * and can only ever be read as one undifferentiated total.
  */
-export type IngestOptions = { append?: boolean };
+export type AppendSource = "clipper" | "manual";
+export type IngestOptions = { append?: AppendSource };
 
 export type IngestPhase = "unpacking" | "reading" | "fetching" | "recognising";
 /**
@@ -492,7 +499,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
 
   const ingestBatch = useCallback(
     async (incoming: IncomingFile[], options?: IngestOptions) => {
-      const append = options?.append === true;
+      const append = options?.append;
       const startedAt = performance.now();
       // Everything recorded below belongs to this Run (ADR-0014): one drop and
       // everything that follows it until the next drop replaces it.
@@ -755,7 +762,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // had nothing to append to, which is a replace wearing another name — so
       // this is the counter that says whether bundles genuinely get mixed, not
       // just whether the button gets pressed.
-      if (append) trackAmount("append_to", { n: entryCountRef.current });
+      if (append) trackAmount("append_to", { value: append, n: entryCountRef.current });
       trackAmount("ingest_ms", { n: performance.now() - startedAt });
       if (maxFileBytes > 0) trackAmount("max_file_bytes", { b: maxFileBytes });
       for (const [label] of SIZE_THRESHOLDS) {
