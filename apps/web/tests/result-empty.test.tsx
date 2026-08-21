@@ -98,6 +98,23 @@ describe("the filtered rescue", () => {
     expect(onStartOver).toHaveBeenCalledOnce();
   });
 
+  // The default body names ignore patterns, .gitignore and the hidden/oversize
+  // defaults. An include pattern excludes by not matching, so on that path every
+  // one of those words is false, and the fix is the opposite gesture: widen a
+  // list rather than remove a rule.
+  it("names the include pattern instead of ignore rules when that is what did it", () => {
+    const { rerender } = render(
+      <ResultEmpty droppedFiles={["a.py"]} kind="filtered" onStartOver={() => {}} />,
+    );
+    expect(screen.getByText(/matched an ignore pattern/i)).toBeInTheDocument();
+
+    rerender(
+      <ResultEmpty droppedFiles={["a.py"]} kind="filtered" onStartOver={() => {}} byInclude />,
+    );
+    expect(screen.getByText(/an include pattern is on/i)).toBeInTheDocument();
+    expect(screen.queryByText(/matched an ignore pattern/i)).not.toBeInTheDocument();
+  });
+
   it("offers the drawer under the other rescues too", () => {
     render(
       <ResultEmpty
