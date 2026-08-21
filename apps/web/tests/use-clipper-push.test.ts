@@ -48,6 +48,29 @@ describe("useClipperPush", () => {
     expect(seen).toContainEqual({ channel: CHANNEL, type: "received", count: 2 });
   });
 
+  it("takes an ellipsis in a name and still refuses a traversal segment", async () => {
+    const onFiles = vi.fn();
+    const seen = watch();
+    renderHook(() => useClipperPush(onFiles));
+
+    deliver({
+      channel: CHANNEL,
+      type: "files",
+      files: [{ path: "r-programming/Wait... what.md", markdown: "# Wait\n" }],
+    });
+    await turn();
+    expect(onFiles).toHaveBeenCalledTimes(1);
+    expect(seen).toContainEqual({ channel: CHANNEL, type: "received", count: 1 });
+
+    for (const path of ["../escape.md", "a/../../escape.md", "/absolute.md", "a//b.md", "./here.md"]) {
+      onFiles.mockClear();
+      deliver({ channel: CHANNEL, type: "files", files: [{ path, markdown: "x" }] });
+      await turn();
+      expect(onFiles, path).not.toHaveBeenCalled();
+    }
+    expect(seen.filter((m) => m.type === "rejected")).toHaveLength(5);
+  });
+
   it("refuses more files than a push may carry, and says so", async () => {
     const onFiles = vi.fn();
     const seen = watch();
