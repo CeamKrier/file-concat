@@ -255,10 +255,12 @@ function clip() {
   const items =
     page.kind === "single"
       ? [{ id: page.items[0].id, title: page.items[0].title }]
-      : selected(ui.pageList).map((id) => ({
-          id,
-          title: page.items.find((item) => item.id === id)?.title ?? id,
-        }));
+      : selected(ui.pageList).map((id) => {
+          const item = page.items.find((row) => row.id === id);
+          // `expand` travels with the row: only the handler knows an id names a
+          // set, and only the worker can spend the requests to open it out.
+          return { id, title: item?.title ?? id, expand: item?.expand };
+        });
   if (items.length === 0 || activeTabId === undefined) return;
   void tell({ type: "fc:start", tabId: activeTabId, items, option: ui.option.checked });
 }

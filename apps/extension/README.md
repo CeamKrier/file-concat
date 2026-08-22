@@ -42,8 +42,10 @@ whenever the page grows — so it never describes the page you came from, and
 scrolling a feed to load more updates it without a click.
 
 On YouTube: a watch page offers **Clip this video**; a channel's Videos tab or a
-search page lists every video the page has loaded, with checkboxes. **Include
-comments** is off by default — two more requests and up to 45% more tokens.
+search page lists every video the page has loaded, with checkboxes. A channel's
+Playlists tab lists playlists instead, and clipping one clips the videos it
+holds, filed under the playlist's name. **Include comments** is off by default —
+two more requests and up to 45% more tokens.
 
 On Hacker News: a thread offers **Clip this thread** and
 `hn.algolia.com/api/v1/items/<id>` returns the entire comment tree in one

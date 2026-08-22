@@ -1,8 +1,9 @@
 // Extracts a YouTube video into a rendered Markdown clipping.
 //
-// Two innertube POSTs and no HTML parsing beyond the client version:
+// Two innertube POSTs per video and no HTML parsing beyond the client version:
 //   player     -> title, author, description, publish date
 //   get_panel  -> transcript segments
+//   browse     -> the videos a playlist holds, only when one is selected
 //
 // Measured 2026-08-18. The older `get_transcript` endpoint now answers
 // `400 FAILED_PRECONDITION` for every request shape, including from inside
@@ -19,7 +20,8 @@ import {
   type Comment,
   type TranscriptSegment,
 } from "../src/markdown";
-import type { PageReport, SiteRequest, SiteResponse } from "../src/messages";
+import type { PageItem, PageReport, SiteRequest, SiteResponse } from "../src/messages";
+import { isPlaylistsTab, linkTarget } from "../src/youtube";
 
 const INNERTUBE = "https://www.youtube.com/youtubei/v1";
 const TRANSCRIPT_PANEL_ID = "PAmodern_transcript_view";
@@ -151,7 +153,44 @@ async function fetchComments(videoId: string): Promise<{ comments: Comment[]; to
   return { comments: [] };
 }
 
-async function clipVideo(videoId: string, grouped: boolean, comments: boolean): Promise<Clipping> {
+interface Lockup {
+  contentId?: string;
+  contentType?: string;
+  metadata?: { lockupMetadataViewModel?: { title?: { content?: string } } };
+}
+
+/**
+ * The videos a playlist holds, in its own order.
+ *
+ * `browse` on `VL<playlistId>` is the request the playlist page itself makes,
+ * so this needs no page fetch and no host the manifest does not already carry.
+ * Measured 2026-08-22: a 38-video playlist answers with 38 lockups and no
+ * continuation token. YouTube pages this at 100, above anything the worker will
+ * take in one batch, so there is no paging here.
+ *
+ * The lockups are read rather than every `videoId` in the payload: those same
+ * ids appear again inside thumbnails and endpoints — 196 hits for those 38
+ * videos — in an order that is not the playlist's.
+ */
+async function playlistVideos(playlistId: string): Promise<PageItem[]> {
+  const payload = await innertube<unknown>("browse", { browseId: `VL${playlistId}` });
+  const videos = collect<Lockup>(payload, "lockupViewModel")
+    .filter(
+      (lockup): lockup is Lockup & { contentId: string } =>
+        lockup.contentType === "LOCKUP_CONTENT_TYPE_VIDEO" && Boolean(lockup.contentId),
+    )
+    .map((lockup) => ({
+      id: lockup.contentId,
+      title: lockup.metadata?.lockupMetadataViewModel?.title?.content ?? lockup.contentId,
+    }));
+  // A playlist can hold the same video twice. The tray is keyed by id and would
+  // collapse them anyway, so dropping them here keeps the count honest.
+  const unique = [...new Map(videos.map((video) => [video.id, video])).values()];
+  if (unique.length === 0) throw new Error("That playlist listed no videos. It may be private or empty.");
+  return unique;
+}
+
+async function clipVideo(videoId: string, grouped: boolean, comments: boolean, group?: string): Promise<Clipping> {
   const [player, panel, discussion] = await Promise.all([
     innertube<PlayerResponse>("player", { videoId }),
     innertube<unknown>("get_panel", { panelId: TRANSCRIPT_PANEL_ID, params: transcriptParams(videoId) }),
@@ -183,7 +222,10 @@ async function clipVideo(videoId: string, grouped: boolean, comments: boolean): 
   });
 
   return {
-    path: clippingPath(details.title, grouped ? author : undefined),
+    // `group` is the folder the worker decided on — a playlist's own name, for
+    // videos it opened out of one. It wins over the channel because it is the
+    // thing the person actually picked, and the channel is in every header.
+    path: clippingPath(details.title, group ?? (grouped ? author : undefined)),
     markdown,
     source: watchUrl(videoId),
     clippedAt: Date.now(),
@@ -191,22 +233,32 @@ async function clipVideo(videoId: string, grouped: boolean, comments: boolean): 
 }
 
 /**
- * Every video the page has already loaded. A card links to the same video
- * twice — once from the thumbnail, whose text is the duration overlay, and once
- * from the title — so the longer text wins. Reading the href rather than a
- * class name is what survives YouTube's markup churn.
+ * Every video the page has already loaded — or, on the Playlists tab, every
+ * playlist, which is a set to open out rather than a thing to clip.
+ *
+ * A card links to the same target twice, once from the thumbnail and once from
+ * the title, so the longest of a target's texts is its title and the runner-up
+ * is the thumbnail's overlay badge. Reading the href rather than a class name
+ * is what survives YouTube's markup churn.
  *
  * Hidden anchors are skipped because YouTube keeps the page you came from in
  * the DOM: measured 2026-08-18, a channel's Videos tab reached by clicking
  * carries 46 video ids of which only the 30 real ones are visible. Without this
  * the listing shows the previous channel until you reload the page.
  */
-function pageVideos(): PageReport["items"] {
-  const found = new Map<string, { title: string; duration?: string }>();
+function pageItems(): PageReport["items"] {
+  const pageList = new URL(location.href).searchParams.get("list");
+  const playlists = isPlaylistsTab(location.pathname);
+  const found = new Map<string, string[]>();
   for (const anchor of document.querySelectorAll<HTMLAnchorElement>('a[href*="/watch?v="]')) {
     if (!anchor.checkVisibility()) continue;
-    const id = new URL(anchor.href, location.origin).searchParams.get("v");
-    if (!id) continue;
+    const target = linkTarget(anchor.href, pageList);
+    if (!target) continue;
+    // One page, one kind. Off the Playlists tab a playlist card sits among real
+    // videos — a search page, a channel's home shelves — and listing it would
+    // put a name in the panel that clips something else, so it is left out
+    // rather than misdescribed.
+    if ((target.kind === "playlist") !== playlists) continue;
     const text = anchor.textContent?.trim() ?? "";
     // A link inside a description or community post carries the URL as its own
     // text, and a URL outruns most titles, so it would win the contest below.
@@ -216,14 +268,16 @@ function pageVideos(): PageReport["items"] {
     // loaded; measured on a channel page (22 videos) and a search page (23),
     // that dropped none of them.
     if (/^(https?:\/\/|www\.)/i.test(text)) continue;
-    const entry = found.get(id) ?? { title: "" };
-    // The thumbnail link's text is the duration overlay, so the longer of a
-    // card's two links is the title and the clock-shaped one is the length.
-    if (text.length > entry.title.length) entry.title = text;
-    if (/^(\d+:)?\d?\d:\d\d$/.test(text)) entry.duration = text;
-    found.set(id, entry);
+    found.set(target.id, [...(found.get(target.id) ?? []), text]);
   }
-  return [...found].map(([id, { title, duration }]) => ({ id, title: title || id, meta: duration }));
+  return [...found].map(([id, texts]) => {
+    const [title, second] = [...texts].sort((a, b) => b.length - a.length);
+    // A playlist's badge is YouTube's own wording in the viewer's language
+    // ("7 videos", "7 video"), so it is taken by position. A video's is a clock
+    // and can be recognised, which keeps a stray second line off those rows.
+    const meta = playlists ? second : texts.find((text) => /^(\d+:)?\d?\d:\d\d$/.test(text));
+    return { id, title: title || id, meta: meta || undefined, expand: playlists || undefined };
+  });
 }
 
 const OPTION = {
@@ -232,24 +286,33 @@ const OPTION = {
 };
 
 function report(): PageReport {
-  const base = { site: "youtube", noun: "video" } as const;
   if (location.pathname === "/watch") {
     const id = new URL(location.href).searchParams.get("v");
-    if (!id) return { ...base, kind: "other", items: [] };
+    if (!id) return { site: "youtube", noun: "video", kind: "other", items: [] };
     return {
-      ...base,
+      site: "youtube",
+      noun: "video",
       kind: "single",
       items: [{ id, title: document.title.replace(/ - YouTube$/, "") }],
       option: OPTION,
     };
   }
-  const items = pageVideos();
-  return { ...base, kind: items.length ? "list" : "other", items, option: items.length ? OPTION : undefined };
+  const items = pageItems();
+  return {
+    site: "youtube",
+    // A page of playlists is counted in playlists, so the panel says "Clip 3
+    // playlists". What arrives is still one file per video.
+    noun: isPlaylistsTab(location.pathname) ? "playlist" : "video",
+    kind: items.length ? "list" : "other",
+    items,
+    option: items.length ? OPTION : undefined,
+  };
 }
 
-async function handle(request: SiteRequest): Promise<PageReport | Clipping> {
+async function handle(request: SiteRequest): Promise<PageReport | Clipping | PageItem[]> {
   if (request.type === "fc:page") return report();
-  return clipVideo(request.id, request.grouped, request.option);
+  if (request.type === "fc:expand") return playlistVideos(request.id);
+  return clipVideo(request.id, request.grouped, request.option, request.group);
 }
 
 export default defineContentScript({
@@ -271,9 +334,9 @@ export default defineContentScript({
 
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       const request = message as SiteRequest;
-      if (request?.type !== "fc:page" && request?.type !== "fc:clip") return;
+      if (request?.type !== "fc:page" && request?.type !== "fc:clip" && request?.type !== "fc:expand") return;
       handle(request).then(
-        (value) => sendResponse({ ok: true, value } satisfies SiteResponse<PageReport | Clipping>),
+        (value) => sendResponse({ ok: true, value } satisfies SiteResponse<PageReport | Clipping | PageItem[]>),
         (error: unknown) =>
           sendResponse({ ok: false, error: String((error as Error)?.message ?? error) } satisfies SiteResponse<never>),
       );
