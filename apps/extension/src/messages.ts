@@ -86,7 +86,15 @@ export type PanelRequest =
   | { type: "fc:start"; tabId: number; items: StartItem[]; option: boolean }
   | { type: "fc:send" }
   | { type: "fc:remove"; id: string }
-  | { type: "fc:clear" };
+  | { type: "fc:clear" }
+  // A failed row, run again against the tab it came from. Its own tab, not the
+  // active one: a session moves on, and retrying a Reddit thread against
+  // whatever is in front of you now would clip the wrong page under the right
+  // name. A row whose tab is gone is not offered a retry at all.
+  | { type: "fc:retry"; tabId: number; id: string; option: boolean }
+  // Sent rows, pushed again. A push replaces same-path files in the tab, so
+  // this is how a clip that arrived wrong is corrected in place.
+  | { type: "fc:resend"; ids: string[] };
 
 /**
  * A tray row is one clip and its own fate. The popup had a single status line
@@ -104,8 +112,41 @@ export interface TrayItem {
   error?: string;
   /** Set on `done`. The rendered file, ready to push. */
   clipping?: Clipping;
+  /**
+   * The set this row was opened out of, kept so a retry can file the clip where
+   * the first attempt would have. Without it a retried playlist video lands at
+   * the top level, in a different place from its siblings.
+   */
+  group?: string;
+  /**
+   * Whether the clip this row came from was a batch. Remembered for the same
+   * reason as `group`: every handler folders a batch and leaves a lone clip at
+   * the top level, so a retry that recomputed this from its own size of one
+   * would move the file.
+   */
+  grouped?: boolean;
   addedAt: number;
 }
+
+/**
+ * A clip the tool has taken. Sending empties the tray, so this is where a
+ * finished clip goes to stay reachable — for a week, which is long enough to
+ * notice a bad extraction and short enough that this never becomes a library.
+ *
+ * It keeps the whole `Clipping` rather than a summary, because both things Sent
+ * is for need the file itself: reading it back, and pushing it again to replace
+ * what is already in the tab.
+ */
+export interface SentItem {
+  id: string;
+  title: string;
+  clipping: Clipping;
+  sentAt: number;
+}
+
+/** How long a sent row stays reachable. Applied when the store is read, so
+ *  there is no alarm to register and nothing to run while the browser is shut. */
+export const SENT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** What the send action last did. One line, because sending is one act. */
 export interface Status {
@@ -120,10 +161,14 @@ export interface Status {
  * entire batch opens onto the finished result with no catch-up message to miss.
  */
 export const TRAY_KEY = "tray";
+export const SENT_KEY = "sent";
 export const STATUS_KEY = "status";
 /** Per site, because "include comments" and "expand more comments" are not the
  *  same promise and should not share one remembered answer. */
 export const OPTIONS_KEY = "options";
+/** Whether the first-run line has been dismissed. Storage rather than a panel
+ *  variable, because the panel is rebuilt every time it opens. */
+export const SEEN_KEY = "seen";
 
 /**
  * Background -> fileconcat.com content script.

@@ -8,6 +8,8 @@
 import { browser, defineBackground } from "#imports";
 import { uniquePaths, type Clipping } from "../src/markdown";
 import {
+  SENT_KEY,
+  SENT_TTL_MS,
   STATUS_KEY,
   TRAY_KEY,
   type FetchRequest,
@@ -15,6 +17,7 @@ import {
   type PanelRequest,
   type PushAnswer,
   type PushRequest,
+  type SentItem,
   type SiteRequest,
   type SiteResponse,
   type StartItem,
@@ -64,6 +67,22 @@ const write = (items: TrayItem[]) =>
     [TRAY_KEY]: [...new Map(items.map((item) => [item.id, item])).values()]
       .sort((a, b) => b.addedAt - a.addedAt)
       .slice(0, TRAY_LIMIT),
+  });
+
+/** Expiry happens here rather than on a timer: the store is only interesting
+ *  when something is reading it, and a week-old row costs nothing until then. */
+const readSent = async (): Promise<SentItem[]> => {
+  const stored = await browser.storage.local.get(SENT_KEY);
+  const rows = Array.isArray(stored[SENT_KEY]) ? (stored[SENT_KEY] as SentItem[]) : [];
+  const cutoff = Date.now() - SENT_TTL_MS;
+  return rows.filter((row) => row.sentAt > cutoff);
+};
+
+/** One row per path, not per id: a corrected re-clip of the same file is the
+ *  same receipt, and the tab it was pushed into holds one file for that path. */
+const writeSent = (rows: SentItem[]) =>
+  browser.storage.local.set({
+    [SENT_KEY]: [...new Map(rows.map((row) => [row.clipping.path, row])).values()].sort((a, b) => b.sentAt - a.sentAt),
   });
 
 const say = (text: string, tone: Status["tone"] = "") =>
@@ -151,42 +170,69 @@ async function clip(tabId: number, items: StartItem[], option: boolean) {
         : "",
     );
 
+  // Read once, here: whether this is a batch is a fact about the work, which
+  // only exists after the sets are opened out, and the handler sees one item.
+  const grouped = capped.length > 1;
+
   const queued: TrayItem[] = capped.map((item) => ({
     id: item.id,
     title: item.title,
     state: "queued",
+    group: item.group,
+    grouped,
     addedAt: Date.now(),
   }));
   await write([...failed, ...queued, ...(await read())]);
-
-  // Read once, here: whether this is a batch is a fact about the work, which
-  // only exists after the sets are opened out, and the handler sees one item.
-  const grouped = capped.length > 1;
 
   // One id per request, which is what buys a row its own state: a batch that
   // answered once could only ever report the batch.
   for (const [index, item] of capped.entries()) {
     if (index > 0) await new Promise((resolve) => setTimeout(resolve, CLIP_SPACING_MS));
-    await patch(item.id, { state: "fetching" });
-    try {
-      const request: SiteRequest = { type: "fc:clip", id: item.id, grouped, option, group: item.group };
-      const response = (await browser.tabs.sendMessage(tabId, request)) as SiteResponse<Clipping> | undefined;
-      if (!response) throw new Error("This page stopped answering. Reload it and clip again.");
-      if (!response.ok) throw new Error(response.error);
-      const clipping = response.value;
-      if (!clipping) throw new Error("Nothing came back for this one.");
-      // Bulk-clipping a subreddit must not silently downgrade a thread already
-      // clipped in full: a partial read keeps the row but not the file.
-      const held = (await read()).find((row) => row.id === item.id)?.clipping;
-      if (clipping.partial && held && !held.partial) {
-        await patch(item.id, { state: "done" });
-      } else {
-        await patch(item.id, { state: "done", clipping, title: clipping.path.split("/").pop() ?? item.title });
-      }
-    } catch (error) {
-      await patch(item.id, { state: "failed", error: String((error as Error)?.message ?? error) });
-    }
+    await clipOne(tabId, item, grouped, option);
   }
+}
+
+/**
+ * One item, from "fetching" to whatever became of it.
+ *
+ * Both the batch loop above and a retry come through here, and a retry passes
+ * the `grouped` and `group` the row remembers rather than what its own size of
+ * one would imply. Every handler folders a batch and leaves a lone clip at the
+ * top level, so recomputing either would file the retried clip somewhere its
+ * siblings are not.
+ */
+async function clipOne(tabId: number, item: StartItem, grouped: boolean, option: boolean) {
+  await patch(item.id, { state: "fetching" });
+  try {
+    const request: SiteRequest = { type: "fc:clip", id: item.id, grouped, option, group: item.group };
+    const response = (await browser.tabs.sendMessage(tabId, request)) as SiteResponse<Clipping> | undefined;
+    if (!response) throw new Error("This page stopped answering. Reload it and clip again.");
+    if (!response.ok) throw new Error(response.error);
+    const clipping = response.value;
+    if (!clipping) throw new Error("Nothing came back for this one.");
+    // Bulk-clipping a subreddit must not silently downgrade a thread already
+    // clipped in full: a partial read keeps the row but not the file.
+    const held = (await read()).find((row) => row.id === item.id)?.clipping;
+    if (clipping.partial && held && !held.partial) {
+      await patch(item.id, { state: "done" });
+    } else {
+      await patch(item.id, { state: "done", clipping, title: clipping.path.split("/").pop() ?? item.title });
+    }
+  } catch (error) {
+    await patch(item.id, { state: "failed", error: String((error as Error)?.message ?? error) });
+  }
+}
+
+/**
+ * A failed row, run again against the tab it came from.
+ *
+ * The panel only offers this while that tab is open, because clipping is a
+ * question put to a page: there is no route to the content without it.
+ */
+async function retry(tabId: number, id: string, option: boolean) {
+  const row = (await read()).find((item) => item.id === id);
+  if (!row) return;
+  await clipOne(tabId, { id: row.id, title: row.title, group: row.group }, row.grouped === true, option);
 }
 
 /**
@@ -216,13 +262,12 @@ async function deliver(tabId: number, request: PushRequest, attempts: number): P
  * Reuses an open fileconcat.com tab, or opens one, and focuses it once the
  * batch is across. Unlike the popup this can focus freely: a panel stays open
  * across a tab switch, which is the point of it.
+ *
+ * Answers rather than reports. Sending a fresh batch and sending one again from
+ * Sent are different acts and say different things afterwards, so the status
+ * line belongs to the callers below and the count comes back to them.
  */
-async function sendOnce() {
-  const files = uniquePaths(
-    (await read()).filter((item) => item.state === "done" && item.clipping).map((item) => item.clipping!),
-  );
-  if (files.length === 0) return;
-  await say("Sending…", "working");
+async function push(files: Clipping[]): Promise<{ count: number } | { error: string }> {
   try {
     // Every match is a guess. `tabs.query` returns them in no particular order,
     // so a /docs tab can come back ahead of the tool; `http://localhost/*`
@@ -271,13 +316,55 @@ async function sendOnce() {
     if (accepted.windowId !== undefined) await browser.windows.update(accepted.windowId, { focused: true });
     // The page's count, not `files.length`: it is the only number here that
     // anything outside this worker has vouched for. It says the batch crossed
-    // and was accepted, not that the tab finished reading it, so the line stops
-    // there. The tray keeps what it sent, and a push appends to the tab and
-    // replaces same-path files, so re-sending a corrected set fixes one in place.
-    await say(`${accepted.count} sent. The tab took them.`, "done");
+    // and was accepted, not that the tab finished reading it, so whatever the
+    // caller says stops there.
+    return { count: accepted.count };
   } catch (error) {
-    await say(String((error as Error)?.message ?? error), "error");
+    return { error: String((error as Error)?.message ?? error) };
   }
+}
+
+/**
+ * The tray's finished rows, pushed, then moved into Sent.
+ *
+ * The tray used to keep what it sent, because a push replaces same-path files
+ * and re-sending was how a bad clip got corrected in place. Sent inherits that
+ * job — `resendOnce` below is the same act — which is what lets the cart empty
+ * and go back to meaning "work not yet done".
+ */
+async function sendOnce() {
+  const rows = (await read()).filter((item) => item.state === "done" && item.clipping);
+  const files = uniquePaths(rows.map((item) => item.clipping!));
+  if (files.length === 0) return;
+  await say("Sending…", "working");
+  const answer = await push(files);
+  if ("error" in answer) {
+    await say(answer.error, "error");
+    return;
+  }
+  const at = Date.now();
+  await writeSent([
+    ...rows.map((item) => ({ id: item.id, title: item.title, clipping: item.clipping!, sentAt: at })),
+    ...(await readSent()),
+  ]);
+  // By the ids actually pushed, not by state: a clip that finished while the
+  // push was in flight is still waiting to be sent, and clearing every done row
+  // would drop it without ever having sent it.
+  const pushed = new Set(rows.map((item) => item.id));
+  await write((await read()).filter((item) => !pushed.has(item.id)));
+  await say(`${answer.count} sent. The tab took them.`, "done");
+}
+
+/** Sent rows, pushed again. Nothing moves: they are already where they belong. */
+async function resendOnce(ids: string[]) {
+  const files = uniquePaths((await readSent()).filter((row) => ids.includes(row.id)).map((row) => row.clipping));
+  if (files.length === 0) return;
+  await say("Sending…", "working");
+  const answer = await push(files);
+  await say(
+    "error" in answer ? answer.error : `${answer.count} sent again. The tab replaced them in place.`,
+    "error" in answer ? "error" : "done",
+  );
 }
 
 /**
@@ -285,8 +372,8 @@ async function sendOnce() {
  * at once against a bridge that holds exactly one, and the first vanished.
  */
 let queue: Promise<void> = Promise.resolve();
-function send(): Promise<void> {
-  queue = queue.then(sendOnce, sendOnce);
+function serial(work: () => Promise<void>): Promise<void> {
+  queue = queue.then(work, work);
   return queue;
 }
 
@@ -328,14 +415,22 @@ export default defineBackground(() => {
       case "fc:start":
         void clip(request.tabId, request.items, request.option).then(done);
         return true;
+      case "fc:retry":
+        void retry(request.tabId, request.id, request.option).then(done);
+        return true;
       case "fc:send":
-        void send().then(done);
+        void serial(sendOnce).then(done);
+        return true;
+      case "fc:resend":
+        void serial(() => resendOnce(request.ids)).then(done);
         return true;
       case "fc:remove":
         void read()
           .then((items) => write(items.filter((item) => item.id !== request.id)))
           .then(done);
         return true;
+      // The cart only. Sent is a record of what already left, and emptying the
+      // cart is not a statement about that.
       case "fc:clear":
         void Promise.all([write([]), say("")]).then(done);
         return true;
