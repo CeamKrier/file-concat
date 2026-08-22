@@ -75,8 +75,10 @@ Tick the ones you want and each is opened and read on its own, so a session of
 scrolling becomes a set of files rather than one flattened page of headlines.
 
 YouTube transcripts. A watch page gives you the video's description and its full
-transcript, which is not text that was on the page to begin with. Comments are
-an opt-in extra, off by default, because they cost up to 45% more tokens.
+transcript, which is not text that was on the page to begin with. A channel's
+Playlists tab lists its playlists, and clipping one clips the videos it holds.
+Comments are an opt-in extra, off by default, because they cost up to 45% more
+tokens.
 
 Any article. Everywhere else, if a page reads as an article, the panel offers to
 clip it. Mozilla's Readability picks the body and Turndown renders it, which

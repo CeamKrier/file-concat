@@ -11,11 +11,13 @@ import {
   STATUS_KEY,
   TRAY_KEY,
   type FetchRequest,
+  type PageItem,
   type PanelRequest,
   type PushAnswer,
   type PushRequest,
   type SiteRequest,
   type SiteResponse,
+  type StartItem,
   type Status,
   type TrayItem,
 } from "../src/messages";
@@ -74,21 +76,100 @@ async function patch(id: string, change: Partial<TrayItem>) {
   await write(items.map((item) => (item.id === id ? { ...item, ...change } : item)));
 }
 
-async function clip(tabId: number, items: { id: string; title: string }[], option: boolean) {
-  const queued: TrayItem[] = items.map((item) => ({ ...item, state: "queued", addedAt: Date.now() }));
-  await write([...queued, ...(await read())]);
+/**
+ * Opens out any selected row that names a set rather than an item — a YouTube
+ * playlist — into what it holds, in the page's own order.
+ *
+ * Clipping such a row directly is what used to go wrong: its id is the
+ * playlist's, so the video the playlist opens with arrived filed under the
+ * playlist's name, a wrong file rather than a failed one. A set that cannot be
+ * opened keeps its own row and fails there, where the panel shows it, rather
+ * than in a status line nobody may be looking at.
+ */
+async function expand(
+  tabId: number,
+  items: StartItem[],
+): Promise<{ work: StartItem[]; failed: TrayItem[]; unopened: number }> {
+  const work: StartItem[] = [];
+  const failed: TrayItem[] = [];
+  let opened = 0;
+  let unopened = 0;
+  for (const item of items) {
+    if (!item.expand) {
+      work.push(item);
+      continue;
+    }
+    // Nothing past what the tray will hold is going to be clipped, so nothing
+    // past it is worth a request either. Ticking every playlist on a channel is
+    // one gesture and would otherwise be fifty-odd requests for work that is
+    // then thrown away.
+    if (work.length >= TRAY_LIMIT) {
+      unopened++;
+      continue;
+    }
+    // Paced like the clip loop below, and for the same reason: this runs inside
+    // the person's own session against a site that watches for machine pace.
+    if (opened++) await new Promise((resolve) => setTimeout(resolve, CLIP_SPACING_MS));
+    try {
+      const request: SiteRequest = { type: "fc:expand", id: item.id };
+      const response = (await browser.tabs.sendMessage(tabId, request)) as SiteResponse<PageItem[]> | undefined;
+      if (!response) throw new Error("This page stopped answering. Reload it and clip again.");
+      if (!response.ok) throw new Error(response.error);
+      // Every item that came out of a set is filed under that set's own name:
+      // it is the thing the person picked, and the site's own grouping — a
+      // channel — is in every clipping's header anyway.
+      work.push(...response.value.map((held) => ({ id: held.id, title: held.title, group: item.title })));
+    } catch (error) {
+      failed.push({
+        id: item.id,
+        title: item.title,
+        state: "failed",
+        error: String((error as Error)?.message ?? error),
+        addedAt: Date.now(),
+      });
+    }
+  }
+  return { work, failed, unopened };
+}
 
-  // Read once, here: whether this is a batch is a fact about the selection, and
-  // the handler sees only its own item.
-  const grouped = items.length > 1;
+async function clip(tabId: number, items: StartItem[], option: boolean) {
+  // Opening a set out is a request per set, so a few ticked playlists are a
+  // couple of seconds before the first row appears.
+  const opening = items.some((item) => item.expand);
+  if (opening) await say("Reading what you picked…", "working");
+  const { work, failed, unopened } = await expand(tabId, items);
+
+  // `write` keeps TRAY_LIMIT rows and drops the oldest past it, so a batch
+  // larger than that would evict its own earlier rows while they were still
+  // being clipped — and `patch` on a row the tray no longer holds does nothing
+  // at all. Ticking every playlist on a channel reaches this on the first try.
+  const capped = work.slice(0, Math.max(0, TRAY_LIMIT - failed.length));
+  if (opening)
+    await say(
+      capped.length < work.length || unopened
+        ? `The tray holds ${TRAY_LIMIT}, so this is the first ${capped.length} and the rest was left out.`
+        : "",
+    );
+
+  const queued: TrayItem[] = capped.map((item) => ({
+    id: item.id,
+    title: item.title,
+    state: "queued",
+    addedAt: Date.now(),
+  }));
+  await write([...failed, ...queued, ...(await read())]);
+
+  // Read once, here: whether this is a batch is a fact about the work, which
+  // only exists after the sets are opened out, and the handler sees one item.
+  const grouped = capped.length > 1;
 
   // One id per request, which is what buys a row its own state: a batch that
   // answered once could only ever report the batch.
-  for (const [index, item] of items.entries()) {
+  for (const [index, item] of capped.entries()) {
     if (index > 0) await new Promise((resolve) => setTimeout(resolve, CLIP_SPACING_MS));
     await patch(item.id, { state: "fetching" });
     try {
-      const request: SiteRequest = { type: "fc:clip", id: item.id, grouped, option };
+      const request: SiteRequest = { type: "fc:clip", id: item.id, grouped, option, group: item.group };
       const response = (await browser.tabs.sendMessage(tabId, request)) as SiteResponse<Clipping> | undefined;
       if (!response) throw new Error("This page stopped answering. Reload it and clip again.");
       if (!response.ok) throw new Error(response.error);

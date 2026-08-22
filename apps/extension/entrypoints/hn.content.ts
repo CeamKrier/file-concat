@@ -4,7 +4,7 @@ import { browser, defineContentScript } from "#imports";
 import { announceChanges } from "../src/announce";
 import { clipItem, isFrontPage, isItem, itemId, stories } from "../src/hn";
 import { clippingPath, hnUrl, renderHnClipping, type Clipping } from "../src/markdown";
-import type { PageReport, SiteRequest, SiteResponse } from "../src/messages";
+import type { ItemRequest, PageReport, SiteRequest, SiteResponse } from "../src/messages";
 
 function report(): PageReport {
   const base = { site: "hn", noun: "thread" } as const;
@@ -29,7 +29,7 @@ async function clip(id: string, grouped: boolean): Promise<Clipping> {
   };
 }
 
-async function handle(request: SiteRequest): Promise<PageReport | Clipping> {
+async function handle(request: ItemRequest): Promise<PageReport | Clipping> {
   if (request.type === "fc:page") return report();
   return clip(request.id, request.grouped);
 }

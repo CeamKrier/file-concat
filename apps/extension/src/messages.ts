@@ -6,13 +6,22 @@ export type SiteRequest =
   // `grouped` is told, not inferred. It is a property of the user's selection,
   // which only the panel and the worker can see, and the worker sends one id
   // per request so a handler asked to guess from what it holds always sees one.
-  | { type: "fc:clip"; id: string; grouped: boolean; option: boolean };
+  | { type: "fc:clip"; id: string; grouped: boolean; option: boolean; group?: string }
+  // A selected item that names a set rather than an item — a YouTube playlist —
+  // answered with the items it holds, in the site's own order.
+  | { type: "fc:expand"; id: string };
 
 export interface PageItem {
   id: string;
   title: string;
   /** One line under the title: a duration, a score, whatever the site counts. */
   meta?: string;
+  /**
+   * This id names a set, not an item. The worker asks the page to expand it
+   * before clipping anything, and each item that comes back gets its own tray
+   * row — so a playlist that half works reports which half.
+   */
+  expand?: boolean;
 }
 
 /**
@@ -34,6 +43,12 @@ export interface PageReport {
   option?: { label: string; hint: string };
 }
 
+/**
+ * The two every site handler answers. `fc:expand` reaches only a handler whose
+ * pages carry sets, so the others never have to name it.
+ */
+export type ItemRequest = Extract<SiteRequest, { type: "fc:page" | "fc:clip" }>;
+
 export type SiteResponse<T> = { ok: true; value: T } | { ok: false; error: string };
 
 /** Site content script -> background: this page navigated under its own feet. */
@@ -54,9 +69,21 @@ export interface FetchRequest {
   url: string;
 }
 
+/**
+ * One thing to clip. `expand` comes from the panel and says this id has to be
+ * opened out first; `group` is set by the worker afterwards, naming the folder
+ * the items it opened out belong in.
+ */
+export interface StartItem {
+  id: string;
+  title: string;
+  expand?: boolean;
+  group?: string;
+}
+
 /** Panel -> background. Everything the panel wants done outlives the panel. */
 export type PanelRequest =
-  | { type: "fc:start"; tabId: number; items: { id: string; title: string }[]; option: boolean }
+  | { type: "fc:start"; tabId: number; items: StartItem[]; option: boolean }
   | { type: "fc:send" }
   | { type: "fc:remove"; id: string }
   | { type: "fc:clear" };

@@ -4,7 +4,7 @@
 import { browser, defineContentScript } from "#imports";
 import { announceChanges } from "../src/announce";
 import { clippingPath, redditUrl, renderRedditClipping, type Clipping } from "../src/markdown";
-import type { PageReport, SiteRequest, SiteResponse } from "../src/messages";
+import type { ItemRequest, PageReport, SiteRequest, SiteResponse } from "../src/messages";
 import {
   clipListedPost,
   clipOpenThread,
@@ -60,7 +60,7 @@ async function clip(id: string, grouped: boolean, expand: boolean): Promise<Clip
   };
 }
 
-async function handle(request: SiteRequest): Promise<PageReport | Clipping> {
+async function handle(request: ItemRequest): Promise<PageReport | Clipping> {
   if (request.type === "fc:page") return report();
   return clip(request.id, request.grouped, request.option);
 }

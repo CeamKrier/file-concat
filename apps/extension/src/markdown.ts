@@ -312,7 +312,7 @@ function renderHnComments(comments: HnComment[]): string {
 /**
  * Windows-hostile characters plus the separators that would turn one clipping
  * into a folder. Length is capped well under any filesystem limit because the
- * name is prefixed with a channel folder in batch clips.
+ * name is prefixed with a folder in batch clips.
  */
 export function sanitizeFilename(name: string): string {
   const cleaned = name
@@ -328,7 +328,8 @@ export function sanitizeFilename(name: string): string {
 
 /**
  * Single clips land at the root so they read as one dropped file; a batch is
- * grouped under the channel so FileConcat's file tree shows it as a folder.
+ * grouped so FileConcat's file tree shows it as a folder — under the channel or
+ * subreddit it came from, or under the playlist, when that is what was picked.
  */
 export function clippingPath(title: string, channel?: string): string {
   const file = `${sanitizeFilename(title)}.md`;
