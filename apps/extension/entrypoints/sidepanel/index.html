@@ -4,28 +4,92 @@
     <meta charset="utf-8" />
     <title>FileConcat Clipper</title>
     <style>
-      /* Ported from apps/web/src/styles/app.css. The panel cannot load the
-         brand webfonts without shipping them, so the warm-dark palette, the
-         hairlines and the radius carry the identity and type falls back to the
-         system stack. */
+      /* The panel is the web app on a 380px column, so the palette, the radius
+         and the type are apps/web/src/styles/app.css and not a second look.
+         The two brand faces ship inside the extension rather than being linked
+         from the font CDN the web app uses: a panel that fetched them would
+         announce every open to a third party, from the one product whose claim
+         is that it does not phone home. The system stack stays behind them. */
+      @font-face {
+        font-family: "Hanken Grotesk";
+        src: url("/fonts/hanken-grotesk-400-latin-ext.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+      @font-face {
+        font-family: "Hanken Grotesk";
+        src: url("/fonts/hanken-grotesk-400-latin.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: "Hanken Grotesk";
+        src: url("/fonts/hanken-grotesk-600-latin-ext.woff2") format("woff2");
+        font-weight: 500 700;
+        font-style: normal;
+        font-display: swap;
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+      @font-face {
+        font-family: "Hanken Grotesk";
+        src: url("/fonts/hanken-grotesk-600-latin.woff2") format("woff2");
+        font-weight: 500 700;
+        font-style: normal;
+        font-display: swap;
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: "Space Grotesk";
+        src: url("/fonts/space-grotesk-600-latin-ext.woff2") format("woff2");
+        font-weight: 600;
+        font-style: normal;
+        font-display: swap;
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+      @font-face {
+        font-family: "Space Grotesk";
+        src: url("/fonts/space-grotesk-600-latin.woff2") format("woff2");
+        font-weight: 600;
+        font-style: normal;
+        font-display: swap;
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+
       :root {
         --background: #16130f;
         --card: #1c1812;
+        --surface-alt: #191510;
         --surface-inset: #120f0a;
         --foreground: #f1ebe0;
         --text-secondary: #b3a994;
         --text-muted: #8d8472;
         --text-faint: #6f675a;
+        --code-text: #b8b0a0;
         --hairline: #221d16;
         --border: #2c261d;
         --border-strong: #342d22;
+        /* The cart's own edge. One step brighter than --border-strong because
+           the cart sits above the panel rather than in it, and a lifted surface
+           that borrows the flat one's border reads as a seam, not an edge. */
+        --edge-lifted: #4a4133;
         --go: #7acd8e;
         --go-text: #9fdcb0;
         --go-ink: #11261a;
         --info: #e3b96a;
         --stop: #e08c7a;
         --radius: 0.5rem;
-        --settle: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+        /* The web app transitions in 150ms in 80 of 85 places, so that is the
+           base here too. --rise is the one authored moment: the cart arriving. */
+        --settle: 150ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        --rise: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+        --font-display: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial,
+          sans-serif;
+        --font-body: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial,
+          sans-serif;
       }
 
       * {
@@ -37,143 +101,368 @@
         height: 100%;
       }
 
-      /* A panel is a column with a floor, not a card that grows. The two lists
-         scroll against each other so a 30-video page can never push the tray
-         out of reach, and Send never leaves the screen. */
+      /* Now owns the column and scrolls once. Everything pinned to the floor —
+         the cart, the bulk bar — is a sibling of that scroller, never inside it,
+         which is what keeps a 40-row channel page from pushing Send off screen
+         and what removed the scroll box inside a scroll the panel used to have. */
       body {
         margin: 0;
         min-width: 280px;
         display: flex;
         flex-direction: column;
+        position: relative;
+        overflow: hidden;
         background: var(--background);
         color: var(--foreground);
-        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+        font-family: var(--font-body);
         font-size: 13px;
         line-height: 1.45;
         -webkit-font-smoothing: antialiased;
       }
 
-      header {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 8px;
-        padding: 12px 14px;
-        border-bottom: 1px solid var(--hairline);
-        flex: none;
+      .scroll {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+        padding: 13px 13px 18px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border-strong) transparent;
       }
 
-      h1 {
-        margin: 0;
-        font-size: 13px;
+      .scroll::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .scroll::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 99px;
+      }
+
+      /* Seven sizes and no more. The design came with twelve, five of which
+         were half-pixel neighbours of another — a gradient rather than a
+         hierarchy. At 380px the steps cannot be wide, so weight and colour
+         carry the rest of the separation.
+
+           10.5  tracked label     13    body, row title, control
+           11.5  meta, muted       14    primary action, sheet title
+           12.5  secondary, hint   15.5  wordmark, page title
+                                   17    peek heading                        */
+
+      /* Header */
+
+      header {
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--hairline);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        min-width: 0;
+      }
+
+      .wordmark {
+        font-family: var(--font-display);
+        font-size: 15.5px;
         font-weight: 600;
         letter-spacing: -0.01em;
       }
 
-      .origin {
+      .wordmark-sub {
+        font-size: 11.5px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
         color: var(--text-muted);
-        font-size: 11px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        min-width: 0;
+        padding-top: 2px;
       }
 
-      main {
-        flex: 1;
-        min-height: 0;
+      /* Buttons */
+
+      button {
+        font: inherit;
+        cursor: pointer;
+        color: var(--foreground);
+        background: transparent;
+        border: 0;
+        padding: 0;
+        transition:
+          background var(--settle),
+          border-color var(--settle),
+          color var(--settle),
+          filter var(--settle);
+      }
+
+      button:disabled {
+        cursor: default;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--go-text);
+        outline-offset: 2px;
+      }
+
+      /* An outlined control: settings, Back, Hide, Cancel. */
+      .ghost {
         display: flex;
-        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        flex: none;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text-secondary);
+        font-size: 12.5px;
+        font-weight: 600;
+        padding: 6px 10px;
       }
 
-      section {
+      .ghost:hover {
+        background: var(--hairline);
+        border-color: var(--border-strong);
+        color: var(--foreground);
+      }
+
+      /* The one full-width commit on the page: Clip. */
+      .act {
+        width: 100%;
+        border: 1px solid var(--go);
+        border-radius: var(--radius);
+        background: var(--go);
+        color: var(--go-ink);
+        font-size: 14px;
+        font-weight: 600;
         padding: 12px 14px;
-        border-bottom: 1px solid var(--hairline);
+      }
+
+      .act:hover {
+        filter: brightness(1.07);
+      }
+
+      /* Already taken. The action inverts rather than disappearing, because the
+         row it refers to is still the thing in front of you. */
+      .act[data-in="true"] {
+        background: transparent;
+        border-color: rgba(122, 205, 142, 0.32);
+        color: var(--go-text);
+      }
+
+      .act[data-in="true"]:hover {
+        filter: none;
+        background: rgba(122, 205, 142, 0.08);
+      }
+
+      .text-link {
+        color: var(--go-text);
+        font-size: 11.5px;
+        font-weight: 600;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .icon-btn {
         display: flex;
-        flex-direction: column;
-        min-height: 0;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+        color: var(--text-muted);
+        padding: 2px;
+        border-radius: 4px;
       }
 
-      /* Now is bounded by its content; the tray takes what is left, because the
-         tray is the thing that accumulates over a session. */
-      #tray-section {
+      .icon-btn:hover {
+        color: var(--foreground);
+      }
+
+      /* Intro, blank, Now */
+
+      .intro {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        background: var(--surface-alt);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 11px 12px;
+        margin-bottom: 14px;
+      }
+
+      .intro p {
+        margin: 0;
         flex: 1;
-        border-bottom: 0;
+        font-size: 12.5px;
+        line-height: 1.45;
+        color: var(--text-secondary);
       }
 
-      .label {
+      .blank {
+        padding: 52px 4px 0;
+        text-align: center;
+      }
+
+      .blank-mark {
+        width: 34px;
+        height: 34px;
+        margin: 0 auto 16px;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        background: var(--surface-alt);
+      }
+
+      .blank-title {
+        margin: 0 0 7px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .blank-why {
+        margin: 0 auto 4px;
+        max-width: 250px;
+        font-size: 12.5px;
+        line-height: 1.5;
+        color: var(--text-muted);
+      }
+
+      .eyebrow-row {
         display: flex;
         align-items: baseline;
         justify-content: space-between;
-        gap: 8px;
-        margin-bottom: 8px;
-        color: var(--text-muted);
-        font-size: 11px;
-        flex: none;
-      }
-
-      .note {
-        margin: 0;
-        color: var(--text-muted);
-      }
-
-      ul {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        min-height: 0;
-      }
-
-      ul:not(:empty) {
-        padding: 3px;
-        overflow-y: auto;
-        overscroll-behavior: contain;
-        border: 1px solid var(--hairline);
-        border-radius: var(--radius);
-      }
-
-      #page-list:not(:empty) {
-        max-height: 40vh;
+        gap: 10px;
         margin-bottom: 10px;
       }
 
-      #tray-list:not(:empty) {
-        flex: 0 1 auto;
+      .eyebrow {
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-muted);
       }
 
-      /* A row is the label, so the whole strip is the hit target. */
-      li label,
-      .toggle {
+      .host {
+        font-size: 11.5px;
+        color: var(--text-muted);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .page-title {
+        margin: 0 0 12px;
+        font-size: 15.5px;
+        font-weight: 600;
+        line-height: 1.3;
+        text-wrap: pretty;
+      }
+
+      .echo-row {
         display: flex;
-        align-items: flex-start;
-        gap: 9px;
-        padding: 6px 8px;
-        border-radius: calc(var(--radius) - 2px);
-        cursor: pointer;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 9px;
       }
 
-      li label:hover,
-      .toggle:hover {
-        background: var(--card);
+      .echo {
+        font-size: 11.5px;
+        color: var(--text-muted);
       }
 
-      /* The toggle sits in the same row idiom as a video, one step in from the
-         section edge, so it reads as part of the act it changes. */
-      .toggle {
-        margin: 0 0 10px -8px;
-      }
+      /* The list */
 
-      li input[type="checkbox"],
-      .toggle input[type="checkbox"] {
-        margin: 2px 0 0;
-        accent-color: var(--go);
-        flex: none;
+      .list-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 9px;
       }
 
       .hint {
-        display: block;
+        font-size: 12.5px;
         color: var(--text-muted);
-        font-size: 11px;
+      }
+
+      .chip-btn {
+        flex: none;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        color: var(--text-secondary);
+        font-size: 12.5px;
+        font-weight: 600;
+        padding: 5px 10px;
+      }
+
+      .chip-btn[aria-pressed="true"] {
+        background: var(--hairline);
+        border-color: var(--border-strong);
+        color: var(--foreground);
+      }
+
+      .rows {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .row {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+
+      .row[data-picked="true"] {
+        border-color: var(--border-strong);
+      }
+
+      .row-main {
+        display: flex;
+        align-items: stretch;
+      }
+
+      /* The row is the button. Tapping it commits, which is why no list state
+         can ever produce a disabled action waiting for a selection. */
+      .row-tap {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-align: left;
+        padding: 10px 11px;
+      }
+
+      .row-tap:hover {
+        background: var(--hairline);
+      }
+
+      .box {
+        width: 16px;
+        height: 16px;
+        flex: none;
+        border: 1.5px solid var(--border-strong);
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--go-ink);
+      }
+
+      .row-tap[aria-pressed="true"] .box {
+        background: var(--go);
+        border-color: var(--go);
       }
 
       .row-text {
@@ -183,6 +472,9 @@
 
       .row-title {
         display: block;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.35;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -190,74 +482,903 @@
 
       .row-meta {
         display: block;
+        font-size: 11.5px;
         color: var(--text-muted);
-        font-size: 11px;
+        margin-top: 3px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
 
-      /* A tray row carries its own fate. The state is a word, never a colour
-         alone, and a finished row says nothing at all — quiet is the success
-         state, and the folder it landed in is more use than the word "done". */
-      .tray-row {
+      .row[data-in="true"] .row-meta {
+        color: var(--go-text);
+      }
+
+      .row-rail {
+        width: 34px;
+        flex: none;
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid var(--hairline);
+      }
+
+      .rail-mark {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--go-text);
+        background: rgba(122, 205, 142, 0.08);
+      }
+
+      .rail-btn {
+        flex: 1;
+        min-height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+      }
+
+      .rail-btn:hover {
+        background: var(--hairline);
+        color: var(--foreground);
+      }
+
+      .rail-btn svg {
+        transition: transform var(--settle);
+      }
+
+      .rail-btn[aria-expanded="true"] svg {
+        transform: rotate(180deg);
+      }
+
+      /* What a set holds, opened out in place. Inset because it is inside the
+         row it belongs to, not another row beside it. */
+      .held {
+        border-top: 1px solid var(--border);
+        background: var(--surface-inset);
+        padding: 5px 0;
+        box-shadow: inset 0 6px 10px -8px rgba(0, 0, 0, 0.8);
+      }
+
+      .held-tap {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        text-align: left;
+        padding: 8px 11px 8px 22px;
+      }
+
+      .held-tap:hover {
+        background: var(--surface-alt);
+      }
+
+      .held-title {
+        display: block;
+        font-size: 12.5px;
+        color: #d8d0c0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .held-meta {
+        display: block;
+        font-size: 11.5px;
+        color: var(--text-muted);
+        margin-top: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .held-tag {
+        flex: none;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .held-tap[aria-pressed="true"] .held-tag {
+        color: var(--go-text);
+      }
+
+      .held-foot {
+        padding: 6px 11px 8px 22px;
+        font-size: 11.5px;
+        line-height: 1.5;
+        color: var(--text-muted);
+      }
+
+      .foot {
+        margin: 11px 0 0;
+        font-size: 11.5px;
+        line-height: 1.5;
+        color: var(--text-muted);
+      }
+
+      /* The floor: status, bulk bar, cart */
+
+      .toast {
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        z-index: 6;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 10px 11px;
+        animation: rise var(--rise);
+      }
+
+      .toast[data-tone="error"] {
+        border-color: #3d2d26;
+      }
+
+      .toast-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 2px;
+        flex: none;
+        background: var(--go);
+      }
+
+      .toast[data-tone="error"] .toast-dot {
+        background: var(--stop);
+      }
+
+      .toast[data-tone="working"] .toast-dot {
+        background: var(--info);
+      }
+
+      .toast p {
+        margin: 0;
+        flex: 1;
+        font-size: 12.5px;
+        line-height: 1.4;
+        color: #d8d0c0;
+      }
+
+      .bulk-bar {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 10px 12px;
+        border-top: 1px solid var(--border-strong);
+        background: var(--surface-alt);
+      }
+
+      .bulk-count {
+        flex: 1;
+        font-size: 12.5px;
+        color: var(--text-secondary);
+      }
+
+      .solid {
+        flex: none;
+        background: var(--go);
+        border-radius: 7px;
+        color: var(--go-ink);
+        font-size: 12.5px;
+        font-weight: 600;
+        padding: 7px 13px;
+      }
+
+      .solid:hover {
+        filter: brightness(1.07);
+      }
+
+      .cart-bar {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        background: var(--card);
+        border-top: 1px solid var(--border-strong);
+        padding: 12px 13px;
+        text-align: left;
+        animation: rise var(--rise);
+      }
+
+      .count {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        flex: none;
+        border-radius: 6px;
+        background: var(--go);
+        color: var(--go-ink);
+        font-size: 12.5px;
+        font-weight: 600;
+      }
+
+      .cart-bar-text {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .cart-bar-title {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .tokens {
+        display: block;
+        font-size: 11.5px;
+        color: var(--text-muted);
+        margin-top: 2px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .review {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--go-ink);
+        background: var(--go-text);
+        border-radius: 7px;
+        padding: 6px 10px;
+      }
+
+      .cart-empty {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        width: 100%;
+        border-top: 1px solid var(--hairline);
+        padding: 10px 13px;
+        text-align: left;
+      }
+
+      .cart-empty:hover {
+        background: var(--surface-alt);
+      }
+
+      .cart-empty-text {
+        flex: 1;
+        font-size: 11.5px;
+        color: var(--text-muted);
+      }
+
+      .cart-empty-more {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .scrim {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        background: rgba(6, 5, 4, 0.55);
+        animation: fade var(--settle);
+      }
+
+      .cart {
+        position: relative;
+        z-index: 5;
+        flex: none;
+        display: flex;
+        flex-direction: column;
+        max-height: 64%;
+        background: var(--hairline);
+        border-top: 1px solid var(--edge-lifted);
+        border-radius: 12px 12px 0 0;
+        box-shadow: 0 -22px 34px -20px rgba(0, 0, 0, 0.9);
+        animation: rise var(--rise);
+      }
+
+      .grab {
+        flex: none;
+        display: flex;
+        justify-content: center;
+        padding: 7px 0 3px;
+      }
+
+      .grab span {
+        width: 34px;
+        height: 4px;
+        border-radius: 99px;
+        background: #5a5142;
+      }
+
+      .cart-head {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 6px 13px 11px;
+        border-bottom: 1px solid var(--border-strong);
+        flex: none;
+      }
+
+      .cart-head-title {
+        flex: 1;
+        min-width: 0;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .cart-list {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+        list-style: none;
+        margin: 0;
+        padding: 9px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border-strong) transparent;
+      }
+
+      .clip {
+        background: var(--surface-alt);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 9px 10px;
+      }
+
+      .clip[data-state="failed"] {
+        border-color: #3d2d26;
+      }
+
+      .clip-head {
         display: flex;
         align-items: flex-start;
-        gap: 9px;
-        padding: 6px 8px;
-        border-radius: calc(var(--radius) - 2px);
-        position: relative;
+        gap: 8px;
       }
 
-      .tray-row:hover {
-        background: var(--card);
+      .clip-text {
+        flex: 1;
+        min-width: 0;
       }
 
-      .state {
-        flex: none;
-        font-size: 11px;
+      .clip-title {
+        display: block;
+        font-size: 12.5px;
+        font-weight: 500;
+        line-height: 1.35;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .clip-meta {
+        display: block;
+        font-size: 11.5px;
         color: var(--text-muted);
-        padding-top: 1px;
+        margin-top: 3px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
-      .tray-row[data-state="fetching"] .state {
-        color: var(--info);
-      }
-
-      .tray-row[data-state="failed"] .state {
-        color: var(--stop);
-      }
-
-      .tray-row[data-state="failed"] .row-meta {
+      .clip[data-state="failed"] .clip-meta {
         color: var(--stop);
         white-space: normal;
       }
 
-      /* The one authored moment: a row arrives unsettled and resolves. Pending
-         work is literally out of focus until it is real. */
-      .tray-row[data-state="queued"],
-      .tray-row[data-state="fetching"] {
+      .clip-tokens {
+        flex: none;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--code-text);
+        font-variant-numeric: tabular-nums;
+        padding-top: 1px;
+      }
+
+      .clip-acts {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .mini {
+        flex: none;
+        background: var(--hairline);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: #d8d0c0;
+        font-size: 11.5px;
+        font-weight: 600;
+        padding: 5px 10px;
+      }
+
+      .mini:hover {
+        border-color: var(--border-strong);
+        color: var(--foreground);
+      }
+
+      .mini.go {
+        background: rgba(122, 205, 142, 0.1);
+        border-color: rgba(122, 205, 142, 0.28);
+        color: var(--go-text);
+      }
+
+      .mini.quiet {
+        background: transparent;
+        color: var(--text-muted);
+      }
+
+      .mini.quiet:hover {
+        color: var(--stop);
+        border-color: var(--border-strong);
+      }
+
+      /* A queued or fetching row is out of focus until it is real, which is the
+         panel's one piece of per-row feedback that needs no words. */
+      .clip[data-state="queued"],
+      .clip[data-state="fetching"] {
         opacity: 0.62;
         filter: blur(0.4px);
-      }
-
-      .tray-row {
         transition:
-          opacity var(--settle),
-          filter var(--settle);
+          opacity var(--rise),
+          filter var(--rise);
       }
 
-      /* A fetching row draws its own hairline, so activity is visible per row
-         rather than in one shared status line. */
-      .tray-row[data-state="fetching"]::after {
+      .clip[data-state="fetching"] {
+        position: relative;
+      }
+
+      .clip[data-state="fetching"]::after {
         content: "";
         position: absolute;
-        left: 8px;
-        right: 8px;
-        bottom: 2px;
+        left: 10px;
+        right: 10px;
+        bottom: 3px;
         height: 1px;
         background: linear-gradient(90deg, transparent, var(--info), transparent);
         animation: sweep 1.1s linear infinite;
+      }
+
+      .cart-foot {
+        flex: none;
+        border-top: 1px solid var(--border-strong);
+        padding: 10px 12px;
+      }
+
+      .bar {
+        height: 4px;
+        border-radius: 99px;
+        background: var(--hairline);
+        overflow: hidden;
+      }
+
+      /* Indeterminate on purpose. The push is one handshake with a tab, not a
+         sequence of steps, so there is no fraction to report and a bar that
+         filled to a number would be inventing one. */
+      .bar span {
+        display: block;
+        height: 100%;
+        width: 38%;
+        background: var(--go);
+        animation: slide 1.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+      }
+
+      .bar-note {
+        margin: 6px 0 9px;
+        font-size: 11.5px;
+        color: var(--text-muted);
+      }
+
+      .sent-link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        border-bottom: 1px solid var(--hairline);
+        padding: 0 0 9px;
+        margin-bottom: 10px;
+        text-align: left;
+      }
+
+      .sent-link:hover {
+        opacity: 0.75;
+      }
+
+      .sent-link span:first-child {
+        flex: 1;
+        font-size: 11.5px;
+        color: var(--text-muted);
+      }
+
+      .send-row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .send-row .tokens {
+        flex: 1;
+      }
+
+      .send {
+        flex: none;
+        border-radius: var(--radius);
+        background: var(--go);
+        color: var(--go-ink);
+        font-size: 13px;
+        font-weight: 600;
+        padding: 9px 15px;
+      }
+
+      .send:hover:not(:disabled) {
+        filter: brightness(1.07);
+      }
+
+      .send:disabled {
+        background: var(--hairline);
+        color: var(--text-secondary);
+      }
+
+      /* Overlays: sent, settings, peek */
+
+      .sheet {
+        position: absolute;
+        inset: 0;
+        z-index: 9;
+        background: var(--background);
+        display: flex;
+        flex-direction: column;
+        animation: fade var(--settle);
+      }
+
+      #peek {
+        z-index: 11;
+        animation: rise var(--rise);
+      }
+
+      #settings {
+        z-index: 10;
+      }
+
+      .sheet-head {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 12px 13px;
+        border-bottom: 1px solid var(--hairline);
+      }
+
+      .sheet-title {
+        flex: 1;
+        min-width: 0;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .sheet-body {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+        padding: 11px 12px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border-strong) transparent;
+      }
+
+      .sheet-note {
+        margin: 0 0 11px;
+        font-size: 11.5px;
+        line-height: 1.5;
+        color: var(--text-muted);
+      }
+
+      .group {
+        margin-bottom: 12px;
+      }
+
+      .group-head {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+
+      .group-label {
+        font-size: 12.5px;
+        font-weight: 600;
+      }
+
+      .group-hint {
+        flex: 1;
+        font-size: 11.5px;
+        color: var(--text-muted);
+      }
+
+      .again {
+        flex: none;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--go-text);
+        font-size: 11.5px;
+        font-weight: 600;
+        padding: 4px 8px;
+      }
+
+      .again:hover {
+        border-color: var(--border-strong);
+      }
+
+      .group ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .sent-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--surface-alt);
+        border: 1px solid var(--hairline);
+        border-radius: 7px;
+        padding: 8px 10px;
+      }
+
+      .sent-row .clip-title {
+        font-weight: 400;
+        color: #d8d0c0;
+      }
+
+      .sent-tokens {
+        flex: none;
+        font-size: 11.5px;
+        color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .empty-note {
+        padding: 40px 0;
+        text-align: center;
+        font-size: 12.5px;
+        color: var(--text-muted);
+      }
+
+      /* Settings */
+
+      .set-label {
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 9px;
+      }
+
+      .set-host {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 11px;
+      }
+
+      .opt {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 11px 12px;
+        text-align: left;
+      }
+
+      .opt-name {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      .opt-note {
+        display: block;
+        font-size: 11.5px;
+        color: var(--text-muted);
+        margin-top: 3px;
+        line-height: 1.4;
+      }
+
+      .switch {
+        flex: none;
+        width: 38px;
+        height: 22px;
+        border-radius: 99px;
+        background: var(--surface-alt);
+        border: 1px solid var(--border-strong);
+        position: relative;
+        transition: background var(--settle);
+      }
+
+      .switch span {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 99px;
+        background: var(--text-muted);
+        transition:
+          left var(--settle),
+          background var(--settle);
+      }
+
+      .opt[aria-pressed="true"] .switch {
+        background: var(--go);
+        border-color: var(--go);
+      }
+
+      .opt[aria-pressed="true"] .switch span {
+        left: 18px;
+        background: var(--go-ink);
+      }
+
+      .set-say {
+        font-size: 11.5px;
+        line-height: 1.55;
+        color: var(--text-muted);
+        margin: 12px 0 0;
+      }
+
+      .rule {
+        height: 1px;
+        background: var(--hairline);
+        margin: 16px 0;
+      }
+
+      .facts {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+
+      .fact {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 12.5px;
+        color: var(--text-secondary);
+      }
+
+      .fact span {
+        color: var(--text-muted);
+      }
+
+      .fact span.go {
+        color: var(--go-text);
+      }
+
+      .wide {
+        width: 100%;
+        justify-content: center;
+        margin-top: 16px;
+        padding: 9px 12px;
+      }
+
+      /* Peek */
+
+      #peek .sheet-body {
+        background: var(--surface-inset);
+        padding: 16px 15px 26px;
+      }
+
+      .peek-path {
+        flex: 1;
+        min-width: 0;
+        font-size: 12.5px;
+        color: var(--text-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .peek-tokens {
+        flex: none;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--code-text);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .read {
+        max-width: 60ch;
+        margin: 0 auto;
+      }
+
+      .read h2 {
+        margin: 0 0 9px;
+        font-size: 17px;
+        font-weight: 600;
+        line-height: 1.3;
+        text-wrap: pretty;
+      }
+
+      .read .source {
+        font-size: 11.5px;
+        color: var(--text-muted);
+        padding-bottom: 13px;
+        border-bottom: 1px solid var(--hairline);
+        margin-bottom: 14px;
+      }
+
+      .read p,
+      .read h3,
+      .read blockquote {
+        margin: 0 0 13px;
+        font-size: 13px;
+        line-height: 1.62;
+        color: #d8d0c0;
+        text-wrap: pretty;
+        overflow-wrap: anywhere;
+      }
+
+      .read h3 {
+        font-weight: 600;
+        color: var(--foreground);
+      }
+
+      .read blockquote {
+        border-left: 2px solid var(--border);
+        padding-left: 12px;
+        color: var(--text-secondary);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      @keyframes rise {
+        from {
+          transform: translateY(14px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes fade {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes slide {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(300%);
+        }
       }
 
       @keyframes sweep {
@@ -269,112 +1390,17 @@
         }
       }
 
-      .remove {
-        flex: none;
-        width: auto;
-        padding: 0 2px;
-        border: 0;
-        background: none;
-        color: var(--text-muted);
-        font-size: 13px;
-        line-height: 1.2;
-        cursor: pointer;
-        transition: color var(--settle);
-      }
-
-      .remove:hover {
-        color: var(--stop);
-      }
-
-      button {
-        width: 100%;
-        padding: 8px 12px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        background: var(--card);
-        color: var(--foreground);
-        font: inherit;
-        font-weight: 500;
-        cursor: pointer;
-      }
-
-      button:hover:not(:disabled) {
-        border-color: var(--border-strong);
-      }
-
-      button.primary {
-        background: var(--go);
-        border-color: var(--go);
-        color: var(--go-ink);
-        font-weight: 600;
-      }
-
-      button:disabled {
-        opacity: 0.45;
-        cursor: default;
-      }
-
-      :focus-visible {
-        outline: 2px solid var(--go);
-        outline-offset: 2px;
-      }
-
-      .link {
-        width: auto;
-        padding: 0;
-        border: 0;
-        background: none;
-        color: var(--text-muted);
-        font-size: 11px;
-        text-decoration: underline;
-        text-underline-offset: 2px;
-      }
-
-      .link:hover:not(:disabled) {
-        color: var(--foreground);
-      }
-
-      footer {
-        flex: none;
-        padding: 12px 14px;
-        border-top: 1px solid var(--hairline);
-        background: var(--surface-inset);
-      }
-
-      /* Status carries a text prefix rather than colour alone. */
-      #status {
-        margin: 8px 0 0;
-        min-height: 16px;
-        font-size: 11px;
-        color: var(--text-muted);
-      }
-
-      #status[data-tone="working"] {
-        color: var(--info);
-      }
-
-      #status[data-tone="done"] {
-        color: var(--go-text);
-      }
-
-      #status[data-tone="error"] {
-        color: var(--stop);
-      }
-
-      [hidden] {
-        display: none !important;
-      }
-
       @media (prefers-reduced-motion: reduce) {
-        .tray-row {
-          transition: none;
+        *,
+        *::after {
+          animation: none !important;
+          transition: none !important;
         }
-        .tray-row[data-state="queued"],
-        .tray-row[data-state="fetching"] {
+        .clip[data-state="queued"],
+        .clip[data-state="fetching"] {
           filter: none;
         }
-        .tray-row[data-state="fetching"]::after {
-          animation: none;
+        .clip[data-state="fetching"]::after {
           background: var(--info);
           right: 70%;
         }
@@ -383,42 +1409,171 @@
   </head>
   <body>
     <header>
-      <h1>FileConcat Clipper</h1>
-      <span class="origin" id="origin"></span>
+      <div class="brand">
+        <svg width="20" height="20" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+          <rect x="16" y="16" width="46" height="46" rx="14" fill="#7acd8e" />
+          <rect x="38" y="38" width="46" height="46" rx="14" fill="#16130f" />
+          <rect x="42" y="42" width="38" height="38" rx="11" fill="#e7e0d2" />
+        </svg>
+        <span class="wordmark">FileConcat</span>
+        <span class="wordmark-sub">clipper</span>
+      </div>
+      <button class="ghost" id="settings-open" type="button">Settings</button>
     </header>
 
-    <main>
-      <section id="page-section">
-        <div class="label">
-          <span id="page-label">Now</span>
-          <button class="link" id="select-all" type="button" hidden>Select all</button>
+    <div class="scroll" id="scroll">
+      <div class="intro" id="intro" hidden>
+        <p>Clip pages into one FileConcat bundle. Everything stays in this browser until you send it.</p>
+        <button class="icon-btn" id="intro-dismiss" type="button" aria-label="Dismiss"></button>
+      </div>
+
+      <div class="blank" id="blank" hidden>
+        <div class="blank-mark" aria-hidden="true"></div>
+        <p class="blank-title">Nothing to clip here</p>
+        <p class="blank-why" id="blank-why"></p>
+        <p class="blank-why">Open an article, a video, or a thread and this panel will report what it can read.</p>
+      </div>
+
+      <div id="now" hidden>
+        <div class="eyebrow-row">
+          <span class="eyebrow">Now</span>
+          <span class="host" id="host"></span>
         </div>
-        <p class="note" id="page-note" hidden></p>
-        <ul id="page-list"></ul>
-        <label class="toggle" id="option-row" hidden>
-          <input type="checkbox" id="option" />
-          <span id="option-label">
-            Include comments
-            <span class="hint" id="option-hint">Top 20 per video. Up to 45% more tokens on a short one.</span>
+        <h1 class="page-title" id="page-title"></h1>
+      </div>
+
+      <div id="single" hidden>
+        <button class="act" id="clip" type="button"></button>
+      </div>
+
+      <div id="list" hidden>
+        <div class="list-head">
+          <span class="hint" id="list-hint"></span>
+          <button class="chip-btn" id="bulk-toggle" type="button" aria-pressed="false">Select</button>
+        </div>
+        <ul class="rows" id="rows"></ul>
+      </div>
+
+      <div class="echo-row" id="echo-row" hidden>
+        <span class="echo" id="echo"></span>
+        <button class="text-link" id="echo-change" type="button">Change</button>
+      </div>
+
+      <p class="foot" id="list-foot" hidden></p>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden>
+      <span class="toast-dot" aria-hidden="true"></span>
+      <p id="toast-text"></p>
+      <button class="icon-btn" id="toast-dismiss" type="button" aria-label="Dismiss"></button>
+    </div>
+
+    <div class="bulk-bar" id="bulk-bar" hidden>
+      <span class="bulk-count" id="bulk-count"></span>
+      <button class="ghost" id="bulk-cancel" type="button">Cancel</button>
+      <button class="solid" id="bulk-clip" type="button"></button>
+    </div>
+
+    <button class="cart-bar" id="cart-bar" type="button" hidden>
+      <span class="count" id="cart-bar-count"></span>
+      <span class="cart-bar-text">
+        <span class="cart-bar-title" id="cart-bar-title"></span>
+        <span class="tokens" id="cart-bar-tokens"></span>
+      </span>
+      <span class="review">Review</span>
+    </button>
+
+    <button class="cart-empty" id="cart-empty" type="button" hidden>
+      <span class="cart-empty-text">Cart is empty. Clips collect here until you send them.</span>
+      <span class="cart-empty-more">Already sent</span>
+    </button>
+
+    <div class="scrim" id="scrim" hidden></div>
+
+    <div class="cart" id="cart" hidden>
+      <button class="grab" id="cart-grab" type="button" aria-label="Hide the cart"><span></span></button>
+      <div class="cart-head">
+        <span class="count" id="cart-count"></span>
+        <span class="cart-head-title" id="cart-title"></span>
+        <button class="mini quiet" id="cart-clear" type="button">Clear</button>
+        <button class="ghost" id="cart-hide" type="button">Hide</button>
+      </div>
+      <ul class="cart-list" id="cart-list"></ul>
+      <div class="cart-foot">
+        <div id="sending" hidden>
+          <div class="bar"><span></span></div>
+          <p class="bar-note">Pushing into the fileconcat.com tab…</p>
+        </div>
+        <button class="sent-link" id="sent-open" type="button">
+          <span id="sent-link-text"></span>
+          <span aria-hidden="true"></span>
+        </button>
+        <div class="send-row">
+          <span class="tokens" id="cart-tokens"></span>
+          <button class="send" id="send" type="button"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sheet" id="sent" hidden>
+      <div class="sheet-head">
+        <button class="ghost" id="sent-close" type="button">Cart</button>
+        <span class="sheet-title">Already sent</span>
+      </div>
+      <div class="sheet-body">
+        <p class="sheet-note">A receipt, not a library. Rows leave after seven days.</p>
+        <div id="sent-groups"></div>
+        <p class="empty-note" id="sent-empty" hidden>Nothing sent in the last seven days.</p>
+      </div>
+    </div>
+
+    <div class="sheet" id="settings" hidden>
+      <div class="sheet-head">
+        <button class="ghost" id="settings-close" type="button">Back</button>
+        <span class="sheet-title">Settings</span>
+      </div>
+      <div class="sheet-body">
+        <div class="set-label">This site</div>
+        <div class="set-host" id="set-host"></div>
+        <button class="opt" id="opt" type="button" aria-pressed="false" hidden>
+          <span class="row-text">
+            <span class="opt-name" id="opt-name"></span>
+            <span class="opt-note" id="opt-note"></span>
           </span>
-        </label>
-        <button id="clip" type="button" hidden>Clip this video</button>
-      </section>
-
-      <section id="tray-section">
-        <div class="label">
-          <span id="tray-label">Tray</span>
-          <button class="link" id="clear" type="button" hidden>Clear</button>
+          <span class="switch" aria-hidden="true"><span></span></span>
+        </button>
+        <p class="sheet-note" id="opt-none" hidden>
+          This page reports no options. The panel only shows what the site handler offers.
+        </p>
+        <p class="set-say">
+          Options are remembered for this site only, and start off. Whatever is on here is spelled out under the clip
+          button, so a remembered yes is never invisible.
+        </p>
+        <div class="rule"></div>
+        <div class="set-label">Panel</div>
+        <div class="facts">
+          <p class="fact">Token figures <span>approximate, chars ÷ 4</span></p>
+          <p class="fact">Sent history <span>7 days, this device</span></p>
+          <p class="fact">Clipping <span class="go">read in this browser, sent only on your click</span></p>
         </div>
-        <p class="note" id="tray-note" hidden>Nothing clipped yet.</p>
-        <ul id="tray-list"></ul>
-      </section>
-    </main>
+        <button class="ghost wide" id="intro-replay" type="button">Show the first-run line again</button>
+      </div>
+    </div>
 
-    <footer>
-      <button class="primary" id="send" type="button" disabled>Send to FileConcat</button>
-      <p id="status" role="status" aria-live="polite"></p>
-    </footer>
+    <div class="sheet" id="peek" hidden>
+      <div class="sheet-head">
+        <button class="ghost" id="peek-close" type="button">Back</button>
+        <span class="peek-path" id="peek-path"></span>
+        <span class="peek-tokens" id="peek-tokens"></span>
+      </div>
+      <div class="sheet-body">
+        <div class="read">
+          <h2 id="peek-title"></h2>
+          <div class="source" id="peek-source"></div>
+          <div id="peek-body"></div>
+        </div>
+      </div>
+    </div>
 
     <script type="module" src="./main.ts"></script>
   </body>
