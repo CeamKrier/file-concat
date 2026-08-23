@@ -33,6 +33,8 @@ export type UnsupportedFile = { name: string; why: string };
 type ResultViewProps = {
   sourceLabel: string;
   note?: string | null;
+  /** The one thing the note can offer to do, shown as a link beside it. */
+  noteAction?: { label: string; onClick: () => void };
   filesCombined: number;
   tokens: number;
   noiseSkipped: number;
@@ -92,6 +94,7 @@ const PREVIEW_LIMIT = 4000;
 export function ResultView({
   sourceLabel,
   note,
+  noteAction,
   filesCombined,
   tokens,
   noiseSkipped,
@@ -147,6 +150,15 @@ export function ResultView({
           <span className="text-go-fg rounded-pill mt-3 inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 text-[12px]">
             <Check className="text-primary h-3 w-3 shrink-0" strokeWidth={2.5} />
             {note}
+            {noteAction && (
+              <button
+                type="button"
+                onClick={noteAction.onClick}
+                className="focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm font-medium underline underline-offset-2 transition-opacity duration-150 hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+              >
+                {noteAction.label}
+              </button>
+            )}
           </span>
         )}
       </div>
