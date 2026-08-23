@@ -254,6 +254,14 @@ export interface FileIngestion {
    */
   readLanguages: Record<string, OcrLanguage>;
   ingestBatch: (incoming: IncomingFile[], options?: IngestOptions) => Promise<void>;
+  /**
+   * Drop every file the given paths do not name.
+   *
+   * The undo an append needs. `ingestBatch` merges by path and never removes,
+   * so a batch that landed on a bundle it was not meant to join can only be
+   * unmixed from here, by the paths that batch carried.
+   */
+  keepOnly: (paths: readonly string[]) => void;
   ingestRepo: (url: string, sourceType: SourceType, signal: AbortSignal) => Promise<void>;
   setEntryContent: (path: string, content: string) => void;
   handleFileInput: (e: React.ChangeEvent<HTMLInputElement>, options?: IngestOptions) => Promise<void>;
@@ -996,6 +1004,29 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     stopRef.current = true;
   }, []);
 
+  /**
+   * Keep the named paths, drop the rest, and give up the name the bundle went
+   * by: pruned to a subset it is no longer that import, and the result header
+   * would go on saying it was.
+   *
+   * Manual per-file toggles are keyed by path and left where they are, the same
+   * way a replacing drop leaves them.
+   */
+  const keepOnly = useCallback((paths: readonly string[]) => {
+    const kept = new Set(paths);
+    const rows = <T extends { path: string }>(prev: T[]) =>
+      prev.filter((row) => kept.has(row.path));
+    const keyed = <T>(prev: Record<string, T>) =>
+      Object.fromEntries(Object.entries(prev).filter(([path]) => kept.has(path)));
+    setEntries(rows);
+    setValidations(keyed);
+    setFailedFiles(rows);
+    setScannedDocuments(rows);
+    setUnreadDocuments(rows);
+    setReadLanguages(keyed);
+    setSourceUrl(null);
+  }, []);
+
   const reset = useCallback(() => {
     setEntries([]);
     setValidations({});
@@ -1042,6 +1073,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     expandedArchive,
     progress,
     ingestBatch,
+    keepOnly,
     ingestRepo,
     setEntryContent,
     handleFileInput,

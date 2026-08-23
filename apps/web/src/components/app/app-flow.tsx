@@ -38,6 +38,19 @@ import { SettingsDrawer } from "./settings-drawer";
 
 type Phase = "landing" | "processing" | "result";
 
+/**
+ * The line under the result heading, and the one thing it can offer to do.
+ *
+ * The action exists for one case: a clipper push that landed on a bundle that
+ * was already there. Appending is what the extension is for, but it is silent,
+ * and a second batch sent into a tab still holding the first one comes out as
+ * one bundle covering both. So the note says what the push landed on, and
+ * carries the way back.
+ */
+type ResultNote = { text: string; action?: { label: string; onClick: () => void } };
+
+const many = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+
 /** How much recognised text the reading dialog holds per document. */
 const SAMPLE_LIMIT = 2000;
 
@@ -138,7 +151,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   const [importTab, setImportTab] = useState<ImportTab>("github");
   const [importUrl, setImportUrl] = useState("");
   const [importError, setImportError] = useState<string | null>(null);
-  const [resultNote, setResultNote] = useState<string | null>(null);
+  const [resultNote, setResultNote] = useState<ResultNote | null>(null);
   const importAbortRef = useRef<AbortController | null>(null);
 
   // --- engine derivations (mirrors the legacy orchestrator) -----------------
@@ -538,7 +551,27 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     useCallback(
       (files: IncomingFile[]) => {
         setResultNote(null);
-        void begin(() => ingestion.ingestBatch(files, { append: "clipper" }));
+        // Both read before the ingest: afterwards the two batches are one set,
+        // and nothing in the bundle can tell them apart again.
+        const landedOn = ingestion.entries.length;
+        // Resolved the way `prepareBatch` resolves it, so these are the keys
+        // the bundle actually files them under.
+        const paths = files.map((f) => f.path || f.file.webkitRelativePath || f.file.name);
+        void begin(async () => {
+          await ingestion.ingestBatch(files, { append: "clipper" });
+          // Nothing was mixed, so there is nothing to say and nothing to undo.
+          if (landedOn === 0) return;
+          setResultNote({
+            text: `${many(files.length, "clipping")} added to the ${many(landedOn, "file")} already here.`,
+            action: {
+              label: "Keep only the clippings",
+              onClick: () => {
+                ingestion.keepOnly(paths);
+                setResultNote({ text: "Kept just the clippings from this push." });
+              },
+            },
+          });
+        });
       },
       [begin, ingestion],
     ),
@@ -579,7 +612,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     }
     setImportError(null);
     const narration = importNarration(c);
-    setResultNote(narration.note);
+    setResultNote({ text: narration.note });
     const controller = new AbortController();
     importAbortRef.current = controller;
     void (async () => {
@@ -664,11 +697,12 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
             <ResultView
               sourceLabel={sourceLabel}
               note={
-                resultNote ??
+                resultNote?.text ??
                 (ingestion.expandedArchive
                   ? "Unpacked the archive and combined everything inside."
                   : null)
               }
+              noteAction={resultNote?.action}
               filesCombined={filesCombined}
               tokens={tokens}
               noiseSkipped={noiseSkipped}

@@ -163,4 +163,29 @@ describe("useFileIngestion, appending", () => {
       { value: "manual", n: 2 },
     ]);
   });
+
+  /**
+   * The way back out of an append. A second push into a tab still holding the
+   * first one produces a bundle covering both, which is right for a repo and
+   * the discussion about it and wrong for two unrelated batches — and only the
+   * paths the push carried can tell the two apart afterwards.
+   */
+  it("prunes a bundle back to the paths a push carried", async () => {
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([text("export const a = 1;\n", "src/a.ts")]);
+    });
+    await act(async () => {
+      await result.current.ingestBatch([text("# Talk\n", "youtube/talk.md")], {
+        append: "clipper",
+      });
+    });
+    act(() => result.current.keepOnly(["youtube/talk.md"]));
+
+    expect(result.current.entries.map((e) => e.path)).toEqual(["youtube/talk.md"]);
+    // The validation goes with the file: it is what the tree and the empty
+    // state count from, so a leftover row would keep a dropped file visible.
+    expect(result.current.validations["src/a.ts"]).toBeUndefined();
+    expect(result.current.validations["youtube/talk.md"]).toBeDefined();
+  });
 });
