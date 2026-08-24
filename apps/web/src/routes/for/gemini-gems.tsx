@@ -19,9 +19,9 @@ export const Route = createFileRoute("/for/gemini-gems")({
   head: () => ({
     meta: [
       ...generateSEOMeta({
-        title: "Get past the Gemini Gems file limit",
+        title: "Get past the Gemini Gems knowledge limit",
         description:
-          "Hit the Gemini Gems knowledge file limit? Combine a whole folder, even PDFs and Office docs, into one file that takes a single knowledge slot. Read in your browser, nothing uploaded.",
+          "Hit the Gemini Gems knowledge limit? Combine a whole folder into one file that takes a single knowledge slot. Read in your browser, nothing uploaded.",
         url: "https://fileconcat.com/for/gemini-gems",
       }),
       {

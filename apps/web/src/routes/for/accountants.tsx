@@ -19,9 +19,9 @@ export const Route = createFileRoute("/for/accountants")({
   head: () => ({
     meta: [
       ...generateSEOMeta({
-        title: "FileConcat for accountants. Combine a client file for AI, privately.",
+        title: "Combine a client file for AI, privately",
         description:
-          "Drop a folder of statements, ledgers, and invoices. FileConcat reads the PDFs and spreadsheets in your browser and returns one file for ChatGPT, Claude, or Gemini. Nothing is uploaded, so client data stays private.",
+          "Drop a folder of statements, ledgers, and invoices. The PDFs and spreadsheets are read in your browser and packed into one file. Nothing is uploaded.",
         url: "https://fileconcat.com/for/accountants",
       }),
       {

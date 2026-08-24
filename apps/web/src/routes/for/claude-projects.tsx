@@ -21,7 +21,7 @@ export const Route = createFileRoute("/for/claude-projects")({
       ...generateSEOMeta({
         title: "Get past the Claude Projects knowledge limit",
         description:
-          "Claude Project knowledge full? Combine a whole folder, even PDFs and Office docs, into one file and see the token count before you add it. Read in your browser, nothing uploaded.",
+          "Claude Project knowledge full? Combine a whole folder into one file and see the token count before you add it. Read in your browser, nothing uploaded.",
         url: "https://fileconcat.com/for/claude-projects",
       }),
       {

@@ -19,9 +19,9 @@ export const Route = createFileRoute("/for/hr")({
   head: () => ({
     meta: [
       ...generateSEOMeta({
-        title: "FileConcat for HR. Combine policies and CVs for AI, privately.",
+        title: "Combine policies and CVs for AI, privately",
         description:
-          "Drop a policy set or a batch of CVs. FileConcat reads the PDFs and Word files in your browser and returns one file for ChatGPT, Claude, or Gemini. Nothing is uploaded, so employee data stays private.",
+          "Drop a policy set or a batch of CVs. The PDFs and Word files are read in your browser and packed into one file for ChatGPT or Claude. Nothing is uploaded.",
         url: "https://fileconcat.com/for/hr",
       }),
       {
