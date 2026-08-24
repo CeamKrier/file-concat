@@ -17,8 +17,17 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const KEY_PATH = process.env.GSC_KEY || join(REPO_ROOT, "google-search-console-api.json");
 // First arg selects the mode: `inspect` runs URL index-coverage inspection,
 // anything else (a number) is the analytics look-back window in days.
-const MODE = process.argv[2] === "inspect" ? "inspect" : "analytics";
-const DAYS = Number((MODE === "inspect" ? process.argv[3] : process.argv[2]) || 90);
+const ARG = process.argv[2];
+const MODE = ARG === "inspect" ? "inspect" : ARG === "page" ? "page" : "analytics";
+// `page` mode: every query one URL draws, not just the ones the leak filter keeps.
+// The default report answers "which pages leak clicks"; this answers the next
+// question, "what is a page on the second results page actually ranking for",
+// which the leak filter structurally cannot show because a tail query never
+// reaches its 12-impression floor.
+const PAGE = MODE === "page" ? process.argv[3] : null;
+const DAYS = Number(
+  (MODE === "inspect" ? process.argv[3] : MODE === "page" ? process.argv[4] : process.argv[2]) || 90,
+);
 
 const b64url = (buf) =>
   Buffer.from(buf).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -69,13 +78,14 @@ function isoDaysAgo(n) {
   return d.toISOString().slice(0, 10);
 }
 
-async function query(token, siteUrl, dimensions, rowLimit = 250) {
+async function query(token, siteUrl, dimensions, rowLimit = 250, filters) {
   const json = await api(token, `/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, {
     startDate: isoDaysAgo(DAYS),
     endDate: isoDaysAgo(1),
     dimensions,
     rowLimit,
     dataState: "final",
+    ...(filters ? { dimensionFilterGroups: [{ filters }] } : {}),
   });
   return json.rows || [];
 }
@@ -169,6 +179,37 @@ async function runInspection(token, siteUrl) {
   }
 }
 
+// --- one page, every query it draws -------------------------------------
+
+async function runPage(token, siteUrl, needle) {
+  const filters = [{ dimension: "page", operator: "contains", expression: needle }];
+  const totals = await query(token, siteUrl, [], 1, filters);
+  const t = totals[0];
+  if (!t) {
+    console.log(`No rows for a page containing "${needle}" in this window.`);
+    return;
+  }
+  console.log(
+    `=== PAGE ${needle} ===  clicks=${t.clicks} impressions=${t.impressions} CTR=${pct(t.ctr)} pos=${t.position.toFixed(1)}\n`,
+  );
+
+  const rows = (await query(token, siteUrl, ["query"], 5000, filters)).sort(
+    (a, b) => b.impressions - a.impressions,
+  );
+  console.log(`=== QUERIES (${rows.length}) ===`);
+  table(rows, 58);
+
+  // Positions 11-20 are the band worth working: already relevant enough to be
+  // indexed against the query, one page away from being seen at all. Above 10
+  // needs copy, past 20 needs a different page.
+  const band = rows.filter((r) => r.position >= 10.5 && r.position < 20.5);
+  const impr = band.reduce((a, r) => a + r.impressions, 0);
+  console.log(
+    `\n=== POSITION 11-20 (${band.length} queries, ${impr} impressions, ${((impr / t.impressions) * 100).toFixed(0)}% of the page) ===`,
+  );
+  table(band, 58);
+}
+
 async function main() {
   let key;
   try {
@@ -194,6 +235,16 @@ async function main() {
 
   if (MODE === "inspect") {
     await runInspection(token, siteUrl);
+    return;
+  }
+
+  if (MODE === "page") {
+    if (!PAGE) {
+      console.error("Usage: node scripts/gsc-query.mjs page <url-substring> [days]");
+      process.exit(1);
+    }
+    console.log(`Property: ${siteUrl}   window: ${isoDaysAgo(DAYS)} .. ${isoDaysAgo(1)} (${DAYS}d)\n`);
+    await runPage(token, siteUrl, PAGE);
     return;
   }
 
