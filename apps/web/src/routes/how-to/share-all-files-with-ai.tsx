@@ -21,7 +21,7 @@ export const Route = createFileRoute("/how-to/share-all-files-with-ai")({
       ...generateSEOMeta({
         title: "How to share all your files with an AI at once",
         description:
-          "Hit the file limit on ChatGPT, Claude, or Gemini? Combine all your files, even PDFs and Office docs, into one to paste in. Read in your browser, nothing uploaded.",
+          "Combine a whole folder, PDFs and Office docs included, into one file that ChatGPT, Claude, Gemini, or NotebookLM takes in one slot. Nothing is uploaded.",
         url: "https://fileconcat.com/how-to/share-all-files-with-ai",
       }),
       {

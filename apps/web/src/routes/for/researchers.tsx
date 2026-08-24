@@ -8,9 +8,9 @@ export const Route = createFileRoute("/for/researchers")({
   head: () => ({
     meta: [
       ...generateSEOMeta({
-        title: "FileConcat for researchers. A folder of papers into one context window.",
+        title: "A folder of papers into one context window",
         description:
-          "Drop the PDFs, your notes, and the data. FileConcat extracts the text in your browser, packs it into one document, and counts the tokens so you know a whole reading pile fits ChatGPT, Claude, or Gemini before you paste.",
+          "Drop the PDFs, your notes, and the data. The text is extracted in your browser and the tokens counted, so you know the whole pile fits before you paste.",
         url: "https://fileconcat.com/for/researchers",
       }),
       {

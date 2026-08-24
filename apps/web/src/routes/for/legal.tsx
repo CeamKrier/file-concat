@@ -8,9 +8,9 @@ export const Route = createFileRoute("/for/legal")({
   head: () => ({
     meta: [
       ...generateSEOMeta({
-        title: "FileConcat for lawyers. Bundle a case file for AI, privately.",
+        title: "Bundle a case file for AI, privately",
         description:
-          "Drop a folder of contracts, filings, and rulings. FileConcat reads the PDFs and Word files in your browser and returns one document for ChatGPT, Claude, or Gemini. Nothing is uploaded, so privilege stays intact.",
+          "Drop a folder of contracts, filings, and rulings. The PDFs and Word files are read in your browser, never uploaded, and packed into one document.",
         url: "https://fileconcat.com/for/legal",
       }),
       {

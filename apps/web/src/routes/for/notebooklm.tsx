@@ -29,7 +29,7 @@ export const Route = createFileRoute("/for/notebooklm")({
         // vendor's number safe to state.
         title: "Get past the NotebookLM source limit",
         description:
-          "Hit the NotebookLM source limit? Combine a whole research pile, even PDFs and Office docs, into one file that lands as a single source. Read in your browser, nothing uploaded.",
+          "Notebook reached the source limit? Combine a whole research pile into one file that lands as a single source. Read in your browser, nothing uploaded.",
         url: "https://fileconcat.com/for/notebooklm",
       }),
       {

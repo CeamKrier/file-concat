@@ -19,9 +19,9 @@ export const Route = createFileRoute("/for/consultants")({
   head: () => ({
     meta: [
       ...generateSEOMeta({
-        title: "FileConcat for consultants. Turn an engagement into one AI context.",
+        title: "Turn a whole engagement into one AI context",
         description:
-          "Drop the decks, reports, and data from a whole engagement. FileConcat reads the slides, PDFs, and spreadsheets in your browser and returns one file for ChatGPT, Claude, or Gemini. Nothing is uploaded.",
+          "Drop the decks, reports, and data from a whole engagement. Slides, PDFs, and spreadsheets are read in your browser, never uploaded, into one file.",
         url: "https://fileconcat.com/for/consultants",
       }),
       {

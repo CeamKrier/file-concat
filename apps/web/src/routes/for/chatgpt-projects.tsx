@@ -26,6 +26,12 @@ export const Route = createFileRoute("/for/chatgpt-projects")({
         // documenting its own product. Competing for the count there wins
         // neither the click nor the mention.
         //
+        // The noun did change, though. GSC for the 30 days to 2026-08-23 shows this
+        // page drawing 1,178 impressions at position 9.6 for 0.8% CTR, and every
+        // query behind it says "sources" ("chatgpt project sources limit", "how
+        // many sources can you add to a chatgpt project"). The title said "file".
+        // Remedy-first stays; the searcher's word replaces ours.
+        //
         // What that overview does *not* name is anyone who solves the problem
         // it leaves behind. It ends by offering to help "combine your
         // documents" and cites nobody for it, and OpenAI's own FAQ answers "what
@@ -38,9 +44,9 @@ export const Route = createFileRoute("/for/chatgpt-projects")({
         // confident assertion with no way to age honestly. The caps live in the
         // table below the fold, next to their snapshot date and a link to the
         // help centre, and that is the only place on this page they belong.
-        title: "Get past the ChatGPT Projects file limit",
+        title: "Get past the ChatGPT Projects source limit",
         description:
-          "Hit the ChatGPT Projects file limit? Combine a whole folder, even PDFs and Office docs, into one file that takes a single Project slot. Read in your browser, nothing uploaded.",
+          "How many sources a ChatGPT Project holds, and how to fit a whole folder into one slot. PDFs and Office docs included, read in your browser.",
         url: "https://fileconcat.com/for/chatgpt-projects",
       }),
       {
