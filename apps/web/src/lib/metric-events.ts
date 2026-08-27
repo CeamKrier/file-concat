@@ -252,6 +252,27 @@ export const METRIC_EVENTS = [
    * exactly where the defaults failed them.
    */
   "filter_edited",
+  /**
+   * The vendor whose model the cost and context-fit figures are measured
+   * against, as the catalogue id prefix: `openai`, `anthropic`, `google`, ...
+   *
+   * Only a deliberate change, the way `ocr_lang_changed` is. The picker defaults
+   * itself, and counting that would measure the default.
+   *
+   * The vendor, never the model id. The question this answers is a positioning
+   * one - the hero names ChatGPT, Claude and Gemini, and nine `/for` persona
+   * pages are split across those three, so which of them deserves the next block
+   * of work is a vendor question. Model ids would also be high cardinality
+   * against the tally cap, over a catalogue rebuilt from models.dev on every
+   * build. It is the id prefix rather than `providerId`, which names whoever
+   * resells the model cheapest and answers a different question entirely.
+   *
+   * Once per Run per vendor, so flipping back and forth writes one row each way
+   * rather than one per click. Denominator: Visits that reached the result
+   * phase, since the picker only exists in a drawer that only opens after a
+   * bundle.
+   */
+  "model_picked",
 
   // --- not tied to a run ---
 

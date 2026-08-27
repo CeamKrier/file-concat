@@ -300,7 +300,20 @@ export function SettingsDrawer({
                   <ModelSelector
                     models={models}
                     selectedModel={selectedModel}
-                    onSelect={setSelectedModel}
+                    onSelect={(model) => {
+                      // Only a deliberate change is recorded - the default is
+                      // set by an effect that never comes through here, and
+                      // counting it would measure the default.
+                      //
+                      // The catalogue id prefix (`anthropic/claude-...`), not
+                      // `providerId`: the question is which vendor the hero and
+                      // the nine /for pages should aim at, which is who made the
+                      // model rather than who resells it cheapest. Model ids
+                      // would be high cardinality too, against a catalogue that
+                      // refreshes from models.dev on every build.
+                      recordOnce("model_picked", model.uid.split("/")[0]);
+                      setSelectedModel(model);
+                    }}
                     isLoading={isLoading}
                     onRefresh={refresh}
                     lastUpdated={lastUpdated}
