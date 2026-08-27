@@ -19,18 +19,26 @@ export const METRIC_EVENTS = [
   "source_used",
   /**
    * A link import that produced no files: value `bad` (nothing we can classify
-   * as a link), `binary` (a PDF / zip / image URL), `fetch` (the request
-   * itself failed).
+   * as a link), `binary` (a PDF / zip / image URL), `fetch` (the request itself
+   * failed).
    *
-   * Written per Fetch press rather than per Run, deliberately. `bad` and
-   * `binary` are rejected before ingestion opens a Run at all, so there is no
-   * Run to scope them to, and pressing Fetch again against the same rejected
-   * link is the signal rather than fidgeting.
+   * **Two emit sites, two units.** `ImportPanel` disables Fetch for `bad` and
+   * `binary`, so no press exists for them and `runImport` never sees them: they
+   * are counted when the URL box loses focus still holding the refused link,
+   * which is the only moment the flow offers that means "done with this one".
+   * Deduped on the link within a page load, so the unit is one refused link
+   * rather than one blur. The link itself never leaves the browser - it is a Set
+   * key in the panel, and only the kind is recorded.
+   *
+   * `fetch` is per press, from the import's own catch, and skips an abort:
+   * `startOver` cancels the request, and a deliberate cancel is not a failure.
    *
    * **Attempts are `source_used` rows plus the `bad` and `binary` rows here,
-   * never the sum of both counters.** Only those two kinds return before
-   * `source_used` is recorded; `fetch` fires after it inside the same Run, so
-   * adding every row would count those attempts twice.
+   * never the sum of all three.** Only those two kinds happen before
+   * `source_used` is recorded; a failed fetch writes one of each for the one
+   * press, so adding every row would count those attempts twice. Neither of them
+   * carries a Run: `source_used` is written before the first round trip and
+   * `ingestBatch`, which is what opens a Run, never runs when the fetch throws.
    */
   "import_failed",
 

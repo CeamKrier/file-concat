@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Check, Info } from "lucide-react";
 import { SOURCE_METADATA } from "@fileconcat/core";
 
 import { cn } from "~/lib/utils";
+import { track } from "~/lib/metrics";
 import { classifyUrl, type Classification, type ImportTab } from "~/lib/classify-url";
 
 export type ImportState = {
@@ -78,6 +79,29 @@ export function ImportPanel({
   const cap = caption(c);
   const canFetch = c.kind === "repo" || c.kind === "gist" || c.kind === "page";
 
+  /**
+   * A link we refuse, counted when the person gives up on it.
+   *
+   * Not at the press: `canFetch` disables Fetch for exactly these, so no press
+   * exists, `runImport` never sees them, and they write no `source_used`
+   * either - they are absent from the data entirely. Blur is the only moment
+   * this flow offers that means "done with this one", and by then the caption
+   * under the box has already said why it was refused.
+   *
+   * Deduped on the link so moving focus in and out of one paste writes one row,
+   * which makes the unit an attempt rather than a blur. **The link itself never
+   * leaves the browser**: it is a Set key here, and only the refusal kind is
+   * ever recorded.
+   */
+  const counted = useRef(new Set<string>());
+  const countRefusal = () => {
+    if (c.kind !== "bad" && c.kind !== "binary") return;
+    const key = url.trim();
+    if (counted.current.has(key)) return;
+    counted.current.add(key);
+    track("import_failed", c.kind);
+  };
+
   return (
     <div role="region" aria-label="Import from a link" className="text-left">
       <h2 className="font-display text-ink text-[13.5px] font-semibold tracking-[-0.01em]">
@@ -111,6 +135,7 @@ export function ImportPanel({
             spellCheck={false}
             value={url}
             onChange={(e) => onUrlChange(e.target.value)}
+            onBlur={countRefusal}
             placeholder={meta.placeholder}
             aria-label={`${meta.name} link`}
             className="border-border bg-surface-inset text-ink placeholder:text-ink-faint focus-visible:border-border-strong focus-visible:ring-ring rounded-input min-w-0 flex-1 basis-[150px] border px-3 py-2.5 font-mono text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
