@@ -23,6 +23,7 @@ import {
   addToTally,
   currentRun,
   track,
+  trackAmount,
   trackEntrySurface,
   trackTally,
   type Tally,
@@ -425,6 +426,36 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     trackTally("empty_reason", tally);
   }, [phase, includedContents, filter.fileStatuses, ingestion.validations]);
 
+  /**
+   * Files someone moved by hand in the tree, recorded when the drawer closes.
+   *
+   * Deliberately not a mirror of the effect above. That one fires as the result
+   * phase opens, which is before anyone has touched anything, so the same shape
+   * here would read zero every time. Every curation control lives inside the
+   * settings drawer, which makes closing it the end of an editing session and
+   * the only honest Run-scoped boundary the flow offers.
+   *
+   * A reopen writes the increase since the last close rather than the whole
+   * count again, so SUM(n) over a Run is the high-water mark of manual overrides
+   * while the Run count stays "Runs where anyone trimmed at all" - which is the
+   * rate, over Runs carrying a `bundle_size` row. A Run nobody trimmed writes
+   * nothing.
+   */
+  const trimmed = useRef({ run: -1, include: 0, exclude: 0 });
+  const onSettingsOpenChange = (open: boolean) => {
+    setSettingsOpen(open);
+    if (open) return;
+    const run = currentRun();
+    if (run === null) return;
+    if (trimmed.current.run !== run) trimmed.current = { run, include: 0, exclude: 0 };
+    for (const side of ["include", "exclude"] as const) {
+      const delta = filter.manualOverrides[side] - trimmed.current[side];
+      if (delta <= 0) continue;
+      trimmed.current[side] = filter.manualOverrides[side];
+      trackAmount("tree_edit", { value: side, n: delta });
+    }
+  };
+
   // --- flow control ---------------------------------------------------------
   // Runs `run`, showing the processing view driven by the engine's real
   // progress, then reveals the result the moment work resolves — no padding, no
@@ -782,7 +813,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
 
       <SettingsDrawer
         open={settingsOpen}
-        onOpenChange={setSettingsOpen}
+        onOpenChange={onSettingsOpenChange}
         config={config}
         setConfig={setConfig}
         fileStatuses={filter.fileStatuses}

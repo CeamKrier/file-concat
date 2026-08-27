@@ -215,6 +215,43 @@ export const METRIC_EVENTS = [
    * wording — the copy is free to change without renaming a counter value.
    */
   "empty_reason",
+  /**
+   * Files someone moved by hand in the file tree: `n` of them, by which way they
+   * moved - `include` forced back in, `exclude` taken out. The two say opposite
+   * things about the default noise list, so one number for both would say
+   * neither.
+   *
+   * Written when the settings drawer closes, which is where every curation
+   * control lives and so the end of an editing session. A reopen writes the
+   * increase since the last close rather than the whole count again, so
+   * `SUM(n)` over a Run is the high-water mark of overrides while the Run count
+   * is "Runs where anyone trimmed at all". Nothing is written when the tree was
+   * left alone, which makes that Run count, over Runs carrying a `bundle_size`
+   * row, the rate.
+   *
+   * The direct evidence for whether `default-ignore.ts` is right for real
+   * folders. `empty_reason` cannot answer it: that fires only when the bundle
+   * came out completely empty, which is the rare terminal case, while trimming
+   * some files and exporting the rest is the common one.
+   */
+  "tree_edit",
+  /**
+   * Someone changed what the filters do: `ignore` or `include` for a typed
+   * pattern, `preset` for a quick-preset chip. The chip rewrites both lists in
+   * one press and is a different act from typing, so it carries its own value or
+   * the two populations merge into one meaningless number.
+   *
+   * Once per Run per value. These are `onChange` handlers on text boxes and a
+   * naive emit would write a row per character.
+   *
+   * **What was typed is never recorded.** A pattern is user data - the counter
+   * says an edit happened and which control, never its payload.
+   *
+   * Denominator: Runs carrying a `bundle_size` row, same as `tree_edit`. Rarer
+   * than that one and stronger for it: somebody who types a pattern is naming
+   * exactly where the defaults failed them.
+   */
+  "filter_edited",
 
   // --- not tied to a run ---
 

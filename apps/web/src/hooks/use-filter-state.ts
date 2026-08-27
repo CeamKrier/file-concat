@@ -10,6 +10,8 @@ export interface FilterState {
   fileStatuses: FileStatus[];
   includedFileCount: number;
   manualOverrideCount: number;
+  /** The same layer split by direction: forced back `include`, taken out `exclude`. */
+  manualOverrides: { include: number; exclude: number };
   hasFiles: boolean;
   toggleFile: (index: number) => void;
   toggleMany: (indices: number[], shouldInclude: boolean) => void;
@@ -163,11 +165,18 @@ export function useFilterState({
 
   const includedFileCount = fileStatuses.filter((s) => s.included).length;
   const manualOverrideCount = Object.keys(userToggled).length;
+  // Split by direction, because the two say opposite things about the defaults:
+  // an `include` is the noise list having thrown away something wanted, an
+  // `exclude` is it having kept something unwanted. One number for both would
+  // answer neither.
+  const manualOverrides = { include: 0, exclude: 0 };
+  for (const side of Object.values(userToggled)) manualOverrides[side] += 1;
 
   return {
     fileStatuses,
     includedFileCount,
     manualOverrideCount,
+    manualOverrides,
     hasFiles: entries.length > 0,
     toggleFile,
     toggleMany,
