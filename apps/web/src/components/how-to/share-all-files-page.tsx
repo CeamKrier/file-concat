@@ -163,7 +163,7 @@ function Limits() {
 
       <p className="text-ink-faint mx-auto mt-4 max-w-[760px] text-[12.5px] leading-relaxed">
         Figures as of August 2026, and providers change them often. Check the current cap in each
-        provider&rsquo;s help center: <SourceLink href="https://help.openai.com">OpenAI</SourceLink>
+        provider's help center: <SourceLink href="https://help.openai.com">OpenAI</SourceLink>
         , <SourceLink href="https://support.anthropic.com">Anthropic</SourceLink>,{" "}
         <SourceLink href="https://support.google.com/notebooklm">NotebookLM</SourceLink>,{" "}
         <SourceLink href="https://support.google.com/gemini">Gemini</SourceLink>.

@@ -50,9 +50,9 @@ describe("renderYouTubeClipping", () => {
         "",
         "## Transcript",
         "",
-        "**0:00** · Since 2009, I've generated hundreds of millions of visitors.",
+        "**0:00** - Since 2009, I've generated hundreds of millions of visitors.",
         "",
-        "**0:04** · But for the first time in 17 years, I'm questioning everything.",
+        "**0:04** - But for the first time in 17 years, I'm questioning everything.",
         "",
       ].join("\n"),
     );
@@ -87,8 +87,8 @@ describe("renderYouTubeClipping with comments", () => {
   });
 
   it("keeps one comment reading as one block and marks the creator", () => {
-    expect(discussed).toContain("**@viewer** \u00b7 36 likes \u00b7 10 months ago\nLine one.\nLine two.");
-    expect(discussed).toContain("**@Ahrefs** \u00b7 creator \u00b7 4 likes \u00b7 1 year ago\nThanks!");
+    expect(discussed).toContain("**@viewer** - 36 likes - 10 months ago\nLine one.\nLine two.");
+    expect(discussed).toContain("**@Ahrefs** - creator - 4 likes - 1 year ago\nThanks!");
   });
 
   it("leaves the section out entirely when comments are off", () => {
@@ -161,8 +161,8 @@ describe("renderRedditClipping", () => {
         { author: "b", created: "2026-08-19T00:00:00+0000", score: "2", depth: 1, text: "reply" },
       ],
     });
-    expect(md).toContain("**u/a** · 9 points");
-    expect(md).toContain("  **u/b** · 2 points");
+    expect(md).toContain("**u/a** - 9 points");
+    expect(md).toContain("  **u/b** - 2 points");
     // The count it took against the count that exists, so nobody reads 2 of 36
     // as all of them.
     expect(md).toContain("_36 in total, 2 on the page._");
@@ -249,9 +249,9 @@ describe("renderHnClipping", () => {
         { author: "c", created: "2026-08-18T11:00:00.000Z", depth: 2, text: "deeper" },
       ],
     });
-    expect(md).toContain("**a** · 2026-08-18\ntop");
-    expect(md).toContain("  **b** · 2026-08-18\n  reply");
-    expect(md).toContain("    **c** · 2026-08-18\n    deeper");
+    expect(md).toContain("**a** - 2026-08-18\ntop");
+    expect(md).toContain("  **b** - 2026-08-18\n  reply");
+    expect(md).toContain("    **c** - 2026-08-18\n    deeper");
   });
 
   it("states no total, because Algolia returns the whole thread", () => {
@@ -261,7 +261,7 @@ describe("renderHnClipping", () => {
       ...base,
       comments: [{ author: "a", created: "2026-08-18T11:00:00.000Z", depth: 0, text: "x" }],
     });
-    expect(md).toContain("_896 points · 1 comments_");
+    expect(md).toContain("_896 points - 1 comments_");
     expect(md).not.toContain("in total");
   });
 

@@ -40,7 +40,7 @@ export function postSummary(post: HTMLElement) {
   return {
     id: bareId(attr(post, "id")),
     title: attr(post, "post-title") || "untitled",
-    meta: `${attr(post, "score") || "0"} points · ${comments} comment${comments === 1 ? "" : "s"}`,
+    meta: `${attr(post, "score") || "0"} points - ${comments} comment${comments === 1 ? "" : "s"}`,
   };
 }
 

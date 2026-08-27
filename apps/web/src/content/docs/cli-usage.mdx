@@ -43,7 +43,7 @@ flag set. `[path]` defaults to the current directory.
 | `--no-binary`             |       | binary files excluded      | Pass to force-exclude after a config opt-in                                          |
 | `--exclude <patterns...>` | `-e`  |                            | Repeatable; one or more glob patterns                                                |
 | `--config <file>`         | `-c`  |                            | Path to a JSON config file                                                           |
-| `--no-parse`              |       | documents are extracted    | Pass to skip text extraction entirely — PDF/Office, notebooks and transcripts alike  |
+| `--no-parse`              |       | documents are extracted    | Pass to skip text extraction entirely: PDF/Office, notebooks and transcripts alike  |
 | `--expand-archives`       |       | archives left packed       | Unpack zip, tar and gzip archives and include their contents                         |
 | `--line-numbers`          |       |                            | Prefix each line of file content with its line number                                |
 | `--no-gitignore`          |       | `.gitignore` honored       | Pass to ignore the project's `.gitignore` files                                      |
@@ -115,7 +115,7 @@ the run.
 
 ## Notebooks, transcripts and messages (IPYNB, SRT, VTT, EML)
 
-These are already text, so they used to go in whole — which meant
+These are already text, so they used to go in whole, which meant
 base64 PNGs of every plot in a notebook, MIME boundaries and base64
 attachments in a saved message, and a cue index plus a timestamp range
 for every two seconds of a transcript. All three are now rendered
@@ -127,7 +127,7 @@ instead:
   says how much was left behind.
 - **`.srt` / `.vtt`** become the transcript. Indices, timestamps and
   styling go; a line that a rolling caption repeats in the next cue is
-  emitted once. Timestamps are dropped rather than thinned — a
+  emitted once. Timestamps are dropped rather than thinned, a
   transcript is read for what was said.
 - **`.eml`** becomes the correspondence: From, To, Cc, Date, Subject,
   then the body, quoted-printable and MIME-encoded headers decoded, and
@@ -136,7 +136,7 @@ instead:
 
 Same rule as documents: the **leading bytes** decide, so a notebook
 saved as `.json`, a transcript saved as `.txt`, and a message saved with
-no extension at all are recognized. `.msg` — Outlook's own format — is
+no extension at all are recognized. `.msg`, Outlook's own format, is
 not read yet.
 `--no-parse` turns this off along with document extraction and leaves
 the raw file in the bundle.
@@ -154,7 +154,7 @@ file-concat ./repo --expand-archives
 
 Zip, tar, and gzip (including `.tar.gz`) are unpacked; each entry lands
 under a folder named after the archive and faces the same size, binary
-and extraction handling as a loose file. Nesting is one level deep — an
+and extraction handling as a loose file. Nesting is one level deep, an
 archive inside an archive stays packed. `.rar` and `.7z` are recognized
 but cannot be opened yet, and are reported as skipped.
 

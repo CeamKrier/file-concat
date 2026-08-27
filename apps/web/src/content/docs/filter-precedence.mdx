@@ -38,8 +38,8 @@ When a file is ingested, FileConcat checks two things and records the
 result in a sticky `validations` map:
 
 - Is the content binary? Genuine binaries (images, archives, media) are
-  excluded permanently. **Extractable documents** — PDF, Word, Excel,
-  PowerPoint, and OpenDocument files — are the exception: their text is
+  excluded permanently. **Extractable documents** (PDF, Word, Excel,
+  PowerPoint, and OpenDocument files) are the exception: their text is
   pulled out and included as text, right in the browser, instead of the
   file being dropped. Jupyter notebooks, `.srt` / `.vtt` caption tracks
   and saved `.eml` messages take the same path for the opposite reason:

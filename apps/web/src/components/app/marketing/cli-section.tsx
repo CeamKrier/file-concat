@@ -47,7 +47,7 @@ export function CliSection() {
       <div className="min-w-0">
         <span className="rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--neutral-info)/0.3)] bg-[oklch(var(--neutral-info)/0.1)] px-3 py-1 font-mono text-[11px] uppercase tracking-[0.12em] text-[oklch(var(--neutral-info))]">
           <Terminal className="h-3.5 w-3.5" strokeWidth={2} />
-          Separate tool · command line
+          Separate tool, command line
         </span>
 
         <h2
@@ -120,7 +120,7 @@ function TerminalBlock() {
           </code>
         </div>
         <div className="mt-1">
-          <code className="text-ink-faint">→ wrote bundle to stdout · 412 tokens</code>
+          <code className="text-ink-faint">{"-> wrote bundle to stdout, 412 tokens"}</code>
         </div>
       </div>
     </div>

@@ -171,10 +171,10 @@ export default function TryIt({
                   {filesCombined} {filesCombined === 1 ? "file" : "files"} combined
                 </span>
                 <span className="text-ink-faint" aria-hidden="true">
-                  ·
+                  /
                 </span>
                 <span className="text-ink-secondary font-mono text-[13px]">
-                  <span className="text-primary">≈ {tokens.toLocaleString()}</span> tokens
+                  <span className="text-primary">~{tokens.toLocaleString()}</span> tokens
                 </span>
               </div>
               <p className="text-ink-muted mt-1.5 text-[13px] leading-relaxed">

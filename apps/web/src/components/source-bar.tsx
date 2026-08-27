@@ -38,7 +38,7 @@ export function SourceBar({
           </span>
           {manualOverrideCount > 0 && (
             <>
-              <span aria-hidden="true">·</span>
+              <span aria-hidden="true">/</span>
               <span>{manualOverrideCount} manual</span>
             </>
           )}
@@ -85,7 +85,7 @@ export function SourceBar({
         <span> / </span>
         <span className="tabular-nums">{fileCount.toLocaleString()}</span>
         <span> files</span>
-        {manualOverrideCount > 0 && <span> · {manualOverrideCount} manual</span>}
+        {manualOverrideCount > 0 && <span>, {manualOverrideCount} manual</span>}
       </div>
     </div>
   );

@@ -19,7 +19,7 @@ export function LandingHero({ linkImport, ...props }: LandingHeroProps) {
       <div className="flex flex-col items-center text-center">
         <span className="text-go-fg rounded-pill inline-flex items-center gap-2 whitespace-nowrap border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
           <span className="bg-primary h-1.5 w-1.5 rounded-full" />
-          runs in your browser · nothing uploaded
+          runs in your browser, nothing uploaded
         </span>
 
         <h1 className="font-display text-ink mt-6 text-balance text-[clamp(2rem,7vw,2.875rem)] font-bold leading-[1.04] tracking-[-0.025em]">

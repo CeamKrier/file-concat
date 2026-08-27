@@ -116,7 +116,7 @@ function OneSource() {
       </div>
 
       <div className="min-w-0">
-        <MockWindow label="literature-review · sources">
+        <MockWindow label="literature-review, sources">
           <ul className="divide-hairline divide-y font-mono text-[12.5px]">
             <li className="flex items-center gap-3 px-4 py-2.5">
               <span className="text-ink-faint shrink-0">before</span>
@@ -282,12 +282,12 @@ function WorkedExample() {
           <pre className="text-code overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.7]">
             <code>
               {`literature-review/\n`}
-              {`├── papers/\n`}
-              {`│   ├── 2019-survey.pdf\n`}
-              {`│   └── 2023-methods.pdf\n`}
-              {`├── interviews.docx\n`}
-              {`├── field-notes.md\n`}
-              {`└── 80 more files`}
+              {`|-- papers/\n`}
+              {`|   |-- 2019-survey.pdf\n`}
+              {`|   \`-- 2023-methods.pdf\n`}
+              {`|-- interviews.docx\n`}
+              {`|-- field-notes.md\n`}
+              {`\`-- 80 more files`}
             </code>
           </pre>
         </MockWindow>

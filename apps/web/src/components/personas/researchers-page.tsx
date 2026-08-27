@@ -107,11 +107,11 @@ function ContextWindow() {
       </div>
 
       <div className="min-w-0">
-        <MockWindow label="attention-survey · token budget">
+        <MockWindow label="attention-survey, token budget">
           <div className="px-4 py-4 font-mono text-[12.5px]">
             <div className="flex items-baseline justify-between">
               <span className="text-ink-secondary">6 papers, notes, data</span>
-              <span className="text-primary">≈ 128,000 tokens</span>
+              <span className="text-primary">~128,000 tokens</span>
             </div>
             <div className="bg-surface-alt mt-3 h-2.5 overflow-hidden rounded-full">
               <div className="bg-primary h-full rounded-full" style={{ width: "64%" }} />
@@ -173,8 +173,8 @@ function Workflow() {
 
 const KINDS = [
   { label: "Papers", exts: "PDF", note: "born-digital preprints and journal PDFs" },
-  { label: "Notes", exts: "MD · TXT", note: "your reading notes and outlines" },
-  { label: "Data", exts: "CSV · JSON · XLSX", note: "results tables and small datasets" },
+  { label: "Notes", exts: "MD, TXT", note: "your reading notes and outlines" },
+  { label: "Data", exts: "CSV, JSON, XLSX", note: "results tables and small datasets" },
 ];
 
 function Inputs() {
@@ -240,12 +240,12 @@ function WorkedExample() {
           <pre className="text-code overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.7]">
             <code>
               {`attention-survey/\n`}
-              {`├── papers/\n`}
-              {`│   ├── vaswani-2017.pdf\n`}
-              {`│   ├── devlin-2019.pdf\n`}
-              {`│   └── brown-2020.pdf\n`}
-              {`├── notes.md\n`}
-              {`└── benchmarks.csv`}
+              {`|-- papers/\n`}
+              {`|   |-- vaswani-2017.pdf\n`}
+              {`|   |-- devlin-2019.pdf\n`}
+              {`|   \`-- brown-2020.pdf\n`}
+              {`|-- notes.md\n`}
+              {`\`-- benchmarks.csv`}
             </code>
           </pre>
         </MockWindow>
@@ -280,7 +280,7 @@ function WorkedExample() {
 function TokenChip({ value }: { value: string }) {
   return (
     <span className="font-mono text-[11px]">
-      <span className="text-primary">≈ {value}</span>
+      <span className="text-primary">~{value}</span>
       <span className="text-ink-faint"> tokens</span>
     </span>
   );

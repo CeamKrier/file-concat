@@ -109,8 +109,8 @@ export function TreeNodeRow(props: TreeNodeRowProps): JSX.Element {
               ? "cursor-default"
               : "hover:bg-[oklch(var(--surface-inset))] disabled:opacity-50",
           )}
-          aria-label={isBinary ? "Binary file — can't be included" : `Toggle inclusion: ${inclusionState}`}
-          title={isBinary ? "Not text — nothing to include" : undefined}
+          aria-label={isBinary ? "Binary file, can't be included" : `Toggle inclusion: ${inclusionState}`}
+          title={isBinary ? "Not text, nothing to include" : undefined}
         >
           {isBinary ? <Lock className="text-ink-faint h-4 w-4" /> : ICON_BY_STATE[inclusionState]}
         </button>

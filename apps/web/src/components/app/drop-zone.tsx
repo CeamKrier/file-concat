@@ -30,7 +30,7 @@ export function DropZone({
   onDrop,
   onFileInput,
   title = "Drag a folder or files here",
-  hint = "…and your file is ready a second later.",
+  hint = "...and your file is ready a second later.",
 }: DropZoneProps) {
   const filesInput = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);

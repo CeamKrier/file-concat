@@ -16,7 +16,7 @@ function TryItFallback() {
   return (
     <section className="my-9" aria-hidden="true">
       <div className="rounded-panel border-border-strong bg-surface-alt flex min-h-[228px] items-center justify-center border-2 border-dashed px-6 py-12 text-center">
-        <p className="text-ink-faint text-sm">Loading the tool…</p>
+        <p className="text-ink-faint text-sm">Loading the tool...</p>
       </div>
     </section>
   );

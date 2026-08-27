@@ -116,7 +116,7 @@ function OneSlot() {
       </div>
 
       <div className="min-w-0">
-        <MockWindow label="brand-assistant · knowledge">
+        <MockWindow label="brand-assistant, knowledge">
           <ul className="divide-hairline divide-y font-mono text-[12.5px]">
             <li className="flex items-center gap-3 px-4 py-2.5">
               <span className="text-ink-faint shrink-0">before</span>
@@ -277,12 +277,12 @@ function WorkedExample() {
           <pre className="text-code overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.7]">
             <code>
               {`brand-assistant/\n`}
-              {`├── guidelines/\n`}
-              {`│   ├── voice.pdf\n`}
-              {`│   └── logo-usage.pdf\n`}
-              {`├── product-facts.docx\n`}
-              {`├── faqs.md\n`}
-              {`└── 14 more files`}
+              {`|-- guidelines/\n`}
+              {`|   |-- voice.pdf\n`}
+              {`|   \`-- logo-usage.pdf\n`}
+              {`|-- product-facts.docx\n`}
+              {`|-- faqs.md\n`}
+              {`\`-- 14 more files`}
             </code>
           </pre>
         </MockWindow>

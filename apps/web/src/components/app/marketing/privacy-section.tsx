@@ -24,22 +24,22 @@ export function PrivacySection() {
           id="private-by-design"
           className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          We don&rsquo;t upload your files.
+          We don't upload your files.
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[46ch] text-[15px] leading-relaxed">
-          Drag a folder in and it&rsquo;s read, filtered, and combined right here in your browser.
-          There&rsquo;s no upload step to combine them, and no account to create.
+          Drag a folder in and it's read, filtered, and combined right here in your browser.
+          There's no upload step to combine them, and no account to create.
         </p>
         <p className="text-go-fg mt-5 inline-flex items-center gap-2 font-mono text-[12.5px]">
           <ShieldCheck className="text-primary h-4 w-4 shrink-0" strokeWidth={2} />
-          Read and combined in your browser · no upload step
+          Read and combined in your browser, no upload step
         </p>
         <div>
           <Link
             to="/privacy"
             className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background mt-4 inline-flex items-center gap-1 rounded-sm text-[13px] underline decoration-[oklch(var(--border-strong))] underline-offset-[3px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
           >
-            What we collect, and what we don&rsquo;t
+            What we collect, and what we don't
             <ArrowUpRight className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
           </Link>
         </div>

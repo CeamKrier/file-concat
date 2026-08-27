@@ -195,7 +195,7 @@ export function ResultEmpty({
               className="border-border bg-surface-alt text-ink-muted rounded-chip border px-2 py-1 font-mono text-[11px]"
             >
               {ext}
-              {count > 1 && <span className="text-ink-faint"> ·{count}</span>}
+              {count > 1 && <span className="text-ink-faint"> x{count}</span>}
             </span>
           ))}
           {extraExts > 0 && (
@@ -269,7 +269,7 @@ function ReadingProgress({
             result landing and the pass ending. */}
         <span>
           Reading
-          {progress ? ` ${Math.min(progress.done + 1, progress.total)} of ${progress.total}` : ""}…
+          {progress ? ` ${Math.min(progress.done + 1, progress.total)} of ${progress.total}` : ""}...
         </span>
       </div>
       {onStop && (

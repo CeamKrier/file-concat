@@ -89,7 +89,7 @@ export function PrivacyPage() {
         <header className="max-w-[640px]">
           <p className="text-ink-muted font-mono text-[12px]">Privacy</p>
           <h1 className="font-display text-ink mt-3 text-balance text-[clamp(1.9rem,4.5vw,2.6rem)] font-bold leading-[1.08] tracking-[-0.025em]">
-            What leaves your device, and what doesn&rsquo;t.
+            What leaves your device, and what doesn't.
           </h1>
           <p className="text-ink-secondary mt-5 text-[16px] leading-relaxed">
             Most tools that read a document upload it to a server first. FileConcat does that work in
@@ -111,7 +111,7 @@ export function PrivacyPage() {
           className="mt-14 max-w-[640px] border-t border-[oklch(var(--hairline))] pt-12"
         >
           <h2 id="inventory" className="sr-only">
-            What is and isn&rsquo;t sent
+            What is and isn't sent
           </h2>
 
           <div className="min-w-0">
@@ -196,7 +196,7 @@ export function PrivacyPage() {
             Check it yourself.
           </h2>
           <p className="text-ink-secondary mt-4 text-[15px] leading-relaxed">
-            Open your browser&rsquo;s network panel and drop a folder. Your documents are never
+            Open your browser's network panel and drop a folder. Your documents are never
             uploaded. The requests you will see are the analytics beacon, the repository fetch if you
             imported one, and the recognition download if a scanned page was in the drop. Never your
             files. Any content blocker stops the analytics, and the whole app is open source, so you
@@ -227,7 +227,7 @@ export function PrivacyPage() {
             on X.
           </p>
           <p className="font-mono text-[11.5px]">
-            Last updated {LAST_UPDATED} ·{" "}
+            Last updated {LAST_UPDATED} /{" "}
             <Link
               to="/"
               className="hover:text-ink underline decoration-[oklch(var(--border-strong))] underline-offset-[3px] transition-colors duration-150"

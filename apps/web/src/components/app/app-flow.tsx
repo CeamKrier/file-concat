@@ -483,7 +483,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       return {
         path: d.path,
         name: d.path.split("/").pop() ?? d.path,
-        text: text.length > SAMPLE_LIMIT ? `${text.slice(0, SAMPLE_LIMIT)}\n…` : text,
+        text: text.length > SAMPLE_LIMIT ? `${text.slice(0, SAMPLE_LIMIT)}\n...` : text,
         tried: ingestion.validations[d.path]?.recognitionTried === true,
         language: language ? ocrLanguageName(language) : null,
       };

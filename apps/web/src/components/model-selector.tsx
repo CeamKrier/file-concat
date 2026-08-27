@@ -220,13 +220,13 @@ export function ModelSelector({
             via {model.providerName}
           </span>
           <span aria-hidden="true" className="shrink-0">
-            ·
+            /
           </span>
           <span className="shrink-0 whitespace-nowrap">
             {formatTokenLimit(model.contextLimit)} ctx
           </span>
           <span aria-hidden="true" className="shrink-0">
-            ·
+            /
           </span>
           <span className="shrink-0 whitespace-nowrap">
             {formatCost(model.inputCost, model.outputCost)}/1M in

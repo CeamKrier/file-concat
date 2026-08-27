@@ -46,7 +46,7 @@ function BlogIndexPage() {
                   className="text-ink-faint shrink-0 font-mono text-[12px] tabular-nums sm:w-[104px] sm:pt-1"
                 >
                   {formatPostDate(post.frontmatter.date)}
-                  {post.frontmatter.draft ? " · draft" : ""}
+                  {post.frontmatter.draft ? ", draft" : ""}
                 </time>
                 <div className="min-w-0">
                   <h2 className="font-display text-ink group-hover:text-primary text-[19px] font-semibold leading-snug tracking-[-0.02em] transition-colors duration-150">

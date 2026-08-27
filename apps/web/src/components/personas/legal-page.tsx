@@ -97,7 +97,7 @@ function Confidentiality() {
           id="legal-confidential"
           className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          We don&rsquo;t upload your case file.
+          We don't upload your case file.
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
           Most tools that read a document upload it to a server first. FileConcat does the reading in
@@ -111,14 +111,14 @@ function Confidentiality() {
       </div>
 
       <div className="min-w-0">
-        <MockWindow label="smith-v-acme · handled locally">
+        <MockWindow label="smith-v-acme, handled locally">
           <ul className="divide-hairline divide-y font-mono text-[12.5px]">
             <li className="flex items-center gap-3 px-4 py-2.5">
-              <span className="text-primary shrink-0">✓</span>
+              <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
               <span className="text-ink-secondary min-w-0 flex-1">14 files read in this tab</span>
             </li>
             <li className="flex items-center gap-3 px-4 py-2.5">
-              <span className="text-primary shrink-0">✓</span>
+              <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
               <span className="text-ink-secondary min-w-0 flex-1">
                 text pulled from 9 PDFs and 3 Word files
               </span>
@@ -220,7 +220,7 @@ function FileTypes() {
           <InfoCard tone="info" icon={ScanLine} title="Scanned pages need OCR, which is not here yet">
             <p>
               A filing that is a photo of paper, rather than a born-digital PDF, has no text to pull.
-              It comes through flagged as &ldquo;no text found&rdquo; so you can send it for OCR
+              It comes through flagged as "no text found" so you can send it for OCR
               first. It is never dropped without telling you.
             </p>
           </InfoCard>
@@ -251,12 +251,12 @@ function WorkedExample() {
           <pre className="text-code overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.7]">
             <code>
               {`smith-v-acme/\n`}
-              {`├── complaint.pdf\n`}
-              {`├── answer.pdf\n`}
-              {`├── exhibits/\n`}
-              {`│   ├── exhibit-a.docx\n`}
-              {`│   └── damages.xlsx\n`}
-              {`└── ruling.pdf`}
+              {`|-- complaint.pdf\n`}
+              {`|-- answer.pdf\n`}
+              {`|-- exhibits/\n`}
+              {`|   |-- exhibit-a.docx\n`}
+              {`|   \`-- damages.xlsx\n`}
+              {`\`-- ruling.pdf`}
             </code>
           </pre>
         </MockWindow>
@@ -291,7 +291,7 @@ function WorkedExample() {
 function TokenChip({ value }: { value: string }) {
   return (
     <span className="font-mono text-[11px]">
-      <span className="text-primary">≈ {value}</span>
+      <span className="text-primary">~{value}</span>
       <span className="text-ink-faint"> tokens</span>
     </span>
   );
