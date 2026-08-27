@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { DEFAULT_IGNORE_STRING } from "@fileconcat/core";
@@ -8,6 +8,7 @@ import FileTree from "~/components/file-tree";
 import { CostEstimate } from "~/components/cost-estimate";
 import { ModelSelector } from "~/components/model-selector";
 import type { ModelPicker } from "~/hooks/use-selected-model";
+import { currentRun, track, type MetricEvent } from "~/lib/metrics";
 import { cn } from "~/lib/utils";
 
 import {
@@ -105,6 +106,25 @@ function presetGroups(): PresetGroup[] {
   ];
 }
 
+/**
+ * Records a deliberate drawer action once per Run per value.
+ *
+ * Every control in here is an `onChange` on a text box or a picker, so a naive
+ * emit would write a row per keystroke and the row count would measure typing
+ * speed rather than what happened (ADR-0014). Keyed on the Run, so the next drop
+ * starts counting again.
+ */
+function useRecordOncePerRun() {
+  const seen = useRef(new Map<string, number | null>());
+  return useCallback((name: MetricEvent, value: string) => {
+    const key = `${name}/${value}`;
+    const run = currentRun();
+    if (seen.current.get(key) === run) return;
+    seen.current.set(key, run);
+    track(name, value);
+  }, []);
+}
+
 type SettingsDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -144,6 +164,9 @@ export function SettingsDrawer({
   // Pattern textareas are a developer tool — collapsed by default so a regular
   // user only meets the file tree. Programmers open this when they want globs.
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  // Someone typing a pattern is naming exactly where the defaults failed them.
+  // Only that it happened, and which control: a pattern is user data.
+  const recordOnce = useRecordOncePerRun();
 
   // Arriving from the result's "x% of <model>" line, the drawer should already
   // be showing the picker when it finishes sliding in. Instant, not smooth: the
@@ -187,12 +210,16 @@ export function SettingsDrawer({
                           <button
                             key={preset.name}
                             type="button"
-                            onClick={() =>
+                            onClick={() => {
+                              // Its own value. A chip rewrites both lists in one
+                              // press, which is a different act from typing, and
+                              // merging the two makes one meaningless population.
+                              recordOnce("filter_edited", "preset");
                               setConfig({
                                 includePatterns: preset.include,
                                 ignorePatterns: preset.ignore,
-                              })
-                            }
+                              });
+                            }}
                             className={cn(
                               "rounded-chip focus-visible:ring-ring focus-visible:ring-offset-surface-alt border px-2.5 py-1 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
                               active
@@ -243,7 +270,10 @@ export function SettingsDrawer({
                   >
                     <PatternArea
                       value={config.ignorePatterns}
-                      onChange={(v) => setConfig({ ignorePatterns: v })}
+                      onChange={(v) => {
+                        recordOnce("filter_edited", "ignore");
+                        setConfig({ ignorePatterns: v });
+                      }}
                       rows={3}
                       placeholder=".git, node_modules, dist, *.lock"
                     />
@@ -252,7 +282,10 @@ export function SettingsDrawer({
                   <Section label="Only include" hint="Empty = everything readable.">
                     <PatternArea
                       value={config.includePatterns}
-                      onChange={(v) => setConfig({ includePatterns: v })}
+                      onChange={(v) => {
+                        recordOnce("filter_edited", "include");
+                        setConfig({ includePatterns: v });
+                      }}
                       rows={2}
                       placeholder="src/**/*, **/*.md"
                     />
@@ -267,7 +300,20 @@ export function SettingsDrawer({
                   <ModelSelector
                     models={models}
                     selectedModel={selectedModel}
-                    onSelect={setSelectedModel}
+                    onSelect={(model) => {
+                      // Only a deliberate change is recorded - the default is
+                      // set by an effect that never comes through here, and
+                      // counting it would measure the default.
+                      //
+                      // The catalogue id prefix (`anthropic/claude-...`), not
+                      // `providerId`: the question is which vendor the hero and
+                      // the nine /for pages should aim at, which is who made the
+                      // model rather than who resells it cheapest. Model ids
+                      // would be high cardinality too, against a catalogue that
+                      // refreshes from models.dev on every build.
+                      recordOnce("model_picked", model.uid.split("/")[0]);
+                      setSelectedModel(model);
+                    }}
                     isLoading={isLoading}
                     onRefresh={refresh}
                     lastUpdated={lastUpdated}
