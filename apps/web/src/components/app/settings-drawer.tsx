@@ -210,7 +210,7 @@ export function SettingsDrawer({
               </div>
             </Section>
 
-            <Section label={`Files · ${includedFileCount} in`}>
+            <Section label={`Files, ${includedFileCount} in`}>
               <div className="border-border bg-surface rounded-card max-h-[300px] overflow-y-auto border p-1.5">
                 <FileTree
                   fileStatuses={fileStatuses}
@@ -233,7 +233,7 @@ export function SettingsDrawer({
                 ) : (
                   <ChevronRight className="h-3.5 w-3.5" />
                 )}
-                Advanced · ignore &amp; include patterns
+                Advanced, ignore &amp; include patterns
               </button>
               {advancedOpen && (
                 <div className="mt-3 flex flex-col gap-4">

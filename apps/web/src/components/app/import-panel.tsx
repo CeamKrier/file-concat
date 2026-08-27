@@ -1,12 +1,11 @@
 import { useMemo } from "react";
-import { ArrowRight, Check, Info, X } from "lucide-react";
+import { Check, Info } from "lucide-react";
 import { SOURCE_METADATA } from "@fileconcat/core";
 
 import { cn } from "~/lib/utils";
 import { classifyUrl, type Classification, type ImportTab } from "~/lib/classify-url";
-import { SegmentedControl } from "./segmented-control";
 
-type ImportPanelProps = {
+export type ImportState = {
   tab: ImportTab;
   onTabChange: (tab: ImportTab) => void;
   url: string;
@@ -14,18 +13,18 @@ type ImportPanelProps = {
   error: string | null;
   onFetch: () => void;
   isFetching: boolean;
-  onClose: () => void;
 };
 
-const TABS: { value: ImportTab; label: string }[] = [
-  { value: "github", label: "GitHub" },
-  { value: "gitlab", label: "GitLab" },
-  { value: "bitbucket", label: "Bitbucket" },
-  { value: "gist", label: "Gist" },
-  { value: "url", label: "URL" },
+/** Select options, lowercase because they are machine values, not brand names. */
+const HOSTS: { value: ImportTab; label: string }[] = [
+  { value: "github", label: "github" },
+  { value: "gitlab", label: "gitlab" },
+  { value: "bitbucket", label: "bitbucket" },
+  { value: "gist", label: "gist" },
+  { value: "url", label: "url" },
 ];
 
-/** Live caption under the input — what the link actually is, never a dead end. */
+/** Live caption under the input: what the link actually is, never a dead end. */
 function caption(c: Classification): { text: string; tone: "go" | "info" } | null {
   switch (c.kind) {
     case "repo":
@@ -44,10 +43,26 @@ function caption(c: Classification): { text: string; tone: "go" | "info" } | nul
 }
 
 /**
- * Progressive-disclosure import surface. Source tabs steer the placeholder and
- * examples; classification is URL-driven, so a link pasted under any tab still
- * resolves to what it really is. Fetch lights up green only when fetchable;
- * failures land as a friendly amber note, never a red error.
+ * The link lane of the home entry surface, under the drop target and the `or`
+ * rule. `entry-surface.tsx` owns the frame; this owns the field.
+ *
+ * It used to hide behind a "Got a link instead?" text link below the feature
+ * row, and the counters said what that cost: `source_used` recorded 4 Visits
+ * using a remote source in the 30 days to 2026-08-27, against 438 that dropped
+ * files. Progressive disclosure is right for a rare escape hatch and wrong for
+ * one of two ways in, so the extra click is gone rather than relocated.
+ *
+ * Home only, deliberately. The nine `/for` pages and the `/how-to` hub each
+ * argue one audience into one workflow, and a repo field under a hero about a
+ * folder of case files is clutter that page has to carry for nobody. Remote
+ * sources get their own pages instead of a row bolted onto every other one.
+ *
+ * The host is a select rather than the five-tab strip it replaced, because the
+ * choice is smaller than the strip implied: classification is host-driven (see
+ * `classifyUrl`), so a full link resolves to what it really is under any
+ * value here. All the select decides is where a bare `owner/repo` lands, plus
+ * which placeholder and examples to show. Five tabs spent a full row, and an
+ * overflowing one on a phone, advertising a decision that mostly does nothing.
  */
 export function ImportPanel({
   tab,
@@ -57,56 +72,38 @@ export function ImportPanel({
   error,
   onFetch,
   isFetching,
-  onClose,
-}: ImportPanelProps) {
+}: ImportState) {
   const meta = SOURCE_METADATA[tab];
   const c = useMemo(() => classifyUrl(url, tab), [url, tab]);
   const cap = caption(c);
   const canFetch = c.kind === "repo" || c.kind === "gist" || c.kind === "page";
 
   return (
-    <div
-      role="region"
-      aria-label="Import from a link"
-      className="border-border bg-surface-alt rounded-panel animate-fade-up border p-4 text-left motion-reduce:animate-none sm:p-5"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="font-display text-ink text-[15px] font-semibold tracking-[-0.01em]">
-            Paste a link to fetch and combine
-          </h2>
-          <p className="text-ink-muted mt-0.5 text-[13px]">
-            A public repo, a Gist, or a page. Nothing gets stored.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close import"
-          className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-surface-alt -mr-1 -mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      <div className="mt-4 overflow-x-auto">
-        <SegmentedControl
-          ariaLabel="Import source"
-          size="sm"
-          value={tab}
-          onChange={onTabChange}
-          options={TABS}
-        />
-      </div>
+    <div role="region" aria-label="Import from a link" className="text-left">
+      <h2 className="font-display text-ink text-[13.5px] font-semibold tracking-[-0.01em]">
+        Paste a public link
+      </h2>
 
       <form
-        className="mt-3"
+        className="mt-2.5"
         onSubmit={(e) => {
           e.preventDefault();
           if (canFetch && !isFetching) onFetch();
         }}
       >
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={tab}
+            onChange={(e) => onTabChange(e.target.value as ImportTab)}
+            aria-label="Host for a bare owner/repo"
+            className="border-border-strong bg-secondary text-ink-secondary rounded-input focus-visible:ring-ring flex-none cursor-pointer border px-2 py-2.5 font-mono text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+          >
+            {HOSTS.map((h) => (
+              <option key={h.value} value={h.value}>
+                {h.label}
+              </option>
+            ))}
+          </select>
           <input
             type="text"
             inputMode="url"
@@ -116,19 +113,19 @@ export function ImportPanel({
             onChange={(e) => onUrlChange(e.target.value)}
             placeholder={meta.placeholder}
             aria-label={`${meta.name} link`}
-            className="border-border bg-surface-inset text-ink placeholder:text-ink-faint focus-visible:border-border-strong focus-visible:ring-ring rounded-input min-w-0 flex-1 border px-3 py-2.5 font-mono text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+            className="border-border bg-surface-inset text-ink placeholder:text-ink-faint focus-visible:border-border-strong focus-visible:ring-ring rounded-input min-w-0 flex-1 basis-[150px] border px-3 py-2.5 font-mono text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
           />
           <button
             type="submit"
             disabled={!canFetch || isFetching}
             className={cn(
-              "rounded-input focus-visible:ring-ring focus-visible:ring-offset-surface-alt inline-flex shrink-0 items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold transition-[filter,background-color,color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+              "rounded-input focus-visible:ring-ring focus-visible:ring-offset-surface-alt inline-flex flex-1 items-center sm:flex-none justify-center gap-2 px-5 py-2.5 text-sm font-semibold transition-[filter,background-color,color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
               canFetch && !isFetching
                 ? "bg-primary text-primary-foreground hover:brightness-110"
                 : "bg-surface-inset text-ink-faint border-border cursor-not-allowed border",
             )}
           >
-            {isFetching ? "Fetching…" : "Fetch"}
+            {isFetching ? "Fetching..." : "Fetch"}
           </button>
         </div>
 
@@ -140,17 +137,27 @@ export function ImportPanel({
             )}
           >
             {cap.tone === "go" ? (
-              <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+              <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
             ) : (
-              <Info className="h-3.5 w-3.5" strokeWidth={2.5} />
+              <Info className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
             )}
             {cap.text}
           </p>
         )}
       </form>
 
-      <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <span className="text-ink-faint mr-0.5 font-mono text-[11px] uppercase tracking-[0.12em]">
+      {/* Under the button that produced it, above the examples that are the way
+          out of it. A failed fetch is about the link in the field, so it reads
+          before the suggestions for a different one. */}
+      {error && (
+        <div className="rounded-card mt-2.5 flex items-start gap-2.5 border border-[oklch(var(--info)/0.42)] bg-[oklch(var(--info)/0.07)] p-3">
+          <Info className="text-info mt-0.5 h-4 w-4 shrink-0" strokeWidth={2.2} />
+          <p className="text-ink-secondary text-[13px] leading-relaxed">{error}</p>
+        </div>
+      )}
+
+      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+        <span className="text-ink-faint mr-0.5 font-mono text-[10.5px] uppercase tracking-[0.12em]">
           Try
         </span>
         {meta.examples.map((example) => (
@@ -164,27 +171,6 @@ export function ImportPanel({
           </button>
         ))}
       </div>
-
-      {error && (
-        <div className="rounded-card mt-4 flex items-start gap-3 border border-[oklch(var(--info)/0.3)] bg-[oklch(var(--info)/0.07)] p-3">
-          <Info className="text-info mt-0.5 h-[18px] w-[18px] shrink-0" strokeWidth={2} />
-          <p className="text-ink-secondary text-[13px] leading-relaxed">{error}</p>
-        </div>
-      )}
     </div>
-  );
-}
-
-/** The collapsed entry point that reveals the panel. */
-export function ImportTrigger({ onOpen }: { onOpen: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background group rounded-sm text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-    >
-      Got a link instead? Import from a repo, Gist or URL{" "}
-      <ArrowRight className="inline h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
-    </button>
   );
 }

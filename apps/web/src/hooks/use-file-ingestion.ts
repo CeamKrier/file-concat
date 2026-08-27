@@ -824,7 +824,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       tagSource(sourceType);
       // Immediate feedback: the spinner shows a stage before the first network
       // round-trip resolves, so a slow connect never reads as "frozen".
-      setProgress({ phase: "fetching", done: 0, total: 0, note: "Connecting…" });
+      setProgress({ phase: "fetching", done: 0, total: 0, note: "Connecting..." });
       try {
         const adapter = defaultSourceRegistry.getByType(sourceType);
         if (!adapter) throw new Error("Unknown source type");
@@ -945,7 +945,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setProcessingStatus("Scanning files...");
       // Walking a large dropped folder can take a beat before the read loop
       // starts reporting counts — show the stage so it isn't a silent spinner.
-      setProgress({ phase: "reading", done: 0, total: 0, note: "Scanning files…" });
+      setProgress({ phase: "reading", done: 0, total: 0, note: "Scanning files..." });
       tagSource("drop");
 
       try {

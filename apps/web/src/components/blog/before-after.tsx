@@ -55,7 +55,7 @@ export function After(props: { label: string; tokens?: string; children?: ReactN
 function TokenChip({ value }: { value: string }) {
   return (
     <span className="font-mono text-[11px]">
-      <span className="text-primary">≈ {value}</span>
+      <span className="text-primary">~{value}</span>
       <span className="text-ink-faint"> tokens</span>
     </span>
   );

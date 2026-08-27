@@ -101,7 +101,7 @@ function Confidentiality() {
           id="hr-confidential"
           className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          Your people&rsquo;s data isn&rsquo;t uploaded.
+          Your people's data isn't uploaded.
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
           HR files are full of personal data, and most tools that read a document upload it to a
@@ -115,14 +115,14 @@ function Confidentiality() {
       </div>
 
       <div className="min-w-0">
-        <MockWindow label="q3-hiring · handled locally">
+        <MockWindow label="q3-hiring, handled locally">
           <ul className="divide-hairline divide-y font-mono text-[12.5px]">
             <li className="flex items-center gap-3 px-4 py-2.5">
-              <span className="text-primary shrink-0">✓</span>
+              <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
               <span className="text-ink-secondary min-w-0 flex-1">28 CVs read in this tab</span>
             </li>
             <li className="flex items-center gap-3 px-4 py-2.5">
-              <span className="text-primary shrink-0">✓</span>
+              <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
               <span className="text-ink-secondary min-w-0 flex-1">
                 text pulled from PDFs and Word files
               </span>
@@ -245,12 +245,12 @@ function WorkedExample() {
           <pre className="text-code overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.7]">
             <code>
               {`people-handbook/\n`}
-              {`├── policies/\n`}
-              {`│   ├── leave.pdf\n`}
-              {`│   └── remote-work.pdf\n`}
-              {`├── handbook.docx\n`}
-              {`├── code-of-conduct.pdf\n`}
-              {`└── forms/`}
+              {`|-- policies/\n`}
+              {`|   |-- leave.pdf\n`}
+              {`|   \`-- remote-work.pdf\n`}
+              {`|-- handbook.docx\n`}
+              {`|-- code-of-conduct.pdf\n`}
+              {`\`-- forms/`}
             </code>
           </pre>
         </MockWindow>
@@ -285,7 +285,7 @@ function WorkedExample() {
 function TokenChip({ value }: { value: string }) {
   return (
     <span className="font-mono text-[11px]">
-      <span className="text-primary">≈ {value}</span>
+      <span className="text-primary">~{value}</span>
       <span className="text-ink-faint"> tokens</span>
     </span>
   );

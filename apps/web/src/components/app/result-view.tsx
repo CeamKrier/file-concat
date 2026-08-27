@@ -132,7 +132,7 @@ export function ResultView({
   // native file picker with a label we control.
   const addInput = useRef<HTMLInputElement>(null);
   const truncated = previewText.length > PREVIEW_LIMIT;
-  const preview = truncated ? previewText.slice(0, PREVIEW_LIMIT) + "\n…" : previewText;
+  const preview = truncated ? previewText.slice(0, PREVIEW_LIMIT) + "\n..." : previewText;
 
   return (
     <section className="animate-fade-up mx-auto w-full max-w-[720px] px-4 pt-12 motion-reduce:animate-none">
@@ -144,7 +144,7 @@ export function ResultView({
           Your file&apos;s ready
         </h2>
         <p className="text-ink-muted mt-2 font-mono text-[13px]">
-          <span className="text-ink-secondary">{sourceLabel}</span> → one document
+          <span className="text-ink-secondary">{sourceLabel}</span> {"->"} one document
         </p>
         {note && (
           <span className="text-go-fg rounded-pill mt-3 inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 text-[12px]">
@@ -275,7 +275,7 @@ export function ResultView({
           className="bg-secondary text-ink border-border-strong rounded-input focus-visible:ring-ring focus-visible:ring-offset-background hover:bg-accent inline-flex items-center justify-center gap-2 border px-5 py-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60"
         >
           <Download className="h-4 w-4" />
-          {isGenerating ? "Preparing…" : "Download"}
+          {isGenerating ? "Preparing..." : "Download"}
         </button>
       </div>
 
@@ -343,7 +343,7 @@ export function ResultView({
           <h3 className="text-ink-secondary text-sm font-medium">What your AI receives</h3>
           {truncated && (
             <span className="text-ink-faint font-mono text-[11px]">
-              preview · first {fmt.format(PREVIEW_LIMIT)} chars
+              preview, first {fmt.format(PREVIEW_LIMIT)} chars
             </span>
           )}
         </div>
@@ -409,7 +409,7 @@ function fitHint(
   if (!weight.fit) return null;
   const { level, ratio, modelName } = weight.fit;
   if (level === "over") {
-    return { text: `${ratio.toFixed(1)}× ${modelName}`, tone: "over", onClick };
+    return { text: `${ratio.toFixed(1)}x ${modelName}`, tone: "over", onClick };
   }
   // A real bundle that rounds to zero is not zero, and "0%" reads as a broken
   // readout rather than a small one.
@@ -450,7 +450,7 @@ function BundleWeightNote({ weight }: { weight: BundleWeight }) {
       <InfoCard tone={over ? "stop" : "info"} icon={Weight} title={title}>
         {over && weight.fit && (
           <p>
-            About {weight.fit.ratio.toFixed(1)}&times; the {fmt.format(weight.fit.contextLimit)}{" "}
+            About {weight.fit.ratio.toFixed(1)}x the {fmt.format(weight.fit.contextLimit)}{" "}
             tokens it can hold at once. Hand it over as a file rather than a paste, pick a model
             with a bigger window, or leave some files out.
           </p>
@@ -534,7 +534,7 @@ function ScannedDocuments({
       <ReadingCard
         tone="info"
         icon={ScanText}
-        title={`Reading ${progress ? `${Math.min(progress.done + 1, running)} of ${running}` : running}…`}
+        title={`Reading ${progress ? `${Math.min(progress.done + 1, running)} of ${running}` : running}...`}
         cta="Check the reading"
         onCheck={onCheck}
         busy
@@ -628,7 +628,7 @@ function RecognisableImages({
       <ReadingCard
         tone="info"
         icon={ScanText}
-        title={`Reading ${progress ? `${Math.min(progress.done + 1, running)} of ${running}` : running}…`}
+        title={`Reading ${progress ? `${Math.min(progress.done + 1, running)} of ${running}` : running}...`}
         cta="Check the reading"
         onCheck={onCheck}
         busy
@@ -760,7 +760,7 @@ function BundleNotes({
       >
         <Info className="text-ink-faint h-4 w-4 shrink-0" strokeWidth={2} />
         <span className="text-ink-secondary min-w-0 flex-1 truncate text-[13px]">
-          {segments.join(" · ")}
+          {segments.join(" / ")}
         </span>
         <span className="text-ink-faint inline-flex shrink-0 items-center gap-1 font-mono text-[11px] uppercase tracking-[0.08em]">
           {open ? "Hide" : "Details"}
@@ -786,7 +786,7 @@ function BundleNotes({
               title={`Text extracted from ${extractedFiles.length} ${extractedFiles.length === 1 ? "document" : "documents"}`}
             >
               <p>
-                {extractedFiles.length === 1 ? "It was" : "They were"} included as extracted text —
+                {extractedFiles.length === 1 ? "It was" : "They were"} included as extracted text,
                 the readable content pulled out of the document, not the original file bytes.
               </p>
               <ExpandableList
@@ -816,7 +816,7 @@ function BundleNotes({
                 renderItem={(f) => (
                   <li key={f.name} className="flex items-baseline gap-2 font-mono text-[11px]">
                     <span className="text-ink">{f.name}</span>
-                    <span className="text-ink-faint">· {f.why}</span>
+                    <span className="text-ink-faint">- {f.why}</span>
                   </li>
                 )}
               />
@@ -858,7 +858,7 @@ function BundleNotes({
                 renderItem={(f) => (
                   <li key={f.name} className="flex items-baseline gap-2 font-mono text-[11px]">
                     <span className="text-ink">{f.name}</span>
-                    <span className="text-ink-faint">· {f.why}</span>
+                    <span className="text-ink-faint">- {f.why}</span>
                   </li>
                 )}
               />
@@ -881,7 +881,7 @@ function BundleNotes({
                 renderItem={(f) => (
                   <li key={f.name} className="flex items-baseline gap-2 font-mono text-[11px]">
                     <span className="text-ink">{f.name}</span>
-                    <span className="text-ink-faint">· {f.why}</span>
+                    <span className="text-ink-faint">- {f.why}</span>
                   </li>
                 )}
               />

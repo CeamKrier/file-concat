@@ -118,11 +118,11 @@ function Capacity() {
       </div>
 
       <div className="min-w-0">
-        <MockWindow label="acme-due-diligence · knowledge used">
+        <MockWindow label="acme-due-diligence, knowledge used">
           <div className="px-4 py-4 font-mono text-[12.5px]">
             <div className="flex items-baseline justify-between">
               <span className="text-ink-secondary">31 files, combined</span>
-              <span className="text-primary">≈ 142,000 tokens</span>
+              <span className="text-primary">~142,000 tokens</span>
             </div>
             <div className="bg-surface-alt mt-3 h-2.5 overflow-hidden rounded-full">
               <div className="bg-primary h-full rounded-full" style={{ width: "71%" }} />
@@ -289,12 +289,12 @@ function WorkedExample() {
           <pre className="text-code overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.7]">
             <code>
               {`acme-due-diligence/\n`}
-              {`├── contracts/\n`}
-              {`│   ├── msa.pdf\n`}
-              {`│   └── sow.docx\n`}
-              {`├── financials.xlsx\n`}
-              {`├── board-notes.md\n`}
-              {`└── 27 more files`}
+              {`|-- contracts/\n`}
+              {`|   |-- msa.pdf\n`}
+              {`|   \`-- sow.docx\n`}
+              {`|-- financials.xlsx\n`}
+              {`|-- board-notes.md\n`}
+              {`\`-- 27 more files`}
             </code>
           </pre>
         </MockWindow>
@@ -339,7 +339,7 @@ function WorkedExample() {
 function TokenChip({ value }: { value: string }) {
   return (
     <span className="font-mono text-[11px]">
-      <span className="text-primary">≈ {value}</span>
+      <span className="text-primary">~{value}</span>
       <span className="text-ink-faint"> tokens</span>
     </span>
   );

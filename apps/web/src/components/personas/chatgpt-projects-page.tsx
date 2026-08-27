@@ -274,12 +274,12 @@ function WorkedExample() {
           <pre className="text-code overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.7]">
             <code>
               {`q3-handbook/\n`}
-              {`├── policies/\n`}
-              {`│   ├── expenses.pdf\n`}
-              {`│   └── travel.docx\n`}
-              {`├── onboarding.pdf\n`}
-              {`├── org-chart.xlsx\n`}
-              {`└── 26 more files`}
+              {`|-- policies/\n`}
+              {`|   |-- expenses.pdf\n`}
+              {`|   \`-- travel.docx\n`}
+              {`|-- onboarding.pdf\n`}
+              {`|-- org-chart.xlsx\n`}
+              {`\`-- 26 more files`}
             </code>
           </pre>
         </MockWindow>

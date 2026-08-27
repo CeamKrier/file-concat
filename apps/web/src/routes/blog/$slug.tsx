@@ -59,7 +59,7 @@ function BlogPostPage() {
             {date && <time dateTime={date}>{formatPostDate(date)}</time>}
             {author && (
               <>
-                <span aria-hidden="true">·</span>
+                <span aria-hidden="true">/</span>
                 <span>{author}</span>
               </>
             )}

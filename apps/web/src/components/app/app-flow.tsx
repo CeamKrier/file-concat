@@ -96,6 +96,9 @@ type AppFlowProps = {
    * hero. Receives the wired drop handlers so an embedded DropZone starts the
    * flow in place. When omitted, the home landing renders. Processing, result,
    * TopBar, and the settings drawer are unaffected either way.
+   *
+   * Drop handlers only, deliberately: the link-import row is a home-landing
+   * affordance, so a persona hero gets no way to render one. See `ImportPanel`.
    */
   renderLanding?: (dropProps: DropZoneProps) => React.ReactNode;
 };
@@ -144,10 +147,10 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // The source identity shown under the spinner (import slug/host, else "").
   const [processingLabel, setProcessingLabel] = useState("");
 
-  // Import (progressive disclosure on the landing hero). Kept here, above the
-  // phase switch, so a failed fetch can return to landing with the URL and a
-  // friendly note intact — the hero unmounts during processing.
-  const [importOpen, setImportOpen] = useState(false);
+  // Import. Kept here, above the phase switch, so a failed fetch can return to
+  // landing with the URL and a friendly note intact. The hero unmounts during
+  // processing, and there is no open/closed state any more: the row is always
+  // visible under the drop target, on every landing (see `ImportPanel`).
   const [importTab, setImportTab] = useState<ImportTab>("github");
   const [importUrl, setImportUrl] = useState("");
   const [importError, setImportError] = useState<string | null>(null);
@@ -480,7 +483,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       return {
         path: d.path,
         name: d.path.split("/").pop() ?? d.path,
-        text: text.length > SAMPLE_LIMIT ? `${text.slice(0, SAMPLE_LIMIT)}\n…` : text,
+        text: text.length > SAMPLE_LIMIT ? `${text.slice(0, SAMPLE_LIMIT)}\n...` : text,
         tried: ingestion.validations[d.path]?.recognitionTried === true,
         language: language ? ocrLanguageName(language) : null,
       };
@@ -521,7 +524,6 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     setPhase("landing");
     setReadingOpen(false);
     setResultNote(null);
-    setImportOpen(false);
     setImportUrl("");
     setImportError(null);
   }, [ingestion, filter, output]);
@@ -640,25 +642,20 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
             <>
               <LandingHero
                 {...dropProps}
-                importControls={{
-                  open: importOpen,
-                  onOpen: () => setImportOpen(true),
-                  panel: {
-                    tab: importTab,
-                    onTabChange: (t) => {
-                      setImportTab(t);
-                      setImportError(null);
-                    },
-                    url: importUrl,
-                    onUrlChange: (u) => {
-                      setImportUrl(u);
-                      setImportError(null);
-                    },
-                    error: importError,
-                    onFetch: runImport,
-                    isFetching: ingestion.isRepoLoading,
-                    onClose: () => setImportOpen(false),
+                linkImport={{
+                  tab: importTab,
+                  onTabChange: (t) => {
+                    setImportTab(t);
+                    setImportError(null);
                   },
+                  url: importUrl,
+                  onUrlChange: (u) => {
+                    setImportUrl(u);
+                    setImportError(null);
+                  },
+                  error: importError,
+                  onFetch: runImport,
+                  isFetching: ingestion.isRepoLoading,
                 }}
               />
               <div className="mt-16">

@@ -52,7 +52,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
-            Combine a client&rsquo;s books for AI, privately.
+            Combine a client's books for AI, privately.
           </h1>
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
@@ -101,7 +101,7 @@ function Confidentiality() {
           id="acct-confidential"
           className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          We don&rsquo;t upload your client&rsquo;s books.
+          We don't upload your client's books.
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
           Most tools that read a document upload it to a server first. FileConcat does the reading
@@ -115,14 +115,14 @@ function Confidentiality() {
       </div>
 
       <div className="min-w-0">
-        <MockWindow label="acme-fy25 · handled locally">
+        <MockWindow label="acme-fy25, handled locally">
           <ul className="divide-hairline divide-y font-mono text-[12.5px]">
             <li className="flex items-center gap-3 px-4 py-2.5">
-              <span className="text-primary shrink-0">✓</span>
+              <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
               <span className="text-ink-secondary min-w-0 flex-1">22 files read in this tab</span>
             </li>
             <li className="flex items-center gap-3 px-4 py-2.5">
-              <span className="text-primary shrink-0">✓</span>
+              <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
               <span className="text-ink-secondary min-w-0 flex-1">
                 values pulled from 9 PDFs and 6 spreadsheets
               </span>
@@ -204,7 +204,7 @@ function FileTypes() {
             id="acct-filetypes"
             className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
           >
-            The formats a client&rsquo;s books arrive in.
+            The formats a client's books arrive in.
           </h2>
           <p className="text-ink-secondary mt-4 max-w-[46ch] text-[15px] leading-relaxed">
             You do not have to export or convert anything first. Born-digital documents are read
@@ -225,7 +225,7 @@ function FileTypes() {
           <InfoCard tone="info" icon={ScanLine} title="A scanned statement has no text to read">
             <p>
               A statement that is a photo or a scan, rather than a born-digital PDF, holds no text
-              to pull. It comes through flagged as &ldquo;no text found&rdquo; so you can run it
+              to pull. It comes through flagged as "no text found" so you can run it
               through OCR first. It is never dropped without telling you.
             </p>
           </InfoCard>
@@ -256,12 +256,12 @@ function WorkedExample() {
           <pre className="text-code overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.7]">
             <code>
               {`acme-fy25/\n`}
-              {`├── statements/\n`}
-              {`│   ├── jan-mar.pdf\n`}
-              {`│   └── apr-jun.pdf\n`}
-              {`├── ledger.xlsx\n`}
-              {`├── invoices.csv\n`}
-              {`└── tax-return.pdf`}
+              {`|-- statements/\n`}
+              {`|   |-- jan-mar.pdf\n`}
+              {`|   \`-- apr-jun.pdf\n`}
+              {`|-- ledger.xlsx\n`}
+              {`|-- invoices.csv\n`}
+              {`\`-- tax-return.pdf`}
             </code>
           </pre>
         </MockWindow>
@@ -296,7 +296,7 @@ function WorkedExample() {
 function TokenChip({ value }: { value: string }) {
   return (
     <span className="font-mono text-[11px]">
-      <span className="text-primary">≈ {value}</span>
+      <span className="text-primary">~{value}</span>
       <span className="text-ink-faint"> tokens</span>
     </span>
   );

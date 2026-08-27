@@ -66,7 +66,7 @@ function OutputSample() {
           <span className="text-ink-muted ml-2 font-mono text-[11.5px]">fileconcat-output.txt</span>
         </div>
         <span className="font-mono text-[11px]">
-          <span className="text-primary">≈ 412</span>
+          <span className="text-primary">~412</span>
           <span className="text-ink-faint"> tokens</span>
         </span>
       </div>
@@ -76,10 +76,10 @@ function OutputSample() {
           <span className="text-ink-faint">
             {`# Project Structure\n`}
             {"```\n"}
-            {`└── app/\n`}
-            {`    ├── hooks/use-theme.ts\n`}
-            {`    ├── components/button.tsx\n`}
-            {`    └── README.md\n`}
+            {`\`-- app/\n`}
+            {`    |-- hooks/use-theme.ts\n`}
+            {`    |-- components/button.tsx\n`}
+            {`    \`-- README.md\n`}
             {"```\n"}
           </span>
           {`\n`}

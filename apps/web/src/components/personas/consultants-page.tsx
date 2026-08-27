@@ -115,14 +115,14 @@ function Synthesis() {
       </div>
 
       <div className="min-w-0">
-        <MockWindow label="acme-growth · one context">
+        <MockWindow label="acme-growth, one context">
           <ul className="divide-hairline divide-y font-mono text-[12.5px]">
             <li className="flex items-center gap-3 px-4 py-2.5">
-              <span className="text-primary shrink-0">✓</span>
+              <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
               <span className="text-ink-secondary min-w-0 flex-1">strategy deck, 34 slides</span>
             </li>
             <li className="flex items-center gap-3 px-4 py-2.5">
-              <span className="text-primary shrink-0">✓</span>
+              <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
               <span className="text-ink-secondary min-w-0 flex-1">market report and model</span>
             </li>
             <li className="flex items-center gap-3 bg-[oklch(var(--primary)/0.06)] px-4 py-3">
@@ -182,10 +182,10 @@ function Workflow() {
 }
 
 const KINDS = [
-  { label: "Decks", exts: "PPTX · PDF", note: "strategy and steering decks" },
-  { label: "Reports", exts: "PDF · DOCX", note: "research reports and proposals" },
-  { label: "Data", exts: "XLSX · CSV", note: "models and benchmark tables" },
-  { label: "Notes", exts: "MD · TXT", note: "interview and workshop notes" },
+  { label: "Decks", exts: "PPTX, PDF", note: "strategy and steering decks" },
+  { label: "Reports", exts: "PDF, DOCX", note: "research reports and proposals" },
+  { label: "Data", exts: "XLSX, CSV", note: "models and benchmark tables" },
+  { label: "Notes", exts: "MD, TXT", note: "interview and workshop notes" },
 ];
 
 function Inputs() {
@@ -251,12 +251,12 @@ function WorkedExample() {
           <pre className="text-code overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.7]">
             <code>
               {`acme-growth/\n`}
-              {`├── decks/\n`}
-              {`│   ├── kickoff.pptx\n`}
-              {`│   └── final.pptx\n`}
-              {`├── market-report.pdf\n`}
-              {`├── model.xlsx\n`}
-              {`└── interviews.md`}
+              {`|-- decks/\n`}
+              {`|   |-- kickoff.pptx\n`}
+              {`|   \`-- final.pptx\n`}
+              {`|-- market-report.pdf\n`}
+              {`|-- model.xlsx\n`}
+              {`\`-- interviews.md`}
             </code>
           </pre>
         </MockWindow>
@@ -291,7 +291,7 @@ function WorkedExample() {
 function TokenChip({ value }: { value: string }) {
   return (
     <span className="font-mono text-[11px]">
-      <span className="text-primary">≈ {value}</span>
+      <span className="text-primary">~{value}</span>
       <span className="text-ink-faint"> tokens</span>
     </span>
   );

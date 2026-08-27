@@ -89,7 +89,7 @@ export function renderYouTubeClipping(clip: YouTubeClipping): string {
     "---",
   ].join("\n");
 
-  const transcript = clip.segments.map((segment) => `**${segment.timestamp}** · ${segment.text}`).join("\n\n");
+  const transcript = clip.segments.map((segment) => `**${segment.timestamp}** - ${segment.text}`).join("\n\n");
 
   const parts = [`${frontmatter}\n![](${url})`, hardBreaks(clip.description), "## Transcript", transcript];
   if (clip.comments.length > 0) parts.push("## Comments", renderComments(clip));
@@ -106,11 +106,11 @@ function renderComments(clip: YouTubeClipping): string {
   const blocks = clip.comments.map((comment) => {
     const badges = [comment.isCreator ? "creator" : null, `${comment.likes} likes`, comment.publishedTime]
       .filter(Boolean)
-      .join(" · ");
+      .join(" - ");
     // A comment can carry its own blank lines; collapsing them keeps one
     // comment reading as one block.
     const text = comment.text.replace(/\r\n/g, "\n").replace(/\n{2,}/g, "\n").trim();
-    return `**${comment.author}** · ${badges}\n${text}`;
+    return `**${comment.author}** - ${badges}\n${text}`;
   });
   return [heading, ...blocks].join("\n\n");
 }
@@ -171,7 +171,7 @@ export function renderRedditClipping(clip: RedditClipping): string {
     "---",
   ].join("\n");
 
-  const facts = `${clip.subreddit} · ${clip.score} points · ${clip.commentTotal} comments`;
+  const facts = `${clip.subreddit} - ${clip.score} points - ${clip.commentTotal} comments`;
   const parts = [`${frontmatter}\n![](${url})`, `_${facts}_`];
   if (clip.linkUrl) parts.push(`[${clip.linkUrl}](${clip.linkUrl})`);
   if (clip.body.trim()) parts.push(hardBreaks(clip.body));
@@ -193,7 +193,7 @@ function renderRedditComments(clip: RedditClipping): string {
   const heading = `_${clip.commentTotal} in total, ${clip.comments.length} on the page._`;
   const blocks = clip.comments.map((comment) => {
     const indent = "  ".repeat(Math.min(comment.depth, 8));
-    const badges = [`${comment.score} points`, isoDate(comment.created)].filter(Boolean).join(" · ");
+    const badges = [`${comment.score} points`, isoDate(comment.created)].filter(Boolean).join(" - ");
     const text = comment.text
       .replace(/\r\n/g, "\n")
       .replace(/\n{2,}/g, "\n")
@@ -201,7 +201,7 @@ function renderRedditComments(clip: RedditClipping): string {
       .split("\n")
       .map((line) => `${indent}${line}`)
       .join("\n");
-    return `${indent}**u/${comment.author}** · ${badges}\n${text}`;
+    return `${indent}**u/${comment.author}** - ${badges}\n${text}`;
   });
   return [heading, ...blocks].join("\n\n");
 }
@@ -282,7 +282,7 @@ export function renderHnClipping(clip: HnClipping): string {
     "---",
   ].join("\n");
 
-  const parts = [`${frontmatter}\n![](${url})`, `_${clip.points} points · ${clip.comments.length} comments_`];
+  const parts = [`${frontmatter}\n![](${url})`, `_${clip.points} points - ${clip.comments.length} comments_`];
   if (clip.url) parts.push(`[${clip.url}](${clip.url})`);
   if (clip.text.trim()) parts.push(hardBreaks(clip.text));
   parts.push("## Comments", renderHnComments(clip.comments));
@@ -304,7 +304,7 @@ function renderHnComments(comments: HnComment[]): string {
         .split("\n")
         .map((line) => `${indent}${line}`)
         .join("\n");
-      return `${indent}**${comment.author}** · ${isoDate(comment.created)}\n${text}`;
+      return `${indent}**${comment.author}** - ${isoDate(comment.created)}\n${text}`;
     })
     .join("\n\n");
 }

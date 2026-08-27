@@ -320,7 +320,7 @@ function ReadingPanel({
                   moment between its result landing and the pass ending. */}
               Reading
               {progress ? ` ${Math.min(progress.done + 1, progress.total)} of ${progress.total}` : ""}
-              …
+              ...
             </span>
             <button
               type="button"

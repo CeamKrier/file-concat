@@ -40,7 +40,7 @@ export function stories() {
     return {
       id: row.id,
       title: row.querySelector(".titleline > a")?.textContent?.trim() || row.id,
-      meta: [points ? `${points} points` : null, comments ? `${comments} comments` : null].filter(Boolean).join(" · "),
+      meta: [points ? `${points} points` : null, comments ? `${comments} comments` : null].filter(Boolean).join(" - "),
     };
   });
 }
