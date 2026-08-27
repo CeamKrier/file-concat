@@ -19,7 +19,14 @@ import { estimateTokenCount, preloadTokenEstimator } from "~/lib/tokens";
 import { weighBundle } from "~/lib/bundle-weight";
 import { useSelectedModel } from "~/hooks/use-selected-model";
 import { classifyUrl, type Classification, type ImportTab } from "~/lib/classify-url";
-import { addToTally, currentRun, trackEntrySurface, trackTally, type Tally } from "~/lib/metrics";
+import {
+  addToTally,
+  currentRun,
+  track,
+  trackEntrySurface,
+  trackTally,
+  type Tally,
+} from "~/lib/metrics";
 import { tagSurface } from "~/lib/clarity-tags";
 import { ocrLanguageName, ocrLanguageOptions } from "~/lib/ocr-language";
 
@@ -602,11 +609,18 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
 
   const runImport = useCallback(() => {
     const c = classifyUrl(importUrl, importTab);
+    // Both of these return before `ingestRepo` runs, so they write no
+    // `source_used` either: without this the attempt is absent from the data
+    // entirely rather than merely unexplained. Per press, not per Run — there is
+    // no Run open yet, and a second press against the same rejected link is what
+    // says the message did not land.
     if (c.kind === "empty" || c.kind === "bad") {
+      track("import_failed", "bad");
       setImportError("That doesn't look like a link yet. Paste a public repo, Gist, or page URL.");
       return;
     }
     if (c.kind === "binary") {
+      track("import_failed", "binary");
       setImportError(
         `That link points to a ${c.fileType} file, which can't be read as text. Try a repo, a Gist, or a page with text.`,
       );
@@ -623,9 +637,18 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
           label: narration.label,
         });
       } catch (error) {
+        // Fires after `source_used` inside the same Run, so that Run appears in
+        // both terms of the attempt count. See the counter's own comment.
+        //
+        // Only when there is something to say. `startOver` aborts the fetch, and
+        // `friendlyFetchError` answers null for that: a deliberate cancel is not
+        // a failure, and counting it would inflate the rate with people who got
+        // exactly what they asked for.
+        const message = friendlyFetchError(error, c);
+        if (message !== null) track("import_failed", "fetch");
         setPhase("landing");
         setResultNote(null);
-        setImportError(friendlyFetchError(error, c));
+        setImportError(message);
       }
     })();
   }, [importUrl, importTab, begin, ingestion]);

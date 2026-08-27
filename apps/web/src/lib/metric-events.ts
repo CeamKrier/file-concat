@@ -17,6 +17,22 @@ export const METRIC_EVENTS = [
   "entry_surface",
   /** Which remote source was imported: github | gitlab | bitbucket | gist | url. */
   "source_used",
+  /**
+   * A link import that produced no files: value `bad` (nothing we can classify
+   * as a link), `binary` (a PDF / zip / image URL), `fetch` (the request
+   * itself failed).
+   *
+   * Written per Fetch press rather than per Run, deliberately. `bad` and
+   * `binary` are rejected before ingestion opens a Run at all, so there is no
+   * Run to scope them to, and pressing Fetch again against the same rejected
+   * link is the signal rather than fidgeting.
+   *
+   * **Attempts are `source_used` rows plus the `bad` and `binary` rows here,
+   * never the sum of both counters.** Only those two kinds return before
+   * `source_used` is recorded; `fetch` fires after it inside the same Run, so
+   * adding every row would count those attempts twice.
+   */
+  "import_failed",
 
   // --- per run, written when ingestion finishes ---
 
