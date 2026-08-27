@@ -1,7 +1,5 @@
-import { Check, Minus } from "lucide-react";
-
-import { DropZone } from "./drop-zone";
-import { ImportPanel, type ImportState } from "./import-panel";
+import { EntrySurface } from "./entry-surface";
+import { type ImportState } from "./import-panel";
 
 type LandingHeroProps = {
   isDragging: boolean;
@@ -33,24 +31,11 @@ export function LandingHero({ linkImport, ...props }: LandingHeroProps) {
         </p>
       </div>
 
+      {/* The read-and-skip row used to live here, under the drop target and
+          outside it. It is inside the panel now: it is a promise about what the
+          surface will do with what you hand it, so it belongs to the surface. */}
       <div className="mt-8">
-        <DropZone {...props} />
-        <ImportPanel {...linkImport} />
-      </div>
-
-      <div className="text-ink-muted mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px]">
-        <span className="text-ink-secondary inline-flex items-center gap-1.5">
-          <Check className="text-primary h-3.5 w-3.5" strokeWidth={2.5} />
-          Code, docs, configs &amp; data
-        </span>
-        <span className="text-ink-secondary inline-flex items-center gap-1.5">
-          <Check className="text-primary h-3.5 w-3.5" strokeWidth={2.5} />
-          PDFs &amp; Office docs read in-browser
-        </span>
-        <span className="text-ink-muted inline-flex items-center gap-1.5">
-          <Minus className="text-ink-faint h-3.5 w-3.5" strokeWidth={2.5} />
-          Images &amp; binaries skipped for you
-        </span>
+        <EntrySurface {...props} linkImport={linkImport} />
       </div>
     </section>
   );

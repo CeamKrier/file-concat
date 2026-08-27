@@ -4,7 +4,6 @@ import { SOURCE_METADATA } from "@fileconcat/core";
 
 import { cn } from "~/lib/utils";
 import { classifyUrl, type Classification, type ImportTab } from "~/lib/classify-url";
-import { SegmentedControl } from "./segmented-control";
 
 export type ImportState = {
   tab: ImportTab;
@@ -16,12 +15,13 @@ export type ImportState = {
   isFetching: boolean;
 };
 
-const TABS: { value: ImportTab; label: string }[] = [
-  { value: "github", label: "GitHub" },
-  { value: "gitlab", label: "GitLab" },
-  { value: "bitbucket", label: "Bitbucket" },
-  { value: "gist", label: "Gist" },
-  { value: "url", label: "URL" },
+/** Select options, lowercase because they are machine values, not brand names. */
+const HOSTS: { value: ImportTab; label: string }[] = [
+  { value: "github", label: "github" },
+  { value: "gitlab", label: "gitlab" },
+  { value: "bitbucket", label: "bitbucket" },
+  { value: "gist", label: "gist" },
+  { value: "url", label: "url" },
 ];
 
 /** Live caption under the input: what the link actually is, never a dead end. */
@@ -43,8 +43,8 @@ function caption(c: Classification): { text: string; tone: "go" | "info" } | nul
 }
 
 /**
- * The link half of the entry point, sitting under the drop target on the home
- * landing.
+ * The link lane of the home entry surface, under the drop target and the `or`
+ * rule. `entry-surface.tsx` owns the frame; this owns the field.
  *
  * It used to hide behind a "Got a link instead?" text link below the feature
  * row, and the counters said what that cost: `source_used` recorded 4 Visits
@@ -57,19 +57,12 @@ function caption(c: Classification): { text: string; tone: "go" | "info" } | nul
  * folder of case files is clutter that page has to carry for nobody. Remote
  * sources get their own pages instead of a row bolted onto every other one.
  *
- * Deliberately NOT nested inside the drop target. `drop-zone.tsx` opens the
- * file picker on any click that is not a button or an input, so an input in
- * there would turn every click on the surrounding padding into a file dialog,
- * the dead-click class that handler's comment was written to kill.
- *
- * No card around it either: the drop target above is already a bordered
- * `surface-alt` panel, and a second one under it reads as two competing
- * regions rather than two ways into one flow. Space does the separating.
- *
- * Source tabs steer the placeholder and the examples, and pick the host for a
- * bare `owner/repo`. That is the whole of their job: classification is
- * host-driven (see `classifyUrl`), so a full link pasted under any tab still
- * resolves to what it really is.
+ * The host is a select rather than the five-tab strip it replaced, because the
+ * choice is smaller than the strip implied: classification is host-driven (see
+ * `classifyUrl`), so a full link resolves to what it really is under any
+ * value here. All the select decides is where a bare `owner/repo` lands, plus
+ * which placeholder and examples to show. Five tabs spent a full row, and an
+ * overflowing one on a phone, advertising a decision that mostly does nothing.
  */
 export function ImportPanel({
   tab,
@@ -86,29 +79,34 @@ export function ImportPanel({
   const canFetch = c.kind === "repo" || c.kind === "gist" || c.kind === "page";
 
   return (
-    <div role="region" aria-label="Import from a link" className="mt-8 text-left">
-      <h2 className="font-display text-ink text-[14px] font-semibold tracking-[-0.01em]">
-        Or paste a link
-      </h2>
-
-      <div className="mt-3 overflow-x-auto">
-        <SegmentedControl
-          ariaLabel="Import source"
-          size="sm"
-          value={tab}
-          onChange={onTabChange}
-          options={TABS}
-        />
+    <div role="region" aria-label="Import from a link" className="text-left">
+      <div className="flex items-baseline justify-between gap-2.5">
+        <h2 className="font-display text-ink text-[13.5px] font-semibold tracking-[-0.01em]">
+          Paste a public link
+        </h2>
+        <span className="text-ink-faint shrink-0 font-mono text-[11px]">repo, gist, web page</span>
       </div>
 
       <form
-        className="mt-3"
+        className="mt-2.5"
         onSubmit={(e) => {
           e.preventDefault();
           if (canFetch && !isFetching) onFetch();
         }}
       >
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={tab}
+            onChange={(e) => onTabChange(e.target.value as ImportTab)}
+            aria-label="Host for a bare owner/repo"
+            className="border-border-strong bg-secondary text-ink-secondary rounded-input focus-visible:ring-ring flex-none cursor-pointer border px-2 py-2.5 font-mono text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+          >
+            {HOSTS.map((h) => (
+              <option key={h.value} value={h.value}>
+                {h.label}
+              </option>
+            ))}
+          </select>
           <input
             type="text"
             inputMode="url"
@@ -118,13 +116,13 @@ export function ImportPanel({
             onChange={(e) => onUrlChange(e.target.value)}
             placeholder={meta.placeholder}
             aria-label={`${meta.name} link`}
-            className="border-border bg-surface-inset text-ink placeholder:text-ink-faint focus-visible:border-border-strong focus-visible:ring-ring rounded-input min-w-0 flex-1 border px-3 py-2.5 font-mono text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+            className="border-border bg-surface-inset text-ink placeholder:text-ink-faint focus-visible:border-border-strong focus-visible:ring-ring rounded-input min-w-0 flex-1 basis-[150px] border px-3 py-2.5 font-mono text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
           />
           <button
             type="submit"
             disabled={!canFetch || isFetching}
             className={cn(
-              "rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex shrink-0 items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold transition-[filter,background-color,color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+              "rounded-input focus-visible:ring-ring focus-visible:ring-offset-surface-alt inline-flex flex-1 items-center sm:flex-none justify-center gap-2 px-5 py-2.5 text-sm font-semibold transition-[filter,background-color,color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
               canFetch && !isFetching
                 ? "bg-primary text-primary-foreground hover:brightness-110"
                 : "bg-surface-inset text-ink-faint border-border cursor-not-allowed border",
@@ -142,17 +140,27 @@ export function ImportPanel({
             )}
           >
             {cap.tone === "go" ? (
-              <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+              <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
             ) : (
-              <Info className="h-3.5 w-3.5" strokeWidth={2.5} />
+              <Info className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
             )}
             {cap.text}
           </p>
         )}
       </form>
 
-      <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <span className="text-ink-faint mr-0.5 font-mono text-[11px] uppercase tracking-[0.12em]">
+      {/* Under the button that produced it, above the examples that are the way
+          out of it. A failed fetch is about the link in the field, so it reads
+          before the suggestions for a different one. */}
+      {error && (
+        <div className="rounded-card mt-2.5 flex items-start gap-2.5 border border-[oklch(var(--info)/0.42)] bg-[oklch(var(--info)/0.07)] p-3">
+          <Info className="text-info mt-0.5 h-4 w-4 shrink-0" strokeWidth={2.2} />
+          <p className="text-ink-secondary text-[13px] leading-relaxed">{error}</p>
+        </div>
+      )}
+
+      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+        <span className="text-ink-faint mr-0.5 font-mono text-[10.5px] uppercase tracking-[0.12em]">
           Try
         </span>
         {meta.examples.map((example) => (
@@ -160,20 +168,12 @@ export function ImportPanel({
             key={example}
             type="button"
             onClick={() => onUrlChange(example)}
-            className="border-border bg-surface-inset text-ink-muted hover:text-ink hover:border-border-strong focus-visible:ring-ring focus-visible:ring-offset-background rounded-chip max-w-full truncate border px-2 py-1 font-mono text-[11px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            className="border-border bg-surface-inset text-ink-muted hover:text-ink hover:border-border-strong focus-visible:ring-ring focus-visible:ring-offset-surface-alt rounded-chip max-w-full truncate border px-2 py-1 font-mono text-[11px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
           >
             {example.replace(/^https?:\/\//, "")}
           </button>
         ))}
       </div>
-
-      {error && (
-        <div className="rounded-card mt-4 flex items-start gap-3 border border-[oklch(var(--info)/0.3)] bg-[oklch(var(--info)/0.07)] p-3">
-          <Info className="text-info mt-0.5 h-[18px] w-[18px] shrink-0" strokeWidth={2} />
-          <p className="text-ink-secondary text-[13px] leading-relaxed">{error}</p>
-        </div>
-      )}
     </div>
   );
 }
-
