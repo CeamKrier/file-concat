@@ -31,9 +31,6 @@ export function LandingHero({ linkImport, ...props }: LandingHeroProps) {
         </p>
       </div>
 
-      {/* The read-and-skip row used to live here, under the drop target and
-          outside it. It is inside the panel now: it is a promise about what the
-          surface will do with what you hand it, so it belongs to the surface. */}
       <div className="mt-8">
         <EntrySurface {...props} linkImport={linkImport} />
       </div>

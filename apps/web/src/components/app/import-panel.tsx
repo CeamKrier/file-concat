@@ -80,12 +80,9 @@ export function ImportPanel({
 
   return (
     <div role="region" aria-label="Import from a link" className="text-left">
-      <div className="flex items-baseline justify-between gap-2.5">
-        <h2 className="font-display text-ink text-[13.5px] font-semibold tracking-[-0.01em]">
-          Paste a public link
-        </h2>
-        <span className="text-ink-faint shrink-0 font-mono text-[11px]">repo, gist, web page</span>
-      </div>
+      <h2 className="font-display text-ink text-[13.5px] font-semibold tracking-[-0.01em]">
+        Paste a public link
+      </h2>
 
       <form
         className="mt-2.5"

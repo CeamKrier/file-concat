@@ -1,5 +1,3 @@
-import { Check, Minus } from "lucide-react";
-
 import { DropZone, type DropZoneProps } from "./drop-zone";
 import { ImportPanel, type ImportState } from "./import-panel";
 
@@ -21,11 +19,14 @@ export type EntrySurfaceProps = DropZoneProps & {
  * field nested in there would turn a click on the surrounding padding into a
  * file dialog, which is the exact dead-click class that handler exists to kill.
  *
- * The two notes at the foot are the panel's, not either lane's, because each
- * covers both: what gets read and skipped is the same list either way, and the
- * privacy line has to say two different true things in one breath. Neither is
- * decoration. The read-and-skip line is the only place an image-heavy folder
- * learns what will happen before it is dropped rather than after.
+ * Nothing sits under the link lane. A read-and-skip row and a per-lane privacy
+ * line were both drawn here and both cut: the first was a promise about a drop
+ * that had not happened yet, read at 12.5px under a field nobody was looking
+ * at, and the result view already labels what it left out, after the fact,
+ * where it is about real files. The second restated `/privacy`, which says it
+ * better and by name ("your browser fetches it directly from that host, that
+ * request goes to them, not to us"), and the footer links there from every
+ * page. Two doors and the space to see them is the whole job of this panel.
  */
 export function EntrySurface({ linkImport, ...dropProps }: EntrySurfaceProps) {
   return (
@@ -44,29 +45,6 @@ export function EntrySurface({ linkImport, ...dropProps }: EntrySurfaceProps) {
       </div>
 
       <ImportPanel {...linkImport} />
-
-      <div className="border-hairline mt-4 border-t pt-3">
-        <div className="text-ink-muted flex flex-wrap gap-x-4 gap-y-1 text-[12.5px]">
-          <span className="inline-flex items-center gap-1.5">
-            <Check className="text-primary h-[13px] w-[13px] shrink-0" strokeWidth={2.5} />
-            Code, docs, configs, data, PDFs and Office files
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Minus className="text-ink-faint h-[13px] w-[13px] shrink-0" strokeWidth={2.5} />
-            Images, video and binaries skipped
-          </span>
-        </div>
-        {/* Two lanes, two different truths, and the second one is the reason
-            this is prose and not the blanket claim in the hero pill: a pasted
-            link is a network request. It is still your browser making it,
-            straight to the host, with nothing of ours in the path (see the
-            adapters in `packages/core/src/sources`), and that is worth saying
-            exactly rather than hiding under "nothing uploaded". */}
-        <p className="text-ink-muted mt-1.5 text-[12.5px] leading-relaxed">
-          Files are read in your browser. A pasted link is fetched by your browser too, straight
-          from the host.
-        </p>
-      </div>
     </div>
   );
 }
