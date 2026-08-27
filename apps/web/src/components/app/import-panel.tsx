@@ -1,12 +1,12 @@
 import { useMemo } from "react";
-import { ArrowRight, Check, Info, X } from "lucide-react";
+import { Check, Info } from "lucide-react";
 import { SOURCE_METADATA } from "@fileconcat/core";
 
 import { cn } from "~/lib/utils";
 import { classifyUrl, type Classification, type ImportTab } from "~/lib/classify-url";
 import { SegmentedControl } from "./segmented-control";
 
-type ImportPanelProps = {
+export type ImportState = {
   tab: ImportTab;
   onTabChange: (tab: ImportTab) => void;
   url: string;
@@ -14,7 +14,6 @@ type ImportPanelProps = {
   error: string | null;
   onFetch: () => void;
   isFetching: boolean;
-  onClose: () => void;
 };
 
 const TABS: { value: ImportTab; label: string }[] = [
@@ -25,7 +24,7 @@ const TABS: { value: ImportTab; label: string }[] = [
   { value: "url", label: "URL" },
 ];
 
-/** Live caption under the input — what the link actually is, never a dead end. */
+/** Live caption under the input: what the link actually is, never a dead end. */
 function caption(c: Classification): { text: string; tone: "go" | "info" } | null {
   switch (c.kind) {
     case "repo":
@@ -44,10 +43,33 @@ function caption(c: Classification): { text: string; tone: "go" | "info" } | nul
 }
 
 /**
- * Progressive-disclosure import surface. Source tabs steer the placeholder and
- * examples; classification is URL-driven, so a link pasted under any tab still
- * resolves to what it really is. Fetch lights up green only when fetchable;
- * failures land as a friendly amber note, never a red error.
+ * The link half of the entry point, sitting under the drop target on the home
+ * landing.
+ *
+ * It used to hide behind a "Got a link instead?" text link below the feature
+ * row, and the counters said what that cost: `source_used` recorded 4 Visits
+ * using a remote source in the 30 days to 2026-08-27, against 438 that dropped
+ * files. Progressive disclosure is right for a rare escape hatch and wrong for
+ * one of two ways in, so the extra click is gone rather than relocated.
+ *
+ * Home only, deliberately. The nine `/for` pages and the `/how-to` hub each
+ * argue one audience into one workflow, and a repo field under a hero about a
+ * folder of case files is clutter that page has to carry for nobody. Remote
+ * sources get their own pages instead of a row bolted onto every other one.
+ *
+ * Deliberately NOT nested inside the drop target. `drop-zone.tsx` opens the
+ * file picker on any click that is not a button or an input, so an input in
+ * there would turn every click on the surrounding padding into a file dialog,
+ * the dead-click class that handler's comment was written to kill.
+ *
+ * No card around it either: the drop target above is already a bordered
+ * `surface-alt` panel, and a second one under it reads as two competing
+ * regions rather than two ways into one flow. Space does the separating.
+ *
+ * Source tabs steer the placeholder and the examples, and pick the host for a
+ * bare `owner/repo`. That is the whole of their job: classification is
+ * host-driven (see `classifyUrl`), so a full link pasted under any tab still
+ * resolves to what it really is.
  */
 export function ImportPanel({
   tab,
@@ -57,39 +79,19 @@ export function ImportPanel({
   error,
   onFetch,
   isFetching,
-  onClose,
-}: ImportPanelProps) {
+}: ImportState) {
   const meta = SOURCE_METADATA[tab];
   const c = useMemo(() => classifyUrl(url, tab), [url, tab]);
   const cap = caption(c);
   const canFetch = c.kind === "repo" || c.kind === "gist" || c.kind === "page";
 
   return (
-    <div
-      role="region"
-      aria-label="Import from a link"
-      className="border-border bg-surface-alt rounded-panel animate-fade-up border p-4 text-left motion-reduce:animate-none sm:p-5"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="font-display text-ink text-[15px] font-semibold tracking-[-0.01em]">
-            Paste a link to fetch and combine
-          </h2>
-          <p className="text-ink-muted mt-0.5 text-[13px]">
-            A public repo, a Gist, or a page. Nothing gets stored.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close import"
-          className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-surface-alt -mr-1 -mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
+    <div role="region" aria-label="Import from a link" className="mt-8 text-left">
+      <h2 className="font-display text-ink text-[14px] font-semibold tracking-[-0.01em]">
+        Or paste a link
+      </h2>
 
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-3 overflow-x-auto">
         <SegmentedControl
           ariaLabel="Import source"
           size="sm"
@@ -122,13 +124,13 @@ export function ImportPanel({
             type="submit"
             disabled={!canFetch || isFetching}
             className={cn(
-              "rounded-input focus-visible:ring-ring focus-visible:ring-offset-surface-alt inline-flex shrink-0 items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold transition-[filter,background-color,color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+              "rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex shrink-0 items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold transition-[filter,background-color,color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
               canFetch && !isFetching
                 ? "bg-primary text-primary-foreground hover:brightness-110"
                 : "bg-surface-inset text-ink-faint border-border cursor-not-allowed border",
             )}
           >
-            {isFetching ? "Fetching…" : "Fetch"}
+            {isFetching ? "Fetching..." : "Fetch"}
           </button>
         </div>
 
@@ -158,7 +160,7 @@ export function ImportPanel({
             key={example}
             type="button"
             onClick={() => onUrlChange(example)}
-            className="border-border bg-surface-inset text-ink-muted hover:text-ink hover:border-border-strong focus-visible:ring-ring focus-visible:ring-offset-surface-alt rounded-chip max-w-full truncate border px-2 py-1 font-mono text-[11px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            className="border-border bg-surface-inset text-ink-muted hover:text-ink hover:border-border-strong focus-visible:ring-ring focus-visible:ring-offset-background rounded-chip max-w-full truncate border px-2 py-1 font-mono text-[11px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
           >
             {example.replace(/^https?:\/\//, "")}
           </button>
@@ -175,16 +177,3 @@ export function ImportPanel({
   );
 }
 
-/** The collapsed entry point that reveals the panel. */
-export function ImportTrigger({ onOpen }: { onOpen: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background group rounded-sm text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-    >
-      Got a link instead? Import from a repo, Gist or URL{" "}
-      <ArrowRight className="inline h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
-    </button>
-  );
-}

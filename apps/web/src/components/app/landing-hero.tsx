@@ -1,13 +1,7 @@
 import { Check, Minus } from "lucide-react";
 
 import { DropZone } from "./drop-zone";
-import { ImportPanel, ImportTrigger } from "./import-panel";
-
-type ImportControls = {
-  open: boolean;
-  onOpen: () => void;
-  panel: React.ComponentProps<typeof ImportPanel>;
-};
+import { ImportPanel, type ImportState } from "./import-panel";
 
 type LandingHeroProps = {
   isDragging: boolean;
@@ -16,10 +10,10 @@ type LandingHeroProps = {
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   onFileInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  importControls: ImportControls;
+  linkImport: ImportState;
 };
 
-export function LandingHero({ importControls, ...props }: LandingHeroProps) {
+export function LandingHero({ linkImport, ...props }: LandingHeroProps) {
   return (
     <section className="mx-auto w-full max-w-[780px] px-4 pt-9 sm:px-6">
       <div className="flex flex-col items-center text-center">
@@ -41,9 +35,10 @@ export function LandingHero({ importControls, ...props }: LandingHeroProps) {
 
       <div className="mt-8">
         <DropZone {...props} />
+        <ImportPanel {...linkImport} />
       </div>
 
-      <div className="text-ink-muted mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px]">
+      <div className="text-ink-muted mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px]">
         <span className="text-ink-secondary inline-flex items-center gap-1.5">
           <Check className="text-primary h-3.5 w-3.5" strokeWidth={2.5} />
           Code, docs, configs &amp; data
@@ -56,16 +51,6 @@ export function LandingHero({ importControls, ...props }: LandingHeroProps) {
           <Minus className="text-ink-faint h-3.5 w-3.5" strokeWidth={2.5} />
           Images &amp; binaries skipped for you
         </span>
-      </div>
-
-      <div className="mt-7">
-        {importControls.open ? (
-          <ImportPanel {...importControls.panel} />
-        ) : (
-          <div className="text-center">
-            <ImportTrigger onOpen={importControls.onOpen} />
-          </div>
-        )}
       </div>
     </section>
   );
