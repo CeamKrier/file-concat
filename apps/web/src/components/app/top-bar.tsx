@@ -33,6 +33,11 @@ export function TopBar({ onStartOver }: TopBarProps) {
         </Link>
 
         <nav className="flex shrink-0 items-center gap-1">
+          {/* The clipper is its own product, not a feature of this one, so it
+              sits in the global nav rather than inside a page about the app. */}
+          <Link to="/clipper" className={`hidden sm:inline-flex ${navLink}`}>
+            Clipper
+          </Link>
           <Link to="/docs" className={`hidden sm:inline-flex ${navLink}`}>
             Docs
           </Link>
