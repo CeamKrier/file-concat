@@ -1,4 +1,5 @@
 import { useRef, useState, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   Check,
   ChevronDown,
@@ -319,6 +320,18 @@ export function ResultView({
           Start over
         </button>
       </div>
+
+      {/* The clipper grows a bundle the same way Add files does, from a tab
+          instead of from disk, so it belongs under the grow-it action and not
+          in a banner of its own. The people it is for are the ones already
+          standing here with a bundle in front of them. */}
+      <p className="text-ink-muted mt-2 text-center text-[12.5px]">
+        Reading something in another tab?{" "}
+        <Link to="/clipper" className="text-go-fg underline underline-offset-4">
+          The Clipper
+        </Link>{" "}
+        sends pages straight into this bundle.
+      </p>
 
       {/* Format switch married to the preview it drives: press here, see it there,
           nothing in between. */}
