@@ -130,6 +130,29 @@ is a nested thread there and not the article a bookmarklet would also manage.
 | `assets/screenshot-4-youtube.png`        | A YouTube channel, 30 videos with checkboxes and the comments toggle                             |
 | `assets/screenshot-5-bundle.png`         | All nine clippings landing in fileconcat.com as one bundle with a token count                    |
 
+**These five are out of date and the live listing shows them.** They were taken
+against the panel as it stood on 2026-08-21; the redesign landed the next day
+(`8ed4a91`) and turned the tray into a cart with tap-to-clip rows, a peek sheet
+and a Sent list. So every published screenshot shows a panel nobody can install
+any more, including the "tray" wording in row 3 and the checkboxes in rows 2
+and 4. Reshooting is a real defect on the live listing, not a nicety.
+
+`generate-assets.mjs` cannot do it as it stands. It drives seven panel ids and
+five of them were removed by the redesign; `#clip` and `#send` are the two that
+survive. The replacements, read out of `entrypoints/sidepanel/index.html`:
+
+| It drives     | The panel now has                    |
+| ------------- | ------------------------------------ |
+| `#origin`     | `#host`                              |
+| `#page-label` | `#page-title`                        |
+| `#page-list`  | `#rows`                              |
+| `#tray-list`  | `#cart-list` (inside `#cart`)        |
+| `#status`     | `#toast-text` (inside `#toast`)      |
+
+The script also has no idea about the surfaces the redesign added: `#cart-bar`,
+`#peek-*`, `#sent-*`, `#echo-row` and `#bulk-bar`. Reshooting is a rewrite of
+its panel half, not a find-and-replace.
+
 All five are in `assets/`, taken 2026-08-21 in one session.
 `screenshot-5-bundle.png` is the only shot with fileconcat.com in it, so it can
 only be taken against production, and it had to wait for the page guard that
@@ -140,14 +163,23 @@ the picture: nine clippings, 47,868 tokens, "9 sent. The tab took them."
 in placements the store chooses. Skip the 1400x560 marquee until an editorial
 placement asks for one.
 
-**Video** — none.
+**Video** — none yet. The field takes one YouTube URL. A demo was attempted in
+code and rejected: a scripted panel cut reads as a slideshow, and the frames
+that were meant to look like a browser read as a gray background. The plan is a
+short screen recording made by hand, so this field stays empty until that
+exists rather than being filled with something worse.
 
 **URLs**
 
 | Field        | Value                                             |
 | ------------ | ------------------------------------------------- |
-| Homepage URL | `https://fileconcat.com`                          |
+| Homepage URL | `https://fileconcat.com/clipper`                  |
 | Support URL  | `https://github.com/CeamKrier/file-concat/issues` |
+
+Homepage URL was `https://fileconcat.com` at submission, which said nothing
+about a clipper: the one link a store visitor is offered went to a page that
+could not follow up on the listing. `/clipper` shipped 2026-08-28 to be that
+page. **Changing it is a dashboard edit that has not been made yet.**
 
 **Mature content** — No.
 

@@ -12,8 +12,10 @@ pnpm --filter @fileconcat/extension build
 ```
 
 Then in Chrome: `chrome://extensions` → Developer mode → **Load unpacked** →
-pick `apps/extension/.output/chrome-mv3`. Unpacked and author-only for now;
-there is no store listing.
+pick `apps/extension/.output/chrome-mv3`. That is the development path; the
+published build is on the
+[Chrome Web Store](https://chromewebstore.google.com/detail/fileconcat-clipper/nhjmkijlimliapgbidajgbkangddnlhn)
+and its own page is [fileconcat.com/clipper](https://fileconcat.com/clipper).
 
 For day-to-day work use `pnpm --filter @fileconcat/extension dev` and load
 `.output/chrome-mv3-dev` instead: WXT rebuilds and re-injects on save, so an
