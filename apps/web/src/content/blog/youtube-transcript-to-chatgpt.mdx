@@ -1,0 +1,110 @@
+---
+title: "How to Get a YouTube Transcript Into ChatGPT"
+description: "Take a video's full transcript and description out of YouTube as Markdown and hand it to ChatGPT or Claude. One video, a whole channel, or an entire playlist."
+date: "2026-08-28"
+author: "CeamKrier"
+draft: false
+---
+
+A forty-minute talk is roughly six thousand words. As text you can search it, quote it,
+skim the middle and ask a question of it. As video you can only watch it, at the speed
+somebody else chose.
+
+So the useful move is to get the words out first and put the video back only if you need
+it. A watch page is the one place on the web where the thing you came for is not on the
+page as text at all, which is why this is more awkward than it should be.
+
+## What people do today
+
+The manual route works and is worth knowing. Open the video, expand the description,
+click **Show transcript**, then select the transcript panel and copy it.
+
+What you get back is a column of timestamps with a line of speech beside each one, which
+is the shape of a caption file rather than the shape of a document:
+
+<BeforeAfter>
+  <Before label="from the transcript panel">{`0:00
+so the thing about a page is
+0:04
+that it is a fixed block of
+0:09
+bytes and everything else in
+0:13
+the design falls out of that`}</Before>
+  <After label="saved as Markdown">{`# How a database stores a row
+
+Every row you write ends up
+on a page, and a page is a
+fixed block of bytes. Most
+of the design falls out of
+that one constraint.`}</After>
+</BeforeAfter>
+
+You can paste the left-hand version into ChatGPT and it will cope. It will also spend
+tokens on several hundred timestamps that carry no meaning, and you will have done the
+work by hand for one video.
+
+## Take the transcript and the description together
+
+FileConcat Clipper is a browser side panel that reads a watch page and hands you the
+video's description and its full transcript as one Markdown file.
+
+<Steps>
+  <Step title="Open the panel on the video">
+    Click the toolbar icon. On a watch page the panel offers **Clip this video**. The
+    transcript arrives at paragraph granularity rather than per caption line, so there are
+    no timestamps to strip out afterwards.
+  </Step>
+  <Step title="Decide about comments">
+    **Include comments** takes the top 20 and is off by default. It costs two extra
+    requests and a bigger bundle: measured on a 7-minute video, the clipping went from
+    2,365 to 3,421 tokens, which is 45% more. On a video whose transcript dwarfs its
+    comments the same setting cost 7%.
+  </Step>
+  <Step title="Send it to the bundler">
+    **Send** pushes the clipping into an open [fileconcat.com](/) tab, opening one if there
+    is none, where you get one document and a live token count before you paste anything.
+  </Step>
+</Steps>
+
+<Callout type="tip" title="Where to get it">
+  The extension is on the [Chrome Web
+  Store](https://chromewebstore.google.com/detail/fileconcat-clipper/nhjmkijlimliapgbidajgbkangddnlhn),
+  free and open source. There is a page about what it does at [/clipper](/clipper) and a
+  reference at [/docs/clipper](/docs/clipper).
+</Callout>
+
+## Many videos at once
+
+One video at a time is the small version of this problem. The bigger one is a course, a
+conference track or a back catalogue, where the whole point is to ask a question across
+all of it.
+
+A channel's **Videos** tab and a search results page are listings, so the panel puts a tap
+target on every row the page has loaded, and each one you tap is opened and read on its
+own. Scrolling to load more rows updates the panel with no click, because it re-reads the
+page whenever the page grows.
+
+A channel's **Playlists** tab is different and more useful than it looks. It lists
+playlists rather than videos, and taking one row takes every video that playlist holds,
+filed under the playlist's name. Measured on 2026-08-22, one tap on a 38-video playlist
+came back with 38 videos, each read on its own.
+
+<Callout type="warn" title="Not every video has a transcript">
+  A clipping needs captions to exist, whether the uploader wrote them or YouTube generated
+  them. A video with neither says so on its own row in the panel rather than arriving
+  empty, and the rows around it carry on.
+</Callout>
+
+## Asking the question
+
+Once the clippings are in a bundle you have one document with every video labelled by
+title, which is the shape a model can actually work across. The questions that were not
+practical before become ordinary ones: where does this speaker contradict that one, which
+of these twelve talks covers retries, summarise the argument in the third one and quote
+the part it rests on.
+
+The send extends the bundle rather than replacing it, so you can add the repository, the
+docs or the thread about the same subject and ask across all of it at once. Nothing is
+uploaded to us on the way: the clipping is made in your browser and handed to the tab you
+already have open.

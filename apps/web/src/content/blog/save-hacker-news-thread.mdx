@@ -1,0 +1,97 @@
+---
+title: "How to Save a Hacker News Thread"
+description: "Save an entire Hacker News discussion as one Markdown file, every reply and every level of nesting, ready for ChatGPT or Claude. Including the comments nobody expanded."
+date: "2026-08-28"
+author: "CeamKrier"
+draft: false
+---
+
+Hacker News threads are dense in a specific way: the correction that matters is usually
+four levels down, under a comment that is collapsed, in a subtree nobody scrolled to. The
+value is in the whole tree, and the whole tree is exactly what you cannot see.
+
+If you want to ask a model what the thread actually concluded, you have to hand it the
+thread, not the top of it.
+
+## The page is not the discussion
+
+Open a 600-comment thread and the page gives you the ones it decided to render, with
+[more] links standing in for the rest and collapse toggles hiding subtrees. Select all,
+copy, paste, and you have captured the state of a user interface rather than the content
+of a discussion.
+
+Two things go missing at once:
+
+- **The replies nobody expanded.** They are not in the document you copied because they
+  were never in the page.
+- **The nesting.** Indentation on Hacker News is drawn with spacer images and table cells.
+  It does not survive a copy, so a rebuttal arrives looking like a fresh opinion.
+
+## Take the whole tree in one request
+
+FileConcat Clipper is a browser side panel that reads the thread properly. On Hacker News
+it goes to `hn.algolia.com/api/v1/items/<id>`, which returns the entire comment tree in
+one request: no authentication, no paging, and nothing to expand first.
+
+That means depth costs nothing. Measured on 2026-08-19 against a 638-comment thread, one
+clipping came back with 264,851 characters nested eight levels deep, none of which was on
+screen when the button was pressed.
+
+<Steps>
+  <Step title="Open the panel on the thread">
+    Click the toolbar icon. On a Hacker News thread the panel offers **Clip this thread**.
+    Nothing needs expanding first, and there is no setting to get right.
+  </Step>
+  <Step title="Check it if you want to">
+    **Peek** reads the Markdown back inside the panel before you send it, which is where a
+    wrong page or a read that stopped early shows up while it is still cheap to fix.
+  </Step>
+  <Step title="Send it to the bundler">
+    **Send** pushes the clipping into an open [fileconcat.com](/) tab, opening one if there
+    is none, where it becomes one document with a live token count.
+  </Step>
+</Steps>
+
+<Callout type="tip" title="Where to get it">
+  The extension is on the [Chrome Web
+  Store](https://chromewebstore.google.com/detail/fileconcat-clipper/nhjmkijlimliapgbidajgbkangddnlhn),
+  free and open source. There is a page about what it does at [/clipper](/clipper) and a
+  reference at [/docs/clipper](/docs/clipper).
+</Callout>
+
+## Mind the size
+
+A quarter of a million characters is roughly 65,000 tokens, which is a real portion of a
+context window spent on one thread. That is the correct trade when the thread is the
+subject, and the wrong one when it is background.
+
+The bundler is where you find that out rather than guessing: it counts the tokens for
+every major model as the bundle grows, so you know what the discussion costs before you
+paste it. If it is too much, take the linked article instead and keep the thread for a
+follow-up question.
+
+<Callout type="warn" title="A snapshot, not a feed">
+  A clipping is the thread as it stood when you took it. Hacker News threads keep growing
+  for a day or two after they peak, so a thread clipped early is a different document from
+  the same thread clipped tomorrow. Re-clipping and sending again replaces the old file in
+  place rather than adding a second copy.
+</Callout>
+
+## The front page, and everything around it
+
+The front page is a listing, so the panel puts a tap target on each of its stories. Tap
+the ones you care about and each thread is read on its own, which is how a morning of
+open tabs becomes a set of files.
+
+The more useful pattern is mixing sources. A Hacker News thread is usually about
+something: a blog post, a repository, a specification. The clipper reads articles anywhere
+with no per-site code, so the post and the argument about it can go into the same bundle,
+and the repository can go in under it from the bundler itself. A send extends the bundle
+rather than replacing it, so the order you collect things in does not matter.
+
+That is the question worth asking a model: not what this thread says, but where the thread
+and the thing it is discussing disagree.
+
+Nothing is uploaded to us at any point. The clipping is made in your browser, held in your
+browser's own storage between the clip and the send, and handed to the tab you already
+have open.
