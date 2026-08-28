@@ -34,6 +34,20 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    // The extension's own page, and the URL the Chrome Web Store listing
+    // carries as its homepage. It is a product page, not a feature page, which
+    // is why it sits at the same priority as the persona pages rather than at
+    // a docs page's.
+    url: "/clipper",
+    sourceFile: [
+      "apps/web/src/routes/clipper.tsx",
+      "apps/web/src/components/clipper/clipper-page.tsx",
+      "apps/web/src/components/clipper/clipper-panel.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
     url: "/privacy",
     sourceFile: ["apps/web/src/routes/privacy.tsx", "apps/web/src/components/privacy-page.tsx"],
     changefreq: "yearly",
@@ -147,6 +161,12 @@ const pages: SitemapEntry[] = [
   {
     url: "/docs/bitbucket-import",
     sourceFile: "apps/web/src/content/docs/bitbucket-import.mdx",
+    changefreq: "monthly",
+    priority: 0.6,
+  },
+  {
+    url: "/docs/clipper",
+    sourceFile: "apps/web/src/content/docs/clipper.mdx",
     changefreq: "monthly",
     priority: 0.6,
   },
