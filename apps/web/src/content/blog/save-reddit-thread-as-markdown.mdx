@@ -1,0 +1,121 @@
+---
+title: "How to Save a Reddit Thread as Markdown"
+description: "Save a whole Reddit thread as one Markdown file, nesting and authors intact, ready to hand to ChatGPT or Claude. What copy and paste loses, and what to do instead."
+date: "2026-08-28"
+author: "CeamKrier"
+draft: false
+---
+
+You found the thread. Four hundred replies, an argument in the middle of it, and
+somewhere in there the answer to the thing you were actually looking up. You want to
+ask a model about it rather than read all of it, which means getting the thread out of
+the browser first.
+
+Selecting the page and pressing copy is the obvious move, and it is the one that quietly
+loses the thing that makes a thread a thread.
+
+## What copy and paste loses
+
+A discussion is not a document. Its meaning lives in the shape: who said what, in reply
+to whom, and how much the room agreed. Copy the rendered page and you get the words with
+the shape stripped out.
+
+<BeforeAfter>
+  <Before label="pasted from the page">{`The benchmark is misleading
+
+47
+
+Reply
+
+Share
+
+I ran it myself, opposite
+
+12
+
+Reply
+
+Share`}</Before>
+  <After label="saved as Markdown">{`**u/quietfox** - 312 points
+The benchmark is misleading
+
+  **u/anmutig** - 47 points
+  I ran it myself, opposite
+
+    **u/tern** - 12 points
+    Depends on the workload`}</After>
+</BeforeAfter>
+
+On the left, a reply reads as one more paragraph. On the right it still reads as a reply
+to the thing above it, and the model can follow who is answering whom. Same words, very
+different odds the answer you get back is about the right disagreement.
+
+## Half the thread is not on the page
+
+There is a second problem, and it is the one that catches people out. Reddit does not
+render the whole thread. It renders the part it thinks you want and hides the rest behind
+"more replies" links, which you then click one at a time.
+
+We measured this on one thread on 2026-08-19: 25 comments were on the page when it
+finished loading, out of 41 in the thread. Select-all could not have taken the other 16
+because they were never there to select.
+
+So a copy of the page is not a copy of the thread. It is a copy of the visible top of the
+thread, and nothing on screen tells you which one you are holding.
+
+## Save the whole thing instead
+
+FileConcat Clipper is a browser side panel that reads the thread properly and hands it to
+you as Markdown.
+
+<Steps>
+  <Step title="Open the panel on the thread">
+    Click the toolbar icon. The panel reports what it can see, which on a Reddit thread is
+    **Clip this post**. It re-reads the page whenever you navigate, so it never describes
+    the page you came from.
+  </Step>
+  <Step title="Turn on Expand more comments if you want the deep replies">
+    It clicks the thread's own "more replies" links three rounds deep. On that same
+    41-comment thread it reached 38. It is off by default because it is slower, and the
+    switch is in the panel's settings.
+  </Step>
+  <Step title="Clip it, then send it">
+    The clipping lands in the panel's cart with every author, score and level of nesting
+    kept. **Send** pushes it into an open [fileconcat.com](/) tab, opening one if there is
+    none.
+  </Step>
+</Steps>
+
+<Callout type="tip" title="Where to get it">
+  The extension is on the [Chrome Web
+  Store](https://chromewebstore.google.com/detail/fileconcat-clipper/nhjmkijlimliapgbidajgbkangddnlhn),
+  free and open source. There is a page about what it does at [/clipper](/clipper) and a
+  reference at [/docs/clipper](/docs/clipper).
+</Callout>
+
+## One thread, or the whole subreddit
+
+A subreddit's front page is a listing, so the panel puts a tap target on every row it has
+loaded. Tap the posts you want and each one is opened and read on its own, which turns a
+session of scrolling into a set of files rather than one flattened page of headlines.
+
+There is one honest limit worth knowing. A post clipped from a listing carries its full
+body but **not** its comments, because Reddit renders those on the client and fetching the
+page never sees them. That clipping says so in place of its comment section rather than
+reading as a thread that nobody replied to, and it will never overwrite a fuller clipping
+of the same post you already took from the thread itself.
+
+## Why Markdown, and why a bundle
+
+Markdown is the format a model reads without being taught anything: headings are
+headings, indentation is nesting, and there is no markup budget spent on layout.
+
+The send does not replace what is already in your bundle, it extends it, and files with
+the same name replace each other. So a repository and the thread arguing about it can sit
+in the same bundle in either order, and re-sending a corrected clipping fixes it in place
+instead of duplicating it. When you are done, the bundler gives you one document with a
+live token count, so you know it fits before you paste it anywhere.
+
+Nothing is uploaded to us on the way. The clipping is made in your browser, held in your
+browser's own storage between the clip and the send, and handed to the tab you already
+have open.

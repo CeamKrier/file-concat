@@ -1,4 +1,5 @@
 import { EntrySurface } from "./entry-surface";
+import { HeroAnnouncement } from "./hero-announcement";
 import { type ImportState } from "./import-panel";
 
 type LandingHeroProps = {
@@ -15,7 +16,9 @@ export function LandingHero({ linkImport, ...props }: LandingHeroProps) {
   return (
     <section className="mx-auto w-full max-w-[780px] px-4 pt-9 sm:px-6">
       <div className="flex flex-col items-center text-center">
-        <span className="text-go-fg rounded-pill inline-flex items-center gap-2 whitespace-nowrap border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
+        <HeroAnnouncement />
+
+        <span className="text-go-fg rounded-pill mt-3 inline-flex items-center gap-2 whitespace-nowrap border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
           <span className="bg-primary h-1.5 w-1.5 rounded-full" />
           runs in your browser, nothing uploaded
         </span>

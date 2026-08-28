@@ -22,6 +22,7 @@ export const DOCS_NAVIGATION: DocSection[] = [
       { title: "GitHub import", href: "/docs/github-import" },
       { title: "GitLab import", href: "/docs/gitlab-import" },
       { title: "Bitbucket import", href: "/docs/bitbucket-import" },
+      { title: "Browser clipper", href: "/docs/clipper" },
     ],
   },
   {

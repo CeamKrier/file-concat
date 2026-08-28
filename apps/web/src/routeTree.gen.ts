@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ClipperRouteImport } from './routes/clipper'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
@@ -32,6 +33,11 @@ import { Route as ApiERouteImport } from './routes/api/e'
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClipperRoute = ClipperRouteImport.update({
+  id: '/clipper',
+  path: '/clipper',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -129,6 +135,7 @@ const ApiERoute = ApiERouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/clipper': typeof ClipperRoute
   '/privacy': typeof PrivacyRoute
   '/api/e': typeof ApiERoute
   '/api/models': typeof ApiModelsRoute
@@ -150,6 +157,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/clipper': typeof ClipperRoute
   '/privacy': typeof PrivacyRoute
   '/api/e': typeof ApiERoute
   '/api/models': typeof ApiModelsRoute
@@ -172,6 +180,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/clipper': typeof ClipperRoute
   '/privacy': typeof PrivacyRoute
   '/api/e': typeof ApiERoute
   '/api/models': typeof ApiModelsRoute
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/clipper'
     | '/privacy'
     | '/api/e'
     | '/api/models'
@@ -216,6 +226,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app'
+    | '/clipper'
     | '/privacy'
     | '/api/e'
     | '/api/models'
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/clipper'
     | '/privacy'
     | '/api/e'
     | '/api/models'
@@ -259,6 +271,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRoute
+  ClipperRoute: typeof ClipperRoute
   PrivacyRoute: typeof PrivacyRoute
   ApiERoute: typeof ApiERoute
   ApiModelsRoute: typeof ApiModelsRoute
@@ -285,6 +298,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clipper': {
+      id: '/clipper'
+      path: '/clipper'
+      fullPath: '/clipper'
+      preLoaderRoute: typeof ClipperRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -419,6 +439,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRoute,
+  ClipperRoute: ClipperRoute,
   PrivacyRoute: PrivacyRoute,
   ApiERoute: ApiERoute,
   ApiModelsRoute: ApiModelsRoute,
