@@ -9,6 +9,8 @@ import { LabeledPoints } from "~/components/app/marketing/labeled-points";
 import { TopBar } from "~/components/app/top-bar";
 import { cn } from "~/lib/utils";
 
+import { MixedBundle, OneBundle, ThreadClipping } from "./clipper-artifacts";
+import { VIDEO } from "./clipper-content";
 import { ClipperPanel, type PanelState } from "./clipper-panel";
 
 export const STORE_URL =
@@ -208,51 +210,104 @@ function Beat({ beat, register }: { beat: BeatCopy; register: (node: HTMLElement
 }
 
 /**
- * The three YouTube pages the panel walks between, and how long each holds.
+ * The video exhibit: three pages of one channel, and the panel keeping up with
+ * them.
  *
- * Long enough to read the title and register that the body underneath changed
- * shape, short enough that a reader who stops here witnesses the change rather
- * than waiting for it.
+ * Each step names the page it is showing and says what that page lands as,
+ * because the panel changing shape is only evidence if you know what it changed
+ * to. It still advances on its own, since "no click in between" is the claim
+ * being made, and the first time the reader touches a step it stops advancing
+ * and is theirs.
  */
-const CYCLE: PanelState[] = ["watch", "channel", "playlist"];
-const CYCLE_MS = 3200;
+type Step = {
+  state: PanelState;
+  tab: string;
+  body: string;
+  aside?: string;
+  /** What comes out, which is the half the panel cannot show: a single clip
+   *  lands at the root, a batch lands under the name of what listed it. */
+  lands: string;
+  landsNote: string;
+};
 
-/**
- * The panel notices a new page on its own. That is the one claim on this page a
- * still picture cannot make, so it is the one thing here that moves by itself
- * rather than in response to the scroll.
- *
- * Reduced motion holds the first scene: the cycle is the motion, and the watch
- * page is the case the prose beside it opens on, so stopping there loses the
- * demonstration and none of the meaning.
- */
-function useYouTubeCycle() {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const id = setInterval(() => setIndex((current) => (current + 1) % CYCLE.length), CYCLE_MS);
-    return () => clearInterval(id);
-  }, []);
-
-  return CYCLE[index];
-}
-
-/** The three cases that follow the video one. They get a heading and a
- *  paragraph each and no panel, which is the weighting: one case is worth a
- *  demonstration and the rest are worth a sentence. */
-const USES = [
+const STEPS: Step[] = [
   {
-    heading: "A discussion you were not in",
-    body: "Someone links you to a thread with six hundred replies, thirty of which are on screen. Take the whole tree with its nesting intact and ask what the disagreement actually was, instead of scrolling for the one comment everybody is quoting.",
+    state: "watch",
+    tab: "Watch page",
+    body: "What you came for is not on the page as text at all. The panel takes the video's description and its whole transcript, so a talk becomes something you can search, quote and ask a question of.",
+    lands: `${VIDEO}.md`,
+    landsNote: "One file, named after the video.",
   },
   {
-    heading: "Documentation, next to the code that uses it",
-    body: "Drop the repository into the bundler, clip the pages of the documentation that matter, and both land in the same bundle. The answer you get back is then grounded in the pages you actually read rather than in whatever the model remembers about that library.",
+    state: "channel",
+    tab: "Videos tab",
+    body: "A channel's Videos tab is a listing like any other, so every row it has loaded gets a tap target of its own. Scroll for more and they join the list with no click.",
+    lands: "Systems, Slowly/",
+    landsNote: "One file per row you tapped, under the channel's name.",
+  },
+  {
+    state: "playlist",
+    tab: "Playlists tab",
+    body: "One tab over, the Playlists tab lists playlists rather than videos. Tap a single row and every video that playlist holds comes back, filed under its name.",
+    aside: "Measured on a 38-video playlist: one row tapped, 38 videos back, each read on its own.",
+    lands: "Distributed systems, from scratch/",
+    landsNote: "38 files, one per video in it.",
+  },
+];
+
+/** How long a step holds. Long enough to read the title and see the body
+ *  underneath change shape, short enough that a reader who stops here witnesses
+ *  the change rather than waiting for it. */
+const DWELL_MS = 3200;
+
+/**
+ * The step the exhibit is on, and whether it is still advancing by itself.
+ *
+ * Reduced motion holds the first step and leaves the tabs working, which is the
+ * honest trade: the cycle is the motion, and a reader who has turned motion off
+ * can still walk the three pages at their own pace.
+ */
+function useSteps() {
+  const [index, setIndex] = useState(0);
+  const [auto, setAuto] = useState(true);
+
+  useEffect(() => {
+    if (!auto || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = setInterval(() => setIndex((current) => (current + 1) % STEPS.length), DWELL_MS);
+    return () => clearInterval(id);
+  }, [auto]);
+
+  // Taking a step is taking the exhibit: it does not resume on its own,
+  // because a control that keeps moving under the hand is not a control.
+  const take = useCallback((next: number) => {
+    setAuto(false);
+    setIndex(next);
+  }, []);
+
+  return { index, auto, take };
+}
+
+/** The three cases that follow the video one. Each is a claim on the left and
+ *  the file it produces on the right, alternating sides so the page reads as a
+ *  conversation between the two rather than as a column of cards. */
+const CASES = [
+  {
+    heading: "A discussion you were not in",
+    body: "Six hundred replies, thirty of them on screen. The whole tree comes out with its nesting intact, so you can ask what the disagreement actually was instead of scrolling for the comment everybody is quoting.",
+    Art: ThreadClipping,
+    flip: false,
+  },
+  {
+    heading: "Documentation, beside the code that uses it",
+    body: "Drop the repository in, clip the pages of the documentation that matter, and both land in one bundle. The answer comes back grounded in the pages you read rather than in whatever the model remembers about that library.",
+    Art: MixedBundle,
+    flip: true,
   },
   {
     heading: "One subject, spread across the web",
-    body: "A Substack post, a news piece, a vendor's changelog and a specification are four different page shapes and one bundle. What holds them together is your question, not the sites they came from.",
+    body: "A newsletter, a reference page, a specification and a changelog are four page shapes and one file. What holds them together is your question, not the sites they came from.",
+    Art: OneBundle,
+    flip: false,
   },
 ];
 
@@ -263,10 +318,13 @@ const USES = [
  * there and what they wanted, which is a different question and deserves its
  * own band rather than a fifth beat. Video leads because it is the only case
  * where the thing you came for is not on the page as text at all, and it is
- * the only one that gets the panel beside it.
+ * the only one that gets the live panel; the rest get the file that comes out,
+ * which is the other half of the same promise.
  */
 function Uses() {
-  const scene = useYouTubeCycle();
+  const { index, auto, take } = useSteps();
+  const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+  const step = STEPS[index];
 
   return (
     <MarketingSection labelledBy="uses">
@@ -280,50 +338,130 @@ function Uses() {
         Four situations, starting with the one that is hardest to do any other way.
       </p>
 
-      <div className="mt-10 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-14">
-        <div className="min-w-0">
-          <h3 className="font-display text-ink text-[clamp(1.1rem,2.2vw,1.25rem)] font-semibold leading-snug tracking-[-0.015em]">
-            Watching is the slowest way to read
-          </h3>
-          <p className="text-ink-secondary mt-4 max-w-[58ch] text-[15px] leading-relaxed">
-            A watch page is the one place where what you came for is not text at all. The panel
-            takes the video's description and its whole transcript, so a forty-minute talk becomes
-            something you can search, quote and ask a question about without watching it first.
-          </p>
-          <p className="text-ink-secondary mt-4 max-w-[58ch] text-[15px] leading-relaxed">
-            A channel's Videos tab is a listing like any other, so every row it has loaded gets a
-            tap target of its own. One tab over, the Playlists tab lists playlists rather than
-            videos, and taking one row takes everything the playlist holds, filed under its name.
-          </p>
-          <p className="border-hairline text-ink-muted mt-5 max-w-[54ch] border-l pl-4 text-[14px] leading-relaxed">
-            Measured on a 38-video playlist: one row tapped, 38 videos back, each read on its own.
-          </p>
-          <p className="text-ink-secondary mt-5 max-w-[58ch] text-[15px] leading-relaxed">
-            Nothing here needs a refresh. The panel re-reads the page whenever it changes, so those
-            three pages are three different offers with no click in between, and scrolling a feed to
-            load more rows adds them to the list you are already looking at.
-          </p>
+      <div className="mt-12">
+        <h3 className="font-display text-ink text-[clamp(1.1rem,2.2vw,1.25rem)] font-semibold leading-snug tracking-[-0.015em]">
+          Watching is the slowest way to read
+        </h3>
+        <p className="text-ink-secondary mt-4 max-w-[58ch] text-[15px] leading-relaxed">
+          Three pages of one channel, and no click between them. The panel re-reads whatever the tab
+          is showing, so the offer changes shape on its own.
+        </p>
 
-          {/* The panel rides with the copy on narrow screens, where nothing can
-              sit beside anything. */}
-          <ClipperPanel state={scene} className="mt-8 lg:hidden" />
-
-          {USES.map((use) => (
-            <div key={use.heading} className="border-hairline mt-8 border-t pt-8">
-              <h3 className="font-display text-ink text-[16px] font-semibold leading-snug tracking-[-0.01em]">
-                {use.heading}
-              </h3>
-              <p className="text-ink-secondary mt-2.5 max-w-[58ch] text-[14.5px] leading-relaxed">
-                {use.body}
-              </p>
+        {/* Both columns are the panel's height, so the step's copy sits at the
+            top with the control and what it lands as sits on the floor, level
+            with the panel's own. Left to fall where it liked, the copy ended
+            two hundred pixels above the panel's bottom edge and the column read
+            as a hole rather than as a composition. */}
+        <div className="mt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-14">
+          <div className="min-w-0 lg:flex lg:min-h-[400px] lg:flex-col">
+            <div
+              role="tablist"
+              aria-label="One channel, three pages"
+              className="border-hairline flex gap-7 border-b"
+            >
+              {STEPS.map((option, position) => (
+                <button
+                  key={option.tab}
+                  ref={(node) => {
+                    tabs.current[position] = node;
+                  }}
+                  id={`uses-step-${position}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={position === index}
+                  aria-controls="uses-step"
+                  tabIndex={position === index ? 0 : -1}
+                  onClick={() => take(position)}
+                  onKeyDown={(event) => {
+                    const delta =
+                      event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+                    if (!delta) return;
+                    event.preventDefault();
+                    const next = (index + delta + STEPS.length) % STEPS.length;
+                    take(next);
+                    tabs.current[next]?.focus();
+                  }}
+                  className={cn(
+                    "focus-visible:ring-ring focus-visible:ring-offset-background relative -mb-px rounded-[3px] pb-3 text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-4",
+                    position === index ? "text-ink" : "text-ink-muted hover:text-ink-secondary",
+                  )}
+                >
+                  {option.tab}
+                  {/* The bar is the clock: it fills over exactly as long as the
+                      step holds, so the next change is something the reader saw
+                      coming. Once the exhibit has been taken over it just marks
+                      the step, filled and still. */}
+                  {position === index ? (
+                    <span
+                      aria-hidden="true"
+                      style={{ animationDuration: `${DWELL_MS}ms` }}
+                      className={cn(
+                        "bg-primary absolute inset-x-0 bottom-0 h-[2px] origin-left",
+                        auto && "motion-safe:animate-dwell",
+                      )}
+                    />
+                  ) : null}
+                </button>
+              ))}
             </div>
-          ))}
-        </div>
 
-        <aside className="hidden lg:block">
-          <ClipperPanel state={scene} />
-        </aside>
+            {/* The panel rides between the steps and the copy on narrow
+                screens, where nothing can sit beside anything, so the control
+                and the thing it controls stay in sight of each other. */}
+            <ClipperPanel state={step.state} className="mt-6 h-[400px] lg:hidden" />
+
+            <div
+              id="uses-step"
+              role="tabpanel"
+              aria-labelledby={`uses-step-${index}`}
+              className="lg:flex lg:flex-1 lg:flex-col"
+            >
+              <p className="text-ink-secondary mt-6 max-w-[54ch] text-[15px] leading-relaxed">
+                {step.body}
+              </p>
+              {step.aside ? (
+                <p className="border-hairline text-ink-muted mt-4 max-w-[54ch] border-l pl-4 text-[14px] leading-relaxed">
+                  {step.aside}
+                </p>
+              ) : null}
+
+              <div className="border-hairline mt-7 border-t pt-5 lg:mt-auto lg:pt-6">
+                <span className="text-ink-muted font-mono text-[10.5px] uppercase tracking-[0.16em]">
+                  lands as
+                </span>
+                <p className="text-code mt-2.5 truncate font-mono text-[13px]">{step.lands}</p>
+                <p className="text-ink-muted mt-1.5 text-[13.5px]">{step.landsNote}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Shorter than the panel in the beats above, because this one is
+              beside four lines of copy rather than a whole page of them. The
+              listing still runs past the floor, which is the point of it. */}
+          <aside className="hidden lg:block">
+            <ClipperPanel state={step.state} className="h-[400px]" />
+          </aside>
+        </div>
       </div>
+
+      {CASES.map(({ heading, body, Art, flip }) => (
+        <div
+          key={heading}
+          className="border-hairline mt-14 grid gap-8 border-t pt-14 lg:grid-cols-2 lg:items-center lg:gap-14"
+        >
+          <div className={cn("min-w-0", flip && "lg:order-2")}>
+            <h3 className="font-display text-ink text-[17px] font-semibold leading-snug tracking-[-0.01em]">
+              {heading}
+            </h3>
+            <p className="text-ink-secondary mt-3 max-w-[46ch] text-[15px] leading-relaxed">
+              {body}
+            </p>
+          </div>
+          <div className="min-w-0">
+            <Art />
+          </div>
+        </div>
+      ))}
     </MarketingSection>
   );
 }

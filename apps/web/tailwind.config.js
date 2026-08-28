@@ -103,10 +103,18 @@ export default {
           from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        // How long a step of a self-advancing sequence has left. Linear on
+        // purpose: it is a clock, and an eased clock reads as a wrong one.
+        dwell: {
+          from: { transform: "scaleX(0)" },
+          to: { transform: "scaleX(1)" },
+        },
       },
       animation: {
         float: "float 3.4s ease-in-out infinite",
         "fade-up": "fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both",
+        // The duration is the sequence's own, set inline where it is used.
+        dwell: "dwell 3.2s linear both",
       },
       zIndex: {
         dropdown: "30",

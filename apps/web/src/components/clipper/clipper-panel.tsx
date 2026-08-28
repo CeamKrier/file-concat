@@ -3,6 +3,8 @@ import { ArrowLeft, Check, ChevronUp, SlidersHorizontal } from "lucide-react";
 import { LogoMark } from "~/components/app/logo-mark";
 import { cn } from "~/lib/utils";
 
+import { CART, THREAD, VIDEO, weigh } from "./clipper-content";
+
 /**
  * The clipper's side panel, rebuilt in the site's own tokens.
  *
@@ -58,9 +60,6 @@ type Scene = {
   cart: number;
 };
 
-const THREAD = "Ask HN: How do you keep a design system honest?";
-const VIDEO = "How databases actually store your data";
-
 /**
  * A listing shows more rows than the panel is tall, on purpose. The count in
  * the hint above is the page's whole count, so a list that stopped short of the
@@ -109,20 +108,6 @@ const PLAYLIST_ROWS: Row[] = [
 /** The one opt-in YouTube reports, in the extension's own words. */
 const COMMENTS_OFF = "Include comments: off for this site";
 
-/**
- * The cart, in the order the page fills it: the thread, then the three rows off
- * the listing, then the video. Every count and every figure in the panel is
- * derived from this one list, because a mock whose badge reads 3 over a list of
- * 5 is the kind of detail a reader checks and then stops trusting the rest of.
- */
-const CART = [
-  { name: "ask-hn-how-do-you-keep-a-design-system-honest.md", tokens: 14.2 },
-  { name: "what-are-you-working-on-this-week.md", tokens: 7.8 },
-  { name: "writing-a-parser-without-a-parser-generator.md", tokens: 9.1 },
-  { name: "async-cancellation-three-years-later.md", tokens: 11.6 },
-  { name: "how-databases-actually-store-your-data.md", tokens: 6.4 },
-];
-
 const SCENE: Record<PanelState, Scene> = {
   offer: { host: "news.ycombinator.com", title: THREAD, offer: "Clip this thread", cart: 0 },
   clipped: { host: "news.ycombinator.com", title: THREAD, offer: "Clip this thread", cart: 1 },
@@ -166,8 +151,12 @@ const SCENE: Record<PanelState, Scene> = {
 };
 
 const held = (state: PanelState) => CART.slice(0, SCENE[state].cart);
-const weigh = (files: { tokens: number }[]) =>
-  `~${files.reduce((total, file) => total + file.tokens, 0).toFixed(1)}k`;
+
+/** What the panel is looking at, ignoring what the cart holds. Two states that
+ *  share one page are one page, which is what makes clipping a thread a change
+ *  of colour and opening a different tab a change of scene. */
+const pageKey = (scene: Scene) =>
+  `${scene.host}|${scene.title ?? ""}|${scene.listing?.label ?? scene.offer ?? ""}`;
 
 /** Milliseconds between one row settling into the cart and the next. Slow
  *  enough to read as three separate taps rather than one bulk action. */
@@ -189,7 +178,14 @@ export function ClipperPanel({ state, className }: { state: PanelState; classNam
       <PanelHeader />
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
-        <div className="flex h-full flex-col px-4 pb-3 pt-4">
+        {/* Keyed on the page rather than on the state, so the two kinds of
+            change read differently: a new page arrives (the panel re-read
+            something) and a clip you took stays put and turns colour. Keying on
+            `state` would remount on both and lose the second one. */}
+        <div
+          key={pageKey(scene)}
+          className="motion-safe:animate-fade-up flex h-full flex-col px-4 pb-3 pt-4"
+        >
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-ink-faint font-mono text-[10px] uppercase tracking-[0.18em]">Now</span>
             <span className="text-ink-muted truncate text-[12px]">{scene.host}</span>
