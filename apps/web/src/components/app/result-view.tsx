@@ -74,6 +74,9 @@ type ResultViewProps = {
   recoveredDocuments: number;
   /** True when the last recognition pass ended on a stop rather than on its own. */
   stoppedReading: boolean;
+  /** True when no pass has been started over the scans at all, because the drop
+   * was too big to read unasked. */
+  readDeferred: boolean;
   /** How to attribute the reading, already phrased: "as Turkish", "in 2 languages". */
   readLanguageNote: string | null;
   /** Open the reading dialog, where every recognition action lives. */
@@ -120,6 +123,7 @@ export function ResultView({
   readProgress,
   recoveredDocuments,
   stoppedReading,
+  readDeferred,
   readLanguageNote,
   onCheckReading,
   onAdjust,
@@ -196,6 +200,7 @@ export function ResultView({
         isReading={isReading}
         progress={readProgress}
         stopped={stoppedReading}
+        deferred={readDeferred}
         languageNote={readLanguageNote}
         onCheck={onCheckReading}
       />
@@ -520,6 +525,7 @@ function ScannedDocuments({
   isReading,
   progress,
   stopped,
+  deferred,
   languageNote,
   onCheck,
 }: {
@@ -528,6 +534,7 @@ function ScannedDocuments({
   isReading: boolean;
   progress: { done: number; total: number } | null;
   stopped: boolean;
+  deferred: boolean;
   languageNote: string | null;
   onCheck: () => void;
 }) {
@@ -585,6 +592,24 @@ function ScannedDocuments({
         {stopped
           ? `The page in hand finished, and everything read before you stopped is in the bundle. The other ${left} ${noun(left)} ${left === 1 ? "is" : "are"} still out.`
           : `Nothing legible came back from the other ${left}. Another language is the thing worth ruling out.`}
+      </ReadingCard>
+    );
+  }
+
+  // Never tried, because trying would have held this bundle behind a wait
+  // nobody agreed to. The offer belongs here rather than in a warning: nothing
+  // has gone wrong, and the copy must not imply recognition looked and failed.
+  if (deferred) {
+    return (
+      <ReadingCard
+        tone="info"
+        icon={ScanText}
+        title={`${total} ${noun(total)} not read yet`}
+        cta="Read them"
+        onCheck={onCheck}
+      >
+        Recognition can read the pages as pictures, a few seconds a page. This drop is large enough
+        that the bundle came first and the reading waits for you to ask.
       </ReadingCard>
     );
   }

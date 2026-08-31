@@ -192,11 +192,24 @@ export const METRIC_EVENTS = [
    * An image a recognition pass actually **opened**, by format: `n` files
    * totalling `b` bytes. A strict subset of `ocr_offered` in the same Run.
    *
-   * Images only, so the ratio to `ocr_offered` means something. Documents are
-   * never offered — their pass starts by itself — and are counted by
-   * `ocr_recovered` alone.
+   * Images only, so the ratio to `ocr_offered` means something. A document's
+   * pass usually starts by itself, and a document is counted by `ocr_recovered`
+   * alone; the exception is a drop too big to read unasked, which writes
+   * `ocr_deferred` and then looks like an image from here on.
    */
   "ocr_read",
+  /**
+   * Scanned documents a drop declined to read on its own, by format: `n` files
+   * totalling `b` bytes. Written once per Run, at the end of ingest, when the
+   * queue is past the auto-read caps in `use-file-ingestion.ts`.
+   *
+   * The measurement the cap owes: a Run with this and no later `ocr_ms` is a
+   * bundle released and an offer nobody took, while this followed by `ocr_ms`
+   * is someone choosing a wait they can see the size of. Before the cap the two
+   * were the same thing, a pass nobody agreed to, and the only visible outcome
+   * was the Run being abandoned.
+   */
+  "ocr_deferred",
   /**
    * How confident tesseract was in a reading, as a band of ten (`0`, `10`, …
    * `90`), `n` readings each. Written per image read, kept or rejected, since

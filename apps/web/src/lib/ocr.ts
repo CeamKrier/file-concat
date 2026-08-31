@@ -10,10 +10,11 @@ import type { ExtractionResult } from "@fileconcat/core";
 export async function readWithOcr(
   bytes: Uint8Array,
   language: string,
+  signal?: AbortSignal,
 ): Promise<ExtractionResult> {
   if (import.meta.env.SSR) return { text: "" };
   const mod = await import("./extract-document-client");
-  return mod.extractOfficeWithOcr(bytes, language);
+  return mod.extractOfficeWithOcr(bytes, language, signal);
 }
 
 /**
@@ -26,10 +27,11 @@ export async function readPdfPagesWithOcr(
   pages: readonly number[],
   language: string,
   onPage?: (done: number, total: number) => void,
+  signal?: AbortSignal,
 ): Promise<Map<number, string>> {
   if (import.meta.env.SSR) return new Map();
   const mod = await import("./extract-document-client");
-  return mod.readPdfPages(bytes, pages, language, onPage);
+  return mod.readPdfPages(bytes, pages, language, onPage, signal);
 }
 
 /** What a reading of an image has to clear to count as one. Both numbers are

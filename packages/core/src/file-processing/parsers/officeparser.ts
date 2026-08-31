@@ -27,6 +27,17 @@ export interface OfficeParserOptions {
    * the caller having asked.
    */
   ocr?: OcrOptions;
+  /**
+   * Abandon the parse, and with it any recognition it started.
+   *
+   * Only recognition makes this worth having: ordinary extraction is fast
+   * enough that nobody asks to stop it, while a scanned page is seconds of work
+   * with no natural break in it. `officeparser` honours the signal inside its
+   * own recogniser queue and terminates the worker holding the page, so this is
+   * the difference between a stop that lands now and one that lands whenever
+   * the page in hand happens to finish.
+   */
+  abortSignal?: AbortSignal;
 }
 
 /**
@@ -495,6 +506,10 @@ function numberFootnotes(): (node: OfficeContentNode) => void {
 function toLibraryConfig(options: OfficeParserOptions): Record<string, unknown> {
   const config: Record<string, unknown> = {};
   if (options.pdfWorkerSrc) config.pdfWorkerSrc = options.pdfWorkerSrc;
+  // Set at the top level rather than inside `ocrConfig`: the library copies it
+  // down into the recogniser itself, and passing it here also aborts the parse
+  // around the recognition instead of only the pages.
+  if (options.abortSignal) config.abortSignal = options.abortSignal;
   if (options.ocr) {
     const { language, ...paths } = options.ocr;
     // The two flags are inseparable. Recognition only ever runs over images the
