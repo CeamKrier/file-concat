@@ -144,6 +144,26 @@ export const METRIC_EVENTS = [
   /** The terminal action: copy | download. May occur more than once per run. */
   "output_taken",
   /**
+   * The bundle format an export produced: `xml` | `markdown` | `plain`.
+   *
+   * Written beside every `output_taken`, same unit and same rows, so the two are
+   * directly comparable: that one says how the bundle was taken, this one says in
+   * what shape. Read by **distinct Runs**, never by row count - a copy followed
+   * by a download writes two rows for one bundle.
+   *
+   * The **effective** style, not a deliberate switch. `outputStyle` is persisted
+   * (`use-config.ts`), so somebody who picked markdown last week never touches
+   * the control again, and a change-only counter would file them under the
+   * `xml` default forever. The question this exists to answer is whether `xml`
+   * is the right default, so what counts is the format the bundle left in, not
+   * the click that set it.
+   *
+   * Nothing is written for an abandoned run, deliberately: a bundle nobody took
+   * has no format anyone acted on. `bundle_size` is what counts those, and it is
+   * the denominator for "how many Runs got as far as choosing".
+   */
+  "output_style",
+  /**
    * A format whose text recognition recovered: `n` files totalling `b` bytes.
    *
    * This used to say that recognition ran over exactly the `extract_failed` set

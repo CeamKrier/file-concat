@@ -149,11 +149,12 @@ export function useOutputGeneration({
       setTimeout(() => setIsCopied(false), 2000);
       // Recorded after the write succeeds: a failed copy is not an outcome.
       track("output_taken", "copy");
+      track("output_style", outputStyle);
       tagOutcome("copied");
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
     }
-  }, [buildSingle, includedContents]);
+  }, [buildSingle, includedContents, outputStyle]);
 
   const download = useCallback(async () => {
     setIsGenerating(true);
@@ -170,6 +171,7 @@ export function useOutputGeneration({
         const { projectName, text } = buildSingle(includedContents);
         triggerDownload(text, outputFileName(projectName, extension), mimeType);
         track("output_taken", "download");
+        track("output_style", outputStyle);
         tagOutcome("downloaded");
         return;
       }
@@ -188,6 +190,7 @@ export function useOutputGeneration({
       }
       // One multi-part download is one outcome, however many parts it wrote.
       track("output_taken", "download");
+      track("output_style", outputStyle);
       tagOutcome("downloaded");
     } catch (error) {
       console.error("Error generating output:", error);
