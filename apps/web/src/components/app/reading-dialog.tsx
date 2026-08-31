@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, LoaderCircle, ScanText, Square } from "lucide-react";
+import { Check, ChevronDown, LoaderCircle, ScanText, Square } from "lucide-react";
 
 import {
   Dialog,
@@ -36,6 +36,10 @@ type ReadingDialogProps = {
   /** Run recognition over these paths, in this language. */
   onRead: (paths: readonly string[], locale: string) => Promise<number>;
   onStop: () => void;
+  /** True between the stop being asked for and the pass ending. The page in
+   * hand still has to come back, and a button silent across that gap reads as
+   * a broken one. */
+  isStopping?: boolean;
 };
 
 /**
@@ -61,6 +65,7 @@ export function ReadingDialog({
   progress,
   onRead,
   onStop,
+  isStopping,
 }: ReadingDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -79,6 +84,7 @@ export function ReadingDialog({
             behind last time. */}
         {open && (
           <ReadingPanel
+            onClose={() => onOpenChange(false)}
             documents={documents}
             language={language}
             languageOptions={languageOptions}
@@ -86,6 +92,7 @@ export function ReadingDialog({
             progress={progress}
             onRead={onRead}
             onStop={onStop}
+            isStopping={isStopping}
           />
         )}
       </DialogContent>
@@ -173,7 +180,9 @@ function ReadingPanel({
   progress,
   onRead,
   onStop,
-}: Omit<ReadingDialogProps, "open" | "onOpenChange">) {
+  isStopping,
+  onClose,
+}: Omit<ReadingDialogProps, "open" | "onOpenChange"> & { onClose: () => void }) {
   // Documents that came back with nothing first. Drop order carries nothing
   // here, and these are the only ones that still need a decision.
   const ordered = useMemo(
@@ -200,19 +209,40 @@ function ReadingPanel({
     documents.length === 1 && ordered[0].text ? ordered[0].path : null,
   );
 
+  // The button used to say the same thing before a pass and after it, so a
+  // reading that had just happened looked like one that never did, and the move
+  // the screen invited was to run it again. Nothing left to attempt means the
+  // action here is a way out, until the selection or the language gives a
+  // reason for another pass. Reading the same files again in the same language
+  // is the one thing this dialog has no reason to offer.
+  const [finished, setFinished] = useState(() => documents.every((d) => d.tried));
+  // A stop leaves the rest unread, which is not a finished pass: the action
+  // there is still "read", not a way out.
+  const stopped = useRef(false);
+  const wasReading = useRef(isReading);
+  useEffect(() => {
+    if (wasReading.current && !isReading) setFinished(!stopped.current);
+    wasReading.current = isReading;
+  }, [isReading]);
+
   // A single document has nothing to choose between, so the checkbox column is
   // noise: the one action is "read this again".
   const selectable = documents.length > 1;
   const paths = selectable ? ordered.filter((d) => selected.has(d.path)) : ordered;
   const allSelected = paths.length === documents.length;
 
-  const toggle = (path: string) =>
+  const toggle = (path: string) => {
+    setFinished(false);
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(path)) next.delete(path);
       else next.add(path);
       return next;
     });
+  };
+
+  const action =
+    "bg-primary text-primary-foreground rounded-input focus-visible:ring-ring focus-visible:ring-offset-surface-alt inline-flex shrink-0 items-center justify-center gap-2 px-4 py-2 text-[13px] font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1";
 
   return (
     <>
@@ -284,7 +314,10 @@ function ReadingPanel({
             <span className="text-ink-secondary">Read as</span>
             <select
               value={locale}
-              onChange={(e) => setLocale(e.target.value)}
+              onChange={(e) => {
+                setFinished(false);
+                setLocale(e.target.value);
+              }}
               disabled={isReading}
               className="border-border-strong bg-surface text-ink rounded-input focus-visible:ring-ring focus-visible:ring-offset-surface-alt border px-2 py-1 text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-60"
             >
@@ -298,9 +331,10 @@ function ReadingPanel({
           {selectable && !isReading && (
             <button
               type="button"
-              onClick={() =>
-                setSelected(allSelected ? new Set() : new Set(documents.map((d) => d.path)))
-              }
+              onClick={() => {
+                setFinished(false);
+                setSelected(allSelected ? new Set() : new Set(documents.map((d) => d.path)));
+              }}
               className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-surface-alt rounded-sm px-1.5 py-1 text-[12px] underline decoration-[oklch(var(--hairline))] underline-offset-2 transition-colors hover:decoration-current focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
             >
               {allSelected ? "Clear selection" : "Select all"}
@@ -324,22 +358,34 @@ function ReadingPanel({
             </span>
             <button
               type="button"
-              onClick={onStop}
-              className="bg-secondary text-ink border-border-strong rounded-input focus-visible:ring-ring focus-visible:ring-offset-surface-alt inline-flex shrink-0 items-center gap-2 border px-3 py-2 text-[13px] font-medium transition-colors duration-150 hover:bg-[oklch(var(--accent))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+              onClick={() => {
+                stopped.current = true;
+                onStop();
+              }}
+              disabled={isStopping}
+              className="bg-secondary text-ink border-border-strong rounded-input focus-visible:ring-ring focus-visible:ring-offset-surface-alt inline-flex shrink-0 items-center gap-2 border px-3 py-2 text-[13px] font-medium transition-colors duration-150 hover:bg-[oklch(var(--accent))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:cursor-default disabled:opacity-60"
             >
               <Square className="h-3.5 w-3.5" strokeWidth={2.5} />
-              Stop
+              {isStopping ? "Stopping..." : "Stop"}
             </button>
           </div>
+        ) : finished ? (
+          <button type="button" onClick={onClose} className={action}>
+            <Check className="h-4 w-4" strokeWidth={2.5} />
+            Done
+          </button>
         ) : (
           <button
             type="button"
             disabled={paths.length === 0}
-            onClick={() => void onRead(paths.map((d) => d.path), locale)}
-            className={cn(
-              "bg-primary text-primary-foreground rounded-input focus-visible:ring-ring focus-visible:ring-offset-surface-alt inline-flex shrink-0 items-center justify-center gap-2 px-4 py-2 text-[13px] font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
-              paths.length === 0 && "cursor-not-allowed opacity-50",
-            )}
+            onClick={() => {
+              stopped.current = false;
+              void onRead(
+                paths.map((d) => d.path),
+                locale,
+              );
+            }}
+            className={cn(action, paths.length === 0 && "cursor-not-allowed opacity-50")}
           >
             <ScanText className="h-4 w-4" strokeWidth={2} />
             {paths.length === 0

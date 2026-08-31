@@ -11,6 +11,8 @@ type ProcessingViewProps = {
   onStop?: () => void;
   /** What stopping is called, e.g. "Skip the scanned pages". */
   stopLabel?: string;
+  /** True once stopping has been asked for and before the stage has ended. */
+  stopping?: boolean;
 };
 
 /**
@@ -25,6 +27,7 @@ export function ProcessingView({
   aside,
   onStop,
   stopLabel,
+  stopping,
 }: ProcessingViewProps) {
   return (
     <section className="animate-fade-up mx-auto flex w-full max-w-[560px] flex-col items-center px-4 pt-16 text-center motion-reduce:animate-none">
@@ -52,13 +55,18 @@ export function ProcessingView({
           {aside}
         </p>
       )}
+      {/* The press has to answer before the stage does. Stopping reaches the
+          recogniser at once but the page in hand still has to come back, and a
+          button that says nothing across that gap reads as a dead button. */}
       {onStop && (
         <button
           type="button"
           onClick={onStop}
-          className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background mt-3 rounded-sm px-2 py-1 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+          disabled={stopping}
+          aria-live="polite"
+          className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background mt-3 rounded-sm px-2 py-1 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-default disabled:opacity-60 disabled:hover:text-ink-muted"
         >
-          {stopLabel ?? "Skip this step"}
+          {stopping ? "Stopping..." : (stopLabel ?? "Skip this step")}
         </button>
       )}
     </section>

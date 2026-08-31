@@ -71,13 +71,17 @@ describe("the reading dialog", () => {
     expect(screen.getByText(/Nothing legible here/)).toBeInTheDocument();
   });
 
-  it("reads the whole set again when everything already read", async () => {
+  it("offers a way out, not a second pass, when everything has been read", async () => {
     const { onRead } = open({
       documents: [doc("a.pdf", "one"), doc("b.pdf", "two")],
     });
 
+    // Reading the same files again in the same language would produce the same
+    // reading, so the pass on offer needs a reason first.
+    expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByRole("combobox"), "ar");
     await userEvent.click(screen.getByRole("button", { name: "Read 2 files" }));
-    expect(onRead).toHaveBeenCalledWith(["scans/a.pdf", "scans/b.pdf"], "tr");
+    expect(onRead).toHaveBeenCalledWith(["scans/a.pdf", "scans/b.pdf"], "ar");
   });
 
   it("starts on the unread documents when there are any, since that is the job", async () => {
@@ -103,10 +107,11 @@ describe("the reading dialog", () => {
     expect(onRead).toHaveBeenCalledWith(["scans/ar.pdf"], "ar");
   });
 
-  it("offers no checkbox for a single document, which has nothing to choose between", () => {
+  it("offers no checkbox for a single document, which has nothing to choose between", async () => {
     open({ documents: [doc("a.pdf", "one")] });
 
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByRole("combobox"), "ar");
     expect(screen.getByRole("button", { name: "Read 1 file" })).toBeEnabled();
   });
 
@@ -185,6 +190,72 @@ describe("the reading dialog", () => {
     // would only be a control over nothing.
     expect(screen.queryByRole("button", { name: /blank\.pdf/ })).not.toBeInTheDocument();
     expect(screen.getByText(/Nothing legible here/)).toBeInTheDocument();
+  });
+
+  it("stops asking for a second pass once one has finished", async () => {
+    const onOpenChange = vi.fn();
+    const props = {
+      open: true,
+      onOpenChange,
+      documents: [doc("a.pdf", "one"), doc("b.pdf", "two")],
+      language: "tr",
+      languageOptions: OPTIONS,
+      progress: null,
+      onRead: vi.fn(async () => 2),
+      onStop: vi.fn(),
+    };
+    const { rerender } = render(<ReadingDialog {...props} isReading />);
+    rerender(<ReadingDialog {...props} isReading={false} />);
+
+    // The button read "Read 2 files" before the pass and again after it, so a
+    // finished pass looked like one that never ran and people ran it twice.
+    expect(screen.queryByRole("button", { name: /^Read \d/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Done" }));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+
+    // Another language is a reason for another pass, so the action comes back.
+    await userEvent.selectOptions(screen.getByRole("combobox"), "ar");
+    expect(screen.getByRole("button", { name: "Read 2 files" })).toBeEnabled();
+  });
+
+  it("keeps the action after a stop, which leaves the rest unread", async () => {
+    const props = {
+      open: true,
+      onOpenChange: () => {},
+      documents: [doc("a.pdf", "one"), doc("b.pdf", "two")],
+      language: "tr",
+      languageOptions: OPTIONS,
+      progress: null,
+      onRead: vi.fn(async () => 1),
+      onStop: vi.fn(),
+    };
+    const { rerender } = render(<ReadingDialog {...props} isReading />);
+    await userEvent.click(screen.getByRole("button", { name: "Stop" }));
+    rerender(<ReadingDialog {...props} isReading={false} />);
+
+    expect(screen.getByRole("button", { name: /^Read \d/ })).toBeInTheDocument();
+  });
+
+  it("says the stop landed while the page in hand is still coming back", async () => {
+    const props = {
+      open: true,
+      onOpenChange: () => {},
+      documents: [doc("a.pdf", "one"), doc("b.pdf", "two")],
+      language: "tr",
+      languageOptions: OPTIONS,
+      progress: null,
+      onRead: vi.fn(async () => 1),
+      onStop: vi.fn(),
+    };
+    const { rerender } = render(<ReadingDialog {...props} isReading />);
+    rerender(<ReadingDialog {...props} isReading isStopping />);
+
+    // The gap between the press and the pass ending is real: the abort reaches
+    // the recogniser at once, and the document it is holding still has to
+    // unwind. A button that says nothing across it reads as a dead button,
+    // which is how it was being read.
+    expect(screen.queryByRole("button", { name: "Stop" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Stopping..." })).toBeDisabled();
   });
 
   it("names the language it read in, so a wrong guess is visible before the text is", () => {
