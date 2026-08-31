@@ -30,6 +30,15 @@ type ResultEmptyProps = {
   readProgress?: { done: number; total: number } | null;
   /** True when the last pass ended on a stop rather than on its own. */
   stoppedReading?: boolean;
+  /** True while a stop is asked for and the pass has not ended yet. */
+  isStopping?: boolean;
+  /**
+   * True when no pass has been started over these at all, because the drop was
+   * too big to read unasked. Distinct from `stoppedReading`, and from neither
+   * being set: those mean "tried some" and "tried, found nothing", and both
+   * would be untrue here.
+   */
+  readDeferred?: boolean;
   /** Run recognition over the unread documents; resolves to how many became readable. */
   onRead?: () => Promise<number>;
   /** Abandon the rest of a running pass. */
@@ -143,6 +152,8 @@ export function ResultEmpty({
   isReading = false,
   readProgress = null,
   stoppedReading = false,
+  isStopping = false,
+  readDeferred = false,
   onRead,
   onStopReading,
   onOfferRead,
@@ -212,6 +223,8 @@ export function ResultEmpty({
           isReading={isReading}
           progress={readProgress}
           stopped={stoppedReading}
+          stopping={isStopping}
+          deferred={readDeferred}
           onRead={onRead}
           onStop={onStopReading}
           onStartOver={onStartOver}
@@ -221,7 +234,7 @@ export function ResultEmpty({
         // A pass someone started from the dialog, seen from the screen behind
         // it. The dialog carries its own stop; this one is for the case where it
         // was closed mid-pass.
-        <ReadingProgress progress={readProgress} onStop={onStopReading} />
+        <ReadingProgress progress={readProgress} stopping={isStopping} onStop={onStopReading} />
       ) : (
         <div className="mt-7 flex flex-col items-center gap-3">
           <button
@@ -252,9 +265,11 @@ export function ResultEmpty({
  * have one running behind them. */
 function ReadingProgress({
   progress,
+  stopping,
   onStop,
 }: {
   progress: { done: number; total: number } | null;
+  stopping?: boolean;
   onStop?: () => void;
 }) {
   return (
@@ -276,9 +291,10 @@ function ReadingProgress({
         <button
           type="button"
           onClick={onStop}
-          className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm px-2 py-1 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+          disabled={stopping}
+          className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background disabled:hover:text-ink-muted rounded-sm px-2 py-1 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-default disabled:opacity-60"
         >
-          Stop reading
+          {stopping ? "Stopping..." : "Stop reading"}
         </button>
       )}
     </div>
@@ -286,17 +302,24 @@ function ReadingProgress({
 }
 
 /**
- * The scanned variant's action. Three states, in the order a person meets them:
- * running (which is where everyone starts, since the pass begins with the
- * drop), stopped, and the honest dead end when recognition found nothing
- * either. A success never renders here — the moment a document becomes readable
- * the flow has a bundle, and the result screen replaces this one.
+ * The scanned variant's action. Four states, in the order a person meets them:
+ * deferred (the drop was too big to read unasked), running, stopped, and the
+ * honest dead end when recognition found nothing either. A success never
+ * renders here: the moment a document becomes readable the flow has a bundle,
+ * and the result screen replaces this one.
+ *
+ * Deferred and stopped share their shape and not their words. Both offer the
+ * pass, but "read the rest" is a plain untruth where there is no first part,
+ * and the dead-end copy below would be a worse one: it says recognition looked
+ * and found nothing, and here it never looked.
  */
 function ReadAction({
   label,
   isReading,
   progress,
   stopped,
+  stopping,
+  deferred,
   onRead,
   onStop,
   onStartOver,
@@ -306,6 +329,8 @@ function ReadAction({
   isReading: boolean;
   progress: { done: number; total: number } | null;
   stopped: boolean;
+  stopping?: boolean;
+  deferred?: boolean;
   onRead: () => Promise<number>;
   onStop?: () => void;
   onStartOver: () => void;
@@ -325,7 +350,39 @@ function ReadAction({
       Adjust what&apos;s included
     </button>
   ) : null;
-  if (isReading) return <ReadingProgress progress={progress} onStop={onStop} />;
+  if (isReading) return <ReadingProgress progress={progress} stopping={stopping} onStop={onStop} />;
+
+  // Never started, because starting would have meant a wait nobody agreed to.
+  // The one state where the sentence has to say why nothing happened, or the
+  // screen reads as a failure of the tool rather than a choice it left open.
+  if (deferred) {
+    return (
+      <>
+        <p className="text-ink-secondary mx-auto mt-6 max-w-[440px] text-[14px] leading-relaxed">
+          Recognition did not start on its own here: this drop is large enough that it would have
+          been a long wait nobody chose.
+        </p>
+        <div className="mt-6 flex flex-col items-center gap-3">
+          <button
+            type="button"
+            onClick={() => void onRead()}
+            className="bg-primary text-primary-foreground rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+          >
+            <ScanText className="h-4 w-4" strokeWidth={2} />
+            Read them
+          </button>
+          <button
+            type="button"
+            onClick={onStartOver}
+            className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm px-2 py-1 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+          >
+            Start over
+          </button>
+          {adjustLink}
+        </div>
+      </>
+    );
+  }
 
   // Stopped with nothing recovered, so the screen never changed. Offer the way
   // back in; the pages already read (if any) took the flow to the result view.

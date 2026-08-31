@@ -48,10 +48,14 @@ let attempts: { path: string; language: string }[] = [];
 let onDocumentRead: ((path: string) => void) | null = null;
 
 vi.mock("~/lib/ocr", () => ({
-  readWithOcr: async (bytes: Uint8Array, language: string) => {
+  readWithOcr: async (bytes: Uint8Array, language: string, signal?: AbortSignal) => {
     const path = new TextDecoder().decode(bytes);
     attempts.push({ path, language });
     onDocumentRead?.(path);
+    // The real reader throws out of the middle of a document when the signal
+    // fires, which is the whole point of passing one: a stop no longer has to
+    // wait for the page in hand.
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
     return { text: READINGS.get(path)?.[language] ?? "" };
   },
   // An image's bytes are a real PNG header, so this one keys on the name.
@@ -87,6 +91,12 @@ import { useFileIngestion } from "~/hooks/use-file-ingestion";
 /** A file whose bytes are its own path, so the stubbed recogniser can key on it. */
 function scan(path: string): { file: File; path: string } {
   return { file: new File([path], path.split("/").pop() ?? path), path };
+}
+
+/** A scan heavy enough to be past the auto-read weight cap on its own. Its
+ * bytes are not its path, which is fine: nothing is ever meant to read it. */
+function heavyScan(path: string): { file: File; path: string } {
+  return { file: new File([new Uint8Array(9 * 1024 * 1024)], path), path };
 }
 
 /** An image, with bytes the core classifier really does call binary — the stub
@@ -144,6 +154,52 @@ describe("recognition over a drop", () => {
 
     expect(result.current.validations["a.pdf"].recognitionTried).toBe(true);
     expect(result.current.unreadDocuments.map((d) => d.path)).toEqual(["a.pdf"]);
+  });
+});
+
+describe("a drop too big to read unasked", () => {
+  it("hands back the bundle and offers the pass instead of starting it", async () => {
+    for (const path of ["a.pdf", "b.pdf", "c.pdf", "d.pdf"]) {
+      READINGS.set(path, { eng: `text of ${path}` });
+    }
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch(["a.pdf", "b.pdf", "c.pdf", "d.pdf"].map(scan));
+    });
+
+    // Four documents is one past the cap, so nothing was opened and the drop is
+    // over. Before this the pass ran to the end whatever the size, and a bundle
+    // that already existed waited behind it.
+    expect(attempts).toEqual([]);
+    expect(result.current.isReading).toBe(false);
+    // Untried, not failed: the offer downstream is keyed off the per-document
+    // record, which is the only thing that still tells the two apart after an
+    // append.
+    expect(result.current.unreadDocuments).toHaveLength(4);
+    expect(result.current.validations["a.pdf"].recognitionTried).toBeUndefined();
+    expect(TALLIES.get("ocr_deferred")?.get("pdf")?.n).toBe(4);
+    // Not a dead end: "never tried" has to still be readable on request, and
+    // asking is not capped.
+    await act(async () => {
+      await result.current.readUnreadDocuments();
+    });
+    expect(attempts).toHaveLength(4);
+    expect(result.current.recoveredDocuments).toBe(4);
+  });
+
+  it("counts weight as well as documents, so one heavy scan defers too", async () => {
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([heavyScan("big.pdf")]);
+    });
+
+    // Well inside the count cap and well past the weight one. A couple of heavy
+    // scans take as long as a long list of light ones, so a count-only cap
+    // would let exactly the worst case through.
+    expect(attempts).toEqual([]);
+    expect(result.current.unreadDocuments.map((d) => d.path)).toEqual(["big.pdf"]);
+    expect(result.current.validations["big.pdf"].recognitionTried).toBeUndefined();
   });
 });
 
@@ -336,8 +392,9 @@ describe("stopping a pass", () => {
     });
     expect(result.current.entries).toHaveLength(3);
 
-    // Re-read all three as German, stopping the moment the first one lands. The
-    // stop is checked between documents, so b and c are never opened.
+    // Re-read all three as German, stopping the moment the first one lands.
+    // The stop now aborts the reader as well as the loop, so a is interrupted
+    // and b and c are never opened.
     attempts = [];
     await act(async () => {
       onDocumentRead = (path) => {
@@ -348,13 +405,49 @@ describe("stopping a pass", () => {
 
     expect(result.current.stoppedReading).toBe(true);
     expect(attempts).toEqual([{ path: "a.pdf", language: "deu" }]);
-    // German won on the one document it reached; the other two keep their
-    // English text. Treating the untouched tail as failed is what used to throw
-    // away two good readings on one press of Stop, and German reads neither.
-    expect(result.current.entries.find((e) => e.path === "a.pdf")?.content).toBe("erste");
+    // All three keep their English text: b and c because the pass never
+    // reached them, a because the pass was pulled out of it. That is the trade
+    // the abort buys, and it is the right way round — on a real scan the
+    // document in hand is minutes of work, so "finish this one first" is the
+    // expensive answer and the reading it would have produced is the cheap
+    // thing to lose. Treating any of the three as failed is what used to throw
+    // away good readings on one press of Stop, and German reads none of them.
+    expect(result.current.entries.find((e) => e.path === "a.pdf")?.content).toBe("first");
     expect(result.current.entries.find((e) => e.path === "b.pdf")?.content).toBe("second");
     expect(result.current.entries.find((e) => e.path === "c.pdf")?.content).toBe("third");
     expect(result.current.unreadDocuments).toHaveLength(0);
     expect(result.current.recoveredDocuments).toBe(3);
+  });
+
+  it("leaves the interrupted document untried rather than failed", async () => {
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      // Deferred, so nothing has been over these when the pass below starts.
+      await result.current.ingestBatch(["a.pdf", "b.pdf", "c.pdf", "d.pdf"].map(scan));
+    });
+
+    attempts = [];
+    await act(async () => {
+      // Stopping now aborts the reader inside the document it is holding, so
+      // that document throws instead of returning.
+      onDocumentRead = (path) => {
+        if (path === "a.pdf") result.current.stopReading();
+      };
+      await result.current.readUnreadDocuments();
+    });
+
+    expect(result.current.stoppedReading).toBe(true);
+    expect(attempts).toEqual([{ path: "a.pdf", language: "eng" }]);
+    // An abort is an interruption, not a verdict. Recording it as one would
+    // put "Couldn't be read" on a document nothing ever finished looking at,
+    // and take the offer to try again away with it.
+    expect(result.current.validations["a.pdf"].recognitionTried).toBeUndefined();
+    expect(result.current.validations["a.pdf"].reason).toBe("No extractable text");
+    expect(result.current.unreadDocuments.map((d) => d.path)).toEqual([
+      "a.pdf",
+      "b.pdf",
+      "c.pdf",
+      "d.pdf",
+    ]);
   });
 });

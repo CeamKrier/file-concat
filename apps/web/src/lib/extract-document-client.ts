@@ -32,10 +32,12 @@ export function extractOffice(bytes: Uint8Array): Promise<ExtractionResult> {
 export function extractOfficeWithOcr(
   bytes: Uint8Array,
   language: string,
+  signal?: AbortSignal,
 ): Promise<ExtractionResult> {
   return extractOfficeDocument(bytes, {
     pdfWorkerSrc: pdfWorkerUrl,
     ocr: { language },
+    abortSignal: signal,
   });
 }
 
@@ -135,6 +137,7 @@ export async function readPdfPages(
   pages: readonly number[],
   language: string,
   onPage?: (done: number, total: number) => void,
+  signal?: AbortSignal,
 ): Promise<Map<number, string>> {
   const pdfjs = await import("pdfjs-dist");
   pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
@@ -147,6 +150,10 @@ export async function readPdfPages(
   const read = new Map<number, string>();
   try {
     for (const [index, number] of pages.entries()) {
+      // A page is the unit of work here, so the stop lands at page granularity
+      // rather than document granularity: seconds instead of minutes on a
+      // document that is all pictures. What was read before it stays read.
+      if (signal?.aborted) break;
       onPage?.(index, pages.length);
       if (number < 1 || number > pdf.numPages) continue;
       const page = await pdf.getPage(number);

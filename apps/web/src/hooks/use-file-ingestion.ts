@@ -137,6 +137,26 @@ export type ScannedDocument = {
  */
 const SCANNABLE_FORMATS = new Set(["pdf", "docx", "pptx", "odt", "odp", "rtf"]);
 
+/**
+ * How much recognition a drop is allowed to start on its own.
+ *
+ * The auto-start was written for the shape it was measured on: one scan in a
+ * drop, read before anyone notices. `ocr_ms` says a pile is a different thing
+ * entirely. Recognition over a scanned document runs at seconds to minutes
+ * each, so a dozen of them is tens of minutes, and nobody waits that out in a
+ * tab with a finished bundle sitting behind it.
+ *
+ * Count and weight each miss half of it: a few heavy documents and a long list
+ * of light ones land in the same place, so both are capped. Past either, the
+ * bundle lands first and the read becomes an offer, which is the deal images
+ * already get (ADR-0017).
+ *
+ * Nothing here caps a pass someone asked for. Waiting is only worth refusing
+ * when the wait was not chosen.
+ */
+const AUTO_READ_MAX_DOCUMENTS = 3;
+const AUTO_READ_MAX_BYTES = 8 * 1024 * 1024;
+
 /** Whether a {@link ScannedDocument} is an image rather than a document — the
  * one thing that decides whether its pass starts by itself. */
 /** Prev order preserved, same path replaced in place, newcomers appended. */
@@ -237,6 +257,15 @@ export interface FileIngestion {
   /** Abandon the rest of a recognition pass. Whatever was read stays read. */
   stopReading: () => void;
   /**
+   * True between the stop being asked for and the pass actually ending.
+   *
+   * Exposed because the gap is real and used to be invisible: the abort reaches
+   * the recogniser at once, but the page in hand still has to come back. A
+   * button that acknowledges nothing for that long reads as a broken button,
+   * which is exactly how it was being read.
+   */
+  isStopping: boolean;
+  /**
    * True when the last pass ended because it was stopped, not because it ran
    * out of documents. The difference is what the remaining documents mean:
    * never tried, versus tried and unreadable.
@@ -290,7 +319,11 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   const [progress, setProgress] = useState<IngestProgress>(null);
   const dragCounter = useRef(0);
   const readingRef = useRef(false);
-  const stopRef = useRef(false);
+  // One controller per pass. A ref rather than state for the same reason the
+  // old boolean was one: the auto-start fires from inside the ingest that
+  // produced the work, where a state read is a render behind.
+  const abortRef = useRef<AbortController | null>(null);
+  const [isStopping, setIsStopping] = useState(false);
   const [stoppedReading, setStoppedReading] = useState(false);
   const [readLanguage, setReadLanguage] = useState<OcrLanguage | null>(null);
   const [readLanguages, setReadLanguages] = useState<Record<string, OcrLanguage>>({});
@@ -326,7 +359,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // produced the work, where a state read is a render behind.
       if (documents.length === 0 || readingRef.current) return 0;
       readingRef.current = true;
-      stopRef.current = false;
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setIsStopping(false);
       setStoppedReading(false);
       const startedAt = performance.now();
       setIsReading(true);
@@ -355,10 +390,11 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       try {
         for (let i = 0; i < documents.length; i++) {
           const document = documents[i];
-          // Checked between documents, not inside one: the recogniser has no
-          // cancel of its own, so the page in hand always finishes. Stopping
-          // keeps everything read so far and leaves the rest untouched.
-          if (stopRef.current) {
+          // The cheap half of the stop. The signal below is what makes it land
+          // inside a document too; this is what keeps the loop from opening the
+          // next one. Stopping keeps everything read so far and leaves the rest
+          // untouched.
+          if (controller.signal.aborted) {
             setStoppedReading(true);
             break;
           }
@@ -391,6 +427,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                       total: documents.length,
                       note: `Page ${done + 1} of ${total}`,
                     }),
+                  controller.signal,
                 );
                 if (read.size > 0) {
                   text = document.text
@@ -398,7 +435,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                     : [...read.values()].join("\n\n");
                 }
               } else {
-                ({ text } = await readWithOcr(bytes, language.code));
+                ({ text } = await readWithOcr(bytes, language.code, controller.signal));
               }
             }
             if (text) {
@@ -438,6 +475,16 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             // part of itself that decoded, and calling it unread would take that
             // back out — a failed rescue must not cost more than it found.
           } catch (error) {
+            // A stop now throws out of the reader mid-document. That document
+            // was interrupted, not tried and found wanting, so it goes back to
+            // the standing it arrived with rather than becoming a failure,
+            // the same rule the untouched tail gets, and the reason it has to
+            // leave `attempted` again.
+            if (controller.signal.aborted) {
+              attempted.delete(document.path);
+              setStoppedReading(true);
+              break;
+            }
             console.error(`Recognition failed for ${document.path}:`, error);
             if (!document.text) {
               stillUnread.push(document);
@@ -497,7 +544,8 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         return readEntries.length;
       } finally {
         readingRef.current = false;
-        stopRef.current = false;
+        abortRef.current = null;
+        setIsStopping(false);
         setIsReading(false);
         setReadProgress(null);
       }
@@ -810,7 +858,22 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // evidence (ADR-0017). A drop with one scan and twenty-six screenshots
       // reads the scan and offers the screenshots.
       const autoRead = nextUnread.filter((d) => !isRecognisableImage(d.format));
-      if (autoRead.length > 0) await readDocuments(autoRead, browserOcrLanguage());
+      const autoReadBytes = autoRead.reduce((sum, d) => sum + d.file.size, 0);
+      if (autoRead.length > 0) {
+        if (autoRead.length <= AUTO_READ_MAX_DOCUMENTS && autoReadBytes <= AUTO_READ_MAX_BYTES) {
+          await readDocuments(autoRead, browserOcrLanguage());
+        } else {
+          // The bundle is already assembled at this point, so declining the
+          // pass is what releases it. Recorded by format, because whether the
+          // offer is then taken is the only thing that says whether this was
+          // the right trade. Nothing else is stored: which documents no pass
+          // has opened is already legible from their own validation records,
+          // and a Run-level flag beside them would be wrong first on an append.
+          const deferred: Tally = new Map();
+          for (const d of autoRead) addToTally(deferred, d.format, d.file.size);
+          trackTally("ocr_deferred", deferred);
+        }
+      }
     },
     [config, readDocuments],
   );
@@ -999,9 +1062,18 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     [readDocuments, scannedDocuments],
   );
 
-  /** Give up on the rest of the pass. What was read stays read. */
+  /**
+   * Give up on the rest of the pass. What was read stays read.
+   *
+   * The abort reaches the recogniser immediately and terminates the worker
+   * holding the page, but the call still has to unwind, so the flag says the
+   * press landed. Without it the button had no way to answer at all and the
+   * only signal a stop had worked was the screen changing, minutes later.
+   */
   const stopReading = useCallback(() => {
-    stopRef.current = true;
+    if (!abortRef.current) return;
+    setIsStopping(true);
+    abortRef.current.abort();
   }, []);
 
   /**
@@ -1034,8 +1106,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     setScannedDocuments([]);
     setUnreadDocuments([]);
     // Abandons a pass still in flight; its own `finally` clears the rest.
-    stopRef.current = true;
+    abortRef.current?.abort();
     setIsReading(false);
+    setIsStopping(false);
     setReadProgress(null);
     setStoppedReading(false);
     setReadLanguage(null);
@@ -1062,6 +1135,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     readUnreadDocuments,
     readSelected,
     stopReading,
+    isStopping,
     stoppedReading,
     readLanguage,
     readLanguages,

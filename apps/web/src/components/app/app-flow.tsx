@@ -383,8 +383,19 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       offerableImageCount: unreadImages.filter(
         (d) => ingestion.validations[d.path]?.recognitionTried !== true,
       ).length,
+      // The document half of the same question, and the reason a big drop can
+      // hand its bundle back without lying about the scans in it: "never tried"
+      // and "tried and got nothing" want opposite copy, and only the
+      // per-document record can still tell them apart after an append.
+      untriedDocumentCount: ingestion.unreadDocuments.filter(
+        (d) => !isImage(d) && ingestion.validations[d.path]?.recognitionTried !== true,
+      ).length,
     };
   }, [ingestion.scannedDocuments, ingestion.unreadDocuments, ingestion.validations]);
+
+  // A stop outranks it. The untouched tail of a stopped pass is untried too,
+  // and "stopped, with N unread" is the more specific of the two things to say.
+  const readDeferred = recognition.untriedDocumentCount > 0 && !ingestion.stoppedReading;
 
   const emptyKind = useMemo(
     () =>
@@ -725,6 +736,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
             aside={processingAside}
             onStop={isRecognising ? ingestion.stopReading : undefined}
             stopLabel="Skip the scanned pages"
+            stopping={ingestion.isStopping}
           />
         )}
 
@@ -739,6 +751,8 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               isReading={ingestion.isReading}
               readProgress={ingestion.readProgress}
               stoppedReading={ingestion.stoppedReading}
+              isStopping={ingestion.isStopping}
+              readDeferred={readDeferred}
               onRead={ingestion.readUnreadDocuments}
               onStopReading={ingestion.stopReading}
               onOfferRead={() => setReadingOpen(true)}
@@ -781,6 +795,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
                 ingestion.recoveredDocuments - recognition.recognisedImages
               }
               stoppedReading={ingestion.stoppedReading}
+              readDeferred={readDeferred}
               readLanguageNote={readLanguageNote}
               onCheckReading={() => setReadingOpen(true)}
               onAdjust={() => openSettings()}
@@ -808,6 +823,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         progress={ingestion.readProgress}
         onRead={ingestion.readSelected}
         onStop={ingestion.stopReading}
+        isStopping={ingestion.isStopping}
       />
 
       <SettingsDrawer
