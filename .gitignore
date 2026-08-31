@@ -52,6 +52,11 @@ google-search-console-api.json
 # already covered above.
 /.claude/skills/pulse/
 
+# The `opportunity` lens, which is the same reading asked one question at a
+# time. It runs pulse's own --segments mode and its text quotes the readings
+# that mode produced, so publishing it would leak exactly what /docs/ hides.
+/.claude/skills/opportunity/
+
 # The napkin, for the same reason. It was tracked, and notes written while
 # reading the counters quoted the reading straight into a public file — Run
 # counts, per-extension Visit/day figures, a pointer to /docs/reviews/. Keeping
