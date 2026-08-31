@@ -167,6 +167,23 @@ function assembleXml(options: AssembleOutputOptions, meta: KindMeta): string {
   ].join("\n");
 }
 
+/**
+ * The wrapper fence for one file: always longer than the longest run of
+ * backticks the content itself holds.
+ *
+ * CommonMark closes a fenced block only on a fence at least as long as the one
+ * that opened it, so a plain ``` wrapper is ended early by any bundled file that
+ * carries its own fence - a README, a docs page, a notebook export. Everything
+ * after that point stops reading as file content and starts reading as bundle
+ * prose. Growing the wrapper keeps the content verbatim, which is the same
+ * promise the XML style keeps by refusing to escape.
+ */
+function fenceFor(content: string): string {
+  let longest = 0;
+  for (const run of content.matchAll(/`+/g)) longest = Math.max(longest, run[0].length);
+  return "`".repeat(Math.max(3, longest + 1));
+}
+
 function assembleMarkdown(options: AssembleOutputOptions, meta: KindMeta): string {
   const { projectName, files, tree, part } = options;
 
@@ -177,7 +194,8 @@ function assembleMarkdown(options: AssembleOutputOptions, meta: KindMeta): strin
   const fileBlocks = files
     .map((file) => {
       const language = file.language ?? getLanguageFromPath(file.path);
-      return [`### ${file.path}`, "", "```" + language, file.content, "```"].join("\n");
+      const fence = fenceFor(file.content);
+      return [`### ${file.path}`, "", fence + language, file.content, fence].join("\n");
     })
     .join("\n\n");
 

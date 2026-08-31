@@ -150,6 +150,20 @@ describe("assembleOutput markdown", () => {
     expect(output.startsWith("# Codebase: demo (Part 1 of 3)")).toBe(true);
   });
 
+  it("opens a fence longer than any run of backticks the file itself holds", () => {
+    const output = assembleOutput({
+      projectName: "demo",
+      files: [{ path: "README.md", content: "Intro\n\n```js\nconsole.log(1)\n```\n\nOutro" }],
+      tree: "README.md\n",
+      style: "markdown",
+    });
+
+    // A three-backtick wrapper is closed by the README's own fence, and everything
+    // after it reads as bundle prose rather than as the file's content.
+    expect(output).toContain("````markdown\nIntro");
+    expect(output).toContain("Outro\n````");
+  });
+
   it("credits fileconcat.com in the intro line", () => {
     const output = assembleOutput({ projectName: "demo", files, tree, style: "markdown" });
     expect(output).toContain("fileconcat.com");
