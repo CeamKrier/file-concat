@@ -466,7 +466,12 @@ export function ResultView({
           depend on what their files happened to contain. Everything advisory
           lives below it, in the ledger. */}
       <div className="border-border bg-surface rounded-card border">
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-x-6 gap-y-[18px] px-5 pb-4 pt-[17px]">
+        {/* Content-sized, never equal tracks. A figure that outgrows its share
+            of a four-column grid pushes its own caption onto a second line and
+            its value into the gap; sized to its content it cannot. When the row
+            runs out of width it wraps between figures, so a figure stays on one
+            line whatever the numbers turn out to be. */}
+        <div className="flex flex-wrap gap-x-7 gap-y-[18px] px-5 pb-4 pt-[17px]">
           <Figure value={fmt.format(tokens)} label={"tokens · estimated"} />
           <Figure
             value={fmt.format(filesCombined)}
@@ -484,19 +489,29 @@ export function ResultView({
               value={over ? `${fit.ratio.toFixed(1)}x` : shareText(fit.ratio)}
               dim
               label={
-                <>
-                  of{" "}
+                // A flex line, not a sentence, so the caption can decide what
+                // gives when it runs out of room: the model name shrinks and
+                // the word naming the quantity survives. Written as plain text
+                // it clipped the other way round, and "4.4x of Nemotron 3 Nano
+                // Omni 30B A3B Reasoning cont..." says nothing at all. `1ch` is
+                // exactly a space in the monospace caption face.
+                <span className="flex items-baseline gap-[1ch]">
+                  <span className="shrink-0">of</span>
                   {/* The share is stated against a model the reader may not have
                       picked, so the model's name is the way back to the picker. */}
                   <button
                     type="button"
                     onClick={onChangeModel}
-                    title="Change model"
-                    className="text-ink-secondary focus-visible:ring-ring focus-visible:ring-offset-surface whitespace-nowrap rounded-sm border-b border-dotted border-[oklch(var(--text-muted))] transition-colors duration-150 hover:border-solid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                    title={`Change model (${fit.modelName})`}
+                    className="text-ink-secondary focus-visible:ring-ring focus-visible:ring-offset-surface min-w-0 truncate rounded-sm border-b border-dotted border-[oklch(var(--text-muted))] transition-colors duration-150 hover:border-solid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                   >
                     {fit.modelName}
                   </button>
-                </>
+                  {/* What the share is *of* has to be said out loud: a bare
+                      "4.4x of Claude Sonnet 5" names no quantity, and the one it
+                      means is the context window. */}
+                  <span className="shrink-0">context</span>
+                </span>
               }
             />
           )}
@@ -818,7 +833,10 @@ function shareText(ratio: number) {
 
 function Figure({ value, label, dim = false }: { value: string; label: ReactNode; dim?: boolean }) {
   return (
-    <div className="min-w-0">
+    // Never shrinks to fit its neighbours, because the row wraps instead, but
+    // never exceeds the card either, which is what leaves the caption something
+    // to clip against on a narrow screen.
+    <div className="min-w-0 max-w-full shrink-0">
       <div
         className={cn(
           "font-display text-[32px] font-bold tabular-nums leading-none tracking-[-0.03em]",
@@ -827,9 +845,12 @@ function Figure({ value, label, dim = false }: { value: string; label: ReactNode
       >
         {value}
       </div>
-      {/* A floor under the caption so a label that wraps to two lines does not
-          shorten the block, and with it move Copy. */}
-      <div className="text-ink-muted mt-2 min-h-[31px] font-mono text-[11px] leading-[1.4]">
+      {/* One line, always, so the height of the block, and with it the position
+          of Copy, cannot depend on how long a number or a model name turned out
+          to be. Nowrap and not `truncate`: the clipping a caption needs is the
+          model button's own, and `overflow-hidden` out here would cut that
+          button's focus ring in half. */}
+      <div className="text-ink-muted mt-2 whitespace-nowrap font-mono text-[11px] leading-[1.4]">
         {label}
       </div>
     </div>
