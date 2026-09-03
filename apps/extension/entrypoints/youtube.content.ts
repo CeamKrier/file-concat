@@ -12,6 +12,7 @@
 
 import { browser, defineContentScript } from "#imports";
 import { announceChanges } from "../src/announce";
+import { loadMore } from "../src/more";
 import {
   clippingPath,
   renderYouTubeClipping,
@@ -21,18 +22,27 @@ import {
   type TranscriptSegment,
 } from "../src/markdown";
 import type { PageItem, PageReport, SiteRequest, SiteResponse } from "../src/messages";
-import { isPlaylistsTab, linkTarget } from "../src/youtube";
+import { isPlaylistsTab, linkTarget, scale } from "../src/youtube";
 
 const INNERTUBE = "https://www.youtube.com/youtubei/v1";
 const TRANSCRIPT_PANEL_ID = "PAmodern_transcript_view";
-/**
- * One page of comments, which is what YouTube itself serves first and what its
- * own ranking calls the top ones. Paging further means finding the page
- * continuation among the per-thread reply stubs, for comments nobody ranked
- * highly. Raise this only if a reading says the top of the thread was not
- * enough.
- */
 const COMMENT_SECTION = "comment-item-section";
+/**
+ * How many pages of top-level comments one clip spends. YouTube serves 20 a
+ * page, so this is 60 — about as far as a person scrolls before they stop.
+ * Measured 2026-09-01: page-level continuations keep coming well past this, so
+ * the cap is the only thing that ends it.
+ */
+const COMMENT_PAGES = 3;
+/**
+ * How many threads get their replies read, most-replied first. One request
+ * each, and one page is 10 replies — which is exactly what YouTube's own
+ * "N replies" opens with. Deeper paging exists (measured: 10, then ~50 a page)
+ * and is not spent here, so a 963-reply thread contributes 10 and says so.
+ */
+const REPLY_THREADS = 25;
+/** Requests in flight at once, for the reply pass. */
+const LANES = 6;
 
 interface PlayerResponse {
   videoDetails?: { title?: string; author?: string; shortDescription?: string };
@@ -109,48 +119,159 @@ function transcriptSegments(payload: unknown): TranscriptSegment[] {
 }
 
 interface CommentPayload {
-  properties?: { content?: { content?: string }; publishedTime?: string; replyLevel?: number };
+  properties?: { commentId?: string; content?: { content?: string }; replyLevel?: number };
   author?: { displayName?: string; isCreator?: boolean };
-  toolbar?: { likeCountNotliked?: string };
+  toolbar?: { likeCountNotliked?: string; replyCount?: string };
+}
+
+/** Every continuation under a node, whatever renderer holds it. */
+function continuations(node: unknown): string[] {
+  return collect<{ continuationEndpoint?: { continuationCommand?: { token?: string } } }>(
+    node,
+    "continuationItemRenderer",
+  )
+    .map((item) => item.continuationEndpoint?.continuationCommand?.token)
+    .filter((token): token is string => Boolean(token));
+}
+
+function toComment(entity: CommentPayload, depth: number): Comment {
+  return {
+    author: entity.author?.displayName ?? "unknown",
+    // Blank, not absent, on a comment nobody liked — measured on replies, where
+    // it rendered as "-   likes -". Trimmed before the fallback so a zero says
+    // zero.
+    likes: entity.toolbar?.likeCountNotliked?.trim() || "0",
+    text: entity.properties!.content!.content!,
+    isCreator: entity.author?.isCreator === true,
+    depth,
+  };
+}
+
+const payloads = (page: unknown) =>
+  collect<CommentPayload>(page, "commentEntityPayload").filter((entity) => entity.properties?.content?.content);
+
+interface Thread {
+  id: string;
+  comment: Comment;
+  /** The thread's own continuation, which answers with its first 10 replies. */
+  replies?: string;
+  /** How many replies YouTube says it has, only ever compared with another. */
+  weight: number;
+}
+
+/**
+ * One page of comments, read as threads.
+ *
+ * The comments themselves arrive as entity payloads in a flat batch, keyed by
+ * id, while the thread renderers carry the order and the per-thread reply
+ * continuation — so the two are joined on `commentId` rather than by position.
+ */
+function readPage(page: unknown): { threads: Thread[]; next?: string; total?: string } {
+  const entities = new Map(
+    payloads(page)
+      .filter((entity) => entity.properties?.commentId)
+      .map((entity) => [entity.properties!.commentId!, entity]),
+  );
+
+  const threads: Thread[] = [];
+  const spent: string[] = [];
+  for (const thread of collect<{ replies?: unknown }>(page, "commentThreadRenderer")) {
+    const view = collect<{ commentId?: string }>(thread, "commentViewModel").find((model) => model.commentId);
+    const entity = view?.commentId ? entities.get(view.commentId) : undefined;
+    if (!view?.commentId || !entity) continue;
+    const replies = thread.replies ? continuations(thread.replies)[0] : undefined;
+    if (replies) spent.push(replies);
+    threads.push({
+      id: view.commentId,
+      comment: { ...toComment(entity, 0), replyTotal: entity.toolbar?.replyCount || undefined },
+      replies,
+      weight: scale(entity.toolbar?.replyCount),
+    });
+  }
+
+  // What is left once the per-thread ones are accounted for is the page's own
+  // "more comments" continuation — the thing scrolling the page would spend.
+  const next = continuations(page).find((key) => !spent.includes(key));
+  const total = collect<{ countText?: { runs?: { text?: string }[] } }>(page, "commentsHeaderRenderer")
+    .map((header) => header.countText?.runs?.map((run) => run.text).join(""))
+    .find(Boolean);
+  return { threads, next, total: total?.replace(/\s*comments?$/i, "") };
+}
+
+/** Runs `work` over `items` a few at a time, so 25 reply pages are not 25 waits. */
+async function inLanes<T>(items: T[], work: (item: T) => Promise<void>): Promise<void> {
+  for (let index = 0; index < items.length; index += LANES) {
+    await Promise.all(items.slice(index, index + LANES).map(work));
+  }
 }
 
 /**
  * Comments are not in the watch payload; they arrive behind a continuation.
- * `next` for the video hands out that token, a second `next` spends it.
+ * `next` for the video hands out that token, a second `next` spends it, and
+ * every page hands back the next one — which is what scrolling the comments
+ * spends, so a clip that stopped at the first page stopped where the page did
+ * before anyone scrolled.
  *
- * The token cannot be built from the video id the way the transcript params
- * can, so this is two requests. Both tokens under the comments section are
- * tried because one of them is a stub that answers with nothing.
+ * Replies are not in those pages at all (measured 2026-09-01: 20 threads,
+ * `replyLevel` 0 for every entity, 19 of them carrying a replies continuation).
+ * Each is its own request, so they go to the threads with the most replies and
+ * stop at {@link REPLY_THREADS}.
+ *
+ * Both tokens under the comments section are tried because one of them is a
+ * stub that answers with nothing.
  */
 async function fetchComments(videoId: string): Promise<{ comments: Comment[]; total?: string }> {
   const watch = await innertube<unknown>("next", { videoId });
-  const tokens = collect<{ sectionIdentifier?: string }>(watch, "itemSectionRenderer")
+  const keys = collect<{ sectionIdentifier?: string }>(watch, "itemSectionRenderer")
     .filter((section) => section.sectionIdentifier === COMMENT_SECTION)
-    .flatMap((section) =>
-      collect<{ continuationEndpoint?: { continuationCommand?: { token?: string } } }>(section, "continuationItemRenderer"),
-    )
-    .map((item) => item.continuationEndpoint?.continuationCommand?.token)
-    .filter((token): token is string => Boolean(token));
+    .flatMap((section) => continuations(section));
 
-  for (const token of tokens) {
-    const page = await innertube<unknown>("next", { continuation: token });
-    const comments = collect<CommentPayload>(page, "commentEntityPayload")
-      .filter((entity) => (entity.properties?.replyLevel ?? 0) === 0 && entity.properties?.content?.content)
-      .map((entity) => ({
-        author: entity.author?.displayName ?? "unknown",
-        publishedTime: entity.properties?.publishedTime ?? "",
-        likes: entity.toolbar?.likeCountNotliked || "0",
-        text: entity.properties!.content!.content!,
-        isCreator: entity.author?.isCreator === true,
-      }));
-    if (comments.length === 0) continue;
-    const total = collect<{ countText?: { runs?: { text?: string }[] } }>(page, "commentsHeaderRenderer")
-      .map((header) => header.countText?.runs?.map((run) => run.text).join(""))
-      .find(Boolean);
-    return { comments, total: total?.replace(/\s*comments?$/i, "") };
+  const threads: Thread[] = [];
+  const seen = new Set<string>();
+  let total: string | undefined;
+  let next: string | undefined;
+
+  const take = (page: unknown) => {
+    const read = readPage(page);
+    total ??= read.total;
+    next = read.next;
+    const fresh = read.threads.filter((thread) => !seen.has(thread.id));
+    for (const thread of fresh) seen.add(thread.id);
+    threads.push(...fresh);
+    return fresh.length;
+  };
+
+  for (const key of keys) {
+    if (take(await innertube<unknown>("next", { continuation: key })) > 0) break;
   }
   // Comments turned off, or a video with none.
-  return { comments: [] };
+  if (threads.length === 0) return { comments: [] };
+
+  for (let page = 1; page < COMMENT_PAGES && next; page++) {
+    if (take(await innertube<unknown>("next", { continuation: next })) === 0) break;
+  }
+
+  const wanted = new Set(
+    [...threads]
+      .filter((thread) => thread.replies)
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, REPLY_THREADS)
+      .map((thread) => thread.id),
+  );
+  const replies = new Map<string, Comment[]>();
+  await inLanes(
+    threads.filter((thread) => wanted.has(thread.id)),
+    async (thread) => {
+      // One thread's replies failing is not the clip failing.
+      const page = await innertube<unknown>("next", { continuation: thread.replies! }).catch(() => undefined);
+      if (page) replies.set(thread.id, payloads(page).map((entity) => toComment(entity, 1)));
+    },
+  );
+
+  return {
+    comments: threads.flatMap((thread) => [thread.comment, ...(replies.get(thread.id) ?? [])]),
+    total,
+  };
 }
 
 interface Lockup {
@@ -282,7 +403,10 @@ function pageItems(): PageReport["items"] {
 
 const OPTION = {
   label: "Include comments",
-  hint: "Top 20 per video. Up to 45% more tokens on a short one.",
+  // Measured 2026-09-01 through the built extension: about 30 requests and 4-6
+  // seconds a video, and the clipping went 3,622 -> 12,898 tokens on the
+  // Stanford commencement address and 2,377 -> 7,238 on a shorter talk.
+  hint: "Top 60 and their first replies. About 5s a video, and 3 to 4 times the clipping's size.",
 };
 
 function report(): PageReport {
@@ -306,11 +430,20 @@ function report(): PageReport {
     kind: items.length ? "list" : "other",
     items,
     option: items.length ? OPTION : undefined,
+    // Every YouTube listing is lazy: a channel's Videos tab holds 30 until it
+    // is scrolled, and the panel can only offer what the page has loaded.
+    more: items.length > 0,
   };
 }
 
 async function handle(request: SiteRequest): Promise<PageReport | Clipping | PageItem[]> {
   if (request.type === "fc:page") return report();
+  if (request.type === "fc:more") {
+    // The raw anchor count, the same number `announceChanges` watches: it moves
+    // as soon as a continuation lands, without a style pass per anchor.
+    await loadMore(() => document.querySelectorAll('a[href*="/watch?v="]').length);
+    return report();
+  }
   if (request.type === "fc:expand") return playlistVideos(request.id);
   return clipVideo(request.id, request.grouped, request.option, request.group);
 }
@@ -334,7 +467,13 @@ export default defineContentScript({
 
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       const request = message as SiteRequest;
-      if (request?.type !== "fc:page" && request?.type !== "fc:clip" && request?.type !== "fc:expand") return;
+      if (
+        request?.type !== "fc:page" &&
+        request?.type !== "fc:clip" &&
+        request?.type !== "fc:expand" &&
+        request?.type !== "fc:more"
+      )
+        return;
       handle(request).then(
         (value) => sendResponse({ ok: true, value } satisfies SiteResponse<PageReport | Clipping | PageItem[]>),
         (error: unknown) =>

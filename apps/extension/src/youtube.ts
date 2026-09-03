@@ -8,6 +8,20 @@
 /** The channel tab that lists playlists rather than videos. */
 export const isPlaylistsTab = (pathname: string) => /\/playlists\/?$/.test(pathname);
 
+/**
+ * A count YouTube already rounded — "963", "1.2K", "1,204" — as a number.
+ *
+ * Only ever compared with another one of these, to decide which threads are
+ * worth a request, so the rounding is not undone and nothing is displayed from
+ * it: the string itself is what reaches the file.
+ */
+export function scale(value: string | undefined): number {
+  const match = /^([\d.,]+)\s*([kmb])?$/i.exec(value?.trim() ?? "");
+  if (!match) return 0;
+  const size = { k: 1e3, m: 1e6, b: 1e9 }[match[2]?.toLowerCase() ?? ""] ?? 1;
+  return Number(match[1].replace(/,/g, "")) * size;
+}
+
 export interface LinkTarget {
   kind: "video" | "playlist";
   id: string;

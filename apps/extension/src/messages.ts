@@ -9,7 +9,10 @@ export type SiteRequest =
   | { type: "fc:clip"; id: string; grouped: boolean; option: boolean; group?: string }
   // A selected item that names a set rather than an item — a YouTube playlist —
   // answered with the items it holds, in the site's own order.
-  | { type: "fc:expand"; id: string };
+  | { type: "fc:expand"; id: string }
+  // Scroll this page until it stops loading rows, then report it again. Only
+  // handlers whose report says `more` are ever sent one.
+  | { type: "fc:more" };
 
 export interface PageItem {
   id: string;
@@ -41,6 +44,12 @@ export interface PageReport {
   items: PageItem[];
   /** The site's one opt-in, or absent where it has none. Always off by default. */
   option?: { label: string; hint: string };
+  /**
+   * This listing loads more of itself on scroll, and the handler will do that
+   * scrolling when asked. The panel offers the button; nothing scrolls a
+   * reader's page without a press.
+   */
+  more?: boolean;
 }
 
 /**
@@ -166,9 +175,6 @@ export const STATUS_KEY = "status";
 /** Per site, because "include comments" and "expand more comments" are not the
  *  same promise and should not share one remembered answer. */
 export const OPTIONS_KEY = "options";
-/** Whether the first-run line has been dismissed. Storage rather than a panel
- *  variable, because the panel is rebuilt every time it opens. */
-export const SEEN_KEY = "seen";
 
 /**
  * Background -> fileconcat.com content script.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPlaylistsTab, linkTarget } from "../src/youtube";
+import { isPlaylistsTab, linkTarget, scale } from "../src/youtube";
 
 describe("linkTarget", () => {
   it("reads a plain video card as a video", () => {
@@ -53,5 +53,22 @@ describe("isPlaylistsTab", () => {
     expect(isPlaylistsTab("/@academind/videos")).toBe(false);
     expect(isPlaylistsTab("/playlist")).toBe(false);
     expect(isPlaylistsTab("/watch")).toBe(false);
+  });
+});
+
+describe("scale", () => {
+  it("reads the counts YouTube writes on a reply button", () => {
+    // Only ever compared with another one of these, to decide which threads are
+    // worth a request of their own.
+    expect(scale("963")).toBe(963);
+    expect(scale("1.2K")).toBe(1200);
+    expect(scale("1,204")).toBe(1204);
+    expect(scale("3M")).toBe(3_000_000);
+  });
+
+  it("is zero for a thread that reports nothing, so it sorts last", () => {
+    expect(scale(undefined)).toBe(0);
+    expect(scale("")).toBe(0);
+    expect(scale("some replies")).toBe(0);
   });
 });
