@@ -148,7 +148,8 @@ function formats() {
     SELECT name, value, SUM(n) AS files, SUM(b) AS total_bytes,
            COUNT(DISTINCT page) AS visits
     FROM events
-    WHERE name IN ('unreadable_ext','extract_failed','archive_unsupported') AND ts >= ${SINCE}
+    WHERE name IN ('unreadable_ext','extract_failed','archive_unsupported','read_failed')
+      AND ts >= ${SINCE}
     GROUP BY name, value ORDER BY visits DESC, files DESC;`);
   if (rows.length === 0) return console.log("  nothing failed to read in window");
   console.log("  counter".padEnd(22) + "value".padEnd(14) + "visits  files    bytes");
@@ -173,6 +174,9 @@ function sizes() {
     ["bundle bytes", "SELECT b AS v FROM events WHERE name='bundle_size' AND b IS NOT NULL", bytes],
     ["largest file", "SELECT b AS v FROM events WHERE name='max_file_bytes' AND b IS NOT NULL", bytes],
     ["ingest ms", "SELECT n AS v FROM events WHERE name='ingest_ms' AND n IS NOT NULL", n],
+    // Only dropped folders are walked, so this counts fewer runs than the row
+    // above. The wait someone sat through is the two added together.
+    ["folder walk ms", "SELECT n AS v FROM events WHERE name='scan_ms' AND n IS NOT NULL", n],
   ];
   console.log("  measure".padEnd(20) + "count      p50        p90        max");
   for (const [label, query, fmt] of specs) {

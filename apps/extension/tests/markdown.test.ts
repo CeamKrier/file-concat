@@ -77,18 +77,36 @@ describe("renderYouTubeClipping with comments", () => {
     ...clip,
     commentTotal: "994",
     comments: [
-      { author: "@viewer", publishedTime: "10 months ago", likes: "36", text: "Line one.\n\n\nLine two.", isCreator: false },
-      { author: "@Ahrefs", publishedTime: "1 year ago", likes: "4", text: "Thanks!", isCreator: true },
+      {
+        author: "@viewer",
+        likes: "36",
+        text: "Line one.\n\n\nLine two.",
+        isCreator: false,
+        depth: 0,
+        replyTotal: "963",
+      },
+      { author: "@replier", likes: "1", text: "No it is not.", isCreator: false, depth: 1 },
+      { author: "@Ahrefs", likes: "4", text: "Thanks!", isCreator: true, depth: 0 },
     ],
   });
 
-  it("says how many were taken out of how many exist", () => {
-    expect(discussed).toContain("## Comments\n\n_994 in total, top 2 shown._");
+  it("counts threads and replies apart, so neither is claimed as the other", () => {
+    expect(discussed).toContain("## Comments\n\n_994 in total, top 2 shown with 1 of their replies._");
   });
 
   it("keeps one comment reading as one block and marks the creator", () => {
-    expect(discussed).toContain("**@viewer** - 36 likes - 10 months ago\nLine one.\nLine two.");
-    expect(discussed).toContain("**@Ahrefs** - creator - 4 likes - 1 year ago\nThanks!");
+    expect(discussed).toContain("**@viewer** - 36 likes - 963 replies\nLine one.\nLine two.");
+    expect(discussed).toContain("**@Ahrefs** - creator - 4 likes\nThanks!");
+  });
+
+  it("indents a reply under the comment it answers", () => {
+    expect(discussed).toContain("  **@replier** - 1 likes\n  No it is not.");
+  });
+
+  it("says a thread's own reply count, which is not the number underneath it", () => {
+    // 10 of 963 is what a clip carries, and a reader who is not told will read
+    // the ten as all of them.
+    expect(discussed).toContain("963 replies");
   });
 
   it("leaves the section out entirely when comments are off", () => {

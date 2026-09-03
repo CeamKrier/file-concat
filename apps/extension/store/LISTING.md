@@ -9,7 +9,14 @@ Assets are in `assets/`. They are generated, not hand-drawn. Rebuild the
 extension, then run `node apps/extension/store/generate-assets.mjs` to
 reproduce all five from a real browser.
 
-Matches manifest version `0.1.0`.
+Matches manifest version `0.2.0`.
+
+The version lives in `apps/extension/package.json` and WXT copies it into the
+manifest. Bump it by hand, once per submission rather than once per change:
+Chrome only accepts an upload numbered above the published one, a number that
+never reaches the store means nothing to anyone, and a review takes days, so
+there is no release cadence to automate against. Update this line in the same
+commit. `0.1.0` is what is live; `0.2.0` is the batch built since.
 
 ---
 
@@ -70,15 +77,18 @@ it runs. Measured on a 638-comment thread: 264,851 characters, nested eight
 levels down, none of which was on screen when you pressed the button.
 
 Listings, one item at a time. A subreddit, a Hacker News front page, a YouTube
-channel or a search page lists what it has loaded with a checkbox on each row.
-Tick the ones you want and each is opened and read on its own, so a session of
-scrolling becomes a set of files rather than one flattened page of headlines.
+channel or a search page lists what it has loaded, and one button scrolls the
+page for the rest so the whole listing is on offer. Tap a row to clip it, or
+press Select to take a batch. Each item is opened and read on its own, so a
+session of scrolling becomes a set of files rather than one flattened page of
+headlines.
 
 YouTube transcripts. A watch page gives you the video's description and its full
 transcript, which is not text that was on the page to begin with. A channel's
 Playlists tab lists its playlists, and clipping one clips the videos it holds.
-Comments are an opt-in extra, off by default, because they cost up to 45% more
-tokens.
+Comments are an opt-in extra, off by default: they add the top 60 threads and,
+under the ones with the most replies, the replies themselves, which runs three
+to four times the tokens.
 
 Any article. Everywhere else, if a page reads as an article, the panel offers to
 clip it. Mozilla's Readability picks the body and Turndown renders it, which
@@ -91,16 +101,20 @@ Open the side panel from the toolbar icon. It stays open while you browse and
 re-reads the current tab on every navigation, so it always describes the page in
 front of you.
 
-Clip what you want. Each clipping lands in a tray and settles there, one row per
-item, so a page that fails says so on its own row and names the reason while the
-rest carry on. The tray holds the last 50, and the work runs in the background,
-so closing the panel mid-batch does not stop it.
+Clip what you want. A tapped row says it is being read and each clipping lands
+in a cart, one row per item, so a page that fails says so on its own row and
+names the reason while the rest carry on. The cart holds the last 50, and the
+work runs in the background, so closing the panel mid-batch does not stop it.
 
 Then press Send. Every finished row goes into your fileconcat.com tab at once,
 opening one if there is none. A send adds to the bundle rather than replacing
 it, and files with the same name replace each other, so a repository and the
 discussion about it can sit in one bundle and re-sending a corrected clipping
 fixes it in place.
+
+What you have sent stays listed for seven days, grouped by send, so you can read
+a file back or send a whole batch again. It is a receipt rather than a library:
+the rows drop off on their own, and one button clears them early.
 
 WHAT IT DOES NOT DO
 
@@ -211,25 +225,13 @@ extension has no other function and no other destination.
 **Host permission justification** for `<all_urls>`:
 
 ```
-Two things need it.
+Two things require it.
 
-First, the extension supports any article on any site. Its article handler is a
-catch-all that uses Mozilla's Readability, which is what lets it work on
-Substack, Medium, documentation, news and blogs without a line of site-specific
-code. The page the user wants to keep can be any page, so the host list is the
-web. Nothing is read from a page until the user presses a button in the panel.
+First, the extension can clip articles from any site using Mozilla Readability. That is why it works on Substack, Medium, docs, news sites, and blogs without site-specific code. Since the user may save any page, host access must cover the web. Page content is only read after the user presses the clip button.
 
-Second, the side panel must name the site it is looking at and decide whether
-that page can be clipped at all, which means reading the active tab's URL.
-Chrome exposes `tab.url` only to an extension holding either the `tabs`
-permission or host permission for that tab. We chose host permissions and did
-not request `tabs`, because `tabs` would additionally hand us the title and URL
-of every tab in every window, which this extension has no use for.
+Second, the side panel needs the active tab’s URL to show the current site and decide whether the page can be clipped. Chrome exposes tab.url only with either the tabs permission or host permission. We use host permissions instead of tabs because tabs would also expose the title and URL of every open tab, which we do not need.
 
-The extension's own background worker makes exactly one kind of outbound
-request, to hn.algolia.com for a Hacker News comment tree, and that host is
-checked against a hard-coded allowlist in the source before the request is made.
-Everything else the extension reads is read in the page the user is on.
+The background worker only makes outbound requests to hn.algolia.com for Hacker News comments, and that host is hard-coded in an allowlist. All other content is read only from the page the user is actively viewing.
 ```
 
 **Are you using remote code?**

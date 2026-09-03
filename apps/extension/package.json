@@ -1,7 +1,7 @@
 {
     "name": "@fileconcat/extension",
     "private": true,
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Browser extension that clips web pages into Markdown and hands them to an open fileconcat.com tab",
     "type": "module",
     "scripts": {

@@ -1,8 +1,17 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { strToU8, zipSync } from "fflate";
 import { DEFAULT_CONFIG } from "@fileconcat/core";
 import { useFileIngestion } from "~/hooks/use-file-ingestion";
+
+/** counter name -> the keys it was written with. Everything else stays real. */
+const TALLIES: Record<string, string[]> = {};
+vi.mock("~/lib/metrics", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~/lib/metrics")>()),
+  trackTally: (name: string, tally: Map<string, unknown>) => {
+    if (tally.size > 0) TALLIES[name] = [...tally.keys()];
+  },
+}));
 
 /** Build a UTF-16LE (BOM) File — the encoding that a naive UTF-8 read mojibakes. */
 function utf16leFile(source: string, name: string): File {
@@ -53,5 +62,26 @@ describe("useFileIngestion", () => {
     );
     // The archive itself is replaced by its contents, not listed alongside them.
     expect(result.current.validations["bundle.bin"]).toBeUndefined();
+  });
+
+  it("counts a file whose bytes refuse to be read, where nothing used to", async () => {
+    // `File.slice()` still returns a plain Blob, so the router and the
+    // validator both sniff this file fine and only the full read fails. That
+    // is the shape of a file that moved, or a path that blinked.
+    const unreadable = new File(["placeholder"], "broken.ts");
+    Object.defineProperty(unreadable, "arrayBuffer", {
+      value: () => Promise.reject(new Error("simulated read failure")),
+    });
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([{ file: unreadable, path: "src/broken.ts" }]);
+    });
+
+    expect(result.current.failedFiles.map((f) => f.path)).toEqual(["src/broken.ts"]);
+    expect(TALLIES.read_failed).toEqual(["ts"]);
+    // Not the other failure tally: this file was never read well enough to be
+    // called binary.
+    expect(TALLIES.unreadable_ext).toBeUndefined();
   });
 });

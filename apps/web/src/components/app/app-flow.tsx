@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Archive } from "lucide-react";
 import {
   DEFAULT_CONFIG,
   MULTI_OUTPUT_LIMIT,
@@ -36,12 +37,12 @@ import { MarketingSections, SiteFooter } from "./marketing";
 import { TopBar } from "./top-bar";
 import { LandingHero } from "./landing-hero";
 import type { DropZoneProps } from "./drop-zone";
-import { ProcessingView } from "./processing-view";
+import { ProcessingView, type ProcessingStep } from "./processing-view";
 import { ResultView } from "./result-view";
 import { ResultEmpty } from "./result-empty";
 import { ReadingDialog } from "./reading-dialog";
 import { emptyKindFor, emptyReasonSlug } from "./empty-kind";
-import { isRecognisableImage, type IncomingFile } from "~/hooks/use-file-ingestion";
+import { isRecognisableImage, STAGE, type IncomingFile } from "~/hooks/use-file-ingestion";
 import { SettingsDrawer } from "./settings-drawer";
 
 type Phase = "landing" | "processing" | "result";
@@ -256,14 +257,19 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     }
     return { notText, skippedByDefault };
   }, [ingestion.validations, ingestion.failedFiles, ingestion.unreadDocuments]);
-  // "Noise" = valid text excluded by ignore patterns — not the non-text files above.
-  const noiseSkipped = useMemo(() => {
+  // "Noise" = valid text excluded by ignore patterns — not the non-text files
+  // above. The paths, not just the count: the result screen states the count and
+  // opens the list behind it, and "212 files were skipped for you" is a claim
+  // that has to be checkable.
+  const noiseFiles = useMemo(() => {
     const rejected = new Set(
       Object.entries(ingestion.validations)
         .filter(([, v]) => !v.included)
         .map(([p]) => p),
     );
-    return filter.fileStatuses.filter((s) => !s.included && !rejected.has(s.path)).length;
+    return filter.fileStatuses
+      .filter((s) => !s.included && !rejected.has(s.path))
+      .map((s) => s.path);
   }, [filter.fileStatuses, ingestion.validations]);
   // Included files that decoded as "ambiguous" — kept in, flagged for a look.
   const flaggedFiles = useMemo(() => {
@@ -311,6 +317,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
           ? {
               name: modelPicker.selectedModel.name,
               contextLimit: modelPicker.selectedModel.contextLimit,
+              inputCost: modelPicker.selectedModel.inputCost,
             }
           : null,
       }),
@@ -486,11 +493,8 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     }
   }, []);
 
-  // Honest progress, straight from the ingestion engine. A `null` percent is
-  // indeterminate (spinner only) while a phase's total is still unknown.
+  // Honest progress, straight from the ingestion engine.
   const progress = ingestion.progress;
-  const percent =
-    progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : null;
   // The engine's live stage note wins as the heading (Connecting → Listing →
   // Downloading), falling back to the phase name once files start streaming.
   const isRecognising = progress?.phase === "recognising";
@@ -556,10 +560,47 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   const processingDetail =
     progress && progress.total > 0
       ? `${progress.done} / ${progress.total} ${isRecognising ? "documents" : "files"}`
-      : processingLabel;
+      : // A stage with no total to count towards still has a count: the folder
+        // walk says how many files it has found so far rather than nothing.
+        progress && progress.done > 0
+        ? `${progress.done} files found`
+        : processingLabel;
   // The one stage measured in seconds a page rather than files a second, and
   // the only one anyone would want out of. Say what it is buying before they
   // decide.
+  /**
+   * Where the run has got to among its stages. The active one is the stage
+   * whose note the engine is showing; a remote fetch narrates its own
+   * sub-stages (Connecting, Downloading files), so it is placed by phase
+   * instead. An unplaceable note leaves the first stage active rather than
+   * ticking rows that have not run.
+   */
+  const activeStage =
+    progress?.phase === "fetching"
+      ? STAGE.fetch
+      : progress?.phase === "recognising"
+        ? STAGE.recognise
+        : progress?.note;
+  const processingSteps = useMemo(() => {
+    const stages = progress?.stages;
+    if (!stages) return undefined;
+    const active = Math.max(stages.indexOf(activeStage ?? ""), 0);
+    return stages.map(
+      (label, i): ProcessingStep => ({
+        // The heading keeps the trailing dots; a stage sitting in a list is not
+        // saying it is under way, and a ticked one is saying the opposite.
+        label: label.replace(/\.\.\.$/, ""),
+        state: i === active ? "active" : i < active ? "done" : "pending",
+      }),
+    );
+  }, [progress?.stages, activeStage]);
+  /**
+   * The stage the rail is showing as active, so the heading above it can stand
+   * down. Saying "Preparing files..." in 22px directly over a rail row reading
+   * "Preparing files" is the same words twice; a fetch keeps its heading
+   * because its sub-stage is a different fact from the stage it sits in.
+   */
+  const activeStepLabel = processingSteps?.find((s) => s.state === "active")?.label;
   const processingAside = isRecognising
     ? "These pages are pictures, not text. Recognition reads the pixels here in the browser, which takes a few seconds a page."
     : undefined;
@@ -730,13 +771,15 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
 
         {phase === "processing" && (
           <ProcessingView
-            percent={percent}
-            heading={processingHeading}
+            heading={
+              processingHeading.replace(/\.\.\.$/, "") === activeStepLabel ? "" : processingHeading
+            }
             detail={processingDetail}
             aside={processingAside}
             onStop={isRecognising ? ingestion.stopReading : undefined}
             stopLabel="Skip the scanned pages"
             stopping={ingestion.isStopping}
+            steps={processingSteps}
           />
         )}
 
@@ -767,9 +810,11 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
                   : null)
               }
               noteAction={resultNote?.action}
+              noteIcon={!resultNote && ingestion.expandedArchive ? Archive : undefined}
               filesCombined={filesCombined}
+              totalFiles={filter.fileStatuses.length}
               tokens={tokens}
-              noiseSkipped={noiseSkipped}
+              noiseFiles={noiseFiles}
               outputStyle={config.outputStyle}
               onOutputStyleChange={(style) => setConfig({ outputStyle: style })}
               isCopied={output.isCopied}
@@ -791,6 +836,8 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               recognisedImages={recognition.recognisedImages}
               isReading={ingestion.isReading}
               readProgress={ingestion.readProgress}
+              isStopping={ingestion.isStopping}
+              onStopReading={ingestion.stopReading}
               recoveredDocuments={
                 ingestion.recoveredDocuments - recognition.recognisedImages
               }
