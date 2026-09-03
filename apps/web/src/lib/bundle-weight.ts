@@ -47,6 +47,17 @@ export type BundleWeight = {
   } | null;
   /** The single file carrying most of the weight, when anything else applies. */
   dominant: { path: string; share: number } | null;
+  /**
+   * What it costs to put this bundle in front of the model once, counting the
+   * input side only. The reply is deliberately not in it: every guess at how
+   * long an answer will be is a number we made up, and one invented figure
+   * beside three measured ones is worse than no figure at all.
+   *
+   * Null when no model is known and when the catalogue has no price for it. A
+   * missing price reads as 0 in `models.json`, and "$0.00" for a model somebody
+   * pays for would be the worst kind of wrong.
+   */
+  prefill: { usd: number; modelName: string } | null;
   /** True when the result screen has something to say about size. */
   hasWarning: boolean;
 };
@@ -57,7 +68,7 @@ export type WeighInput = {
   files: WeighedFile[];
   tokens: number;
   /** The model the person picked, or null before one is known. */
-  model: { name: string; contextLimit: number } | null;
+  model: { name: string; contextLimit: number; inputCost?: number } | null;
 };
 
 export function weighBundle({ files, tokens, model }: WeighInput): BundleWeight {
@@ -69,6 +80,13 @@ export function weighBundle({ files, tokens, model }: WeighInput): BundleWeight 
   }
 
   const isLarge = chars > LARGE_BUNDLE_CHARS;
+
+  // `inputCost` is USD per million tokens, the models.dev unit the catalogue
+  // carries through unchanged.
+  const prefill =
+    model && model.inputCost && model.inputCost > 0
+      ? { usd: (tokens / 1_000_000) * model.inputCost, modelName: model.name }
+      : null;
 
   // A context limit of 0 or less is missing data, not an infinitely small
   // window: reporting 100% of nothing would be a fabricated red state.
@@ -89,7 +107,7 @@ export function weighBundle({ files, tokens, model }: WeighInput): BundleWeight 
       ? { path: biggest.path, share }
       : null;
 
-  return { chars, isLarge, fit, dominant, hasWarning: somethingApplies };
+  return { chars, isLarge, fit, dominant, prefill, hasWarning: somethingApplies };
 }
 
 function fitLevel(ratio: number): FitLevel {

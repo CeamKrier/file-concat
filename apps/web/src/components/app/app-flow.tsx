@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Archive } from "lucide-react";
 import {
   DEFAULT_CONFIG,
   MULTI_OUTPUT_LIMIT,
@@ -256,14 +257,19 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     }
     return { notText, skippedByDefault };
   }, [ingestion.validations, ingestion.failedFiles, ingestion.unreadDocuments]);
-  // "Noise" = valid text excluded by ignore patterns — not the non-text files above.
-  const noiseSkipped = useMemo(() => {
+  // "Noise" = valid text excluded by ignore patterns — not the non-text files
+  // above. The paths, not just the count: the result screen states the count and
+  // opens the list behind it, and "212 files were skipped for you" is a claim
+  // that has to be checkable.
+  const noiseFiles = useMemo(() => {
     const rejected = new Set(
       Object.entries(ingestion.validations)
         .filter(([, v]) => !v.included)
         .map(([p]) => p),
     );
-    return filter.fileStatuses.filter((s) => !s.included && !rejected.has(s.path)).length;
+    return filter.fileStatuses
+      .filter((s) => !s.included && !rejected.has(s.path))
+      .map((s) => s.path);
   }, [filter.fileStatuses, ingestion.validations]);
   // Included files that decoded as "ambiguous" — kept in, flagged for a look.
   const flaggedFiles = useMemo(() => {
@@ -311,6 +317,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
           ? {
               name: modelPicker.selectedModel.name,
               contextLimit: modelPicker.selectedModel.contextLimit,
+              inputCost: modelPicker.selectedModel.inputCost,
             }
           : null,
       }),
@@ -767,9 +774,11 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
                   : null)
               }
               noteAction={resultNote?.action}
+              noteIcon={!resultNote && ingestion.expandedArchive ? Archive : undefined}
               filesCombined={filesCombined}
+              totalFiles={filter.fileStatuses.length}
               tokens={tokens}
-              noiseSkipped={noiseSkipped}
+              noiseFiles={noiseFiles}
               outputStyle={config.outputStyle}
               onOutputStyleChange={(style) => setConfig({ outputStyle: style })}
               isCopied={output.isCopied}
@@ -791,6 +800,8 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               recognisedImages={recognition.recognisedImages}
               isReading={ingestion.isReading}
               readProgress={ingestion.readProgress}
+              isStopping={ingestion.isStopping}
+              onStopReading={ingestion.stopReading}
               recoveredDocuments={
                 ingestion.recoveredDocuments - recognition.recognisedImages
               }

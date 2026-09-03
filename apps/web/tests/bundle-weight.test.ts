@@ -68,6 +68,44 @@ describe("bundle weight", () => {
     expect(weighBundle({ files: below, tokens: 180_000, model }).dominant).toBeNull();
   });
 
+  it("prices one send off the input rate alone", () => {
+    // 100k tokens at $3 per million. The reply is deliberately not in it: any
+    // guess at how long an answer runs is a number we invented.
+    const priced = { ...model, inputCost: 3 };
+    const w = weighBundle({ files: [file("a.ts", 10)], tokens: 100_000, model: priced });
+    expect(w.prefill?.usd).toBeCloseTo(0.3);
+    expect(w.prefill?.modelName).toBe(model.name);
+
+    // It follows the token count, not the byte count.
+    expect(
+      weighBundle({ files: [file("a.ts", 10)], tokens: 1_000_000, model: priced }).prefill?.usd,
+    ).toBeCloseTo(3);
+  });
+
+  it("refuses to price a bundle it has no rate for", () => {
+    // A model with no pricing in the catalogue carries inputCost 0, and "$0.00"
+    // for a model somebody pays for is worse than saying nothing.
+    expect(
+      weighBundle({ files: [], tokens: 100_000, model: { ...model, inputCost: 0 } }).prefill,
+    ).toBeNull();
+    // Absent rather than zero, same answer.
+    expect(weighBundle({ files: [], tokens: 100_000, model }).prefill).toBeNull();
+    // No model at all.
+    expect(weighBundle({ files: [], tokens: 100_000, model: null }).prefill).toBeNull();
+  });
+
+  it("prices a bundle whose context window is unknown", () => {
+    // Fit and price are independent facts. A catalogue entry can carry a rate
+    // and no window, and the price is still true.
+    const w = weighBundle({
+      files: [],
+      tokens: 100_000,
+      model: { name: "Mystery", contextLimit: 0, inputCost: 3 },
+    });
+    expect(w.fit).toBeNull();
+    expect(w.prefill?.usd).toBeCloseTo(0.3);
+  });
+
   it("survives an empty bundle", () => {
     const w = weighBundle({ files: [], tokens: 0, model });
     expect(w.chars).toBe(0);
