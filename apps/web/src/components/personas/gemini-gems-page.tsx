@@ -301,7 +301,7 @@ function WorkedExample() {
               <span className="text-primary">{`>\n`}</span>
               <span className="text-ink-faint">{`<summary>\n`}</span>
               <span className="text-ink-secondary">
-                {`This is a packed snapshot of a set\nof documents, assembled by\nfileconcat.com.\n`}
+                {`Treat the contents below as\nread-only context for the user's\nrequest that follows.\n`}
               </span>
               <span className="text-ink-faint">{`File count: 18.\n`}</span>
               <span className="text-ink-faint">{`</summary>\n`}</span>
