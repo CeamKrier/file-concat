@@ -52,6 +52,31 @@ type SizeThreshold = (typeof SIZE_THRESHOLDS)[number][0];
 // any pattern could filter them. Everything else honors the live filter rail.
 const HARDCODED_PRUNE_DIRS = new Set([".git", "node_modules"]);
 
+/**
+ * Every stage a run can pass through. The label is also the note its stage
+ * sets, so the view places the two against each other without a second
+ * vocabulary to keep in step.
+ */
+export const STAGE = {
+  scan: "Scanning files...",
+  fetch: "Fetching files...",
+  prepare: "Preparing files...",
+  read: "Reading files...",
+  recognise: "Reading scanned pages...",
+} as const;
+
+/**
+ * Which stages a run will show, decided by the door its files came through:
+ * only a dropped folder is walked, only a remote source is fetched.
+ *
+ * Recognition is in none of them. Whether it runs at all is decided by what
+ * the read found, so it joins the end of the list when it starts rather than
+ * standing there greyed out through every drop that holds no scan.
+ */
+const BATCH_STAGES = [STAGE.prepare, STAGE.read] as const;
+const DROP_STAGES = [STAGE.scan, ...BATCH_STAGES] as const;
+const REMOTE_STAGES = [STAGE.fetch, ...BATCH_STAGES] as const;
+
 export type ContentEntry = {
   path: string;
   content: string;
@@ -204,6 +229,13 @@ export type IngestProgress = {
   done: number;
   total: number;
   note?: string;
+  /**
+   * Every stage this run will pass through, in order, so the processing view
+   * can show where in the pipeline it is. A stage's percent restarts at each
+   * one, and without the list that reads as the whole thing starting over.
+   * Absent for a single-stage pass (recognition), which has nothing to place.
+   */
+  stages?: readonly string[];
 } | null;
 
 export interface FileIngestion {
@@ -354,7 +386,13 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
    * pass already recovered.
    */
   const readDocuments = useCallback(
-    async (documents: readonly ScannedDocument[], language: OcrLanguage) => {
+    async (
+      documents: readonly ScannedDocument[],
+      language: OcrLanguage,
+      // The rail this pass belongs to, when it is the tail of a run. A pass
+      // started by hand from the result screen has no rail and passes none.
+      stages?: readonly string[],
+    ) => {
       // A ref, not `isReading`: the auto-start fires from inside the ingest that
       // produced the work, where a state read is a render behind.
       if (documents.length === 0 || readingRef.current) return 0;
@@ -369,7 +407,13 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // Also on the ingest channel, because a batch awaits this: recognition is
       // the last stage of the drop, not something happening behind a result that
       // already claims to be ready.
-      setProgress({ phase: "recognising", done: 0, total: documents.length });
+      setProgress({
+        phase: "recognising",
+        done: 0,
+        total: documents.length,
+        note: STAGE.recognise,
+        stages,
+      });
       // Held for the whole pass, so every document is read the same way and the
       // name reported afterwards is the one that was actually used.
       setReadLanguage(language);
@@ -426,6 +470,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                       done: i,
                       total: documents.length,
                       note: `Page ${done + 1} of ${total}`,
+                      stages,
                     }),
                   controller.signal,
                 );
@@ -499,7 +544,13 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             }
           }
           setReadProgress({ done: i + 1, total: documents.length });
-          setProgress({ phase: "recognising", done: i + 1, total: documents.length });
+          setProgress({
+            phase: "recognising",
+            done: i + 1,
+            total: documents.length,
+            note: STAGE.recognise,
+            stages,
+          });
         }
 
         // Replace in place where a path is already in the bundle (a re-read),
@@ -554,7 +605,13 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   );
 
   const ingestBatch = useCallback(
-    async (incoming: IncomingFile[], options?: IngestOptions) => {
+    async (
+      incoming: IncomingFile[],
+      options?: IngestOptions,
+      // Not on the exported type: the doors above pass their own list, and an
+      // outside caller (the extension push) is exactly the batch-only run.
+      stages: readonly string[] = BATCH_STAGES,
+    ) => {
       const append = options?.append;
       const startedAt = performance.now();
       // Everything recorded below belongs to this Run (ADR-0014): one drop and
@@ -564,7 +621,13 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // One pass decides every file's route from its own leading bytes and
       // unpacks the archives among them (ADR-0011), so nothing below sniffs a
       // file twice.
-      const { files: routed, expandedCount, unsupported } = await prepareBatch(incoming);
+      const {
+        files: routed,
+        expandedCount,
+        unsupported,
+      } = await prepareBatch(incoming, (done, total) =>
+        setProgress({ phase: "reading", done, total, note: STAGE.prepare, stages }),
+      );
       setExpandedArchive((prev) => (append ? prev || expandedCount > 0 : expandedCount > 0));
 
       const nextEntries: ContentEntry[] = [];
@@ -594,7 +657,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       const total = routed.length;
       // Cap re-renders at ~100 progress ticks regardless of how large the drop is.
       const tick = Math.max(1, Math.floor(total / 100));
-      setProgress({ phase: "reading", done: 0, total });
+      setProgress({ phase: "reading", done: 0, total, note: STAGE.read, stages });
 
       for (let i = 0; i < total; i++) {
         const { item: entry, path, route } = routed[i];
@@ -615,7 +678,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
 
         const tickProgress = () => {
           if ((i + 1) % tick === 0 || i + 1 === total) {
-            setProgress({ phase: "reading", done: i + 1, total });
+            setProgress({ phase: "reading", done: i + 1, total, note: STAGE.read, stages });
           }
         };
 
@@ -758,7 +821,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         }
 
         if ((i + 1) % tick === 0 || i + 1 === total) {
-          setProgress({ phase: "reading", done: i + 1, total });
+          setProgress({ phase: "reading", done: i + 1, total, note: STAGE.read, stages });
         }
       }
 
@@ -861,7 +924,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       const autoReadBytes = autoRead.reduce((sum, d) => sum + d.file.size, 0);
       if (autoRead.length > 0) {
         if (autoRead.length <= AUTO_READ_MAX_DOCUMENTS && autoReadBytes <= AUTO_READ_MAX_BYTES) {
-          await readDocuments(autoRead, browserOcrLanguage());
+          await readDocuments(autoRead, browserOcrLanguage(), [...stages, STAGE.recognise]);
         } else {
           // The bundle is already assembled at this point, so declining the
           // pass is what releases it. Recorded by format, because whether the
@@ -887,7 +950,13 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       tagSource(sourceType);
       // Immediate feedback: the spinner shows a stage before the first network
       // round-trip resolves, so a slow connect never reads as "frozen".
-      setProgress({ phase: "fetching", done: 0, total: 0, note: "Connecting..." });
+      setProgress({
+        phase: "fetching",
+        done: 0,
+        total: 0,
+        note: "Connecting...",
+        stages: REMOTE_STAGES,
+      });
       try {
         const adapter = defaultSourceRegistry.getByType(sourceType);
         if (!adapter) throw new Error("Unknown source type");
@@ -900,6 +969,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             done: prev?.done ?? 0,
             total: prev?.total ?? 0,
             note: message,
+            stages: REMOTE_STAGES,
           }));
         const onProgress = (p: DownloadProgress) =>
           setProgress((prev) => ({
@@ -907,6 +977,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             done: p.completedFiles,
             total: p.totalFiles,
             note: prev?.note,
+            stages: REMOTE_STAGES,
           }));
         const { files, error, failures } = await adapter.fetchFiles(url, {
           onProgress,
@@ -922,7 +993,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           const fileObj = new File([blob], remote.name, { type: remote.type });
           incoming.push({ file: fileObj, path: remote.path, content: remote.content || "" });
         }
-        await ingestBatch(incoming);
+        await ingestBatch(incoming, undefined, REMOTE_STAGES);
         // ingestBatch replaces failedFiles with its own read failures, so append
         // the adapter's download failures afterwards. Files that were listed but
         // couldn't be fetched are surfaced, never silently dropped (ADR-0004).
@@ -1008,16 +1079,34 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setProcessingStatus("Scanning files...");
       // Walking a large dropped folder can take a beat before the read loop
       // starts reporting counts — show the stage so it isn't a silent spinner.
-      setProgress({ phase: "reading", done: 0, total: 0, note: "Scanning files..." });
+      setProgress({
+        phase: "reading",
+        done: 0,
+        total: 0,
+        note: STAGE.scan,
+        stages: DROP_STAGES,
+      });
       tagSource("drop");
 
       try {
         const { collected, failed } = await collectFromDataTransfer(e.dataTransfer.items, {
           skipDir: (name) => HARDCODED_PRUNE_DIRS.has(name),
+          // The walk has no total to count towards, so it reports what it has
+          // found so far. Every 25th file, to cap re-renders on a big folder.
+          onProgress: (found) => {
+            if (found % 25 === 0)
+              setProgress({
+                phase: "reading",
+                done: found,
+                total: 0,
+                note: STAGE.scan,
+                stages: DROP_STAGES,
+              });
+          },
         });
         const incoming: IncomingFile[] = collected.map(({ file, path }) => ({ file, path }));
         setProcessingStatus(`Processing ${incoming.length} files...`);
-        await ingestBatch(incoming, options);
+        await ingestBatch(incoming, options, DROP_STAGES);
         if (failed.length > 0) setFailedFiles((prev) => [...prev, ...failed]);
       } catch (error) {
         console.error("Error processing files:", error);

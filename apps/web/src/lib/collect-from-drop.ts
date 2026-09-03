@@ -22,6 +22,12 @@ export interface CollectFromDataTransferResult {
 export interface CollectFromDataTransferOptions {
   /** Return `true` to skip a directory (e.g. `node_modules`) without recursing. */
   skipDir?: (name: string) => boolean;
+  /**
+   * Called with the running count as files are found. A walk over a large or
+   * remote folder can run for a minute before it returns anything, and the
+   * count is the only proof it is still going.
+   */
+  onProgress?: (found: number) => void;
 }
 
 export async function collectFromDataTransfer(
@@ -31,6 +37,7 @@ export async function collectFromDataTransfer(
   const collected: CollectedFile[] = [];
   const failed: CollectFailure[] = [];
   const shouldSkip = options.skipDir ?? (() => false);
+  const report = options.onProgress ?? (() => {});
 
   const walk = async (entry: FileSystemEntry, prefix = ""): Promise<void> => {
     if (entry.isFile) {
@@ -39,6 +46,7 @@ export async function collectFromDataTransfer(
         fileEntry.file(
           (file) => {
             collected.push({ file, path: prefix ? `${prefix}/${file.name}` : file.name });
+            report(collected.length);
             resolve();
           },
           () => {

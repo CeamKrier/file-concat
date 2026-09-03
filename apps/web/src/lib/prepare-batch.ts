@@ -9,6 +9,9 @@ export interface RoutedFile {
   route: FileRoute;
 }
 
+/** Called with files routed so far, so a slow batch can report live progress. */
+export type PrepareProgress = (done: number, total: number) => void;
+
 export interface PreparedBatch {
   files: RoutedFile[];
   /** How many archives were successfully unpacked. */
@@ -25,8 +28,11 @@ export interface PreparedBatch {
  * the client, so core's router — and the `file-type` detector it pulls in —
  * never enter the Cloudflare SSR worker bundle. Mirrors tokens.ts and parsers.ts.
  */
-export async function prepareBatch(incoming: IncomingFile[]): Promise<PreparedBatch> {
+export async function prepareBatch(
+  incoming: IncomingFile[],
+  onProgress?: PrepareProgress,
+): Promise<PreparedBatch> {
   if (import.meta.env.SSR) return { files: [], expandedCount: 0, unsupported: [] };
   const mod = await import("./prepare-batch-client");
-  return mod.prepareBatch(incoming);
+  return mod.prepareBatch(incoming, onProgress);
 }
