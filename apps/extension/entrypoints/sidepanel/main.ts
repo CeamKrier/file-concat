@@ -12,7 +12,6 @@
 import { browser } from "#imports";
 import {
   OPTIONS_KEY,
-  SEEN_KEY,
   SENT_KEY,
   SENT_TTL_MS,
   STATUS_KEY,
@@ -51,8 +50,6 @@ const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as
 const ui = {
   settingsOpen: el<HTMLButtonElement>("settings-open"),
   scroll: el("scroll"),
-  intro: el("intro"),
-  introDismiss: el<HTMLButtonElement>("intro-dismiss"),
   blank: el("blank"),
   blankWhy: el("blank-why"),
   now: el("now"),
@@ -68,6 +65,7 @@ const ui = {
   echo: el("echo"),
   echoChange: el<HTMLButtonElement>("echo-change"),
   listFoot: el("list-foot"),
+  more: el<HTMLButtonElement>("more"),
   toast: el("toast"),
   toastText: el("toast-text"),
   toastDismiss: el<HTMLButtonElement>("toast-dismiss"),
@@ -93,6 +91,7 @@ const ui = {
   sentLinkText: el("sent-link-text"),
   cartTokens: el("cart-tokens"),
   send: el<HTMLButtonElement>("send"),
+  copyAll: el<HTMLButtonElement>("copy-all"),
   sent: el("sent"),
   sentClose: el<HTMLButtonElement>("sent-close"),
   sentGroups: el("sent-groups"),
@@ -104,7 +103,8 @@ const ui = {
   optName: el("opt-name"),
   optNote: el("opt-note"),
   optNone: el("opt-none"),
-  introReplay: el<HTMLButtonElement>("intro-replay"),
+  forget: el<HTMLButtonElement>("forget"),
+  forgetNote: el("forget-note"),
   peek: el("peek"),
   peekClose: el<HTMLButtonElement>("peek-close"),
   peekPath: el("peek-path"),
@@ -112,6 +112,7 @@ const ui = {
   peekTitle: el("peek-title"),
   peekSource: el("peek-source"),
   peekBody: el("peek-body"),
+  peekCopy: el<HTMLButtonElement>("peek-copy"),
 };
 
 let tray: TrayItem[] = [];
@@ -127,6 +128,16 @@ let cartOpen = false;
 let overlay: "sent" | "settings" | "peek" | null = null;
 /** Where peek was opened from, so Back returns there. */
 let peekFrom: "cart" | "sent" = "cart";
+/** Which send is open in the Sent sheet, by its timestamp. `undefined` until
+ *  someone picks one, which is what lets the newest open on arrival; `null` is
+ *  a deliberate all-closed. */
+let openSend: number | null | undefined;
+/** The clipping peek is showing, which its own Copy hands to the clipboard. */
+let peeked: string | undefined;
+/** Whether a Load more is still scrolling the page. Held here because the page
+ *  announces every batch of rows it loads, and the refresh that follows would
+ *  otherwise hand the button back mid-scroll and let it be pressed again. */
+let loadingMore = false;
 let bulk = false;
 const picked = new Set<string>();
 /** The set opened out in the list, and what it holds once the page answered. */
@@ -151,6 +162,20 @@ const fmt = (n: number) => (n >= 1000 ? `~${(n / 1000).toFixed(1)}k` : `~${n}`);
 /** The store is filtered when it is read, in the worker and here alike: a panel
  *  opened after a week away must not show a row the next write will drop. */
 const fresh = (rows: SentItem[]) => rows.filter((row) => row.sentAt > Date.now() - SENT_TTL_MS);
+
+/**
+ * The other way out of the panel. Sending is the one that ends in a bundle;
+ * this is the one for a single clip that is going somewhere else, and it is why
+ * a clip never has to reach fileconcat.com to be worth taking.
+ */
+async function copy(markdown: string, what: string) {
+  try {
+    await navigator.clipboard.writeText(markdown);
+    say({ text: `${what} copied. ${fmt(tokens(markdown))} tokens.`, tone: "done", at: Date.now() });
+  } catch {
+    say({ text: "The browser would not hand the panel the clipboard.", tone: "error", at: Date.now() });
+  }
+}
 
 // ---------- drawn marks ----------
 
@@ -208,6 +233,11 @@ function renderPage() {
   ui.single.hidden = page.kind !== "single";
   ui.list.hidden = page.kind !== "list";
   ui.listFoot.hidden = page.kind !== "list";
+  ui.more.hidden = page.kind !== "list" || page.more !== true;
+  ui.more.disabled = loadingMore;
+  // Named for what it leaves behind rather than for the scrolling it does: rows
+  // a listing has not loaded yet are rows the panel cannot clip.
+  ui.more.textContent = loadingMore ? "Loading…" : `Load every ${page.noun} into this list`;
   ui.echoRow.hidden = !page.option || page.kind === "other";
 
   if (page.option) {
@@ -222,10 +252,12 @@ function renderPage() {
   }
 
   if (page.kind === "single") {
-    const inCart = tray.some((row) => row.id === page.items[0].id);
-    ui.clip.dataset.in = String(inCart);
-    ui.clip.setAttribute("aria-pressed", String(inCart));
-    ui.clip.textContent = inCart ? "In cart · tap to take it out" : `Clip this ${page.noun}`;
+    const entry = tray.find((row) => row.id === page.items[0].id);
+    const busy = entry !== undefined && waiting(entry);
+    ui.clip.dataset.in = String(entry !== undefined);
+    ui.clip.disabled = busy;
+    ui.clip.setAttribute("aria-pressed", String(entry !== undefined));
+    ui.clip.textContent = busy ? where(entry) : entry ? "In cart · tap to take it out" : `Clip this ${page.noun}`;
     renderBulk();
     return;
   }
@@ -234,7 +266,9 @@ function renderPage() {
   ui.bulkToggle.setAttribute("aria-pressed", String(bulk));
   ui.listHint.textContent = bulk
     ? "Pick the ones you want."
-    : `${page.items.length} on this page. Tap one to clip it.`;
+    : page.more === true
+      ? `${page.items.length} loaded so far. Tap one to clip it.`
+      : `${page.items.length} on this page. Tap one to clip it.`;
   ui.listFoot.textContent = bulk
     ? "Multi-select ends when the batch is queued."
     : "Rows are in the page's own order.";
@@ -273,19 +307,29 @@ function row(item: PageItem): HTMLLIElement {
   li.append(main);
 
   const paint = () => {
-    const inCart = tray.some((entry) => entry.id === item.id) && !bulk;
+    const entry = bulk ? undefined : tray.find((row) => row.id === item.id);
+    const inCart = entry !== undefined;
+    // A clip is a page read, not a list edit, and the read takes seconds. Until
+    // it lands the row is dimmed, untappable, and says where it is; otherwise
+    // the tap looks instant and the wait belongs to nobody.
+    const busy = inCart && waiting(entry);
     const isPicked = picked.has(item.id);
     li.dataset.in = String(inCart);
     li.dataset.picked = String(isPicked);
+    if (busy) li.dataset.state = entry.state;
+    else delete li.dataset.state;
+    tap.disabled = busy;
     box.hidden = !bulk;
-    meta.textContent = inCart ? "In cart · tap to take it out" : (item.meta ?? "");
+    meta.textContent = busy ? where(entry) : inCart ? "In cart · tap to take it out" : (item.meta ?? "");
     tap.setAttribute("aria-pressed", String(bulk ? isPicked : inCart));
-    tap.title = inCart ? "Take this out of the cart" : "Clip this into the cart";
+    tap.title = busy ? "Reading it now" : inCart ? "Take this out of the cart" : "Clip this into the cart";
     const opens = item.expand === true && !bulk;
     // An empty rail is a divider drawn down the side of every row for nothing,
     // which is what a fixed-width slot costs when most rows have no use for it.
-    rail.hidden = !inCart && !opens;
-    rail.replaceChildren(...(inCart ? [mark] : []), ...(opens ? [caret] : []));
+    // The mark waits for the clipping to be real: a check over a row still being
+    // read is a promise the panel has not kept yet.
+    rail.hidden = (!inCart || busy) && !opens;
+    rail.replaceChildren(...(inCart && !busy ? [mark] : []), ...(opens ? [caret] : []));
     caret.setAttribute("aria-expanded", String(expanded === item.id));
     caret.replaceChildren(icon(expanded === item.id ? MARK.up : MARK.down, 12));
   };
@@ -326,10 +370,13 @@ function heldList(parent: PageItem): HTMLElement {
     tap.append(text, tag);
 
     const paint = () => {
-      const inCart = tray.some((entry) => entry.id === video.id);
-      tag.textContent = inCart ? "in cart" : "clip";
+      const entry = tray.find((row) => row.id === video.id);
+      const inCart = entry !== undefined;
+      const busy = inCart && waiting(entry);
+      tap.disabled = busy;
+      tag.textContent = busy ? where(entry).toLowerCase() : inCart ? "in cart" : "clip";
       tap.setAttribute("aria-pressed", String(inCart));
-      tap.title = inCart ? "Take this out of the cart" : "Clip this video";
+      tap.title = busy ? "Reading it now" : inCart ? "Take this out of the cart" : "Clip this video";
     };
     tap.addEventListener("click", () => {
       if (tray.some((entry) => entry.id === video.id)) void tell({ type: "fc:remove", id: video.id });
@@ -403,6 +450,7 @@ function renderCart() {
   ui.cartTokens.textContent = figure;
 
   ui.send.disabled = ready === 0;
+  ui.copyAll.disabled = ready === 0;
   ui.send.textContent = ready === 0 ? "Nothing to send" : `Send ${ready}`;
   ui.sending.hidden = status?.tone !== "working";
   ui.sentLinkText.textContent = sent.length
@@ -416,6 +464,9 @@ function renderCart() {
 
 /** The folder a clipping landed in, or nothing when it landed at the top. */
 const folder = (path: string) => path.split("/").slice(0, -1).join("/");
+
+/** Tapped, and the clipping is not back yet. */
+const waiting = (item: TrayItem) => item.state === "queued" || item.state === "fetching";
 
 function where(item: TrayItem): string {
   if (item.state === "failed") return item.error ?? "";
@@ -455,7 +506,10 @@ function clipRow(item: TrayItem): HTMLLIElement {
         source: item.clipping!.source,
       }, "cart"),
     );
-    acts.append(peek);
+    const take = h("button", "mini", "Copy");
+    take.type = "button";
+    take.addEventListener("click", () => void copy(item.clipping!.markdown, "Clip"));
+    acts.append(peek, take);
   }
   // Only while the tab it came from is still open: clipping is a question put
   // to a page, and there is no route to the content without one.
@@ -507,28 +561,43 @@ function renderOverlay() {
   if (overlay) back[overlay].focus();
 }
 
+/**
+ * The receipt, one line per send.
+ *
+ * Grouped by the exact `sentAt` rather than by the day it fell on: every row of
+ * one push is stamped with the same millisecond, so that timestamp is the only
+ * thing that says which files went together. By day, two sends merged into one
+ * block and "Send again" resent both.
+ *
+ * A send is closed until it is asked for, because a ten-video batch is ten rows
+ * nobody opened the sheet to read. The head says how many are in there.
+ */
 function renderSent() {
   ui.sentEmpty.hidden = sent.length > 0;
-  const days = new Map<string, SentItem[]>();
-  for (const item of sent) {
-    const key = new Date(item.sentAt).toDateString();
-    days.set(key, [...(days.get(key) ?? []), item]);
-  }
+  const sends = new Map<number, SentItem[]>();
+  for (const item of sent) sends.set(item.sentAt, [...(sends.get(item.sentAt) ?? []), item]);
+  const batches = [...sends].sort((a, b) => b[0] - a[0]);
+  // The newest opens on arrival: it is the one just sent, and it is what the
+  // sheet is usually opened to look at.
+  if (openSend === undefined) openSend = batches[0]?.[0] ?? null;
 
-  const today = new Date().toDateString();
-  const groups = [...days].map(([key, rows]) => {
+  const groups = batches.map(([at, rows]) => {
+    const open = at === openSend;
     const group = h("div", "group");
-    const head = h("div", "group-head");
-    const when =
-      key === today
-        ? "Today"
-        : new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(key));
-    head.append(h("span", "group-label", `${when} · ${files(rows.length)}`), h("span", "group-hint", leaves(rows)));
-
-    const again = h("button", "again", "Send again");
-    again.type = "button";
-    again.addEventListener("click", () => void tell({ type: "fc:resend", ids: rows.map((row) => row.id) }));
-    head.append(again);
+    const head = h("button", "group-head");
+    head.type = "button";
+    head.setAttribute("aria-expanded", String(open));
+    head.append(
+      h("span", "group-label", sentWhen(at)),
+      h("span", "group-hint", `${files(rows.length)} · ${leaves(rows)}`),
+      icon(open ? MARK.up : MARK.down, 12),
+    );
+    head.addEventListener("click", () => {
+      openSend = open ? null : at;
+      renderSent();
+    });
+    group.append(head);
+    if (!open) return group;
 
     const list = h("ul");
     for (const item of rows) {
@@ -552,10 +621,28 @@ function renderSent() {
       li.append(text, h("span", "sent-tokens", fmt(tokens(item.clipping.markdown))), peek);
       list.append(li);
     }
-    group.append(head, list);
+    group.append(list);
+
+    // Under the batch rather than in its head: resending is about these files,
+    // and the head has to stay readable when every send is closed.
+    const foot = h("div", "group-foot");
+    const total = rows.reduce((sum, row) => sum + tokens(row.clipping.markdown), 0);
+    const again = h("button", "again", "Send again");
+    again.type = "button";
+    again.addEventListener("click", () => void tell({ type: "fc:resend", ids: rows.map((row) => row.id) }));
+    foot.append(h("span", "sent-tokens", fmt(total)), again);
+    group.append(foot);
     return group;
   });
   ui.sentGroups.replaceChildren(...groups);
+}
+
+/** `Today 14:32`, or `Sep 1, 14:32` once it is not today any more. */
+function sentWhen(at: number): string {
+  const time = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(at);
+  return new Date(at).toDateString() === new Date().toDateString()
+    ? `Today ${time}`
+    : `${new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(at)}, ${time}`;
 }
 
 /** When the oldest row in a group falls off. The group is one send, so they all
@@ -577,6 +664,11 @@ function renderSettings() {
     ui.optNote.textContent = page.option.hint;
     ui.opt.setAttribute("aria-pressed", String(option()));
   }
+  ui.forget.disabled = sent.length === 0;
+  ui.forgetNote.textContent =
+    sent.length === 0
+      ? "Nothing sent in the last seven days."
+      : `${sent.length} ${sent.length === 1 ? "row" : "rows"}, in this browser only. They drop off on their own after seven days.`;
 }
 
 function openPeek(clip: { title: string; path: string; markdown: string; source: string }, from: "cart" | "sent") {
@@ -588,6 +680,9 @@ function openPeek(clip: { title: string; path: string; markdown: string; source:
   ui.peekTitle.textContent = heading?.[1] ?? clip.title;
   ui.peekSource.textContent = `Clipped from ${clip.source} · Markdown`;
   ui.peekBody.replaceChildren(...readable(heading ? clip.markdown.replace(heading[0], "") : clip.markdown));
+  // Peek shows both ends of a long file and says so. Copy is the whole thing,
+  // which is the point of looking at it.
+  peeked = clip.markdown;
   overlay = "peek";
   renderOverlay();
 }
@@ -702,7 +797,6 @@ lead(ui.settingsClose, MARK.left);
 lead(ui.sentClose, MARK.left);
 lead(ui.peekClose, MARK.left);
 ui.cartHide.append(icon(MARK.down, 12));
-ui.introDismiss.append(icon(MARK.close, 12));
 ui.toastDismiss.append(icon(MARK.close, 12));
 ui.cartBar.querySelector(".review")?.append(icon(MARK.up, 11));
 ui.cartEmpty.querySelector(".cart-empty-more")?.append(icon(MARK.right, 11));
@@ -725,12 +819,16 @@ ui.peekClose.addEventListener("click", () => {
   renderOverlay();
 });
 ui.sentClose.addEventListener("click", closeOverlay);
+// Opening the sheet forgets which send was open last time, so it always lands
+// on the newest one.
 ui.sentOpen.addEventListener("click", () => {
   overlay = "sent";
+  openSend = undefined;
   renderOverlay();
 });
 ui.cartEmpty.addEventListener("click", () => {
   overlay = "sent";
+  openSend = undefined;
   renderOverlay();
 });
 
@@ -742,14 +840,15 @@ ui.opt.addEventListener("click", () => {
   renderPage();
 });
 
-ui.introDismiss.addEventListener("click", () => {
-  ui.intro.hidden = true;
-  void browser.storage.local.set({ [SEEN_KEY]: true });
-});
-ui.introReplay.addEventListener("click", () => {
-  ui.intro.hidden = false;
-  void browser.storage.local.set({ [SEEN_KEY]: false });
-  closeOverlay();
+// The one thing in the panel worth a setting: the seven-day receipt lives on
+// this device and nowhere else, so the person holding it is the only one who
+// can drop it early.
+ui.forget.addEventListener("click", () => {
+  sent = [];
+  void browser.storage.local.set({ [SENT_KEY]: [] });
+  renderCart();
+  renderSettings();
+  say({ text: "Sent history cleared.", tone: "done", at: Date.now() });
 });
 
 ui.clip.addEventListener("click", () => {
@@ -795,6 +894,53 @@ ui.cartGrab.addEventListener("click", shutCart);
 ui.scrim.addEventListener("click", shutCart);
 ui.cartClear.addEventListener("click", () => void tell({ type: "fc:clear" }));
 ui.send.addEventListener("click", () => void tell({ type: "fc:send" }));
+ui.peekCopy.addEventListener("click", () => {
+  if (peeked) void copy(peeked, "Clip");
+});
+ui.copyAll.addEventListener("click", () => {
+  const rows = tray.filter((item) => item.clipping);
+  if (rows.length === 0) return;
+  // One file per block, each under the path it would have landed at. An HTML
+  // comment because every clipping opens with its own `---` frontmatter, and a
+  // rule between them would read as part of the first one.
+  void copy(
+    rows.map((item) => `<!-- ${item.clipping!.path} -->\n\n${item.clipping!.markdown.trim()}`).join("\n\n"),
+    files(rows.length),
+  );
+});
+
+/**
+ * Scrolls the page until it stops loading rows. A press, never automatic: this
+ * moves someone's page under them, and the handler only puts it back once it is
+ * done.
+ */
+ui.more.addEventListener("click", async () => {
+  if (activeTabId === undefined) return;
+  const before = page.items.length;
+  loadingMore = true;
+  ui.more.disabled = true;
+  ui.more.textContent = "Loading…";
+  try {
+    const request: SiteRequest = { type: "fc:more" };
+    const response = (await browser.tabs.sendMessage(activeTabId, request)) as SiteResponse<PageReport> | undefined;
+    if (response?.ok) page = response.value;
+    const added = page.items.length - before;
+    say({
+      text: added
+        ? `${added} more. ${page.items.length} ${page.noun}s on this page now.`
+        // Not "that is the end of the page": a tab in the background loads
+        // nothing, and this cannot tell that apart from a page with no more.
+        : "Nothing more loaded.",
+      tone: added ? "done" : "",
+      at: Date.now(),
+    });
+  } catch {
+    say({ text: "This page stopped answering. Reload it and try again.", tone: "error", at: Date.now() });
+  }
+  loadingMore = false;
+  // Repaints the rows and puts the button back the way it was.
+  renderPage();
+});
 ui.toastDismiss.addEventListener("click", () => say(undefined));
 
 // Escape backs out one level, which is the only nesting the panel has.
@@ -816,8 +962,12 @@ browser.storage.local.onChanged.addListener((changes) => {
   }
   if (changes[SENT_KEY]) {
     sent = fresh((changes[SENT_KEY].newValue as SentItem[] | undefined) ?? []);
+    // A send just landed, or the history was cleared: whichever batch was open
+    // is no longer the one worth being open.
+    openSend = undefined;
     renderCart();
     if (overlay === "sent") renderSent();
+    if (overlay === "settings") renderSettings();
   }
   if (changes[STATUS_KEY]) say(changes[STATUS_KEY].newValue as Status | undefined);
 });
@@ -833,11 +983,10 @@ browser.runtime.onMessage.addListener((message) => {
 });
 
 async function start() {
-  const stored = await browser.storage.local.get([TRAY_KEY, SENT_KEY, OPTIONS_KEY, STATUS_KEY, SEEN_KEY]);
+  const stored = await browser.storage.local.get([TRAY_KEY, SENT_KEY, OPTIONS_KEY, STATUS_KEY]);
   tray = Array.isArray(stored[TRAY_KEY]) ? (stored[TRAY_KEY] as TrayItem[]) : [];
   sent = fresh(Array.isArray(stored[SENT_KEY]) ? (stored[SENT_KEY] as SentItem[]) : []);
   options = (stored[OPTIONS_KEY] as Record<string, boolean> | undefined) ?? {};
-  ui.intro.hidden = stored[SEEN_KEY] === true;
   say(stored[STATUS_KEY] as Status | undefined);
   renderCart();
   renderOverlay();
