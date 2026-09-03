@@ -56,10 +56,11 @@ video's description and its full transcript as one Markdown file.
     no timestamps to strip out afterwards.
   </Step>
   <Step title="Decide about comments">
-    **Include comments** takes the top 20 and is off by default. It costs two extra
-    requests and a bigger bundle: measured on a 7-minute video, the clipping went from
-    2,365 to 3,421 tokens, which is 45% more. On a video whose transcript dwarfs its
-    comments the same setting cost 7%.
+    **Include comments** takes the top 60 threads and, under the 25 with the most
+    replies, the first page of those replies. It is off by default: it costs about 30
+    extra requests, five seconds, and a much bigger bundle. Measured 2026-09-01, the
+    Stanford commencement address went from 3,622 to 12,898 tokens (60 threads, 235
+    replies) and a shorter talk from 2,377 to 7,238.
   </Step>
   <Step title="Send it to the bundler">
     **Send** pushes the clipping into an open [fileconcat.com](/) tab, opening one if there
