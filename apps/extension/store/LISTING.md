@@ -225,25 +225,13 @@ extension has no other function and no other destination.
 **Host permission justification** for `<all_urls>`:
 
 ```
-Two things need it.
+Two things require it.
 
-First, the extension supports any article on any site. Its article handler is a
-catch-all that uses Mozilla's Readability, which is what lets it work on
-Substack, Medium, documentation, news and blogs without a line of site-specific
-code. The page the user wants to keep can be any page, so the host list is the
-web. Nothing is read from a page until the user presses a button in the panel.
+First, the extension can clip articles from any site using Mozilla Readability. That is why it works on Substack, Medium, docs, news sites, and blogs without site-specific code. Since the user may save any page, host access must cover the web. Page content is only read after the user presses the clip button.
 
-Second, the side panel must name the site it is looking at and decide whether
-that page can be clipped at all, which means reading the active tab's URL.
-Chrome exposes `tab.url` only to an extension holding either the `tabs`
-permission or host permission for that tab. We chose host permissions and did
-not request `tabs`, because `tabs` would additionally hand us the title and URL
-of every tab in every window, which this extension has no use for.
+Second, the side panel needs the active tab’s URL to show the current site and decide whether the page can be clipped. Chrome exposes tab.url only with either the tabs permission or host permission. We use host permissions instead of tabs because tabs would also expose the title and URL of every open tab, which we do not need.
 
-The extension's own background worker makes exactly one kind of outbound
-request, to hn.algolia.com for a Hacker News comment tree, and that host is
-checked against a hard-coded allowlist in the source before the request is made.
-Everything else the extension reads is read in the page the user is on.
+The background worker only makes outbound requests to hn.algolia.com for Hacker News comments, and that host is hard-coded in an allowlist. All other content is read only from the page the user is actively viewing.
 ```
 
 **Are you using remote code?**
