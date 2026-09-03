@@ -230,6 +230,14 @@
         color: var(--foreground);
       }
 
+      .ghost:disabled,
+      .ghost:disabled:hover {
+        opacity: 0.45;
+        background: none;
+        border-color: var(--border);
+        color: var(--text-secondary);
+      }
+
       /* The one full-width commit on the page: Clip. */
       .act {
         width: 100%;
@@ -259,6 +267,14 @@
         background: rgba(122, 205, 142, 0.08);
       }
 
+      .act:disabled {
+        opacity: 0.62;
+      }
+
+      .act:disabled:hover {
+        filter: none;
+      }
+
       .text-link {
         color: var(--go-text);
         font-size: 11.5px;
@@ -281,26 +297,7 @@
         color: var(--foreground);
       }
 
-      /* Intro, blank, Now */
-
-      .intro {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        background: var(--surface-alt);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 11px 12px;
-        margin-bottom: 14px;
-      }
-
-      .intro p {
-        margin: 0;
-        flex: 1;
-        font-size: 12.5px;
-        line-height: 1.45;
-        color: var(--text-secondary);
-      }
+      /* Blank, Now */
 
       .blank {
         padding: 52px 4px 0;
@@ -407,6 +404,13 @@
         color: var(--foreground);
       }
 
+      /* Above the rows, never under them: this is what makes the missing rows
+         appear, so it belongs where someone counting the rows is already
+         looking. */
+      #more {
+        margin: 0 0 9px;
+      }
+
       .rows {
         list-style: none;
         margin: 0;
@@ -492,6 +496,40 @@
 
       .row[data-in="true"] .row-meta {
         color: var(--go-text);
+      }
+
+      .row[data-state] .row-meta {
+        color: var(--text-secondary);
+      }
+
+      /* The same out-of-focus wait the cart rows get. Without it a tap reads as
+         instant and the reading it starts shows up nowhere. */
+      .row[data-state="queued"],
+      .row[data-state="fetching"] {
+        opacity: 0.62;
+        filter: blur(0.4px);
+        transition:
+          opacity var(--rise),
+          filter var(--rise);
+      }
+
+      .row[data-state="fetching"] {
+        position: relative;
+      }
+
+      .row[data-state="fetching"]::after {
+        content: "";
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        bottom: 3px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--info), transparent);
+        animation: sweep 1.1s linear infinite;
+      }
+
+      .row-tap:disabled:hover {
+        background: none;
       }
 
       .row-rail {
@@ -583,6 +621,14 @@
 
       .held-tap[aria-pressed="true"] .held-tag {
         color: var(--go-text);
+      }
+
+      .held-tap:disabled {
+        opacity: 0.62;
+      }
+
+      .held-tap:disabled:hover {
+        background: none;
       }
 
       .held-foot {
@@ -1091,22 +1137,45 @@
         margin-bottom: 12px;
       }
 
+      /* Every send is a line first and a list second, so a closed sheet reads
+         as the receipt it says it is. */
       .group-head {
+        width: 100%;
         display: flex;
-        align-items: baseline;
+        align-items: center;
         gap: 8px;
-        margin-bottom: 6px;
+        padding: 7px 2px;
+        text-align: left;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--hairline);
+      }
+
+      .group-head:hover .group-label {
+        color: var(--go-text);
       }
 
       .group-label {
         font-size: 12.5px;
         font-weight: 600;
+        color: var(--foreground);
       }
 
       .group-hint {
         flex: 1;
         font-size: 11.5px;
         color: var(--text-muted);
+      }
+
+      .group-head[aria-expanded="true"] + ul {
+        margin-top: 7px;
+      }
+
+      .group-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 7px;
       }
 
       .again {
@@ -1251,26 +1320,8 @@
         margin: 16px 0;
       }
 
-      .facts {
-        display: flex;
-        flex-direction: column;
-        gap: 7px;
-      }
-
-      .fact {
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        font-size: 12.5px;
-        color: var(--text-secondary);
-      }
-
-      .fact span {
-        color: var(--text-muted);
-      }
-
-      .fact span.go {
-        color: var(--go-text);
+      #forget-note {
+        margin-top: 0;
       }
 
       .wide {
@@ -1397,10 +1448,13 @@
           transition: none !important;
         }
         .clip[data-state="queued"],
-        .clip[data-state="fetching"] {
+        .clip[data-state="fetching"],
+        .row[data-state="queued"],
+        .row[data-state="fetching"] {
           filter: none;
         }
-        .clip[data-state="fetching"]::after {
+        .clip[data-state="fetching"]::after,
+        .row[data-state="fetching"]::after {
           background: var(--info);
           right: 70%;
         }
@@ -1422,11 +1476,6 @@
     </header>
 
     <div class="scroll" id="scroll">
-      <div class="intro" id="intro" hidden>
-        <p>Clip pages into one FileConcat bundle. Everything stays in this browser until you send it.</p>
-        <button class="icon-btn" id="intro-dismiss" type="button" aria-label="Dismiss"></button>
-      </div>
-
       <div class="blank" id="blank" hidden>
         <div class="blank-mark" aria-hidden="true"></div>
         <p class="blank-title">Nothing to clip here</p>
@@ -1451,6 +1500,7 @@
           <span class="hint" id="list-hint"></span>
           <button class="chip-btn" id="bulk-toggle" type="button" aria-pressed="false">Select</button>
         </div>
+        <button class="ghost wide" id="more" type="button" hidden></button>
         <ul class="rows" id="rows"></ul>
       </div>
 
@@ -1510,6 +1560,7 @@
         </button>
         <div class="send-row">
           <span class="tokens" id="cart-tokens"></span>
+          <button class="ghost" id="copy-all" type="button">Copy all</button>
           <button class="send" id="send" type="button"></button>
         </div>
       </div>
@@ -1550,13 +1601,9 @@
           button, so a remembered yes is never invisible.
         </p>
         <div class="rule"></div>
-        <div class="set-label">Panel</div>
-        <div class="facts">
-          <p class="fact">Token figures <span>approximate, chars ÷ 4</span></p>
-          <p class="fact">Sent history <span>7 days, this device</span></p>
-          <p class="fact">Clipping <span class="go">read in this browser, sent only on your click</span></p>
-        </div>
-        <button class="ghost wide" id="intro-replay" type="button">Show the first-run line again</button>
+        <div class="set-label">Sent history</div>
+        <p class="set-say" id="forget-note"></p>
+        <button class="ghost wide" id="forget" type="button">Clear it now</button>
       </div>
     </div>
 
@@ -1565,6 +1612,7 @@
         <button class="ghost" id="peek-close" type="button">Back</button>
         <span class="peek-path" id="peek-path"></span>
         <span class="peek-tokens" id="peek-tokens"></span>
+        <button class="mini" id="peek-copy" type="button">Copy</button>
       </div>
       <div class="sheet-body">
         <div class="read">
