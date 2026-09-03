@@ -54,6 +54,19 @@ export const METRIC_EVENTS = [
   /** Wall-clock milliseconds for one ingest, in `n`. Only useful beside `batch_size`. */
   "ingest_ms",
   /**
+   * Wall-clock milliseconds the folder walk took, in `n`. Only a dropped folder
+   * is walked: the file picker hands over a finished list and a remote source is
+   * fetched, so an absent row means nothing was walked, never that the walk was
+   * instant. The wait someone actually sits through is this plus `ingest_ms`.
+   *
+   * Written at the end with the Run's other counters rather than when the walk
+   * finishes, so it lands beside `batch_size` and the pair gives milliseconds
+   * per file. The cost of that placement: a drop abandoned mid-walk records
+   * nothing, and a long walk is exactly what someone would abandon. This
+   * measures the walks that were waited out.
+   */
+  "scan_ms",
+  /**
    * How many files the bundle already held when an append landed, in `n`, and
    * which affordance asked, in `value`: `clipper` for an extension push,
    * `manual` for the `Add files` button.
@@ -97,6 +110,23 @@ export const METRIC_EVENTS = [
    * this is never the count of what stayed unread. `ocr_read` is.
    */
   "unreadable_ext",
+  /**
+   * Files whose bytes refused to be read at all, one row per extension: `n`
+   * files totalling `b` bytes. A file that moved, a permission, a network path
+   * that blinked, a directory a running program holds open.
+   *
+   * The opposite of `unreadable_ext`, which counts files that were read
+   * perfectly well and turned out not to be text. Undercounts by whatever the
+   * extension denylist absorbs first: an unreadable `.png` is classified from
+   * its name and lands there instead. Files the folder walk itself could not
+   * open are not in here either, having never reached a Run.
+   *
+   * Written from the read loop's own catch, which until now recorded the
+   * failure on screen and nowhere else. One unreadable file used to take the
+   * whole drop down before a single counter was written, so this class of
+   * failure has never appeared in the data at all.
+   */
+  "read_failed",
   /** A format we do support whose reader returned nothing (scanned or encrypted). The OCR business case. */
   "extract_failed",
   /**

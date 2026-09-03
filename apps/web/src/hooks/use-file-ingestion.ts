@@ -611,6 +611,10 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // Not on the exported type: the doors above pass their own list, and an
       // outside caller (the extension push) is exactly the batch-only run.
       stages: readonly string[] = BATCH_STAGES,
+      // Milliseconds the folder walk ahead of this batch took, for the door
+      // that walks one. Reported here rather than where it happened so it lands
+      // inside the Run, next to the file count that makes it mean something.
+      scanMs = 0,
     ) => {
       const append = options?.append;
       const startedAt = performance.now();
@@ -639,6 +643,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // with extension variety, which is bounded, and not with file count.
       const extensions: Tally = new Map();
       const unreadable: Tally = new Map();
+      const readFailed: Tally = new Map();
       const extractFailed: Tally = new Map();
       const extractError: Tally = new Map();
       const extractNotes: Tally = new Map();
@@ -817,6 +822,8 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           } catch (error) {
             console.error(`Failed to read file ${path}:`, error);
             nextFailed.push({ path, error: "File could not be read" });
+            // The failure the screen already showed and the data never did.
+            addToTally(readFailed, extensionOf(path) || NO_EXTENSION, fileBytes);
           }
         }
 
@@ -883,6 +890,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // just whether the button gets pressed.
       if (append) trackAmount("append_to", { value: append, n: entryCountRef.current });
       trackAmount("ingest_ms", { n: performance.now() - startedAt });
+      if (scanMs > 0) trackAmount("scan_ms", { n: scanMs });
       if (maxFileBytes > 0) trackAmount("max_file_bytes", { b: maxFileBytes });
       for (const [label] of SIZE_THRESHOLDS) {
         if (overThresholds[label] > 0) {
@@ -892,6 +900,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       trackTally("file_ext", extensions);
       for (const marker of markers) track("marker", marker);
       trackTally("unreadable_ext", unreadable);
+      trackTally("read_failed", readFailed);
       trackTally("extract_failed", extractFailed);
       trackTally("extract_error", extractError);
       trackTally("extract_note", extractNotes);
@@ -905,7 +914,8 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // found later (ADR-0016). Classes only: which kinds of content we failed
       // to read, never which extension.
       const gaps: string[] = [];
-      if (unreadable.size > 0) gaps.push("unreadable");
+      if (unreadable.size > 0) gaps.push("unreadable");
+      if (readFailed.size > 0) gaps.push("read_failed");
       if (extractFailed.size > 0) gaps.push("extract_failed");
       if (archiveUnsupported.size > 0) gaps.push("archive_unsupported");
       tagDrop(totalBytes, gaps);
@@ -1088,6 +1098,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       });
       tagSource("drop");
 
+      const walkStartedAt = performance.now();
       try {
         const { collected, failed } = await collectFromDataTransfer(e.dataTransfer.items, {
           skipDir: (name) => HARDCODED_PRUNE_DIRS.has(name),
@@ -1106,7 +1117,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         });
         const incoming: IncomingFile[] = collected.map(({ file, path }) => ({ file, path }));
         setProcessingStatus(`Processing ${incoming.length} files...`);
-        await ingestBatch(incoming, options, DROP_STAGES);
+        await ingestBatch(incoming, options, DROP_STAGES, performance.now() - walkStartedAt);
         if (failed.length > 0) setFailedFiles((prev) => [...prev, ...failed]);
       } catch (error) {
         console.error("Error processing files:", error);
