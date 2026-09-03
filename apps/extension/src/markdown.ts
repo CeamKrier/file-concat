@@ -15,11 +15,15 @@ export interface TranscriptSegment {
 
 export interface Comment {
   author: string;
-  /** Already humanised by YouTube: "10 months ago". */
-  publishedTime: string;
   likes: string;
   text: string;
   isCreator: boolean;
+  /** 0 for a thread's own comment, 1 for a reply. YouTube has no third level:
+   *  a reply to a reply is filed at 1 with an @mention in its text. */
+  depth: number;
+  /** How many replies the thread has in total, on its top-level comment only.
+   *  Written down because we take the first page of them and no more. */
+  replyTotal?: string;
 }
 
 export interface YouTubeClipping {
@@ -31,7 +35,8 @@ export interface YouTubeClipping {
   /** `microformat.playerMicroformatRenderer.publishDate`, an ISO timestamp. */
   publishDate: string;
   segments: TranscriptSegment[];
-  /** Top-ranked comments, top level only. Empty when they are turned off. */
+  /** Top-ranked threads with their replies, flat and in reading order. Empty
+   *  when comments are turned off. */
   comments: Comment[];
   /** How many the video has in total, e.g. "994", against the few we took. */
   commentTotal?: string;
@@ -102,15 +107,33 @@ export function renderYouTubeClipping(clip: YouTubeClipping): string {
  */
 function renderComments(clip: YouTubeClipping): string {
   const total = clip.commentTotal ? `${clip.commentTotal} in total, ` : "";
-  const heading = `_${total}top ${clip.comments.length} shown._`;
+  const threads = clip.comments.filter((comment) => comment.depth === 0).length;
+  const replies = clip.comments.length - threads;
+  const heading = `_${total}top ${threads} shown${replies ? ` with ${replies} of their replies` : ""}._`;
   const blocks = clip.comments.map((comment) => {
-    const badges = [comment.isCreator ? "creator" : null, `${comment.likes} likes`, comment.publishedTime]
+    // Same two spaces per level as Reddit and HN. A reply is indented under the
+    // comment it answers, which is the only structure YouTube's comments have.
+    const indent = comment.depth > 0 ? "  " : "";
+    const badges = [
+      comment.isCreator ? "creator" : null,
+      `${comment.likes} likes`,
+      // Only ever on a thread's own comment, and it is the count YouTube shows
+      // rather than the number under it here — the two differ on any thread
+      // past the first reply page.
+      comment.replyTotal ? `${comment.replyTotal} replies` : null,
+    ]
       .filter(Boolean)
       .join(" - ");
     // A comment can carry its own blank lines; collapsing them keeps one
     // comment reading as one block.
-    const text = comment.text.replace(/\r\n/g, "\n").replace(/\n{2,}/g, "\n").trim();
-    return `**${comment.author}** - ${badges}\n${text}`;
+    const text = comment.text
+      .replace(/\r\n/g, "\n")
+      .replace(/\n{2,}/g, "\n")
+      .trim()
+      .split("\n")
+      .map((line) => `${indent}${line}`)
+      .join("\n");
+    return `${indent}**${comment.author}** - ${badges}\n${text}`;
   });
   return [heading, ...blocks].join("\n\n");
 }

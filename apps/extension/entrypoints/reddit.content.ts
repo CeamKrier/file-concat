@@ -3,6 +3,7 @@
 
 import { browser, defineContentScript } from "#imports";
 import { announceChanges } from "../src/announce";
+import { loadMore } from "../src/more";
 import { clippingPath, redditUrl, renderRedditClipping, type Clipping } from "../src/markdown";
 import type { ItemRequest, PageReport, SiteRequest, SiteResponse } from "../src/messages";
 import {
@@ -34,7 +35,9 @@ function report(): PageReport {
     const items = posts().filter((post) => post.checkVisibility()).map(postSummary);
     // No option here: a listing clip cannot reach comments at any price, so
     // offering to spend more effort on them would be a lie.
-    return { ...base, kind: items.length ? "list" : "other", items };
+    // A subreddit holds a screenful and loads the rest on scroll, so the panel
+    // is offered the button that does that scrolling.
+    return { ...base, kind: items.length ? "list" : "other", items, more: items.length > 0 };
   }
 
   return { ...base, kind: "other", items: [] };
@@ -60,8 +63,12 @@ async function clip(id: string, grouped: boolean, expand: boolean): Promise<Clip
   };
 }
 
-async function handle(request: ItemRequest): Promise<PageReport | Clipping> {
+async function handle(request: ItemRequest | { type: "fc:more" }): Promise<PageReport | Clipping> {
   if (request.type === "fc:page") return report();
+  if (request.type === "fc:more") {
+    await loadMore(() => posts().length);
+    return report();
+  }
   return clip(request.id, request.grouped, request.option);
 }
 
@@ -75,7 +82,7 @@ export default defineContentScript({
 
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       const request = message as SiteRequest;
-      if (request?.type !== "fc:page" && request?.type !== "fc:clip") return;
+      if (request?.type !== "fc:page" && request?.type !== "fc:clip" && request?.type !== "fc:more") return;
       handle(request).then(
         (value) => sendResponse({ ok: true, value } satisfies SiteResponse<PageReport | Clipping>),
         (error: unknown) =>

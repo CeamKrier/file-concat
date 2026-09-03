@@ -33,10 +33,11 @@ the extension's card first.
 ## Use it
 
 A clipping carries the video's description and its full transcript. **Include
-comments** adds the top 20 and is off by default: it costs two more requests per
-video and a bigger bundle, measured 2026-08-18 at +45% tokens on a 7-minute
-video (2,365 -> 3,421) and +7% on one whose transcript dwarfs them. The choice
-sticks between sessions.
+comments** adds the top 60 threads and, under the 25 with the most replies, the
+first page of those replies. It is off by default: it costs about 30 more
+requests and five seconds per video, measured 2026-09-01 at 3,622 -> 12,898
+tokens on the Stanford commencement address (60 threads, 235 replies) and
+2,377 -> 7,238 on a shorter talk. The choice sticks between sessions.
 
 Click the toolbar icon to open the side panel. It stays open while you browse
 and **Now** re-reports itself on every tab switch, every navigation, and
@@ -44,10 +45,11 @@ whenever the page grows — so it never describes the page you came from, and
 scrolling a feed to load more updates it without a click.
 
 On YouTube: a watch page offers **Clip this video**; a channel's Videos tab or a
-search page lists every video the page has loaded, with checkboxes. A channel's
+search page lists every video the page has loaded, with checkboxes, and **Load
+every video into this list** scrolls the page for the rest. A channel's
 Playlists tab lists playlists instead, and clipping one clips the videos it
 holds, filed under the playlist's name. **Include comments** is off by default —
-two more requests and up to 45% more tokens.
+about 30 more requests and three to four times the tokens.
 
 On Hacker News: a thread offers **Clip this thread** and
 `hn.algolia.com/api/v1/items/<id>` returns the entire comment tree in one
@@ -96,6 +98,7 @@ the app is the only thing that clears a bundle.
 | `entrypoints/hn.content.ts` | Content script on news.ycombinator.com. One Algolia request per thread, whole tree. |
 | `entrypoints/article.content.ts` | The catch-all, everywhere else. Readability picks the body, Turndown renders it. |
 | `src/announce.ts` | One poll per page, telling the panel when the path or the item count changed. |
+| `src/more.ts` | Scrolls a lazy listing until it stops growing, then puts the page back. Shared by every handler whose report says `more`. |
 | `entrypoints/fileconcat.content.ts` | Content script on fileconcat.com. Relays a batch to the page with `window.postMessage`. |
 | `entrypoints/background.ts` | The service worker. Owns the tray, every clip and the send, because the panel can be closed mid-batch. |
 | `entrypoints/sidepanel/` | The panel: Now, the tray, and the send action. A view — nothing here has a duration. |
