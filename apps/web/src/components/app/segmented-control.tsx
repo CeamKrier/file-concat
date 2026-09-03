@@ -9,6 +9,11 @@ export type SegmentedOption<T extends string> = {
  * Small inline segmented control. Used for the output format switch and the
  * import source tabs. Active segment gets the warm fill (#221d16) + ink text;
  * the rest stays muted. Keyboard- and screen-reader-addressable via radiogroup.
+ *
+ * `tone="go"` fills the active segment with the primary green instead. Reserved
+ * for the export block, where the two output settings sit inside the same card
+ * as Copy: a warm fill there reads as another dark chip among dark chips, and
+ * which format the bundle is about to leave in is worth seeing at a glance.
  */
 export function SegmentedControl<T extends string>({
   options,
@@ -16,6 +21,7 @@ export function SegmentedControl<T extends string>({
   onChange,
   ariaLabel,
   size = "md",
+  tone = "default",
   className,
 }: {
   options: SegmentedOption<T>[];
@@ -23,6 +29,7 @@ export function SegmentedControl<T extends string>({
   onChange: (value: T) => void;
   ariaLabel: string;
   size?: "sm" | "md";
+  tone?: "default" | "go";
   className?: string;
 }) {
   return (
@@ -46,9 +53,11 @@ export function SegmentedControl<T extends string>({
             className={cn(
               "focus-visible:ring-ring focus-visible:ring-offset-surface-inset rounded-[7px] font-mono font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
               size === "sm" ? "px-2.5 py-1 text-[11px]" : "px-3 py-1.5 text-xs",
-              active
-                ? "bg-accent text-ink shadow-[inset_0_0_0_1px_oklch(var(--border-strong))]"
-                : "text-ink-muted hover:text-ink-secondary",
+              active && tone === "go"
+                ? "bg-primary text-primary-foreground"
+                : active
+                  ? "bg-accent text-ink shadow-[inset_0_0_0_1px_oklch(var(--border-strong))]"
+                  : "text-ink-muted hover:text-ink-secondary",
             )}
           >
             {opt.label}
