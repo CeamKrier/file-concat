@@ -77,15 +77,18 @@ it runs. Measured on a 638-comment thread: 264,851 characters, nested eight
 levels down, none of which was on screen when you pressed the button.
 
 Listings, one item at a time. A subreddit, a Hacker News front page, a YouTube
-channel or a search page lists what it has loaded with a checkbox on each row.
-Tick the ones you want and each is opened and read on its own, so a session of
-scrolling becomes a set of files rather than one flattened page of headlines.
+channel or a search page lists what it has loaded, and one button scrolls the
+page for the rest so the whole listing is on offer. Tap a row to clip it, or
+press Select to take a batch. Each item is opened and read on its own, so a
+session of scrolling becomes a set of files rather than one flattened page of
+headlines.
 
 YouTube transcripts. A watch page gives you the video's description and its full
 transcript, which is not text that was on the page to begin with. A channel's
 Playlists tab lists its playlists, and clipping one clips the videos it holds.
-Comments are an opt-in extra, off by default, because they cost up to 45% more
-tokens.
+Comments are an opt-in extra, off by default: they add the top 60 threads and,
+under the ones with the most replies, the replies themselves, which runs three
+to four times the tokens.
 
 Any article. Everywhere else, if a page reads as an article, the panel offers to
 clip it. Mozilla's Readability picks the body and Turndown renders it, which
@@ -98,16 +101,20 @@ Open the side panel from the toolbar icon. It stays open while you browse and
 re-reads the current tab on every navigation, so it always describes the page in
 front of you.
 
-Clip what you want. Each clipping lands in a tray and settles there, one row per
-item, so a page that fails says so on its own row and names the reason while the
-rest carry on. The tray holds the last 50, and the work runs in the background,
-so closing the panel mid-batch does not stop it.
+Clip what you want. A tapped row says it is being read and each clipping lands
+in a cart, one row per item, so a page that fails says so on its own row and
+names the reason while the rest carry on. The cart holds the last 50, and the
+work runs in the background, so closing the panel mid-batch does not stop it.
 
 Then press Send. Every finished row goes into your fileconcat.com tab at once,
 opening one if there is none. A send adds to the bundle rather than replacing
 it, and files with the same name replace each other, so a repository and the
 discussion about it can sit in one bundle and re-sending a corrected clipping
 fixes it in place.
+
+What you have sent stays listed for seven days, grouped by send, so you can read
+a file back or send a whole batch again. It is a receipt rather than a library:
+the rows drop off on their own, and one button clears them early.
 
 WHAT IT DOES NOT DO
 
