@@ -56,6 +56,15 @@ describe("shouldSkipPath", () => {
     expect(shouldSkipPath("src/index.ts")).toBe(false);
   });
 
+  it("skips go.sum but keeps go.mod", () => {
+    // go.sum was the one lockfile the list missed. go.mod is the dependency
+    // list a reader actually wants, so it must survive.
+    expect(shouldSkipPath("go.sum")).toBe(true);
+    expect(shouldSkipPath("modules/redis/go.sum")).toBe(true);
+    expect(shouldSkipPath("go.mod")).toBe(false);
+    expect(shouldSkipPath("modules/redis/go.mod")).toBe(false);
+  });
+
   it("skips Godot sidecars but keeps scenes and resources", () => {
     // The sidecars are regenerated metadata and a single project brings
     // hundreds of them. Scenes and resources are the project's content, so

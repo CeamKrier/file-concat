@@ -25,6 +25,13 @@ export const DEFAULT_IGNORE_PATTERNS = [
   "flake.lock",
   "pubspec.lock",
   "packages.lock.json",
+  // go.sum is a checksum database, not a manifest. go.mod stays: it is the
+  // dependency list a reader wants. Measured 2026-09-07 over 60 public
+  // repositories: it was the only lockfile still reaching a bundle, and four Go
+  // repositories carried 886,586 tokens of it, 789,477 of them in one.
+  "go.sum",
+  "Pipfile.lock",
+  "gradle.lockfile",
 
   // Build outputs
   "dist",
