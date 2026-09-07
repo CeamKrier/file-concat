@@ -27,11 +27,23 @@ tends to read better for chat-style assistants that emit Markdown
 themselves. Plain concatenates the files with lightweight separators and
 no markup.
 
-There is no measured token delta between the styles worth quoting here.
-The difference in practice is small. Pick whichever your assistant
-handles better.
+The choice costs almost nothing. Measured across five real codebases on
+2026-08-31, the spread between the three styles was 0.24% to 1.13% of
+the bundle, and the wrapper itself ran 0.6% to 3.8%. The 60 repository
+measurement puts the wrapper at a median 2.4%, reaching 17.8% on a
+repository of many small files, where there are more file tags than
+file contents.
+
+So pick on fidelity and readability, not on cost.
+[XML vs Markdown](/blog/xml-vs-markdown-for-llm-context) has the
+per-format numbers and the published research on whether the wrapper
+helps a model at all. The short version: what those numbers do **not**
+say is which style a model answers better from. That has been measured
+for tables and for nested data, with results that contradict each
+other, and never for a bundle of source files, by us or by anyone
+else.
 
 ## Cross-link
 
-For the tokenizer itself, the 1 MB self-cap, and the model selector,
-see [Token estimation](/docs/token-estimation).
+For the tokenizer itself, the sampling that takes over above 1 MB, and
+the model selector, see [Token estimation](/docs/token-estimation).

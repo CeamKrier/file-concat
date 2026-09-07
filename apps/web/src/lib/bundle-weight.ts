@@ -11,9 +11,10 @@ import { LARGE_BUNDLE_CHARS } from "./tokens";
  *
  * **Model fit** is relative to the chosen model's context window. The token
  * figure is approximate by construction (tiktoken is an OpenAI encoding, and
- * above `LARGE_BUNDLE_CHARS` it is a `chars / 4` forecast that *under*counts
- * code), so ADR-0010 requires headroom: amber starts at 80%, which also leaves
- * room for the prompt wrapped around the bundle and the model's own output.
+ * above `LARGE_BUNDLE_CHARS` it is extrapolated from tokenized samples, inside
+ * 5% on every repository it was measured against), so ADR-0010 requires
+ * headroom: amber starts at 80%, which also leaves room for the prompt wrapped
+ * around the bundle and the model's own output.
  *
  * **Browser cost** is the axis the old cap was really guarding: tokenizing,
  * rendering and copying a multi-megabyte string. It is anchored to the same
@@ -35,7 +36,7 @@ export type FitLevel = "fine" | "tight" | "over";
 export type BundleWeight = {
   /** Total characters in the assembled bundle. */
   chars: number;
-  /** Past `LARGE_BUNDLE_CHARS`: the token figure is a forecast and Copy is slow. */
+  /** Past `LARGE_BUNDLE_CHARS`: the token figure is sampled and Copy is slow. */
   isLarge: boolean;
   /** Null when no model is known — never assume one. */
   fit: {
