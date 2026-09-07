@@ -106,6 +106,12 @@ interface Check {
   compareReader?: boolean;
   /** Set where the defect may be an artifact of a generated file. */
   generatedOnly?: boolean;
+  /**
+   * Not a defect the reading found, but a correctness property checked every
+   * run. It has always passed, so counting it among the fixed ones would
+   * inflate the headline by one. Reported on its own line instead.
+   */
+  guard?: boolean;
 }
 
 /** Lines of `text`, trimmed of the trailing empty one. */
@@ -257,6 +263,7 @@ const CHECKS: Check[] = [
     fixture: "gen-docx-revisions.docx",
     anchor: "INSERTED-REPLACEMENT-TEXT",
     severity: "BROKEN",
+    guard: true,
     finding: "A tracked deletion reaches the bundle as current text",
     // Never broken, and checked every run because it is the one defect here
     // that would put words in a document's mouth.
@@ -483,8 +490,11 @@ async function main(): Promise<void> {
         `| ${c.id} | ${c.format} | ${c.severity} | ${c.finding}${note} | ${status} | ${other} |`,
       );
     }
+    const guards = CHECKS.filter((c) => c.guard).length;
     console.log(
-      `\n${fixed} fixed, ${broken} still broken, ${absent} signal absent, ${missing} missing fixture, of ${CHECKS.length}.`,
+      `\n${fixed - guards} of ${CHECKS.length - guards} defects closed, ${broken} still broken, ` +
+        `${absent} signal absent, ${missing} missing fixture. ` +
+        `${guards} standing guard(s) passing, counted separately because they were never broken.`,
     );
   }
 
