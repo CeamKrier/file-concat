@@ -55,28 +55,15 @@
  *   --rules         print the category map as a markdown table and exit
  */
 
-import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { glob } from "glob";
 import { encoding_for_model, type TiktokenModel } from "@dqbd/tiktoken";
-import {
-  DEFAULT_GLOB_IGNORE,
-  ROUTER_SNIFF_BYTES,
-  assembleOutput,
-  classifyBytes,
-  createGitignoreMatcher,
-  generateFileTree,
-  generateProjectName,
-  routeBytes,
-  type ExcludedSummary,
-  type OutputFile,
-} from "@fileconcat/core";
+import { assembleOutput, generateFileTree, generateProjectName } from "@fileconcat/core";
 
-import { parsers } from "../src/parsers.js";
+import { MAX_FILE_BYTES, cloneRepo, walkRepo, type ExcludedBy } from "./repo-walk.js";
 
 /** Must match apps/web/src/lib/tokens-client.ts, or the published number is not the tool's. */
 const TOKEN_MODEL: TiktokenModel = "o1-preview-2024-09-12";
@@ -85,8 +72,6 @@ const LARGE_BUNDLE_CHARS = 1024 * 1024;
 /** Must match apps/web/src/lib/tokens-client.ts, or the scored fix is not the shipped one. */
 const SAMPLE_SLICES = 64;
 const SLICE_CHARS = 4 * 1024;
-/** The CLI's default --max-size. */
-const MAX_FILE_BYTES = 32 * 1024 * 1024;
 
 const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
@@ -299,144 +284,17 @@ function spread(values: number[]) {
   };
 }
 
-function readPrefix(fullPath: string, size: number): Uint8Array {
-  const length = Math.min(ROUTER_SNIFF_BYTES, size);
-  const buffer = Buffer.alloc(length);
-  const fd = fs.openSync(fullPath, "r");
-  try {
-    fs.readSync(fd, buffer, 0, length, 0);
-  } finally {
-    fs.closeSync(fd);
-  }
-  return buffer;
-}
-
-/**
- * The set of paths the product's defaults leave standing, plus which of the
- * three defaults removed each of the others. Running glob again rather than
- * re-matching the patterns here keeps the decision in one place.
- *
- * The attribution matters more than it looks. "Excluded by default" reads as
- * lockfiles and build output, and in a fresh clone it is mostly hidden files:
- * CI workflows, editor config, repository metadata. An article that does not
- * separate the two is claiming something the numbers do not say.
- */
-type ExcludedBy = "hidden" | "defaultIgnore" | "gitignore";
-
-async function partitionByDefaults(cwd: string) {
-  const visible = await glob("**/*", { cwd, nodir: true, dot: false });
-  const afterIgnore = await glob("**/*", {
-    cwd,
-    nodir: true,
-    dot: false,
-    ignore: [...DEFAULT_GLOB_IGNORE],
-  });
-
-  const gitignores = await glob("**/.gitignore", {
-    cwd,
-    nodir: true,
-    dot: true,
-    ignore: [...DEFAULT_GLOB_IGNORE],
-  });
-  let kept = afterIgnore;
-  if (gitignores.length > 0) {
-    const matcher = createGitignoreMatcher(
-      gitignores.map((rel) => {
-        const slash = rel.lastIndexOf("/");
-        return {
-          dir: slash === -1 ? "" : rel.slice(0, slash),
-          content: fs.readFileSync(path.join(cwd, rel), "utf-8"),
-        };
-      }),
-    );
-    kept = afterIgnore.filter((file) => !matcher.ignores(file));
-  }
-
-  const visibleSet = new Set(visible);
-  const afterIgnoreSet = new Set(afterIgnore);
-  const keptSet = new Set(kept);
-
-  /** First reason that applies, in the order the product applies them. */
-  const reason = (rel: string): ExcludedBy | null => {
-    if (keptSet.has(rel)) return null;
-    if (!visibleSet.has(rel)) return "hidden";
-    if (!afterIgnoreSet.has(rel)) return "defaultIgnore";
-    return "gitignore";
-  };
-
-  return { keptSet, reason };
-}
-
 async function measureRepo(url: string, dir: string, enc: ReturnType<typeof encoding_for_model>) {
-  execFileSync("git", ["clone", "--depth", "1", "--quiet", url, dir], { stdio: "pipe" });
-  const commit = execFileSync("git", ["-C", dir, "rev-parse", "HEAD"], { encoding: "utf-8" }).trim();
+  const commit = cloneRepo(url, dir);
+  const { found, files, kept, excluded, skipped } = await walkRepo(dir);
 
-  // Stage 1 is everything on disk. `.git` is the version control database, not
-  // repository content, and counting it would drown every other number.
-  const found = await glob("**/*", { cwd: dir, nodir: true, dot: true, ignore: [".git/**"] });
-  const { keptSet, reason } = await partitionByDefaults(dir);
-
-  const facts: FileFact[] = [];
-  const skipped = { oversize: 0, unreadable: 0, unextractable: 0 };
-  /** Kept files in walk order, so the bundle assembles the way the CLI's does. */
-  const kept: OutputFile[] = [];
-  /**
-   * Content gaps the bundle reports (ADR-0008). Only for files that survived
-   * the default filters: the CLI never walks the others, so it never names them.
-   */
-  const excluded: ExcludedSummary = { oversize: [], unextractable: [], unreadable: [] };
-  const noteGap = (bucket: keyof ExcludedSummary, rel: string) => {
-    if (keptSet.has(rel)) excluded[bucket]!.push(rel);
-  };
-
-  for (const rel of found) {
-    const full = path.join(dir, rel);
-    let size = 0;
-    try {
-      size = fs.statSync(full).size;
-    } catch {
-      skipped.unreadable++;
-      noteGap("unreadable", rel);
-      continue;
-    }
-    if (size > MAX_FILE_BYTES) {
-      skipped.oversize++;
-      noteGap("oversize", rel);
-      continue;
-    }
-
-    let text: string | null = null;
-    try {
-      const route = await routeBytes(readPrefix(full, size));
-      if (route.kind === "extract") {
-        const extracted = await parsers.extract(route.parserId, fs.readFileSync(full));
-        if (!extracted.text) {
-          skipped.unextractable++;
-          noteGap("unextractable", rel);
-          continue;
-        }
-        text = extracted.text;
-      } else if (route.kind !== "binary") {
-        const decoded = classifyBytes(fs.readFileSync(full));
-        if (decoded.classification !== "binary") text = decoded.text;
-      }
-    } catch {
-      skipped.unreadable++;
-      noteGap("unreadable", rel);
-      continue;
-    }
-    if (text === null) continue;
-
-    const isKept = keptSet.has(rel);
-    if (isKept) kept.push({ path: rel, content: text });
-    facts.push({
-      category: categorize(rel),
-      tokens: enc.encode(text).length,
-      chars: text.length,
-      excluded: !isKept,
-      excludedBy: reason(rel),
-    });
-  }
+  const facts: FileFact[] = files.map((file) => ({
+    category: categorize(file.path),
+    tokens: enc.encode(file.text).length,
+    chars: file.text.length,
+    excluded: !file.kept,
+    excludedBy: file.excludedBy,
+  }));
 
   const keptFacts = facts.filter((f) => !f.excluded);
   const perFileSum = keptFacts.reduce((sum, f) => sum + f.tokens, 0);
@@ -499,7 +357,7 @@ async function measureRepo(url: string, dir: string, enc: ReturnType<typeof enco
   return {
     url,
     commit,
-    stages: { found: found.length, textEligible: facts.length, kept: keptFacts.length },
+    stages: { found, textEligible: facts.length, kept: keptFacts.length },
     tokens: { bundle, counted, perFileSum, shownBefore, shownAfter },
     chars: { contents: joined.length, bundle: bundleText.length },
     categories,
