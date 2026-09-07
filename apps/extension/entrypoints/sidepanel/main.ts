@@ -25,6 +25,7 @@ import {
   type Status,
   type TrayItem,
 } from "../../src/messages";
+import { estimateTokens } from "../../src/markdown";
 
 /** YouTube settles its DOM after announcing a navigation, and a tab switch can
  *  arrive in a burst. One pause absorbs both. */
@@ -153,10 +154,7 @@ const tell = (request: PanelRequest) => browser.runtime.sendMessage(request);
 const option = () => options[page.site] === true;
 const files = (n: number) => `${n} ${n === 1 ? "file" : "files"}`;
 
-/** chars ÷ 4, the same forecast the web app falls back to on a bundle too big
- *  to tokenize. The tilde is not decoration: the exact count is the tab's job
- *  once the batch lands, and an unmarked approximation would be a lie. */
-const tokens = (markdown: string) => Math.ceil(markdown.length / 4);
+const tokens = estimateTokens;
 const fmt = (n: number) => (n >= 1000 ? `~${(n / 1000).toFixed(1)}k` : `~${n}`);
 
 /** The store is filtered when it is read, in the worker and here alike: a panel
