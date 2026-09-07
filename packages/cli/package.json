@@ -21,7 +21,8 @@
     "check": "tsc --noEmit",
     "measure-funnel": "tsx scripts/measure-repo-funnel.ts",
     "test": "pnpm run build && vitest run",
-    "analyze-funnel": "tsx scripts/analyze-repo-funnel.ts"
+    "analyze-funnel": "tsx scripts/analyze-repo-funnel.ts",
+    "measure-extraction": "tsx scripts/measure-extraction-quality.ts"
   },
   "keywords": [
     "cli",
