@@ -2,11 +2,22 @@
 /**
  * Generate llms.txt and llms-full.txt at build time per the llmstxt.org spec.
  *
- * llms.txt = structured index of doc pages grouped by sidebar section.
- * llms-full.txt = every doc page concatenated in section order.
+ * llms.txt = structured index of doc pages grouped by sidebar section, plus
+ * every published blog post.
+ * llms-full.txt = every doc page and every published post, concatenated.
+ *
+ * Posts are enumerated from disk rather than linked in by hand. They used to
+ * reach these files only when some docs page happened to link to them, which
+ * meant 8 of 11 posts were absent from the one file we publish so a crawler can
+ * read us, and a new post looked published while being invisible here. Walking
+ * the directory makes inclusion a property of existing.
+ *
+ * This cannot reuse `src/lib/blog.ts`: that enumerates with `import.meta.glob`,
+ * which is Vite syntax and does not resolve in a plain tsx script. The draft
+ * filter and the newest-first order below have to match it by hand.
  */
 
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync, readdirSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { DOCS_NAVIGATION } from "../src/lib/docs-nav";
@@ -16,6 +27,7 @@ const REPO_URL = "https://github.com/CeamKrier/file-concat";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const DOCS_DIR = join(SCRIPT_DIR, "../src/content/docs");
+const BLOG_DIR = join(SCRIPT_DIR, "../src/content/blog");
 const PUBLIC_DIR = join(SCRIPT_DIR, "../public");
 
 interface PageRecord {
@@ -24,6 +36,10 @@ interface PageRecord {
   title: string;
   summary: string;
   body: string;
+  /** Posts only: ISO date, drives the newest-first order. */
+  date?: string;
+  /** Posts only: drafts never reach a published file. */
+  draft?: boolean;
 }
 
 function slugFromHref(href: string): string {
@@ -48,6 +64,40 @@ function readPage(href: string, navTitle: string): PageRecord {
   return { slug, href, title, summary, body: raw.trim() };
 }
 
+/** One `key: "value"` line out of a post's frontmatter block. */
+function frontmatterValue(raw: string, key: string): string {
+  const match = raw.match(new RegExp(`^${key}:\\s*(.*)$`, "m"));
+  if (!match) return "";
+  return match[1].trim().replace(/^["']|["']$/g, "");
+}
+
+/**
+ * Every published post, newest first. Mirrors `getVisiblePosts` in
+ * `src/lib/blog.ts`: drafts are excluded and the sort is by ISO date
+ * descending. A post with `draft: true` never reaches a published file.
+ */
+function readPosts(): PageRecord[] {
+  return readdirSync(BLOG_DIR)
+    .filter((file) => file.endsWith(".mdx"))
+    .map((file) => {
+      const slug = file.replace(/\.mdx$/, "");
+      const raw = readFileSync(join(BLOG_DIR, file), "utf-8");
+      // The body without the frontmatter block, so raw YAML never ships.
+      const body = raw.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "").trim();
+      return {
+        slug,
+        href: `/blog/${slug}`,
+        title: frontmatterValue(raw, "title") || slug,
+        summary: frontmatterValue(raw, "description"),
+        body,
+        date: frontmatterValue(raw, "date"),
+        draft: frontmatterValue(raw, "draft") === "true",
+      };
+    })
+    .filter((post) => !post.draft)
+    .sort((a, b) => (a.date < b.date ? 1 : -1));
+}
+
 function extractSummary(lines: string[]): string {
   const collected: string[] = [];
   for (const line of lines) {
@@ -63,7 +113,7 @@ function extractSummary(lines: string[]): string {
   return collected.join(" ").replace(/\s+/g, " ");
 }
 
-function buildIndex(pages: Map<string, PageRecord>): string {
+function buildIndex(pages: Map<string, PageRecord>, posts: PageRecord[]): string {
   const lines: string[] = [];
 
   lines.push("# FileConcat");
@@ -93,6 +143,16 @@ function buildIndex(pages: Map<string, PageRecord>): string {
     lines.push("");
   }
 
+  if (posts.length > 0) {
+    lines.push("## Blog");
+    lines.push("");
+    for (const post of posts) {
+      const description = post.summary ? `: ${post.summary}` : "";
+      lines.push(`- [${post.title}](${BASE_URL}${post.href})${description}`);
+    }
+    lines.push("");
+  }
+
   lines.push("## Source code");
   lines.push("");
   lines.push(`The FileConcat implementation is open source at ${REPO_URL}. The repo is a`);
@@ -113,7 +173,7 @@ function buildIndex(pages: Map<string, PageRecord>): string {
   return lines.join("\n") + "\n";
 }
 
-function buildFull(pages: Map<string, PageRecord>): string {
+function buildFull(pages: Map<string, PageRecord>, posts: PageRecord[]): string {
   const lines: string[] = [];
 
   lines.push("# FileConcat documentation");
@@ -139,6 +199,19 @@ function buildFull(pages: Map<string, PageRecord>): string {
     }
   }
 
+  if (posts.length > 0) {
+    lines.push("# Blog");
+    lines.push("");
+    for (const post of posts) {
+      lines.push(`<!-- source: ${BASE_URL}${post.href} -->`);
+      lines.push("");
+      lines.push(post.body);
+      lines.push("");
+      lines.push("---");
+      lines.push("");
+    }
+  }
+
   return lines.join("\n");
 }
 
@@ -150,13 +223,15 @@ function main(): void {
     }
   }
 
+  const posts = readPosts();
+
   const indexPath = join(PUBLIC_DIR, "llms.txt");
   const fullPath = join(PUBLIC_DIR, "llms-full.txt");
 
-  writeFileSync(indexPath, buildIndex(pages));
-  writeFileSync(fullPath, buildFull(pages));
+  writeFileSync(indexPath, buildIndex(pages, posts));
+  writeFileSync(fullPath, buildFull(pages, posts));
 
-  console.log(`Generated llms.txt (${pages.size} pages) and llms-full.txt`);
+  console.log(`Generated llms.txt (${pages.size} docs pages, ${posts.length} posts) and llms-full.txt`);
 }
 
 main();
