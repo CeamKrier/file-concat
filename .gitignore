@@ -64,6 +64,9 @@ google-search-console-api.json
 # holds the old entries; this stops the next one.
 /.claude/napkin.md
 
+/.claude/skills/content/
+
+
 # Redesign working files — kept locally, not published to the remote.
 /redesign/
 .mcp.json
