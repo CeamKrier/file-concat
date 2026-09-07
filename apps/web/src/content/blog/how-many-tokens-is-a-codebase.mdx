@@ -374,6 +374,9 @@ same as being read.
 - **The composition split is per-file, the bundle figure is the whole artifact.** They differ by the
   wrapper and by the joins between files, which is why the composition bar's total is slightly below the
   bundle total of 73,763,190. Do not mix the two.
+- **The measured wrapper is a floor.** The shipped tool adds one more header line naming the image and
+  binary files it left out, capped at ten paths. The measurement never fills that list, so a repository
+  carrying binaries pays a slightly larger wrapper than the 2.4% median here.
 - **This measures what reaches the model, not what helps it.** Whether a filtered bundle produces better
   answers than a raw one is a separate experiment that needs a model in the loop. It is not this one.
 
@@ -393,9 +396,14 @@ The first command writes a JSON record with a row per repository: the three stag
 the per-category split with kept and excluded separated, which rule excluded each file, and the skip
 counts. The second prints every cut quoted on this page but two, and both are marked where they appear:
 the `go.sum` figures describe the run before that fix, which the fixed build cannot produce again, and
-the slice tuning table comes from a separate comparison over four repositories. Repository contents
-change, so a rerun today will not reproduce these numbers exactly; the commit measured for each
-repository is recorded in the output.
+the slice tuning table comes from a separate comparison over four repositories. The commit measured for
+each repository is recorded in the output, and the file counts reproduce from it exactly. The token
+totals will not, and the reason is ours rather than the repositories': these were measured on the build
+before the file tree was made deterministic. Until the day this was published the tree rendered in
+directory-walk order, so two clones of the same commit could order siblings differently and move the
+box-drawing characters and the file blocks without changing which files were in either. The tree is
+sorted now. A rerun at a pinned commit therefore reproduces where this measurement could not, and what
+separates a rerun from the totals here is that fix rather than anything in the repositories.
 
 <Method
   id="method-full"
