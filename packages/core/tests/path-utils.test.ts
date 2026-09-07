@@ -7,16 +7,22 @@ import {
 } from "../src/path-utils";
 
 describe("generateFileTree", () => {
-  it("builds a tree from file paths", () => {
+  it("builds a tree from file paths, sorted", () => {
     const output = generateFileTree(["src/index.ts", "src/utils/math.ts", "README.md"]);
 
     expect(output).toBe(
-      "├── src\n" +
-        "│   ├── index.ts\n" +
-        "│   └── utils\n" +
-        "│       └── math.ts\n" +
-        "└── README.md\n",
+      "├── README.md\n" +
+        "└── src\n" +
+        "    ├── index.ts\n" +
+        "    └── utils\n" +
+        "        └── math.ts\n",
     );
+  });
+
+  it("renders the same tree whatever order the walk returned it in", () => {
+    const paths = ["src/utils/math.ts", "README.md", "src/index.ts"];
+
+    expect(generateFileTree([...paths].reverse())).toBe(generateFileTree(paths));
   });
 });
 
