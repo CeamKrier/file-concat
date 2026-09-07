@@ -1,5 +1,7 @@
 import type { ComponentProps } from "react";
 
+import { cn } from "~/lib/utils";
+
 /**
  * The shared MDX element styles (docs + blog prose). Kept in its own module so
  * both MDXProviderWrapper (docs) and BlogMDXProviderWrapper (blog) can import it
@@ -68,9 +70,16 @@ export const baseMdxComponents = {
     }
     return <code {...props} />;
   },
-  pre: (props: ComponentProps<"pre">) => (
+  // `className` is pulled out and merged rather than spread over: rehype-prism-plus
+  // puts `language-<lang>` on the pre, and `{...props}` after a className replaces
+  // it, which silently dropped `overflow-x-auto` from every code fence on the site.
+  // The prism class has to survive too, because the theme CSS selects on it.
+  pre: ({ className, ...props }: ComponentProps<"pre">) => (
     <pre
-      className="border-border bg-surface-inset text-code rounded-card mb-7 overflow-x-auto border p-5 font-mono text-[13px] leading-[1.7]"
+      className={cn(
+        "border-border bg-surface-inset text-code rounded-card mb-7 overflow-x-auto border p-5 font-mono text-[13px] leading-[1.7]",
+        className,
+      )}
       {...props}
     />
   ),
