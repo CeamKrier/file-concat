@@ -90,9 +90,11 @@ locked bytes yield no text, and no amount of recognition changes that.
 
 <Callout type="warn" title="A scan takes longer, and not every one comes back">
   Recognition reads pixels rather than characters, so it costs seconds per page and it is not
-  perfect on a faint or crooked scan. A document it cannot read is flagged as having no extractable
-  text rather than dropped silently, so you always know what made it into the bundle and what did
-  not. Your file still never leaves the browser; the recognition engine itself is fetched from the
+  perfect on a faint or crooked scan. A document it cannot read at all is flagged as having no
+  extractable text rather than dropped silently. A document that is only *partly* scanned is the gap:
+  its image-only pages are currently lost without a note, which we
+  [measured and published](/blog/what-gets-lost-converting-documents-to-text) along with the rest of
+  what survives conversion. Your file still never leaves the browser; the recognition engine itself is fetched from the
   library's CDN the first time it runs, which the [privacy page](/privacy) sets out in full.
 </Callout>
 
