@@ -5,6 +5,10 @@ import { baseMdxComponents } from "~/components/mdx-components";
 
 import { After, Before, BeforeAfter } from "./before-after";
 import { Callout } from "./callout";
+import { CompositionBar } from "./composition-bar";
+import { ContextFunnel } from "./context-funnel";
+import { KeyFindings } from "./key-findings";
+import { Method } from "./method";
 import { Step, Steps } from "./steps";
 
 // Lazy so the ingestion engine and its dependencies stay out of the docs bundle
@@ -24,10 +28,15 @@ function TryItFallback() {
 
 /**
  * The blog prose system: the shared MDX element styles plus the rich blog-only
- * elements (Callout, Steps/Step, BeforeAfter/Before/After, TryIt). Registering
- * them here lets posts use `<Callout />`, `<TryIt />`, etc. directly in `.mdx`
- * without an import. Docs keep the plain MDXProviderWrapper, so the tool engine
- * never reaches them.
+ * elements (Callout, Steps/Step, BeforeAfter/Before/After, TryIt) and the
+ * research figures (KeyFindings, ContextFunnel, CompositionBar, Method).
+ * Registering them here lets posts use `<Callout />`, `<TryIt />`, etc. directly
+ * in `.mdx` without an import. Docs keep the plain MDXProviderWrapper, so the
+ * tool engine never reaches them.
+ *
+ * The research figures are static markup with no engine dependency, so unlike
+ * TryIt they load eagerly and render server-side: their numbers are the part an
+ * AI crawler is meant to lift, and a lazy chunk would hide them.
  */
 const blogComponents = {
   ...baseMdxComponents,
@@ -37,6 +46,10 @@ const blogComponents = {
   BeforeAfter,
   Before,
   After,
+  KeyFindings,
+  ContextFunnel,
+  CompositionBar,
+  Method,
   TryIt: (props: { title?: string; hint?: string }) => (
     <Suspense fallback={<TryItFallback />}>
       <TryIt {...props} />
