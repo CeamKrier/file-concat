@@ -20,9 +20,12 @@
     "prepublishOnly": "pnpm run build",
     "check": "tsc --noEmit",
     "measure-funnel": "tsx scripts/measure-repo-funnel.ts",
+    "measure-overhead": "tsx scripts/measure-bundle-overhead.ts",
+    "analyze-overhead": "tsx scripts/analyze-bundle-overhead.ts",
     "test": "pnpm run build && vitest run",
     "analyze-funnel": "tsx scripts/analyze-repo-funnel.ts",
-    "measure-extraction": "tsx scripts/measure-extraction-quality.ts"
+    "measure-extraction": "tsx scripts/measure-extraction-quality.ts",
+    "format-eval": "tsx scripts/measure-format-eval.ts"
   },
   "keywords": [
     "cli",
@@ -53,6 +56,7 @@
     "postal-mime": "^2.7.5"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.124.0",
     "@dqbd/tiktoken": "^1.0.22",
     "@fileconcat/core": "workspace:*",
     "@types/node": "^22.0.0",
