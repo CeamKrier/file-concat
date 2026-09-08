@@ -67,9 +67,9 @@ counterfactuals built in the harness, because the product has no un-treed style,
 and `A0` is a deliberate mutilation. **Only `A3` and `A4` are claims about the
 product**; `A1` and `A2` exist to decompose what the wrapper is made of.
 
-**`plain` is cut.** Its 0.24% token gap against markdown cannot pay for a cell,
-and a seventh cell would cost 1.75x and widen every minimum detectable effect by
-about 7%.
+**`plain` is cut.** Its 0.24% token gap against markdown cannot pay for a cell.
+The table above already holds seven, so `plain` would be the eighth, and on a
+fixed budget an eighth cell widens every minimum detectable effect by about 7%.
 
 ## 3. The primary task is bug location on an injected defect
 
@@ -393,11 +393,16 @@ and every model, then the next bundle.
 
 ### 10.3 The three configurations
 
-| Config | Bundles S1 / S2 | k | `A0` on | Cap |
-| --- | --- | ---: | --- | ---: |
-| pilot | 5 / 0 | 3 | every bundle | 500 |
-| interim | 22 / 8 | 1 | 20% of bundles | 1,600 |
-| full | 70 / 30 | 1 | 20% of bundles | 5,100 |
+| Config | Bundles S1 / S2 | k | `A0` on |
+| --- | --- | ---: | --- |
+| pilot | 5 / 0 | 3 | every bundle |
+| interim | 22 / 8 | 1 | 20% of bundles |
+| full | 70 / 30 | 1 | 20% of bundles |
+
+**No configuration carries a cost figure of its own here.** `BUDGET_CAP_USD` in
+the harness is one approval, 500 USD, applied to all three, and `--live` refuses
+to start unless `--approved-usd` reaches the projection that `--dry-run` printed.
+The projection is the number to quote; this file does not hold one.
 
 **Those bundle counts are ceilings, not promises, and the `full` one is not
 reachable from this frame.** The frozen sample holds 180 URLs and only a fraction
@@ -567,6 +572,16 @@ order, on 2026-09-07:
    marker is silently ignored. And bundle qualification counted total questions
    rather than F-BUG questions, so a bundle with almost no injected defects could
    pass while the contamination fix quietly evaporated.
+
+On 2026-09-09, still before any API call and with no accuracy figure in
+existence, three sentences were corrected for saying something the harness does
+not do. Section 2 called `plain` a seventh cell when the arm table already holds
+seven, and priced it at 1.75x, a multiplier nothing in the harness reproduces;
+the cut now rests only on the MDE widening, which the fixed budget does give.
+Section 10.3 carried a per-config cap column of 500 / 1,600 / 5,100 when
+`BUDGET_CAP_USD` sets one figure for all three, and against the reachable frame
+none of the three reaches it. **No arm, contrast, threshold or sample size
+changed**, and section 5.2's power numbers are untouched.
 
 Everything in sections 2 through 11 was written blind and stays blind. After the
 pilot reports `psi`, the ICC and the accuracy band, this file does not change;

@@ -238,8 +238,9 @@ const CONFIGS: RunConfig[] = [
 
 /**
  * The user approved 500 USD, for the pilot only. Every cap sits at that figure
- * rather than at what each config would like to cost, so `interim` and `full`
- * report OVER CAP until somebody raises the approval. They are plans, not
+ * rather than at what each config would like to cost. Against the reachable
+ * frame all three price under it, so this cap is not what gates a run:
+ * `--approved-usd` is, and it has to reach the projection. They are plans, not
  * permissions.
  */
 const BUDGET_CAP_USD = { pilot: 500, interim: 500, full: 500 };
