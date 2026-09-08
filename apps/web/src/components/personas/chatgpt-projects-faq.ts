@@ -23,7 +23,7 @@ export const CHATGPT_PROJECTS_FAQ = [
   },
   {
     q: "What is the difference between Project files and files I attach in a chat?",
-    a: "Project files are shared across every chat in the Project; files you attach to a single message are limited to about 10 at a time and only that chat can see them. One combined file works for both, and it stays available to every future chat in the Project.",
+    a: "Project files are shared across every chat in the Project; a file you attach inside a single chat is visible only to that chat. Project uploads go up 10 files at a time, so a full folder takes several passes. One combined file works for both, and it stays available to every future chat in the Project.",
   },
   {
     q: "Can ChatGPT read the PDFs and Word documents inside the combined file?",

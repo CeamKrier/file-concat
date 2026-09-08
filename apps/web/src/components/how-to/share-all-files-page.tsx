@@ -91,7 +91,7 @@ const LIMITS = [
     limit: "5 free, 25 on Go and Plus, 40 on Pro and above",
     href: "/for/chatgpt-projects",
   },
-  { where: "ChatGPT chat", caps: "Files per message", limit: "10 at a time" },
+  { where: "ChatGPT uploads", caps: "Files in one upload", limit: "10 at a time" },
   { where: "Custom GPTs", caps: "Knowledge files", limit: "20" },
   {
     where: "Claude Projects",

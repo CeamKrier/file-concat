@@ -100,7 +100,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
 const PROJECT_FILE_LIMITS = "5 files on Free, 25 on Go and Plus, 40 on Pro and above";
 const CAPS_CHECKED = "September 2026";
 
-/** ChatGPT-only caps, deeper than the cross-platform hub table: the three places
+/** ChatGPT-only caps, deeper than the cross-platform hub table: the three ways
  * ChatGPT counts files, so the reader sees which limit they actually hit. */
 const CAPS = [
   {
@@ -109,9 +109,9 @@ const CAPS = [
     limit: PROJECT_FILE_LIMITS,
   },
   {
-    where: "Files in one chat",
-    caps: "Attachments on a single message",
-    limit: "About 10 at a time",
+    where: "Files in one upload",
+    caps: "How many the picker takes at once",
+    limit: "10",
   },
   { where: "Custom GPT knowledge", caps: "Files a Custom GPT can reference", limit: "20" },
 ];
@@ -127,7 +127,7 @@ function WhereItStops() {
           Where ChatGPT stops you.
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[50ch] text-[15px] leading-relaxed">
-          ChatGPT counts files in three separate places, and each has its own cap. A single combined
+          ChatGPT counts files in three separate ways, and each has its own cap. A single combined
           file stays under all of them, because it is one file no matter how many documents went
           into it.
         </p>
