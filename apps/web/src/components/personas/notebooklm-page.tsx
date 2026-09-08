@@ -5,7 +5,7 @@ import { AppFlow } from "~/components/app/app-flow";
 import { DropZone, type DropZoneProps } from "~/components/app/drop-zone";
 import { InfoCard } from "~/components/app/info-card";
 import { MarketingSection } from "~/components/app/marketing/section";
-import { MockWindow } from "~/components/app/marketing";
+import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
 
 import { NOTEBOOKLM_FAQ } from "./notebooklm-faq";
 
@@ -384,6 +384,11 @@ function ClosingCta() {
           <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
         </button>
       </div>
+      <FurtherReading>
+        Every source becomes text before a notebook reads it, and text is lossy. We measured it across 27 documents:{" "}
+        <ProseLink to="/blog/what-gets-lost-converting-documents-to-text">what gets lost converting documents to text</ProseLink>
+        .
+      </FurtherReading>
     </MarketingSection>
   );
 }

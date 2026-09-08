@@ -5,7 +5,7 @@ import { AppFlow } from "~/components/app/app-flow";
 import { DropZone, type DropZoneProps } from "~/components/app/drop-zone";
 import { InfoCard } from "~/components/app/info-card";
 import { MarketingSection } from "~/components/app/marketing/section";
-import { MockWindow } from "~/components/app/marketing";
+import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
 
 import { GEMINI_GEMS_FAQ } from "./gemini-gems-faq";
 
@@ -379,6 +379,11 @@ function ClosingCta() {
           <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
         </button>
       </div>
+      <FurtherReading>
+        Feeding a Gem documents rather than notes?{" "}
+        <ProseLink to="/blog/convert-pdf-to-text-for-llm">Converting a PDF to text for a prompt</ProseLink>
+        {" "}covers what survives the conversion.
+      </FurtherReading>
     </MarketingSection>
   );
 }

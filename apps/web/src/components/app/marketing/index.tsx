@@ -6,6 +6,7 @@ import { CtaSection } from "./cta-section";
 
 export { SiteFooter } from "./site-footer";
 export { MockWindow } from "./mock-window";
+export { FurtherReading, ProseLink } from "./further-reading";
 
 /** The marketing stack below the hero (sections A–E), landing view only. */
 export function MarketingSections() {

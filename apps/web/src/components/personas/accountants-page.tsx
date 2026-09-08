@@ -4,7 +4,7 @@ import { AppFlow } from "~/components/app/app-flow";
 import { DropZone, type DropZoneProps } from "~/components/app/drop-zone";
 import { InfoCard } from "~/components/app/info-card";
 import { MarketingSection } from "~/components/app/marketing/section";
-import { MockWindow } from "~/components/app/marketing";
+import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
 
 import { ACCOUNTANTS_FAQ } from "./accountants-faq";
 
@@ -349,6 +349,11 @@ function ClosingCta() {
           <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
         </button>
       </div>
+      <FurtherReading>
+        A workbook loses more on the way into a prompt than any other format. What survives it, and what does not, is in{" "}
+        <ProseLink to="/blog/convert-excel-to-text-for-llm">converting a spreadsheet to text for an LLM</ProseLink>
+        .
+      </FurtherReading>
     </MarketingSection>
   );
 }

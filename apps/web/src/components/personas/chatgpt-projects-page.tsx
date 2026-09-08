@@ -5,7 +5,7 @@ import { AppFlow } from "~/components/app/app-flow";
 import { DropZone, type DropZoneProps } from "~/components/app/drop-zone";
 import { InfoCard } from "~/components/app/info-card";
 import { MarketingSection } from "~/components/app/marketing/section";
-import { MockWindow } from "~/components/app/marketing";
+import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
 
 import { CHATGPT_PROJECTS_FAQ } from "./chatgpt-projects-faq";
 
@@ -367,6 +367,11 @@ function ClosingCta() {
           <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
         </button>
       </div>
+      <FurtherReading>
+        Deciding how to get many files into one slot?{" "}
+        <ProseLink to="/blog/combine-files-for-llm">How to combine multiple files into one</ProseLink>
+        {" "}compares the three ways and what each one costs you.
+      </FurtherReading>
     </MarketingSection>
   );
 }

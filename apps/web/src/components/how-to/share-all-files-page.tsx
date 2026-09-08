@@ -4,6 +4,7 @@ import { ArrowUp, Check, FileStack, Lock } from "lucide-react";
 import { AppFlow } from "~/components/app/app-flow";
 import { DropZone, type DropZoneProps } from "~/components/app/drop-zone";
 import { InfoCard } from "~/components/app/info-card";
+import { FurtherReading, ProseLink } from "~/components/app/marketing";
 import { MarketingSection } from "~/components/app/marketing/section";
 
 import { FAQ_ITEMS } from "./faq-data";
@@ -291,6 +292,11 @@ function ClosingCta() {
           <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
         </button>
       </div>
+      <FurtherReading>
+        The longer version of this job, with the three ways compared side by side, is{" "}
+        <ProseLink to="/blog/combine-files-for-llm">how to combine multiple files into one</ProseLink>
+        .
+      </FurtherReading>
     </MarketingSection>
   );
 }

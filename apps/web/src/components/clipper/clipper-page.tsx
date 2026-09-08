@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { SiGithub } from "@icons-pack/react-simple-icons";
 import { ArrowRight, Lock } from "lucide-react";
 
-import { SiteFooter } from "~/components/app/marketing";
+import { ProseLink, SiteFooter } from "~/components/app/marketing";
 import { MarketingSection } from "~/components/app/marketing/section";
 import { LabeledPoints } from "~/components/app/marketing/labeled-points";
 import { TopBar } from "~/components/app/top-bar";
@@ -462,6 +462,22 @@ function Uses() {
           </div>
         </div>
       ))}
+
+      {/* The only internal path into the three posts that walk these cases in
+          full. Without it they are reachable from the blog index and nowhere
+          else, which is how all three ended up with almost no impressions. */}
+      <p className="text-ink-faint border-hairline mt-14 max-w-[62ch] border-t pt-8 text-[13px] leading-relaxed">
+        Longer walkthroughs of three of these, each with what the manual route loses:{" "}
+        <ProseLink to="/blog/save-hacker-news-thread">saving a Hacker News thread</ProseLink>,{" "}
+        <ProseLink to="/blog/save-reddit-thread-as-markdown">
+          saving a Reddit thread as Markdown
+        </ProseLink>{" "}
+        and{" "}
+        <ProseLink to="/blog/youtube-transcript-to-chatgpt">
+          getting a YouTube transcript into ChatGPT
+        </ProseLink>
+        .
+      </p>
     </MarketingSection>
   );
 }
