@@ -115,6 +115,12 @@ Because the ceiling is real, it helps to know the size of a bundle before you pa
 FileConcat counts tokens live as you include and exclude files, so you can trim until it
 fits instead of finding out when the chat box refuses it.
 
+How large is a repository, in practice? We bundled 60 public ones and counted: the median
+came out at 246,424 tokens, and only 21 of the 60 fit inside a 128K context window. That
+is the number worth having before you plan a paste, and
+[how many tokens a codebase is](/blog/how-many-tokens-is-a-codebase) has the whole
+distribution with the four common context windows drawn across it.
+
 <Callout type="tip">
   Bundling a handful of loose files instead of a whole repo? The
   [companion guide to combining files](/blog/combine-files-for-llm) covers that case, and

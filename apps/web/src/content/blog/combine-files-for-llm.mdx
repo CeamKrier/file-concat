@@ -97,6 +97,13 @@ model see the shape of the project before it reads a single line, the way you wo
 glance at a file explorer before opening anything. That is what lets you combine
 multiple files into one prompt for an AI without turning it into a guessing game.
 
+They are also cheaper than they look. Measured across five codebases containing 248
+files, the entire wrapper, paths and fences and tree together, came to between 0.6% and
+3.8% of the bundle, and the choice between XML, Markdown and plain labels moved the
+total by only 0.24% to 1.13%. The labels are close to free; see
+[XML vs Markdown for LLM context](/blog/xml-vs-markdown-for-llm-context) for the
+measurement.
+
 <Callout type="warn" title="Paths are the cheapest context you can add">
   If you keep only one thing from a raw `cat` dump, keep the file paths. A few extra
   tokens of `path="..."` buy the model a map it would otherwise have to guess at.

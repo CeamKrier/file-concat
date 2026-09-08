@@ -1,6 +1,6 @@
 ---
 title: "Convert PDF to Text for an LLM Prompt"
-description: "Turn PDFs and DOCX files into clean text for an LLM prompt. Bundle many documents into one blob in your browser, with live token and cost counts."
+description: "Turn PDFs into clean text for an LLM prompt, scanned pages included. Bundle a whole folder in your browser, with live token and cost counts."
 date: "2026-07-11"
 author: "CeamKrier"
 draft: false
@@ -87,6 +87,12 @@ it to pull, only an image. Reading words off an image takes recognition, and whe
 comes back with nothing FileConcat runs a recognition pass over it in your browser and tells
 you which files it recovered that way. Encrypted or password-locked PDFs are the other story:
 locked bytes yield no text, and no amount of recognition changes that.
+
+None of that is taken on trust. We built a set of documents designed to break our own extraction
+and have re-tested against it four times: of the sixteen defects found so far, seven were in PDF
+handling, five of those are fixed, and two are still open. The two that remain are a superscript
+footnote marker sorting above its own line, and a page with no text layer being dropped without a
+note.
 
 <Callout type="warn" title="A scan takes longer, and not every one comes back">
   Recognition reads pixels rather than characters, so it costs seconds per page and it is not

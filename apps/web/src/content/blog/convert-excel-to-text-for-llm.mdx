@@ -90,6 +90,12 @@ itself rather than its output, that is the one case where the text will not hold
 on top of it. Extraction reads what is stored, so a due-date column can arrive as `45000` rather
 than the date you see in the cell.
 
+That second one is ours to fix rather than a property of the format, and we say so publicly. We
+re-test our extraction against a set of documents built to break it, and across four rounds it is
+the only open spreadsheet defect out of sixteen findings in total. The workaround below holds
+until it is closed; the method and the rest of the list are in
+[what gets lost converting documents to text](/blog/what-gets-lost-converting-documents-to-text).
+
 <Callout type="warn" title="Check a date column before you paste">
   If dates matter to your question, add a helper column with `TEXT(A2,"yyyy-mm-dd")` and include
   that instead, or format the column as text before you export. It costs a minute and it stops the

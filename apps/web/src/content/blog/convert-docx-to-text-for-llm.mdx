@@ -90,6 +90,14 @@ another, say so in the prompt, or keep a markdown copy of the outline and drop t
 Images, charts, and text boxes are not prose either. A diagram that carries the point of a page
 will not carry it into the bundle, so describe it in the question instead.
 
+Everything above is a property of the format. The failures that were ours we went looking for: in
+four rounds of re-testing our extraction against documents built to break it, five defects turned
+up in Word handling, from a merged table cell collapsing its whole row to footnote markers being
+stripped off the claims they belonged to. All five are fixed. One check has never once failed
+across the four rounds, and on a contract it matters more than the rest: a tracked deletion has
+never reached a bundle as current text. The full list, and the method behind it, is in
+[what gets lost converting documents to text](/blog/what-gets-lost-converting-documents-to-text).
+
 <Callout type="tip" title="A scanned document still has a chance">
   If a Word file is really a photograph of a page pasted into it, there is no text inside to pull.
   When a document comes back with nothing, FileConcat runs a recognition pass over it in your
