@@ -114,6 +114,15 @@ FileConcat counts tokens as you add and remove files, and it can show the cost f
 model, so you can trim to what matters first. That helps when you want to summarize multiple
 research papers with ChatGPT and only a few of them hold the section you actually care about.
 
+Two things move when the bundle grows, and only one of them is the bill. Input is priced per
+million tokens, so the cost is exactly linear: doubling the documents doubles what the send
+costs, every time, and a model having room to spare is not a discount. The second is accuracy.
+Published sweeps find retrieval degrading as the input gets longer, which means the last
+stretch of a window is not free even when you can afford it. We priced the first half across
+the whole model catalogue in
+[what it costs to fill a context window](/docs/context-window-costs), and the sources for the
+second half are cited there.
+
 <Callout type="tip">
   One format in particular? [Word documents](/blog/convert-docx-to-text-for-llm) and
   [spreadsheets](/blog/convert-excel-to-text-for-llm) each have their own traps. Combining loose
