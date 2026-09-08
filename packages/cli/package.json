@@ -25,7 +25,9 @@
     "test": "pnpm run build && vitest run",
     "analyze-funnel": "tsx scripts/analyze-repo-funnel.ts",
     "measure-extraction": "tsx scripts/measure-extraction-quality.ts",
-    "format-eval": "tsx scripts/measure-format-eval.ts"
+    "format-eval": "tsx scripts/measure-format-eval.ts",
+    "measure-tools": "tsx scripts/measure-tool-comparison.ts",
+    "analyze-tools": "tsx scripts/analyze-tool-comparison.ts"
   },
   "keywords": [
     "cli",
