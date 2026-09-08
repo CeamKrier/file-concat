@@ -16,8 +16,23 @@ import { useSelectedModel } from "~/hooks/use-selected-model";
 import { estimateTokenCount, preloadTokenEstimator } from "~/lib/tokens";
 
 import { ContextFunnel } from "./context-funnel";
+import { FitCurve, type FitCurveProps } from "./fit-curve";
 
 type Phase = "idle" | "processing" | "result";
+
+/** The article's published spread, for the reader to be placed on. */
+export type TryItDistribution = Omit<FitCurveProps, "you">;
+
+export type TryItProps = {
+  title?: string;
+  hint?: string;
+  /**
+   * Pass the same points the article's static figure uses and the reader's own
+   * count lands on that axis. This is the whole reason the strip exists: it
+   * turns a published distribution into the reader's own answer.
+   */
+  distribution?: TryItDistribution;
+};
 
 /**
  * The inline "now do it with your files" moment. A real, contained slice of the
@@ -35,10 +50,8 @@ type Phase = "idle" | "processing" | "result";
 export default function TryIt({
   title = "Try it with your own files",
   hint = "Drop a folder or a few files. It runs here in your browser, nothing is uploaded.",
-}: {
-  title?: string;
-  hint?: string;
-}) {
+  distribution,
+}: TryItProps) {
   const ingestion = useFileIngestion(DEFAULT_CONFIG);
   const filter = useFilterState({
     entries: ingestion.entries,
@@ -230,6 +243,9 @@ export default function TryIt({
                 tokens={tokens}
                 model={funnelModel}
               />
+              {distribution && tokens > 0 ? (
+                <FitCurve {...distribution} you={tokens} />
+              ) : null}
               <p className="text-ink-muted mt-3 text-[13px] leading-relaxed">
                 Filtered with the defaults: lockfiles, build output, and binaries are left out. The
                 full tool lets you change what is in or out.

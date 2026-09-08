@@ -54,16 +54,22 @@ export function KeyFindings({
         </span>
       </div>
 
-      <div className="grid gap-3.5">
+      {/*
+        Stacked below `sm`. The two-column form leaves the sentence about 185px
+        wide on a 390px phone, which wraps every three words and turns the block
+        this component exists to make scannable into the densest thing on the
+        page.
+      */}
+      <div className="grid gap-5 sm:gap-3.5">
         {items.map((item) => (
           <div
             key={item.text}
-            className="grid grid-cols-[minmax(110px,152px)_1fr] items-baseline gap-x-[18px] gap-y-1.5"
+            className="grid gap-y-1.5 sm:grid-cols-[minmax(110px,152px)_1fr] sm:items-baseline sm:gap-x-[18px]"
           >
             <div className="font-display text-primary text-[21px] font-semibold leading-[1.1] tracking-[-0.02em] tabular-nums">
               {item.figure}
             </div>
-            <div className="text-ink text-[15.5px] leading-[1.5]">{item.text}</div>
+            <div className="text-ink text-[15px] leading-[1.5] sm:text-[15.5px]">{item.text}</div>
           </div>
         ))}
       </div>
