@@ -114,10 +114,29 @@ measurement.
 The other thing the chat box has is a ceiling: it accepts only so much text at once. So
 it helps to know the size of a bundle before you paste it, not after it bounces back.
 
-FileConcat [counts tokens live](/docs/token-estimation) as you build the bundle, and
-[the default filter](/docs/file-filtering) leaves out the parts you almost never want
-to send: lock files, build output, and binaries. Both keep the count down and the
-signal up.
+A loose folder of notes and a few source files is rarely the problem. A whole repository
+usually is. We tokenized 60 public repositories end to end, and the median one assembled
+into 246,424 tokens:
+
+| Context window | Repositories that fit |
+| --- | --- |
+| 128,000 | 21 of 60 |
+| 200,000 | 24 of 60 |
+| 1,000,000 | 41 of 60 |
+
+So the median repository clears a 1M window and misses a 128K one. The method and the
+per-language spread are in
+[how many tokens is a codebase](/blog/how-many-tokens-is-a-codebase).
+
+FileConcat [counts tokens live](/docs/token-estimation) as you build the bundle, so you
+see that number before you paste rather than after.
+
+[The default filter](/docs/file-filtering) leaves out the parts you almost never want to
+send: lock files, build output, and binaries. It is worth knowing what that buys. On a
+fresh clone the defaults remove a median 3.5% of tokens, and a median 87.5% of files
+survive them. That is tidier, not dramatically lighter. If you need a much smaller
+bundle, the lever is deciding that a whole category does not belong in this question,
+not a stricter filter.
 
 <Callout type="tip">
   Working with a whole repository instead of a loose folder? You can paste a GitHub,
