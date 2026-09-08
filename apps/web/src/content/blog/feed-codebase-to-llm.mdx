@@ -42,9 +42,12 @@ larger than a chat box will accept.
   README.md`}</After>
 </BeforeAfter>
 
-Those figures are illustrative, but the shape holds on almost any repo: the dependencies
-and build output are the bulk of the bytes and almost never what you want the model to
-read.
+Those figures are illustrative, and which one you are looking at depends on whether the
+project is installed. On a working checkout, `node_modules` really is the bulk of the bytes.
+On a fresh clone it was never committed, so there is nothing there for a filter to take out:
+across 60 public repositories the defaults stripped a median of 3.5% of tokens. Either way
+what is left is the source you wanted the model to read, but only one of the two starts out
+enormous.
 
 ## Cut the noise first
 
