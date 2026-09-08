@@ -6,6 +6,8 @@ author: "CeamKrier"
 draft: false
 ---
 
+import bundleSizes from "~/data/repo-funnel-values.json";
+
 <KeyFindings
   items={[
     {
@@ -42,11 +44,33 @@ how much noise there was, what the rest is made of, or what is left after. The n
 their own repository is usually the one their editor's status bar showed them once.
 
 So we measured it. Sixty public repositories, ten languages, three size bands, every file routed through
-the same engine the tool ships, every bundle assembled and tokenized whole.
+the same engine the tool ships, every bundle assembled and tokenized whole. Three results change what you
+should do with your own folder.
+
+<Payoff
+  rows={[
+    {
+      lead: "Your repository probably does not fit where you think",
+      body: "Half of the 60 land between 80,477 and 1,366,894 tokens. Only 35% fit a 128,000 token window, and 32% do not fit 1,000,000.",
+      action: "Count yours before you pick a model",
+    },
+    {
+      lead: "Filters are not the lever you think they are",
+      body: "The default noise filters removed a median 3.5% of tokens from a fresh clone. Dropping the test suite would remove 17.5%.",
+      action: "Decide what belongs in this question, not what looks like noise",
+    },
+    {
+      lead: "Read the unit on any reduction claim",
+      body: "The same exclusion is 63.1% of the files removed and 5.7% of the tokens removed. Both sentences are true and they mean opposite things.",
+      action: "Ask any tool which one it counted, ours included",
+    },
+  ]}
+/>
+
+<Contents />
 
 <Method
   compact
-  id="method"
   dataset="60 public GitHub repositories, 10 languages x 3 size bands x 2 repositories"
   sample="39,107 files walked, 37,293 text eligible, 35,540 kept, 73,763,190 tokens"
   measured="2026-09-07"
@@ -61,19 +85,27 @@ the same engine the tool ships, every bundle assembled and tokenized whole.
 There is no single answer, and the distribution is the finding. Half the repositories in our sample sit
 between 80,477 and 1,366,894 tokens. That is a factor of 17 inside the middle half alone.
 
-| Percentile | Bundle tokens |
-| ---------- | ------------- |
-| 10th       | 39,088        |
-| 25th       | 80,477        |
-| Median     | 246,424       |
-| 75th       | 1,366,894     |
-| 90th       | 3,683,889     |
-| Largest    | 9,373,193     |
+<FitCurve
+  label="60 public repositories, smallest to largest"
+  values={bundleSizes}
+  thresholds={[
+    { label: "128K window", value: 128000 },
+    { label: "200K window", value: 200000 },
+    { label: "1M window", value: 1000000 },
+    { label: "2M window", value: 2000000 },
+  ]}
+  source="Each row is one repository. A window fits every row ending left of its line."
+/>
 
 The largest is `KDE/ghostwriter`, a Qt markdown editor whose repository carries decades of translation
 files. The smallest bundles come from single-purpose libraries with a handful of source files.
 
-## The gap this fills
+<Stopper value="17x" source="80,477 to 1,366,894 tokens / 60 public repositories / 2026-09-07">
+  Between the 25th and 75th percentile. Not the whole range, the middle half. There is no typical
+  codebase size to plan around, which is why a rule of thumb fails here and a measurement does not.
+</Stopper>
+
+## What nobody had measured yet
 
 We checked what is already published before measuring. Two kinds of claim exist and neither answers the
 question.
@@ -94,7 +126,7 @@ repository produces one.
 Nobody has published the funnel: files in, text out, filters applied, tokens produced, over a sample
 large enough to show a distribution. That is what this is.
 
-## Dataset and sample
+## The 60 repositories, and how they were picked
 
 The sample was pre-registered. One GitHub search query per cell, written before any result was seen, and
 the first two results taken in the order they came back. No repository was added, dropped, or swapped
@@ -121,7 +153,7 @@ Two repositories in the draw turned out to be documentation collections rather t
 kept, because removing them after seeing them would turn a query into a choice. They are named in the
 results, at the top of the documentation share, exactly where they were predicted to land.
 
-## Methodology
+## How we counted the tokens
 
 Every decision in the measurement comes from the shipped engine. There is no second implementation of
 the classifier, the filter, or the tokenizer, because a reimplementation measures a tool nobody uses.
@@ -153,7 +185,7 @@ and is a judgment call, not a standard. Nothing in a repository declares that a 
 are ordered and first match wins, because a vendored test is vendored and a lockfile is a lockfile before
 it is JSON configuration. Print the full map with `pnpm --filter @fileconcat/cli measure-funnel --rules`.
 
-## Results
+## What 60 repositories actually weigh
 
 ### The funnel
 
@@ -179,9 +211,14 @@ Two things in that funnel are smaller than people expect.
 repository. Binary assets are rarer in a repository than in a working folder, and the engine reads more
 formats than "text file" usually means.
 
-**The defaults remove very little.** A median of 87.5% of files survive, and a median of only 3.5% of
-tokens are removed. The distribution is heavily skewed: the 25th percentile loses 0.9% of its tokens and
-the 90th loses 68.7%. Twenty of 60 repositories lost more than 10%. Two lost nothing at all.
+<Stopper value="3.5%" tone="warn" source="median across 60 fresh clones / a clone has no node_modules to remove">
+  All the default noise filters take off a fresh clone. If you were counting on filtering to get a
+  repository under a context window, this is the number that says it will not.
+</Stopper>
+
+**The defaults remove very little, and unevenly.** A median of 87.5% of files survive. The token
+distribution is heavily skewed: the 25th percentile loses 0.9% and the 90th loses 68.7%. Twenty of 60
+repositories lost more than 10%. Two lost nothing at all.
 
 <Callout type="warn" title="This is a floor, not the reduction you will see">
   A fresh clone has no `node_modules`, no `dist`, no build output and no local env files, because none of
@@ -194,16 +231,19 @@ the 90th loses 68.7%. Twenty of 60 repositories lost more than 10%. Two lost not
 
 Here is the result that changed how we describe our own product.
 
-| What removed it        | Share of excluded files | Share of excluded tokens | Fired in |
-| ---------------------- | ----------------------- | ------------------------ | -------- |
-| Hidden files           | 63.1%                   | 5.7%                     | 58 of 60 |
-| Default ignore list    | 33.9%                   | 92.5%                    | 37 of 60 |
-| A `.gitignore` in tree | 3.0%                    | 1.8%                     | 6 of 60  |
+<UnitFlip
+  label="The same exclusion, counted two ways"
+  units={["share of excluded files", "share of excluded tokens"]}
+  rows={[
+    { label: "hidden files", a: 0.631, b: 0.057, note: "fired in 58 of 60" },
+    { label: "default ignore list", a: 0.339, b: 0.925, note: "fired in 37 of 60" },
+    { label: "a .gitignore in tree", a: 0.03, b: 0.018, note: "fired in 6 of 60" },
+  ]}
+  verdict="Count files and the filter drops dotfiles. Count tokens and it drops lockfiles."
+/>
 
-Count files and the story is "the filter mostly drops dotfiles". Count tokens and it is "the filter
-mostly drops lockfiles and build output". Both sentences are true and they mean opposite things. A tool
-that says "removed 40% of files" and a tool that says "removed 40% of tokens" have not told you the same
-thing, and neither has told you which one they meant.
+A tool that says "removed 40% of files" and a tool that says "removed 40% of tokens" have not told you
+the same thing, and neither has told you which one they meant.
 
 The `.gitignore` row is the one we did not expect. Honoring `.gitignore` is a feature we built and
 describe; on a fresh clone it fires in 6 repositories out of 60, because the things a `.gitignore` names
@@ -267,12 +307,8 @@ entirely source. Ruby's median repository is more test than anything else.
 
 ### Against a context window
 
-| Context window | Repositories that fit |
-| -------------- | --------------------- |
-| 128,000        | 21 of 60 (35%)        |
-| 200,000        | 24 of 60 (40%)        |
-| 1,000,000      | 41 of 60 (68.3%)      |
-| 2,000,000      | 48 of 60 (80%)        |
+The four dashed lines on the figure above are these: 21 of 60 fit 128,000 tokens (35%), 24 fit 200,000
+(40%), 41 fit 1,000,000 (68.3%) and 48 fit 2,000,000 (80%).
 
 Three fifths of these repositories do not fit in a 200,000 token window. A million-token window takes 68%
 of them, which is the number that makes the long-context literature above relevant rather than academic:
@@ -338,7 +374,7 @@ percentile, and 4.5% at worst. All 30 are now within 5% of the truth, against 4 
 the whole sample, including the 30 repositories small enough to be tokenized exactly, 46 of 60 readouts
 are now within 1% of what a paste actually costs. Before both fixes, one was.
 
-## What this means
+## What this means when you bundle your own
 
 **Ask what your repository is before asking which model fits it.** The median here is 246,424 tokens and
 the 90th percentile is 3,683,889. Those two repositories have nothing in common as context problems. The
@@ -351,6 +387,11 @@ about intent, and a default cannot make it for you.
 
 **Read the unit on every claim, including ours.** 63.1% against 5.7% is the same exclusion described
 twice. Whenever a tool tells you how much it removed, the first question is what it counted.
+
+<Stopper value="Fitting is not being read" source="Liu et al. 2023 / Chroma 2025 / see the references">
+  Every repository here that needs a million-token window lands exactly where the published
+  accuracy studies measured the worst retrieval. Getting the bundle to fit is the easy half.
+</Stopper>
 
 **A bigger window is not a free pass.** The repositories in this sample that need a million-token window
 are the ones that land where Liu et al. and Chroma both measured the worst accuracy. Fitting is not the
@@ -406,7 +447,6 @@ sorted now. A rerun at a pinned commit therefore reproduces where this measureme
 separates a rerun from the totals here is that fix rather than anything in the repositories.
 
 <Method
-  id="method-full"
   dataset="60 public GitHub repositories drawn by a pre-registered GitHub search query, 10 languages x 3 size bands x 2 repositories"
   sample="39,107 files walked, 37,293 text eligible, 35,540 kept by the defaults, 73,763,190 tokens assembled"
   measured="2026-09-07"
@@ -416,7 +456,7 @@ separates a rerun from the totals here is that fix rather than anything in the r
   excludes="Working folders, private repositories, model accuracy, and any language outside the ten sampled. A fresh clone carries no build output, so generated and vendored shares are a floor."
 />
 
-## Measure your own
+## Count your own folder
 
 The numbers above are a distribution. Yours is one point in it, and the only one that decides anything.
 Drop a folder here and the same engine runs on your machine: nothing is uploaded to us, the whole thing
@@ -424,7 +464,17 @@ runs in your browser.
 
 <TryIt
   title="Run the funnel on your own folder"
-  description="Files in, text out, what the defaults keep, and what it costs to send."
+  hint="Files in, text out, what the defaults keep, and what it costs to send. Nothing is uploaded."
+  distribution={{
+    label: "Your folder against 60 public repositories",
+    values: bundleSizes,
+    thresholds: [
+      { label: "128K window", value: 128000 },
+      { label: "200K window", value: 200000 },
+      { label: "1M window", value: 1000000 },
+      { label: "2M window", value: 2000000 },
+    ],
+  }}
 />
 
 ## Frequently asked questions
@@ -464,11 +514,38 @@ tokenizer is approximating when you paste into Claude or Gemini.
 
 ## References
 
-| Source | Venue | What it measured | Headline result |
-| ------ | ----- | ---------------- | --------------- |
-| Liu, Lin, Hewitt, Paranjape, Bevilacqua, Petroni, Liang, "Lost in the Middle: How Language Models Use Long Contexts" | TACL vol. 12, 2024, pp. 157-173 | Multi-document QA and key-value retrieval, with the relevant information moved through the context | Performance "is often highest when relevant information occurs at the beginning or end of the input context, and significantly degrades" in the middle, "even for explicitly long-context models" |
-| Chroma Research, "Context Rot: How Increasing Input Tokens Impacts LLM Performance", 2025 | Industry report, 18 models, 8 input lengths x 11 needle positions | Retrieval and replication tasks as input length grows | "Across all experiments, model performance consistently degrades with increasing input length" |
-| Repomix (yamadashy/repomix) | Project README | Its own Tree-sitter compression mode against its own uncompressed output | "~70% token reduction", a claim about optional compression rather than about repository composition |
+<StudyTable
+  rows={[
+    {
+      source: 'Liu et al., "Lost in the Middle: How Language Models Use Long Contexts"',
+      href: "https://aclanthology.org/2024.tacl-1.9/",
+      venue: "TACL vol. 12, 2024",
+      sample: "Multi-document QA and key-value retrieval, relevant information moved through the context",
+      compared: "Where an answer sits inside a long input, across model sizes",
+      headline:
+        'Performance "is often highest when relevant information occurs at the beginning or end of the input context, and significantly degrades" in the middle, "even for explicitly long-context models"',
+    },
+    {
+      source: 'Chroma Research, "Context Rot: How Increasing Input Tokens Impacts LLM Performance"',
+      href: "https://research.trychroma.com/context-rot",
+      venue: "Industry report, 2025",
+      sample: "18 models, 8 input lengths x 11 needle positions",
+      compared: "Retrieval and replication tasks as input length grows",
+      headline:
+        '"Across all experiments, model performance consistently degrades with increasing input length"',
+    },
+    {
+      source: "Repomix (yamadashy/repomix)",
+      href: "https://github.com/yamadashy/repomix",
+      venue: "Project README",
+      kind: "vendor",
+      sample: "Not a study",
+      compared: "Its own Tree-sitter compression mode against its own uncompressed output",
+      headline:
+        '"~70% token reduction", a claim about optional compression rather than about repository composition',
+    },
+  ]}
+/>
 
 - [Lost in the Middle: How Language Models Use Long Contexts](https://aclanthology.org/2024.tacl-1.9/), DOI 10.1162/tacl_a_00638
 - [Context Rot: How Increasing Input Tokens Impacts LLM Performance](https://research.trychroma.com/context-rot)

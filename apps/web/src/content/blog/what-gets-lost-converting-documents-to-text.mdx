@@ -43,11 +43,33 @@ library's. Those are different problems with different fixes, and only one of th
 library over.
 
 So we built a corpus where every file isolates one structure, ran it through the reader we ship, and ran
-the PDFs through a second reader that shares no code with ours.
+the PDFs through a second reader that shares no code with ours. Three results change what you do with a
+document before you paste it.
+
+<Payoff
+  rows={[
+    {
+      lead: "A silent loss is the one that costs you",
+      body: "Every defect we ranked BROKEN leaves output that still reads as correct. A row missing a cell still reads as a row, a date arriving as 46037 still reads as a number somebody meant.",
+      action: "Open the extracted text and search for the thing you are about to ask about",
+    },
+    {
+      lead: "The furniture is what wrecks a long document",
+      body: "On three pages with a running header and a footer, an independent reader poured 3 headers and 3 footers into the prose. On a 40-page report that is 80 lines of furniture spliced through your sentences.",
+      action: "Search your output for your own header text before you trust it",
+    },
+    {
+      lead: "Swapping libraries does not fix reading order",
+      body: "Both readers handle a naturally ordered two-column page. Only one handles a page whose content stream runs across the gutter, and published rankings are averages over pages that are not yours.",
+      action: "Test the page you actually care about, not a benchmark average",
+    },
+  ]}
+/>
+
+<Contents />
 
 <Method
   compact
-  id="method"
   dataset="27 documents across 12 formats, each written to isolate one document structure"
   sample="22,789 characters extracted, 17 structures encoded as predicates"
   measured="2026-09-07"
@@ -66,15 +88,43 @@ The second half is what makes the first half actionable. A structure that every 
 property of the file format, and no amount of library shopping will get it back. A structure that
 another reader recovers on the same bytes is a decision, and decisions can be changed.
 
-## The gap this fills
+## What nobody had measured yet
 
 Document extraction is well benchmarked and the benchmarks answer a different question.
 
-| Source | Venue | What was compared | Sample | Headline |
-| --- | --- | --- | --- | --- |
-| Adhikari and Agarwal, [A Comparative Study of PDF Parsing Tools](https://arxiv.org/abs/2410.09871) | arXiv, 2024 | 10 parsers including PyPDF, pdfminer.six, PyMuPDF, pdfplumber, pypdfium2, Unstructured, Tabula, Camelot, Nougat, Table Transformer | DocLayNet, 6 document categories, balanced | PyMuPDF and pypdfium2 lead on text; every parser struggled on Scientific and Patent documents; Camelot's best table recall was 0.72, in the Tender category |
-| Ouyang et al., [OmniDocBench](https://arxiv.org/abs/2412.07626) | CVPR 2025 | Pipeline tools against vision language models, end to end | 981 pages, 9 page types, 4 layouts, 3 languages | Pipeline tools are unaffected by merged cells while several vision language models degrade on them; table rotation hurts everything |
-| Anthropic, [PDF support](https://docs.claude.com/en/docs/build-with-claude/pdf-support) | Vendor documentation | How a model provider ingests a PDF | Not a study | Each page is converted to an image *and* its text extracted, and both are sent; encrypted PDFs are rejected outright |
+<StudyTable
+  rows={[
+    {
+      source: "Adhikari and Agarwal, A Comparative Study of PDF Parsing Tools",
+      href: "https://arxiv.org/abs/2410.09871",
+      venue: "arXiv, 2024",
+      sample: "DocLayNet, 6 document categories, balanced",
+      compared:
+        "10 parsers including PyPDF, pdfminer.six, PyMuPDF, pdfplumber, pypdfium2, Unstructured, Tabula, Camelot, Nougat and Table Transformer",
+      headline:
+        "PyMuPDF and pypdfium2 lead on text, every parser struggled on Scientific and Patent documents, and Camelot's best table recall was 0.72",
+    },
+    {
+      source: "Ouyang et al., OmniDocBench",
+      href: "https://arxiv.org/abs/2412.07626",
+      venue: "CVPR 2025",
+      sample: "981 pages, 9 page types, 4 layouts, 3 languages",
+      compared: "Pipeline tools against vision language models, end to end",
+      headline:
+        "Pipeline tools are unaffected by merged cells while several vision language models degrade on them, and table rotation hurts everything",
+    },
+    {
+      source: "Anthropic, PDF support",
+      href: "https://docs.claude.com/en/docs/build-with-claude/pdf-support",
+      venue: "Vendor documentation",
+      kind: "vendor",
+      sample: "Not a study",
+      compared: "How a model provider ingests a PDF",
+      headline:
+        "Each page is converted to an image and its text extracted, and both are sent, while encrypted PDFs are rejected outright",
+    },
+  ]}
+/>
 
 Two things are missing from all of it.
 
@@ -92,7 +142,7 @@ page seam is not a small scoring artifact to the model reading it.
 **And nobody separates the format from the library.** This is the finding that changes what you do next,
 and it needs two readers on identical bytes to say anything at all.
 
-## Dataset and sample
+## The 27 documents we broke on purpose
 
 Twenty-seven documents, twelve formats, each file written to isolate one structure:
 
@@ -120,7 +170,7 @@ plausibly differ on a file Word itself produced are marked in the results.
 The corpus is deliberately not weighted toward what people extract most. It is weighted toward
 structures that are hard, which is a different thing and the right thing for a floor check.
 
-## Methodology
+## How we measured what was lost
 
 Every file goes through the path the product actually uses. Nothing here reimplements extraction.
 
@@ -156,7 +206,7 @@ pipes. No other library does, so running that predicate against pypdf would scor
 rather than whether data survived. That check is marked not compared, and the honest consequence is that
 the table finding below has no attribution.
 
-## Results
+## What the two readers found
 
 ### Routing
 
@@ -172,30 +222,61 @@ parse error. The fully scanned PDF has no text layer at all, so on this path it 
   recovery is offered, never automatic.
 </Callout>
 
-### Sixteen defects, thirteen closed
+### Re-testing our own extraction
+
+<Stopper value="3 of 16 still open" tone="warn" source="re-test round 4 / 27 documents across 12 formats / 2026-09-07">
+  Defects we found in our own extraction and have not fixed yet. All three are named below, with what
+  each one does to your text and what to check instead.
+</Stopper>
 
 The earlier reading found 16 defects and checked one correctness property that has never broken. Re-run
 against the current build:
 
-| id | format | severity | structure | status |
-| --- | --- | --- | --- | --- |
-| pdf-1.1 | pdf | BROKEN | Multi-column pages merged line by line across the gutter | fixed |
-| pdf-1.1b | pdf | BROKEN | Column order ignores the content stream | fixed |
-| pdf-1.2 | pdf | BROKEN | A table's empty cell shifts every later value one column left | fixed |
-| pdf-1.3 | pdf | DEGRADED | Running headers and footers repeated into the prose | fixed |
-| pdf-1.5 | pdf | DEGRADED | A superscript footnote marker sorts above its own line | **still broken** |
-| pdf-1.6 | pdf | DEGRADED | An encrypted file fails under the same wording as any parse error | fixed |
-| pdf-1.7 | pdf | BROKEN | A page with no text layer is dropped with no note | **still broken** |
-| docx-3.2 | docx | BROKEN | A horizontally merged cell collapses its row to one cell | fixed |
-| docx-3.3 | docx | BROKEN | Hyperlink destinations dropped, leaving only anchor text | fixed |
-| docx-3.4 | docx | BROKEN | Footnote markers stripped, detaching notes from claims | fixed |
-| docx-3.5 | docx | DEGRADED | Headers and footers dropped, including a confidentiality marking | fixed |
-| docx-3.6 | docx | DEGRADED | Heading levels lost, flattening hierarchy | fixed |
-| xlsx-4.1 | xlsx | BROKEN | Dates arrive as raw serial numbers | **still broken** |
-| rtf-4.2 | rtf | BROKEN | Words joined across a formatting boundary | fixed |
-| pptx-4.3 | pptx | BROKEN | A bare slide number injected into slide body text | fixed |
-| vtt-4.4 | vtt | BROKEN | Cue identifiers and comments emitted as dialogue | fixed |
-| docx-3.1 | docx | guard | A tracked deletion reaching the bundle as current text | never broken |
+<StatusGrid
+  label="re-test round 4 / 27 documents across 12 formats"
+  groups={[
+    {
+      format: "pdf",
+      items: [
+        { id: "pdf-1.1", severity: "broken", status: "fixed", structure: "Multi-column pages merged line by line across the gutter" },
+        { id: "pdf-1.1b", severity: "broken", status: "fixed", structure: "Column order ignores the content stream" },
+        { id: "pdf-1.2", severity: "broken", status: "fixed", structure: "A table's empty cell shifts every later value one column left" },
+        { id: "pdf-1.3", severity: "degraded", status: "fixed", structure: "Running headers and footers repeated into the prose" },
+        { id: "pdf-1.5", severity: "degraded", status: "open", structure: "A superscript footnote marker sorts above its own line" },
+        { id: "pdf-1.6", severity: "degraded", status: "fixed", structure: "An encrypted file fails under the same wording as any parse error" },
+        { id: "pdf-1.7", severity: "broken", status: "open", structure: "A page with no text layer is dropped with no note" },
+      ],
+    },
+    {
+      format: "docx",
+      items: [
+        { id: "docx-3.2", severity: "broken", status: "fixed", structure: "A horizontally merged cell collapses its row to one cell" },
+        { id: "docx-3.3", severity: "broken", status: "fixed", structure: "Hyperlink destinations dropped, leaving only anchor text" },
+        { id: "docx-3.4", severity: "broken", status: "fixed", structure: "Footnote markers stripped, detaching notes from claims" },
+        { id: "docx-3.5", severity: "degraded", status: "fixed", structure: "Headers and footers dropped, including a confidentiality marking" },
+        { id: "docx-3.6", severity: "degraded", status: "fixed", structure: "Heading levels lost, flattening hierarchy" },
+      ],
+    },
+    {
+      format: "xlsx",
+      items: [
+        { id: "xlsx-4.1", severity: "broken", status: "open", structure: "Dates arrive as raw serial numbers" },
+      ],
+    },
+    {
+      format: "rtf, pptx, vtt",
+      items: [
+        { id: "rtf-4.2", severity: "broken", status: "fixed", structure: "Words joined across a formatting boundary" },
+        { id: "pptx-4.3", severity: "broken", status: "fixed", structure: "A bare slide number injected into slide body text" },
+        { id: "vtt-4.4", severity: "broken", status: "fixed", structure: "Cue identifiers and comments emitted as dialogue" },
+      ],
+    },
+  ]}
+  guard={{
+    id: "docx-3.1",
+    structure: "A tracked deletion reaching the bundle as current text. Never once, across four rounds.",
+  }}
+/>
 
 `docx-3.2` carries the generated-file caveat: Word's merge XML differs slightly from what the `docx`
 library emits, so that one is worth re-checking against a file Word wrote.
@@ -209,12 +290,36 @@ reached a bundle, and the check exists so that stays true.
 Four PDF findings have predicates that read only the text, so they can be run against both readers on
 identical bytes. This is the part no benchmark reports.
 
-| structure | our reader | pypdf 6.14.2 | what that means |
-| --- | --- | --- | --- |
-| Two-column page, natural stream order | recovers it | recovers it | Both read the columns in order. The bytes carry enough. |
-| Two-column page, adversarial stream order | recovers it | **loses it** | Ours has a column model. pypdf follows the stream. |
-| Running headers on every page | deduplicates | **repeats all 3, plus 3 footers** | A reader's choice, not a limit of PDF. |
-| Superscript footnote marker | **loses it** | signal absent | Not attributable. See below. |
+<ReaderDuel
+  label="Four PDF structures, two readers, identical bytes"
+  readers={["FileConcat", "pypdf 6.14.2"]}
+  rows={[
+    {
+      structure: "Two-column page, natural stream order",
+      a: { text: "recovers", kind: "recovered" },
+      b: { text: "recovers", kind: "recovered" },
+      verdict: "Both read the columns in order. The bytes carry enough.",
+    },
+    {
+      structure: "Two-column page, adversarial stream order",
+      a: { text: "recovers", kind: "recovered" },
+      b: { text: "loses", kind: "lost" },
+      verdict: "A library difference. Ours has a column model, pypdf follows the stream.",
+    },
+    {
+      structure: "Running headers on every page",
+      a: { text: "deduplicates", kind: "recovered" },
+      b: { text: "repeats all 3, plus 3 footers", kind: "lost" },
+      verdict: "A reader's choice, not a limit of the format.",
+    },
+    {
+      structure: "Superscript footnote marker",
+      a: { text: "loses", kind: "lost" },
+      b: { text: "not attributable", kind: "absent", note: "its own output was corrupt" },
+      verdict: "Neither reader can be credited here, so the harness scores nothing rather than a false pass.",
+    },
+  ]}
+/>
 
 The third row is the practical one. On three pages of prose with a running header and a `Page n of 3`
 footer, pypdf pours the header into the text three times and the footer three times. Ours emits the
@@ -231,16 +336,52 @@ So the corpus contains the same visual layout twice. One file writes the content
 column. The other writes it line by line **across the gutter**, which is what a reader following the
 stream would produce if it had no column model.
 
-<BeforeAfter>
-  <Before label="pypdf 6.14.2, adversarial stream order">{`Left column line 1 of eighteen. Right column line 1 of eighteen.
-Left column line 2 of eighteen. Right column line 2 of eighteen.
-Left column line 3 of eighteen. Right column line 3 of eighteen.
-Left column line 4 of eighteen. Right column line 4 of eighteen.`}</Before>
-  <After label="FileConcat, same bytes">{`Left column line 1 of eighteen.
+<PaneDiff
+  file="two-column-adversarial.pdf"
+  mark="Right column"
+  total={36}
+  legend={["line from the left column", "line from the right column"]}
+  panes={[
+    {
+      reader: "FileConcat",
+      verdict: "columns kept",
+      footer: "left column intact, then right",
+      text: `Left column line 1 of eighteen.
 Left column line 2 of eighteen.
 Left column line 3 of eighteen.
-Left column line 4 of eighteen.`}</After>
-</BeforeAfter>
+Left column line 4 of eighteen.
+Left column line 5 of eighteen.
+Left column line 6 of eighteen.
+Right column line 1 of eighteen.
+Right column line 2 of eighteen.
+Right column line 3 of eighteen.
+Right column line 4 of eighteen.
+Right column line 5 of eighteen.
+Right column line 6 of eighteen.`,
+    },
+    {
+      reader: "pypdf 6.14.2",
+      verdict: "columns interleaved",
+      footer: "one line from each column, alternating",
+      text: `Left column line 1 of eighteen.
+Right column line 1 of eighteen.
+Left column line 2 of eighteen.
+Right column line 2 of eighteen.
+Left column line 3 of eighteen.
+Right column line 3 of eighteen.
+Left column line 4 of eighteen.
+Right column line 4 of eighteen.
+Left column line 5 of eighteen.
+Right column line 5 of eighteen.
+Left column line 6 of eighteen.
+Right column line 6 of eighteen.`,
+    },
+  ]}
+>
+  Both panes are the same lines of text. Colour is the only difference marked: on the left the blue
+  block starts once and runs to the end, on the right blue appears on every other line. Reading order
+  is the finding.
+</PaneDiff>
 
 Ours finishes the left column through line 18 before the right column starts. pypdf interleaves every
 line. Both readers handle the naturally ordered file, so a test using only that file would have scored
@@ -280,18 +421,45 @@ never for one that loaded carrying no text. The browser's OCR can recover the mi
 the reader accepts it. We are not promising a fix date; emitting the note needs page-level text
 accounting the underlying library does not currently expose.
 
-## What this means
+## What this means for your own documents
 
 **Check the furniture before you trust a long document.** The losses that hurt most are not exotic. They
 are running headers spliced into prose, a footnote detached from its claim, a hyperlink reduced to its
 anchor text. None of them look like errors in the output. All of them change what the document says.
 
+<Stopper value="A silent loss is worse" source="every defect ranked BROKEN in this study shares it">
+  Nothing in a bad extraction looks wrong. The row still has a number in it, the date still reads as a
+  date, the report still reads as a whole report. That is the property that makes these worth checking.
+</Stopper>
+
 **A silent loss is worse than a loud one.** Every defect above that we ranked BROKEN shares one property:
 the output stays plausible. `APAC 980 980` reads as a complete row. A date reading `46037` reads as a
 number someone meant. A part-scanned report reads as a whole report. A model has no way to know.
 
-**If a structure matters to your question, verify it survived.** Open the extracted text and look for
-the specific thing you are going to ask about. That is a ten-second check that beats any benchmark score.
+**If a structure matters to your question, verify it survived.** None of these checks needs a tool, and
+each one is faster than reading the document again.
+
+<Checklist
+  label="Before you trust an extracted document"
+  items={[
+    {
+      check: "Search the text for the specific figure you plan to ask about",
+      why: "Every defect we ranked broken produces output that still looks plausible",
+    },
+    {
+      check: "Look for your running header repeated inside sentences",
+      why: "A 40-page report can splice 80 lines of furniture through its own prose",
+    },
+    {
+      check: "Open a date column",
+      why: "A spreadsheet date can arrive as 46037, which reads like a number somebody meant",
+    },
+    {
+      check: "Count the pages",
+      why: "A page that is a scan can vanish with no note",
+    },
+  ]}
+/>
 
 **Do not assume a library swap fixes reading order.** Both readers here handle a naturally ordered
 two-column page and only one handles an adversarial one. The published rankings are averages over real
@@ -341,7 +509,6 @@ defect states as they stood in August describe builds that no longer exist. What
 is the right-hand column, which is the claim this page actually makes.
 
 <Method
-  id="method-full"
   dataset="27 generated documents across 12 formats, each isolating one document structure"
   sample="22,789 characters extracted, 27 of 27 routed correctly, 17 predicates evaluated"
   measured="2026-09-07"
@@ -351,11 +518,11 @@ is the right-hand column, which is the claim this page actually makes.
   excludes="Real-world documents, non-PDF attribution, model accuracy, and any judgment about whether recovered structure helps an answer."
 />
 
-## Measure your own
+## Try it on your own files
 
 <TryIt
   title="Drop your own documents"
-  description="Extraction runs in your browser. Nothing is uploaded to us."
+  hint="Extraction runs in your browser, on your machine. Nothing is uploaded to us."
 />
 
 ## Frequently asked questions

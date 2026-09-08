@@ -6,31 +6,72 @@ author: "CeamKrier"
 draft: false
 ---
 
-## Key takeaways
-
-- **The wrapper is not what costs you tokens.** Measured across five real codebases, 248 files
-  and 350,000 tokens of content, the gap between FileConcat's XML, Markdown and plain output was
-  0.24% to 1.13%. Picking a format to save context is optimizing the wrong number.
-- **Format sensitivity is real but shrinking.** GPT-3.5-turbo swung up to 40% on a code
-  translation task on the prompt template alone. GPT-4-1106-preview held its dispersion below
-  0.036 across every benchmark, against 0.035 to 0.176 for the GPT-3.5 series.
-- **No format wins everywhere, and the studies contradict each other.** XML placed 2nd of 11 on
-  tabular lookup at 56.0%, and last on nested data for two of three models tested: 33.8% for
-  Gemini 2.5 Flash Lite against YAML's 51.9%.
-- **All four benchmarks measure tables, records, or short prompts. None measures a file bundle.**
-  A concatenated codebase asks the wrapper for one thing only: say unambiguously where each file
-  starts and ends. That is not what a table format gets scored on.
-- **HTML is the one format that cannot do this job.** Escaping corrupts the code, turning
-  `Record<T>` into `Record&lt;T&gt;` at +5.9% to +10.6% tokens; not escaping means 7.3% of real
-  files close the block early. Markdown has the same trap and a clean fix. HTML has none.
+<KeyFindings
+  items={[
+    {
+      figure: "0.24 to 1.13%",
+      text: "The whole gap between FileConcat's XML, Markdown and plain output, measured across five real codebases, 248 files and 350,000 tokens of content. Picking a format to save context is optimizing the wrong number.",
+    },
+    {
+      figure: "40% vs 0.036",
+      text: "Format sensitivity is real and it is shrinking. GPT-3.5-turbo swung up to 40% on a code translation task on the prompt template alone, while GPT-4-1106-preview held its dispersion below 0.036 across every benchmark, against 0.035 to 0.176 for the GPT-3.5 series.",
+    },
+    {
+      figure: "2nd and last",
+      text: "No format wins everywhere and the studies contradict each other. XML placed 2nd of 11 on tabular lookup at 56.0%, and last on nested data for two of three models tested: 33.8% for Gemini 2.5 Flash Lite against YAML's 51.9%.",
+    },
+    {
+      figure: "0 of 4",
+      text: "Benchmarks that measure a file bundle. All four measure tables, records or short prompts. A concatenated codebase asks the wrapper for one thing only, to say unambiguously where each file starts and ends, and that is not what a table format gets scored on.",
+    },
+    {
+      figure: "7.3%",
+      text: "Share of real files carrying a closing tag that would end an HTML block early. Escaping instead corrupts the code, turning Record<T> into an entity at +5.9% to +10.6% tokens. Markdown has the same trap and a clean fix; HTML has none.",
+    },
+  ]}
+  snapshot="2026-08-31 / 5 codebases, 248 files, 4 published benchmarks"
+  citation="Across five real codebases containing 248 files and roughly 350,000 tokens of content, measured on 2026-08-31, the difference in total tokens between XML, Markdown and plain FileConcat bundles was 0.24% to 1.13% (FileConcat, fileconcat.com)."
+/>
 
 Under the bundle preview there is a switch with three positions: XML, Markdown, Plain. Most
 people never touch it, and for most bundles that is the right call.
 
 The question comes up often enough to deserve a real answer though, and the answer that
-circulates online is mostly extrapolated from benchmarks that measured something else. So here is
-what four studies actually found, what the three formats cost when measured on real codebases
-rather than reasoned about, and a rule that settles the choice in a second.
+circulates online is mostly extrapolated from benchmarks that measured something else. Two of
+those results change what you do.
+
+<Payoff
+  rows={[
+    {
+      lead: "The format switch is not where your tokens go",
+      body: "The spread between the three styles is 0.24% to 1.13% of a bundle, roughly 590 to 2,800 tokens on a median one. The wrapper altogether is 0.6% to 3.8%.",
+      action: "Leave the switch alone and cut files instead",
+    },
+    {
+      lead: "Order matters more than markup",
+      body: "Google's own long-context guidance says to supply all the context first and put the question at the very end. That is worth more than every format difference measured on this page combined.",
+      action: "Paste the bundle first, ask your question last",
+    },
+    {
+      lead: "If you run a small or local model, test it yourself",
+      body: "GPT-3.5-turbo swung up to 40% on the prompt template alone while GPT-4 stayed inside 0.036 dispersion. The published rankings were measured on models that are not yours.",
+      action: "Try all three on your own files before settling",
+    },
+  ]}
+/>
+
+<Contents />
+
+<Method
+  compact
+  dataset="5 trees from FileConcat's own repository: TypeScript source, a React app, Markdown docs, the CLI package, a browser extension"
+  sample="248 files, roughly 350,000 tokens of content, each bundled three times"
+  measured="2026-08-31"
+  build="@fileconcat/core 2.0.0"
+  tokenizer="cl100k_base"
+  script="None. Run by hand as fileconcat <dir> --style xml | markdown | plain, with the no-wrapper baseline recovered by parsing the plain bundle apart"
+  excludes="Accuracy. These are token counts, so no figure here says which wrapper a model reasons better over."
+/>
 
 ## The short version
 
@@ -125,6 +166,11 @@ between codebases is larger than the difference between formats.
 Per file, the wrapper costs 20 to 33 tokens in Markdown, 21 to 30 in plain, and 26 to 44 in XML.
 On a 50-file bundle that is a few hundred tokens against fifty thousand.
 
+<Stopper value="1.13%" source="widest gap across five codebases, 248 files / measured 2026-08-31">
+  The most the format choice can cost you, and that is the worst case of the five. On the largest
+  bundle we measured the whole argument came to 0.24%. Pick the one you can read.
+</Stopper>
+
 <Callout type="note" title="Why the token argument does not transfer">
   Published format comparisons show HTML costing roughly three times what CSV costs for the same
   data. That is real, and it is about tables: there the wrapper repeats per cell, so a 500-row
@@ -138,12 +184,45 @@ On a 50-file bundle that is a few hundred tokens against fifty thousand.
 Four studies are worth reading before forming an opinion. Here they are side by side, then in
 detail.
 
-| Study                    | Venue                 | Compared                                     | Models                                          | Headline                                                |
-| ------------------------ | --------------------- | -------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------- |
-| Table Meets LLM          | WSDM 2024             | CSV, JSON, XML, Markdown, HTML, XLSX, NL+Sep | GPT-4, text-davinci-003                         | HTML best, +6.76% over natural language with separators |
-| Prompt formatting impact | Microsoft + MIT, 2024 | Plain, Markdown, JSON, YAML                  | GPT-3.5-turbo, GPT-4 variants                   | Up to 40% swing on GPT-3.5; GPT-4 far more robust       |
-| 11 table formats         | Independent, 2025     | 11 formats incl. HTML, XML, Markdown, CSV    | GPT-4.1 nano                                    | Markdown-KV 60.7%, XML 56.0%, HTML 53.6%, CSV 44.3%     |
-| Nested data formats      | Independent, 2025     | JSON, YAML, XML, Markdown                    | GPT-5 Nano, Gemini 2.5 Flash Lite, Llama 3.2 3B | YAML best on 2 of 3 models, XML worst on the same 2     |
+<StudyTable
+  rows={[
+    {
+      source: "Sui et al., Table Meets LLM",
+      href: "https://arxiv.org/abs/2305.13062",
+      venue: "WSDM 2024",
+      sample: "GPT-4 and text-davinci-003, seven structural tasks over tables",
+      compared: "CSV, JSON, XML, Markdown, HTML, XLSX and natural language with separators",
+      headline:
+        "HTML best, 6.76% over natural language with separators, and the best full configuration reached 65.43% average accuracy",
+    },
+    {
+      source: "He et al., Does Prompt Formatting Have Any Impact on LLM Performance?",
+      href: "https://arxiv.org/abs/2411.10541",
+      venue: "Microsoft and MIT, 2024",
+      sample: "GPT-3.5-turbo and GPT-4 variants, reasoning, code generation and translation",
+      compared: "Plain text, Markdown, JSON and YAML carrying identical context",
+      headline:
+        "Up to 40% swing on GPT-3.5-turbo from the template alone, while GPT-4-1106-preview stayed below 0.036 dispersion",
+    },
+    {
+      source: "Which Table Format Do LLMs Understand Best?",
+      href: "https://www.improvingagents.com/blog/best-input-data-format-for-llms",
+      venue: "Independent, 2025",
+      sample: "GPT-4.1 nano, tabular lookup",
+      compared: "11 formats including HTML, XML, Markdown and CSV",
+      headline: "Markdown-KV 60.7%, XML 56.0%, HTML 53.6%, CSV 44.3%",
+    },
+    {
+      source: "Which Nested Data Format Do LLMs Understand Best?",
+      href: "https://www.improvingagents.com/blog/best-nested-data-format/",
+      venue: "Independent, 2025",
+      sample: "GPT-5 Nano, Gemini 2.5 Flash Lite and Llama 3.2 3B Instruct",
+      compared: "JSON, YAML, XML and Markdown over nested records",
+      headline: "YAML best on 2 of 3 models, XML worst on the same 2",
+    },
+  ]}
+  label="what it compared, what it found"
+/>
 
 ### Markup wins when the structure is the information
 
@@ -299,6 +378,16 @@ rough order of effect:
 3. **Whether the bundle fits at all.** A bundle that overruns the window gets silently truncated
    by the chat box. See [how the token count works](/docs/token-estimation) and
    [what a bundle costs across models](/docs/token-costs).
+
+<Method
+  dataset="5 trees from FileConcat's own repository: TypeScript source, a React app, Markdown docs, the CLI package, a browser extension"
+  sample="248 files, roughly 350,000 tokens of content, each bundled three times"
+  measured="2026-08-31"
+  build="@fileconcat/core 2.0.0"
+  tokenizer="cl100k_base"
+  script="None. Run by hand as fileconcat <dir> --style xml | markdown | plain, with the no-wrapper baseline recovered by parsing the plain bundle apart"
+  excludes="Accuracy. These are token counts, so no figure here says which wrapper a model reasons better over."
+/>
 
 ## Limitations
 
