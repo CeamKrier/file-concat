@@ -58,9 +58,10 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           </h1>
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
-            A Project caps how many files you can add, and on the lower plans you can hit it fast.
-            Drop the whole folder here instead. Everything, even the PDFs, is read right in your
-            browser and comes back as one file, so all your documents take a single Project slot.
+            A Project holds {PROJECT_FILE_LIMITS}, checked at the OpenAI help center in{" "}
+            {CAPS_CHECKED}. Drop the whole folder here instead. Everything, even the PDFs, is read
+            right in your browser and comes back as one file, so all your documents take a single
+            Project slot.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -92,13 +93,20 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
   );
 }
 
+/** The answer to the query this page ranks for, so the hero and the table below
+ * cannot drift apart. Re-checked at the OpenAI help center on 2026-09-08, which
+ * states Free 5, Go and Plus 25, Edu/Pro/Business/Enterprise 40 files per
+ * project. Move the date whenever the figure is checked again, not otherwise. */
+const PROJECT_FILE_LIMITS = "5 files on Free, 25 on Go and Plus, 40 on Pro and above";
+const CAPS_CHECKED = "September 2026";
+
 /** ChatGPT-only caps, deeper than the cross-platform hub table: the three places
  * ChatGPT counts files, so the reader sees which limit they actually hit. */
 const CAPS = [
   {
     where: "Project files",
     caps: "Shared across every chat in the Project",
-    limit: "5 free, 25 on Go and Plus, 40 on Pro and above",
+    limit: PROJECT_FILE_LIMITS,
   },
   {
     where: "Files in one chat",
@@ -153,7 +161,8 @@ function WhereItStops() {
       </div>
 
       <p className="text-ink-faint mx-auto mt-4 max-w-[720px] text-[12.5px] leading-relaxed">
-        Figures as of August 2026, and OpenAI changes them often. Check the current cap in the{" "}
+        Figures as of {CAPS_CHECKED}, and OpenAI changes them often. Check the current cap in
+        the{" "}
         <a
           href="https://help.openai.com"
           target="_blank"
