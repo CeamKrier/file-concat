@@ -1,0 +1,65 @@
+---
+title: "Context window costs: what it costs to fill 100K, 500K and 1M tokens"
+description: "What it costs to fill a model's context window, priced across the whole model catalogue at 100K, 246K, 500K and 1M tokens. Regenerated on every build, never written by hand."
+---
+
+# Context window costs
+
+A context window is a ceiling, not a target. It tells you what a model will
+accept. It says nothing about what you should send, and the price of sending it
+climbs in a straight line with every token you add.
+
+This page prices that line. It takes four input sizes and charges every model in
+the catalogue for reading each one once.
+
+## What it costs to fill a context window
+
+<ContextWindowCosts />
+
+## Why the window is not the target
+
+Two things move when you send more context.
+
+The first is the bill, and it is exactly linear. Input is priced per million
+tokens, so doubling the context doubles the cost every time. A model having room
+to spare is not a discount.
+
+The second is harder to price. Retrieval accuracy does not stay flat across a
+full window. Liu et al. found that performance "is often highest when relevant
+information occurs at the beginning or end of the input context, and
+significantly degrades" in the middle, "even for explicitly long-context
+models". Chroma's sweep of 18 models across 8 input lengths reported that
+"across all experiments, model performance consistently degrades with increasing
+input length". Neither result says long context is useless. Both say the last
+half million tokens are not free even when you can afford them.
+
+## What a repository actually weighs
+
+Across 60 public repositories tokenized on 2026-09-07, the median assembles into
+246,424 tokens. Only 35% fit a 128,000 token window, 40% fit 200,000 and 68% fit
+1,000,000. The spread runs from 39,088 to 3,683,889.
+
+So for most projects the question is not whether a model can hold the codebase.
+It is whether sending all of it is the cheapest way to get the answer.
+
+Filtering does less of that work than people expect. On a fresh clone the
+default noise filters remove a median of 3.5% of tokens, because a clone has no
+`node_modules` to remove in the first place. What moves the number is deciding
+that a whole directory does not belong in this prompt.
+
+## Cross-link
+
+[How many tokens is a codebase](/blog/how-many-tokens-is-a-codebase) has the
+measurement behind the 246,424 figure and the distribution around it.
+[Token estimation](/docs/token-estimation) covers the tokenizer that produces
+the count on the result screen, and [Token costs](/docs/token-costs) covers the
+output settings that change how much of a window a bundle consumes.
+[File filtering](/docs/file-filtering) is where you decide what goes in.
+
+## References
+
+- [Lost in the Middle: How Language Models Use Long Contexts](https://aclanthology.org/2024.tacl-1.9/),
+  Liu et al., TACL vol. 12, 2024, DOI 10.1162/tacl_a_00638
+- [Context Rot: How Increasing Input Tokens Impacts LLM Performance](https://research.trychroma.com/context-rot),
+  Chroma Research, 2025
+- [models.dev](https://models.dev), the catalogue this page prices against
