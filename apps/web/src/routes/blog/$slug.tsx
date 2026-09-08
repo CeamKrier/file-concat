@@ -66,7 +66,10 @@ function BlogPostPage() {
           </div>
         </header>
 
-        <BlogMDXProviderWrapper>
+        <BlogMDXProviderWrapper
+          sections={post.sections}
+          readingMinutes={post.readingMinutes}
+        >
           <Content />
         </BlogMDXProviderWrapper>
       </article>
