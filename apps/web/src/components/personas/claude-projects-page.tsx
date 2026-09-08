@@ -151,11 +151,6 @@ const CAPS = [
     caps: "How many projects you can create",
     limit: "5 on the free plan, more on paid",
   },
-  {
-    where: "Chat attachments",
-    caps: "Files on a single message",
-    limit: "A few at a time, each size-limited",
-  },
 ];
 
 function WhereItStops() {

@@ -14,10 +14,6 @@ export const GEMINI_GEMS_FAQ = [
     a: "Yes. FileConcat returns a single file, so a folder of documents becomes one knowledge file the Gem can draw on, with a file tree that keeps every document labeled and in order.",
   },
   {
-    q: "What about the file limit in the Gemini app itself?",
-    a: "When you attach files to a single Gemini prompt you are also capped at around 10 files. One combined file works there too, so a large set goes in as a single attachment.",
-  },
-  {
     q: "Can a Gem read the PDFs and Word documents inside the combined file?",
     a: "Yes. FileConcat pulls the text out of PDF, Word, Excel, and PowerPoint files in your browser and writes it into one plain-text file the Gem reads directly, without you converting anything first.",
   },
