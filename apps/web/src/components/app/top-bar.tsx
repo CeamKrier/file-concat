@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { SiGithub } from "@icons-pack/react-simple-icons";
 
+import { hasPublishedPosts } from "~/lib/blog";
 import { LogoMark } from "./logo-mark";
 
 type TopBarProps = {
@@ -41,6 +42,11 @@ export function TopBar({ onStartOver }: TopBarProps) {
           <Link to="/docs" className={`hidden sm:inline-flex ${navLink}`}>
             Docs
           </Link>
+          {hasPublishedPosts() && (
+            <Link to="/blog" className={`hidden sm:inline-flex ${navLink}`}>
+              Blog
+            </Link>
+          )}
           <a
             href="https://github.com/CeamKrier/file-concat"
             target="_blank"
