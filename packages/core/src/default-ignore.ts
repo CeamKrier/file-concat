@@ -54,14 +54,52 @@ export const DEFAULT_IGNORE_PATTERNS = [
   // Logs
   "*.log",
 
-  // Test files (optional - some may want to include these)
-  // "*.test.ts",
-  // "*.test.tsx",
-  // "*.test.js",
-  // "*.spec.ts",
-  // "*.spec.tsx",
-  // "*.spec.js",
-  "__tests__",
+  // Test files, by the naming convention each ecosystem actually uses. Matched
+  // on the file name at any depth, never on a directory name: the list used to
+  // carry `__tests__` alone, so a project that grouped tests in a folder lost
+  // all of them and a project that named them by suffix kept all of them.
+  //
+  // Two deliberate limits. Extensions are spelled out rather than left as
+  // `*.test.*`, so a `schema.test.json` fixture is not swept up by a pattern
+  // aimed at source. And nothing here matches a directory, so `tests/helpers.ts`
+  // and Rust's `tests/*.rs` integration files survive, as does any suite that
+  // does not follow its ecosystem's convention. This removes the part of a
+  // suite that is named for what it is, not every test in a repository.
+  //
+  // suffix before the extension: api.test.ts, api.spec.js
+  "*.test.js",
+  "*.test.jsx",
+  "*.test.mjs",
+  "*.test.cjs",
+  "*.test.ts",
+  "*.test.tsx",
+  "*.spec.js",
+  "*.spec.jsx",
+  "*.spec.mjs",
+  "*.spec.cjs",
+  "*.spec.ts",
+  "*.spec.tsx",
+  // underscore suffix: handler_test.go, parser_spec.rb
+  "*_test.go",
+  "*_test.py",
+  "*_test.rb",
+  "*_test.rs",
+  "*_test.cc",
+  "*_test.cpp",
+  "*_spec.rb",
+  // prefix: test_parser.py, plus pytest's own fixture module
+  "test_*.py",
+  "conftest.py",
+  // CamelCase suffix: UserServiceTest.java, ParserTests.swift
+  "*Test.java",
+  "*Tests.java",
+  "*Test.kt",
+  "*Tests.kt",
+  "*Test.scala",
+  "*Test.cs",
+  "*Tests.cs",
+  "*Test.php",
+  "*Tests.swift",
 
   // IDE/Editor
   ".vscode",
