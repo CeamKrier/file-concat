@@ -9,6 +9,9 @@ import {
   generateFileTree,
   generateProjectName,
   summarizeExclusions,
+  type AssembleOutputOptions,
+  type ExcludedSummary,
+  type OutputStyle,
 } from "@fileconcat/core";
 
 import { useConfig } from "~/hooks/use-config";
@@ -16,7 +19,7 @@ import { useClipperPush } from "~/hooks/use-clipper-push";
 import { useFileIngestion } from "~/hooks/use-file-ingestion";
 import { useFilterState } from "~/hooks/use-filter-state";
 import { useOutputGeneration } from "~/hooks/use-output-generation";
-import { estimateTokenCount, preloadTokenEstimator } from "~/lib/tokens";
+import { estimateBundleTokens, preloadTokenEstimator } from "~/lib/tokens";
 import { weighBundle } from "~/lib/bundle-weight";
 import { useSelectedModel } from "~/hooks/use-selected-model";
 import { classifyUrl, type Classification, type ImportTab } from "~/lib/classify-url";
@@ -43,7 +46,12 @@ import { ResultView } from "./result-view";
 import { ResultEmpty } from "./result-empty";
 import { ReadingDialog } from "./reading-dialog";
 import { emptyKindFor, emptyReasonSlug } from "./empty-kind";
-import { isRecognisableImage, STAGE, type IncomingFile } from "~/hooks/use-file-ingestion";
+import {
+  isRecognisableImage,
+  STAGE,
+  type ContentEntry,
+  type IncomingFile,
+} from "~/hooks/use-file-ingestion";
 import { SettingsDrawer } from "./settings-drawer";
 
 type Phase = "landing" | "processing" | "result";
@@ -97,6 +105,24 @@ function friendlyFetchError(error: unknown, c: Classification): string | null {
   if (/private|403|auth/i.test(message))
     return "Only public links can be fetched. This one looks private or needs a login.";
   return "Couldn't fetch that link. Make sure it's public and try again.";
+}
+
+/** The one bundle description the preview renders and the estimate counts. */
+function bundleOptions(
+  files: ContentEntry[],
+  style: OutputStyle,
+  source: string | undefined,
+  excluded: ExcludedSummary,
+): AssembleOutputOptions {
+  const paths = files.map((f) => f.path);
+  return {
+    projectName: generateProjectName(paths),
+    files,
+    tree: generateFileTree(paths),
+    style,
+    source,
+    excluded,
+  };
 }
 
 type AppFlowProps = {
@@ -192,31 +218,36 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   useEffect(() => {
     void preloadTokenEstimator().then(() => setEstimatorReady(true));
   }, []);
-  const previewText = useMemo(() => {
-    if (includedContents.length === 0) return "";
-    const tree = generateFileTree(includedContents.map((f) => f.path));
-    const projectName = generateProjectName(includedContents.map((f) => f.path));
-    return assembleOutput({
-      projectName,
-      files: includedContents,
-      tree,
-      style: config.outputStyle,
-      source: ingestion.sourceUrl ?? undefined,
-      excluded,
-    });
-  }, [includedContents, config.outputStyle, ingestion.sourceUrl, excluded]);
+  const bundle = useMemo(
+    () =>
+      bundleOptions(
+        includedContents,
+        config.outputStyle,
+        ingestion.sourceUrl ?? undefined,
+        excluded,
+      ),
+    [includedContents, config.outputStyle, ingestion.sourceUrl, excluded],
+  );
+
+  const previewText = useMemo(
+    () => (includedContents.length === 0 ? "" : assembleOutput(bundle)),
+    [bundle, includedContents],
+  );
 
   // Count the artifact, not the raw file contents. The wrapper, the header and
   // the file tree are all sent to the model and all charged for. Measured on
   // 2026-09-07 over 60 public repositories, counting contents alone reported a
   // median 2.4% under what a paste actually costs, and 17.8% under on a
   // repository of many small files, where the per-file tags outweigh them.
+  //
+  // Counted in two pieces rather than over `previewText`, so that flipping the
+  // output style moves the number by what the style actually costs. See
+  // `estimateBundleTokens`.
   const tokens = useMemo(() => {
-    if (previewText.length === 0) return 0;
-    return estimateTokenCount(previewText);
+    return estimateBundleTokens(bundle);
     // estimatorReady is a recompute trigger once tiktoken loads.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewText, estimatorReady]);
+  }, [bundle, estimatorReady]);
 
   const output = useOutputGeneration({
     includedContents,

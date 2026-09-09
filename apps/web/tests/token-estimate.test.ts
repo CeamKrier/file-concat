@@ -1,8 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { encoding_for_model } from "@dqbd/tiktoken";
+import {
+  assembleOutput,
+  generateFileTree,
+  generateProjectName,
+  type OutputStyle,
+} from "@fileconcat/core";
 
 import { estimateTokenCount } from "~/lib/tokens-client";
-import { LARGE_BUNDLE_CHARS } from "~/lib/tokens";
+import {
+  LARGE_BUNDLE_CHARS,
+  estimateBundleTokens,
+  estimateTokenCount as shimEstimate,
+  preloadTokenEstimator,
+} from "~/lib/tokens";
 
 /**
  * The estimator above LARGE_BUNDLE_CHARS used to be characters / 4, which is an
@@ -79,5 +90,69 @@ describe("estimateTokenCount", () => {
     const truth = exact(text);
     const error = Math.abs(estimateTokenCount(text) - truth) / truth;
     expect(error).toBeLessThan(0.1);
+  });
+});
+
+/**
+ * A bundle whose token density changes along its length: the early files are
+ * source, the later ones are CJK prose, and the file sizes vary. Where the
+ * sample slices land therefore decides what ratio they report, which is what
+ * let the output style move the estimate the wrong way.
+ */
+function gradientCorpus(n: number) {
+  const files: { path: string; content: string }[] = [];
+  for (let i = 0; i < n; i++) {
+    const cjkShare = i / n;
+    const reps = 20 + (i % 7) * 12;
+    const body: string[] = [];
+    for (let j = 0; j < reps; j++) body.push(j / reps < cjkShare ? PROSE_CJK : SOURCE);
+    files.push({ path: `src/module-${i}/file-${i}.ts`, content: body.join("") });
+  }
+  return files;
+}
+
+const STYLES: OutputStyle[] = ["xml", "markdown", "plain"];
+
+/** The styles, cheapest first. */
+function ranking(counts: Record<OutputStyle, number>): OutputStyle[] {
+  return [...STYLES].sort((a, b) => counts[a] - counts[b]);
+}
+
+describe("estimateBundleTokens", () => {
+  beforeAll(async () => {
+    await preloadTokenEstimator();
+    // Until that resolves the shim answers characters / 4, which ranks the
+    // styles by length and would rank them wrong. CJK is where the two are
+    // furthest apart, so it is what proves the real tokenizer is in.
+    expect(shimEstimate(PROSE_CJK)).toBe(exact(PROSE_CJK));
+  });
+
+  const files = gradientCorpus(300);
+  const paths = files.map((f) => f.path);
+  const tree = generateFileTree(paths);
+  const projectName = generateProjectName(paths);
+
+  function options(style: OutputStyle) {
+    return { projectName, files, tree, style };
+  }
+
+  it("ranks the three styles the way an exact count does", () => {
+    const exactCounts = {} as Record<OutputStyle, number>;
+    const estimates = {} as Record<OutputStyle, number>;
+
+    for (const style of STYLES) {
+      const text = assembleOutput(options(style));
+      expect(text.length).toBeGreaterThan(LARGE_BUNDLE_CHARS);
+      exactCounts[style] = exact(text);
+      estimates[style] = estimateBundleTokens(options(style));
+      const error = Math.abs(estimates[style] - exactCounts[style]) / exactCounts[style];
+      expect(error).toBeLessThan(0.05);
+    }
+
+    // The bug this pins: estimating the assembled string sampled a different
+    // set of slices per style, so Plain could report more tokens than XML while
+    // costing fewer.
+    expect(ranking(estimates)).toEqual(ranking(exactCounts));
+    expect(exactCounts.plain).toBeLessThan(exactCounts.xml);
   });
 });
