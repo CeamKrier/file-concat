@@ -177,7 +177,7 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
     // silently shipping a partial repo (ADR-0004) we pull the whole thing as a
     // single zipball — one request, no per-file rate-limit fan-out.
     if (treeData.truncated) {
-      onStatus?.("Large repository — downloading full archive");
+      onStatus?.("Large repository, downloading full archive");
       const zipUrl = `https://api.github.com/repos/${owner}/${repo}/zipball/${branch}`;
       const zipResponse = await fetchWithRateLimitRetry(zipUrl, { signal });
       if (!zipResponse.ok) {

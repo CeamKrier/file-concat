@@ -489,7 +489,7 @@ function clipRow(item: TrayItem): HTMLLIElement {
   const meta = h("span", "clip-meta", where(item));
   meta.hidden = meta.textContent === "";
   text.append(title, meta);
-  const figure = h("span", "clip-tokens", item.clipping ? fmt(tokens(item.clipping.markdown)) : "—");
+  const figure = h("span", "clip-tokens", item.clipping ? fmt(tokens(item.clipping.markdown)) : "-");
   head.append(text, figure);
 
   const acts = h("div", "clip-acts");
@@ -774,7 +774,7 @@ async function refreshNow() {
     // A tab that predates the extension has no content script in it. Saying so
     // beats an empty listing that looks like a page with nothing on it.
     page = NO_PAGE;
-    ui.blankWhy.textContent = "Reload this tab — it was open before the extension was.";
+    ui.blankWhy.textContent = "Reload this tab. It was open before the extension was.";
   }
   // The page's own title, which the report has no field for and does not need
   // one for: a single item names itself, and a listing is named by its tab.
