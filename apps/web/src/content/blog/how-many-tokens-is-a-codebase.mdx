@@ -446,6 +446,33 @@ box-drawing characters and the file blocks without changing which files were in 
 sorted now. A rerun at a pinned commit therefore reproduces where this measurement could not, and what
 separates a rerun from the totals here is that fix rather than anything in the repositories.
 
+**One default changed after this was published, and we re-ran the sample to say by how much.** On
+2026-09-09 the default ignore list stopped ignoring directories named `__tests__` and started ignoring
+test files by each ecosystem's own naming convention: `api.test.ts` and `api.spec.js`,
+`handler_test.go`, `test_parser.py`, `parser_spec.rb`, `UserServiceTest.java`, `OrderTests.cs`,
+`PaymentTest.php`, `ParserTests.swift`. Re-running these exact 60 commits on the new build, with
+`--pin` pointed at this run's own output, gives the size of it:
+
+| figure | as published | after the change |
+| --- | --- | --- |
+| median bundle | 246,424 tokens | 236,218 tokens |
+| tokens across the whole sample | 73,763,190 | 13.1% fewer |
+| median share of files kept | 87.5% | 74.2% |
+| hidden files, as a share of what the defaults removed | 63.1% of files, 5.7% of tokens | 13.8% and 2.5% |
+| the ignore list, same two shares | 33.9% of files, 92.5% of tokens | 85.6% and 96.7% |
+| tests, as a share of kept tokens | 17.5% | 5.5% |
+| source, as a share of kept tokens | 70.6% | 80.8% |
+
+42 of the 60 shrank and 18 grew, the latter by 3,158 tokens in total, which is the folder-grouped tests
+coming back now that `__tests__` is not ignored for its name. The drops land exactly where the language
+table below predicts: the five largest are Ruby and PHP repositories, the two languages with the highest
+test shares in the sample, led by `simplecov-ruby/simplecov` at 52.8% and `catfan/Medoo` at 52.1%.
+
+The limit is that this is naming, not detection. A `tests/` directory whose files carry no convention
+survives, Rust's integration tests in `tests/*.rs` survive, and a suite that does not follow its
+ecosystem's spelling survives. Tests at 5.5% of kept tokens is what remains after the named part is
+gone, not proof that 5.5% is all the test code there is.
+
 <Method
   dataset="60 public GitHub repositories drawn by a pre-registered GitHub search query, 10 languages x 3 size bands x 2 repositories"
   sample="39,107 files walked, 37,293 text eligible, 35,540 kept by the defaults, 73,763,190 tokens assembled"
@@ -502,8 +529,11 @@ is sitting in the worst part of it.
 ### Should I strip tests before pasting a codebase into an LLM?
 
 It depends on the question you are asking, and it is the biggest lever available. Tests were 17.5% of all
-kept tokens in our sample and more than 41.5% in the top quarter of repositories. No default filter will
-remove them for you, because a test suite is real source code that is sometimes exactly the answer.
+kept tokens in this sample and more than 41.5% in the top quarter of repositories. Since 2026-09-09 our
+default ignore list removes test files by each ecosystem's naming convention, which took that share to
+5.5% on the same 60 repositories. That is naming rather than detection: a `tests/` directory whose files
+carry no convention still comes through, as do Rust's `tests/*.rs`, so strip the rest yourself when the
+question is about behaviour rather than about the suite.
 
 ### Why does the token count differ between tools?
 

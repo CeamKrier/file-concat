@@ -121,14 +121,23 @@ The first is hidden files. A `.github/workflows` directory is invisible to us by
 visible to all three of the others. If you are asking a model about your CI, we are the
 wrong default and you have to turn hidden files back on.
 
-The second is a genuine inconsistency rather than a choice. Our default ignore list drops
-directories named `__tests__`, and it keeps `index.test.ts`, `index.spec.ts` and anything
-under a `tests/` folder. Same test suite, two different answers depending on which
-convention the project picked. On `makenotion/notion-mcp-server` that was 13 files and
-159,639 characters of test code silently missing, next to exactly one other file the default
-list removed. It is on our list to settle, and until it is,
-[what the filter leaves out](/docs/file-filtering) is worth reading before you trust a
-default.
+The second was a genuine inconsistency rather than a choice, and it is fixed. When this was
+measured, our default ignore list dropped directories named `__tests__` while keeping
+`index.test.ts`, `index.spec.ts` and anything under a `tests/` folder. Same test suite, two
+different answers depending on which convention the project picked. On
+`makenotion/notion-mcp-server` that was 13 files and 159,639 characters of test code silently
+missing, next to exactly one other file the default list removed.
+
+On 2026-09-09 the folder rule was replaced by file-name conventions, one set per ecosystem:
+`api.test.ts`, `handler_test.go`, `test_parser.py`, `parser_spec.rb`, `UserServiceTest.java`,
+`PaymentTest.php` and their siblings. The directory a test sits in no longer decides anything.
+Re-running the sample at the same pinned commits, that took tests from 17.5% to 5.5% of kept
+tokens and the whole sample down 13.1%, with the largest drops on the Ruby and PHP
+repositories where the suites are biggest. It is naming rather than detection, so a `tests/`
+folder with no convention in its file names still comes through. The numbers in the tables
+above are the measurement as run, before that change.
+[What the filter leaves out](/docs/file-filtering) is worth reading before you trust any
+tool's default, including ours.
 
 ## The one thing only one tool did
 
