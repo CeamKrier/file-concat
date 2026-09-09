@@ -1,3 +1,8 @@
+---
+title: "Bitbucket import - paste a repository URL, get one text bundle"
+description: "How FileConcat imports a public Bitbucket Cloud repository: the URL shapes it parses, why slashed branch names work here, and the anonymous request budget that decides how large a repository can be."
+---
+
 # Bitbucket import
 
 Paste a public Bitbucket repository URL into the import panel and press
@@ -16,20 +21,64 @@ https://bitbucket.org/workspace/repo/src/branch
 https://bitbucket.org/workspace/repo/src/branch/subdirectory
 ```
 
-A trailing `.git` is tolerated and stripped. When the branch is
-omitted, the workspace's `mainbranch` is queried via the API and used
-as the default. When a subdirectory is included, only files at or
-under that path are imported.
+A trailing `.git` is tolerated and stripped. When a subdirectory is
+included, only files at or under that path are imported.
 
 The Bitbucket workspace name fills the same slot as `owner` does for
 GitHub and GitLab URLs.
 
-## Rate limits and errors
+## The ref is resolved to a commit first
 
-The Bitbucket REST API has per-IP rate limits comparable to the
-other hosts. Errors surface through the same `classifyResponseError`
-helper used by the GitHub and GitLab adapters, with distinct wording
-for 401, 403, and 429 responses.
+Before listing anything, the adapter requests the repository's `/src`
+endpoint and reads the commit hash out of the URL it was redirected to
+(`resolveBitbucketRef`). Only then does it walk the tree, at that
+commit.
+
+That extra request buys two things the other two sources do not have:
+
+- The default branch is whatever the repository actually uses. Nothing
+  is guessed and nothing falls back to `main`.
+- **Branch names containing a slash work.** `src/release/2.0` resolves
+  through the redirect instead of being split into a branch and a
+  subdirectory, which is what happens on
+  [GitHub import](/docs/github-import) and
+  [GitLab import](/docs/gitlab-import).
+
+## What one import costs in API requests
+
+Bitbucket has no single recursive-tree endpoint, so the adapter walks
+directories. For one import:
+
+- One request to resolve the ref.
+- One request per directory, plus one more for each 100 entries inside
+  it.
+- One request per file, twelve at a time.
+
+Every one of those goes through `api.bitbucket.org`. Atlassian
+documents a strict limit of 60 requests per hour for anonymous callers,
+across all API resources (Atlassian, *API request limits*, read
+September 2026).
+
+Put the two together and the arithmetic is the thing to know before you
+paste a URL: a 40-file project spread over 8 directories costs about 49
+requests, which is most of one hour's anonymous budget. **Bitbucket is
+the source here where repository size decides whether the import
+finishes**, and the ceiling is a few dozen files rather than a few
+thousand. Point the URL at a subdirectory to stay under it, or download
+the project and use the drag-and-drop path instead.
+
+## When a request is denied or a file fails
+
+Errors surface through the same `classifyResponseError` helper used by
+the GitHub and GitLab adapters
+(`packages/core/src/sources/adapters/_errors.ts`), with distinct
+wording for 401, 403 and 429 responses. A 429 whose `Retry-After` hint
+fits inside 30 seconds is retried once automatically.
+
+A file that fails to download does not fail the import. The failure is
+recorded with its path and reason and the rest of the bundle is
+assembled without it, so check the file count in the result against
+what you expected.
 
 Public repositories work without authentication. Private repositories
 are not accessible at the time of writing; token-authenticated
@@ -37,6 +86,9 @@ imports are tracked as separate work.
 
 ## See also
 
+- [GitHub import](/docs/github-import) and
+  [GitLab import](/docs/gitlab-import), which reach the same result
+  through very different request budgets.
 - [File filtering](/docs/file-filtering) for narrowing the imported
   tree.
 - [Token estimation](/docs/token-estimation) for tracking the token
