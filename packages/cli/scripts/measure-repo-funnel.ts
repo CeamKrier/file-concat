@@ -48,6 +48,8 @@
  *
  * Flags:
  *   --repos <file>  one git URL per line, `#` comments allowed (required)
+ *   --pin <file>    a previous run's JSON; reruns the exact commits it measured,
+ *                   so a defaults change is not confounded with upstream churn
  *   --out <file>    output JSON (default docs/measurements/repo-funnel-<date>.json)
  *   --limit <n>     stop after n repositories
  *   --keep          leave the clones on disk instead of removing them
@@ -284,8 +286,13 @@ function spread(values: number[]) {
   };
 }
 
-async function measureRepo(url: string, dir: string, enc: ReturnType<typeof encoding_for_model>) {
-  const commit = cloneRepo(url, dir);
+async function measureRepo(
+  url: string,
+  dir: string,
+  enc: ReturnType<typeof encoding_for_model>,
+  pinned?: string,
+) {
+  const commit = cloneRepo(url, dir, pinned);
   const { found, files, kept, excluded, skipped } = await walkRepo(dir);
 
   const facts: FileFact[] = files.map((file) => ({
@@ -417,6 +424,31 @@ async function main() {
     process.exit(1);
   }
 
+  // --pin reruns the exact checkouts a previous run measured, by reading the
+  // commit each repository was on out of that run's own artifact. Without it a
+  // rerun clones HEAD, and a product change is then confounded with however
+  // much upstream churn happened in between, which makes the two runs
+  // uncomparable for exactly the question a rerun is asked to answer.
+  const pins = new Map<string, string>();
+  if (typeof args.pin === "string") {
+    const prior = JSON.parse(fs.readFileSync(args.pin, "utf-8")) as {
+      repos?: Array<{ url?: string; commit?: string }>;
+    };
+    for (const row of prior.repos ?? []) {
+      if (row.url && row.commit) pins.set(row.url, row.commit);
+    }
+    const missing = urls.filter((url) => !pins.has(url));
+    if (missing.length) {
+      process.stderr.write(
+        `Error: ${missing.length} of ${urls.length} URLs have no commit in ${args.pin}.\n` +
+          "A partly pinned run measures two different things at once. First missing:\n" +
+          `  ${missing[0]}\n`,
+      );
+      process.exit(1);
+    }
+    process.stderr.write(`Pinned to ${pins.size} commits from ${args.pin}\n`);
+  }
+
   const workRoot = fs.mkdtempSync(path.join(os.tmpdir(), "fc-funnel-"));
   const enc = encoding_for_model(TOKEN_MODEL);
   const rows: RepoRow[] = [];
@@ -426,7 +458,7 @@ async function main() {
       const dir = path.join(workRoot, `repo-${i}`);
       process.stderr.write(`[${i + 1}/${urls.length}] ${url}\n`);
       try {
-        rows.push(await measureRepo(url, dir, enc));
+        rows.push(await measureRepo(url, dir, enc, pins.get(url)));
       } catch (err) {
         // One repository failing is not a reason to lose the other ninety-nine.
         rows.push({ url, error: err instanceof Error ? err.message : String(err) });
@@ -462,6 +494,7 @@ async function main() {
     largeBundleChars: LARGE_BUNDLE_CHARS,
     maxFileBytes: MAX_FILE_BYTES,
     sampleFile: listPath,
+    pinnedFrom: typeof args.pin === "string" ? args.pin : null,
     caveats: [
       "A fresh clone is not a working folder: no node_modules, no build output, no local env files. The generated and vendored shares here are a floor.",
       "bundle is the truth: the whole assembled XML artifact tokenized, which is what a reader pastes into a model and pays for. counted is the file contents alone, the text the counter used to count. shownBefore and shownAfter are what the tool displayed before and after the 2026-09-07 fixes, both scored against bundle rather than against each other, because the question is whether a reader is told what they will be charged.",
