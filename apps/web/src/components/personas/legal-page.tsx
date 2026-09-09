@@ -4,7 +4,7 @@ import { AppFlow } from "~/components/app/app-flow";
 import { DropZone, type DropZoneProps } from "~/components/app/drop-zone";
 import { InfoCard } from "~/components/app/info-card";
 import { MarketingSection } from "~/components/app/marketing/section";
-import { MockWindow } from "~/components/app/marketing";
+import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
 
 /**
  * /for/legal — the Legal persona page (ADR-0006). Hosts the real app flow: the
@@ -322,6 +322,11 @@ function ClosingCta() {
           <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
         </button>
       </div>
+      <FurtherReading>
+        Extraction is not lossless, and on a filing the loss is the risk. We broke 27 documents on purpose to find out{" "}
+        <ProseLink to="/blog/what-gets-lost-converting-documents-to-text">what gets lost converting documents to text</ProseLink>
+        .
+      </FurtherReading>
     </MarketingSection>
   );
 }

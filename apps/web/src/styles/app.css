@@ -145,3 +145,30 @@ pre[class*="language-"] {
 .token.class-name {
   color: oklch(var(--foreground)); /* #f1ebe0 — names pop */
 }
+
+/* Long-form article rhythm.
+
+   A research post runs 3,000 words down one 720px column, and the flat measure
+   is most of why the two longest posts read as a wall. Figures step out past
+   the prose and back in again, which is a rhythm signal by itself and is why
+   figures do not need a label announcing themselves.
+
+   720 border box with 24px gutters leaves a 672px measure. A figure at 880 is
+   therefore 104px wider on each side. Below 928px there is no room for the step
+   out, so the figure matches the column and nothing overflows. */
+.fc-breakout {
+  width: auto;
+}
+.fc-measure {
+  padding-inline: 0;
+}
+@media (min-width: 928px) {
+  .fc-breakout {
+    margin-inline: -104px;
+  }
+  /* Text inside a broken-out block returns to the prose column, so a section
+     heading stays aligned with the paragraph under it while its rule does not. */
+  .fc-measure {
+    padding-inline: 104px;
+  }
+}

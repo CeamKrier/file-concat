@@ -13,6 +13,7 @@ import {
   type TreeNode,
 } from "./tree-data";
 import { TreeNodeRow } from "./tree-node-row";
+import { noteSweep } from "./interaction-tally";
 
 const LEGEND_DISMISSED_KEY = "fileconcat-legend-dismissed";
 
@@ -21,7 +22,6 @@ export interface FileTreeProps {
   onToggleFile: (index: number) => void;
   onToggleMultipleFiles: (indices: number[], shouldInclude: boolean) => void;
   isProcessing?: boolean;
-  onOpenFile?: (path: string) => void;
   /**
    * Bare mode for the settings drawer: renders only the indented rows, no
    * header / legend / stats / own scroll container. The parent owns the single
@@ -35,7 +35,6 @@ function FileTree({
   onToggleFile,
   onToggleMultipleFiles,
   isProcessing = false,
-  onOpenFile,
   embedded = false,
 }: FileTreeProps) {
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
@@ -100,11 +99,15 @@ function FileTree({
     setExpandedPaths(new Set());
   }, []);
 
+  // The one funnel every folder sweep goes through, from the row and from the
+  // checkbox alike, so the reversal check sees them all.
   const toggleDirectory = useCallback(
     (node: TreeNode) => {
       const shouldInclude = calculateInclusionState(node) !== "included";
       const indices = collectFileIndices(node);
-      if (indices.length > 0) onToggleMultipleFiles(indices, shouldInclude);
+      if (indices.length === 0) return;
+      noteSweep(node.path, shouldInclude, indices.length);
+      onToggleMultipleFiles(indices, shouldInclude);
     },
     [onToggleMultipleFiles],
   );
@@ -135,7 +138,6 @@ function FileTree({
       onToggleExpanded={toggleExpanded}
       onToggleFile={onToggleFile}
       onToggleDirectory={toggleDirectory}
-      onOpenFile={onOpenFile}
     />
   ));
 
@@ -196,7 +198,7 @@ function FileTree({
             </Button>
           </div>
           <p className="text-muted-foreground text-xs">
-            Click icons to toggle inclusion. Click file names to view contents.
+            Click a row to put it in or out. The arrow opens a folder.
           </p>
         </div>
       ) : (

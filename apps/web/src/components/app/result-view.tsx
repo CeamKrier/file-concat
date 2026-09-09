@@ -297,7 +297,7 @@ export function ResultView({
   }
 
   // The size fact only earns a row when the fit rows are not already carrying
-  // it. Where the figure above says "estimated from character count", the row
+  // it. Where a fit row has already called the count an estimate, this row
   // would be the same sentence twice.
   if (weight.isLarge && !over && !tight) {
     rows.push({
@@ -305,7 +305,7 @@ export function ResultView({
       kind: "note",
       icon: Weight,
       title: "A big bundle for one paste.",
-      body: "Past 1 MB the token figure comes from the character count rather than the tokenizer, and Copy can take a moment.",
+      body: "Past 1 MB the token figure is extrapolated from samples the tokenizer reads across the bundle, and Copy can take a moment.",
     });
   }
 

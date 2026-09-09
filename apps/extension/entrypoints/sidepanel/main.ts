@@ -25,6 +25,7 @@ import {
   type Status,
   type TrayItem,
 } from "../../src/messages";
+import { estimateTokens } from "../../src/markdown";
 
 /** YouTube settles its DOM after announcing a navigation, and a tab switch can
  *  arrive in a burst. One pause absorbs both. */
@@ -153,10 +154,7 @@ const tell = (request: PanelRequest) => browser.runtime.sendMessage(request);
 const option = () => options[page.site] === true;
 const files = (n: number) => `${n} ${n === 1 ? "file" : "files"}`;
 
-/** chars ÷ 4, the same forecast the web app falls back to on a bundle too big
- *  to tokenize. The tilde is not decoration: the exact count is the tab's job
- *  once the batch lands, and an unmarked approximation would be a lie. */
-const tokens = (markdown: string) => Math.ceil(markdown.length / 4);
+const tokens = estimateTokens;
 const fmt = (n: number) => (n >= 1000 ? `~${(n / 1000).toFixed(1)}k` : `~${n}`);
 
 /** The store is filtered when it is read, in the worker and here alike: a panel
@@ -491,7 +489,7 @@ function clipRow(item: TrayItem): HTMLLIElement {
   const meta = h("span", "clip-meta", where(item));
   meta.hidden = meta.textContent === "";
   text.append(title, meta);
-  const figure = h("span", "clip-tokens", item.clipping ? fmt(tokens(item.clipping.markdown)) : "—");
+  const figure = h("span", "clip-tokens", item.clipping ? fmt(tokens(item.clipping.markdown)) : "-");
   head.append(text, figure);
 
   const acts = h("div", "clip-acts");
@@ -776,7 +774,7 @@ async function refreshNow() {
     // A tab that predates the extension has no content script in it. Saying so
     // beats an empty listing that looks like a page with nothing on it.
     page = NO_PAGE;
-    ui.blankWhy.textContent = "Reload this tab — it was open before the extension was.";
+    ui.blankWhy.textContent = "Reload this tab. It was open before the extension was.";
   }
   // The page's own title, which the report has no field for and does not need
   // one for: a single item names itself, and a listing is named by its tab.

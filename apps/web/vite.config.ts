@@ -8,6 +8,8 @@ import remarkGfm from "remark-gfm";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkMdxFrontmatter from "remark-mdx-frontmatter";
 import rehypePrismPlus from "rehype-prism-plus";
+
+import { remarkBlogSections } from "./scripts/remark-blog-sections.mjs";
 import wasm from "vite-plugin-wasm";
 import topLevelAwait from "vite-plugin-top-level-await";
 import { visualizer } from "rollup-plugin-visualizer";
@@ -40,7 +42,7 @@ export default defineConfig({
       // remark-frontmatter parses the leading `---` YAML block; the mdx-
       // frontmatter plugin re-exports it as a named `frontmatter` export on
       // each MDX module. Powers blog post metadata and docs SEO titles.
-      remarkPlugins: [remarkFrontmatter, remarkMdxFrontmatter, remarkGfm],
+      remarkPlugins: [remarkFrontmatter, remarkMdxFrontmatter, remarkGfm, remarkBlogSections],
       rehypePlugins: [rehypePrismPlus],
       providerImportSource: "@mdx-js/react",
     }),

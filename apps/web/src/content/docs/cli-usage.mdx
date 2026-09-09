@@ -1,3 +1,8 @@
+---
+title: "CLI usage - run FileConcat from the terminal"
+description: "Install the file-concat CLI, the flags it takes, its config file, and how documents, notebooks and archives are handled. Same core library as the web app, no browser required."
+---
+
 # CLI usage
 
 The `file-concat` CLI runs the same `@fileconcat/core` library that
@@ -112,6 +117,11 @@ Parse failures (corrupt files, password-protected PDFs, scanned pages
 with no text layer) are logged to stderr and counted under
 `skippedBreakdown.parseFailed` in the JSON summary. They never fail
 the run.
+
+For which document structures survive extraction and which do not, see
+[what gets lost converting documents to
+text](/blog/what-gets-lost-converting-documents-to-text): 27 documents,
+each isolating one structure, scored against an independent reader.
 
 ## Notebooks, transcripts and messages (IPYNB, SRT, VTT, EML)
 

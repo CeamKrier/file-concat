@@ -397,3 +397,28 @@ export interface Clipping {
    */
   partial?: boolean;
 }
+
+/**
+ * Characters that tokenize at roughly one token each. One flat ratio cannot
+ * cover both scripts, and the gap is not small.
+ */
+const DENSE_SCRIPT = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff]/g;
+
+/**
+ * What a clipping will cost, without shipping a tokenizer into the panel.
+ *
+ * Measured against tiktoken `o200k_base` on 2026-09-07. Article-shaped markdown
+ * runs 4.05 to 4.35 characters per token and Turkish prose 3.71, so the flat 4
+ * this used to be is fine for Latin script. It is not fine anywhere else:
+ * Chinese runs 1.54, Japanese 1.35 and Korean 1.77, and a Chinese-language
+ * repository in the 60-repository bundle measurement came out at 1.50 for the
+ * whole bundle. A flat 4 reports a Chinese article at 39% of its real cost.
+ *
+ * Splitting the two scripts fixes that case and changes nothing for Latin text.
+ * The panel still marks the figure with a tilde: the exact count is the tab's
+ * job once the batch lands, and an unmarked approximation would be a lie.
+ */
+export function estimateTokens(markdown: string): number {
+  const dense = markdown.match(DENSE_SCRIPT)?.length ?? 0;
+  return Math.ceil(dense / 1.5 + (markdown.length - dense) / 4);
+}

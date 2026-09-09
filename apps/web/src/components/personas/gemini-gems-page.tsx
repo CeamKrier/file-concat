@@ -5,7 +5,7 @@ import { AppFlow } from "~/components/app/app-flow";
 import { DropZone, type DropZoneProps } from "~/components/app/drop-zone";
 import { InfoCard } from "~/components/app/info-card";
 import { MarketingSection } from "~/components/app/marketing/section";
-import { MockWindow } from "~/components/app/marketing";
+import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
 
 import { GEMINI_GEMS_FAQ } from "./gemini-gems-faq";
 
@@ -135,15 +135,10 @@ function OneSlot() {
   );
 }
 
-/** Gemini-specific caps, deeper than the cross-platform hub table: the two places
- * a Gem and the app itself hold you to about ten files. */
+/** The one Gemini cap this page states, deeper than the cross-platform hub table:
+ * the knowledge slots a Gem holds you to, carried next to its snapshot date. */
 const CAPS = [
   { where: "Gem knowledge files", caps: "Files a Gem can reference", limit: "About 10" },
-  {
-    where: "Files per prompt",
-    caps: "Attachments on a single message",
-    limit: "About 10 at a time",
-  },
 ];
 
 function WhereItStops() {
@@ -157,8 +152,8 @@ function WhereItStops() {
           Where Gemini stops you.
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[50ch] text-[15px] leading-relaxed">
-          Both a Gem and a single prompt hold you to about ten files. One combined file stays under
-          either cap, because it is one file no matter how many documents went into it.
+          A Gem holds you to about ten knowledge files. One combined file stays under the cap,
+          because it is one file no matter how many documents went into it.
         </p>
       </div>
 
@@ -190,7 +185,7 @@ function WhereItStops() {
       </div>
 
       <p className="text-ink-faint mx-auto mt-4 max-w-[720px] text-[12.5px] leading-relaxed">
-        Figures as of July 2026, and Google changes them often. Check the current numbers in the{" "}
+        Figure as of July 2026, and Google changes it often. Check the current number in the{" "}
         <a
           href="https://support.google.com/gemini"
           target="_blank"
@@ -379,6 +374,11 @@ function ClosingCta() {
           <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
         </button>
       </div>
+      <FurtherReading>
+        Feeding a Gem documents rather than notes?{" "}
+        <ProseLink to="/blog/convert-pdf-to-text-for-llm">Converting a PDF to text for a prompt</ProseLink>
+        {" "}covers what survives the conversion.
+      </FurtherReading>
     </MarketingSection>
   );
 }

@@ -20,8 +20,10 @@
 //   formats     what we could not read, by count and by bytes
 //   sizes       exact distributions for drop size, bundle size, ingest time
 //   ecosystems  which project types show up, from the marker list
+//   inventory   every counter in the window, and which have no reader here
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -239,7 +241,52 @@ function ecosystems() {
   }
 }
 
-const MODES = { funnel, runs, formats, sizes, ecosystems };
+/**
+ * Every counter name in the window, whether or not a mode above asks for it.
+ *
+ * The guard, not a statistic. The five modes here are hand-written queries over
+ * named counters, so a counter can ship and stay invisible to this script
+ * forever - as of 2026-09-09 twenty-two of the thirty-six in
+ * `apps/web/src/lib/metric-events.ts` had no mode that reads them, and nothing
+ * said so. `pulse.mjs` learned this on 2026-08-21 and grew the same block.
+ *
+ * `read` marks the names a mode actually queries, derived from this file's own
+ * source rather than a second list that would drift out of step with it.
+ */
+function inventory() {
+  heading("Every counter in the window");
+  const source = readFileSync(fileURLToPath(import.meta.url), "utf8");
+  // Two patterns, not one: a single `[^')]+` capture after `IN (` stops at the
+  // first quote and would mark every name but the first in a list as unread,
+  // which is a false alarm and worse than no guard at all.
+  const read = new Set([
+    ...[...source.matchAll(/name\s*=\s*'([^']+)'/g)].map((m) => m[1]),
+    ...[...source.matchAll(/name\s+IN\s*\(([^)]+)\)/gi)].flatMap((m) =>
+      [...m[1].matchAll(/'([^']+)'/g)].map((q) => q[1]),
+    ),
+  ]);
+  const rows = sql(`
+    SELECT name, COUNT(*) AS rows, COUNT(DISTINCT page) AS visits,
+           MIN(date(ts,'unixepoch')) AS first_day, MAX(date(ts,'unixepoch')) AS last_day
+    FROM events WHERE ts >= ${SINCE} GROUP BY name ORDER BY rows DESC;`);
+  if (rows.length === 0) return console.log("  no data in window");
+  console.log("  counter".padEnd(24) + "rows  visits  first       last        mode");
+  for (const r of rows) {
+    console.log(
+      "  " +
+        r.name.padEnd(22) +
+        String(r.rows).padStart(6) +
+        String(r.visits).padStart(8) +
+        "  " +
+        r.first_day.padEnd(12) +
+        r.last_day.padEnd(12) +
+        (read.has(r.name) ? "yes" : "NO READER"),
+    );
+  }
+  console.log("\n  `NO READER` means no mode here queries it. Query it by hand, then teach a mode.");
+}
+
+const MODES = { funnel, runs, formats, sizes, ecosystems, inventory };
 
 async function main() {
   const scope = LOCAL ? "local" : "remote";
@@ -257,6 +304,7 @@ async function main() {
     sizes();
     formats();
     ecosystems();
+    inventory();
     return;
   }
   const fn = MODES[MODE];

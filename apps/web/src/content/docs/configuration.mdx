@@ -1,3 +1,8 @@
+---
+title: "Configuration - output format, filters and what persists"
+description: "Where FileConcat keeps its choices: the output format on the result screen, the filtering and cost controls in the Adjust what's included drawer, and the defaults that survive a page reload."
+---
+
 # Configuration
 
 FileConcat keeps its output and filtering choices in a few places: the
@@ -55,8 +60,8 @@ ingestion and silently drop anything above it, which meant the one large data
 file or log a bundle was usually about never arrived. Nothing is excluded for
 its size now. What a heavy bundle costs is reported on the result screen
 instead: how much of the selected model's context window it fills, whether it
-has passed the 1 MB mark where the token count becomes a forecast and Copy
-slows down, and which single file is carrying most of the weight.
+has passed the 1 MB mark where the token count becomes a sampled estimate and
+Copy slows down, and which single file is carrying most of the weight.
 
 The `maxFileSizeMB` field survives in the persisted config, unread by the web
 app. The CLI still caps, but explicitly and visibly, through

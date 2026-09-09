@@ -28,7 +28,7 @@ export { classifyBytes, readFileAsText } from "./text-classification";
 export type { DecodedText, TextClassification } from "./text-classification";
 export { formatSize, calculateTotalSize } from "./size";
 export { addLineNumbers } from "./transform";
-export { assembleOutput } from "./output";
+export { assembleOutput, fenceFor } from "./output";
 export type { OutputStyle, OutputFile, OutputPart, AssembleOutputOptions } from "./output";
 export { summarizeExclusions } from "./exclusions";
 export type { ExcludedSummary, ExclusionInput } from "./exclusions";

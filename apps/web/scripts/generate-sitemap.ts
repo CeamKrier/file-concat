@@ -195,6 +195,15 @@ const pages: SitemapEntry[] = [
     priority: 0.6,
   },
   {
+    url: "/docs/context-window-costs",
+    sourceFile: [
+      "apps/web/src/content/docs/context-window-costs.mdx",
+      "apps/web/src/components/context-window-costs.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.6,
+  },
+  {
     url: "/docs/configuration",
     sourceFile: "apps/web/src/content/docs/configuration.mdx",
     changefreq: "monthly",

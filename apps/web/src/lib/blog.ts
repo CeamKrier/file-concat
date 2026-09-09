@@ -10,15 +10,30 @@ export interface BlogFrontmatter {
   author?: string;
 }
 
+/** One `##` section, numbered at compile time by `remark-blog-sections`. */
+export interface BlogSection {
+  /** Zero padded position, "01".."NN". */
+  index: string;
+  /** Slug of the heading text, matching the id on the heading itself. */
+  id: string;
+  text: string;
+}
+
 export interface BlogPost {
   slug: string;
   frontmatter: BlogFrontmatter;
   Content: ComponentType;
+  /** Empty for a post with no `##` headings. */
+  sections: BlogSection[];
+  /** Estimated prose minutes, floor of one. */
+  readingMinutes: number;
 }
 
 interface BlogModule {
   default: ComponentType;
   frontmatter?: Partial<BlogFrontmatter>;
+  sections?: BlogSection[];
+  readingMinutes?: number;
 }
 
 // Eager glob so a post renders in the first SSR HTML chunk (same rationale as
@@ -40,6 +55,8 @@ function toPost(filePath: string, mod: BlogModule): BlogPost {
   return {
     slug,
     Content: mod.default,
+    sections: mod.sections ?? [],
+    readingMinutes: mod.readingMinutes ?? 1,
     frontmatter: {
       title: fm.title ?? slug,
       description: fm.description ?? "",

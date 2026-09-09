@@ -1,3 +1,8 @@
+---
+title: "GitLab import - paste a project URL, get one text bundle"
+description: "How FileConcat imports a public GitLab project: nested group URLs, the paginated tree walk, what the anonymous rate limits actually allow, and where Snippets go instead."
+---
+
 # GitLab import
 
 Paste a public GitLab repository URL into the import panel and press
@@ -21,16 +26,54 @@ itself be a path of group and subgroup names. The adapter handles up
 to any depth of nesting before the `-/tree/...` marker. A trailing
 `.git` is tolerated and stripped.
 
-When a branch is omitted, the project's default branch is used. When
-a subdirectory is included, only files at or under that path are
+When a branch is omitted, the project's default branch is read from the
+project API. If that lookup fails the adapter falls back to `main`
+rather than giving up, so a project whose default branch is `master`
+and whose metadata request was rate limited reports a missing branch
+rather than a rate limit. Put the branch in the URL to skip the lookup
+entirely.
+
+When a subdirectory is included, only files at or under that path are
 imported.
 
-## Rate limits and errors
+**A branch name containing a slash does not work.** The branch segment
+after `-/tree/` stops at the first slash, so `-/tree/release/2.0` is
+read as the branch `release` with the subdirectory `2.0`. Import the
+default branch instead. [Bitbucket import](/docs/bitbucket-import) is
+the one source here that handles slashed branch names.
 
-The GitLab REST API has its own per-IP rate limit (smaller than
-GitHub's for most endpoints). When a request is denied, the
-import panel surfaces a message produced by `classifyResponseError`;
-status 401, 403, and 429 each carry distinct wording.
+## What one import costs in API requests
+
+Every part of a GitLab import goes through `gitlab.com/api/v4`,
+including the file contents. That is the difference from
+[GitHub import](/docs/github-import), where only the tree is an API
+call.
+
+- One request for the project's default branch, skipped when the branch
+  is in the URL.
+- The tree is paginated at 100 entries per page, so a project with
+  2,400 entries costs 24 listing requests before a single file is
+  downloaded. The panel counts files as it walks so a deep tree does
+  not look frozen.
+- One request per file, twelve at a time.
+
+GitLab.com documents 500 requests each minute for unauthenticated
+traffic from an IP address, and the same 500 each minute for repository
+files (GitLab, *GitLab.com settings*, read September 2026). That is a
+per-minute ceiling rather than a small hourly total, so what limits a
+large project here is how fast the requests go out, not how many files
+it has.
+
+When a request is denied, the import panel surfaces a message produced
+by `classifyResponseError`
+(`packages/core/src/sources/adapters/_errors.ts`); status 401, 403 and
+429 each carry distinct wording. A 429 whose `Retry-After` hint fits
+inside 30 seconds is retried once automatically.
+
+A file that fails to download does not fail the import. The failure is
+recorded with its path and reason and the rest of the bundle is
+assembled without it, so check the file count in the result against
+what you expected.
 
 Public repositories work without authentication. Private repositories
 are not accessible at the time of writing; token-authenticated
@@ -54,6 +97,9 @@ automatically.
 
 ## See also
 
+- [GitHub import](/docs/github-import) and
+  [Bitbucket import](/docs/bitbucket-import), which reach the same
+  result through very different request budgets.
 - [File filtering](/docs/file-filtering) to trim the imported tree
   before output assembly.
 - [Token estimation](/docs/token-estimation) for the token budget.

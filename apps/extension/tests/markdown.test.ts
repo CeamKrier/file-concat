@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   clippingPath,
+  estimateTokens,
   renderHnClipping,
   renderRedditClipping,
   renderYouTubeClipping,
@@ -286,5 +287,27 @@ describe("renderHnClipping", () => {
   it("keeps a link submission's target and an Ask HN's text", () => {
     expect(renderHnClipping({ ...base, url: "https://example.com/a" })).toContain("[https://example.com/a]");
     expect(renderHnClipping({ ...base, text: "What do you use?" })).toContain("What do you use?");
+  });
+});
+
+describe("estimateTokens", () => {
+  it("holds the flat ratio for Latin text", () => {
+    // 200 ASCII characters: unchanged from the flat chars / 4 this replaced.
+    expect(estimateTokens("a".repeat(200))).toBe(50);
+  });
+
+  it("charges dense scripts at their measured rate, not the Latin one", () => {
+    // Chinese tokenizes near 1.5 characters per token, so 60 of them cost about
+    // 40 tokens. The flat ratio this replaced would have reported 15.
+    const zh = "人工智能正在改变软件开发的方式".repeat(4);
+    expect(zh.length).toBe(60);
+    expect(estimateTokens(zh)).toBe(40);
+    expect(estimateTokens(zh)).toBeGreaterThan(Math.ceil(zh.length / 4) * 2);
+  });
+
+  it("splits mixed text rather than picking one ratio for all of it", () => {
+    const mixed = `${"a".repeat(100)}${"日本語".repeat(10)}`;
+    // 100 Latin at 1/4 plus 30 kana/kanji at 1/1.5.
+    expect(estimateTokens(mixed)).toBe(45);
   });
 });

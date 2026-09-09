@@ -5,7 +5,7 @@ import { AppFlow } from "~/components/app/app-flow";
 import { DropZone, type DropZoneProps } from "~/components/app/drop-zone";
 import { InfoCard } from "~/components/app/info-card";
 import { MarketingSection } from "~/components/app/marketing/section";
-import { MockWindow } from "~/components/app/marketing";
+import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
 
 import { CHATGPT_PROJECTS_FAQ } from "./chatgpt-projects-faq";
 
@@ -58,9 +58,10 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           </h1>
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
-            A Project caps how many files you can add, and on the lower plans you can hit it fast.
-            Drop the whole folder here instead. Everything, even the PDFs, is read right in your
-            browser and comes back as one file, so all your documents take a single Project slot.
+            A Project holds {PROJECT_FILE_LIMITS}, checked at the OpenAI help center in{" "}
+            {CAPS_CHECKED}. Drop the whole folder here instead. Everything, even the PDFs, is read
+            right in your browser and comes back as one file, so all your documents take a single
+            Project slot.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -92,18 +93,25 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
   );
 }
 
-/** ChatGPT-only caps, deeper than the cross-platform hub table: the three places
+/** The answer to the query this page ranks for, so the hero and the table below
+ * cannot drift apart. Re-checked at the OpenAI help center on 2026-09-08, which
+ * states Free 5, Go and Plus 25, Edu/Pro/Business/Enterprise 40 files per
+ * project. Move the date whenever the figure is checked again, not otherwise. */
+const PROJECT_FILE_LIMITS = "5 files on Free, 25 on Go and Plus, 40 on Pro and above";
+const CAPS_CHECKED = "September 2026";
+
+/** ChatGPT-only caps, deeper than the cross-platform hub table: the three ways
  * ChatGPT counts files, so the reader sees which limit they actually hit. */
 const CAPS = [
   {
     where: "Project files",
     caps: "Shared across every chat in the Project",
-    limit: "5 free, 25 on Go and Plus, 40 on Pro and above",
+    limit: PROJECT_FILE_LIMITS,
   },
   {
-    where: "Files in one chat",
-    caps: "Attachments on a single message",
-    limit: "About 10 at a time",
+    where: "Files in one upload",
+    caps: "How many the picker takes at once",
+    limit: "10",
   },
   { where: "Custom GPT knowledge", caps: "Files a Custom GPT can reference", limit: "20" },
 ];
@@ -119,7 +127,7 @@ function WhereItStops() {
           Where ChatGPT stops you.
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[50ch] text-[15px] leading-relaxed">
-          ChatGPT counts files in three separate places, and each has its own cap. A single combined
+          ChatGPT counts files in three separate ways, and each has its own cap. A single combined
           file stays under all of them, because it is one file no matter how many documents went
           into it.
         </p>
@@ -153,7 +161,8 @@ function WhereItStops() {
       </div>
 
       <p className="text-ink-faint mx-auto mt-4 max-w-[720px] text-[12.5px] leading-relaxed">
-        Figures as of August 2026, and OpenAI changes them often. Check the current cap in the{" "}
+        Figures as of {CAPS_CHECKED}, and OpenAI changes them often. Check the current cap in
+        the{" "}
         <a
           href="https://help.openai.com"
           target="_blank"
@@ -367,6 +376,11 @@ function ClosingCta() {
           <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
         </button>
       </div>
+      <FurtherReading>
+        Deciding how to get many files into one slot?{" "}
+        <ProseLink to="/blog/combine-files-for-llm">How to combine multiple files into one</ProseLink>
+        {" "}compares the three ways and what each one costs you.
+      </FurtherReading>
     </MarketingSection>
   );
 }

@@ -178,7 +178,7 @@ function assembleXml(options: AssembleOutputOptions, meta: KindMeta): string {
  * prose. Growing the wrapper keeps the content verbatim, which is the same
  * promise the XML style keeps by refusing to escape.
  */
-function fenceFor(content: string): string {
+export function fenceFor(content: string): string {
   let longest = 0;
   for (const run of content.matchAll(/`+/g)) longest = Math.max(longest, run[0].length);
   return "`".repeat(Math.max(3, longest + 1));

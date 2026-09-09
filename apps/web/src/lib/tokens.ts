@@ -2,9 +2,10 @@ type Estimator = (text: string) => number;
 
 /**
  * Input size, in characters, at or below which we run the real tiktoken WASM
- * tokenizer for an exact count. Above it, tokenizing the whole bundle is too
- * slow and memory-heavy in the browser, so we forecast the count as chars/4
- * instead (~262K approximate tokens at the threshold).
+ * tokenizer over the whole bundle. Above it, tokenizing all of it is too slow
+ * and memory-heavy in the browser, so the count is extrapolated from evenly
+ * spaced samples that are tokenized for real — not from an assumed
+ * characters-per-token ratio. See `tokens-client.ts`.
  *
  * One threshold, two jobs: it is also the anchor for the client-side
  * "large bundle" warning (render/copy/tokenize cost) — distinct from the

@@ -5,7 +5,7 @@ import { AppFlow } from "~/components/app/app-flow";
 import { DropZone, type DropZoneProps } from "~/components/app/drop-zone";
 import { InfoCard } from "~/components/app/info-card";
 import { MarketingSection } from "~/components/app/marketing/section";
-import { MockWindow } from "~/components/app/marketing";
+import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
 
 import { CLAUDE_PROJECTS_FAQ } from "./claude-projects-faq";
 
@@ -150,11 +150,6 @@ const CAPS = [
     where: "Projects",
     caps: "How many projects you can create",
     limit: "5 on the free plan, more on paid",
-  },
-  {
-    where: "Chat attachments",
-    caps: "Files on a single message",
-    limit: "A few at a time, each size-limited",
   },
 ];
 
@@ -392,6 +387,11 @@ function ClosingCta() {
           <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
         </button>
       </div>
+      <FurtherReading>
+        Not sure a repository fits at all? We bundled 60 public ones and counted:{" "}
+        <ProseLink to="/blog/how-many-tokens-is-a-codebase">how many tokens a codebase actually is</ProseLink>
+        .
+      </FurtherReading>
     </MarketingSection>
   );
 }

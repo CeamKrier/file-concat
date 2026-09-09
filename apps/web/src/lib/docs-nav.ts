@@ -32,6 +32,7 @@ export const DOCS_NAVIGATION: DocSection[] = [
       { title: "Filter precedence", href: "/docs/filter-precedence" },
       { title: "Token estimation", href: "/docs/token-estimation" },
       { title: "Token costs", href: "/docs/token-costs" },
+      { title: "Context window costs", href: "/docs/context-window-costs" },
       { title: "Configuration", href: "/docs/configuration" },
       { title: "CLI usage", href: "/docs/cli-usage" },
     ],

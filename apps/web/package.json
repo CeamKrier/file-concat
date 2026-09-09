@@ -38,6 +38,7 @@
     "@tanstack/react-start-client": "^1.157.16",
     "@tanstack/react-start-server": "^1.157.16",
     "@tanstack/router-core": "^1.157.16",
+    "@visx/scale": "^4.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "fflate": "^0.8.3",

@@ -1,3 +1,8 @@
+---
+title: "Token estimation - how the counter reaches its number"
+description: "The result screen counts tokens with a WebAssembly build of OpenAI's tokenizer, samples above 1 MB rather than counting whole, and lets you switch the model it counts for."
+---
+
 # Token estimation
 
 The token counter on the result screen tells you how much of your model's
@@ -9,25 +14,40 @@ files come and go.
 Token counting runs against `@dqbd/tiktoken`, a WebAssembly build of
 OpenAI's tokenizer. The default encoding is the one used by
 `o1-preview-2024-09-12`, which most modern LLM models match closely
-enough to be useful as a unified estimate. The result you see on screen
-is the actual encoder output for the assembled blob, not a heuristic.
+enough to be useful as a unified estimate.
+
+What gets counted is the **whole assembled output**, the same string the
+preview shows and the copy button copies: the XML root or Markdown
+headings, the per-file tags, the header and the file tree, not just the
+text of your files. Those wrappers are charged for like everything else.
+Measured across 60 public repositories on 2026-09-07 they are a median
+2.4% of the bundle, and 17.8% on a repository of many small files.
 
 The encoder runs synchronously after the page boots, so toggling files
 on and off does not introduce a perceptible delay for typical projects.
 
-## The 1 MB cap
+## Above 1 MB the count is sampled
 
-Inputs over 1 MB skip the encoder and fall back to
-`Math.ceil(length / 4)`. The reason lives in
-`apps/web/src/lib/tokens.ts`: running the WASM encoder on multi-MB
-blobs blocks the main thread long enough to feel like the tab has
-frozen, and the approximation is good enough for a headline number on
-inputs that size. The fallback also catches the case where the encoder
-itself fails for any reason.
+Running the WASM encoder over a multi-megabyte bundle blocks the main
+thread long enough to feel like the tab has frozen. So above 1 MiB of
+text the count is extrapolated instead of taken: 64 evenly spaced 4 KiB
+slices are tokenized for real, and the total is scaled by the ratio
+those slices show. The cost is a flat 256 KiB of tokenizing whatever the
+bundle's size. The constants live in `apps/web/src/lib/tokens-client.ts`
+and the threshold in `apps/web/src/lib/tokens.ts`.
 
-If you are working with a giant context and want an exact count,
-narrow the output with the filter patterns until you are under the
-cap, then read the precise number.
+Before 2026-09-07 this path was `Math.ceil(length / 4)`, an
+English-prose ratio applied to every language. On the 30 repositories of
+that 60 repository sample that crossed the threshold it ran a median
+13.5% off and 62.5% off on a repository written in Chinese. Sampling
+brings the same 30 to a median 0.8% off and 4.5% at worst, all of them
+within 5% of the true count.
+
+`Math.ceil(length / 4)` survives in one place only: the fallback when
+the encoder itself fails to load.
+
+If you want an exact count rather than a sampled one, narrow the output
+with the filter patterns until the bundle is under 1 MiB.
 
 ## Model selector
 
@@ -56,3 +76,8 @@ A few facts that make the picker behave the way it does:
 - [Filter precedence](/docs/filter-precedence) for the layered
   filtering pipeline that decides which files contribute to the
   count.
+- [How many tokens is a codebase?](/blog/how-many-tokens-is-a-codebase)
+  for the 60 repository measurement the figures above come from, and
+  what a whole repository costs to send.
+- [Context window costs](/docs/context-window-costs) for what filling
+  100K, 500K or 1M tokens costs across every model in the catalogue.

@@ -10,7 +10,7 @@ FileConcat (fileconcat.com) — a privacy-first tool that concatenates files int
 
 pnpm workspace + Nx (`pnpm-workspace.yaml`, `nx.json`). Three members: `apps/web`, `packages/cli`, `packages/core`.
 
-`@fileconcat/core` is consumed via `workspace:*` and resolved at type-check time through the root `tsconfig.json` `paths` alias (`@fileconcat/core` → `packages/core/src/index.ts`). The web app duplicates that alias in `apps/web/app.config.ts` so Vite resolves the same source files at runtime — no build step is required to consume `core` in dev.
+`@fileconcat/core` is consumed via `workspace:*` and resolved at type-check time through the root `tsconfig.json` `paths` alias (`@fileconcat/core` → `packages/core/src/index.ts`). The web app duplicates that alias in `apps/web/vite.config.ts` (`resolve.alias`) so Vite resolves the same source files at runtime — no build step is required to consume `core` in dev.
 
 Per-package guidance lives in `apps/web/CLAUDE.md`, `packages/core/CLAUDE.md` and `packages/cli/CLAUDE.md`; each loads only when you work under that directory.
 

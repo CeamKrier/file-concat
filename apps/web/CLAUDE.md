@@ -1,13 +1,13 @@
 # apps/web
 
-TanStack Start (file-routed React + SSR) targeting Cloudflare Workers. The Vite config (`apps/web/app.config.ts`) is the spine — it composes plugins in a strict order:
+TanStack Start (file-routed React + SSR) targeting Cloudflare Workers. `apps/web/vite.config.ts` is the spine: plugins, the `@fileconcat/core` alias, `optimizeDeps` and the chunk split all live there. (`app.config.ts` is a nine-line TanStack stub that sets React strictMode and nothing else; do not go looking for build config in it.) The plugins compose in a strict order:
 
 1. `cloudflare({ viteEnvironment: { name: "ssr" } })` — must wrap the SSR build for the Workers runtime.
 2. `tanstackStart()` — must come **before** `react()`.
 3. `wasm()` + `topLevelAwait()` — required for `@dqbd/tiktoken` (excluded from `optimizeDeps` for the same reason).
 4. `react()`, then `mdx()` with `remark-gfm` + `rehype-prism-plus` and `providerImportSource: "@mdx-js/react"`.
 
-Manual `manualChunks` split tiktoken, CodeMirror, Radix, icons, file-type, and react-vendor — keep heavy deps in their own chunks when adding them.
+`manualChunks` splits three: `radix-ui`, `icons`, `react-vendor`. **tiktoken is deliberately absent and must stay absent** — a forced entry leaves an orphan stub in the SSR bundle whose `import "./tiktoken_bg.wasm"` side effect drags 5.4 MiB of wasm into the Cloudflare Worker. The comment above `manualChunks` in `vite.config.ts` is the authority; read it before adding a line. Only a client-only dep that is imported *eagerly* belongs there. Anything loaded lazily behind an `import.meta.env.SSR` guard (tiktoken, `officeparser`, `pdfjs-dist`) is already split by that guard and goes in `optimizeDeps.exclude` instead.
 
 Docs content is MDX under `apps/web/src/content/docs/`; `docs/$slug.tsx` resolves slug → MDX file.
 

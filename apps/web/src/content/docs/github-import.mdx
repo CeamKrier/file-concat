@@ -1,3 +1,8 @@
+---
+title: "GitHub import - paste a repository URL, get one text bundle"
+description: "How FileConcat imports a public GitHub repository: the URL shapes it parses, what one import costs in API requests, the archive fallback for large repositories, and what happens without an account."
+---
+
 # GitHub import
 
 Paste a public GitHub repository URL into the import panel and press
@@ -20,24 +25,67 @@ defaults to the repository's default branch when omitted. When a
 subdirectory is included, only files at or under that path are
 imported.
 
-## Rate limits
+**A branch name containing a slash does not work.** The branch segment
+stops at the first slash, so `tree/release/2.0` is read as the branch
+`release` with the subdirectory `2.0`. The URL itself is ambiguous and
+GitHub resolves it on its own servers; FileConcat does not. If a branch
+named `release` also exists you get that branch's `2.0` directory
+instead of an error. Import the default branch instead.
+[Bitbucket import](/docs/bitbucket-import) is the one source here that
+handles slashed branch names, because it resolves the ref to a commit
+before it lists anything.
 
-The GitHub REST API allows 60 requests per hour per IP for
-unauthenticated callers. A single repository fetch is at least one
-request for the tree and additional requests for raw file contents on
-the streaming path; large repositories burn through the quota faster
-than small ones.
+## What one import costs in API requests
 
-When a request is denied, the error message you see in the import panel
-is produced by `classifyResponseError`
-(`packages/core/src/sources/adapters/_errors.ts`). Status 401, 403,
-and 429 each carry their own human-readable wording so you can tell
-"rate limited" apart from "private repository".
+Two requests to `api.github.com` for a typical import: one to read the
+repository's default branch, and one for the recursive file tree.
+Include the branch in the URL and the first is skipped.
 
-If you need higher quotas or access to private repositories today,
-the supported workaround is to download the project locally and use
-the drag-and-drop path instead. Token-authenticated imports are
-tracked separately and are not shipped at the time of writing.
+File contents do not go through that API at all. They stream from
+`raw.githubusercontent.com`, one request per file, twelve at a time
+(`DEFAULT_DOWNLOAD_CONCURRENCY` in
+`packages/core/src/sources/pooled-map.ts`).
+
+GitHub's documented primary rate limit for unauthenticated REST
+requests is 60 per hour, per IP address (GitHub, *Rate limits for the
+REST API*, read September 2026). Because the per-file downloads are
+served by a different host, **the number of files in a repository is
+not what exhausts that budget**. Repeated imports are.
+
+When a request is denied, the message in the import panel comes from
+`classifyResponseError`
+(`packages/core/src/sources/adapters/_errors.ts`). Status 401, 403 and
+429 each carry their own wording, so "rate limited" reads differently
+from "private repository", and a rate-limit message carries the reset
+time GitHub sent back.
+
+If you need higher quotas or access to private repositories today, the
+supported workaround is to download the project locally and use the
+drag-and-drop path instead. Token-authenticated imports are tracked
+separately and are not shipped at the time of writing.
+
+## Large repositories fall back to an archive
+
+GitHub caps a recursive tree at 100,000 entries and 7 MB, and sets
+`truncated` on the response when the listing it returned is incomplete
+(GitHub, *REST API endpoints for Git trees*, read September 2026).
+
+Rather than bundle a partial repository, FileConcat switches to a
+single archive request, `/zipball/{branch}`, and unzips it in the
+browser. The import panel says it is downloading the full archive while
+that runs. It costs one more API request in place of one request per
+file, and a subdirectory URL still narrows the result the same way.
+
+## When a download fails
+
+A file that fails to download does not fail the import. Each failure is
+recorded with its path and reason and the rest of the bundle is
+assembled without it, so compare the file count in the result against
+what you expected.
+
+A 429 whose `Retry-After` hint fits inside 30 seconds is retried once,
+automatically. Anything longer surfaces as an error rather than a long
+silent wait.
 
 ## Raw URLs
 
@@ -65,6 +113,9 @@ The same adapter also matches GitLab Snippet URLs; see
 
 ## See also
 
+- [GitLab import](/docs/gitlab-import) and
+  [Bitbucket import](/docs/bitbucket-import), which reach the same
+  result through very different request budgets.
 - [File filtering](/docs/file-filtering) to narrow the imported tree
   before assembling the output.
 - [Token estimation](/docs/token-estimation) to keep the import

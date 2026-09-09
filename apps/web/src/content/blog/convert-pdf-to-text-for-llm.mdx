@@ -1,6 +1,6 @@
 ---
 title: "Convert PDF to Text for an LLM Prompt"
-description: "Turn PDFs and DOCX files into clean text for an LLM prompt. Bundle many documents into one blob in your browser, with live token and cost counts."
+description: "Turn PDFs into clean text for an LLM prompt, scanned pages included. Bundle a whole folder in your browser, with live token and cost counts."
 date: "2026-07-11"
 author: "CeamKrier"
 draft: false
@@ -88,11 +88,19 @@ comes back with nothing FileConcat runs a recognition pass over it in your brows
 you which files it recovered that way. Encrypted or password-locked PDFs are the other story:
 locked bytes yield no text, and no amount of recognition changes that.
 
+None of that is taken on trust. We built a set of documents designed to break our own extraction
+and have re-tested against it four times: of the sixteen defects found so far, seven were in PDF
+handling, five of those are fixed, and two are still open. The two that remain are a superscript
+footnote marker sorting above its own line, and a page with no text layer being dropped without a
+note.
+
 <Callout type="warn" title="A scan takes longer, and not every one comes back">
   Recognition reads pixels rather than characters, so it costs seconds per page and it is not
-  perfect on a faint or crooked scan. A document it cannot read is flagged as having no extractable
-  text rather than dropped silently, so you always know what made it into the bundle and what did
-  not. Your file still never leaves the browser; the recognition engine itself is fetched from the
+  perfect on a faint or crooked scan. A document it cannot read at all is flagged as having no
+  extractable text rather than dropped silently. A document that is only *partly* scanned is the gap:
+  its image-only pages are currently lost without a note, which we
+  [measured and published](/blog/what-gets-lost-converting-documents-to-text) along with the rest of
+  what survives conversion. Your file still never leaves the browser; the recognition engine itself is fetched from the
   library's CDN the first time it runs, which the [privacy page](/privacy) sets out in full.
 </Callout>
 
@@ -105,6 +113,15 @@ where a stack of case files or a pile of research papers gets expensive without 
 FileConcat counts tokens as you add and remove files, and it can show the cost for a given
 model, so you can trim to what matters first. That helps when you want to summarize multiple
 research papers with ChatGPT and only a few of them hold the section you actually care about.
+
+Two things move when the bundle grows, and only one of them is the bill. Input is priced per
+million tokens, so the cost is exactly linear: doubling the documents doubles what the send
+costs, every time, and a model having room to spare is not a discount. The second is accuracy.
+Published sweeps find retrieval degrading as the input gets longer, which means the last
+stretch of a window is not free even when you can afford it. We priced the first half across
+the whole model catalogue in
+[what it costs to fill a context window](/docs/context-window-costs), and the sources for the
+second half are cited there.
 
 <Callout type="tip">
   One format in particular? [Word documents](/blog/convert-docx-to-text-for-llm) and

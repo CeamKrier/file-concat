@@ -177,6 +177,20 @@ async function runInspection(token, siteUrl) {
   for (const [state, n] of Object.entries(buckets).sort((a, b) => b[1] - a[1])) {
     console.log(`  ${rpad(n, 3)}  ${state}`);
   }
+
+  // A row that is not PASS is a question the table above cannot answer: "duplicate"
+  // without the URL Google preferred, or "unknown" without whether we declared a
+  // canonical at all, sends the next session back to the API for the same call.
+  const problems = rows.filter((r) => r.verdict !== "PASS");
+  if (problems.length) {
+    console.log("");
+    for (const r of problems) {
+      console.log(path(r.url));
+      console.log(`  google canonical  ${r.googleCanonical || "none"}`);
+      console.log(`  user canonical    ${r.userCanonical || "none"}`);
+      console.log(`  crawled as        ${r.crawledAs || "-"}   fetch ${r.pageFetchState || "-"}`);
+    }
+  }
 }
 
 // --- one page, every query it draws -------------------------------------

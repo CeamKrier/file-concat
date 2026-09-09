@@ -237,7 +237,10 @@ export function SettingsDrawer({
               </div>
             </Section>
 
-            <Section label={`Files, ${includedFileCount} in`}>
+            <Section
+              label={`Files, ${includedFileCount} in`}
+              hint="Click a row to put it in or out. The arrow opens a folder."
+            >
               <div className="border-border bg-surface rounded-card max-h-[300px] overflow-y-auto border p-1.5">
                 <FileTree
                   fileStatuses={fileStatuses}

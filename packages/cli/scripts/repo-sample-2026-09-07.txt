@@ -1,0 +1,296 @@
+# Repository sample for measure-repo-funnel.ts. Frozen 2026-09-07.
+#
+# The sample is pre-registered: the query below was written first, run once, and
+# the result taken in the order it came back. No repository was added, dropped or
+# swapped after seeing what it measured.
+#
+# Strata: 10 languages x 3 repository-size bands, 2 repositories per cell, 60 total.
+#
+#   languages  TypeScript, JavaScript, Python, Go, Rust, Java, C#, PHP, Ruby, C++
+#              GitHub's own primary-language label, one per repository.
+#   size       small 0.1-2 MB, medium 2-20 MB, large 20-200 MB
+#              GitHub's `size` field, in KB. It measures the repository on
+#              GitHub, history included, so it is a proxy for the working tree
+#              and not the working tree itself.
+#
+# Query, per cell, against the GitHub search API on 2026-09-07:
+#
+#   language:<L> size:<band> stars:100..5000 pushed:>2026-03-07
+#   archived:false is:public mirror:false template:false
+#   sort=stars order=desc
+#
+# Inclusion rule: take the first 2 results of each cell. If a clone fails, take
+# the next result in that cell's order. The next four are recorded below each
+# cell as reserves so a replacement stays inside the pre-registered order rather
+# than becoming a fresh choice.
+#
+# Why these filters:
+#
+#   stars 100 to 5000   A floor of 100 keeps abandoned experiments out; a ceiling
+#                       of 5000 keeps the sample from becoming a list of
+#                       exceptional mega-projects and curated link collections,
+#                       which are not what anyone drops into a context window.
+#   pushed within 6 mo  A repository nobody has touched since 2026-03-07 does not
+#                       describe how code is laid out now.
+#   archived, mirror,   All three are copies or corpses rather than working
+#   template            projects.
+#   forks               Excluded by the search API's default.
+#
+# Known bias, to be carried into the article's limitations, not hidden here:
+#
+#   1. Sorting by stars descending inside a 5000-star ceiling means every
+#      repository here sits near the ceiling. The sample spreads over language
+#      and size, not over popularity. A well-known project carries more CI
+#      config, more tests and more lockfiles than a private work repository, so
+#      the measured non-source share is likely to be an over-statement of what a
+#      solo developer's folder looks like.
+#   2. The language label is GitHub's primary language. A polyglot repository is
+#      counted once, under whichever language has the most bytes.
+#   3. Two entries are documentation collections rather than codebases
+#      (gopl-zh.github.com, iOS-Weekly). They were kept because removing them
+#      after seeing them would make the sample a choice rather than a query.
+#      They are expected to sit at the top of the docs-share distribution and
+#      should be named there.
+#
+# Run:
+#   pnpm --filter @fileconcat/cli measure-funnel --repos scripts/repo-sample-2026-09-07.txt
+
+# --- TypeScript / small ---
+https://github.com/babaohuang/GeminiProChat.git
+https://github.com/makenotion/notion-mcp-server.git
+# reserve 1: https://github.com/microsoft/codetour.git (4572 stars, 607 KB)
+# reserve 2: https://github.com/auth0/express-jwt.git (4513 stars, 698 KB)
+# reserve 3: https://github.com/remotion-dev/skills.git (4499 stars, 470 KB)
+# reserve 4: https://github.com/alibaba/ChatUI.git (4446 stars, 875 KB)
+
+# --- TypeScript / medium ---
+https://github.com/tiajinsha/JKVideo.git
+https://github.com/exa-labs/exa-mcp-server.git
+# reserve 1: https://github.com/microsoft/tsdoc.git (4963 stars, 7756 KB)
+# reserve 2: https://github.com/frappe/books.git (4936 stars, 15820 KB)
+# reserve 3: https://github.com/gajus/slonik.git (4936 stars, 9230 KB)
+# reserve 4: https://github.com/unplugin/unplugin-icons.git (4933 stars, 3541 KB)
+
+# --- TypeScript / large ---
+https://github.com/vercel/eve.git
+https://github.com/tiann/hapi.git
+# reserve 1: https://github.com/openclaw/mcporter.git (4993 stars, 54263 KB)
+# reserve 2: https://github.com/FxEmbed/FxEmbed.git (4993 stars, 21108 KB)
+# reserve 3: https://github.com/bitpay/bitcore.git (4986 stars, 177164 KB)
+# reserve 4: https://github.com/parca-dev/parca.git (4964 stars, 152353 KB)
+
+# --- JavaScript / small ---
+https://github.com/sintaxi/harp.git
+https://github.com/brentvollebregt/auto-py-to-exe.git
+# reserve 1: https://github.com/pablof7z/chardin.js.git (4953 stars, 818 KB)
+# reserve 2: https://github.com/apocas/dockerode.git (4945 stars, 944 KB)
+# reserve 3: https://github.com/hemanth/awesome-pwa.git (4907 stars, 706 KB)
+# reserve 4: https://github.com/88lin/video_vip.git (4845 stars, 416 KB)
+
+# --- JavaScript / medium ---
+https://github.com/mermaid-js/mermaid-cli.git
+https://github.com/shoutem/ui.git
+# reserve 1: https://github.com/coreui/coreui-free-react-admin-template.git (4952 stars, 4905 KB)
+# reserve 2: https://github.com/json-editor/json-editor.git (4904 stars, 8233 KB)
+# reserve 3: https://github.com/babel/babel-loader.git (4837 stars, 6809 KB)
+# reserve 4: https://github.com/carloscuesta/gitmoji-cli.git (4830 stars, 5761 KB)
+
+# --- JavaScript / large ---
+https://github.com/certd/certd.git
+https://github.com/SwiftOldDriver/iOS-Weekly.git
+# reserve 1: https://github.com/gnmyt/Nexterm.git (4982 stars, 34849 KB)
+# reserve 2: https://github.com/TalAter/UpUp.git (4918 stars, 29619 KB)
+# reserve 3: https://github.com/eKoopmans/html2pdf.js.git (4917 stars, 30021 KB)
+# reserve 4: https://github.com/mpetroff/pannellum.git (4892 stars, 21462 KB)
+
+# --- Python / small ---
+https://github.com/sgl-project/mini-sglang.git
+https://github.com/googlemaps/google-maps-services-python.git
+# reserve 1: https://github.com/lincolnloop/python-qrcode.git (4937 stars, 992 KB)
+# reserve 2: https://github.com/RomelTorres/alpha_vantage.git (4905 stars, 1227 KB)
+# reserve 3: https://github.com/perixtar/Tech-OA-Interview-Questions.git (4888 stars, 1982 KB)
+# reserve 4: https://github.com/MechanicalSoup/MechanicalSoup.git (4887 stars, 721 KB)
+
+# --- Python / medium ---
+https://github.com/jazzband/django-silk.git
+https://github.com/SCIR-HI/Huatuo-Llama-Med-Chinese.git
+# reserve 1: https://github.com/The-Swarm-Corporation/AutoHedge.git (4989 stars, 8737 KB)
+# reserve 2: https://github.com/togethercomputer/RedPajama-Data.git (4982 stars, 2097 KB)
+# reserve 3: https://github.com/python-jsonschema/jsonschema.git (4977 stars, 3851 KB)
+# reserve 4: https://github.com/Kozea/Radicale.git (4976 stars, 7861 KB)
+
+# --- Python / large ---
+https://github.com/icip-cas/PPTAgent.git
+https://github.com/ShadowHackrs/gmail-account-creator.git
+# reserve 1: https://github.com/sktime/pytorch-forecasting.git (4983 stars, 44894 KB)
+# reserve 2: https://github.com/runhey/OnmyojiAutoScript.git (4982 stars, 83187 KB)
+# reserve 3: https://github.com/dpgaspar/Flask-AppBuilder.git (4958 stars, 46266 KB)
+# reserve 4: https://github.com/microsoft/muzic.git (4953 stars, 155386 KB)
+
+# --- Go / small ---
+https://github.com/perplexityai/bumblebee.git
+https://github.com/taigrr/spank.git
+# reserve 1: https://github.com/nicocha30/ligolo-ng.git (4924 stars, 440 KB)
+# reserve 2: https://github.com/mailru/easyjson.git (4916 stars, 481 KB)
+# reserve 3: https://github.com/superfly/litefs.git (4876 stars, 1118 KB)
+# reserve 4: https://github.com/tidwall/buntdb.git (4867 stars, 427 KB)
+
+# --- Go / medium ---
+https://github.com/gopl-zh/gopl-zh.github.com.git
+https://github.com/go-mysql-org/go-mysql.git
+# reserve 1: https://github.com/uptrace/bun.git (4962 stars, 3846 KB)
+# reserve 2: https://github.com/slack-go/slack.git (4957 stars, 3241 KB)
+# reserve 3: https://github.com/psviderski/unregistry.git (4862 stars, 12530 KB)
+# reserve 4: https://github.com/imroc/req.git (4860 stars, 2827 KB)
+
+# --- Go / large ---
+https://github.com/pomerium/pomerium.git
+https://github.com/testcontainers/testcontainers-go.git
+# reserve 1: https://github.com/apache/dubbo-go.git (4958 stars, 100482 KB)
+# reserve 2: https://github.com/WuKongIM/WuKongIM.git (4939 stars, 153297 KB)
+# reserve 3: https://github.com/unidoc/unioffice.git (4932 stars, 190430 KB)
+# reserve 4: https://github.com/NdoleStudio/httpsms.git (4925 stars, 43690 KB)
+
+# --- Rust / small ---
+https://github.com/dtolnay/proc-macro-workshop.git
+https://github.com/anordal/shellharden.git
+# reserve 1: https://github.com/tokio-rs/mini-redis.git (4786 stars, 240 KB)
+# reserve 2: https://github.com/openai/harmony.git (4498 stars, 339 KB)
+# reserve 3: https://github.com/timothymiller/cloudflare-ddns.git (4492 stars, 836 KB)
+# reserve 4: https://github.com/tkellogg/dura.git (4430 stars, 303 KB)
+
+# --- Rust / medium ---
+https://github.com/triwinds/ns-emu-tools.git
+https://github.com/tauri-apps/wry.git
+# reserve 1: https://github.com/rusterlium/rustler.git (4859 stars, 2383 KB)
+# reserve 2: https://github.com/gyscos/cursive.git (4845 stars, 3757 KB)
+# reserve 3: https://github.com/asterinas/asterinas.git (4836 stars, 18343 KB)
+# reserve 4: https://github.com/sayanarijit/xplr.git (4816 stars, 10703 KB)
+
+# --- Rust / large ---
+https://github.com/domcyrus/rustnet.git
+https://github.com/SaladDay/cc-switch-cli.git
+# reserve 1: https://github.com/unhappychoice/gitlogue.git (4961 stars, 81613 KB)
+# reserve 2: https://github.com/withcoral/coral.git (4953 stars, 37751 KB)
+# reserve 3: https://github.com/mozilla/uniffi-rs.git (4940 stars, 70031 KB)
+# reserve 4: https://github.com/greenbone/openvas-scanner.git (4813 stars, 46345 KB)
+
+# --- Java / small ---
+https://github.com/Trinea/android-common.git
+https://github.com/Heeexy/SpringBoot-Shiro-Vue.git
+# reserve 1: https://github.com/termux/termux-api.git (4275 stars, 1491 KB)
+# reserve 2: https://github.com/awaitility/awaitility.git (4023 stars, 1275 KB)
+# reserve 3: https://github.com/databricks/learning-spark.git (3894 stars, 372 KB)
+# reserve 4: https://github.com/microservices-patterns/ftgo-application.git (3760 stars, 1448 KB)
+
+# --- Java / medium ---
+https://github.com/JodaOrg/joda-time.git
+https://github.com/spring-cloud/spring-cloud-gateway.git
+# reserve 1: https://github.com/AsamK/signal-cli.git (4903 stars, 7268 KB)
+# reserve 2: https://github.com/dromara/dynamic-tp.git (4802 stars, 18924 KB)
+# reserve 3: https://github.com/stleary/JSON-java.git (4718 stars, 3294 KB)
+# reserve 4: https://github.com/bytedeco/javacpp.git (4707 stars, 11435 KB)
+
+# --- Java / large ---
+https://github.com/querydsl/querydsl.git
+https://github.com/spring-cloud/spring-cloud-netflix.git
+# reserve 1: https://github.com/mock-server/mockserver-monorepo.git (4966 stars, 125279 KB)
+# reserve 2: https://github.com/micrometer-metrics/micrometer.git (4896 stars, 40670 KB)
+# reserve 3: https://github.com/deepjavalibrary/djl.git (4852 stars, 49395 KB)
+# reserve 4: https://github.com/Querz/mcaselector.git (4788 stars, 24257 KB)
+
+# --- C# / small ---
+https://github.com/Tyrrrz/CliWrap.git
+https://github.com/UnityCommunity/UnityLibrary.git
+# reserve 1: https://github.com/microsoft/RulesEngine.git (4346 stars, 548 KB)
+# reserve 2: https://github.com/mcintyre321/OneOf.git (4054 stars, 859 KB)
+# reserve 3: https://github.com/martinothamar/Mediator.git (3709 stars, 1910 KB)
+# reserve 4: https://github.com/SakiRinn/LiveCaptions-Translator.git (3665 stars, 1472 KB)
+
+# --- C# / medium ---
+https://github.com/Jeric-X/SyncClipboard.git
+https://github.com/inkle/ink.git
+# reserve 1: https://github.com/HMBSbige/NatTypeTester.git (4831 stars, 3919 KB)
+# reserve 2: https://github.com/BililiveRecorder/BililiveRecorder.git (4813 stars, 4827 KB)
+# reserve 3: https://github.com/Cysharp/MemoryPack.git (4721 stars, 2920 KB)
+# reserve 4: https://github.com/emoacht/Monitorian.git (4690 stars, 12426 KB)
+
+# --- C# / large ---
+https://github.com/TheJoeFin/Text-Grab.git
+https://github.com/hbons/SparkleShare.git
+# reserve 1: https://github.com/protobuf-net/protobuf-net.git (4972 stars, 70302 KB)
+# reserve 2: https://github.com/Kinnara/ModernWpf.git (4961 stars, 37324 KB)
+# reserve 3: https://github.com/HearthSim/Hearthstone-Deck-Tracker.git (4907 stars, 141913 KB)
+# reserve 4: https://github.com/indiff/qttabbar.git (4879 stars, 26096 KB)
+
+# --- PHP / small ---
+https://github.com/catfan/Medoo.git
+https://github.com/moneyphp/money.git
+# reserve 1: https://github.com/symfony/filesystem.git (4633 stars, 1282 KB)
+# reserve 2: https://github.com/Hanson/vbot.git (4598 stars, 1404 KB)
+# reserve 3: https://github.com/KnpLabs/snappy.git (4474 stars, 649 KB)
+# reserve 4: https://github.com/spatie/laravel-query-builder.git (4469 stars, 1420 KB)
+
+# --- PHP / medium ---
+https://github.com/Ocramius/ProxyManager.git
+https://github.com/yajra/laravel-datatables.git
+# reserve 1: https://github.com/chriskacerguis/codeigniter-restserver.git (4867 stars, 4025 KB)
+# reserve 2: https://github.com/anonaddy/anonaddy.git (4834 stars, 5514 KB)
+# reserve 3: https://github.com/doctrine/DoctrineBundle.git (4832 stars, 4385 KB)
+# reserve 4: https://github.com/doctrine/migrations.git (4766 stars, 5178 KB)
+
+# --- PHP / large ---
+https://github.com/kimai/kimai.git
+https://github.com/statamic/cms.git
+# reserve 1: https://github.com/Codeception/Codeception.git (4858 stars, 73633 KB)
+# reserve 2: https://github.com/yiisoft/yii.git (4823 stars, 31586 KB)
+# reserve 3: https://github.com/orchidsoftware/platform.git (4797 stars, 127761 KB)
+# reserve 4: https://github.com/dokuwiki/dokuwiki.git (4709 stars, 45757 KB)
+
+# --- Ruby / small ---
+https://github.com/mbleigh/acts-as-taggable-on.git
+https://github.com/red-data-tools/YouPlot.git
+# reserve 1: https://github.com/SteveLTN/https-portal.git (4693 stars, 418 KB)
+# reserve 2: https://github.com/ankane/ahoy.git (4479 stars, 864 KB)
+# reserve 3: https://github.com/ankane/strong_migrations.git (4441 stars, 931 KB)
+# reserve 4: https://github.com/rails/jbuilder.git (4421 stars, 742 KB)
+
+# --- Ruby / medium ---
+https://github.com/react-native-config/react-native-config.git
+https://github.com/simplecov-ruby/simplecov.git
+# reserve 1: https://github.com/lobsters/lobsters.git (4825 stars, 8874 KB)
+# reserve 2: https://github.com/lolcommits/lolcommits.git (4819 stars, 2246 KB)
+# reserve 3: https://github.com/ankane/blazer.git (4797 stars, 4959 KB)
+# reserve 4: https://github.com/sparklemotion/mechanize.git (4440 stars, 2557 KB)
+
+# --- Ruby / large ---
+https://github.com/ddnexus/pagy.git
+https://github.com/opal/opal.git
+# reserve 1: https://github.com/github/explore.git (4879 stars, 73461 KB)
+# reserve 2: https://github.com/prawnpdf/prawn.git (4821 stars, 44274 KB)
+# reserve 3: https://github.com/TheOdinProject/theodinproject.git (4611 stars, 35312 KB)
+# reserve 4: https://github.com/basecamp/once-campfire.git (4586 stars, 60044 KB)
+
+# --- C++ / small ---
+https://github.com/jarro2783/cxxopts.git
+https://github.com/skeeto/w64devkit.git
+# reserve 1: https://github.com/cameron314/readerwriterqueue.git (4621 stars, 180 KB)
+# reserve 2: https://github.com/zrax/pycdc.git (4610 stars, 975 KB)
+# reserve 3: https://github.com/tdlib/telegram-bot-api.git (4441 stars, 932 KB)
+# reserve 4: https://github.com/vslavik/diff-pdf.git (4310 stars, 423 KB)
+
+# --- C++ / medium ---
+https://github.com/melonDS-emu/melonDS.git
+https://github.com/mhogomchungu/media-downloader.git
+# reserve 1: https://github.com/Chlumsky/msdfgen.git (4921 stars, 2467 KB)
+# reserve 2: https://github.com/spaceandtimefdn/blitzar.git (4863 stars, 5095 KB)
+# reserve 3: https://github.com/rakshasa/rtorrent.git (4856 stars, 5069 KB)
+# reserve 4: https://github.com/boostorg/beast.git (4821 stars, 14878 KB)
+
+# --- C++ / large ---
+https://github.com/KDE/ghostwriter.git
+https://github.com/zufuliu/notepad4.git
+# reserve 1: https://github.com/CrowCpp/Crow.git (4964 stars, 162540 KB)
+# reserve 2: https://github.com/ztxz16/fastllm.git (4962 stars, 40857 KB)
+# reserve 3: https://github.com/mg-chao/snow-apps.git (4951 stars, 73710 KB)
+# reserve 4: https://github.com/begeekmyfriend/yasea.git (4937 stars, 27326 KB)

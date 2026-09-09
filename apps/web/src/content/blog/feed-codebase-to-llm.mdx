@@ -42,9 +42,12 @@ larger than a chat box will accept.
   README.md`}</After>
 </BeforeAfter>
 
-Those figures are illustrative, but the shape holds on almost any repo: the dependencies
-and build output are the bulk of the bytes and almost never what you want the model to
-read.
+Those figures are illustrative, and which one you are looking at depends on whether the
+project is installed. On a working checkout, `node_modules` really is the bulk of the bytes.
+On a fresh clone it was never committed, so there is nothing there for a filter to take out:
+across 60 public repositories the defaults stripped a median of 3.5% of tokens. Either way
+what is left is the source you wanted the model to read, but only one of the two starts out
+enormous.
 
 ## Cut the noise first
 
@@ -99,9 +102,15 @@ not the right move for everything.
 If the repo is too large to fit even after filtering, or you want the model to edit across
 many files and iterate, a single paste is the wrong shape. An agentic coding tool that
 reads files on demand, or a retrieval setup that fetches only the relevant parts, will
-serve you better there. Command-line packers like Repomix and gitingest cover the same
-bundle-a-git-repo need in the terminal; FileConcat's difference is that it runs in the
-browser, handles documents as well as code, and shows the token cost as you build.
+serve you better there.
+
+Command-line packers like Repomix, gitingest and code2prompt cover the same
+bundle-a-git-repo need from the terminal. We ran all three against FileConcat over the same
+60 repositories, and at the median the four bundles land within 8% of each other, so the
+choice is rarely about size:
+[what each tool costs on the same repository](/blog/repomix-vs-gitingest-vs-code2prompt) has
+the distribution and the one case where the gap reached 16.4x. FileConcat's own difference
+is the browser, documents alongside code, and a token count that moves as you build.
 
 <Callout type="warn" title="A snapshot, not a live connection">
   A pasted bundle is a point-in-time copy. The model does not see edits you make after you
@@ -114,6 +123,12 @@ browser, handles documents as well as code, and shows the token cost as you buil
 Because the ceiling is real, it helps to know the size of a bundle before you paste it.
 FileConcat counts tokens live as you include and exclude files, so you can trim until it
 fits instead of finding out when the chat box refuses it.
+
+How large is a repository, in practice? We bundled 60 public ones and counted: the median
+came out at 246,424 tokens, and only 21 of the 60 fit inside a 128K context window. That
+is the number worth having before you plan a paste, and
+[how many tokens a codebase is](/blog/how-many-tokens-is-a-codebase) has the whole
+distribution with the four common context windows drawn across it.
 
 <Callout type="tip">
   Bundling a handful of loose files instead of a whole repo? The

@@ -4,7 +4,7 @@ import { AppFlow } from "~/components/app/app-flow";
 import { DropZone, type DropZoneProps } from "~/components/app/drop-zone";
 import { InfoCard } from "~/components/app/info-card";
 import { MarketingSection } from "~/components/app/marketing/section";
-import { MockWindow } from "~/components/app/marketing";
+import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
 
 import { HR_FAQ } from "./hr-faq";
 
@@ -338,6 +338,11 @@ function ClosingCta() {
           <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
         </button>
       </div>
+      <FurtherReading>
+        Most of what an HR folder holds is a Word document.{" "}
+        <ProseLink to="/blog/convert-docx-to-text-for-llm">Converting a Word document to text</ProseLink>
+        {" "}covers the tables and the reading order, which are the parts that break.
+      </FurtherReading>
     </MarketingSection>
   );
 }

@@ -12,9 +12,27 @@ import {
 import { DropZone } from "~/components/app/drop-zone";
 import { useFileIngestion } from "~/hooks/use-file-ingestion";
 import { useFilterState } from "~/hooks/use-filter-state";
+import { useSelectedModel } from "~/hooks/use-selected-model";
 import { estimateTokenCount, preloadTokenEstimator } from "~/lib/tokens";
 
+import { ContextFunnel } from "./context-funnel";
+import { FitCurve, type FitCurveProps } from "./fit-curve";
+
 type Phase = "idle" | "processing" | "result";
+
+/** The article's published spread, for the reader to be placed on. */
+export type TryItDistribution = Omit<FitCurveProps, "you">;
+
+export type TryItProps = {
+  title?: string;
+  hint?: string;
+  /**
+   * Pass the same points the article's static figure uses and the reader's own
+   * count lands on that axis. This is the whole reason the strip exists: it
+   * turns a published distribution into the reader's own answer.
+   */
+  distribution?: TryItDistribution;
+};
 
 /**
  * The inline "now do it with your files" moment. A real, contained slice of the
@@ -32,10 +50,8 @@ type Phase = "idle" | "processing" | "result";
 export default function TryIt({
   title = "Try it with your own files",
   hint = "Drop a folder or a few files. It runs here in your browser, nothing is uploaded.",
-}: {
-  title?: string;
-  hint?: string;
-}) {
+  distribution,
+}: TryItProps) {
   const ingestion = useFileIngestion(DEFAULT_CONFIG);
   const filter = useFilterState({
     entries: ingestion.entries,
@@ -62,13 +78,6 @@ export default function TryIt({
       .map((e) => ({ path: e.path, content: e.content }));
   }, [ingestion.entries, filter.fileStatuses]);
 
-  const tokens = useMemo(() => {
-    if (includedContents.length === 0) return 0;
-    return estimateTokenCount(includedContents.map((c) => c.content).join("\n"));
-    // estimatorReady retriggers the estimate once tiktoken finishes loading.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [includedContents, estimatorReady]);
-
   const previewText = useMemo(() => {
     if (includedContents.length === 0) return "";
     const paths = includedContents.map((f) => f.path);
@@ -81,7 +90,65 @@ export default function TryIt({
     });
   }, [includedContents, filter.fileStatuses]);
 
+  // The artifact, not the raw contents: the wrapper and the file tree are sent
+  // to the model too. Same rule as the tool's own counter.
+  const tokens = useMemo(() => {
+    if (previewText.length === 0) return 0;
+    return estimateTokenCount(previewText);
+    // estimatorReady retriggers the estimate once tiktoken finishes loading.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewText, estimatorReady]);
+
   const filesCombined = filter.includedFileCount;
+
+  /**
+   * The same three stages the article measures over 60 repositories, for the
+   * one folder in front of the reader.
+   *
+   * Each stage comes from the layer that actually decides it. `entries` is NOT
+   * the text-eligible count: a binary is ingested like anything else and only
+   * `validations[path].included` records that ingest rejected it, while the
+   * hidden / ignore-list / gitignore layer runs later in `useFilterState`.
+   * Reading stage two off `entries` reported every dropped file as readable.
+   * Clamped monotonic because a funnel that widens is a bug drawn as a finding.
+   */
+  const funnelStages = useMemo(() => {
+    const records = Object.values(ingestion.validations);
+    const found = Math.max(records.length, ingestion.entries.length);
+    const eligible = records.length
+      ? records.filter((v) => v.included).length
+      : ingestion.entries.length;
+    return [
+      { label: "files you dropped", value: found },
+      // Measured with a 6-file fixture on 2026-09-07: a hidden file is rejected
+      // at ingest here, not by the pattern layer, so it belongs on this line and
+      // not the next one. The article's funnel attributes it differently because
+      // the CLI measurement walks the tree itself.
+      {
+        label: "text the engine can read",
+        value: eligible,
+        lost: "binary, hidden, or no readable text",
+      },
+      {
+        label: "kept by the defaults",
+        value: Math.min(filesCombined, eligible),
+        lost: "the default ignore list, or a .gitignore",
+      },
+    ];
+  }, [ingestion.validations, ingestion.entries.length, filesCombined]);
+
+  const { selectedModel } = useSelectedModel();
+
+  // Omitted rather than defaulted when no model is known: a share of an unnamed
+  // window is a number nobody can check. Same rule as the result screen.
+  const funnelModel = useMemo(() => {
+    if (!selectedModel || tokens === 0) return undefined;
+    return {
+      name: selectedModel.name,
+      contextShare: tokens / selectedModel.contextLimit,
+      inputCost: (tokens / 1_000_000) * selectedModel.inputCost,
+    };
+  }, [selectedModel, tokens]);
 
   const runDrop = useCallback(
     async (run: () => Promise<void>) => {
@@ -162,22 +229,24 @@ export default function TryIt({
             </div>
           ) : (
             <>
-              <div
-                className="flex flex-wrap items-baseline gap-x-2 gap-y-1"
-                role="status"
-                aria-live="polite"
-              >
-                <span className="font-display text-ink text-[17px] font-semibold">
-                  {filesCombined} {filesCombined === 1 ? "file" : "files"} combined
-                </span>
-                <span className="text-ink-faint" aria-hidden="true">
-                  /
-                </span>
-                <span className="text-ink-secondary font-mono text-[13px]">
-                  <span className="text-primary">~{tokens.toLocaleString()}</span> tokens
-                </span>
+              {/* The sentence that used to be the visible headline. The funnel
+                  below now carries both numbers, so keeping it on screen would
+                  print them twice; kept for the live announcement, unchanged. */}
+              <div className="sr-only" role="status" aria-live="polite">
+                {filesCombined} {filesCombined === 1 ? "file" : "files"} combined, about{" "}
+                {tokens.toLocaleString()} tokens.
               </div>
-              <p className="text-ink-muted mt-1.5 text-[13px] leading-relaxed">
+              <ContextFunnel
+                form="ledger"
+                label="your drop"
+                stages={funnelStages}
+                tokens={tokens}
+                model={funnelModel}
+              />
+              {distribution && tokens > 0 ? (
+                <FitCurve {...distribution} you={tokens} />
+              ) : null}
+              <p className="text-ink-muted mt-3 text-[13px] leading-relaxed">
                 Filtered with the defaults: lockfiles, build output, and binaries are left out. The
                 full tool lets you change what is in or out.
               </p>

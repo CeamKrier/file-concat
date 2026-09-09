@@ -1,5 +1,7 @@
 import type { ComponentProps } from "react";
 
+import { cn } from "~/lib/utils";
+
 /**
  * The shared MDX element styles (docs + blog prose). Kept in its own module so
  * both MDXProviderWrapper (docs) and BlogMDXProviderWrapper (blog) can import it
@@ -61,16 +63,27 @@ export const baseMdxComponents = {
     if (!props.className) {
       return (
         <code
-          className="border-border/60 bg-surface-inset text-ink rounded-[5px] border px-1.5 py-0.5 font-mono text-[0.85em]"
+          // `break-words` because a long unbroken run inside inline code (a file
+          // path, a URL) has no break opportunity and pushed the whole page into
+          // a horizontal scroll at 320 and 390px. Only the runs that would
+          // overflow are broken; short spans are untouched.
+          className="border-border/60 bg-surface-inset text-ink rounded-[5px] border px-1.5 py-0.5 font-mono text-[0.85em] break-words"
           {...props}
         />
       );
     }
     return <code {...props} />;
   },
-  pre: (props: ComponentProps<"pre">) => (
+  // `className` is pulled out and merged rather than spread over: rehype-prism-plus
+  // puts `language-<lang>` on the pre, and `{...props}` after a className replaces
+  // it, which silently dropped `overflow-x-auto` from every code fence on the site.
+  // The prism class has to survive too, because the theme CSS selects on it.
+  pre: ({ className, ...props }: ComponentProps<"pre">) => (
     <pre
-      className="border-border bg-surface-inset text-code rounded-card mb-7 overflow-x-auto border p-5 font-mono text-[13px] leading-[1.7]"
+      className={cn(
+        "border-border bg-surface-inset text-code rounded-card mb-7 overflow-x-auto border p-5 font-mono text-[13px] leading-[1.7]",
+        className,
+      )}
       {...props}
     />
   ),

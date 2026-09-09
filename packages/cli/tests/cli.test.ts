@@ -77,6 +77,9 @@ describe("file-concat CLI", () => {
       expect(written).toContain("<codebase project=");
       expect(written).toContain("README.md");
       expect(written).toContain("index.ts");
+      // The default ignore list carries one test convention, `*.test.*`, so the
+      // fixture's `index.test.ts` is out without any flag being passed.
+      expect(written).not.toContain("index.test.ts");
     });
 
     it("--style markdown switches format and default extension", async () => {
@@ -122,10 +125,12 @@ describe("file-concat CLI", () => {
     it("--exclude pattern filters matches out of the output", async () => {
       const dir = copyFixture("text-project");
       const outFile = path.join(makeTempDir("excl"), "out.xml");
-      const result = await runCli([dir, "--exclude", "*.test.ts", "-o", outFile]);
+      // Not a test-file pattern: `*.test.*` is already in the default ignore
+      // list, so excluding one would pass with the flag broken.
+      const result = await runCli([dir, "--exclude", "util.ts", "-o", outFile]);
       expect(result.exitCode).toBe(0);
       const written = fs.readFileSync(outFile, "utf-8");
-      expect(written).not.toContain("index.test.ts");
+      expect(written).not.toContain("util.ts");
       expect(written).toContain("index.ts");
     });
 

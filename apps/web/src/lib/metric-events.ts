@@ -307,6 +307,68 @@ export const METRIC_EVENTS = [
    */
   "tree_edit",
   /**
+   * The settings drawer was opened, and by which door: `adjust` the result's
+   * "Adjust what's included", `empty` the same offer on the nothing-combined
+   * screen, `model` the result's context-fit line asking for the picker.
+   *
+   * **The denominator every other drawer counter was missing.** `tree_edit`,
+   * `tree_press`, `filter_edited` and `model_picked` are all written from inside
+   * this drawer, so each of them says what happened *given* it was open, and
+   * until this existed the population that opened it and touched nothing was
+   * invisible — which is exactly the population that says whether the panel is
+   * legible. Read as COUNT(DISTINCT run) over Runs carrying a `bundle_size` row.
+   *
+   * One row per open, not per Run, deliberately: a reopen is its own signal,
+   * because it means the first pass did not settle the question.
+   */
+  "drawer_opened",
+  /**
+   * Which file-tree control a press landed on, `n` presses each: `row-file` /
+   * `row-folder` a click anywhere on the row, `box-file` / `box-folder` a click
+   * on the tri-state checkbox itself, `arrow` the chevron cluster that opens a
+   * folder.
+   *
+   * **The unit is one press, not one file, so this is never comparable with
+   * `tree_edit`**: a single `row-folder` press can move two hundred files while
+   * `box-file` moves one. What it answers is which targets people actually hit,
+   * which is the question the row-wide target was built on — before it existed a
+   * name click did nothing at all and only two 16px icons worked, and the clicks
+   * landing on names were visible in session recordings and in no counter.
+   *
+   * `arrow` rides in the same counter because it is the same question, but it
+   * moves no files: a Run whose only rows here are `arrow` was browsing the
+   * tree, not curating it. That is also the only evidence for whether
+   * auto-expanding every folder on load is the right default.
+   *
+   * Written at drawer close beside `tree_edit`, from a tally the tree keeps
+   * itself, so a two-hundred-file sweep costs one row rather than one per file.
+   */
+  "tree_press",
+  /**
+   * Files a folder sweep moved and then moved straight back, in `n`. Written
+   * once at drawer close, over the whole editing session.
+   *
+   * The accident signature the row-wide target owes: clicking a folder name now
+   * puts every file under it in or out at once, and the only evidence somebody
+   * did not mean it is that they immediately undid it. Counted in files rather
+   * than presses because the magnitude is the harm — a two-file folder flipped
+   * twice is noise, two hundred is not.
+   *
+   * A reversal is the same folder path flipped the opposite way inside ten
+   * seconds. The window biases hard toward accidents: deliberate exploration
+   * ("what does this look like without docs") takes longer than that, so this
+   * undercounts on purpose and a row here is closer to evidence than to a hint.
+   *
+   * `n` is the count of files the sweep addressed, which on the include
+   * direction is a ceiling: `toggleMany` skips binaries inside an include sweep
+   * and this counts them.
+   *
+   * Denominator: Runs carrying a `tree_press` row whose value is `row-folder` or
+   * `box-folder`, never all Runs — a Run that never swept a folder could not
+   * have reversed one.
+   */
+  "tree_reverted",
+  /**
    * Someone changed what the filters do: `ignore` or `include` for a typed
    * pattern, `preset` for a quick-preset chip. The chip rewrites both lists in
    * one press and is a different act from typing, so it carries its own value or

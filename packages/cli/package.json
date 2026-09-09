@@ -1,63 +1,73 @@
 {
-    "name": "@fileconcat/cli",
-    "version": "0.4.0",
-    "description": "Privacy-first CLI for concatenating files into LLM context, with built-in text extraction for PDF, Office, RTF, Jupyter notebooks, SRT/VTT captions and EML messages",
-    "type": "module",
-    "main": "./dist/index.js",
-    "bin": {
-        "file-concat": "./dist/index.js"
-    },
-    "engines": {
-        "node": ">=18"
-    },
-    "files": [
-        "dist"
-    ],
-    "scripts": {
-        "start": "tsx src/index.ts",
-        "dev": "tsx src/index.ts",
-        "build": "tsup",
-        "prepublishOnly": "pnpm run build",
-        "check": "tsc --noEmit",
-        "test": "pnpm run build && vitest run"
-    },
-    "keywords": [
-        "cli",
-        "llm",
-        "concatenate",
-        "files",
-        "context",
-        "ai",
-        "chatgpt",
-        "claude",
-        "gemini",
-        "file-concat",
-        "repomix"
-    ],
-    "author": "Emre Çakır <hello@ceamkrier.com>",
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/CeamKrier/file-concat.git",
-        "directory": "packages/cli"
-    },
-    "homepage": "https://fileconcat.com",
-    "dependencies": {
-        "commander": "^12.0.0",
-        "file-type": "^22.0.1",
-        "glob": "^11.0.0",
-        "officeparser": "^7.6.1",
-        "postal-mime": "^2.7.5"
-    },
-    "devDependencies": {
-        "@fileconcat/core": "workspace:*",
-        "@types/node": "^22.0.0",
-        "execa": "^9.6.1",
-        "tsup": "^8.0.0",
-        "typescript": "^5.0.0",
-        "vitest": "^4.1.8"
-    },
-    "publishConfig": {
-        "access": "public"
-    }
+  "name": "@fileconcat/cli",
+  "version": "0.4.0",
+  "description": "Privacy-first CLI for concatenating files into LLM context, with built-in text extraction for PDF, Office, RTF, Jupyter notebooks, SRT/VTT captions and EML messages",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "file-concat": "./dist/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx src/index.ts",
+    "build": "tsup",
+    "prepublishOnly": "pnpm run build",
+    "check": "tsc --noEmit",
+    "measure-funnel": "tsx scripts/measure-repo-funnel.ts",
+    "measure-overhead": "tsx scripts/measure-bundle-overhead.ts",
+    "analyze-overhead": "tsx scripts/analyze-bundle-overhead.ts",
+    "test": "pnpm run build && vitest run",
+    "analyze-funnel": "tsx scripts/analyze-repo-funnel.ts",
+    "measure-extraction": "tsx scripts/measure-extraction-quality.ts",
+    "format-eval": "tsx scripts/measure-format-eval.ts",
+    "measure-tools": "tsx scripts/measure-tool-comparison.ts",
+    "analyze-tools": "tsx scripts/analyze-tool-comparison.ts"
+  },
+  "keywords": [
+    "cli",
+    "llm",
+    "concatenate",
+    "files",
+    "context",
+    "ai",
+    "chatgpt",
+    "claude",
+    "gemini",
+    "file-concat",
+    "repomix"
+  ],
+  "author": "Emre Çakır <hello@ceamkrier.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CeamKrier/file-concat.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://fileconcat.com",
+  "dependencies": {
+    "commander": "^12.0.0",
+    "file-type": "^22.0.1",
+    "glob": "^11.0.0",
+    "officeparser": "^7.6.1",
+    "postal-mime": "^2.7.5"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.124.0",
+    "@dqbd/tiktoken": "^1.0.22",
+    "@fileconcat/core": "workspace:*",
+    "@types/node": "^22.0.0",
+    "execa": "^9.6.1",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^4.1.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }
