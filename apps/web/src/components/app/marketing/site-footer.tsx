@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { SiGithub, SiNpm } from "@icons-pack/react-simple-icons";
+import { SiGithub, SiGooglechrome, SiNpm } from "@icons-pack/react-simple-icons";
 
 import BMCLogo from "~/components/bmc-logo";
 import { hasPublishedPosts } from "~/lib/blog";
@@ -118,6 +118,15 @@ export function SiteFooter() {
             >
               <SiNpm className="h-3.5 w-3.5" />
               CLI on npm
+            </a>
+            <a
+              href="https://chromewebstore.google.com/detail/fileconcat-clipper/nhjmkijlimliapgbidajgbkangddnlhn"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={linkClass}
+            >
+              <SiGooglechrome className="h-3.5 w-3.5" />
+              Chrome extension
             </a>
           </div>
         </nav>
