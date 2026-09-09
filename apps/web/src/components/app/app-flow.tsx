@@ -31,6 +31,7 @@ import {
 } from "~/lib/metrics";
 import { tagSurface } from "~/lib/clarity-tags";
 import { ocrLanguageName, ocrLanguageOptions } from "~/lib/ocr-language";
+import { flushTreeInteractions } from "~/components/file-tree/interaction-tally";
 
 import { MarketingSections, SiteFooter } from "./marketing";
 
@@ -148,9 +149,10 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // Which part of the drawer the opener was asking for. Only the result's fit
   // line asks for the model picker; every other door lands at the top.
   const [settingsFocusModel, setSettingsFocusModel] = useState(false);
-  const openSettings = (focusModel = false) => {
-    setSettingsFocusModel(focusModel);
+  const openSettings = (door: "adjust" | "empty" | "model" = "adjust") => {
+    setSettingsFocusModel(door === "model");
     setSettingsOpen(true);
+    track("drawer_opened", door);
   };
   const [readingOpen, setReadingOpen] = useState(false);
   // The source identity shown under the spinner (import slug/host, else "").
@@ -477,6 +479,9 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       trimmed.current[side] = filter.manualOverrides[side];
       trackAmount("tree_edit", { value: side, n: delta });
     }
+    // Which control did the moving, and whether a folder sweep was undone on
+    // the spot. `tree_edit` counts files and cannot answer either.
+    flushTreeInteractions();
   };
 
   // --- flow control ---------------------------------------------------------
@@ -794,7 +799,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               droppedFiles={droppedFiles}
               kind={emptyKind}
               onStartOver={startOver}
-              onAdjust={adjustableCount > 0 ? () => openSettings() : undefined}
+              onAdjust={adjustableCount > 0 ? () => openSettings("empty") : undefined}
               byInclude={excludedByInclude}
               isReading={ingestion.isReading}
               readProgress={ingestion.readProgress}
@@ -850,8 +855,8 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               readDeferred={readDeferred}
               readLanguageNote={readLanguageNote}
               onCheckReading={() => setReadingOpen(true)}
-              onAdjust={() => openSettings()}
-              onChangeModel={() => openSettings(true)}
+              onAdjust={() => openSettings("adjust")}
+              onChangeModel={() => openSettings("model")}
               bigBundle={bigBundle}
               weight={weight}
               splitMode={output.selectedFormat}
