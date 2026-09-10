@@ -16,9 +16,9 @@ import { ChevronRight } from "lucide-react";
  */
 const ANNOUNCEMENT = {
   label: "New",
-  body: "Clip any web page into your bundle",
-  to: "/clipper",
-} as const satisfies { label: string; body: string; to: string } | null;
+  body: "Repomix, gitingest, code2prompt and FileConcat, measured over 60 repositories",
+  to: "/blog/repomix-vs-gitingest-vs-code2prompt",
+} satisfies { label: string; body: string; to: string } | null;
 
 export function HeroAnnouncement() {
   if (!ANNOUNCEMENT) return null;
@@ -26,12 +26,12 @@ export function HeroAnnouncement() {
   return (
     <Link
       to={ANNOUNCEMENT.to}
-      className="border-hairline bg-surface-alt text-ink-secondary hover:border-border hover:text-ink rounded-pill focus-visible:ring-ring focus-visible:ring-offset-background group inline-flex items-center gap-2 whitespace-nowrap border py-1 pl-1.5 pr-3 text-[12.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+      className="text-ink-secondary hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background group inline-flex max-w-full items-center gap-2.5 rounded-sm text-left text-[13.5px] leading-[1.35] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
     >
-      <span className="bg-primary text-primary-foreground rounded-pill px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em]">
+      <span className="text-primary shrink-0 rounded-[6px] border border-[oklch(var(--primary)/0.4)] px-1.5 py-0.5 font-mono text-[10.5px] font-semibold tracking-[0.08em]">
         {ANNOUNCEMENT.label}
       </span>
-      {ANNOUNCEMENT.body}
+      <span className="min-w-0">{ANNOUNCEMENT.body}</span>
       <ChevronRight
         className="text-ink-muted group-hover:text-ink h-3.5 w-3.5 shrink-0 transition-transform duration-200 motion-safe:group-hover:translate-x-0.5"
         strokeWidth={2.5}

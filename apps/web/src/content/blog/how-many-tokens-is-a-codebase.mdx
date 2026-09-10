@@ -4,6 +4,7 @@ description: "How many tokens is a codebase? We tokenized 60 public repositories
 date: "2026-09-07"
 author: "CeamKrier"
 draft: false
+kind: "research"
 ---
 
 import bundleSizes from "~/data/repo-funnel-values.json";
@@ -184,6 +185,10 @@ The category map (source, tests, documentation, configuration, lockfiles, genera
 and is a judgment call, not a standard. Nothing in a repository declares that a path is a test. The rules
 are ordered and first match wins, because a vendored test is vendored and a lockfile is a lockfile before
 it is JSON configuration. Print the full map with `pnpm --filter @fileconcat/cli measure-funnel --rules`.
+The map was revised on 2026-09-10 for the tool comparison: an eighth category, assets, for images in a
+text encoding such as SVG, directory names matched case-insensitively, `3rdparty` as vendored, and more
+lockfile names including `bun.lock`. The composition below was measured under the seven-category map
+above and has not been re-cut: an SVG counted as source there would count as an asset now.
 
 ## What 60 repositories actually weigh
 

@@ -9,12 +9,24 @@ export const DEFAULT_IGNORE_PATTERNS = [
   "node_modules",
   "bower_components",
   "vendor",
+  // Vendored code under the other names it travels by. Measured 2026-09-10 over
+  // the same 60 repositories: one of them, KDE's ghostwriter, kept 9,374,207
+  // tokens in our bundle against gitingest's 2,843,609, and 90.4% of ours sat
+  // under `3rdparty/`.
+  "3rdparty",
+  "third_party",
+  "thirdparty",
 
   // Lock files
   "package-lock.json",
   "yarn.lock",
   "pnpm-lock.yaml",
   "bun.lockb",
+  // Bun 1.2 writes a text lockfile under this name. Measured 2026-09-10 over the
+  // same 60 repositories: five of them carried one and it reached our bundle in
+  // every case, 303,092 tokens in the largest, while Repomix and gitingest
+  // dropped it.
+  "bun.lock",
   "Cargo.lock",
   "Gemfile.lock",
   "composer.lock",

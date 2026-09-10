@@ -17,8 +17,11 @@ Two textareas drive pattern filtering:
 - **Include** is empty by default. When you put glob patterns in it,
   only files matching at least one of them survive.
 - **Ignore** carries a default list (the same list the CLI uses) of
-  common build outputs, lockfiles, and binary directories. Patterns you
-  add here exclude their matches.
+  common build outputs, lockfiles, binary directories and, since
+  2026-09-09, test files by the naming convention of each ecosystem
+  (`*.test.ts`, `*_test.go`, `test_*.py`, `*Test.java` and their
+  siblings). Patterns you add here exclude their matches; delete a
+  default pattern to let its files through.
 
 Both textareas accept a **comma-separated list of globs**. Newlines
 between commas are fine for readability. The two interact in one
@@ -26,6 +29,16 @@ surprising way described in
 [Filter precedence](/docs/filter-precedence): if Include has any
 content, Ignore is skipped entirely. Treat Include as an exclusive
 whitelist when you use it.
+
+## Hidden files
+
+A file whose own name starts with a dot (`.gitignore`, `.editorconfig`,
+`.env`) is held back before any pattern runs and shows dimmed in the
+tree with the reason "Hidden file"; tick it to include it. A directory
+that starts with a dot is not held back here: `.github/workflows/ci.yml`
+comes through unless a pattern names it. The CLI walks differently and
+skips everything under a dot directory as well; see
+[CLI usage](/docs/cli-usage) for the config key that turns that off.
 
 ## Pattern semantics
 

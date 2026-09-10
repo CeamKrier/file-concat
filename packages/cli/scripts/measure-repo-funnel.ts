@@ -65,6 +65,7 @@ import { fileURLToPath } from "node:url";
 import { encoding_for_model, type TiktokenModel } from "@dqbd/tiktoken";
 import { assembleOutput, generateFileTree, generateProjectName } from "@fileconcat/core";
 
+import { CATEGORY_RULES, base, categorize, type Category } from "./categories.js";
 import { MAX_FILE_BYTES, cloneRepo, walkRepo, type ExcludedBy } from "./repo-walk.js";
 
 /** Must match apps/web/src/lib/tokens-client.ts, or the published number is not the tool's. */
@@ -77,119 +78,6 @@ const SLICE_CHARS = 4 * 1024;
 
 const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
-type Category =
-  | "source"
-  | "tests"
-  | "docs"
-  | "config"
-  | "lockfiles"
-  | "generated"
-  | "vendored";
-
-/**
- * Ours, ordered, first match wins. The order is the argument: a vendored test
- * is vendored, and a lockfile is a lockfile before it is JSON config.
- */
-const CATEGORY_RULES: { category: Category; why: string; match: (p: string) => boolean }[] = [
-  {
-    category: "vendored",
-    why: "a directory that holds somebody else's code",
-    match: (p) => hasSegment(p, VENDOR_DIRS),
-  },
-  {
-    category: "lockfiles",
-    why: "a resolved dependency graph, by exact file name",
-    match: (p) => LOCKFILES.has(base(p)),
-  },
-  {
-    category: "generated",
-    why: "build output or a generator's file, by directory or suffix",
-    match: (p) => hasSegment(p, GENERATED_DIRS) || GENERATED_SUFFIX.test(base(p)),
-  },
-  {
-    category: "tests",
-    why: "a test directory, or a name a test runner recognises",
-    match: (p) => hasSegment(p, TEST_DIRS) || TEST_NAME.test(base(p)),
-  },
-  {
-    category: "docs",
-    why: "prose, by extension or by directory",
-    match: (p) => DOC_EXT.test(base(p)) || hasSegment(p, DOC_DIRS),
-  },
-  {
-    category: "config",
-    why: "settings rather than behaviour, by extension or by known name",
-    match: (p) => CONFIG_EXT.test(base(p)) || CONFIG_NAMES.has(base(p)) || base(p).startsWith("."),
-  },
-  { category: "source", why: "everything the other rules did not claim", match: () => true },
-];
-
-const VENDOR_DIRS = new Set([
-  "vendor",
-  "vendors",
-  "third_party",
-  "thirdparty",
-  "node_modules",
-  "external",
-  "Pods",
-  ".yarn",
-]);
-const GENERATED_DIRS = new Set([
-  "dist",
-  "build",
-  "out",
-  "target",
-  ".next",
-  ".nuxt",
-  "coverage",
-  "generated",
-  "__generated__",
-  "__snapshots__",
-]);
-const TEST_DIRS = new Set([
-  "test",
-  "tests",
-  "spec",
-  "specs",
-  "__tests__",
-  "__mocks__",
-  "e2e",
-  "fixtures",
-  "testdata",
-]);
-const DOC_DIRS = new Set(["doc", "docs", "documentation"]);
-const LOCKFILES = new Set([
-  "package-lock.json",
-  "pnpm-lock.yaml",
-  "yarn.lock",
-  "bun.lockb",
-  "Cargo.lock",
-  "poetry.lock",
-  "uv.lock",
-  "Gemfile.lock",
-  "composer.lock",
-  "Pipfile.lock",
-  "pubspec.lock",
-  "mix.lock",
-  "packages.lock.json",
-  "gradle.lockfile",
-  "go.sum",
-  "flake.lock",
-]);
-const CONFIG_NAMES = new Set([
-  "Dockerfile",
-  "Makefile",
-  "Rakefile",
-  "Procfile",
-  "Justfile",
-  "CMakeLists.txt",
-]);
-const GENERATED_SUFFIX = /(\.min\.(js|css)|\.map|\.pb\.go|_pb2\.py|\.g\.dart|\.generated\.\w+|\.snap)$/;
-const TEST_NAME = /(^test_|[._-](test|spec)\.\w+$|Test\.\w+$)/;
-const DOC_EXT = /\.(md|mdx|rst|adoc|txt)$/i;
-const CONFIG_EXT = /\.(json|ya?ml|toml|ini|cfg|conf|properties|env)$/i;
-
-const base = (p: string) => p.slice(p.lastIndexOf("/") + 1);
 /** What the folder would be called after `git clone`, so the bundle header matches. */
 const repoName = (url: string) => base(url).replace(/\.git$/, "");
 
@@ -211,13 +99,6 @@ function estimateBySampling(enc: ReturnType<typeof encoding_for_model>, text: st
   if (sampledChars === 0) return Math.ceil(text.length / 4);
   return Math.ceil((text.length * sampledTokens) / sampledChars);
 }
-const hasSegment = (p: string, set: Set<string>) => p.split("/").slice(0, -1).some((s) => set.has(s));
-
-function categorize(relPath: string): Category {
-  for (const rule of CATEGORY_RULES) if (rule.match(relPath)) return rule.category;
-  return "source";
-}
-
 type FileFact = {
   category: Category;
   tokens: number;

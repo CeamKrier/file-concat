@@ -30,6 +30,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { CATEGORIES } from "./categories.js";
+
 const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 type Bucket = { files: number; tokens: number };
@@ -62,7 +64,6 @@ type Report = {
   };
 };
 
-const CATEGORIES = ["source", "tests", "docs", "config", "lockfiles", "generated", "vendored"];
 /** Windows worth checking a bundle against. Not a catalogue, just the round ones. */
 const WINDOWS = [128_000, 200_000, 1_000_000, 2_000_000];
 

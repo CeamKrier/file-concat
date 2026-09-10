@@ -4,6 +4,7 @@ import { dedupAndPruneModels } from "@fileconcat/core";
 
 // Import static fallback data
 import fallbackData from "~/data/models.json";
+import { sortNewestFirst } from "~/lib/default-model";
 
 interface UseModelsReturn {
   /** All text-capable models */
@@ -108,15 +109,7 @@ export function useModels(): UseModelsReturn {
   // canonical-name-alphabetical for stability).
   const models = useMemo<FilteredModel[]>(() => {
     if (!registry?.textModels) return [];
-    const deduped = dedupAndPruneModels(registry.textModels);
-    return deduped.slice().sort((a, b) => {
-      const aDate = a.releaseDate ?? "";
-      const bDate = b.releaseDate ?? "";
-      if (aDate === bDate) return a.name.localeCompare(b.name);
-      if (!aDate) return 1;
-      if (!bDate) return -1;
-      return bDate.localeCompare(aDate);
-    });
+    return sortNewestFirst(dedupAndPruneModels(registry.textModels));
   }, [registry]);
 
   return {

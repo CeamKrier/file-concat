@@ -27,10 +27,9 @@ export function LandingHero({ linkImport, ...props }: LandingHeroProps) {
           Merge all your files into one. Beat the AI upload limit.
         </h1>
 
-        <p className="text-ink-secondary mt-4 max-w-[520px] text-[17px] leading-relaxed">
-          Hit the file limit on ChatGPT, Claude, or Gemini? Combine a repo, or a folder of PDFs and
-          Office docs, into one clean file. It all gets read right here in your browser, even the
-          PDFs. No setup, no account.
+        <p className="text-ink-secondary mt-4 max-w-[540px] text-pretty text-[17px] leading-relaxed">
+          Drop a folder, files or an archive. You get one file, its count, and what it costs to
+          send, before you paste.
         </p>
       </div>
 

@@ -1,102 +1,110 @@
-import { Archive, Check, FileText, Globe, ImageOff, Link2, Minus } from "lucide-react";
+import { Check, X } from "lucide-react";
 
 import { cn } from "~/lib/utils";
-import { InfoCard } from "../info-card";
-import { MarketingSection } from "./section";
+import { BandGrid, BandIntro, BandLink, BandLinks, FigureTitle, MarketingSection } from "./section";
 
-const COMBINED = ["Code", "Docs", "Configs", "Data"];
-const SKIPPED = ["Images", "node_modules", "*.lock", "Build output"];
-
-const EXTRAS = [
-  { icon: Archive, text: "Archives unpack themselves" },
-  { icon: FileText, text: "PDFs & Office docs get read" },
-  { icon: Link2, text: "Repos & Gists import by URL" },
-  { icon: Globe, text: "Single web pages too" },
-];
-
-/** Section B: reassurance that dropping the whole thing is safe. */
+/** Band 4: the defaults, and the measurement that set them. */
 export function FilteringSection() {
   return (
-    <MarketingSection tone="alt" labelledBy="what-gets-through">
-      <div className="mx-auto max-w-[640px] text-center">
-        <h2
-          id="what-gets-through"
-          className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
-        >
-          Drop the whole thing. The right files get through.
-        </h2>
-        <p className="text-ink-secondary mx-auto mt-4 max-w-[48ch] text-[15px] leading-relaxed">
-          No need to hand-pick. The text gets combined and the noise gets left behind,
-          automatically.
-        </p>
-      </div>
+    <MarketingSection labelledBy="what-gets-through">
+      <BandIntro
+        id="what-gets-through"
+        title="Drop the whole thing. The defaults are measured."
+        className="[&>h2]:max-w-[22ch]"
+      >
+        The list of what gets left out was run over 60 public repositories and changed twice because
+        of what it found.
+      </BandIntro>
 
-      <div className="mx-auto mt-10 grid max-w-[760px] gap-4 sm:grid-cols-2">
-        <div className="rounded-card border border-[oklch(var(--primary)/0.3)] bg-[oklch(var(--primary)/0.06)] p-5">
-          <div className="flex items-center gap-2">
-            <Check className="text-primary h-[18px] w-[18px]" strokeWidth={2.5} />
-            <h3 className="text-ink text-sm font-semibold">Combined</h3>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {COMBINED.map((c) => (
-              <Chip key={c} tone="go">
-                {c}
-              </Chip>
-            ))}
-          </div>
-        </div>
-
-        <div className="border-border bg-surface rounded-card border p-5">
-          <div className="flex items-center gap-2">
-            <Minus className="text-ink-faint h-[18px] w-[18px]" strokeWidth={2.5} />
-            <h3 className="text-ink-secondary text-sm font-semibold">Skipped for you</h3>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {SKIPPED.map((c) => (
-              <Chip key={c} tone="muted">
-                {c}
-              </Chip>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="mx-auto mt-5 flex max-w-[760px] flex-wrap justify-center gap-2">
-        {EXTRAS.map(({ icon: Icon, text }) => (
-          <span
-            key={text}
-            className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1.5 text-[12.5px] font-medium"
-          >
-            <Icon className="text-primary h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-            {text}
-          </span>
-        ))}
-      </div>
-
-      <div className="mx-auto mt-5 max-w-[760px]">
-        <InfoCard tone="info" icon={ImageOff} title="Images are skipped, unless you say otherwise">
-          <p>
-            An image isn&apos;t text, so it never joins the bundle on its own. If one is holding
-            writing, FileConcat can read the writing off it here in the browser, on request.
-            Describing what a picture shows is a different job and still needs a vision model.
+      <BandGrid className="mt-10">
+        <CompositionBar />
+        <div className="min-w-0">
+          <p className="text-ink-secondary mb-3 text-[15px]">
+            Every default can be overridden, with presets.
           </p>
-        </InfoCard>
-      </div>
+          <TreeRows />
+          <BandLinks className="mt-[22px] flex-col items-start gap-y-2.5">
+            <BandLink to="/blog/how-many-tokens-is-a-codebase">
+              How many tokens is a codebase
+            </BandLink>
+            <BandLink to="/docs/file-filtering" tone="muted">
+              The full default list and how to override it
+            </BandLink>
+          </BandLinks>
+        </div>
+      </BandGrid>
     </MarketingSection>
   );
 }
 
-function Chip({ tone, children }: { tone: "go" | "muted"; children: React.ReactNode }) {
+/**
+ * Kept tokens by category, pooled over the sample, from the codebase study
+ * (`/blog/how-many-tokens-is-a-codebase`, measured 2026-09-07). Tests are
+ * hatched rather than tinted: since 2026-09-09 the defaults leave them out by
+ * name, so the segment shows what the bar used to carry and no longer does.
+ */
+const HATCH =
+  "repeating-linear-gradient(135deg,oklch(var(--neutral-info)/0.55) 0 4px,#241f18 4px 8px)";
+const HATCH_SWATCH =
+  "repeating-linear-gradient(135deg,oklch(var(--neutral-info)/0.55) 0 3px,#241f18 3px 6px)";
+
+const SEGMENTS = [
+  { label: "source code", share: 70.6, fill: "oklch(var(--chart-1))" },
+  { label: "tests", share: 17.5, fill: HATCH, swatch: HATCH_SWATCH },
+  { label: "documentation", share: 6.6, fill: "oklch(var(--chart-3))" },
+  { label: "configuration", share: 5.0, fill: "oklch(var(--chart-5))" },
+];
+
+function CompositionBar() {
+  const rest = 100 - SEGMENTS.reduce((sum, s) => sum + s.share, 0);
   return (
-    <span
-      className={cn(
-        "rounded-chip px-2 py-1 font-mono text-[11.5px]",
-        tone === "go"
-          ? "text-go-fg bg-[oklch(var(--primary)/0.1)]"
-          : "text-ink-muted bg-surface-inset",
-      )}
-    >
-      {children}
-    </span>
+    <figure className="border-border-strong bg-surface rounded-chip min-w-0 border p-5">
+      <FigureTitle className="mb-[18px]">What the kept tokens are made of</FigureTitle>
+      <div className="flex h-[34px] gap-px overflow-hidden rounded-[4px]" aria-hidden="true">
+        {SEGMENTS.map((s) => (
+          <span key={s.label} style={{ width: `${s.share}%`, background: s.fill }} />
+        ))}
+        {rest > 0 ? <span className="bg-[#3a3329]" style={{ width: `${rest}%` }} /> : null}
+      </div>
+      <div className="mt-[18px] grid gap-2.5">
+        {SEGMENTS.map((s) => (
+          <div key={s.label} className="grid grid-cols-[12px_1fr_auto] items-center gap-3">
+            <span className="h-3 w-3 rounded-[3px]" style={{ background: s.swatch ?? s.fill }} />
+            <span className="text-ink text-[13.5px]">{s.label}</span>
+            <span className="text-ink font-mono text-[12.5px] tabular-nums">
+              {s.share.toFixed(1)}%
+            </span>
+          </div>
+        ))}
+      </div>
+      <figcaption className="text-ink-muted border-border mt-[18px] border-t pt-3.5 font-mono text-[11.5px] leading-[1.6]">
+        kept tokens pooled over 60 repositories, 39,107 files
+      </figcaption>
+    </figure>
+  );
+}
+
+/** Three rows of the settings drawer's file tree: one in, two out, with why. */
+const ROWS = [
+  { name: "src/", note: "312 files", kept: true },
+  { name: ".github/workflows/", note: "hidden", kept: false },
+  { name: "go.sum", note: "lockfile", kept: false },
+];
+
+function TreeRows() {
+  return (
+    <div className="border-border bg-surface rounded-chip border px-2 py-1.5 font-mono text-[13px]">
+      {ROWS.map((r) => (
+        <div key={r.name} className="flex items-center gap-2.5 px-2 py-[9px]">
+          {r.kept ? (
+            <Check className="text-primary h-3.5 w-3.5 shrink-0" strokeWidth={2.6} />
+          ) : (
+            <X className="text-ink-faint h-3.5 w-3.5 shrink-0" strokeWidth={2.4} />
+          )}
+          <span className={cn(r.kept ? "text-ink" : "text-ink-muted")}>{r.name}</span>
+          <span className="text-ink-faint ml-auto text-[11px]">{r.note}</span>
+        </div>
+      ))}
+    </div>
   );
 }

@@ -79,6 +79,8 @@ import { fileURLToPath } from "node:url";
 
 import { encoding_for_model, type TiktokenModel } from "@dqbd/tiktoken";
 
+import { categorize, isHidden, type Category } from "./categories.js";
+import { DOCUMENT_FIXTURE, writeDocumentFixture } from "./document-fixture.js";
 import { cloneRepo, walkRepo, type ExcludedBy } from "./repo-walk.js";
 
 /** Must match apps/web/src/lib/tokens-client.ts, or the published number is not the tool's. */
@@ -110,7 +112,37 @@ interface ToolResult {
   tokens: number;
   /** Seconds of wall clock, recorded because a tool nobody will wait for is a finding. */
   seconds: number;
+  /**
+   * E5. Bundled files whose own content carries the tool's delimiter at the start
+   * of a line, so a reader splitting on that delimiter recovers the wrong files.
+   */
+  collisions: Weight & { tokens: number };
+  /**
+   * Paths the tool's marker names whose content is not in its bundle. gitingest
+   * writes a FILE: line for a file its own binary check then empties, so a
+   * marker is a claim and the content is the proof.
+   */
+  listedOnly: Weight & { tokens: number };
 }
+
+/**
+ * Where a path's bytes came from. `text` and `document` are what the walk read
+ * (a decoder or a document parser) and the only kinds that weigh anything;
+ * `unwalked` is on disk but the walk read no text from it (binary by the
+ * router, oversize, or a document that yielded nothing); `missing` is in a
+ * bundle and not on disk under that name.
+ */
+type Kind = "text" | "document" | "unwalked" | "missing";
+
+/**
+ * One row per path any tool bundled or the walk read: path, tokens, category by
+ * the codebase study's rules, whether a dot segment hides it from our walk, where
+ * its bytes came from, and which tools carry it. Tokens are counted once per
+ * path with the product's tokenizer and shared by every tool that carries it.
+ * A tool carries a path when its marker names it and, where the walk has text
+ * to look for, the file's first and last 200 characters are in the bundle.
+ */
+type PathRow = [string, number, Category, boolean, Kind, Tool[]];
 
 interface RepoRow {
   url: string;
@@ -121,6 +153,10 @@ interface RepoRow {
   repomix?: ToolResult;
   gitingest?: ToolResult;
   code2prompt?: ToolResult;
+  /** Every path, see PathRow. The whole reason for the 2026-09-10 rerun. */
+  paths?: PathRow[];
+  /** Our own marker count against the walk's kept count: the bundle read back. */
+  roundTrip?: { markers: number; kept: number };
   /** Paths one tool included and another did not, counted rather than listed. */
   agreement?: {
     /** Paths every one of the four bundled. */
@@ -247,6 +283,27 @@ function measure(enc: ReturnType<typeof encoding_for_model>, text: string, secon
   };
 }
 
+/**
+ * The line a reader of each format splits on. A bundled file that carries it
+ * verbatim at the start of a line is indistinguishable from a boundary. Ours and
+ * repomix's close every file with the same tag; gitingest rules a line of 48
+ * equals signs above each FILE: line; code2prompt fences every file with three
+ * backticks, which any Markdown file with a code block also carries.
+ */
+const DELIMITER: Record<Tool, RegExp> = {
+  fileconcat: /^<\/file>/m,
+  repomix: /^<\/file>/m,
+  gitingest: /^={48}$/m,
+  code2prompt: /^```/m,
+};
+
+/** The per-file marker each tool writes, as a path list, from its own output. */
+function pathsIn(tool: Tool, text: string): string[] {
+  if (tool === "gitingest") return digestPaths(text).map((p) => p.replace(/^\.\//, ""));
+  if (tool === "code2prompt") return markdownPaths(text).map((p) => p.replace(/^\.\//, ""));
+  return xmlPaths(text);
+}
+
 const extensionOf = (p: string) => {
   const name = p.slice(p.lastIndexOf("/") + 1);
   const dot = name.lastIndexOf(".");
@@ -294,11 +351,12 @@ async function measureRepo(
   const giText = fs.readFileSync(at("gitingest.txt"), "utf8");
   const cpText = fs.readFileSync(at("code2prompt.md"), "utf8");
 
+  const fcMarkers = pathsIn("fileconcat", fcText);
   const paths: Record<Tool, Set<string>> = {
-    fileconcat: new Set(xmlPaths(fcText)),
-    repomix: new Set(xmlPaths(rmText)),
-    gitingest: new Set(digestPaths(giText).map((p) => p.replace(/^\.\//, ""))),
-    code2prompt: new Set(markdownPaths(cpText).map((p) => p.replace(/^\.\//, ""))),
+    fileconcat: new Set(fcMarkers),
+    repomix: new Set(pathsIn("repomix", rmText)),
+    gitingest: new Set(pathsIn("gitingest", giText)),
+    code2prompt: new Set(pathsIn("code2prompt", cpText)),
   };
 
   // The product's own reason for every path it did not bundle. Recorded at walk
@@ -314,6 +372,79 @@ async function measureRepo(
   // than only counted. A path the walk never saw has no size to borrow.
   const sizeOf = new Map<string, number>();
   for (const file of walk.files) sizeOf.set(file.path, file.text.length);
+
+  // Every path once: what the walk read, plus whatever a competitor's marker
+  // names that the walk read no text from. Only the walk's text weighs anything.
+  const textOf = new Map<string, string>();
+  const kindOf = new Map<string, Kind>();
+  for (const file of walk.files) {
+    textOf.set(file.path, file.text);
+    kindOf.set(file.path, file.document ? "document" : "text");
+  }
+  const union = new Set<string>([...walk.files.map((f) => f.path)]);
+  for (const tool of TOOLS) for (const p of paths[tool]) union.add(p);
+  for (const p of union) {
+    if (textOf.has(p)) continue;
+    let onDisk = false;
+    try {
+      onDisk = fs.statSync(path.join(dir, p)).isFile();
+    } catch {
+      // not on disk under that name
+    }
+    textOf.set(p, "");
+    kindOf.set(p, onDisk ? "unwalked" : "missing");
+  }
+  const tokensOf = new Map<string, number>();
+  for (const [p, text] of textOf) tokensOf.set(p, text ? enc.encode(text).length : 0);
+
+  // A marker is a claim and the content is the proof: gitingest writes a FILE:
+  // line for a path its own binary check then leaves empty, and a first pass
+  // credited it with 46 million tokens it never wrote. Membership is the marker
+  // plus the file's own first and last 200 characters found in the bundle, line
+  // endings normalised. A path with no text to look for keeps the marker's word.
+  const bundle: Record<Tool, string> = {
+    fileconcat: fcText.replace(/\r\n/g, "\n"),
+    repomix: rmText.replace(/\r\n/g, "\n"),
+    gitingest: giText.replace(/\r\n/g, "\n"),
+    code2prompt: cpText.replace(/\r\n/g, "\n"),
+  };
+  const carries = (tool: Tool, p: string): boolean => {
+    if (!paths[tool].has(p)) return false;
+    const text = (textOf.get(p) ?? "").replace(/\r\n/g, "\n").trim();
+    if (!text) return true;
+    return bundle[tool].includes(text.slice(0, 200)) && bundle[tool].includes(text.slice(-200));
+  };
+  const carried: Record<Tool, Set<string>> = {
+    fileconcat: new Set(),
+    repomix: new Set(),
+    gitingest: new Set(),
+    code2prompt: new Set(),
+  };
+  for (const tool of TOOLS) for (const p of paths[tool]) if (carries(tool, p)) carried[tool].add(p);
+
+  const rows: PathRow[] = [...union].sort().map((p) => [
+    p,
+    tokensOf.get(p) ?? 0,
+    categorize(p),
+    isHidden(p),
+    kindOf.get(p) ?? "missing",
+    TOOLS.filter((tool) => carried[tool].has(p)),
+  ]);
+
+  const weighAll = (tool: Tool, keep: (p: string) => boolean) => {
+    const w = { files: 0, chars: 0, tokens: 0 };
+    for (const p of paths[tool]) {
+      if (!keep(p)) continue;
+      const text = textOf.get(p) ?? "";
+      w.files++;
+      w.chars += text.length;
+      w.tokens += tokensOf.get(p) ?? 0;
+    }
+    return w;
+  };
+  const collisionsOf = (tool: Tool) =>
+    weighAll(tool, (p) => carried[tool].has(p) && DELIMITER[tool].test(textOf.get(p) ?? ""));
+  const listedOnlyOf = (tool: Tool) => weighAll(tool, (p) => !carried[tool].has(p));
   const weigh = (): Weight => ({ files: 0, chars: 0 });
   const add = (w: Weight, p: string) => {
     w.files++;
@@ -362,10 +493,32 @@ async function measureRepo(
     url,
     commit,
     pinned,
-    fileconcat: { files: paths.fileconcat.size, ...measure(enc, fcText, fcSeconds) },
-    repomix: { files: paths.repomix.size, ...measure(enc, rmText, rmSeconds) },
-    gitingest: { files: paths.gitingest.size, ...measure(enc, giText, giSeconds) },
-    code2prompt: { files: paths.code2prompt.size, ...measure(enc, cpText, cpSeconds) },
+    fileconcat: {
+      files: paths.fileconcat.size,
+      ...measure(enc, fcText, fcSeconds),
+      collisions: collisionsOf("fileconcat"),
+      listedOnly: listedOnlyOf("fileconcat"),
+    },
+    repomix: {
+      files: paths.repomix.size,
+      ...measure(enc, rmText, rmSeconds),
+      collisions: collisionsOf("repomix"),
+      listedOnly: listedOnlyOf("repomix"),
+    },
+    gitingest: {
+      files: paths.gitingest.size,
+      ...measure(enc, giText, giSeconds),
+      collisions: collisionsOf("gitingest"),
+      listedOnly: listedOnlyOf("gitingest"),
+    },
+    code2prompt: {
+      files: paths.code2prompt.size,
+      ...measure(enc, cpText, cpSeconds),
+      collisions: collisionsOf("code2prompt"),
+      listedOnly: listedOnlyOf("code2prompt"),
+    },
+    paths: rows,
+    roundTrip: { markers: fcMarkers.length, kept: walk.kept.length },
     agreement: {
       inAll,
       missedByUs,
@@ -374,6 +527,46 @@ async function measureRepo(
       missedPerTool,
     },
   };
+}
+
+/**
+ * E4. One source file and one document of each office format, each carrying a
+ * sentence found nowhere else. `listed` is the path in the tool's own per-file
+ * marker; `text` is the sentence in the bundle. A tool can list a document
+ * without its text, which is the difference between a tree and a reader.
+ *
+ * Outputs go to a separate directory: the first version of this probe wrote them
+ * beside the fixture and the tools packed each other's bundles.
+ */
+function measureDocumentFixture(bins: Bins, enc: ReturnType<typeof encoding_for_model>) {
+  const parent = fs.mkdtempSync(path.join(os.tmpdir(), "fc-docs-"));
+  const dir = path.join(parent, "demo-docs");
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), "fc-docs-out-"));
+  const at = (name: string) => path.join(work, name);
+  writeDocumentFixture(dir);
+
+  try {
+    run(["pnpm", "exec", "tsx", CLI_ENTRY, dir, "--stdout", "-q"], CLI_DIR, at("fileconcat.txt"));
+    run([...bins.repomix, "--stdout"], dir, at("repomix.txt"));
+    run([...bins.gitingest, ".", "-o", at("gitingest.txt")], dir, at("gitingest.log"));
+    run([...bins.code2prompt, ".", "-O", at("code2prompt.txt")], dir, at("code2prompt.log"));
+
+    const results: Record<string, Record<string, { listed: boolean; text: boolean }>> = {};
+    const tokens: Record<string, number> = {};
+    for (const tool of TOOLS) {
+      const text = fs.readFileSync(at(`${tool}.txt`), "utf8");
+      const listed = new Set(pathsIn(tool, text));
+      tokens[tool] = enc.encode(text).length;
+      results[tool] = {};
+      for (const [file, sentence] of Object.entries(DOCUMENT_FIXTURE)) {
+        results[tool][file] = { listed: listed.has(file), text: text.includes(sentence) };
+      }
+    }
+    return { files: DOCUMENT_FIXTURE, tokens, results };
+  } finally {
+    fs.rmSync(parent, { recursive: true, force: true });
+    fs.rmSync(work, { recursive: true, force: true });
+  }
 }
 
 /**
@@ -504,12 +697,18 @@ async function main() {
   const workRoot = fs.mkdtempSync(path.join(os.tmpdir(), "fc-tools-"));
   const rows: RepoRow[] = [];
   let floor: ReturnType<typeof measureFixedFloor> | { error: string };
+  let documents: ReturnType<typeof measureDocumentFixture> | { error: string };
 
   try {
     try {
       floor = measureFixedFloor(bins, enc);
     } catch (err) {
       floor = { error: err instanceof Error ? err.message : String(err) };
+    }
+    try {
+      documents = measureDocumentFixture(bins, enc);
+    } catch (err) {
+      documents = { error: err instanceof Error ? err.message : String(err) };
     }
 
     for (const [i, url] of urls.entries()) {
@@ -551,13 +750,20 @@ async function main() {
       "onlyUs is an extension histogram, not an attribution. A competitor's reason for dropping a file is not observable from its output, so nothing is claimed about it.",
       "Every disagreement is weighed as well as counted, in characters read by the walk, because seventeen dropped CI workflows and one dropped lockfile are the same count and not the same bundle. A path the walk never saw contributes to files and not to chars.",
       "The wrapper floor is one directory named demo holding one 12-byte file. It is the cost before a tool has said anything about your files, and it is a floor: file trees and per-file markers grow with the file count and none of that growth is in it. The directory is named rather than random because two tools write its name into their header.",
+      "paths lists every path any tool named or the walk read, once per repository: path, tokens, category, hidden, kind, tools. Tokens are counted once per path with the product's tokenizer from the walk's own read of the file, so a tool's share of a category is a sum over the paths it carries. Category is the codebase study's rule map (measure-funnel --rules) applied to every tool's paths unchanged; the analyzer recomputes it from the path with the current rules. hidden is any dot segment, the thing our walk never sees. kind says where the bytes came from: text or document from the walk, which are the only kinds that weigh anything; unwalked for a path on disk the walk read no text from (binary, oversize, or a document that yielded nothing); missing for a path in a bundle and not on disk.",
+      "tools holds the tools that carry the path: the tool's own per-file marker names it and, where the walk has text to look for, the file's first and last 200 characters are in the bundle with line endings normalised. gitingest writes a FILE: line for a path its own binary check then leaves empty, and a marker-only first pass credited it with 46 million tokens it never wrote. listedOnly counts, per tool, the named paths whose content the bundle does not carry.",
+      "collisions counts, per tool, the carried files whose own content carries the tool's delimiter at the start of a line: </file> for the two xml bundles, a line of 48 equals signs for gitingest, three backticks for code2prompt. A reader splitting the bundle on that delimiter recovers the wrong files. roundTrip is our own marker count read back from the bundle against the walk's kept count; the walk lacks the CLI's extension list, so a .key or .dat file the CLI declines opens a gap of one or two that is the walk's, not the bundle's.",
+      "documentFixture is one source file and one pdf, docx, xlsx and pptx, each carrying a sentence found nowhere else, written by the script as the smallest files the formats allow. listed means the path is in the tool's per-file marker, text means the sentence is in the bundle. Outputs are written outside the fixture directory so no tool packs another's bundle.",
     ],
     caveats: [
       "Not a quality ranking. Fewer tokens is only better if the dropped file did not matter, and this measures cost and agreement rather than usefulness.",
       "Not reproducible to the token. glob returns directory order and neither the bundle nor the file tree sorts, which moved a whole bundle by 0.34% on the funnel run. Totals are reproducible to a few tenths of a percent.",
       "A fresh clone is not a working folder: no node_modules, no build output, no local env files. Every tool here is therefore measured on its best case, and the gaps between them on a developer's machine are larger.",
+      "The category map is ours and path-based. A competitor might classify a path differently, and a hidden file is not one category: a CI workflow is source for a CI question and noise for a code question, which is why hidden is a separate flag rather than a category.",
+      "The document fixture measures whether a tool reads a document at all, on the smallest valid file of each format. It says nothing about extraction quality on real documents; measure-extraction does.",
     ],
     wrapperFloor: floor,
+    documentFixture: documents,
     repos: rows,
   };
 
