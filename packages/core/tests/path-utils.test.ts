@@ -109,6 +109,15 @@ describe("shouldSkipPath", () => {
     expect(shouldSkipPath("modules/redis/go.mod")).toBe(false);
   });
 
+  it("skips vendored code under 3rdparty, third_party and thirdparty", () => {
+    // `vendor` was the only vendored-code directory on the list until
+    // 2026-09-10. One repository in 60 kept 90% of its bundle under 3rdparty/.
+    expect(shouldSkipPath("3rdparty/cmark/src/node.c")).toBe(true);
+    expect(shouldSkipPath("src/third_party/zlib/inflate.c")).toBe(true);
+    expect(shouldSkipPath("thirdparty/lib.js")).toBe(true);
+    expect(shouldSkipPath("src/party.ts")).toBe(false);
+  });
+
   it("skips Godot sidecars but keeps scenes and resources", () => {
     // The sidecars are regenerated metadata and a single project brings
     // hundreds of them. Scenes and resources are the project's content, so
