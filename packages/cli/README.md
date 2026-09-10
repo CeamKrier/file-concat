@@ -32,7 +32,7 @@ file-concat ./my-repo --stdout | pbcopy              # pipe content straight to 
 | `-o, --output <file>` | Output path. Defaults to `output.xml`, `output.md`, or `output.txt` based on `--style`. Ignored when `--stdout` is set. |
 | `-s, --style <xml\|markdown\|plain>` | Output format. Defaults to `xml`. |
 | `-m, --max-size <mb>` | Per-file size cap. Files above this are skipped. Defaults to `32`. |
-| `--no-hidden` | Skip dotfiles. |
+| `--no-hidden` | Exclude hidden files and directories. This is already the default; the flag only overrides a config file that set `excludeHiddenFiles: false`. There is no flag that includes them, only the config key. |
 | `--no-binary` | Skip files with known binary extensions. |
 | `-e, --exclude <patterns...>` | Glob patterns to exclude (in addition to the bundled defaults: `node_modules`, `.git`, build outputs, lock files, etc.). |
 | `--no-gitignore` | Do not honor the project's `.gitignore` files. By default every `.gitignore` in the tree (including nested ones) is read and its patterns are applied on top of the bundled defaults. |

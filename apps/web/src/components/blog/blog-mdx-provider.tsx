@@ -4,6 +4,7 @@ import { lazy, Suspense, type ComponentProps, type ReactNode } from "react";
 import { baseMdxComponents } from "~/components/mdx-components";
 import type { BlogSection } from "~/lib/blog";
 
+import { Bars, type BarsProps } from "./bars";
 import { After, Before, BeforeAfter } from "./before-after";
 import { Callout } from "./callout";
 import { Checklist } from "./checklist";
@@ -78,6 +79,7 @@ const blogComponents = {
   KeyFindings,
   ContextFunnel,
   CompositionBar,
+  Bars: (props: BarsProps) => <Bars className="my-8" {...props} />,
   Method,
   Payoff,
   FitCurve,

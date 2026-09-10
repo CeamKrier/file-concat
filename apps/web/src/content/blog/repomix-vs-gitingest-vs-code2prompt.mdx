@@ -1,6 +1,6 @@
 ---
 title: "Repomix vs gitingest vs code2prompt: 60 Repositories Measured"
-description: "Repomix vs gitingest vs code2prompt over the same 60 repositories, one tokenizer, defaults only. The wrapper is 0.16% of a bundle and the filter is everything."
+description: "Repomix vs gitingest vs code2prompt over the same 60 repositories, one tokenizer, defaults only: what each bundle costs, what it is made of, and which one reads a PDF. The wrapper is 0.17% of a bundle and the filter is everything."
 date: "2026-09-09"
 author: "CeamKrier"
 draft: false
@@ -8,15 +8,16 @@ kind: "research"
 ---
 
 A feature matrix tells you which tool has a compress flag. It does not tell you how big the
-file you are about to paste will be, or whether the tools even agree about what belongs in
-it. They do not agree: on one repository in our sample the gap between the cheapest bundle
-and the most expensive was 16.4x, and it was one file.
+file you are about to paste will be, what is in it, or whether the tools even agree about
+what belongs there. They do not agree: on one repository in our sample the gap between the
+cheapest bundle and the most expensive was 16.4x, and it was one file.
 
-So we ran four of them over the same 60 repositories, at their own defaults, and counted
-every output with one tokenizer. A disclosure first, because it should change how you read
-this: FileConcat is ours. That is why the sample, the method and both scripts are named
-below, and why the multiples are measured against each repository's own cheapest bundle
-rather than against us.
+So we ran four of them over the same 60 repositories, at their own defaults, counted every
+output with one tokenizer, and then classified every file in every bundle to see what the
+tokens bought. A disclosure first, because it should change how you read this: FileConcat is
+ours. That is why the sample, the method and the scripts are named below, why the multiples
+are measured against each repository's own cheapest bundle rather than against us, and why
+the section on what our defaults leave out carries numbers.
 
 ## What the four tools are
 
@@ -40,10 +41,10 @@ trees. The only flags passed were the ones that choose where the bytes go.
 <Method
   dataset="60 public GitHub repositories, 10 languages x 3 size bands x 2 repositories, the sample from our repository funnel measurement"
   sample="60 of 60 measured, none failed, every one at its pinned commit"
-  measured="2026-09-08"
+  measured="2026-09-10"
   build="@fileconcat/cli 0.4.0, against repomix 1.18.0, gitingest 0.3.1 and code2prompt 4.2.0"
-  tokenizer="o200k_base via @dqbd/tiktoken, the o1-preview-2024-09-12 encoding, run over each tool's whole output"
-  script="packages/cli/scripts/measure-tool-comparison.ts, with analyze-tool-comparison.ts for the cuts"
+  tokenizer="o200k_base via @dqbd/tiktoken, the o1-preview-2024-09-12 encoding, run over each tool's whole output and over every file in the checkout"
+  script="packages/cli/scripts/measure-tool-comparison.ts, with analyze-tool-comparison.ts for the cuts and categories.ts for the category map"
   excludes="Accuracy. This measures what reaches the model and what the tools disagree about, never whether a model answers better for it. Fewer tokens is not better if the dropped file was the one you needed."
 />
 
@@ -51,23 +52,46 @@ The 60 repositories are the same sample as
 [how many tokens a codebase is](/blog/how-many-tokens-is-a-codebase), drawn by a GitHub
 search query written before the results were seen.
 
+The run was made three times. The first, on 2026-09-08, is what this post was first
+published with. Our own defaults then changed, tests by file-name convention on 2026-09-09
+and `bun.lock` on 2026-09-10, so the sample was re-run at the same pinned commits on
+2026-09-10, this time recording for every file in every checkout which bundles carry it.
+That run showed `3rdparty` missing from our list on one repository, the list changed, and
+the sample ran a third time the same day. Every number here is the third run's.
+
+Repomix and code2prompt reproduce every one of the 60 bundles to the token across the three
+runs. gitingest does not: at the same commit its bundle differed on 4 of the 60 checkouts
+between the second run and the third and on 6 between the first and the third, by at most
+5,613 tokens and never more than 0.2% of the bundle, and running it three times by hand on
+one of those checkouts returned a different file missing each time. Every larger move is
+ours, and the section on our own defaults says which way.
+
+A tool is credited with a file only when the file's own first and last 200 characters are in
+its bundle. A per-file marker alone is not enough: gitingest writes a `FILE:` line for 459
+paths across the sample and then leaves them empty, binaries, fonts, archives and office
+files, and a count of markers would have credited it with text it never wrote.
+
 ## What the same repository costs
 
 | Tool | Median bundle | vs that repo's cheapest | at p90 | Cheapest on |
 | --- | --- | --- | --- | --- |
-| Repomix | 239,861 | 1.03x | 1.64x | 9 of 60 |
-| FileConcat | 246,498 | 1.02x | 1.62x | 10 of 60 |
-| gitingest | 258,790 | 1.00x | 1.20x | 27 of 60 |
-| code2prompt | 432,539 | 1.10x | 3.54x | 14 of 60 |
+| FileConcat | 235,672 | 1.00x | 1.19x | 31 of 60 |
+| Repomix | 239,861 | 1.21x | 1.90x | 4 of 60 |
+| gitingest | 258,790 | 1.04x | 2.11x | 20 of 60 |
+| code2prompt | 432,539 | 1.40x | 3.83x | 5 of 60 |
 
-Three of the four land within 8% of each other at the median, and the one that is usually
-cheapest is not the one with the lowest median. gitingest produced the smallest bundle on 27
-of the 60 and still sits highest of the three, which is a reminder that how often a tool wins
-and what it costs on a typical repository are two different questions.
+Three of the four sit between 235,672 and 258,790 tokens at the median and code2prompt sits
+at 432,539. FileConcat produced the cheapest bundle on 31 of the 60 and gitingest on 20, and
+at the median both are within 4% of the best available bundle for that repository. Repomix
+is at 1.21x there; tests are 47.3% of what it carries and we do not, and vendored code 42.7%.
 
-The interesting part is the tail. At the median every tool is within 10% of the best
-available bundle for that repository. At p90 code2prompt is 3.54x it, and its worst case is
-16.4x: 24,116 tokens against 396,180 on the same checkout of GeminiProChat.
+The interesting part is the tail. At p90 our bundle is 1.19x the best available one for that
+repository, Repomix 1.90x, gitingest 2.11x, code2prompt 3.83x, and code2prompt's worst case
+is 16.4x: 24,116 tokens against 396,180 on the same checkout of GeminiProChat.
+
+When this was first published, on the 2026-09-08 run, gitingest was cheapest on 27 of the 60
+and we were on 10. Nothing about gitingest's defaults changed. Ours did, and what that removed
+is sized below rather than left as a win.
 
 ## The wrapper is a rounding error
 
@@ -82,99 +106,216 @@ about. One directory, one twelve-byte file, everything above the content is wrap
 | FileConcat | 104 |
 | Repomix | 364 |
 
-The largest of those is 364 tokens, against a median cheapest bundle of 233,241. That is
-0.16%. Pick your tool on its preamble and you are tuning two hundredths of one percent of
-the thing you are about to paste. The floor grows with file count, because every tool also
-draws a file tree, but not by an order of magnitude.
+The largest of those is 364 tokens, against a median cheapest bundle of 218,688. That is
+0.17%. Pick your tool on its preamble and you are tuning under a fifth of one percent of the
+thing you are about to paste. The floor grows with file count, because every tool also draws
+a file tree, but not by an order of magnitude.
 
 ## The disagreement is about what gets left out
 
 If it is not the wrapper, it is the filter. Across the 60 repositories another tool bundled
-1,890 paths that we did not, and our own walk records why for each one:
+9,022 paths that we did not, and our own walk records why for each one:
 
 | Why our bundle does not have it | Files | Characters |
 | --- | --- | --- |
-| our default ignore list | 585 | 19,097,844 |
-| hidden file or directory | 1,051 | 1,464,678 |
+| our default ignore list | 7,715 | 81,457,778 |
+| hidden file or directory | 1,054 | 1,464,678 |
+| never reached our walk | 215 | not measurable |
 | not treated as text | 38 | 36,292 |
-| never reached our walk | 216 | not measurable |
 | your .gitignore | 0 | 0 |
 
-Count and weight point in opposite directions. Hidden files are 56% of the disagreement by
-count and 7% of it by size: CI workflows, editor config, repository metadata, all small. The
-default ignore list is 31% of the count and 93% of the size, and it is one kind of file.
+The default list is 85.5% of the paths and 98.2% of the characters. Hidden files are 11.7%
+of the count and 1.8% of the size: CI workflows, editor config, repository metadata, all
+small. When this was first published the default list was 31% of the count and hidden files
+were 56%; the test convention that landed on 2026-09-09 is what moved it.
+
+Per competitor, Repomix carried 8,296 files and 68,326,261 characters that we did not,
+gitingest 8,105 files and 50,733,196 characters, code2prompt 7,708 files and 80,503,695
+characters: the fewest files of the three and the most characters, which is what including
+lockfiles looks like. The reverse is nearly empty at the level of paths: in 55 of the 60
+repositories every path in our bundle was at least listed by one of the other three, and
+across the whole sample 5 paths were ours alone. What we carry that they do not is not a
+path but the text inside a document, which has its own section below.
 
 Ranking the 60 repositories by the single largest file we left out and another tool kept,
-the answer is `package-lock.json` in 8 of them, `Cargo.lock` in 4, `go.sum` in 4. On
+the answer is `package-lock.json` in 7 of them, `Cargo.lock` in 4, `go.sum` in 2, a
+`pnpm-lock.yaml` and a `bun.lock` once each, and on 3 repositories a test file. On
 GeminiProChat that one lockfile is 562,067 characters, which is the whole 16.4x.
 
 <Callout type="note" title="Fewer tokens is not the same as better">
   A tool that produced a smaller bundle because it dropped the file you needed has not saved
-  you anything. That cuts against us too, which the next section is about.
+  you anything. That cuts against us too, and the section on our own defaults puts numbers
+  on it.
 </Callout>
 
-## Where our own defaults cost you
+## What each bundle is made of
 
-Our defaults are the most aggressive of the four and that is not free. Two rows of the table
-above are worth understanding before you pick anything, including us.
+Cost says how big the bundle is; this says what is in it. On the median repository two
+thirds of a FileConcat bundle is source code, against half for Repomix and gitingest and
+under 40% for code2prompt.
 
-The first is hidden files. A `.github/workflows` directory is invisible to us by default and
-visible to all three of the others. If you are asking a model about your CI, we are the
-wrong default and you have to turn hidden files back on.
+Every file in every bundle was classified with the category rules of
+[the codebase study](/blog/how-many-tokens-is-a-codebase): source, tests, documentation,
+configuration, assets, lockfiles, generated, vendored, with documents pulled out of their
+category and hidden files counted again across all of them. The rules are ours, path-based
+and ordered, and a competitor might draw a line differently; print them with
+`pnpm --filter @fileconcat/cli measure-funnel --rules`. Signal density is the source share
+of a bundle's tokens, and it is the one number that says what a token bought.
 
-The second was a genuine inconsistency rather than a choice, and it is fixed. When this was
-measured, our default ignore list dropped directories named `__tests__` while keeping
-`index.test.ts`, `index.spec.ts` and anything under a `tests/` folder. Same test suite, two
-different answers depending on which convention the project picked. On
-`makenotion/notion-mcp-server` that was 13 files and 159,639 characters of test code silently
-missing, next to exactly one other file the default list removed.
+<Bars
+  title="Signal density, source tokens over bundle tokens"
+  unit="percent"
+  rows={[
+    { label: "FileConcat", value: 68.0 },
+    { label: "Repomix", value: 49.6 },
+    { label: "gitingest", value: 51.1 },
+    { label: "code2prompt", value: 38.8 },
+  ]}
+  note="median of the per-repository share, each tool at its own defaults, 2026-09-10"
+>
+  The densest bundle was ours on 35 of the 60 repositories, gitingest's on 16, code2prompt's
+  on 5, Repomix's on 4.
+</Bars>
 
-On 2026-09-09 the folder rule was replaced by file-name conventions, one set per ecosystem:
-`api.test.ts`, `handler_test.go`, `test_parser.py`, `parser_spec.rb`, `UserServiceTest.java`,
-`PaymentTest.php` and their siblings. The directory a test sits in no longer decides anything.
-Re-running the sample at the same pinned commits, that took tests from 17.5% to 5.5% of kept
-tokens and the whole sample down 13.1%, with the largest drops on the Ruby and PHP
-repositories where the suites are biggest. It is naming rather than detection, so a `tests/`
-folder with no convention in its file names still comes through. The numbers in the tables
-above are the measurement as run, before that change.
-[What the filter leaves out](/docs/file-filtering) is worth reading before you trust any
-tool's default, including ours.
+| Share of the bundle, median | FileConcat | Repomix | gitingest | code2prompt |
+| --- | --- | --- | --- | --- |
+| source | 68.0% | 49.6% | 51.1% | 38.8% |
+| tests | 0.7% | 9.4% | 9.0% | 9.0% |
+| documentation | 7.9% | 6.0% | 5.5% | 2.8% |
+| configuration | 0.9% | 2.0% | 1.8% | 0.4% |
+| hidden, any category | 0.0% | 0.8% | 0.7% | 0.0% |
+
+Each row is its own median, so a column does not add to 100. Lockfiles, generated files and
+vendored code are 0% of the median bundle for three of the four and 1.6% for code2prompt;
+the tail is where they live. At p90 that noise is 0% of our bundle, 7.7% of Repomix's, 17.8%
+of gitingest's and 66.4% of code2prompt's. Of what code2prompt carries that we do not, 36.3%
+is vendored code, 19.4% lockfiles and 6.2% generated files; for gitingest, lockfiles are
+16.6% of it and vendored code 14.4%.
+
+Density is half the picture, because a tool can be dense by dropping source. So the second
+cut is coverage: of the checkout's visible source tokens, how much each bundle carries. The
+third is whether the boundaries in the bundle can be trusted. A file whose own content
+carries the tool's delimiter at the start of a line, `</file>`, a line of 48 equals signs or
+three backticks, is a boundary a model cannot tell from the real one.
+
+| Tool | Visible source carried, median | at p10 | Files carrying the tool's own delimiter |
+| --- | --- | --- | --- |
+| FileConcat | 100.0% | 99.7% | 0 |
+| Repomix | 100.0% | 99.4% | 0 |
+| gitingest | 100.0% | 93.5% | 0 |
+| code2prompt | 99.8% | 97.2% | 380, in 58 of 60 repositories |
+
+Three tools carry all of the visible source at the median and code2prompt nearly does. The
+p10 column is where they part. gitingest's worst repository is pomerium, where it dropped
+444 source files and carried 59.1%. It also drops every SVG, 0.0% of its sample total against
+between 4.8% and 7.0% for the other three, which is defensible and unstated, and it names 459
+paths it does not carry, so a count of its markers overstates its bundle.
+
+On boundaries, code2prompt's Markdown fence collides with a file's own code block in 58 of
+the 60 repositories, 380 files with 738,003 tokens inside them, and a reader, human or
+model, cannot tell where those files end. FileConcat, Repomix and gitingest had zero
+collisions across 37,275 files.
 
 ## The one thing only one tool did
 
-A PDF sitting next to the code is where the four stop being the same kind of tool. We put
-one directory in front of each of them holding a source file and a one-page PDF:
+A document sitting next to the code is where the four stop being the same kind of tool. We
+put one directory in front of each of them holding a source file and one document in each of
+four formats, each carrying a sentence that appears nowhere else:
 
-| Tool | Lists the PDF | Includes its text |
-| --- | --- | --- |
-| FileConcat | yes | yes |
-| Repomix | in the directory structure only | no |
-| code2prompt | in the source tree only | no |
-| gitingest | not at all | no |
+| Tool | main.ts | report.pdf | notes.docx | figures.xlsx | deck.pptx |
+| --- | --- | --- | --- | --- | --- |
+| FileConcat | text | text | text | text | text |
+| Repomix | text | absent | absent | absent | absent |
+| gitingest | text | absent | listed, no text | listed, no text | listed, no text |
+| code2prompt | text | absent | absent | absent | absent |
+
+Text means the sentence is in the bundle. Listed means the tool wrote a per-file entry for
+the path with nothing under it; a name in the directory tree at the top of a bundle does not
+count, every tool draws one. The sample says the same: 7 of the 60 checkouts hold a document
+our walk could read, 18 files (9 pptx, 5 pdf, one each of docx, xlsx, ods and rtf), our
+bundle carries all of that text on all 7, and none of the other three carries any of it.
 
 That is a difference in what these tools are for, not a defect in them. Repomix, gitingest
 and code2prompt all describe themselves as packing a codebase, and a PDF is not code. If
 your context is a folder of source plus a spec, a contract or a paper, the extraction is the
 whole job, and
 [what gets lost converting documents to text](/blog/what-gets-lost-converting-documents-to-text)
-measures how well we do it across 27 documents rather than on one.
+measures how well we do it across 27 documents rather than on four.
+
+## Where our own defaults cost you
+
+Our defaults are the most aggressive of the four and that is not free. Two things the other
+tools carry and we do not, each sized so you can decide.
+
+The first is tests. Since 2026-09-09 the default list drops test files by the naming
+convention of each ecosystem, `api.test.ts`, `handler_test.go`, `test_parser.py`,
+`parser_spec.rb`, `UserServiceTest.java` and their siblings, and the directory a test sits in
+no longer decides anything. Before that it dropped directories named `__tests__` and kept
+`index.test.ts` beside them, one suite with two answers, which is the inconsistency the
+change replaced. Re-running the sample at the same pinned commits, it took tests from 17.5%
+to 5.5% of kept tokens and the whole sample down 13.1%.
+
+Of a checkout's test tokens, our bundle now carries a median 15.6%, 5.8% at p25 and 79.5%
+at p75, where the other three carry 100%. Tests are 47.3% of what Repomix holds that we do
+not, 66.1% for gitingest and 37.9% for code2prompt. Vendored code is another 42.7%, 14.4%
+and 36.3% of the same, nearly all of it one directory on one repository, named below. Count
+everything a reader might have
+wanted, every category except lockfiles, generated files and vendored code, hidden or not,
+and we carry a median 94.0% of it, 70.4% at p25 and 56.1% at p10, against 100% for Repomix,
+97.9% for gitingest and 96.3% for code2prompt. If you are reviewing the suite, we are the
+wrong default. On the web, delete the test patterns from the Ignore field in the drawer or
+tick the files in the tree; the CLI applies the default list unconditionally and has no flag
+that turns part of it off.
+
+The second is hidden files, and here the measurement is of the CLI. Anything under a dot
+directory is invisible to the CLI by default, and to code2prompt, and visible to Repomix and
+gitingest. Hidden source exists in 19 of the 60 checkouts; it is 0.1% of a checkout's source
+at p90 and 7.3% at the most. CI workflows are configuration under our rules rather than
+source, and in the 49 repositories that have them they are 0.4% of the checkout's text at
+the median and 2.8% at the most. Small, but if you are asking a model about your CI it is
+the whole question. The CLI includes them only through a config file with
+`excludeHiddenFiles: false`; there is no flag, and `--no-hidden` sets what is already the
+default. The browser draws the line differently: only a file whose own name starts with a
+dot is held back, so `.github/workflows/ci.yml` comes through and `.editorconfig` does not,
+and a held-back file shows in the tree where a tick puts it back.
+
+A third was ours alone, and this measurement closed it. `3rdparty` was not in the default
+list, so on KDE's ghostwriter the second run put 9,374,207 tokens in our bundle against
+gitingest's 2,843,609, 90.4% of ours vendored code under that one directory. `3rdparty`,
+`third_party` and `thirdparty` joined `vendor` in the defaults on 2026-09-10 and the sample
+ran a third time at the same commits: that checkout is now 861,968 tokens for us, the
+cheapest of the four, and no other bundle of ours moved.
+
+[What the filter leaves out](/docs/file-filtering) is worth reading before you trust any
+tool's default, including ours.
 
 ## Which one to pick
 
-Take the smallest bundle most often, on code only, from a terminal: gitingest. It has the
-smallest wrapper of the four, it produced the cheapest bundle on 27 of the 60, and at p90 it
-was 1.20x the best available bundle where the other three were 1.6x or worse.
+Pick on what a token buys before what it costs. The four differ on both, and the tables
+above say by how much.
 
-Want the most knobs, a remote mode and a tree-sitter compress option: Repomix. Its preamble
-is the largest of the four and, at 364 tokens, that does not matter.
+Want the most source per token: FileConcat, which is ours. Densest bundle on 35 of the 60,
+a median 68.0% source against 49.6% and 51.1% for Repomix and gitingest, cheapest on 31 of
+the 60, all of the visible source at the median, no boundary collisions, and the only one of
+the four that carries a document's text. The price is above: a median 15.6% of the test
+tokens where the others carry 100%, and on the CLI nothing under a dot directory.
 
-Want a single binary with no runtime to install: code2prompt. Check what it did with your
-lockfiles first, because across the sample it bundled 602 files and 18.6 million characters
-that our defaults left out. That is half as many extra files as Repomix or gitingest added
-and more than twice the weight, which is what including lockfiles looks like.
+Want the tests and the CI workflows in the bundle without touching a setting: Repomix. It
+carries 100% of the visible source at the median and 99.4% at p10, every test file and every
+hidden file, with zero boundary collisions. That costs 1.21x the cheapest available bundle
+at the median and 1.90x at p90, and its 364-token preamble is not where the cost is.
 
-Working in a browser, or bundling a folder that has PDFs and Word files in it as well as
-code: FileConcat, which is ours.
+Want the smallest wrapper and a Python toolchain: gitingest. Cheapest on 20 of the 60 and
+1.04x the best at the median. Check what it left out: 93.5% of the visible source at p10,
+59.1% on its worst repository, every SVG, and 459 paths it lists without their content.
+
+Want a single binary with no runtime to install: code2prompt. Read its Markdown carefully
+before you paste it. In 58 of the 60 repositories a file's own code fence closes its
+boundary early, 380 files, and lockfiles put it at 1.40x the cheapest bundle at the median
+and 3.83x at p90.
+
+None of this measures whether a model answers better from any of the four bundles. It
+measures what reaches the model, and that is the part you can check before you paste.
 
 ## Try it on your own repository
 

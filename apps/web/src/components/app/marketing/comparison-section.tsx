@@ -1,5 +1,6 @@
 import { Check, X } from "lucide-react";
 
+import { Bars } from "~/components/blog/bars";
 import { cn } from "~/lib/utils";
 import {
   BandGrid,
@@ -14,11 +15,12 @@ import {
 const STUDY = "/blog/repomix-vs-gitingest-vs-code2prompt";
 
 /**
- * Band 5: the tool comparison, cost and content together. It leads with the
- * one effectiveness fact the study measured (only this tool reads the
- * documents) and shows cost as bars with the study's own caveat under them,
- * because a size ranking where we are second of four is not a verdict and the
- * study says so. Usefulness is not measured yet; nothing here implies it.
+ * Band 5: the tool comparison, what a token bought and what it cost, side by
+ * side in the same drawing so the eye reads across one row per tool. Below
+ * them the one thing only this tool did (the four documents' text) and, in
+ * the quiet cell beside it, the sized cost of the defaults. Every figure is
+ * a line of `analyze-tools` over the 2026-09-10 run; nothing here implies a
+ * model answers better, because that was not measured.
  */
 export function ComparisonSection() {
   return (
@@ -28,103 +30,94 @@ export function ComparisonSection() {
       </BandIntro>
 
       <BandGrid className="mt-10">
-        <ReaderStrip />
-        <CostBars />
+        <Bars
+          title="Signal density, source tokens over bundle tokens"
+          unit="percent"
+          rows={DENSITY}
+          note="median of the per-repository share, 2026-09-10"
+        >
+          the densest bundle on 35 of 60; gitingest on 16, code2prompt 5, Repomix 4
+        </Bars>
+        <Bars title="Median bundle, tokens" rows={COST} markMin note="fewer tokens only helps if the dropped file did not matter">
+          the cheapest bundle on 31 of 60; gitingest on 20, code2prompt 5, Repomix 4
+        </Bars>
       </BandGrid>
 
-      {/* The usefulness figure lands under the grid when it ships. */}
-      <MonoNote className="border-border-strong mt-14 border-t pt-4">
-        The most aggressive filter of the four. Asking about your CI? Turn hidden files back on.
-      </MonoNote>
-      <BandLinks className="mt-5">
+      <BandGrid className="mt-12">
+        <DocumentStrip />
+        <div className="min-w-0">
+          <p className="text-ink-secondary text-[15px] leading-[1.55]">
+            The most aggressive filter of the four. Of a checkout&apos;s test tokens the CLI bundle
+            carries a median 15.6% where the other three carry 100%, and nothing under a dot
+            directory. In the browser a held-back file sits in the tree and a tick puts it back.
+          </p>
+          <MonoNote className="mt-3">
+            tests are 47.3% of what Repomix carries and we do not, vendored code 42.7%; hidden source is 0.1% of a checkout's source at p90
+          </MonoNote>
+        </div>
+      </BandGrid>
+
+      <BandLinks className="border-border-strong mt-12 border-t pt-5">
         <BandLink to={STUDY}>Repomix vs gitingest vs code2prompt, 60 repositories measured</BandLink>
       </BandLinks>
     </MarketingSection>
   );
 }
 
-const OTHERS = ["Repomix", "gitingest", "code2prompt"];
+/** Median share of the bundle's tokens that is source code, per tool, over the 60 repositories. */
+const DENSITY = [
+  { label: "FileConcat", value: 68.0 },
+  { label: "Repomix", value: 49.6 },
+  { label: "gitingest", value: 51.1 },
+  { label: "code2prompt", value: 38.8 },
+];
 
-/** One directory holding a source file and a one-page PDF, through four tools. */
-function ReaderStrip() {
+/** Median bundle over the 60 repositories, each tool at its own defaults, in the same row order. */
+const COST = [
+  { label: "FileConcat", value: 235_672 },
+  { label: "Repomix", value: 239_861 },
+  { label: "gitingest", value: 258_790 },
+  { label: "code2prompt", value: 432_539 },
+];
+
+/**
+ * One directory holding a source file and one document in each of four
+ * formats, each carrying a sentence found nowhere else, through four tools.
+ * "listed" is a per-file marker with nothing under it.
+ */
+const OTHERS = [
+  { tool: "Repomix", verdict: "the source file only" },
+  { tool: "gitingest", verdict: "three named, none of the text" },
+  { tool: "code2prompt", verdict: "the source file only" },
+];
+
+function DocumentStrip() {
   return (
     <div className="min-w-0">
-      <FigureTitle className="mb-2.5">One directory, one source file, one PDF</FigureTitle>
+      <FigureTitle className="mb-2.5">One source file, then a pdf, a docx, an xlsx and a pptx</FigureTitle>
       <div className="border-border-strong grid border-t">
         <div className="border-border-strong grid grid-cols-[20px_minmax(0,1fr)_auto] items-center gap-3.5 border-b px-1 py-[18px]">
           <Check className="text-primary h-5 w-5" strokeWidth={2.6} />
           <span className="text-ink font-mono text-[16px]">FileConcat</span>
-          <span className="text-primary text-right text-[14.5px]">the PDF&apos;s text is in the bundle</span>
+          <span className="text-primary text-right text-[14.5px]">the text of all four</span>
         </div>
-        {OTHERS.map((tool, i) => (
+        {OTHERS.map((o, i) => (
           <div
-            key={tool}
+            key={o.tool}
             className={cn(
               "grid grid-cols-[20px_minmax(0,1fr)_auto] items-center gap-3.5 border-b px-1 py-3",
               i === OTHERS.length - 1 ? "border-border-strong" : "border-border",
             )}
           >
             <X className="text-ink-faint h-5 w-5" strokeWidth={2.2} />
-            <span className="text-ink-secondary font-mono text-[14px]">{tool}</span>
-            <span className="text-ink-faint text-right text-[13.5px]">code only, the PDF is skipped</span>
+            <span className="text-ink-secondary font-mono text-[14px]">{o.tool}</span>
+            <span className="text-ink-faint text-right text-[13.5px]">{o.verdict}</span>
           </div>
         ))}
       </div>
+      <MonoNote className="mt-3">
+        in the sample, 7 of 60 checkouts hold a document; only this bundle carries its text
+      </MonoNote>
     </div>
-  );
-}
-
-/** Median bundle over the 60 repositories, each tool at its own defaults, 2026-09-08. */
-const COST = [
-  { tool: "Repomix", tokens: 239_861 },
-  { tool: "FileConcat", tokens: 246_498 },
-  { tool: "gitingest", tokens: 258_790 },
-  { tool: "code2prompt", tokens: 432_539 },
-];
-
-function CostBars() {
-  const max = Math.max(...COST.map((c) => c.tokens));
-  const cheapest = Math.min(...COST.map((c) => c.tokens));
-  const pct = (v: number) => `${((v / max) * 100).toFixed(2)}%`;
-
-  return (
-    <figure className="min-w-0">
-      <FigureTitle className="mb-4">Median bundle, tokens</FigureTitle>
-      <div className="grid gap-2.5">
-        {COST.map((c) => {
-          const ours = c.tool === "FileConcat";
-          return (
-            <div
-              key={c.tool}
-              className="grid grid-cols-[minmax(72px,112px)_minmax(0,1fr)_auto] items-center gap-3"
-            >
-              <span className={cn("font-mono text-[13px]", ours ? "text-primary" : "text-ink-secondary")}>
-                {c.tool}
-              </span>
-              <span className="relative block h-[22px]" aria-hidden="true">
-                <span
-                  className={cn(
-                    "absolute inset-y-0 left-0 rounded-[3px]",
-                    ours ? "bg-primary" : "bg-[#3a3329]",
-                  )}
-                  style={{ width: pct(c.tokens) }}
-                />
-                <span
-                  className="absolute -bottom-[5px] -top-[5px] w-px [background:repeating-linear-gradient(to_bottom,oklch(var(--text-muted))_0_4px,transparent_4px_8px)]"
-                  style={{ left: pct(cheapest) }}
-                />
-              </span>
-              <span className="text-ink text-right font-mono text-[13px] tabular-nums">
-                {c.tokens.toLocaleString("en-US")}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-      <figcaption className="text-ink-secondary mt-4 max-w-[52ch] text-pretty text-[14px] leading-[1.55]">
-        within 3% of the cheapest at the median; gitingest cheapest most often, 27 of 60
-      </figcaption>
-      <MonoNote className="mt-2">fewer tokens only helps if the dropped file did not matter</MonoNote>
-    </figure>
   );
 }
