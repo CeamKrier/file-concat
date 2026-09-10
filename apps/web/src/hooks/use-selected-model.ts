@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FilteredModel } from "@fileconcat/core";
 
+import { pickDefaultModel } from "~/lib/default-model";
 import { useModels } from "./use-models";
 
 export type ModelPicker = ReturnType<typeof useSelectedModel>;
@@ -15,9 +16,8 @@ export type ModelPicker = ReturnType<typeof useSelectedModel>;
  * imported `models.json` (or the localStorage cache) and never fetches on its
  * own, and the drawer is mounted unconditionally anyway.
  *
- * The default leans Sonnet rather than the newest model, because the fit
- * warning is only honest if it is measured against a window someone plausibly
- * targets, and a 200K window is the common case. Whatever it lands on, every
+ * The default is `pickDefaultModel`, shared with the homepage so the price it
+ * quotes is the one this screen shows first. Whatever it lands on, every
  * surface that shows a ratio also shows the model's name: a percentage of an
  * unnamed window would be a number nobody can check.
  */
@@ -27,8 +27,7 @@ export function useSelectedModel() {
 
   useEffect(() => {
     if (selectedModel || models.length === 0) return;
-    const preferred = models.find((m) => m.name.toLowerCase().includes("sonnet")) ?? models[0];
-    setSelectedModel(preferred);
+    setSelectedModel(pickDefaultModel(models));
   }, [models, selectedModel]);
 
   return { models, selectedModel, setSelectedModel, isLoading, lastUpdated, refresh };

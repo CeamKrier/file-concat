@@ -8,6 +8,12 @@ export interface BlogFrontmatter {
   /** Drafts render in dev but stay out of the listing, sitemap, and production. */
   draft?: boolean;
   author?: string;
+  /**
+   * "research" marks a post that publishes a measurement of our own. The
+   * homepage lists those and nothing else, so a new study appears there on
+   * the deploy that ships it and a how-to never does.
+   */
+  kind?: "research";
 }
 
 /** One `##` section, numbered at compile time by `remark-blog-sections`. */
@@ -63,6 +69,7 @@ function toPost(filePath: string, mod: BlogModule): BlogPost {
       date: fm.date ?? "",
       draft: fm.draft ?? false,
       author: fm.author,
+      kind: fm.kind,
     },
   };
 }
@@ -74,6 +81,11 @@ const allPosts: BlogPost[] = Object.entries(modules)
 /** Posts that ship on the public listing: drafts hidden outside dev, newest first. */
 export function getVisiblePosts(): BlogPost[] {
   return allPosts.filter((p) => isDev || !p.frontmatter.draft);
+}
+
+/** The published research posts, newest first. */
+export function getResearchPosts(): BlogPost[] {
+  return getVisiblePosts().filter((p) => p.frontmatter.kind === "research");
 }
 
 /** A single post by slug, or null. Drafts resolve only in dev. */
