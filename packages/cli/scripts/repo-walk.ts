@@ -48,6 +48,8 @@ export interface WalkedFile {
   text: string;
   kept: boolean;
   excludedBy: ExcludedBy | null;
+  /** The text came out of a document parser (pdf, docx, ...) rather than a decoder. */
+  document: boolean;
 }
 
 export interface WalkResult {
@@ -173,9 +175,11 @@ export async function walkRepo(dir: string): Promise<WalkResult> {
     }
 
     let text: string | null = null;
+    let document = false;
     try {
       const route = await routeBytes(readPrefix(full, size));
       if (route.kind === "extract") {
+        document = true;
         const extracted = await parsers.extract(route.parserId, fs.readFileSync(full));
         if (!extracted.text) {
           skipped.unextractable++;
@@ -196,7 +200,7 @@ export async function walkRepo(dir: string): Promise<WalkResult> {
 
     const isKept = keptSet.has(rel);
     if (isKept) kept.push({ path: rel, content: text });
-    files.push({ path: rel, text, kept: isKept, excludedBy: reason(rel) });
+    files.push({ path: rel, text, kept: isKept, excludedBy: reason(rel), document });
   }
 
   return { found: found.length, files, kept, excluded, skipped };
