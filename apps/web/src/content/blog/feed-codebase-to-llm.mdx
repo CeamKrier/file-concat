@@ -6,6 +6,15 @@ author: "CeamKrier"
 draft: false
 ---
 
+<Tldr
+  items={[
+    "Paste a GitHub, GitLab or Bitbucket URL, or drop the folder, and the repository becomes one file: a tree, then a tagged block per file.",
+    "The defaults leave out lockfiles, build output, vendored code and test files by name. On a fresh clone that is a median 22.7% of tokens.",
+    "Count before you paste: the median public repository is 236,218 tokens and only 23 of 60 fit a 128K window.",
+    "Nothing is uploaded to us, the whole thing runs in your browser.",
+  ]}
+/>
+
 Sometimes the thing you want to ask about is not one file, it is the whole project: how
 the pieces fit, where a bug is hiding, whether an approach holds across the codebase.
 For that, the model needs to see the repo, not a snippet of it.

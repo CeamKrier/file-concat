@@ -7,6 +7,37 @@ draft: false
 kind: "research"
 ---
 
+<KeyFindings
+  items={[
+    {
+      figure: "68.0%",
+      text: "Median signal density of a FileConcat bundle, source tokens over bundle tokens, against 51.1% for gitingest, 49.6% for Repomix and 38.8% for code2prompt. It was the densest bundle on 35 of the 60 repositories.",
+    },
+    {
+      figure: "31 of 60",
+      text: "Repositories where FileConcat produced the cheapest bundle; gitingest did on 20, code2prompt on 5, Repomix on 4. At the median FileConcat and gitingest are within 4% of the best available bundle, Repomix at 1.21x, code2prompt at 1.40x.",
+    },
+    {
+      figure: "1 of 4",
+      text: "Tools that carry a document's text. FileConcat brought the sentence out of a pdf, a docx, an xlsx and a pptx; gitingest listed three of the four with nothing under the path, Repomix and code2prompt left all four out. 7 of the 60 checkouts hold such a document.",
+    },
+    {
+      figure: "0.17%",
+      text: "The largest preamble of the four, Repomix's 364 tokens, against a median cheapest bundle of 218,688. Pick a tool on its wrapper and you are tuning under a fifth of one percent; the filter is where the bundles differ.",
+    },
+    {
+      figure: "16.4x",
+      text: "The widest gap between the cheapest and the most expensive bundle of one repository, code2prompt's 396,180 tokens against 24,116 on the same checkout of GeminiProChat, and it was one file.",
+    },
+    {
+      figure: "15.6%",
+      text: "Median share of a repository's test tokens a FileConcat bundle carries where the other three carry 100%, the cost of dropping tests by naming convention, sized here as a limitation rather than a win.",
+    },
+  ]}
+  snapshot="2026-09-10 / 60 public repositories at pinned commits, four tools at their defaults, one tokenizer"
+  citation="Over the same 60 public repositories measured on 2026-09-10 with one tokenizer, FileConcat's bundle was a median 68.0% source code against 51.1% for gitingest, 49.6% for Repomix and 38.8% for code2prompt, was the cheapest on 31 of 60, and was the only one of the four to carry a document's text (FileConcat, fileconcat.com)."
+/>
+
 A feature matrix tells you which tool has a compress flag. It does not tell you how big the
 file you are about to paste will be, what is in it, or whether the tools even agree about
 what belongs there. They do not agree: on one repository in our sample the gap between the
@@ -18,6 +49,8 @@ tokens bought. A disclosure first, because it should change how you read this: F
 ours. That is why the sample, the method and the scripts are named below, why the multiples
 are measured against each repository's own cheapest bundle rather than against us, and why
 the section on what our defaults leave out carries numbers.
+
+<Contents />
 
 ## What the four tools are
 

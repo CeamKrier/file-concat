@@ -23,6 +23,7 @@ import { StatusGrid } from "./status-grid";
 import { Step, Steps } from "./steps";
 import { Stopper } from "./stopper";
 import { StudyTable } from "./study-table";
+import { Tldr } from "./tldr";
 import type { TryItProps } from "./try-it";
 import { UnitFlip } from "./unit-flip";
 
@@ -91,6 +92,7 @@ const blogComponents = {
   PaneDiff,
   Checklist,
   StudyTable,
+  Tldr,
   TryIt: (props: TryItProps) => (
     <Suspense fallback={<TryItFallback />}>
       <TryIt {...props} />
