@@ -76,7 +76,6 @@ export function SourcesSection() {
           timestamps, and nothing the player or sidebar was showing. Comments are opt-in.
         </p>
         <BrowserWithPanel className="mt-[22px]" />
-        <ClipOutput className="mt-3" />
         <div className="mt-3.5 flex flex-wrap items-baseline gap-x-6 gap-y-2">
           <BandLink to="/clipper">Browser clipper</BandLink>
           <span className="text-ink-muted text-[13px]">
@@ -166,8 +165,10 @@ function TerminalBlock() {
 /**
  * A browser window on a YouTube watch page with the extension's side panel
  * open beside it. The page is a skeleton, the panel is the real mock from
- * `/clipper` in its watch state, so what the panel offers is what the shipped
- * panel says on that page.
+ * `/clipper` one click after "Clip this video": the clip is in the cart and
+ * its text is open in Peek, so the video on the left and the same video as
+ * timestamped text on the right sit in one picture, inside the tool. Without
+ * that, "Clip this video" reads as cutting a segment out of the video.
  */
 function BrowserWithPanel({ className }: { className?: string }) {
   return (
@@ -187,46 +188,18 @@ function BrowserWithPanel({ className }: { className?: string }) {
       </div>
       <div className="grid [grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))]">
         <WatchPage />
-        <ClipperPanel state="watch" className="h-auto rounded-none border-0 shadow-none" />
+        <ClipperPanel state="transcript" className="rounded-none border-0 shadow-none" />
       </div>
     </div>
   );
 }
 
-/**
- * What the clip becomes: the Markdown the panel hands to the bundler, drawn in
- * the shape `renderYouTubeClipping` writes (frontmatter, then the transcript
- * as one paragraph per timestamp). Without it "Clip this video" reads as
- * cutting a segment out of the video; with it, the button reads as video to
- * text. The paragraphs are a shape example, not a real transcript.
- */
-function ClipOutput({ className }: { className?: string }) {
-  return (
-    <MockWindow label="what the clip becomes, yt-transcript.md" className={className}>
-      <div className="text-code grid gap-1 px-[18px] py-3.5 font-mono text-[12.5px] leading-[1.6]">
-        <div className="text-ink-faint">---</div>
-        <div className="text-ink-faint">title: "{VIDEO}"</div>
-        <div className="text-ink-faint">source: "https://www.youtube.com/watch?v=8kZ3tPq1vRw"</div>
-        <div className="text-ink-faint">---</div>
-        <div className="text-ink mt-1.5">## Transcript</div>
-        <div className="mt-1 max-w-[76ch]">
-          <span className="text-primary">**0:00**</span> - Every row you write ends up on a page, and a
-          page is a fixed block of bytes. That constraint is where most of the design comes from.
-        </div>
-        <div className="max-w-[76ch]">
-          <span className="text-primary">**0:41**</span> - So the question is not really how the row is
-          stored. It is what has to be true for the next read to find it without scanning everything.
-        </div>
-        <div className="text-ink-faint">...</div>
-      </div>
-    </MockWindow>
-  );
-}
-
-/** The watch page as shapes: a player, the title, and a nested comment thread. */
+/** The watch page as shapes: a player, the title, and a nested comment thread.
+ *  Beside the panel it is cut to the panel's height, so the two columns end
+ *  on one line and the transcript's fade is the only thing that runs out. */
 function WatchPage() {
   return (
-    <div className="border-border min-w-0 border-b p-5 md:border-b-0 md:border-r">
+    <div className="border-border min-w-0 border-b p-5 md:h-[540px] md:overflow-hidden md:border-b-0 md:border-r">
       <div
         className="border-border bg-surface-cli relative flex aspect-video items-center justify-center rounded-[6px] border"
         aria-hidden="true"
