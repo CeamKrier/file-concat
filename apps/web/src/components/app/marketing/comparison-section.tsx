@@ -25,7 +25,10 @@ const STUDY = "/blog/repomix-vs-gitingest-vs-code2prompt";
 export function ComparisonSection() {
   return (
     <MarketingSection tone="alt" id="comparison" labelledBy="measured-against">
-      <BandIntro id="measured-against" title="Measured against the tools you would compare it with.">
+      <BandIntro
+        id="measured-against"
+        title="Measured against the tools you would compare it with."
+      >
         Four tools over the same 60 repositories, each at its own defaults, one tokenizer.
       </BandIntro>
 
@@ -34,11 +37,16 @@ export function ComparisonSection() {
           title="Signal density, source tokens over bundle tokens"
           unit="percent"
           rows={DENSITY}
-          note="median of the per-repository share, 2026-09-10"
+          note="median of the per-repository share"
         >
           the densest bundle on 35 of 60; gitingest on 16, code2prompt 5, Repomix 4
         </Bars>
-        <Bars title="Median bundle, tokens" rows={COST} markMin note="fewer tokens only helps if the dropped file did not matter">
+        <Bars
+          title="Median bundle, tokens"
+          rows={COST}
+          markMin
+          note="fewer tokens only helps if the dropped file did not matter"
+        >
           the cheapest bundle on 31 of 60; gitingest on 20, code2prompt 5, Repomix 4
         </Bars>
       </BandGrid>
@@ -52,13 +60,16 @@ export function ComparisonSection() {
             directory. In the browser a held-back file sits in the tree and a tick puts it back.
           </p>
           <MonoNote className="mt-3">
-            tests are 47.3% of what Repomix carries and we do not, vendored code 42.7%; hidden source is 0.1% of a checkout's source at p90
+            tests are 47.3% of what Repomix carries and we do not, vendored code 42.7%; hidden
+            source is 0.1% of a checkout's source at p90
           </MonoNote>
         </div>
       </BandGrid>
 
       <BandLinks className="border-border-strong mt-12 border-t pt-5">
-        <BandLink to={STUDY}>Repomix vs gitingest vs code2prompt, 60 repositories measured</BandLink>
+        <BandLink to={STUDY}>
+          Repomix vs gitingest vs code2prompt, 60 repositories measured
+        </BandLink>
       </BandLinks>
     </MarketingSection>
   );
@@ -94,7 +105,9 @@ const OTHERS = [
 function DocumentStrip() {
   return (
     <div className="min-w-0">
-      <FigureTitle className="mb-2.5">One source file, then a pdf, a docx, an xlsx and a pptx</FigureTitle>
+      <FigureTitle className="mb-2.5">
+        One source file, then a pdf, a docx, an xlsx and a pptx
+      </FigureTitle>
       <div className="border-border-strong grid border-t">
         <div className="border-border-strong grid grid-cols-[20px_minmax(0,1fr)_auto] items-center gap-3.5 border-b px-1 py-[18px]">
           <Check className="text-primary h-5 w-5" strokeWidth={2.6} />

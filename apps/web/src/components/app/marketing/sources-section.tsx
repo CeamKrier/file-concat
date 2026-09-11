@@ -1,5 +1,15 @@
 import { useCallback, useState } from "react";
-import { Play } from "lucide-react";
+import {
+  FileArchive,
+  Files,
+  Folder,
+  Globe,
+  Link,
+  Play,
+  Scissors,
+  Terminal,
+  type LucideIcon,
+} from "lucide-react";
 
 import { VIDEO } from "~/components/clipper/clipper-content";
 import { ClipperPanel } from "~/components/clipper/clipper-panel";
@@ -7,18 +17,19 @@ import { LogoMark } from "../logo-mark";
 import { MockWindow } from "./mock-window";
 import { BandIntro, BandLink, BandLinks, MarketingSection } from "./section";
 
-const SOURCES = [
-  "folder",
-  "files",
-  "zip",
-  "tar",
-  "GitHub",
-  "GitLab",
-  "Bitbucket",
-  "Gist",
-  "web page",
-  "clipper",
-  "shell",
+/**
+ * Where a bundle's files come from, one chip per kind with a drawn icon, so
+ * the row reads at a glance rather than as eleven words in boxes. The four
+ * hosts share the URL chip because they share the import path.
+ */
+const SOURCES: { icon: LucideIcon; label: string }[] = [
+  { icon: Folder, label: "folder" },
+  { icon: Files, label: "files" },
+  { icon: FileArchive, label: "zip, tar" },
+  { icon: Link, label: "GitHub, GitLab, Bitbucket, Gist" },
+  { icon: Globe, label: "web page" },
+  { icon: Scissors, label: "clipper" },
+  { icon: Terminal, label: "shell" },
 ];
 
 /** Band 7: where the files come from, the clipper, and the terminal. */
@@ -34,10 +45,11 @@ export function SourcesSection() {
           <div className="mt-[22px] flex flex-wrap gap-2">
             {SOURCES.map((s) => (
               <span
-                key={s}
-                className="border-border bg-surface text-code rounded-[6px] border px-2.5 py-[5px] font-mono text-[12px]"
+                key={s.label}
+                className="border-border bg-surface text-code inline-flex items-center gap-2 rounded-[6px] border py-[5px] pl-2 pr-2.5 font-mono text-[12px]"
               >
-                {s}
+                <s.icon className="text-ink-muted h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
+                {s.label}
               </span>
             ))}
           </div>
@@ -153,8 +165,10 @@ function TerminalBlock() {
 /**
  * A browser window on a YouTube watch page with the extension's side panel
  * open beside it. The page is a skeleton, the panel is the real mock from
- * `/clipper` in its watch state, so what the panel offers is what the shipped
- * panel says on that page.
+ * `/clipper` one click after "Clip this video": the clip is in the cart and
+ * its text is open in Peek, so the video on the left and the same video as
+ * timestamped text on the right sit in one picture, inside the tool. Without
+ * that, "Clip this video" reads as cutting a segment out of the video.
  */
 function BrowserWithPanel({ className }: { className?: string }) {
   return (
@@ -174,16 +188,18 @@ function BrowserWithPanel({ className }: { className?: string }) {
       </div>
       <div className="grid [grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))]">
         <WatchPage />
-        <ClipperPanel state="watch" className="h-auto rounded-none border-0 shadow-none" />
+        <ClipperPanel state="transcript" className="rounded-none border-0 shadow-none" />
       </div>
     </div>
   );
 }
 
-/** The watch page as shapes: a player, the title, and a nested comment thread. */
+/** The watch page as shapes: a player, the title, and a nested comment thread.
+ *  Beside the panel it is cut to the panel's height, so the two columns end
+ *  on one line and the transcript's fade is the only thing that runs out. */
 function WatchPage() {
   return (
-    <div className="border-border min-w-0 border-b p-5 md:border-b-0 md:border-r">
+    <div className="border-border min-w-0 border-b p-5 md:h-[540px] md:overflow-hidden md:border-b-0 md:border-r">
       <div
         className="border-border bg-surface-cli relative flex aspect-video items-center justify-center rounded-[6px] border"
         aria-hidden="true"

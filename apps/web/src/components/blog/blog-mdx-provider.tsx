@@ -16,12 +16,14 @@ import { KeyFindings } from "./key-findings";
 import { Method } from "./method";
 import { PaneDiff } from "./pane-diff";
 import { Payoff } from "./payoff";
+import { PresenceTable } from "./presence-table";
 import { ReaderDuel } from "./reader-duel";
 import { SectionBoundary } from "./section-boundary";
 import { StatusGrid } from "./status-grid";
 import { Step, Steps } from "./steps";
 import { Stopper } from "./stopper";
 import { StudyTable } from "./study-table";
+import { Tldr } from "./tldr";
 import type { TryItProps } from "./try-it";
 import { UnitFlip } from "./unit-flip";
 
@@ -85,10 +87,12 @@ const blogComponents = {
   FitCurve,
   UnitFlip,
   StatusGrid,
+  PresenceTable,
   ReaderDuel,
   PaneDiff,
   Checklist,
   StudyTable,
+  Tldr,
   TryIt: (props: TryItProps) => (
     <Suspense fallback={<TryItFallback />}>
       <TryIt {...props} />

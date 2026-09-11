@@ -26,7 +26,7 @@ export function ContextWindowCosts() {
   // columns hold the same value, because filling a million tokens costs exactly
   // the per-million rate, and a table with a duplicated column reads as a bug.
   // Leading with the measured size also puts our own number first.
-  const [tokens, setTokens] = useState(246_424);
+  const [tokens, setTokens] = useState(236_218);
   const selected = SUMMARIES.find((summary) => summary.tokens === tokens) ?? SUMMARIES[0];
 
   return (
@@ -102,7 +102,7 @@ export function ContextWindowCosts() {
       </div>
 
       <p className="text-ink-muted mb-10 text-[13.5px] leading-[1.6]">
-        Pick a size to price it against every model below. 246K is the median repository bundle
+        Pick a size to price it against every model below. 236K is the median repository bundle
         measured across 60 public repositories, not a round number.
       </p>
 

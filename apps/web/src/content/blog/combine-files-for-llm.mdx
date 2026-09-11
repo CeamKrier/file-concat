@@ -6,6 +6,15 @@ author: "CeamKrier"
 draft: false
 ---
 
+<Tldr
+  items={[
+    "Drop the folder on fileconcat.com and you get one text file: the tree first, then every file in a block labelled with its path.",
+    "Pasting files one at a time loses the boundaries. The labels cost 0.6% to 3.8% of the bundle and are the map the model reads by.",
+    "The token count is on the result before you paste. A whole public repository is a median 236,218 tokens, and 23 of 60 fit a 128K window.",
+    "Nothing is uploaded to us, the whole thing runs in your browser.",
+  ]}
+/>
+
 You have a handful of files that belong together: a few source files, some notes, a
 config or two. ChatGPT and Claude give you a single box. Getting everything from the
 folder into that box, in a shape the model can follow, is the small chore that sits
@@ -116,13 +125,13 @@ it helps to know the size of a bundle before you paste it, not after it bounces 
 
 A loose folder of notes and a few source files is rarely the problem. A whole repository
 usually is. We tokenized 60 public repositories end to end, and the median one assembled
-into 246,424 tokens:
+into 236,218 tokens:
 
 | Context window | Repositories that fit |
 | --- | --- |
-| 128,000 | 21 of 60 |
-| 200,000 | 24 of 60 |
-| 1,000,000 | 41 of 60 |
+| 128,000 | 23 of 60 |
+| 200,000 | 26 of 60 |
+| 1,000,000 | 43 of 60 |
 
 So the median repository clears a 1M window and misses a 128K one. The method and the
 per-language spread are in
@@ -132,11 +141,11 @@ FileConcat [counts tokens live](/docs/token-estimation) as you build the bundle,
 see that number before you paste rather than after.
 
 [The default filter](/docs/file-filtering) leaves out the parts you almost never want to
-send: lock files, build output, and binaries. It is worth knowing what that buys. On a
-fresh clone the defaults remove a median 3.5% of tokens, and a median 87.5% of files
-survive them. That is tidier, not dramatically lighter. If you need a much smaller
-bundle, the lever is deciding that a whole category does not belong in this question,
-not a stricter filter.
+send: lock files, build output, vendored code, and test files by their ecosystem's naming
+convention. It is worth knowing what that buys. On a fresh clone the defaults remove a
+median 22.7% of tokens, most of it the test suite, and a median 73.7% of files survive
+them. If you need a much smaller bundle, the lever is deciding that a whole category does
+not belong in this question, not a stricter filter.
 
 <Callout type="tip">
   Working with a whole repository instead of a loose folder? You can paste a GitHub,

@@ -53,12 +53,12 @@ describe("FitBars", () => {
 
     // The published counts for 128K, 200K and 1M. Each appears twice: once in
     // the phone legend and once as the in-plot label.
-    expect(screen.getAllByText("21 of 60")).toHaveLength(2);
-    expect(screen.getAllByText("24 of 60")).toHaveLength(2);
-    expect(screen.getAllByText("41 of 60")).toHaveLength(2);
-    expect(screen.getByText(/median 246,424 tokens/)).toBeInTheDocument();
-    expect(screen.getByText("5,717 tokens")).toBeInTheDocument();
-    expect(screen.getByText("9,373,193 tokens")).toBeInTheDocument();
+    expect(screen.getAllByText("23 of 60")).toHaveLength(2);
+    expect(screen.getAllByText("26 of 60")).toHaveLength(2);
+    expect(screen.getAllByText("43 of 60")).toHaveLength(2);
+    expect(screen.getByText(/median 236,218 tokens/)).toBeInTheDocument();
+    expect(screen.getByText("5,722 tokens")).toBeInTheDocument();
+    expect(screen.getByText("5,535,907 tokens")).toBeInTheDocument();
   });
 });
 

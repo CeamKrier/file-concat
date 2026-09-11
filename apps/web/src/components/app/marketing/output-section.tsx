@@ -29,6 +29,10 @@ export function OutputSection() {
 
       <div className="border-border-strong mt-12 border-t pt-6">
         <FigureTitle className="text-[19px]">Will it fit?</FigureTitle>
+        <p className="text-ink-secondary mt-2 max-w-[52ch] text-[15px] leading-[1.5]">
+          One bar per public repository, 60 of them, smallest to largest. A bar under a dashed
+          line fits inside that context window.
+        </p>
         <FitBars className="mt-5" />
       </div>
 

@@ -28,9 +28,11 @@ export type PanelState =
   | "sent"
   | "watch"
   | "channel"
-  | "playlist";
+  | "playlist"
+  | "transcript";
 
 type Row = { title: string; meta: string };
+type File = (typeof CART)[number];
 
 /** A page that offers a row per item instead of one button for the whole thing.
  *  `taken` is how many of the rows are already in the cart, counted from the
@@ -56,8 +58,12 @@ type Scene = {
    *  offer, reporting its current state rather than showing the switch. Only
    *  the sites that offer one get a line. */
   echo?: string;
-  /** How much of CART the cart holds while this scene is on screen. */
-  cart: number;
+  /** What the cart holds while this scene is on screen. A list rather than a
+   *  count, because the homepage scene holds the video alone, which is the
+   *  last entry of CART and not a prefix of it. */
+  cart: File[];
+  /** The last clip taken is open in Peek, over the column. */
+  peek?: true;
 };
 
 /**
@@ -108,19 +114,73 @@ const PLAYLIST_ROWS: Row[] = [
 /** The one opt-in YouTube reports, in the extension's own words. */
 const COMMENTS_OFF = "Include comments: off for this site";
 
+/**
+ * The description and transcript of the video, as the clipping holds them and
+ * as Peek prints them: the file split on blank lines, every paragraph shown as
+ * typed, so a transcript line keeps its `**M:SS**` marks. A shape example, not
+ * a real transcript.
+ */
+const DESCRIPTION = "Pages, heaps, indexes and the B-tree, with the on-disk layout drawn as we go.";
+const TRANSCRIPT: [string, string][] = [
+  [
+    "0:00",
+    "Every row you write ends up on a page, and a page is a fixed block of bytes. That constraint is where most of the design comes from.",
+  ],
+  [
+    "0:41",
+    "So the question is not really how the row is stored. It is what has to be true for the next read to find it without scanning everything.",
+  ],
+  [
+    "1:27",
+    "A heap file answers that with nothing. Rows go wherever there is room, and a read walks every page until it finds the one it wants.",
+  ],
+  [
+    "2:03",
+    "An index is the promise that you will not have to. It is a second structure, sorted, that points back into the heap.",
+  ],
+  [
+    "2:50",
+    "Most engines pick a B-tree for that structure, and the rest of this video is about why that choice keeps winning.",
+  ],
+];
+
 const SCENE: Record<PanelState, Scene> = {
-  offer: { host: "news.ycombinator.com", title: THREAD, offer: "Clip this thread", cart: 0 },
-  clipped: { host: "news.ycombinator.com", title: THREAD, offer: "Clip this thread", cart: 1 },
+  offer: { host: "news.ycombinator.com", title: THREAD, offer: "Clip this thread", cart: [] },
+  clipped: {
+    host: "news.ycombinator.com",
+    title: THREAD,
+    offer: "Clip this thread",
+    cart: CART.slice(0, 1),
+  },
   list: {
     host: "reddit.com",
     title: "The Rust Programming Language",
     listing: { label: "24 on this page. Tap one to clip it.", rows: SUBREDDIT_ROWS, taken: 3 },
-    cart: 4,
+    cart: CART.slice(0, 4),
   },
-  peek: { host: "youtube.com", title: VIDEO, offer: "Clip this video", echo: COMMENTS_OFF, cart: 5 },
+  peek: {
+    host: "youtube.com",
+    title: VIDEO,
+    offer: "Clip this video",
+    echo: COMMENTS_OFF,
+    cart: CART,
+    peek: true,
+  },
   // The bundler is the destination, never a source, so it is the one page in
   // the story the panel reports as unreadable.
-  sent: { host: "fileconcat.com", cart: 5 },
+  sent: { host: "fileconcat.com", cart: CART },
+
+  // The homepage's clipper figure: a watch page one click after "Clip this
+  // video", with the clip open in Peek. The cart holds that one clip and
+  // nothing before it, so the floor counts one and the peek is of the video.
+  transcript: {
+    host: "youtube.com",
+    title: VIDEO,
+    offer: "Clip this video",
+    echo: COMMENTS_OFF,
+    cart: CART.slice(-1),
+    peek: true,
+  },
 
   // The three YouTube pages the use-case section walks between. One channel,
   // three of its pages: the video, the Videos tab, the Playlists tab. Their
@@ -132,25 +192,23 @@ const SCENE: Record<PanelState, Scene> = {
     title: VIDEO,
     offer: "Clip this video",
     echo: COMMENTS_OFF,
-    cart: 0,
+    cart: [],
   },
   channel: {
     host: "youtube.com",
     title: "Systems, Slowly",
     listing: { label: "30 on this page. Tap one to clip it.", rows: CHANNEL_ROWS, taken: 0 },
     echo: COMMENTS_OFF,
-    cart: 0,
+    cart: [],
   },
   playlist: {
     host: "youtube.com",
     title: "Systems, Slowly",
     listing: { label: "12 on this page. Tap one to clip it.", rows: PLAYLIST_ROWS, taken: 0 },
     echo: COMMENTS_OFF,
-    cart: 0,
+    cart: [],
   },
 };
-
-const held = (state: PanelState) => CART.slice(0, SCENE[state].cart);
 
 /** What the panel is looking at, ignoring what the cart holds. Two states that
  *  share one page are one page, which is what makes clipping a thread a change
@@ -198,7 +256,10 @@ export function ClipperPanel({ state, className }: { state: PanelState; classNam
               {scene.listing ? (
                 <RowList listing={scene.listing} />
               ) : (
-                <SingleOffer label={scene.offer ?? "Clip this page"} inCart={scene.cart > 0} />
+                <SingleOffer
+                  label={scene.offer ?? "Clip this page"}
+                  inCart={scene.cart.length > 0}
+                />
               )}
               {scene.echo ? <Echo label={scene.echo} /> : null}
             </>
@@ -207,7 +268,7 @@ export function ClipperPanel({ state, className }: { state: PanelState; classNam
           )}
         </div>
 
-        <PeekSheet open={state === "peek"} />
+        <PeekSheet open={scene.peek === true} files={scene.cart} />
       </div>
 
       <PanelFloor state={state} />
@@ -339,11 +400,16 @@ function RowList({ listing }: { listing: Listing }) {
  * Peek: the Markdown that came out, read back inside the panel.
  *
  * It slides over the column rather than replacing it, which is what the real
- * sheet does, so the panel never appears to navigate somewhere.
+ * sheet does, so the panel never appears to navigate somewhere. The body is
+ * the file the way the real Peek prints it: split on blank lines, heading
+ * marks stripped, everything else as typed. It runs past the floor and fades
+ * out there, which is what a file longer than the panel looks like.
  */
-function PeekSheet({ open }: { open: boolean }) {
+function PeekSheet({ open, files }: { open: boolean; files: File[] }) {
   // The peeked clipping is the one just taken, which is the last in the cart.
-  const file = CART[CART.length - 1];
+  // A scene with an empty cart never opens the sheet, so the video stands in
+  // while it is off screen.
+  const file = files[files.length - 1] ?? CART[CART.length - 1];
 
   return (
     <div
@@ -353,36 +419,38 @@ function PeekSheet({ open }: { open: boolean }) {
         open ? "translate-y-0" : "translate-y-full",
       )}
     >
-      <div className="border-hairline flex items-center gap-2 border-b px-4 py-2.5">
-        <span className="text-ink-muted flex items-center gap-1 text-[11px]">
-          <ArrowLeft className="h-3 w-3" strokeWidth={2} />
+      <div className="border-hairline flex items-center gap-2 border-b px-3.5 py-2.5">
+        <span className="text-ink-secondary flex shrink-0 items-center gap-1 text-[11.5px] font-semibold">
+          <ArrowLeft className="h-3 w-3" strokeWidth={2.4} />
           Back
         </span>
-        <span className="text-ink-faint min-w-0 flex-1 truncate text-center font-mono text-[10.5px]">
+        <span className="text-ink-muted min-w-0 flex-1 truncate font-mono text-[10.5px]">
           {file.name}
         </span>
-        <span className="text-ink-muted font-mono text-[10.5px]">~{file.tokens}k</span>
+        <span className="text-code shrink-0 font-mono text-[10.5px] font-semibold">~{file.tokens}k</span>
+        <span className="bg-surface-alt border-border text-ink-secondary shrink-0 rounded-[6px] border px-[9px] py-1 text-[10.5px] font-semibold">
+          Copy
+        </span>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden px-4 py-4">
-        <p className="font-display text-ink text-[14px] font-semibold leading-snug">{VIDEO}</p>
-        <p className="text-ink-faint mt-1 text-[11px]">Clipped from youtube.com · Markdown</p>
-        <div className="text-ink-secondary mt-3 space-y-2 text-[12px] leading-relaxed">
-          <p className="text-ink-faint font-mono text-[11px]">
+      <div className="min-h-0 flex-1 overflow-hidden px-3.5 pt-3.5 [mask-image:linear-gradient(to_bottom,black_calc(100%-32px),transparent)]">
+        <div className="flex max-w-[60ch] flex-col gap-[11px]">
+          <p className="font-display text-ink text-[14px] font-semibold leading-[1.3]">{VIDEO}</p>
+          <p className="text-ink-faint text-[11px]">Clipped from youtube.com · Markdown</p>
+          <p className="text-ink-faint break-all font-mono text-[10.5px] leading-[1.7]">
             title: "{VIDEO}"
             <br />
             source: "https://www.youtube.com/watch?v=8kZ3tPq1vRw"
             <br />
             tags: ["clippings"]
           </p>
-          <p>
-            Every row you write ends up on a page, and a page is a fixed block of bytes. That
-            constraint is where most of the design comes from.
-          </p>
-          <p>
-            So the question is not really how the row is stored. It is what has to be true for the
-            next read to find it without scanning everything.
-          </p>
+          <p className="text-ink-secondary text-[13px] leading-[1.62]">{DESCRIPTION}</p>
+          <p className="font-display text-ink text-[13px] font-semibold">Transcript</p>
+          {TRANSCRIPT.map(([at, text]) => (
+            <p key={at} className="text-ink-secondary text-[13px] leading-[1.62]">
+              {`**${at}** - ${text}`}
+            </p>
+          ))}
         </div>
       </div>
     </div>
@@ -394,7 +462,7 @@ function PeekSheet({ open }: { open: boolean }) {
 function PanelFloor({ state }: { state: PanelState }) {
   if (state === "sent") return <OpenCart />;
 
-  const files = held(state);
+  const files = SCENE[state].cart;
   const count = files.length;
   return (
     <div className="border-hairline shrink-0 border-t px-4 py-3">

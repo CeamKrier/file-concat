@@ -10,7 +10,7 @@ import { cn } from "~/lib/utils";
  * off the chart rather than printed beside it.
  *
  * Same data as the research post's fit curve (`~/data/repo-funnel-values.json`,
- * 60 public repositories, measured 2026-09-07), turned upright because the
+ * 60 public repositories, measured 2026-09-11), turned upright because the
  * homepage band is wide and short where the article's column is narrow and
  * tall. Every count below is derived from the values, never typed in.
  *
