@@ -222,12 +222,15 @@ A document sitting next to the code is where the four stop being the same kind o
 put one directory in front of each of them holding a source file and one document in each of
 four formats, each carrying a sentence that appears nowhere else:
 
-| Tool | main.ts | report.pdf | notes.docx | figures.xlsx | deck.pptx |
-| --- | --- | --- | --- | --- | --- |
-| FileConcat | text | text | text | text | text |
-| Repomix | text | absent | absent | absent | absent |
-| gitingest | text | absent | listed, no text | listed, no text | listed, no text |
-| code2prompt | text | absent | absent | absent | absent |
+<PresenceTable
+  columns={["main.ts", "report.pdf", "notes.docx", "figures.xlsx", "deck.pptx"]}
+  rows={[
+    { tool: "FileConcat", cells: ["text", "text", "text", "text", "text"] },
+    { tool: "Repomix", cells: ["text", "absent", "absent", "absent", "absent"] },
+    { tool: "gitingest", cells: ["text", "absent", "listed", "listed", "listed"] },
+    { tool: "code2prompt", cells: ["text", "absent", "absent", "absent", "absent"] },
+  ]}
+/>
 
 Text means the sentence is in the bundle. Listed means the tool wrote a per-file entry for
 the path with nothing under it; a name in the directory tree at the top of a bundle does not

@@ -16,6 +16,7 @@ import { KeyFindings } from "./key-findings";
 import { Method } from "./method";
 import { PaneDiff } from "./pane-diff";
 import { Payoff } from "./payoff";
+import { PresenceTable } from "./presence-table";
 import { ReaderDuel } from "./reader-duel";
 import { SectionBoundary } from "./section-boundary";
 import { StatusGrid } from "./status-grid";
@@ -85,6 +86,7 @@ const blogComponents = {
   FitCurve,
   UnitFlip,
   StatusGrid,
+  PresenceTable,
   ReaderDuel,
   PaneDiff,
   Checklist,
