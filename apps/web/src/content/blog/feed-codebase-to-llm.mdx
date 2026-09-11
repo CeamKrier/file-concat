@@ -45,9 +45,9 @@ larger than a chat box will accept.
 Those figures are illustrative, and which one you are looking at depends on whether the
 project is installed. On a working checkout, `node_modules` really is the bulk of the bytes.
 On a fresh clone it was never committed, so there is nothing there for a filter to take out:
-across 60 public repositories the defaults stripped a median of 3.5% of tokens. Either way
-what is left is the source you wanted the model to read, but only one of the two starts out
-enormous.
+across 60 public repositories the defaults stripped a median of 22.7% of tokens, and most of
+that was test files dropped by name rather than dependencies. Either way what is left is the
+source you wanted the model to read, but only one of the two starts out enormous.
 
 ## Cut the noise first
 
@@ -125,7 +125,7 @@ FileConcat counts tokens live as you include and exclude files, so you can trim 
 fits instead of finding out when the chat box refuses it.
 
 How large is a repository, in practice? We bundled 60 public ones and counted: the median
-came out at 246,424 tokens, and only 21 of the 60 fit inside a 128K context window. That
+came out at 236,218 tokens, and only 23 of the 60 fit inside a 128K context window. That
 is the number worth having before you plan a paste, and
 [how many tokens a codebase is](/blog/how-many-tokens-is-a-codebase) has the whole
 distribution with the four common context windows drawn across it.

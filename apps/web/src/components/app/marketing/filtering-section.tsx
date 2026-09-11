@@ -12,8 +12,8 @@ export function FilteringSection() {
         title="Drop the whole thing. The defaults are measured."
         className="[&>h2]:max-w-[22ch]"
       >
-        The list of what gets left out was run over 60 public repositories and changed twice because
-        of what it found.
+        The list of what gets left out was run over 60 public repositories and changed three times
+        because of what it found.
       </BandIntro>
 
       <BandGrid className="mt-10">
@@ -39,20 +39,16 @@ export function FilteringSection() {
 
 /**
  * Kept tokens by category, pooled over the sample, from the codebase study
- * (`/blog/how-many-tokens-is-a-codebase`, measured 2026-09-07). Tests are
- * hatched rather than tinted: since 2026-09-09 the defaults leave them out by
- * name, so the segment shows what the bar used to carry and no longer does.
+ * (`/blog/how-many-tokens-is-a-codebase`, measured 2026-09-11 on the shipped
+ * defaults). The tests row is what survives the naming rule; the suite the
+ * rule drops never reaches the bundle, so it is not on a bar of kept tokens.
  */
-const HATCH =
-  "repeating-linear-gradient(135deg,oklch(var(--neutral-info)/0.55) 0 4px,#241f18 4px 8px)";
-const HATCH_SWATCH =
-  "repeating-linear-gradient(135deg,oklch(var(--neutral-info)/0.55) 0 3px,#241f18 3px 6px)";
-
 const SEGMENTS = [
-  { label: "source code", share: 70.6, fill: "oklch(var(--chart-1))" },
-  { label: "tests", share: 17.5, fill: HATCH, swatch: HATCH_SWATCH },
-  { label: "documentation", share: 6.6, fill: "oklch(var(--chart-3))" },
-  { label: "configuration", share: 5.0, fill: "oklch(var(--chart-5))" },
+  { label: "source code", share: 70.7, fill: "oklch(var(--chart-1))" },
+  { label: "documentation", share: 8.6, fill: "oklch(var(--chart-3))" },
+  { label: "assets, svg and the like", share: 7.1, fill: "oklch(var(--chart-2))" },
+  { label: "configuration", share: 6.5, fill: "oklch(var(--chart-5))" },
+  { label: "tests the naming rule misses", share: 6.4, fill: "oklch(var(--text-muted))" },
 ];
 
 function CompositionBar() {
@@ -69,7 +65,7 @@ function CompositionBar() {
       <div className="mt-[18px] grid gap-2.5">
         {SEGMENTS.map((s) => (
           <div key={s.label} className="grid grid-cols-[12px_1fr_auto] items-center gap-3">
-            <span className="h-3 w-3 rounded-[3px]" style={{ background: s.swatch ?? s.fill }} />
+            <span className="h-3 w-3 rounded-[3px]" style={{ background: s.fill }} />
             <span className="text-ink text-[13.5px]">{s.label}</span>
             <span className="text-ink font-mono text-[12.5px] tabular-nums">
               {s.share.toFixed(1)}%
@@ -78,7 +74,7 @@ function CompositionBar() {
         ))}
       </div>
       <figcaption className="text-ink-muted border-border mt-[18px] border-t pt-3.5 font-mono text-[11.5px] leading-[1.6]">
-        kept tokens pooled over 60 repositories, 39,107 files
+        kept tokens pooled over 60 repositories, 28,409 files kept of 39,107, 2026-09-11
       </figcaption>
     </figure>
   );

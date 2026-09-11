@@ -84,21 +84,21 @@ describe("ContextWindowCosts", () => {
 
     // A crawler never clicks, so all four headline rows have to be in the first
     // render. Only the detail table below them follows the selection.
-    for (const label of ["100K", "246K", "500K", "1M"]) {
+    for (const label of ["100K", "236K", "500K", "1M"]) {
       expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
     }
 
-    expect(screen.getByRole("button", { name: "246K" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "236K" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "1M" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("prices the detail table against the selected size", () => {
     render(<ContextWindowCosts />);
 
-    // 246,424 rather than a round number: filling exactly 1,000,000 tokens costs
+    // 236,218 rather than a round number: filling exactly 1,000,000 tokens costs
     // the per-million rate, so that bucket would render two identical columns.
     expect(
-      screen.getByRole("heading", { name: /models accept 246,424 tokens/ }),
+      screen.getByRole("heading", { name: /models accept 236,218 tokens/ }),
     ).toBeInTheDocument();
   });
 });

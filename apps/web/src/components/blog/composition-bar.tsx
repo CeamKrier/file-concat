@@ -27,18 +27,20 @@ export type CompositionBarProps = {
 const num = (v: number) => v.toLocaleString("en-US");
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 
-/** Green, blue, amber, violet. Red is skipped: here it would read as failure. */
+/** Green, blue, amber, violet, then a warm grey. Red is skipped: here it would read as failure. */
 const KEPT_FILLS = [
   "oklch(var(--chart-1))",
   "oklch(var(--chart-2))",
   "oklch(var(--chart-3))",
   "oklch(var(--chart-5))",
+  "oklch(var(--text-muted))",
 ];
 
 const EXCLUDED_FILLS = [
   "repeating-linear-gradient(135deg,#4a4133 0 4px,#2c261d 4px 8px)",
   "repeating-linear-gradient(135deg,#413a2d 0 4px,#282218 4px 8px)",
   "repeating-linear-gradient(135deg,#39332a 0 4px,#241f18 4px 8px)",
+  "repeating-linear-gradient(135deg,#322d25 0 4px,#201c15 4px 8px)",
 ];
 
 /** Below this share an inline percentage inside the bar stops being readable. */

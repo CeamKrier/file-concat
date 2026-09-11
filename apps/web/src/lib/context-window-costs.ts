@@ -15,12 +15,12 @@ import catalogue from "~/data/models.json";
  */
 
 /**
- * The sizes the page prices. 246,424 is not a round number on purpose: it is
- * the median bundle across the 60 public repositories measured on 2026-09-07
+ * The sizes the page prices. 236,218 is not a round number on purpose: it is
+ * the median bundle across the 60 public repositories measured on 2026-09-11
  * and published in `/blog/how-many-tokens-is-a-codebase`, so one row prices a
  * real project rather than a convenient one.
  */
-export const BUCKETS = [100_000, 246_424, 500_000, 1_000_000];
+export const BUCKETS = [100_000, 236_218, 500_000, 1_000_000];
 
 export const MODELS = catalogue.textModels as unknown as FilteredModel[];
 export const SNAPSHOT = catalogue.lastUpdated.slice(0, 10);
