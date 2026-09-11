@@ -74,7 +74,7 @@ function CompositionBar() {
         ))}
       </div>
       <figcaption className="text-ink-muted border-border mt-[18px] border-t pt-3.5 font-mono text-[11.5px] leading-[1.6]">
-        kept tokens pooled over 60 repositories, 28,409 files kept of 39,107, 2026-09-11
+        kept tokens pooled over 60 repositories, 28,409 files kept of 39,107
       </figcaption>
     </figure>
   );
