@@ -1,3 +1,14 @@
+import {
+  BookOpen,
+  Captions,
+  FileSpreadsheet,
+  FileText,
+  Mail,
+  NotebookPen,
+  Presentation,
+  type LucideIcon,
+} from "lucide-react";
+
 import { cn } from "~/lib/utils";
 import {
   BandGrid,
@@ -194,21 +205,33 @@ function Ledger() {
   );
 }
 
-const FORMATS = [
-  "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp", "rtf", "epub", "eml",
-  "ipynb", "vtt", "srt",
+/**
+ * The formats the tab reads, grouped by what the file is rather than listed
+ * one extension per pill: a reader recognises a spreadsheet icon faster than
+ * "ods", and seven chips wrap where sixteen pills did not.
+ */
+const FORMATS: { icon: LucideIcon; kind: string; ext: string[] }[] = [
+  { icon: FileText, kind: "documents", ext: ["pdf", "doc", "docx", "odt", "rtf"] },
+  { icon: FileSpreadsheet, kind: "spreadsheets", ext: ["xls", "xlsx", "ods"] },
+  { icon: Presentation, kind: "slides", ext: ["ppt", "pptx", "odp"] },
+  { icon: BookOpen, kind: "ebooks", ext: ["epub"] },
+  { icon: Mail, kind: "email", ext: ["eml"] },
+  { icon: NotebookPen, kind: "notebooks", ext: ["ipynb"] },
+  { icon: Captions, kind: "subtitles", ext: ["vtt", "srt"] },
 ];
 
 function Formats() {
   return (
-    <div className="mt-[18px] flex flex-wrap gap-1.5">
+    <div className="mt-[18px] flex flex-wrap items-center gap-1.5">
       <span className="text-ink-faint mr-1.5 py-1 font-mono text-[11.5px]">read in the tab</span>
       {FORMATS.map((f) => (
         <span
-          key={f}
-          className="border-border bg-surface text-code rounded-[6px] border px-2 py-[3px] font-mono text-[11.5px]"
+          key={f.kind}
+          className="border-border bg-surface text-code inline-flex items-center gap-1.5 rounded-[6px] border py-[3px] pl-1.5 pr-2 font-mono text-[11.5px]"
         >
-          {f}
+          <f.icon className="text-ink-muted h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
+          <span className="sr-only">{f.kind}: </span>
+          {f.ext.join(" ")}
         </span>
       ))}
     </div>

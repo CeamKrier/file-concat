@@ -1,5 +1,15 @@
 import { useCallback, useState } from "react";
-import { Play } from "lucide-react";
+import {
+  FileArchive,
+  Files,
+  Folder,
+  Globe,
+  Link,
+  Play,
+  Scissors,
+  Terminal,
+  type LucideIcon,
+} from "lucide-react";
 
 import { VIDEO } from "~/components/clipper/clipper-content";
 import { ClipperPanel } from "~/components/clipper/clipper-panel";
@@ -7,18 +17,19 @@ import { LogoMark } from "../logo-mark";
 import { MockWindow } from "./mock-window";
 import { BandIntro, BandLink, BandLinks, MarketingSection } from "./section";
 
-const SOURCES = [
-  "folder",
-  "files",
-  "zip",
-  "tar",
-  "GitHub",
-  "GitLab",
-  "Bitbucket",
-  "Gist",
-  "web page",
-  "clipper",
-  "shell",
+/**
+ * Where a bundle's files come from, one chip per kind with a drawn icon, so
+ * the row reads at a glance rather than as eleven words in boxes. The four
+ * hosts share the URL chip because they share the import path.
+ */
+const SOURCES: { icon: LucideIcon; label: string }[] = [
+  { icon: Folder, label: "folder" },
+  { icon: Files, label: "files" },
+  { icon: FileArchive, label: "zip, tar" },
+  { icon: Link, label: "GitHub, GitLab, Bitbucket, Gist" },
+  { icon: Globe, label: "web page" },
+  { icon: Scissors, label: "clipper" },
+  { icon: Terminal, label: "shell" },
 ];
 
 /** Band 7: where the files come from, the clipper, and the terminal. */
@@ -34,10 +45,11 @@ export function SourcesSection() {
           <div className="mt-[22px] flex flex-wrap gap-2">
             {SOURCES.map((s) => (
               <span
-                key={s}
-                className="border-border bg-surface text-code rounded-[6px] border px-2.5 py-[5px] font-mono text-[12px]"
+                key={s.label}
+                className="border-border bg-surface text-code inline-flex items-center gap-2 rounded-[6px] border py-[5px] pl-2 pr-2.5 font-mono text-[12px]"
               >
-                {s}
+                <s.icon className="text-ink-muted h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
+                {s.label}
               </span>
             ))}
           </div>
@@ -64,6 +76,7 @@ export function SourcesSection() {
           timestamps, and nothing the player or sidebar was showing. Comments are opt-in.
         </p>
         <BrowserWithPanel className="mt-[22px]" />
+        <ClipOutput className="mt-3" />
         <div className="mt-3.5 flex flex-wrap items-baseline gap-x-6 gap-y-2">
           <BandLink to="/clipper">Browser clipper</BandLink>
           <span className="text-ink-muted text-[13px]">
@@ -177,6 +190,36 @@ function BrowserWithPanel({ className }: { className?: string }) {
         <ClipperPanel state="watch" className="h-auto rounded-none border-0 shadow-none" />
       </div>
     </div>
+  );
+}
+
+/**
+ * What the clip becomes: the Markdown the panel hands to the bundler, drawn in
+ * the shape `renderYouTubeClipping` writes (frontmatter, then the transcript
+ * as one paragraph per timestamp). Without it "Clip this video" reads as
+ * cutting a segment out of the video; with it, the button reads as video to
+ * text. The paragraphs are a shape example, not a real transcript.
+ */
+function ClipOutput({ className }: { className?: string }) {
+  return (
+    <MockWindow label="what the clip becomes, yt-transcript.md" className={className}>
+      <div className="text-code grid gap-1 px-[18px] py-3.5 font-mono text-[12.5px] leading-[1.6]">
+        <div className="text-ink-faint">---</div>
+        <div className="text-ink-faint">title: "{VIDEO}"</div>
+        <div className="text-ink-faint">source: "https://www.youtube.com/watch?v=8kZ3tPq1vRw"</div>
+        <div className="text-ink-faint">---</div>
+        <div className="text-ink mt-1.5">## Transcript</div>
+        <div className="mt-1 max-w-[76ch]">
+          <span className="text-primary">**0:00**</span> - Every row you write ends up on a page, and a
+          page is a fixed block of bytes. That constraint is where most of the design comes from.
+        </div>
+        <div className="max-w-[76ch]">
+          <span className="text-primary">**0:41**</span> - So the question is not really how the row is
+          stored. It is what has to be true for the next read to find it without scanning everything.
+        </div>
+        <div className="text-ink-faint">...</div>
+      </div>
+    </MockWindow>
   );
 }
 
