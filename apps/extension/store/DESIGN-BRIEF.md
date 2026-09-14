@@ -1,7 +1,7 @@
 # Claude Design brief: FileConcat Clipper store art
 
-Paste this whole file into Claude Design. Eight artboards: six Chrome Web Store
-screenshots and two promo tiles.
+Paste this whole file into Claude Design. Seven artboards: five Chrome Web Store
+screenshots (the store takes no more than five) and two promo tiles.
 
 ## The product, in the terms the art has to carry
 
@@ -60,14 +60,14 @@ So each artboard needs the crop expressed as a **placeholder rectangle** at an
 exact position and size, with a note saying which capture fills it and what
 region of that capture. Fill the placeholder with the supplied reference
 screenshot while designing. The generator will paste the real capture into the
-same rectangle afterwards, which is what keeps the six reproducible instead of
+same rectangle afterwards, which is what keeps the five reproducible instead of
 becoming hand-made files that rot the next time the panel changes.
 
 ## Hard specs
 
 | Artboard         | Size     | Format                                   |
 | ---------------- | -------- | ---------------------------------------- |
-| S1 to S6         | 1280x800 | 24-bit PNG or JPEG, **no alpha channel** |
+| S1 to S5         | 1280x800 | 24-bit PNG or JPEG, **no alpha channel** |
 | A1 Small tile    | 440x280  | 24-bit PNG or JPEG, **no alpha channel**  |
 | A2 Marquee tile  | 1400x560 | 24-bit PNG or JPEG, **no alpha channel**  |
 
@@ -132,7 +132,7 @@ same radial glow the site uses:
 Crops sit above it at `#16130f` with a `#4a4133` edge and a soft black shadow,
 so the separation comes from the product being the lighter thing in frame.
 
-Some of the six crops contain a white web page beside the panel, which lands on
+Some of the five crops contain a white web page beside the panel, which lands on
 this field with no help at all. That contrast is the composition, not a
 problem to soften.
 
@@ -153,14 +153,20 @@ that takes it.
   the region holding the comment tree and the panel's `Clip this post` button
   together. The panel column must be whole. The Reddit side can be cut.
 
-## S2: listings, 1280x800
+## S2: conversations, 1280x800
 
-- Headline across the top, centred, around 46px:
-  `Tick what you want. Each one is opened and read on its own.`
-  Set `opened and read on its own` in `#7acd8e`.
-- Crop below, centred, bleeding off the bottom edge:
-  `screenshot-2-reddit-listing.png`, the region holding the feed rows beside
-  the panel's checkbox list with four ticked and `Clip 4 posts` showing.
+- Headline, left, around 50px, two lines:
+  `The whole conversation,` in `#f1ebe0`, then `not the window on screen.` in
+  `#7acd8e`, with S1's indent echo.
+- One mono chip under it, JetBrains Mono 15px, `#b8b0a0`, on `#120f0a` with a
+  `#2c261d` border: `105 turns, 2 on screen, one file`. Measured on a Gemini
+  conversation on 2026-09-14 and already printed on fileconcat.com/clipper.
+- Crop, right, bleeding off the right edge: `screenshot-2-conversation.png`,
+  the region holding a Gemini conversation beside the panel's
+  `Clip this conversation` button and the echo line
+  `Include reasoning and tool activity: off for this site`. The panel column
+  must be whole. The conversation in the capture is one written for the shot,
+  never one of the author's own.
 
 ## S3: Hacker News, 1280x800
 
@@ -184,22 +190,7 @@ The panel that carries the number.
   region holding the video rows beside the panel's checkbox list and the
   comments toggle.
 
-## S5: conversations, 1280x800
-
-- Headline, left, around 50px, two lines:
-  `The whole conversation,` in `#f1ebe0`, then `not the window on screen.` in
-  `#7acd8e`, with S1's indent echo.
-- One mono chip under it, JetBrains Mono 15px, `#b8b0a0`, on `#120f0a` with a
-  `#2c261d` border: `105 turns, 2 on screen, one file`. Measured on a Gemini
-  conversation on 2026-09-14 and already printed on fileconcat.com/clipper.
-- Crop, right, bleeding off the right edge: `screenshot-6-conversation.png`,
-  the region holding a Gemini conversation beside the panel's
-  `Clip this conversation` button and the echo line
-  `Include reasoning and tool activity: off for this site`. The panel column
-  must be whole. The conversation in the capture is one written for the shot,
-  never one of the author's own.
-
-## S6: the payoff, 1280x800
+## S5: the payoff, 1280x800
 
 - Crop, centred, bleeding off the bottom edge: `screenshot-5-bundle.png`, the
   region holding the fileconcat.com result with its token count and the panel
@@ -256,7 +247,7 @@ Split roughly 55/45, type left, crop right.
 - No claim the product does not make. It does not summarise, it does not use
   AI, and it has no account or sync. It clips and it sends.
 - No arrows drawn between the crop and the headline, and no numbered step
-  badges. The order of the six is the sequence.
+  badges. The order of the five is the sequence.
 
 ## Export check
 

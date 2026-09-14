@@ -23,46 +23,68 @@ conversations included.
 
 The package is `pnpm -C apps/extension zip`, which builds and writes
 `fileconcatextension-0.3.0-chrome.zip` into the build output folder (238 KB).
-Against the 0.2.0 listing, these fields carry new text and are re-pasted from
-this file; everything else on the dashboard stays as it is:
+Against the 0.2.0 listing, this is what changes and where each change is made.
+The title and the summary are the manifest's `name` and `description` and
+cannot be edited on the dashboard ("After uploading your item, you won't be
+able to edit the metadata of your manifest in the developer dashboard",
+developer.chrome.com/docs/webstore/prepare), so those two change by the upload
+itself. The other three are pasted from the fenced blocks below.
 
-| Field                         | Why it changes                                                              |
-| ----------------------------- | --------------------------------------------------------------------------- |
-| Summary                       | names ChatGPT, Claude and Gemini chats; 132 of 132                          |
-| Description                   | new "ChatGPT, Claude and Gemini conversations, whole" paragraph             |
-| Single purpose                | "seven ways of reading a page", the three conversation handlers named       |
-| Host permission justification | last paragraph: the same-origin conversation requests on the three sites    |
-| Homepage URL                  | still `https://fileconcat.com` on the dashboard; set it to `/clipper` now   |
+| Field                         | Where                        | What changes                                                              |
+| ----------------------------- | ---------------------------- | ------------------------------------------------------------------------- |
+| Title                         | the package (`wxt.config.ts`) | `FileConcat Clipper: threads, chats and transcripts to Markdown`, 62 of 75 |
+| Summary                       | the package (`wxt.config.ts`) | chats first, 129 of 132                                                   |
+| Description                   | paste                        | the "ChatGPT, Claude and Gemini conversations, whole" paragraph; Substack and Medium dropped |
+| Single purpose                | paste                        | "seven ways of reading a page", the three conversation handlers named     |
+| Host permission justification | paste                        | last paragraph: the same-origin conversation requests on the three sites  |
+| Homepage URL                  | dashboard field              | still `https://fileconcat.com`; set it to `https://fileconcat.com/clipper` |
 
 Unchanged on purpose: the remote-code answer (still no), the data-usage boxes
 (only "Website content", see Privacy), the certifications, the privacy policy
-URL, the icon and the five screenshots. The screenshots show the panel before
-the 2026-08-22 redesign and none shows a conversation; reshooting them is its
-own session (see the table under Screenshots) and does not hold this upload.
+URL, the icon and the five screenshots. The store takes at most five
+screenshots ("up to 5 total"), so a conversation shot replaces one rather
+than joining them; the five that are live show the panel before the
+2026-08-22 redesign, and reshooting is its own session that does not hold
+this upload.
+
+One rule read for this submission, from the store's spam FAQ: "When listing
+supported websites or brands in the description, do not list more than
+five." The description names six, one per source the extension reads
+(Reddit, Hacker News, YouTube, ChatGPT, Claude, Gemini); the two that were
+examples rather than sources, Substack and Medium, are gone from the
+description and the host justification. Each brand appears at most twice,
+under the FAQ's "under 5 instances" line. If review objects to the sixth,
+the FAQ's own remedy is a link to the full list, which `/clipper` already is.
 
 ---
 
 ## Store listing
 
-**Item name** (75 max, 18 used)
+**Item name** (75 max, 62 used; the manifest `name`, shown read-only on the
+dashboard)
 
 ```
-FileConcat Clipper
+FileConcat Clipper: threads, chats and transcripts to Markdown
 ```
 
-**Summary** (132 max, 132 used)
+The store weighs the title in search, so it carries the three category words a
+searcher types rather than a list of brands; the brands are in the summary.
+The same string is what Chrome shows in the install dialog and on
+chrome://extensions. The toolbar tooltip stays `FileConcat Clipper`
+(`action.default_title`).
+
+**Summary** (132 max, 129 used; the manifest `description`, shown read-only on
+the dashboard)
 
 ```
-Clip Reddit and Hacker News threads, ChatGPT, Claude and Gemini chats, YouTube transcripts and articles to Markdown for your bundle.
+Save ChatGPT, Claude and Gemini chats, Reddit and Hacker News threads, YouTube transcripts and articles as Markdown for your LLM.
 ```
 
-Leads with threads on purpose. Page-to-Markdown is the commodity half of this
-and every bookmarklet does it. What nothing else on the page does is take a
-discussion with its nesting, scores and authors intact.
-
-The dashboard prefills this field from the manifest `description`, which is an
-older line in the other order. Overwrite it. Changing the manifest to match is
-optional and needs a rebuild.
+Leads with the conversations from 0.3.0 on. Until then it led with threads,
+because page-to-Markdown is the commodity half and a discussion with its
+nesting intact was the one thing nothing else did; a conversation the page
+only shows a window of is the same argument with more people searching for
+it. Neither order was measured, the store offers no search data.
 
 **Category**
 
@@ -119,8 +141,8 @@ to four times the tokens.
 
 Any article. Everywhere else, if a page reads as an article, the panel offers to
 clip it. Mozilla's Readability picks the body and Turndown renders it, which
-covers Substack, Medium, documentation sites, news and blogs with no per-site
-code. Navigation, sidebars, cookie bars and footers are left behind.
+covers newsletters, documentation sites, news and blogs with no per-site code.
+Navigation, sidebars, cookie bars and footers are left behind.
 
 HOW IT WORKS
 
@@ -159,9 +181,10 @@ The extension and the site are both at github.com/CeamKrier/file-concat.
 
 **Store icon** — `assets/store-icon-128.png` (128x128 PNG)
 
-**Screenshots** — 1280x800 PNG, upload in this order. The order is the argument
-rather than a tour of the features: the store shows the first one largest, so it
-is a nested thread there and not the article a bookmarklet would also manage.
+**Screenshots**: 1280x800 PNG, at most five, upload in this order. The order
+is the argument rather than a tour of the features: the store shows the first
+one largest, so it is a nested thread there and not the article a bookmarklet
+would also manage.
 
 | File                                     | What it shows                                                                                    |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -254,7 +277,7 @@ the delivery. The extension has no other function and no other destination.
 ```
 Two things require it.
 
-First, the extension can clip articles from any site using Mozilla Readability. That is why it works on Substack, Medium, docs, news sites, and blogs without site-specific code. Since the user may save any page, host access must cover the web. Page content is only read after the user presses the clip button.
+First, the extension can clip articles from any site using Mozilla Readability. That is why it works on newsletters, docs, news sites, and blogs without site-specific code. Since the user may save any page, host access must cover the web. Page content is only read after the user presses the clip button.
 
 Second, the side panel needs the active tab’s URL to show the current site and decide whether the page can be clipped. Chrome exposes tab.url only with either the tabs permission or host permission. We use host permissions instead of tabs because tabs would also expose the title and URL of every open tab, which we do not need.
 
