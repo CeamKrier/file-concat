@@ -94,11 +94,16 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
 }
 
 /** The answer to the query this page ranks for, so the hero and the table below
- * cannot drift apart. Re-checked at the OpenAI help center on 2026-09-08, which
- * states Free 5, Go and Plus 25, Edu/Pro/Business/Enterprise 40 files per
- * project. Move the date whenever the figure is checked again, not otherwise. */
+ * cannot drift apart. Re-checked at OPENAI_PROJECTS_HELP on 2026-09-14: its
+ * "Plans and limits" section states Free 5, Go and Plus 25,
+ * Edu/Pro/Business/Enterprise 40 files per project, and that only 10 files go
+ * up at the same time. The Custom GPT figure is the GPT-builder article
+ * (help.openai.com/en/articles/8843948), which says 20 while the File Uploads
+ * FAQ still says 10; we follow the builder article. Move the date whenever the
+ * figures are checked again, not otherwise. */
 const PROJECT_FILE_LIMITS = "5 files on Free, 25 on Go and Plus, 40 on Pro and above";
 const CAPS_CHECKED = "September 2026";
+const OPENAI_PROJECTS_HELP = "https://help.openai.com/en/articles/10169521-using-projects-in-chatgpt";
 
 /** ChatGPT-only caps, deeper than the cross-platform hub table: the three ways
  * ChatGPT counts files, so the reader sees which limit they actually hit. */
@@ -109,8 +114,8 @@ const CAPS = [
     limit: PROJECT_FILE_LIMITS,
   },
   {
-    where: "Files in one upload",
-    caps: "How many the picker takes at once",
+    where: "Project uploads",
+    caps: "How many go up in one pass",
     limit: "10",
   },
   { where: "Custom GPT knowledge", caps: "Files a Custom GPT can reference", limit: "20" },
@@ -164,7 +169,7 @@ function WhereItStops() {
         Figures as of {CAPS_CHECKED}, and OpenAI changes them often. Check the current cap in
         the{" "}
         <a
-          href="https://help.openai.com"
+          href={OPENAI_PROJECTS_HELP}
           target="_blank"
           rel="noopener noreferrer"
           className="hover:text-ink-secondary underline decoration-[oklch(var(--border-strong))] underline-offset-2 transition-colors duration-150"
