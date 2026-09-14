@@ -99,7 +99,7 @@ const LIMITS = [
     limit: "Capped by the context window, not a file count",
     href: "/for/claude-projects",
   },
-  { where: "Gemini Gems", caps: "Knowledge files", limit: "10", href: "/for/gemini-gems" },
+  { where: "Gemini Gems", caps: "Knowledge files", limit: "About 10", href: "/for/gemini-gems" },
   {
     where: "NotebookLM",
     caps: "Sources per notebook",
