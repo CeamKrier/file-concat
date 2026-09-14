@@ -3,11 +3,12 @@
 // absent, which is everywhere but the machine that measured them. Every
 // assertion is on a number: a failing string matcher would print the whole
 // clipping, which is a user's conversation, into the test output.
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { beforeAll, describe, expect, it } from "vitest";
 import { type Conversation, readConversation } from "../src/chatgpt";
 import { type ClaudeConversation, createdFiles, readConversation as readClaude } from "../src/claude";
-import { renderChatClipping } from "../src/markdown";
+import { createdFiles as geminiFiles, readConversation as readGemini, type Turn } from "../src/gemini";
+import { type ChatClipping, renderChatClipping } from "../src/markdown";
 
 const PROBES = new URL("../../../docs/clipper-chat-probes/", import.meta.url);
 // Only feeds the source URL, which nothing here asserts; the real ids stay out of the repo.
@@ -137,5 +138,140 @@ describe.skipIf(!has("claude-text-only.json"))("Claude, text only, measured", ()
     expect(count(off, "\n**User**\n")).toBe(11);
     expect(count(off, "\n**Claude**\n")).toBe(11);
     expect(on.replace("included_", "left out_") === off).toBe(true);
+  });
+});
+
+// ---------- Gemini ----------
+
+// The survey saved each conversation as the RPC payload `[turns, null, null, [[[]]]]`.
+const geminiTurns = (name: string): Turn[] => load<[Turn[]]>(name)[0];
+const HEX = "0123456789abcdef";
+// A placeholder the reader left in place would read `googleusercontent.com/<kind>_content/`.
+const placeholders = (markdown: string) => count(markdown, "googleusercontent.com/");
+// Thinking sections rendered as bullets, counted on the blocks so a list inside a user's own text cannot move it.
+const bullets = (clip: ChatClipping) => clip.blocks.reduce((sum, block) => sum + (block.kind === "reasoning" ? block.entries.length : 0), 0);
+const GEMINI_FILES = /^gemini-(survey-\d+|[0-9a-f]{8})\.json$/;
+
+describe.skipIf(!has("gemini-e83053d3.json"))("Gemini, the tab's own conversation, measured", () => {
+  let turns: Turn[];
+  beforeAll(() => {
+    turns = geminiTurns("gemini-e83053d3.json");
+  });
+
+  it("is 10 turns with 9 upload lines and one video reference, no placeholder left", () => {
+    const clip = readGemini(turns, HEX, false);
+    const markdown = renderChatClipping(clip);
+    expect(count(markdown, "\n**User**\n")).toBe(10);
+    expect(count(markdown, "\n**Gemini**\n")).toBe(10);
+    expect(count(markdown, "[image: ")).toBe(9);
+    // One video reference plus one YouTube link the answer itself carries.
+    expect(count(markdown, "](https://www.youtube.com/")).toBe(2);
+    expect(placeholders(markdown)).toBe(0);
+    expect(privateUse(markdown)).toBe(0);
+    expect(joinedWords(markdown)).toBe(0);
+    expect(count(markdown, "\n_Gemini 3 Pro - 10 turns - reasoning and tool activity left out_\n")).toBe(1);
+    expect(clip.skipped).toEqual({});
+  });
+
+  it("holds 10 reasoning blocks of 12 bullets with the opt-in on", () => {
+    const clip = readGemini(turns, HEX, true);
+    expect(count(renderChatClipping(clip), "\n_Reasoning_\n")).toBe(10);
+    expect(bullets(clip)).toBe(12);
+  });
+});
+
+describe.skipIf(!has("gemini-survey-16.json"))("Gemini, 105 turns over two pages, measured", () => {
+  it("is 105 and 105 with one reasoning block and two references", () => {
+    const turns = geminiTurns("gemini-survey-16.json");
+    const markdown = renderChatClipping(readGemini(turns, HEX, true));
+    expect(count(markdown, "\n**User**\n")).toBe(105);
+    expect(count(markdown, "\n**Gemini**\n")).toBe(105);
+    expect(count(markdown, "\n_Reasoning_\n")).toBe(1);
+    expect(count(markdown, "](https://www.youtube.com/")).toBe(2);
+    expect(count(markdown, "[task confirmation]")).toBe(1);
+    expect(placeholders(markdown)).toBe(0);
+    expect(privateUse(markdown)).toBe(0);
+  });
+});
+
+describe.skipIf(!has("gemini-survey-18.json"))("Gemini, 106 turns with cards, measured", () => {
+  it("references 18 cards, one video and one task confirmation", () => {
+    const markdown = renderChatClipping(readGemini(geminiTurns("gemini-survey-18.json"), HEX, false));
+    expect(count(markdown, "\n**User**\n")).toBe(106);
+    expect(count(markdown, "[card: ")).toBe(18);
+    expect(count(markdown, "](https://www.youtube.com/")).toBe(3);
+    expect(count(markdown, "[task confirmation]")).toBe(1);
+    expect(placeholders(markdown)).toBe(0);
+  });
+});
+
+describe.skipIf(!has("gemini-survey-4.json"))("Gemini, sources and a created app, measured", () => {
+  let turns: Turn[];
+  beforeAll(() => {
+    turns = geminiTurns("gemini-survey-4.json");
+  });
+
+  it("is 3 turns with two sources lines naming 8 urls and one file pointer", () => {
+    const markdown = renderChatClipping(readGemini(turns, HEX, false));
+    expect(count(markdown, "\n**User**\n")).toBe(3);
+    expect(count(markdown, "\n**Gemini**\n")).toBe(3);
+    expect(count(markdown, "\n_Sources: ")).toBe(2);
+    // Eight source links plus the banner image line's own `](https://gemini.google.com/...)`.
+    expect(count(markdown, "](http")).toBe(9);
+    expect(count(markdown, "\n[file: app.html]")).toBe(1);
+    const files = geminiFiles(turns);
+    expect(files.length).toBe(1);
+    expect(files[0].path).toBe("app.html");
+    expect(files[0].text.length).toBe(50663);
+    expect(files[0].text.startsWith("<!DOCTYPE html>")).toBe(true);
+  });
+
+  it("holds 3 reasoning blocks of 20 bullets with the opt-in on", () => {
+    const clip = readGemini(turns, HEX, true);
+    expect(count(renderChatClipping(clip), "\n_Reasoning_\n")).toBe(3);
+    expect(bullets(clip)).toBe(20);
+  });
+});
+
+describe.skipIf(!has("gemini-survey-20.json"))("Gemini, an image generation, measured", () => {
+  it("is one turn whose answer is an image line", () => {
+    const clip = readGemini(geminiTurns("gemini-survey-20.json"), HEX, false);
+    const markdown = renderChatClipping(clip);
+    expect(count(markdown, "\n**User**\n")).toBe(1);
+    expect(count(markdown, "\n**Gemini**\n")).toBe(1);
+    expect(count(markdown, "[image: ")).toBe(2);
+    expect(placeholders(markdown)).toBe(0);
+    expect(clip.models).toEqual(["Gemini Nano Banana 2"]);
+  });
+});
+
+describe.skipIf(!has("gemini-survey-8.json"))("Gemini, ten turns with citations, measured", () => {
+  it("is 10 and 10 with six sources lines naming 20 urls, 8 reasoning blocks of 55 bullets", () => {
+    const turns = geminiTurns("gemini-survey-8.json");
+    const off = renderChatClipping(readGemini(turns, HEX, false));
+    expect(count(off, "\n**User**\n")).toBe(10);
+    expect(count(off, "\n**Gemini**\n")).toBe(10);
+    expect(count(off, "\n_Sources: ")).toBe(6);
+    const on = readGemini(turns, HEX, true);
+    expect(count(renderChatClipping(on), "\n_Reasoning_\n")).toBe(8);
+    expect(bullets(on)).toBe(55);
+  });
+});
+
+describe.skipIf(!has("gemini-e83053d3.json"))("Gemini, every measured conversation", () => {
+  it("reads all 29 with nothing skipped, no placeholder, no private-use character, no joined word", () => {
+    const names = readdirSync(PROBES).filter((name) => GEMINI_FILES.test(name));
+    expect(names.length).toBe(29);
+    for (const name of names) {
+      const turns = geminiTurns(name);
+      const clip = readGemini(turns, HEX, true);
+      const markdown = renderChatClipping(clip);
+      expect(clip.turns).toBe(turns.length);
+      expect(clip.skipped).toEqual({});
+      expect(placeholders(markdown)).toBe(0);
+      expect(privateUse(markdown)).toBe(0);
+      // User text is verbatim and one measured prompt carries a 30-letter token of its own; the reader adds none.
+      expect(joinedWords(markdown)).toBeLessThanOrEqual(joinedWords(JSON.stringify(turns)));
+    }
   });
 });
