@@ -9,14 +9,15 @@ Assets are in `assets/`. They are generated, not hand-drawn. Rebuild the
 extension, then run `node apps/extension/store/generate-assets.mjs` to
 reproduce all five from a real browser.
 
-Matches manifest version `0.2.0`.
+Matches manifest version `0.3.0`.
 
 The version lives in `apps/extension/package.json` and WXT copies it into the
 manifest. Bump it by hand, once per submission rather than once per change:
 Chrome only accepts an upload numbered above the published one, a number that
 never reaches the store means nothing to anyone, and a review takes days, so
 there is no release cadence to automate against. Update this line in the same
-commit. `0.1.0` is what is live; `0.2.0` is the batch built since.
+commit. `0.1.0` is what is live; `0.3.0` is the batch built since, ChatGPT and Claude
+conversations included.
 
 ---
 
