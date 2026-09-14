@@ -224,3 +224,27 @@ export function readConversation(json: ClaudeConversation, id: string, activity:
     clippedOn: new Date().toISOString().slice(0, 10),
   };
 }
+
+// ---------- the request ----------
+
+/**
+ * Same-origin, on the session cookie: nothing is read but `lastActiveOrg`,
+ * which names the organization the page is showing, and nothing is stored.
+ * The route and its query are the ones claude.ai's own client uses.
+ */
+export async function fetchConversation(id: string): Promise<ClaudeConversation> {
+  const org = document.cookie.match(/(?:^|; )lastActiveOrg=([^;]+)/)?.[1];
+  if (!org) throw new Error("Sign in to Claude to clip this conversation.");
+  const response = await fetch(
+    `/api/organizations/${org}/chat_conversations/${id}?tree=True&rendering_mode=messages&render_all_tools=true`,
+    { headers: { Accept: "application/json" } },
+  );
+  if (response.status === 401 || response.status === 403) {
+    throw new Error("Claude would not hand over this conversation. Sign in and reload the page.");
+  }
+  if (response.status === 404) throw new Error("Claude has no conversation at this address.");
+  if (!response.ok) throw new Error(`claude.ai answered ${response.status}.`);
+  const json = (await response.json().catch(() => null)) as ClaudeConversation | null;
+  if (!json || !Array.isArray(json.chat_messages)) throw new Error(SHAPE_CHANGED);
+  return json;
+}
