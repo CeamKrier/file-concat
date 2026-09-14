@@ -267,10 +267,11 @@ same browser. "Website content" is ticked anyway because that destination is our
 own site and its analytics can record file names and the on-screen preview, so
 the content the user clipped is disclosed rather than argued about. "Web
 history" stays unticked because the tray records only the pages the user chose
-to clip, and it never leaves the device. "Personal communications" stays
-unticked too: a ChatGPT, Claude or Gemini clip is the user's own conversation
-with the product, not a message exchanged with another person, and the
-session token each site reads to fetch it never leaves the device either.
+to clip, and it never leaves the device. "Personal communications" is the
+box to settle at the 0.3.0 submission: a ChatGPT, Claude or Gemini clip is
+the user's own conversation with the product, read on the page's session and
+kept on the device; whether the form counts that as personal communications
+is not decided here.
 
 **Certifications** — all three are true, tick all three:
 
