@@ -86,7 +86,7 @@ describe.skipIf(!has("claude-thinking-text.json"))("Claude, 86 messages with thi
     // One image and one document uploaded on the walk.
     expect(count(markdown, "[image: ")).toBe(1);
     expect(privateUse(markdown)).toBe(0);
-    expect(createdFiles(json)).toHaveLength(1);
+    expect(createdFiles(json).length).toBe(1);
   });
 
   it("holds 38 calls, 39 outputs with 2 errors and 57 reasoning blocks with the opt-in on", () => {
@@ -117,7 +117,7 @@ describe.skipIf(!has("claude-branches.json"))("Claude, two branches and hidden t
     // Five pointers to created files; the one upload on the walk is a blob, so
     // it is a `[file: name]` line with no slash, not an image.
     expect(count(markdown, "[file: /")).toBe(5);
-    expect(createdFiles(json)).toHaveLength(5);
+    expect(createdFiles(json).length).toBe(5);
   });
 });
 
