@@ -22,6 +22,14 @@ export const CHATGPT_PROJECTS_FAQ = [
     a: "Yes. FileConcat returns a single file, so however many documents go in, only one file is added to the Project and it uses one slot. The file tree at the top keeps every document labeled and in order.",
   },
   {
+    // The ceiling on the remedy, from OpenAI's File Uploads FAQ (checked
+    // 2026-09-14): 512 MB per file, and 2M tokens per text or document file.
+    // The FAQ states it for chats and GPTs and does not list Projects
+    // separately, so the answer says exactly that instead of extending it.
+    q: "How big can the one combined file be?",
+    a: "OpenAI's File Uploads FAQ puts a hard ceiling of 512 MB on a single uploaded file, and 2 million tokens on a text or document file. It states this for chats and Custom GPTs and does not list Projects separately. FileConcat shows the token count of the combined file before you upload it, so you know whether the whole folder fits in one slot or needs to be split in two.",
+  },
+  {
     q: "What is the difference between Project files and files I attach in a chat?",
     a: "Project files are shared across every chat in the Project; a file you attach inside a single chat is visible only to that chat. Project uploads go up 10 files at a time, so a full folder takes several passes. One combined file works for both, and it stays available to every future chat in the Project.",
   },
