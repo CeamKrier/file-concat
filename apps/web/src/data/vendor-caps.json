@@ -1,0 +1,99 @@
+{
+  "_comment": "Every vendor cap the site states, pinned to the sentence on the vendor page it was read from. scripts/check-vendor-caps.ts fetches each url at build time and fails the build when a quote is gone while the anchor (the article title) is still there. A missing quote means re-read the page, fix the number in used_by, and move the quote and checked date here. Quotes are matched case-insensitively on whitespace-collapsed text with straight apostrophes.",
+  "sources": [
+    {
+      "url": "https://help.openai.com/en/articles/10169521-using-projects-in-chatgpt",
+      "anchor": "Projects in ChatGPT",
+      "checked": "2026-09-14",
+      "quotes": [
+        "Pro users: up to 40 files",
+        "Plus and Go users: up to 25 files",
+        "Free users: up to 5 files",
+        "40 for Business, Enterprise and Edu users",
+        "only 10 files can be uploaded at the same time"
+      ],
+      "used_by": [
+        "apps/web/src/components/personas/chatgpt-projects-page.tsx",
+        "apps/web/src/components/how-to/share-all-files-page.tsx"
+      ]
+    },
+    {
+      "url": "https://help.openai.com/en/articles/8555545-file-uploads-faq",
+      "anchor": "File uploads FAQ",
+      "checked": "2026-09-14",
+      "quotes": ["hard limit of 512MB per file", "capped at 2M tokens per file"],
+      "used_by": ["apps/web/src/components/personas/chatgpt-projects-faq.ts"]
+    },
+    {
+      "url": "https://help.openai.com/en/articles/8843948-knowledge-in-gpts",
+      "anchor": "Creating and editing GPTs",
+      "checked": "2026-09-14",
+      "quotes": [
+        "You can attach up to 20 files to a GPT",
+        "retirement is planned for Dec 11, 2026"
+      ],
+      "used_by": [
+        "apps/web/src/components/personas/chatgpt-projects-page.tsx",
+        "apps/web/src/components/how-to/share-all-files-page.tsx"
+      ]
+    },
+    {
+      "url": "https://support.claude.com/en/articles/9517075-what-are-projects",
+      "anchor": "What are Projects",
+      "checked": "2026-09-14",
+      "quotes": ["Free users can create a maximum of five projects"],
+      "used_by": [
+        "apps/web/src/components/personas/claude-projects-page.tsx",
+        "apps/web/src/components/how-to/share-all-files-page.tsx"
+      ]
+    },
+    {
+      "url": "https://support.claude.com/en/articles/8606394-how-large-is-the-context-window-on-paid-claude-plans",
+      "anchor": "How large is the context window on paid Claude plans",
+      "checked": "2026-09-14",
+      "quotes": [
+        "support a 1M token context window on all paid plans when chatting with Claude",
+        "support a 500K token context window on all paid plans when chatting with Claude",
+        "context window size is 200K"
+      ],
+      "used_by": [
+        "apps/web/src/components/personas/claude-projects-page.tsx",
+        "apps/web/src/components/personas/claude-projects-faq.ts"
+      ]
+    },
+    {
+      "url": "https://support.claude.com/en/articles/11473015-retrieval-augmented-generation-rag-for-projects",
+      "anchor": "Retrieval augmented generation (RAG) for projects",
+      "checked": "2026-09-14",
+      "quotes": ["expand your project's capacity by up to 10x"],
+      "used_by": [
+        "apps/web/src/components/personas/claude-projects-page.tsx",
+        "apps/web/src/components/personas/claude-projects-faq.ts"
+      ]
+    },
+    {
+      "url": "https://support.google.com/gemininotebook/answer/16213268",
+      "anchor": "Gemini Notebook",
+      "checked": "2026-09-14",
+      "quotes": ["Sources 50/notebook 100/notebook 300/notebook 500/notebook 600/notebook"],
+      "used_by": [
+        "apps/web/src/components/personas/notebooklm-page.tsx",
+        "apps/web/src/components/how-to/share-all-files-page.tsx"
+      ]
+    },
+    {
+      "url": "https://support.google.com/gemininotebook/answer/16215270",
+      "anchor": "Gemini Notebook",
+      "checked": "2026-09-14",
+      "quotes": ["Each source can contain up to 500,000 words or up to 200MB for uploaded files"],
+      "used_by": ["apps/web/src/components/personas/notebooklm-page.tsx"]
+    },
+    {
+      "url": "https://workspace.google.com/blog/product-announcements/new-gemini-gems-deeper-knowledge-and-business-context",
+      "anchor": "Gems",
+      "checked": "2026-09-14",
+      "quotes": ["upload up to 10 files when creating a custom Gem"],
+      "used_by": ["apps/web/src/components/personas/gemini-gems-page.tsx"]
+    }
+  ]
+}
