@@ -437,8 +437,15 @@ function renderCart() {
   const total = tray.reduce((sum, item) => sum + (item.clipping ? tokens(item.clipping.markdown) : 0), 0);
   const failed = tray.filter((item) => item.state === "failed").length;
   const ready = tray.filter((item) => item.state === "done").length;
+  const reading = tray.filter(waiting).length;
   const label = `${tray.length === 1 ? "1 clip" : `${tray.length} clips`} in the cart`;
-  const figure = failed ? `${fmt(total)} tokens · ${failed} failed` : `${fmt(total)} tokens`;
+  // A conversation is one request for megabytes of JSON, so the bar has to say
+  // the work is still going: a total that sits at zero reads as a panel that
+  // stopped.
+  const parts = [`${fmt(total)} tokens`];
+  if (reading) parts.push(`reading ${reading}`);
+  if (failed) parts.push(`${failed} failed`);
+  const figure = parts.join(", ");
 
   ui.cartBarCount.textContent = String(tray.length);
   ui.cartBarTitle.textContent = label;
