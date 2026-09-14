@@ -497,3 +497,90 @@ export function mergeChatBlocks(blocks: ChatBlock[]): ChatBlock[] {
   }
   return merged;
 }
+
+function renderReasoning(block: Extract<ChatBlock, { kind: "reasoning" }>): string {
+  const bullets = block.entries.map((entry) => {
+    const head = `- ${entry.summary}`;
+    if (!entry.body) return head;
+    // Every line of a body indented two spaces under its summary keeps a
+    // multi-line body inside the bullet.
+    return `${head}\n${entry.body.split("\n").map((line) => `  ${line}`).join("\n")}`;
+  });
+  const parts: string[] = [];
+  if (bullets.length) parts.push(bullets.join("\n"));
+  if (block.preamble) parts.push(block.preamble);
+  return parts.join("\n\n");
+}
+
+/**
+ * Turn markers are bold lines, never headings: assistant Markdown carries its
+ * own `#` headings and a `## User` would read as one of them. The assistant's
+ * marker is written once per answer, ahead of whatever activity precedes the
+ * text, and `---` separates turns.
+ */
+function renderChatBlocks(clip: ChatClipping): string {
+  const parts: string[] = [];
+  let markerDue = true;
+  for (const block of clip.blocks) {
+    if (block.kind === "user") {
+      if (parts.length) parts.push("---");
+      parts.push("**User**", block.text);
+      markerDue = true;
+      continue;
+    }
+    if (markerDue) {
+      parts.push(`**${clip.assistant}**`);
+      markerDue = false;
+    }
+    switch (block.kind) {
+      case "assistant":
+        parts.push(block.text);
+        break;
+      case "reasoning":
+        parts.push("_Reasoning_", renderReasoning(block));
+        break;
+      case "call":
+        parts.push(`_Call: ${block.tool}_`, fence(block.text, block.language));
+        break;
+      case "output":
+        parts.push(`_Output: ${block.tool}_`, fence(block.text));
+        break;
+      case "recap":
+        parts.push(`_${block.text}_`);
+        break;
+    }
+  }
+  return parts.join("\n\n");
+}
+
+export function renderChatClipping(clip: ChatClipping): string {
+  const firstUser = clip.blocks.find((block) => block.kind === "user");
+  const frontmatter = [
+    "---",
+    `title: ${yamlString(clip.title)}`,
+    `source: ${yamlString(clip.source)}`,
+    "author:",
+    `  - ${yamlString(`[[${clip.assistant}]]`)}`,
+    `published: ${clip.started ? isoDate(clip.started) : ""}`,
+    `created: ${clip.clippedOn}`,
+    `description: ${yamlString((firstUser?.text ?? "").slice(0, DESCRIPTION_PREVIEW_CHARS))}`,
+    "tags:",
+    '  - "clippings"',
+    "---",
+  ].join("\n");
+
+  const activity = clip.activity
+    ? `reasoning and tool activity included${clip.redacted ? `, ${clip.redacted} redacted tool outputs not shown` : ""}`
+    : "reasoning and tool activity left out";
+  const facts = `_${clip.models.join(", ")} - ${clip.turns} turns - ${activity}_`;
+
+  const parts = [`${frontmatter}\n![](${clip.source})`, facts, renderChatBlocks(clip)];
+  const skipped = Object.entries(clip.skipped);
+  if (skipped.length) {
+    const named = skipped.map(([type, count], index) =>
+      index === 0 ? `${count} ${count === 1 ? "message" : "messages"} of type ${type}` : `${count} of type ${type}`,
+    );
+    parts.push(`_Not rendered: ${named.join(", ")}._`);
+  }
+  return parts.join("\n\n") + "\n";
+}
