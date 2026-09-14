@@ -480,6 +480,11 @@ export function fence(text: string, language = ""): string {
   return `${ticks}${language}\n${text}\n${ticks}`;
 }
 
+/** A Markdown link whose title and url cannot break out of their brackets. */
+export function link(title: string, url: string): string {
+  return `[${title.replace(/[[\]]/g, "\\$&")}](${url.replace(/[()]/g, (c) => (c === "(" ? "%28" : "%29"))})`;
+}
+
 /**
  * Adjacent assistant blocks become one, so the file shows one turn marker per
  * answer once the activity between them is filtered out; adjacent reasoning

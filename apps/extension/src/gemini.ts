@@ -9,7 +9,7 @@
 // measured (2026-01 to 2026-09), fields only appeared or went null. Design
 // and figures in docs/clipper-chat-plan.md, "Gemini".
 
-import { type ChatBlock, type ChatClipping, mergeChatBlocks } from "./markdown";
+import { type ChatBlock, type ChatClipping, link, mergeChatBlocks } from "./markdown";
 
 const APP = /^\/app\/([0-9a-f]{16})$/;
 
@@ -112,7 +112,7 @@ function placeholder(candidate: unknown, kind: string, index: number): string {
     const card = at(candidate, 12, 4, index, 4, 0, 0);
     const title = str(at(card, 0));
     const url = str(at(card, 2));
-    if (title && url) return `[${title.replace(/[[\]]/g, "\\$&")}](${url})`;
+    if (title && url) return link(title, url);
     return "[video]";
   }
   if (kind === "image_generation") {
@@ -139,7 +139,7 @@ function sources(candidate: unknown): string {
     }
   }
   if (!seen.size) return "";
-  return `_Sources: ${[...seen].map(([url, title]) => `[${title.replace(/[[\]]/g, "\\$&")}](${url.replace(/[()]/g, (c) => (c === "(" ? "%28" : "%29"))})`).join(", ")}_`;
+  return `_Sources: ${[...seen].map(([url, title]) => link(title, url)).join(", ")}_`;
 }
 
 /** The HTML documents a candidate wrote (`mini-app` on the page), verbatim. */

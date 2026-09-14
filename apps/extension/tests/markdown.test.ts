@@ -3,6 +3,7 @@ import {
   clippingPath,
   estimateTokens,
   fence,
+  link,
   mergeChatBlocks,
   renderChatClipping,
   renderHnClipping,
@@ -330,6 +331,12 @@ describe("fence", () => {
   it("outruns the longest backtick run inside the body", () => {
     expect(fence("a\n```md\nb\n```")).toBe("````\na\n```md\nb\n```\n````");
     expect(fence("x ````` y")).toBe("``````\nx ````` y\n``````");
+  });
+});
+
+describe("link", () => {
+  it("escapes brackets in the title and parens in the url", () => {
+    expect(link("A [b]", "https://x.example/a(b)")).toBe("[A \\[b\\]](https://x.example/a%28b%29)");
   });
 });
 

@@ -6,7 +6,7 @@
 // session cookie alone. Ten conversations measured; design and figures in
 // docs/clipper-chat-plan.md, "Claude".
 
-import { type ChatBlock, type ChatClipping, fence, mergeChatBlocks } from "./markdown";
+import { type ChatBlock, type ChatClipping, fence, link, mergeChatBlocks } from "./markdown";
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const CHAT = new RegExp(`^/chat/(${UUID})$`);
@@ -112,7 +112,7 @@ function sources(block: Block): string {
     if (citation.url && !seen.has(citation.url)) seen.set(citation.url, citation.title || citation.url);
   }
   if (!seen.size) return "";
-  return `_Sources: ${[...seen].map(([url, title]) => `[${title.replace(/[[\]]/g, "\\$&")}](${url.replace(/[()]/g, (c) => (c === "(" ? "%28" : "%29"))})`).join(", ")}_`;
+  return `_Sources: ${[...seen].map(([url, title]) => link(title, url)).join(", ")}_`;
 }
 
 /** A tool result's parts, one per line: text verbatim, a search hit as
