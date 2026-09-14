@@ -253,9 +253,10 @@ export function readConversation(json: Conversation, ref: ConversationRef, activ
 
 async function conversationBody(response: Response): Promise<Conversation> {
   if (!response.ok) throw new Error(`chatgpt.com answered ${response.status}.`);
-  // A bot-check page is a 200 that is not JSON.
+  // A bot-check or sign-in page is a 200 that is not JSON.
   const json = (await response.json().catch(() => null)) as Conversation | null;
-  if (!json?.mapping || !json.current_node) throw new Error(SHAPE_CHANGED);
+  if (!json) throw new Error("chatgpt.com answered with a page instead of the conversation. Reload the tab and clip again.");
+  if (!json.mapping || !json.current_node) throw new Error(SHAPE_CHANGED);
   return json;
 }
 
@@ -280,7 +281,9 @@ export async function fetchConversation(ref: ConversationRef): Promise<Conversat
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
-      "Oai-Device-Id": crypto.randomUUID(),
+      // The site's own client sends its `oai-did` cookie; a fresh id per clip
+      // is what a bot check would notice. Random only when the cookie is not readable.
+      "Oai-Device-Id": document.cookie.match(/(?:^|; )oai-did=([^;]+)/)?.[1] ?? crypto.randomUUID(),
       "Oai-Language": "en-US",
     },
   });

@@ -83,6 +83,24 @@ describe("createdFiles", () => {
   it("lists every create_file on the walk with its path and text", () => {
     expect(createdFiles(fixture)).toEqual([{ path: "/mnt/user-data/outputs/report.md", text: "# Report\n\n```js\nx\n```" }]);
   });
+
+  it("keeps the last write to a path, in first-write order", () => {
+    const twice = {
+      current_leaf_message_uuid: "b",
+      chat_messages: [
+        message("a", NIL, "human", [text("q")]),
+        message("b", "a", "assistant", [
+          { type: "tool_use", name: "create_file", input: { path: "/out/app.py", file_text: "v1" } },
+          { type: "tool_use", name: "create_file", input: { path: "/out/notes.md", file_text: "n" } },
+          { type: "tool_use", name: "create_file", input: { path: "/out/app.py", file_text: "v2" } },
+        ]),
+      ],
+    } as unknown as ClaudeConversation;
+    expect(createdFiles(twice)).toEqual([
+      { path: "/out/app.py", text: "v2" },
+      { path: "/out/notes.md", text: "n" },
+    ]);
+  });
 });
 
 describe("readConversation", () => {

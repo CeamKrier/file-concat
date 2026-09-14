@@ -578,7 +578,7 @@ export function renderChatClipping(clip: ChatClipping): string {
   const activity = clip.activity
     ? `reasoning and tool activity included${clip.redacted ? `, ${clip.redacted} redacted tool outputs not shown` : ""}`
     : "reasoning and tool activity left out";
-  const facts = `_${clip.models.join(", ")} - ${clip.turns} turns - ${activity}_`;
+  const facts = `_${[clip.models.join(", "), `${clip.turns} turns`, activity].filter(Boolean).join(" - ")}_`;
 
   const parts = [`${frontmatter}\n![](${clip.source})`, facts, renderChatBlocks(clip)];
   const skipped = Object.entries(clip.skipped);

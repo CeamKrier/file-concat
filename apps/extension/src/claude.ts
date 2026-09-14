@@ -85,17 +85,20 @@ export function walk(json: ClaudeConversation): Message[] {
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
 
-/** Files the conversation wrote with `create_file`, in call order. Each is its
- *  own clipping in the bundle; the transcript only points at it. */
+/** Files the conversation wrote with `create_file`, in first-write order with
+ *  the last write to a path winning. Each is its own clipping in the bundle;
+ *  the transcript only points at it. Edits made with `str_replace` are not
+ *  applied (none in the ten measured conversations). */
 export function createdFiles(json: ClaudeConversation): { path: string; text: string }[] {
-  const files: { path: string; text: string }[] = [];
+  const files = new Map<string, { path: string; text: string }>();
   for (const message of walk(json)) {
     for (const block of message.content ?? []) {
       if (block.type !== "tool_use" || !isRecord(block.input) || typeof block.input.file_text !== "string") continue;
-      files.push({ path: String(block.input.path ?? "file"), text: block.input.file_text });
+      const path = String(block.input.path ?? "file");
+      files.set(path, { path, text: block.input.file_text });
     }
   }
-  return files;
+  return [...files.values()];
 }
 
 // ---------- blocks ----------

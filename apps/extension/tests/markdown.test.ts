@@ -490,4 +490,9 @@ describe("renderChatClipping", () => {
     const markdown = renderChatClipping({ ...clip, started: "", redacted: 0, skipped: {} });
     expect(markdown).toContain("\npublished: \n");
   });
+
+  it("starts the facts line at the turn count when no model is named", () => {
+    const markdown = renderChatClipping({ ...clip, models: [], redacted: 0, skipped: {} });
+    expect(markdown).toContain("\n_2 turns - reasoning and tool activity included_\n");
+  });
 });
