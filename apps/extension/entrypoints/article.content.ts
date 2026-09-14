@@ -33,6 +33,7 @@ export default defineContentScript({
     "*://news.ycombinator.com/*",
     "*://chatgpt.com/*",
     "*://claude.ai/*",
+    "*://gemini.google.com/*",
     "https://fileconcat.com/*",
     "http://localhost/*",
   ],
