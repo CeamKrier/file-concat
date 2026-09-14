@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   clippingPath,
   estimateTokens,
+  fence,
+  mergeChatBlocks,
   renderHnClipping,
   renderRedditClipping,
   renderYouTubeClipping,
   sanitizeFilename,
   uniquePaths,
+  type ChatBlock,
   type Clipping,
 } from "../src/markdown";
 import { turndown } from "../src/article";
@@ -309,5 +312,37 @@ describe("estimateTokens", () => {
     const mixed = `${"a".repeat(100)}${"日本語".repeat(10)}`;
     // 100 Latin at 1/4 plus 30 kana/kanji at 1/1.5.
     expect(estimateTokens(mixed)).toBe(45);
+  });
+});
+
+describe("fence", () => {
+  it("uses three backticks when the body has none", () => {
+    expect(fence("print(1)", "python")).toBe("```python\nprint(1)\n```");
+  });
+
+  it("outruns the longest backtick run inside the body", () => {
+    expect(fence("a\n```md\nb\n```")).toBe("````\na\n```md\nb\n```\n````");
+    expect(fence("x ````` y")).toBe("``````\nx ````` y\n``````");
+  });
+});
+
+describe("mergeChatBlocks", () => {
+  it("joins adjacent assistant blocks and adjacent reasoning blocks, nothing else", () => {
+    const merged = mergeChatBlocks([
+      { kind: "user", text: "q" },
+      { kind: "reasoning", entries: [{ summary: "a", body: "" }], preamble: "" },
+      { kind: "reasoning", entries: [{ summary: "b", body: "x" }], preamble: "p" },
+      { kind: "assistant", text: "one" },
+      { kind: "assistant", text: "two" },
+      { kind: "call", tool: "python", language: "", text: "1" },
+      { kind: "call", tool: "python", language: "", text: "2" },
+    ] satisfies ChatBlock[]);
+    expect(merged).toEqual([
+      { kind: "user", text: "q" },
+      { kind: "reasoning", entries: [{ summary: "a", body: "" }, { summary: "b", body: "x" }], preamble: "p" },
+      { kind: "assistant", text: "one\n\ntwo" },
+      { kind: "call", tool: "python", language: "", text: "1" },
+      { kind: "call", tool: "python", language: "", text: "2" },
+    ]);
   });
 });

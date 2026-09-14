@@ -422,3 +422,78 @@ export function estimateTokens(markdown: string): number {
   const dense = markdown.match(DENSE_SCRIPT)?.length ?? 0;
   return Math.ceil(dense / 1.5 + (markdown.length - dense) / 4);
 }
+
+// ---------- LLM conversations (ChatGPT, Claude) ----------
+//
+// One block list for every vendor, one renderer. A reader (chatgpt.ts,
+// claude.ts) walks the vendor's JSON into these; the file it becomes is the
+// same shape for both, so a reader that understands one understands the other.
+
+export type ChatBlock =
+  | { kind: "user"; text: string }
+  | { kind: "assistant"; text: string }
+  /** Thought summaries with optional bodies, plus free-text reasoning (a ChatGPT
+   *  preamble, or Claude's thinking text) rendered as a paragraph after them. */
+  | { kind: "reasoning"; entries: { summary: string; body: string }[]; preamble: string }
+  | { kind: "call"; tool: string; language: string; text: string }
+  | { kind: "output"; tool: string; text: string }
+  /** ChatGPT's "Worked for 1m 38s" line. */
+  | { kind: "recap"; text: string };
+
+export interface ChatClipping {
+  /** The page URL for this conversation: the frontmatter source and the banner image. */
+  source: string;
+  /** The name on the assistant turn marker: ChatGPT, Claude. */
+  assistant: string;
+  title: string;
+  /** Every model slug seen, the conversation's default first. */
+  models: string[];
+  /** First user message's timestamp as ISO; empty when the JSON has none. */
+  started: string;
+  /** Number of `user` blocks. */
+  turns: number;
+  /** The opt-in: reasoning and tool activity are in `blocks`. */
+  activity: boolean;
+  blocks: ChatBlock[];
+  /** Tool outputs the vendor redacted, counted only with the opt-in on. */
+  redacted: number;
+  /** Messages of a type this reader does not know, by type. Named at the end
+   *  of the file rather than dropped in silence (ADR-0004). */
+  skipped: Record<string, number>;
+  clippedOn: string;
+}
+
+/**
+ * A fence longer than any backtick run inside the body. A tool call that writes
+ * a Markdown file carries fences of its own, and three backticks around it
+ * would end the block at the first one.
+ */
+export function fence(text: string, language = ""): string {
+  const longest = Math.max(0, ...(text.match(/`+/g) ?? []).map((run) => run.length));
+  const ticks = "`".repeat(Math.max(3, longest + 1));
+  return `${ticks}${language}\n${text}\n${ticks}`;
+}
+
+/**
+ * Adjacent assistant blocks become one, so the file shows one turn marker per
+ * answer once the activity between them is filtered out; adjacent reasoning
+ * blocks become one list. Everything else keeps its own block.
+ */
+export function mergeChatBlocks(blocks: ChatBlock[]): ChatBlock[] {
+  const merged: ChatBlock[] = [];
+  for (const block of blocks) {
+    const last = merged[merged.length - 1];
+    if (last?.kind === "assistant" && block.kind === "assistant") {
+      merged[merged.length - 1] = { kind: "assistant", text: `${last.text}\n\n${block.text}` };
+    } else if (last?.kind === "reasoning" && block.kind === "reasoning") {
+      merged[merged.length - 1] = {
+        kind: "reasoning",
+        entries: [...last.entries, ...block.entries],
+        preamble: [last.preamble, block.preamble].filter(Boolean).join("\n\n"),
+      };
+    } else {
+      merged.push(block);
+    }
+  }
+  return merged;
+}
