@@ -198,3 +198,43 @@ export function readConversation(turns: Turn[], id: string, activity: boolean): 
     clippedOn: new Date().toISOString().slice(0, 10),
   };
 }
+
+// ---------- the request ----------
+
+const RPC = "/_/BardChatUi/data/batchexecute?rpcids=hNvQHb";
+const PAGE = 100;
+
+/**
+ * Same-origin, on the session cookie plus the page's CSRF token, which is
+ * read from the page HTML for this clip's requests and held in nothing. The
+ * envelope and arguments are the ones gemini.google.com's own client sends
+ * (measured 2026-09-14); the server enforces the token and ignores the rest
+ * of the client's query string. Pages of 100 turns, the cursor followed
+ * until the server answers none.
+ */
+export async function fetchConversation(id: string): Promise<Turn[]> {
+  const token = readToken(document.documentElement.innerHTML);
+  if (!token) throw new Error("Sign in to Gemini to clip this conversation.");
+  const turns: Turn[] = [];
+  let cursor: string | null = null;
+  for (let page = 0; page < 50; page++) {
+    const body = new URLSearchParams();
+    body.set("f.req", JSON.stringify([[["hNvQHb", JSON.stringify([`c_${id}`, PAGE, cursor, 1, [0], [4], null, 1]), null, "generic"]]]));
+    body.set("at", token);
+    const response = await fetch(RPC, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded;charset=UTF-8" },
+      body: body.toString(),
+    });
+    if (response.status === 400 || response.status === 401 || response.status === 403) {
+      throw new Error("Gemini would not hand over this conversation. Sign in and reload the page.");
+    }
+    if (!response.ok) throw new Error(`gemini.google.com answered ${response.status}.`);
+    const payload = parseBatch(await response.text());
+    if (!payload) throw new Error("Gemini has no conversation at this address.");
+    turns.push(...(payload[0] as Turn[]));
+    cursor = typeof payload[1] === "string" ? payload[1] : null;
+    if (!cursor) break;
+  }
+  return turns;
+}
