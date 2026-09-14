@@ -19,6 +19,27 @@ there is no release cadence to automate against. Update this line in the same
 commit. `0.2.0` is what is live; `0.3.0` is the batch built since, ChatGPT, Claude and Gemini
 conversations included.
 
+## Dashboard edits for 0.3.0
+
+The package is `pnpm -C apps/extension zip`, which builds and writes
+`fileconcatextension-0.3.0-chrome.zip` into the build output folder (238 KB).
+Against the 0.2.0 listing, these fields carry new text and are re-pasted from
+this file; everything else on the dashboard stays as it is:
+
+| Field                         | Why it changes                                                              |
+| ----------------------------- | --------------------------------------------------------------------------- |
+| Summary                       | names ChatGPT, Claude and Gemini chats; 132 of 132                          |
+| Description                   | new "ChatGPT, Claude and Gemini conversations, whole" paragraph             |
+| Single purpose                | "seven ways of reading a page", the three conversation handlers named       |
+| Host permission justification | last paragraph: the same-origin conversation requests on the three sites    |
+| Homepage URL                  | still `https://fileconcat.com` on the dashboard; set it to `/clipper` now   |
+
+Unchanged on purpose: the remote-code answer (still no), the data-usage boxes
+(only "Website content", see Privacy), the certifications, the privacy policy
+URL, the icon and the five screenshots. The screenshots show the panel before
+the 2026-08-22 redesign and none shows a conversation; reshooting them is its
+own session (see the table under Screenshots) and does not hold this upload.
+
 ---
 
 ## Store listing
@@ -267,11 +288,16 @@ same browser. "Website content" is ticked anyway because that destination is our
 own site and its analytics can record file names and the on-screen preview, so
 the content the user clipped is disclosed rather than argued about. "Web
 history" stays unticked because the tray records only the pages the user chose
-to clip, and it never leaves the device. "Personal communications" is the
-box to settle at the 0.3.0 submission: a ChatGPT, Claude or Gemini clip is
-the user's own conversation with the product, read on the page's session and
-kept on the device; whether the form counts that as personal communications
-is not decided here.
+to clip, and it never leaves the device. "Personal communications" stays
+unticked at the 0.3.0 submission. The form's own example for that box is
+"emails, texts, or chat messages", meaning messages between people; a
+ChatGPT, Claude or Gemini clip is the user's own exchange with a product,
+shown on a web page, read from that page on the user's request and handled
+exactly like any other clipped page. It is website content, and that box is
+ticked. Ticking the second box would put "Handles personal communications"
+on the listing's privacy tab for a thing the extension does not do. If a
+reviewer reads it the other way, tick it and resubmit; nothing in the code
+changes.
 
 **Certifications** — all three are true, tick all three:
 
