@@ -104,7 +104,7 @@ function sources(block: Block): string {
     if (citation.url && !seen.has(citation.url)) seen.set(citation.url, citation.title || citation.url);
   }
   if (!seen.size) return "";
-  return `_Sources: ${[...seen].map(([url, title]) => `[${title}](${url})`).join(", ")}_`;
+  return `_Sources: ${[...seen].map(([url, title]) => `[${title.replace(/[[\]]/g, "\\$&")}](${url.replace(/[()]/g, (c) => (c === "(" ? "%28" : "%29"))})`).join(", ")}_`;
 }
 
 /** A tool result's parts, one per line: text verbatim, a search hit as

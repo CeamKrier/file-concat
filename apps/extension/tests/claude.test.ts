@@ -138,4 +138,17 @@ describe("readConversation", () => {
     const one = { name: "", model: "m", current_leaf_message_uuid: "a", chat_messages: [message("a", NIL, "human", [text("q")])] } as unknown as ClaudeConversation;
     expect(readConversation(one, ID, false).title).toBe("Conversation");
   });
+
+  it("escapes brackets in a source title and parentheses in its url", () => {
+    const cited = {
+      name: "x",
+      model: "m",
+      current_leaf_message_uuid: "b",
+      chat_messages: [
+        message("a", NIL, "human", [text("q")]),
+        message("b", "a", "assistant", [text("A.", [{ url: "https://e.example/w(1)", title: "T [v2]" }])]),
+      ],
+    } as unknown as ClaudeConversation;
+    expect(readConversation(cited, ID, false).blocks[1]).toEqual({ kind: "assistant", text: "A.\n\n_Sources: [T \\[v2\\]](https://e.example/w%281%29)_" });
+  });
 });
