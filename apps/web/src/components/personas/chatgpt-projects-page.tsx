@@ -103,7 +103,8 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
  * figures are checked again, not otherwise. */
 const PROJECT_FILE_LIMITS = "5 files on Free, 25 on Go and Plus, 40 on Pro and above";
 const CAPS_CHECKED = "September 2026";
-const OPENAI_PROJECTS_HELP = "https://help.openai.com/en/articles/10169521-using-projects-in-chatgpt";
+const OPENAI_PROJECTS_HELP =
+  "https://help.openai.com/en/articles/10169521-using-projects-in-chatgpt";
 
 /** ChatGPT-only caps, deeper than the cross-platform hub table: the three ways
  * ChatGPT counts files, so the reader sees which limit they actually hit. */

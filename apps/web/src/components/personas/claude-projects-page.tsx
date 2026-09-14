@@ -202,8 +202,8 @@ function WhereItStops() {
       </div>
 
       <p className="text-ink-faint mx-auto mt-4 max-w-[720px] text-[12.5px] leading-relaxed">
-        Figures as of September 2026, and Anthropic changes them often. Check the current numbers
-        in the{" "}
+        Figures as of September 2026, and Anthropic changes them often. Check the current numbers in
+        the{" "}
         <a
           href="https://support.claude.com/en/articles/9517075-what-are-projects"
           target="_blank"
