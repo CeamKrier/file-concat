@@ -80,3 +80,121 @@ export function parseBatch(text: string): unknown[] | null {
 export function readToken(html: string): string | null {
   return html.match(/"SNlM0e":"([^"]+)"/)?.[1] ?? null;
 }
+
+// ---------- turns ----------
+
+/** Turns in file order. The RPC answers newest first. */
+const oldestFirst = (turns: Turn[]): Turn[] => turns.slice().reverse();
+
+const candidateOf = (turn: Turn): unknown => at(turn, 3, 0, 0);
+
+/** `[image: name]` for an image entry, `[file: name]` for anything else. */
+function fileLine(entry: unknown): string {
+  const image = at(entry, 1) === 1;
+  const name = str(at(entry, 2)) || (image ? "image" : "file");
+  return `[${image ? "image" : "file"}: ${name}]`;
+}
+
+/** The question first, so the frontmatter description is the question; then
+ *  one line per file uploaded on this turn (slot 3, not the accumulated slot 4). */
+function userBlock(turn: Turn): ChatBlock {
+  const text = at(turn, 2, 0, 0);
+  if (typeof text !== "string") throw new Error(SHAPE_CHANGED);
+  const files = arr(at(turn, 2, 0, 4, 0, 3)).map(fileLine).join("\n");
+  return { kind: "user", text: [text, files].filter(Boolean).join("\n\n") };
+}
+
+/** The page draws rich content where the answer text holds
+ *  `http://googleusercontent.com/<kind>_content/<n>`; the file gets a
+ *  reference built from the card at that index, or the kind's name alone. */
+function placeholder(candidate: unknown, kind: string, index: number): string {
+  if (kind === "youtube") {
+    const card = at(candidate, 12, 4, index, 4, 0, 0);
+    const title = str(at(card, 0));
+    const url = str(at(card, 2));
+    if (title && url) return `[${title.replace(/[[\]]/g, "\\$&")}](${url})`;
+    return "[video]";
+  }
+  if (kind === "image_generation") {
+    const entry = at(candidate, 12, 0, 8, 0, index, 0, 3);
+    return entry ? fileLine(entry) : "[image]";
+  }
+  if (kind === "card") {
+    const title = str(at(candidate, 12, 27, index, 0, 6));
+    return title ? `[card: ${title}]` : "[card]";
+  }
+  return `[${kind.replace(/_/g, " ")}]`;
+}
+
+const PLACEHOLDER = /https?:\/\/googleusercontent\.com\/([a-z_]+)_content\/(\d+)/g;
+
+/** `_Sources: [title](url), ..._`, distinct by url, first seen first; the
+ *  citations are index ranges over the text, which stays as written. */
+function sources(candidate: unknown): string {
+  const seen = new Map<string, string>();
+  for (const citation of arr(at(candidate, 2, 1))) {
+    for (const source of arr(at(citation, 2))) {
+      const url = str(at(source, 0));
+      if (url && !seen.has(url)) seen.set(url, str(at(source, 1)) || url);
+    }
+  }
+  if (!seen.size) return "";
+  return `_Sources: ${[...seen].map(([url, title]) => `[${title.replace(/[[\]]/g, "\\$&")}](${url.replace(/[()]/g, (c) => (c === "(" ? "%28" : "%29"))})`).join(", ")}_`;
+}
+
+/** The HTML documents a candidate wrote (`mini-app` on the page), verbatim. */
+function documents(candidate: unknown): string[] {
+  return arr(at(candidate, 12, 0, 77))
+    .map((entry) => at(entry, 3))
+    .filter((html): html is string => typeof html === "string");
+}
+
+/** Files the conversation wrote, in turn order. Each is its own clipping in
+ *  the bundle; the transcript only points at it. Gemini gives the document no
+ *  name, so every one is `app.html` and `uniquePaths` numbers the rest. */
+export function createdFiles(turns: Turn[]): { path: string; text: string }[] {
+  return oldestFirst(turns).flatMap((turn) => documents(candidateOf(turn)).map((text) => ({ path: "app.html", text })));
+}
+
+function assistantBlocks(turn: Turn): ChatBlock[] {
+  const candidate = candidateOf(turn);
+  const blocks: ChatBlock[] = [];
+  const sections = arr(at(candidate, 37, 1)).filter((section) => str(at(section, 0, 0)).trim());
+  const full = str(at(candidate, 37, 0, 0)).trim();
+  if (sections.length) {
+    blocks.push({ kind: "reasoning", entries: sections.map((section) => ({ summary: str(at(section, 5)), body: str(at(section, 0, 0)) })), preamble: "" });
+  } else if (full) {
+    blocks.push({ kind: "reasoning", entries: [], preamble: full });
+  }
+  const text = str(at(candidate, 1, 0)).replace(PLACEHOLDER, (_match, kind: string, index: string) => placeholder(candidate, kind, Number(index)));
+  const parts = [text, sources(candidate), ...documents(candidate).map(() => "[file: app.html]")].filter(Boolean);
+  if (parts.length) blocks.push({ kind: "assistant", text: parts.join("\n\n") });
+  return blocks;
+}
+
+export function readConversation(turns: Turn[], id: string, activity: boolean): ChatClipping {
+  const ordered = oldestFirst(turns);
+  if (!ordered.length) throw new Error("This conversation has no messages yet.");
+  const blocks: ChatBlock[] = [];
+  const models: string[] = [];
+  for (const turn of ordered) {
+    blocks.push(userBlock(turn), ...assistantBlocks(turn));
+    const label = str(at(turn, 3, 21));
+    if (label && !models.includes(`Gemini ${label}`)) models.push(`Gemini ${label}`);
+  }
+  const kept = activity ? blocks : blocks.filter((block) => block.kind === "user" || block.kind === "assistant");
+  const seconds = at(ordered[0], 4, 0);
+  return {
+    source: geminiUrl(id),
+    assistant: "Gemini",
+    title: "Conversation",
+    models,
+    started: typeof seconds === "number" ? new Date(seconds * 1000).toISOString() : "",
+    turns: ordered.length,
+    activity,
+    blocks: mergeChatBlocks(kept),
+    redacted: 0,
+    skipped: {},
+    clippedOn: new Date().toISOString().slice(0, 10),
+  };
+}
