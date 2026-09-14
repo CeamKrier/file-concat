@@ -6,6 +6,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { beforeAll, describe, expect, it } from "vitest";
 import { type Conversation, readConversation } from "../src/chatgpt";
+import { type ClaudeConversation, createdFiles, readConversation as readClaude } from "../src/claude";
 import { renderChatClipping } from "../src/markdown";
 
 const PROBES = new URL("../../../docs/clipper-chat-probes/", import.meta.url);
@@ -68,5 +69,69 @@ describe.skipIf(!has("chatgpt-signed-in.json"))("ChatGPT signed-in page, measure
     expect(clip.skipped).toEqual({});
     expect(count(markdown, "reasoning and tool activity included_")).toBe(1);
     expect(privateUse(markdown)).toBe(0);
+  });
+});
+
+describe.skipIf(!has("claude-thinking-text.json"))("Claude, 86 messages with thinking text, measured", () => {
+  let json: ClaudeConversation;
+  beforeAll(() => {
+    json = load<ClaudeConversation>("claude-thinking-text.json");
+  });
+
+  it("is 42 user turns and 41 answers with the opt-in off, and one created file", () => {
+    const markdown = renderChatClipping(readClaude(json, ID, false));
+    expect(count(markdown, "\n**User**\n")).toBe(42);
+    expect(count(markdown, "\n**Claude**\n")).toBe(41);
+    expect(count(markdown, "[file: /")).toBe(1);
+    // One image and one document uploaded on the walk.
+    expect(count(markdown, "[image: ")).toBe(1);
+    expect(privateUse(markdown)).toBe(0);
+    expect(createdFiles(json)).toHaveLength(1);
+  });
+
+  it("holds 38 calls, 39 outputs with 2 errors and 57 reasoning blocks with the opt-in on", () => {
+    const clip = readClaude(json, ID, true);
+    const markdown = renderChatClipping(clip);
+    expect(count(markdown, "\n_Call: ")).toBe(38);
+    expect(count(markdown, "\n_Output: ")).toBe(39);
+    expect(count(markdown, " (error)_\n")).toBe(2);
+    expect(count(markdown, "\n_Reasoning_\n")).toBe(57);
+    expect(clip.skipped).toEqual({});
+  });
+});
+
+describe.skipIf(!has("claude-branches.json"))("Claude, two branches and hidden thinking, measured", () => {
+  let json: ClaudeConversation;
+  beforeAll(() => {
+    json = load<ClaudeConversation>("claude-branches.json");
+  });
+
+  it("walks 36 of 49 messages into 18 turns and lists five created files", () => {
+    const clip = readClaude(json, ID, true);
+    const markdown = renderChatClipping(clip);
+    expect(clip.turns).toBe(18);
+    expect(count(markdown, "\n**Claude**\n")).toBe(18);
+    expect(count(markdown, "\n_Reasoning_\n")).toBe(26);
+    expect(count(markdown, "\n_Call: ")).toBe(21);
+    expect(count(markdown, "\n_Output: ")).toBe(26);
+    // Five pointers to created files; the one upload on the walk is a blob, so
+    // it is a `[file: name]` line with no slash, not an image.
+    expect(count(markdown, "[file: /")).toBe(5);
+    expect(createdFiles(json)).toHaveLength(5);
+  });
+});
+
+describe.skipIf(!has("claude-text-only.json"))("Claude, text only, measured", () => {
+  let json: ClaudeConversation;
+  beforeAll(() => {
+    json = load<ClaudeConversation>("claude-text-only.json");
+  });
+
+  it("is 11 and 11 whatever the opt-in", () => {
+    const off = renderChatClipping(readClaude(json, ID, false));
+    const on = renderChatClipping(readClaude(json, ID, true));
+    expect(count(off, "\n**User**\n")).toBe(11);
+    expect(count(off, "\n**Claude**\n")).toBe(11);
+    expect(on.replace("included_", "left out_") === off).toBe(true);
   });
 });
