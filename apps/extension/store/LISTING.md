@@ -29,10 +29,10 @@ conversations included.
 FileConcat Clipper
 ```
 
-**Summary** (132 max, 127 used)
+**Summary** (132 max, 132 used)
 
 ```
-Clip Reddit and Hacker News threads, YouTube transcripts and any article to Markdown, straight into your fileconcat.com bundle.
+Clip Reddit and Hacker News threads, ChatGPT and Claude conversations, YouTube transcripts and articles to Markdown for your bundle.
 ```
 
 Leads with threads on purpose. Page-to-Markdown is the commodity half of this
@@ -76,6 +76,11 @@ replies" three rounds deep, and it is off by default because it is slower.
 Hacker News threads, whole. The entire comment tree in one request, however deep
 it runs. Measured on a 638-comment thread: 264,851 characters, nested eight
 levels down, none of which was on screen when you pressed the button.
+
+ChatGPT and Claude conversations, whole. The page shows a window of the
+conversation; the extension reads it the way the site's own client does, one
+same-origin request on the page's own session. Files a Claude conversation
+wrote come along as files.
 
 Listings, one item at a time. A subreddit, a Hacker News front page, a YouTube
 channel or a search page lists what it has loaded, and one button scrolls the
@@ -123,7 +128,7 @@ Nothing is read from a page until you ask for it. There is no background
 crawling, no page is touched because you happened to visit it, and no clipping
 is sent anywhere except the fileconcat.com tab you are looking at.
 
-There is no account, no sign-in, and no server of ours in the path. Clippings
+There is no account, no sign-in of ours, and no server of ours in the path. Clippings
 are held in your browser's own storage between the clip and the send.
 
 OPEN SOURCE
@@ -208,18 +213,18 @@ page. **Changing it is a dashboard edit that has not been made yet.**
 FileConcat Clipper converts the web page the user is looking at into a Markdown
 file and delivers that file to an open fileconcat.com tab.
 
-Every feature serves that one purpose. The article, YouTube, Reddit and Hacker
-News handlers are four ways of reading a page into the same Markdown file. The
-side panel is where the user picks what to clip. The tray holds those files
-between the clip and the delivery. The send button performs the delivery. The
-extension has no other function and no other destination.
+Every feature serves that one purpose. The article, YouTube, Reddit, Hacker
+News, ChatGPT and Claude handlers are six ways of reading a page into the same
+Markdown file. The side panel is where the user picks what to clip. The tray
+holds those files between the clip and the delivery. The send button performs
+the delivery. The extension has no other function and no other destination.
 ```
 
 **Permission justifications**, one per permission the form lists:
 
 | Permission         | Justification to paste                                                                                                                                                                                                                                                                                                                                                                                 |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `storage`          | A clipping has to survive between the moment it is made and the moment the user sends it, and the extension's background worker can be shut down by Chrome at any point in between. The tray is therefore kept in `chrome.storage.local` rather than in memory. The same storage holds the user's two on/off preferences and the last status line shown in the panel. Nothing in it leaves the device. |
+| `storage`          | A clipping has to survive between the moment it is made and the moment the user sends it, and the extension's background worker can be shut down by Chrome at any point in between. The tray is therefore kept in `chrome.storage.local` rather than in memory. The same storage holds the user's per-site on/off preferences and the last status line shown in the panel. Nothing in it leaves the device. |
 | `unlimitedStorage` | Clippings are large. A single Hacker News thread measured 264,851 characters and a long article measured 39,509, and the tray holds up to 50 of them, which is well past the 5 MB the default quota allows. Without this permission a normal session of clipping fills the quota and the tray starts failing to save work the user has already done.                                                   |
 | `sidePanel`        | The entire user interface is a side panel. There is no popup and no options page. The panel is what lists what the current page offers, shows the tray, and carries the send button. A panel rather than a popup because clipping continues while the user keeps browsing, and a popup is dismissed the moment attention moves.                                                                        |
 
@@ -232,7 +237,7 @@ First, the extension can clip articles from any site using Mozilla Readability. 
 
 Second, the side panel needs the active tab’s URL to show the current site and decide whether the page can be clipped. Chrome exposes tab.url only with either the tabs permission or host permission. We use host permissions instead of tabs because tabs would also expose the title and URL of every open tab, which we do not need.
 
-The background worker only makes outbound requests to hn.algolia.com for Hacker News comments, and that host is hard-coded in an allowlist. All other content is read only from the page the user is actively viewing.
+The background worker only makes outbound requests to hn.algolia.com for Hacker News comments, and that host is hard-coded in an allowlist. All other content is read only from the page the user is actively viewing. On chatgpt.com and claude.ai the content script makes one same-origin request for the conversation (two on a signed-in ChatGPT page, the first for the page's own session token), and nothing is stored or sent elsewhere.
 ```
 
 **Are you using remote code?**
@@ -242,10 +247,11 @@ No, I am not using remote code.
 ```
 
 All executable code ships inside the package. There is no `eval`, no injected
-`<script>`, and no module fetched at runtime. The three network requests the
+`<script>`, and no module fetched at runtime. The network requests the
 extension makes return data, not code: YouTube's own innertube endpoint for a
-transcript, a Reddit post's own page for its full body, and hn.algolia.com for a
-comment tree.
+transcript, a Reddit post's own page for its full body, hn.algolia.com for a
+comment tree, and chatgpt.com's and claude.ai's own conversation endpoints,
+same-origin from the page, for a conversation.
 
 **Data usage** — tick this one box:
 

@@ -3,7 +3,7 @@
 An MV3 browser extension that clips web pages into Markdown and hands the
 rendered `.md` files to an open fileconcat.com tab, where they join a bundle
 like any dropped file. Articles anywhere, plus YouTube transcripts, Reddit
-threads and Hacker News discussions.
+threads, Hacker News discussions, and ChatGPT and Claude conversations.
 
 ## Load it
 
@@ -57,6 +57,21 @@ request — no auth, no paging, nothing to opt into. Measured 2026-08-19 on a
 638-comment thread: 264,851 characters nested eight levels deep. The front page
 lists its 30 stories with checkboxes.
 
+On ChatGPT: a conversation page (`/c/`, a custom GPT's `/g/.../c/`, or a
+`/share/` link) offers **Clip this conversation**. The file holds every turn
+as `**User**` / `**ChatGPT**` blocks with the assistant's own Markdown.
+**Include reasoning and tool activity** adds thought summaries, tool calls and
+their outputs; measured at 2.9 to 6.5 times the clipping's size on a 41-turn
+conversation. On a `/c/` page the extension asks chatgpt.com for the page's
+own session token, uses it for the one conversation request, and keeps
+nothing.
+
+On Claude: a conversation page (`/chat/`) offers the same, with the files the
+conversation wrote (`create_file`) arriving as their own files in the bundle
+under the conversation's folder, and a `[file: ...]` line where each was
+written. The opt-in adds thinking (text or summaries, by model), tool calls
+and outputs, and the contents of text files you attached.
+
 Anywhere else: if the page reads as an article, the panel offers **Clip this
 page**. Readability decides what the body is and Turndown renders it, which
 covers Substack, Medium, documentation, news and blogs without a site-specific
@@ -96,13 +111,15 @@ the app is the only thing that clears a bundle.
 | `entrypoints/youtube.content.ts` | Content script on youtube.com. Two innertube POSTs per video, no HTML parsing beyond the client version. |
 | `entrypoints/reddit.content.ts` | Content script on reddit.com. Reads `shreddit-post` / `shreddit-comment` attributes; no API. |
 | `entrypoints/hn.content.ts` | Content script on news.ycombinator.com. One Algolia request per thread, whole tree. |
+| `entrypoints/chatgpt.content.ts` | Content script on chatgpt.com. One or two same-origin requests for the conversation JSON; the page itself only holds a window of it. |
+| `entrypoints/claude.content.ts` | Content script on claude.ai. One same-origin request; `fc:expand` opens a conversation into its transcript and the files it wrote. |
 | `entrypoints/article.content.ts` | The catch-all, everywhere else. Readability picks the body, Turndown renders it. |
 | `src/announce.ts` | One poll per page, telling the panel when the path or the item count changed. |
 | `src/more.ts` | Scrolls a lazy listing until it stops growing, then puts the page back. Shared by every handler whose report says `more`. |
 | `entrypoints/fileconcat.content.ts` | Content script on fileconcat.com. Relays a batch to the page with `window.postMessage`. |
 | `entrypoints/background.ts` | The service worker. Owns the tray, every clip and the send, because the panel can be closed mid-batch. |
 | `entrypoints/sidepanel/` | The panel: Now, the tray, and the send action. A view — nothing here has a duration. |
-| `src/markdown.ts` | Renders a clipping. The obsidian-clipper frontmatter shape lives here, and so does the only test. |
+| `src/markdown.ts` | Renders a clipping. The obsidian-clipper frontmatter shape lives here, and the tests are in `tests/`. |
 
 The build is [WXT](https://wxt.dev). `entrypoints/` is the manifest: match
 patterns live on each `defineContentScript`, and `wxt.config.ts` carries only
@@ -173,3 +190,12 @@ so a push lands in `pnpm dev`. Chrome match patterns ignore ports, so
   3 posts when Chrome reports the tab complete and 27 a moment later. `Now` is
   driven by a poll over the item count, not by load events, which is also what
   makes scrolling for more work.
+- **ChatGPT and Claude pages are windows, not the conversation.** ChatGPT's
+  DOM holds 4 of 82 messages inside a 162k px scroller; Claude's shows 2 of
+  11 user messages. Both handlers read the vendor's own JSON. ChatGPT's
+  session route needs `Oai-Device-Id` and `Oai-Language` next to the Bearer
+  header or it does not answer. Tool results are redacted on a ChatGPT share
+  page and empty on the signed-in route; MCP results arrive as
+  `tool/multimodal_text` signed in. Citations are private-use characters,
+  each replaced by its `content_references[].alt`, and the `filecite` ones
+  inside MCP results match nothing and are stripped whole.
