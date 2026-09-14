@@ -31,6 +31,8 @@ export default defineContentScript({
     "*://*.youtube.com/*",
     "*://*.reddit.com/*",
     "*://news.ycombinator.com/*",
+    "*://chatgpt.com/*",
+    "*://claude.ai/*",
     "https://fileconcat.com/*",
     "http://localhost/*",
   ],
