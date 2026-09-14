@@ -30,12 +30,18 @@ const title = () => document.title.replace(/ - Google Gemini$/, "").trim() || "C
 // The conversation `fc:expand` fetched, so clipping each of the rows it opened
 // is no request at all. Expanding always fetches, so a second clip of the same
 // page after the conversation went on sees the new turns; a retry after a
-// reload finds the cache empty and fetches again.
-let cached: { hex: string; turns: Turn[] } | undefined;
+// reload finds the cache empty and fetches again. The title travels with the
+// turns: the RPC carries none, and the page may have moved on by the time a
+// row is clipped.
+let cached: { hex: string; turns: Turn[]; title: string } | undefined;
 
-async function conversation(hex: string): Promise<Turn[]> {
-  if (cached?.hex !== hex) cached = { hex, turns: await fetchConversation(hex) };
-  return cached.turns;
+async function fetched(hex: string) {
+  return { hex, turns: await fetchConversation(hex), title: title() };
+}
+
+async function conversation(hex: string) {
+  if (cached?.hex !== hex) cached = await fetched(hex);
+  return cached;
 }
 
 function report(): PageReport {
@@ -47,8 +53,8 @@ function report(): PageReport {
 
 async function expand(id: string): Promise<PageItem[]> {
   const { hex } = parseId(id);
-  cached = { hex, turns: await fetchConversation(hex) };
-  return [{ id, title: title() }, ...createdFiles(cached.turns).map((file, index) => ({ id: `${id}#${index}`, title: file.path }))];
+  cached = await fetched(hex);
+  return [{ id, title: cached.title }, ...createdFiles(cached.turns).map((file, index) => ({ id: `${id}#${index}`, title: file.path }))];
 }
 
 async function clip(id: string, grouped: boolean, activity: boolean, group?: string): Promise<Clipping> {
@@ -57,7 +63,7 @@ async function clip(id: string, grouped: boolean, activity: boolean, group?: str
   // it opened the conversation out). Without one this is a retry of a row
   // whose expand failed, and a bare clip would drop the created files.
   if (file === undefined && group === undefined) throw new Error("Clip this conversation again from the page.");
-  const turns = await conversation(hex);
+  const { turns, title: name } = await conversation(hex);
   const folder = group ?? (grouped ? "gemini" : undefined);
   if (file !== undefined) {
     const created = createdFiles(turns)[file];
@@ -69,7 +75,7 @@ async function clip(id: string, grouped: boolean, activity: boolean, group?: str
       clippedAt: Date.now(),
     };
   }
-  const clipping = { ...readConversation(turns, hex, activity), title: title() };
+  const clipping = { ...readConversation(turns, hex, activity), title: name };
   return {
     path: clippingPath(clipping.title, folder),
     markdown: renderChatClipping(clipping),
