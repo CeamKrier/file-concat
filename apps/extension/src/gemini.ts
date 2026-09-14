@@ -47,7 +47,7 @@ function at(value: unknown, ...path: number[]): unknown {
  * The `hNvQHb` payload out of a batchexecute body: `)]}'`, a blank line, then
  * `<length>\n<json line>` chunks. The length is not a JS string index (it
  * miscounts multi-byte text), so every line that starts with `[` is parsed
- * and the `wrb.fr` entry is taken from the first that has one. A null payload
+ * and the `hNvQHb` entry is taken from the first that has one. A null payload
  * is the server's answer for an id the account has no conversation for.
  */
 export function parseBatch(text: string): unknown[] | null {
@@ -60,7 +60,7 @@ export function parseBatch(text: string): unknown[] | null {
       continue;
     }
     for (const entry of arr(chunk)) {
-      if (!Array.isArray(entry) || entry[0] !== "wrb.fr") continue;
+      if (!Array.isArray(entry) || entry[0] !== "wrb.fr" || entry[1] !== "hNvQHb") continue;
       if (entry[2] === null) return null;
       let payload: unknown;
       try {
@@ -116,8 +116,8 @@ function placeholder(candidate: unknown, kind: string, index: number): string {
     return "[video]";
   }
   if (kind === "image_generation") {
-    const entry = at(candidate, 12, 0, 8, 0, index, 0, 3);
-    return entry ? fileLine(entry) : "[image]";
+    const name = str(at(candidate, 12, 0, 8, 0, index, 0, 3, 2));
+    return name ? `[image: ${name}]` : "[image]";
   }
   if (kind === "card") {
     const title = str(at(candidate, 12, 27, index, 0, 6));
@@ -149,17 +149,25 @@ function documents(candidate: unknown): string[] {
     .filter((html): html is string => typeof html === "string");
 }
 
+/** The reader's own numbering for a document: Gemini gives it no name, so the
+ *  first document in the conversation is `app.html`, the second `app-2.html`,
+ *  and so on, oldest turn first. */
+const appName = (index: number) => (index === 0 ? "app.html" : `app-${index + 1}.html`);
+
 /** Files the conversation wrote, in turn order. Each is its own clipping in
- *  the bundle; the transcript only points at it. Gemini gives the document no
- *  name, so every one is `app.html` and `uniquePaths` numbers the rest. */
+ *  the bundle; the transcript only points at it. */
 export function createdFiles(turns: Turn[]): { path: string; text: string }[] {
-  return oldestFirst(turns).flatMap((turn) => documents(candidateOf(turn)).map((text) => ({ path: "app.html", text })));
+  return oldestFirst(turns)
+    .flatMap((turn) => documents(candidateOf(turn)))
+    .map((text, index) => ({ path: appName(index), text }));
 }
 
-function assistantBlocks(turn: Turn): ChatBlock[] {
+/** `written` is how many documents earlier turns already wrote, so this
+ *  turn's own document pointers agree with `createdFiles`'s numbering. */
+function assistantBlocks(turn: Turn, written: number): ChatBlock[] {
   const candidate = candidateOf(turn);
   const blocks: ChatBlock[] = [];
-  const sections = arr(at(candidate, 37, 1)).filter((section) => str(at(section, 0, 0)).trim());
+  const sections = arr(at(candidate, 37, 1)).filter((section) => str(at(section, 5)).trim() || str(at(section, 0, 0)).trim());
   const full = str(at(candidate, 37, 0, 0)).trim();
   if (sections.length) {
     blocks.push({ kind: "reasoning", entries: sections.map((section) => ({ summary: str(at(section, 5)), body: str(at(section, 0, 0)) })), preamble: "" });
@@ -167,7 +175,7 @@ function assistantBlocks(turn: Turn): ChatBlock[] {
     blocks.push({ kind: "reasoning", entries: [], preamble: full });
   }
   const text = str(at(candidate, 1, 0)).replace(PLACEHOLDER, (_match, kind: string, index: string) => placeholder(candidate, kind, Number(index)));
-  const parts = [text, sources(candidate), ...documents(candidate).map(() => "[file: app.html]")].filter(Boolean);
+  const parts = [text, sources(candidate), ...documents(candidate).map((_, i) => `[file: ${appName(written + i)}]`)].filter(Boolean);
   if (parts.length) blocks.push({ kind: "assistant", text: parts.join("\n\n") });
   return blocks;
 }
@@ -177,8 +185,11 @@ export function readConversation(turns: Turn[], id: string, activity: boolean): 
   if (!ordered.length) throw new Error("This conversation has no messages yet.");
   const blocks: ChatBlock[] = [];
   const models: string[] = [];
+  let written = 0;
   for (const turn of ordered) {
-    blocks.push(userBlock(turn), ...assistantBlocks(turn));
+    const answer = assistantBlocks(turn, written);
+    written += documents(candidateOf(turn)).length;
+    blocks.push(userBlock(turn), ...answer);
     const label = str(at(turn, 3, 21));
     if (label && !models.includes(`Gemini ${label}`)) models.push(`Gemini ${label}`);
   }

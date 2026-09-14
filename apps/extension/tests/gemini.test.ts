@@ -8,7 +8,7 @@ const ID = "0123456789abcdef";
 describe("conversationRef", () => {
   it("reads /app/<16 hex> and nothing else", () => {
     expect(conversationRef(`/app/${ID}`)).toBe(ID);
-    for (const path of ["/", "/app", "/app/", "/app/nope", `/app/${ID}/x`, `/gem/abc/${ID}`, `/share/${ID}`, "/app/0123456789ABCDEF"]) {
+    for (const path of ["/", "/app", "/app/", "/app/nope", `/app/${ID}/x`, `/gem/abc/${ID}`, `/share/${ID}`, "/app/0123456789ABCDEF", `/app/${ID}?hl=tr`]) {
       expect(conversationRef(path)).toBeNull();
     }
   });
@@ -82,8 +82,10 @@ function candidate({ text, citations, sections, thinking, rich }: CandidateSpec)
   if (citations) c[2] = [null, citations.map((sources, i) => [[`snippet ${i}`, null, null, [[0, 5]]], [1], sources.map(([url, title]) => [url, title, "https://favicon.example/", "desc"]), `id${i}`])];
   c[9] = "tr";
   c[12] = rich ?? [null, null, null, null, null, null, [0], []];
-  if (sections || thinking !== undefined) {
-    c[37] = [[thinking ?? (sections ?? []).map(([, body]) => body).join("\n")], (sections ?? []).map(([title, body]) => [[body], "", "", "", [], title, body])];
+  if (sections) {
+    c[37] = [[thinking ?? sections.map(([, body]) => body).join("\n")], sections.map(([title, body]) => [[body], "", "", "", [], title, body])];
+  } else if (thinking !== undefined) {
+    c[37] = [[thinking]];
   }
   return c;
 }
@@ -96,7 +98,7 @@ const TURNS: Turn[] = [
   [
     ["c_x", "r_c"],
     ["c_x", "r_c", "rc_c"],
-    userTurn("Third question"),
+    userTurn("Third question", [], [file(1, "photo.jpg", "image/jpeg"), file(11, "deck.pdf", "application/pdf")]),
     modelTurn(
       [
         candidate({
@@ -153,6 +155,7 @@ describe("readConversation", () => {
     expect(clip.blocks.map((block) => block.kind)).toEqual(["user", "assistant", "user", "assistant", "user", "assistant"]);
     expect(clip.blocks[0]).toEqual({ kind: "user", text: "First question" });
     expect(clip.blocks[1]).toEqual({ kind: "assistant", text: "First answer" });
+    expect(clip.blocks[4]).toEqual({ kind: "user", text: "Third question" });
     expect(clip.skipped).toEqual({});
     expect(clip.redacted).toBe(0);
     const markdown = renderChatClipping(clip);
@@ -222,5 +225,17 @@ describe("createdFiles", () => {
   it("returns every HTML document in turn order, named app.html", () => {
     expect(createdFiles(TURNS)).toEqual([{ path: "app.html", text: "<!DOCTYPE html>\n<html><body>app</body></html>\n" }]);
     expect(createdFiles(TURNS.slice(1))).toEqual([]);
+  });
+
+  it("numbers a second document app-2.html and points at it by that name", () => {
+    const doc = (html: string) => ({ ...[null, null, null, null, null, null, [0], []], 0: { 77: [["app_x", null, null, html]] } });
+    const turns: Turn[] = [
+      [["c", "r2"], ["c", "r2", "rc2"], userTurn("Q2"), modelTurn([candidate({ text: "A2", rich: doc("<html>2</html>") })]), seconds(2)],
+      [["c", "r1"], ["c", "r1", "rc1"], userTurn("Q1"), modelTurn([candidate({ text: "A1", rich: doc("<html>1</html>") })]), seconds(1)],
+    ];
+    expect(createdFiles(turns)).toEqual([{ path: "app.html", text: "<html>1</html>" }, { path: "app-2.html", text: "<html>2</html>" }]);
+    const clip = readConversation(turns, ID, false);
+    expect(clip.blocks[1]).toEqual({ kind: "assistant", text: "A1\n\n[file: app.html]" });
+    expect(clip.blocks[3]).toEqual({ kind: "assistant", text: "A2\n\n[file: app-2.html]" });
   });
 });
