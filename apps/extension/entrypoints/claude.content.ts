@@ -57,6 +57,10 @@ async function expand(id: string): Promise<PageItem[]> {
 
 async function clip(id: string, grouped: boolean, activity: boolean, group?: string): Promise<Clipping> {
   const { uuid, file } = parseId(id);
+  // A transcript row only ever arrives with a `group` (the worker set it when
+  // it opened the conversation out). Without one this is a retry of a row
+  // whose expand failed, and a bare clip would drop the created files.
+  if (file === undefined && group === undefined) throw new Error("Clip this conversation again from the page.");
   const json = await conversation(uuid);
   // `group` is the folder the worker chose: the conversation's own name.
   const folder = group ?? (grouped ? "claude" : undefined);
