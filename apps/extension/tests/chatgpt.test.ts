@@ -182,6 +182,9 @@ describe("readConversation", () => {
     const empty = conversation([null, message("assistant", { content_type: "text", parts: ["hello"] })]);
     expect(() => readConversation(empty, REF, false)).toThrow("This conversation has no messages yet.");
     expect(() => readConversation({} as Conversation, REF, false)).toThrow("ChatGPT changed the shape of this conversation.");
+    const headless = conversation([null, message("user", { content_type: "text", parts: ["q"] })]);
+    (headless.mapping as unknown as Record<string, { message: Record<string, unknown> }>).n1.message.content = undefined;
+    expect(() => readConversation(headless, REF, false)).toThrow("ChatGPT changed the shape of this conversation.");
   });
 
   it("falls back to a generic title", () => {

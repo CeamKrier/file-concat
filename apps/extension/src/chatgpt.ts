@@ -47,9 +47,9 @@ interface Thought {
 }
 
 interface Message {
-  author: { role: string; name?: string | null };
+  author?: { role: string; name?: string | null };
   create_time?: number | null;
-  content: {
+  content?: {
     content_type: string;
     parts?: unknown[];
     text?: string;
@@ -124,7 +124,7 @@ function clean(text: string, message: Message): string {
 
 /** `text` and `multimodal_text` alike: strings verbatim, anything else an image. */
 function partsText(message: Message): string {
-  return clean((message.content.parts ?? []).map((part) => (typeof part === "string" ? part : "[image]")).join("\n"), message);
+  return clean((message.content?.parts ?? []).map((part) => (typeof part === "string" ? part : "[image]")).join("\n"), message);
 }
 
 export function readConversation(json: Conversation, ref: ConversationRef, activity: boolean): ChatClipping {
@@ -141,6 +141,7 @@ export function readConversation(json: Conversation, ref: ConversationRef, activ
   for (const node of nodes) {
     const message = node.message;
     if (!message) continue;
+    if (!message.author || !message.content) throw new Error(SHAPE_CHANGED);
     const meta = message.metadata ?? {};
     const role = message.author.role;
     const type = message.content.content_type;
@@ -200,7 +201,8 @@ export function readConversation(json: Conversation, ref: ConversationRef, activ
       if (!text) continue;
       blocks.push({ kind: "output", tool: message.author.name ?? "tool", text });
     } else if (type === "reasoning_recap") {
-      blocks.push({ kind: "recap", text: clean(message.content.content ?? "", message) });
+      const text = clean(message.content.content ?? "", message);
+      if (text) blocks.push({ kind: "recap", text });
     }
   }
 
