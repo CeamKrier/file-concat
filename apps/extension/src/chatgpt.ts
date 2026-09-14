@@ -224,3 +224,44 @@ export function readConversation(json: Conversation, ref: ConversationRef, activ
     clippedOn: new Date().toISOString().slice(0, 10),
   };
 }
+
+// ---------- the requests ----------
+
+async function conversationBody(response: Response): Promise<Conversation> {
+  if (!response.ok) throw new Error(`chatgpt.com answered ${response.status}.`);
+  // A bot-check page is a 200 that is not JSON.
+  const json = (await response.json().catch(() => null)) as Conversation | null;
+  if (!json?.mapping || !json.current_node) throw new Error(SHAPE_CHANGED);
+  return json;
+}
+
+/**
+ * Same-origin from the content script, so the page's own session applies and
+ * nothing goes through the worker. On a `/c/` page the session token is read
+ * from `/api/auth/session`, sent once with the conversation request and held
+ * in nothing: not stored, not logged. The two `Oai-*` headers are what
+ * chatgpt.com's own client sends; without them the route does not answer
+ * (measured 2026-09-14).
+ */
+export async function fetchConversation(ref: ConversationRef): Promise<Conversation> {
+  if (ref.kind === "share") {
+    const response = await fetch(`/backend-api/share/${ref.id}`, { headers: { Accept: "application/json" } });
+    if (response.status === 404) throw new Error("This share link has been turned off.");
+    return conversationBody(response);
+  }
+  const session = await fetch("/api/auth/session");
+  const token = ((await session.json().catch(() => ({}))) as { accessToken?: string }).accessToken;
+  if (!token) throw new Error("Sign in to ChatGPT to clip this conversation.");
+  const response = await fetch(`/backend-api/conversation/${ref.id}`, {
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+      "Oai-Device-Id": crypto.randomUUID(),
+      "Oai-Language": "en-US",
+    },
+  });
+  if (response.status === 401 || response.status === 403) {
+    throw new Error("ChatGPT would not hand over this conversation. Sign in, or clip its share link.");
+  }
+  return conversationBody(response);
+}
