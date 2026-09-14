@@ -853,7 +853,7 @@ ui.clip.addEventListener("click", () => {
   const item = page.items[0];
   if (!item) return;
   if (tray.some((entry) => entry.id === item.id)) void tell({ type: "fc:remove", id: item.id });
-  else void queue([{ id: item.id, title: item.title }]);
+  else void queue([{ id: item.id, title: item.title, expand: item.expand }]);
 });
 ui.echoChange.addEventListener("click", () => {
   overlay = "settings";

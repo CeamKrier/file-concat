@@ -426,7 +426,7 @@ export default defineBackground(() => {
         return true;
       case "fc:remove":
         void read()
-          .then((items) => write(items.filter((item) => item.id !== request.id)))
+          .then((items) => write(items.filter((item) => item.id !== request.id && !item.id.startsWith(`${request.id}#`))))
           .then(done);
         return true;
       // The cart only. Sent is a record of what already left, and emptying the
