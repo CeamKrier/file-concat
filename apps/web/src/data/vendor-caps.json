@@ -9,8 +9,7 @@
         "Pro users: up to 40 files",
         "Plus and Go users: up to 25 files",
         "Free users: up to 5 files",
-        "40 for Business, Enterprise and Edu users",
-        "only 10 files can be uploaded at the same time"
+        "40 for Business, Enterprise and Edu users"
       ],
       "used_by": [
         "apps/web/src/components/personas/chatgpt-projects-page.tsx",

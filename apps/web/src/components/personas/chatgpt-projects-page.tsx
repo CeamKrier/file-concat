@@ -59,9 +59,9 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
             A Project holds {PROJECT_FILE_LIMITS}, checked at the OpenAI help center in{" "}
-            {CAPS_CHECKED}. Drop the whole folder here instead. Everything, even the PDFs, is read
-            right in your browser and comes back as one file, so all your documents take a single
-            Project slot.
+            {CAPS_CHECKED} and measured on a Plus account the same month: file 26 is refused. Drop
+            the whole folder here instead. Everything, even the PDFs, is read right in your browser
+            and comes back as one file, so all your documents take a single Project slot.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -96,8 +96,11 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
 /** The answer to the query this page ranks for, so the hero and the table below
  * cannot drift apart. Re-checked at OPENAI_PROJECTS_HELP on 2026-09-14: its
  * "Plans and limits" section states Free 5, Go and Plus 25,
- * Edu/Pro/Business/Enterprise 40 files per project, and that only 10 files go
- * up at the same time. The Custom GPT figure is the GPT-builder article
+ * Edu/Pro/Business/Enterprise 40 files per project. The same day a Plus
+ * account took files 21 to 25 and refused the 26th, so the Plus figure is
+ * measured, not only read. The article's "only 10 files can be uploaded at
+ * the same time" did not bite (11 went in one pass), so the page no longer
+ * states it. The Custom GPT figure is the GPT-builder article
  * (help.openai.com/en/articles/8843948), which says 20 while the File Uploads
  * FAQ still says 10; we follow the builder article. Move the date whenever the
  * figures are checked again, not otherwise. */
@@ -106,18 +109,13 @@ const CAPS_CHECKED = "September 2026";
 const OPENAI_PROJECTS_HELP =
   "https://help.openai.com/en/articles/10169521-using-projects-in-chatgpt";
 
-/** ChatGPT-only caps, deeper than the cross-platform hub table: the three ways
+/** ChatGPT-only caps, deeper than the cross-platform hub table: the two places
  * ChatGPT counts files, so the reader sees which limit they actually hit. */
 const CAPS = [
   {
     where: "Project files",
     caps: "Shared across every chat in the Project",
     limit: PROJECT_FILE_LIMITS,
-  },
-  {
-    where: "Project uploads",
-    caps: "How many go up in one pass",
-    limit: "10",
   },
   { where: "Custom GPT knowledge", caps: "Files a Custom GPT can reference", limit: "20" },
 ];
@@ -133,9 +131,9 @@ function WhereItStops() {
           Where ChatGPT stops you.
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[50ch] text-[15px] leading-relaxed">
-          ChatGPT counts files in three separate ways, and each has its own cap. A single combined
-          file stays under all of them, because it is one file no matter how many documents went
-          into it.
+          ChatGPT counts files in two places, Projects and Custom GPTs, and each has its own cap. A
+          single combined file stays under both, because it is one file no matter how many documents
+          went into it.
         </p>
       </div>
 
@@ -167,7 +165,8 @@ function WhereItStops() {
       </div>
 
       <p className="text-ink-faint mx-auto mt-4 max-w-[720px] text-[12.5px] leading-relaxed">
-        Figures as of {CAPS_CHECKED}, and OpenAI changes them often. Check the current cap in
+        Figures as of {CAPS_CHECKED}, and OpenAI changes them often. The Plus figure is our own
+        measurement from 14 September 2026, the rest are the help center's. Check the current cap in
         the{" "}
         <a
           href={OPENAI_PROJECTS_HELP}
