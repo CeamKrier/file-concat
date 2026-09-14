@@ -7,7 +7,7 @@
 export const NOTEBOOKLM_FAQ = [
   {
     q: "How many sources can I add to a NotebookLM notebook?",
-    a: "NotebookLM allows 50 sources on the free plan and 300 with a paid plan. Combining your documents into one file means a whole pile of documents arrives as a single source, so it fits well under the cap.",
+    a: "NotebookLM, which Google now calls Gemini Notebook, allows 50 sources per notebook on the free plan, 100 on Google AI Plus, 300 on Pro and 500 to 600 on Ultra. Combining your documents into one file means a whole pile of documents arrives as a single source, so it fits well under the cap.",
   },
   {
     // The one query on this page that arrives mid-problem rather than
@@ -18,7 +18,7 @@ export const NOTEBOOKLM_FAQ = [
   },
   {
     q: "Is there a size limit per source in NotebookLM?",
-    a: "Yes. Each source can hold up to about 500,000 words. A combined file stays one source, and FileConcat leaves out boilerplate so the word count goes to the content that matters.",
+    a: "Yes. Each source can hold up to 500,000 words, or 200 MB for an uploaded file. A combined file stays one source, and FileConcat leaves out boilerplate so the word count goes to the content that matters.",
   },
   {
     q: "Does combining files count as one source?",
