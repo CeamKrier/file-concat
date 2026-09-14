@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type ClaudeConversation, claudeUrl, conversationRef, createdFiles, walk } from "../src/claude";
+import { type ClaudeConversation, claudeUrl, conversationRef, createdFiles, readConversation, walk } from "../src/claude";
 
 // A made-up uuid: a real conversation id has no place in a public repo.
 const ID = "12345678-1234-4123-8123-123456789abc";
@@ -82,5 +82,60 @@ describe("walk", () => {
 describe("createdFiles", () => {
   it("lists every create_file on the walk with its path and text", () => {
     expect(createdFiles(fixture)).toEqual([{ path: "/mnt/user-data/outputs/report.md", text: "# Report\n\n```js\nx\n```" }]);
+  });
+});
+
+describe("readConversation", () => {
+  it("maps every block type on the walk with the opt-in on", () => {
+    const clip = readConversation(fixture, ID, true);
+    expect(clip.source).toBe(`https://claude.ai/chat/${ID}`);
+    expect(clip.assistant).toBe("Claude");
+    expect(clip.title).toBe("Fixture");
+    expect(clip.models).toEqual(["claude-opus-5"]);
+    expect(clip.started).toBe("2026-08-18T09:00:00.000000Z");
+    expect(clip.turns).toBe(3);
+    expect(clip.redacted).toBe(0);
+    expect(clip.skipped).toEqual({ "assistant/widget": 1 });
+    expect(clip.blocks).toEqual([
+      { kind: "user", text: "First question\n\n[image: photo.png]\n[file: deck.pdf]\n[file: notes.txt]\n\n```\nline 1\nline 2\n```" },
+      { kind: "reasoning", entries: [{ summary: "Reading the file", body: "" }, { summary: "Planning", body: "" }], preamble: "" },
+      { kind: "call", tool: "web_search", language: "json", text: '{\n  "query": "q"\n}' },
+      { kind: "output", tool: "web_search", text: "A page - https://a.example/" },
+      { kind: "call", tool: "web_fetch", language: "json", text: '{\n  "url": "https://b.example/"\n}' },
+      { kind: "output", tool: "web_fetch (error)", text: "not reachable" },
+      { kind: "assistant", text: "[file: /mnt/user-data/outputs/report.md]" },
+      { kind: "output", tool: "create_file", text: "ok" },
+      { kind: "call", tool: "present_files", language: "json", text: '{\n  "filepaths": [\n    "/mnt/user-data/outputs/report.md"\n  ]\n}' },
+      { kind: "output", tool: "present_files", text: "[file: report.md]\n[image]" },
+      // The widget between the two text blocks is skipped, not a block, so the
+      // two answers are adjacent and merge.
+      { kind: "assistant", text: "Here it is.\n\n_Sources: [A page](https://a.example/), [C](https://c.example/)_\n\nAnd a second paragraph after a widget." },
+      { kind: "user", text: "Second question" },
+      { kind: "reasoning", entries: [], preamble: "Long thought text." },
+      { kind: "call", tool: "bash_tool", language: "json", text: '{\n  "command": "ls"\n}' },
+      { kind: "output", tool: "bash_tool", text: "a\nb" },
+      { kind: "user", text: "Third, unanswered" },
+    ]);
+  });
+
+  it("keeps the transcript and the file pointers with the opt-in off, and drops the attachment's content", () => {
+    const clip = readConversation(fixture, ID, false);
+    expect(clip.blocks).toEqual([
+      { kind: "user", text: "First question\n\n[image: photo.png]\n[file: deck.pdf]\n[file: notes.txt]" },
+      {
+        kind: "assistant",
+        text: "[file: /mnt/user-data/outputs/report.md]\n\nHere it is.\n\n_Sources: [A page](https://a.example/), [C](https://c.example/)_\n\nAnd a second paragraph after a widget.",
+      },
+      { kind: "user", text: "Second question" },
+      { kind: "user", text: "Third, unanswered" },
+    ]);
+    expect(clip.skipped).toEqual({ "assistant/widget": 1 });
+  });
+
+  it("refuses an empty conversation and falls back to a generic title", () => {
+    const empty: ClaudeConversation = { name: "", chat_messages: [], current_leaf_message_uuid: "x" };
+    expect(() => readConversation(empty, ID, false)).toThrow("This conversation has no messages yet.");
+    const one = { name: "", model: "m", current_leaf_message_uuid: "a", chat_messages: [message("a", NIL, "human", [text("q")])] } as unknown as ClaudeConversation;
+    expect(readConversation(one, ID, false).title).toBe("Conversation");
   });
 });
