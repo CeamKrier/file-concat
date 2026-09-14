@@ -367,15 +367,21 @@ export function clippingPath(title: string, channel?: string): string {
  * never arrives. The first occurrence keeps the name and later ones take `-2`,
  * `-3`; the item id is no good as the suffix because an article's id is its
  * whole URL. The loop is there for the list that already contains a real `X-2`.
+ * The stem is split from the extension by the last dot, so a created `script.py`
+ * gets `script-2.py` and a name with no dot just gets the suffix.
  */
 export function uniquePaths(clippings: Clipping[]): Clipping[] {
   const taken = new Set<string>();
   return clippings.map((clipping) => {
     let path = clipping.path;
-    // Rebuilt from the stem rather than by substituting into the name: a path
-    // that does not end in `.md` would leave a `replace` unmatched, the string
-    // unchanged and this loop spinning forever inside the service worker.
-    for (let n = 2; taken.has(path); n++) path = `${clipping.path.replace(/\.md$/, "")}-${n}.md`;
+    // Split at the last dot after the last slash, so `A/script.py` suffixes
+    // the stem and a dotted folder is left alone; a name with no dot has an
+    // empty extension.
+    const dot = clipping.path.lastIndexOf(".");
+    const cut = dot > clipping.path.lastIndexOf("/") ? dot : clipping.path.length;
+    const stem = clipping.path.slice(0, cut);
+    const extension = clipping.path.slice(cut);
+    for (let n = 2; taken.has(path); n++) path = `${stem}-${n}${extension}`;
     taken.add(path);
     return path === clipping.path ? clipping : { ...clipping, path };
   });

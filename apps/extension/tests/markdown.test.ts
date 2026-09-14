@@ -147,8 +147,13 @@ describe("uniquePaths", () => {
     expect(paths([at("X.md"), at("X.md"), at("X.md")])).toEqual(["X.md", "X-2.md", "X-3.md"]);
   });
 
-  it("terminates on a name the suffix rule cannot substitute into", () => {
-    expect(paths([at("X"), at("X")])).toEqual(["X", "X-2.md"]);
+  it("terminates on a name with no extension", () => {
+    expect(paths([at("X"), at("X")])).toEqual(["X", "X-2"]);
+  });
+
+  it("suffixes the stem, not the extension, and ignores a dot in the folder", () => {
+    expect(paths([at("A/script.py"), at("A/script.py")])).toEqual(["A/script.py", "A/script-2.py"]);
+    expect(paths([at("v1.0/notes"), at("v1.0/notes")])).toEqual(["v1.0/notes", "v1.0/notes-2"]);
   });
 });
 
