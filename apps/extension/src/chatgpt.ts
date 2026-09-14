@@ -117,7 +117,11 @@ function walk(json: Conversation): Node[] {
 function clean(text: string, message: Message): string {
   let out = text;
   for (const reference of message.metadata?.content_references ?? []) {
-    if (reference.matched_text) out = out.split(reference.matched_text).join(reference.alt ?? "");
+    // Only a marker is replaced. A `sources_footnote` reference matches a
+    // single space (31 of 249 on one measured conversation), and replacing
+    // that stripped every space from the answer. `search` ignores the /g state.
+    const marker = reference.matched_text;
+    if (marker && marker.search(PRIVATE_USE) >= 0) out = out.split(marker).join(reference.alt ?? "");
   }
   return out.replace(MARKER, "").replace(PRIVATE_USE, "");
 }

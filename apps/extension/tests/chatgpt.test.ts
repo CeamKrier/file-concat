@@ -165,6 +165,20 @@ describe("readConversation", () => {
     expect(text).not.toMatch(/[\uE000-\uF8FF]/);
   });
 
+  it("keeps the spaces of an answer whose sources footnote matched a single space", () => {
+    // Measured 2026-09-14: 31 of 249 references on one conversation are
+    // `sources_footnote` entries with `matched_text: " "`. Replacing those
+    // stripped every space from the answer.
+    const footnote = conversation([
+      null,
+      message("user", { content_type: "text", parts: ["q"] }),
+      message("assistant", { content_type: "text", parts: ["Two words here."] }, {
+        metadata: { content_references: [{ type: "sources_footnote", matched_text: " ", alt: "" }] },
+      }),
+    ]);
+    expect(readConversation(footnote, REF, false).blocks[1]).toEqual({ kind: "assistant", text: "Two words here." });
+  });
+
   it("merges two answers that follow each other into one block", () => {
     const two = conversation([
       null,

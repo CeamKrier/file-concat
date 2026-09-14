@@ -18,6 +18,8 @@ const has = (name: string) => existsSync(new URL(name, PROBES));
 const load = <T,>(name: string): T => JSON.parse(readFileSync(new URL(name, PROBES), "utf8")) as T;
 const count = (haystack: string, needle: string) => haystack.split(needle).length - 1;
 const privateUse = (markdown: string) => (markdown.match(/[\uE000-\uF8FF]/g) ?? []).length;
+// A run of 30 letters is a word that lost its spaces to a citation sweep; the raw JSON has none.
+const joinedWords = (markdown: string) => (markdown.match(/\p{L}{30,}/gu) ?? []).length;
 
 describe.skipIf(!has("chatgpt-share.json"))("ChatGPT share page, measured", () => {
   let json: Conversation;
@@ -31,6 +33,7 @@ describe.skipIf(!has("chatgpt-share.json"))("ChatGPT share page, measured", () =
     expect(count(markdown, "\n**User**\n")).toBe(41);
     expect(count(markdown, "\n**ChatGPT**\n")).toBe(40);
     expect(privateUse(markdown)).toBe(0);
+    expect(joinedWords(markdown)).toBe(0);
     expect(count(markdown, "reasoning and tool activity left out_")).toBe(1);
     expect(count(markdown, "Not rendered")).toBe(0);
   });
@@ -58,6 +61,7 @@ describe.skipIf(!has("chatgpt-signed-in.json"))("ChatGPT signed-in page, measure
     expect(count(markdown, "\n**User**\n")).toBe(41);
     expect(count(markdown, "\n**ChatGPT**\n")).toBe(40);
     expect(privateUse(markdown)).toBe(0);
+    expect(joinedWords(markdown)).toBe(0);
   });
 
   it("holds 378 calls and 472 outputs with the opt-in on, nothing redacted, nothing skipped", () => {
