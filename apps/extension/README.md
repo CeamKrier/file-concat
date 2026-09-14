@@ -3,7 +3,7 @@
 An MV3 browser extension that clips web pages into Markdown and hands the
 rendered `.md` files to an open fileconcat.com tab, where they join a bundle
 like any dropped file. Articles anywhere, plus YouTube transcripts, Reddit
-threads, Hacker News discussions, and ChatGPT and Claude conversations.
+threads, Hacker News discussions, and ChatGPT, Claude and Gemini conversations.
 
 ## Load it
 
@@ -71,6 +71,15 @@ conversation wrote (`create_file`) arriving as their own files in the bundle
 under the conversation's folder, and a `[file: ...]` line where each was
 written. The opt-in adds thinking (text or summaries, by model), tool calls
 and outputs, and the contents of text files you attached.
+
+On Gemini: a conversation page (`/app/<id>`) offers the same. The page reads
+its conversation with one RPC on the session and the page's own token; the
+extension sends that RPC the same way, 100 turns a page, and keeps nothing.
+Where the page draws a video, a card or a generated image the file carries a
+reference in its place, and an HTML app the conversation built arrives as
+`app.html` in the bundle under the conversation's folder. The opt-in adds
+thinking; measured at 1 to 2.1 times the clipping's size across 29
+conversations.
 
 Anywhere else: if the page reads as an article, the panel offers **Clip this
 page**. Readability decides what the body is and Turndown renders it, which
@@ -199,3 +208,12 @@ so a push lands in `pnpm dev`. Chrome match patterns ignore ports, so
   `tool/multimodal_text` signed in. Citations are private-use characters,
   each replaced by its `content_references[].alt`, and the `filecite` ones
   inside MCP results match nothing and are stripped whole.
+- **Gemini's conversation RPC is `hNvQHb`** on `/_/BardChatUi/data/batchexecute`,
+  form-encoded `f.req` plus the page's `SNlM0e` token (400 without it; the
+  rest of the page's query string is not enforced). The payload is protobuf
+  as nested arrays, newest turn first, a cursor in slot 1; positions held
+  across 29 conversations from 2026-01 to 2026-09. Answer text carries
+  `http://googleusercontent.com/<kind>_content/<n>` placeholders where the
+  page draws rich content; the reader replaces them by index. The DOM is a
+  window (2 of 105 user turns with text). Thinking is in candidate slot 37,
+  empty on 2026-03 conversations.

@@ -19,7 +19,7 @@ export default defineConfig({
   vite: () => ({ build: { minify: false } }),
   manifest: {
     name: "FileConcat Clipper",
-    description: "Clip articles, YouTube transcripts, Reddit and Hacker News threads, ChatGPT and Claude conversations to Markdown for fileconcat.com.",
+    description: "Clip articles, YouTube transcripts, Reddit and Hacker News threads, ChatGPT, Claude and Gemini chats to Markdown for fileconcat.com.",
     permissions: ["storage", "unlimitedStorage", "sidePanel"],
     // The article handler is the catch-all, so the host list is the web. That
     // is the cost of "any article", and it is the feature rather than a side

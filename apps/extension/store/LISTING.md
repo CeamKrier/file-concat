@@ -16,7 +16,7 @@ manifest. Bump it by hand, once per submission rather than once per change:
 Chrome only accepts an upload numbered above the published one, a number that
 never reaches the store means nothing to anyone, and a review takes days, so
 there is no release cadence to automate against. Update this line in the same
-commit. `0.2.0` is what is live; `0.3.0` is the batch built since, ChatGPT and Claude
+commit. `0.2.0` is what is live; `0.3.0` is the batch built since, ChatGPT, Claude and Gemini
 conversations included.
 
 ---
@@ -32,7 +32,7 @@ FileConcat Clipper
 **Summary** (132 max, 132 used)
 
 ```
-Clip Reddit and Hacker News threads, ChatGPT and Claude conversations, YouTube transcripts and articles to Markdown for your bundle.
+Clip Reddit and Hacker News threads, ChatGPT, Claude and Gemini chats, YouTube transcripts and articles to Markdown for your bundle.
 ```
 
 Leads with threads on purpose. Page-to-Markdown is the commodity half of this
@@ -77,10 +77,10 @@ Hacker News threads, whole. The entire comment tree in one request, however deep
 it runs. Measured on a 638-comment thread: 264,851 characters, nested eight
 levels down, none of which was on screen when you pressed the button.
 
-ChatGPT and Claude conversations, whole. The page shows a window of the
+ChatGPT, Claude and Gemini conversations, whole. The page shows a window of the
 conversation; the extension reads it the way the site's own client does, one
-or two same-origin requests on the page's own session. Files a Claude
-conversation wrote come along as files.
+or two same-origin requests on the page's own session. Files a Claude or
+Gemini conversation wrote come along as files.
 
 Listings, one item at a time. A subreddit, a Hacker News front page, a YouTube
 channel or a search page lists what it has loaded, and one button scrolls the
@@ -214,7 +214,7 @@ FileConcat Clipper converts the web page the user is looking at into a Markdown
 file and delivers that file to an open fileconcat.com tab.
 
 Every feature serves that one purpose. The article, YouTube, Reddit, Hacker
-News, ChatGPT and Claude handlers are six ways of reading a page into the same
+News, ChatGPT, Claude and Gemini handlers are seven ways of reading a page into the same
 Markdown file. The side panel is where the user picks what to clip. The tray
 holds those files between the clip and the delivery. The send button performs
 the delivery. The extension has no other function and no other destination.
@@ -237,7 +237,7 @@ First, the extension can clip articles from any site using Mozilla Readability. 
 
 Second, the side panel needs the active tab’s URL to show the current site and decide whether the page can be clipped. Chrome exposes tab.url only with either the tabs permission or host permission. We use host permissions instead of tabs because tabs would also expose the title and URL of every open tab, which we do not need.
 
-The background worker only makes outbound requests to hn.algolia.com for Hacker News comments, and that host is hard-coded in an allowlist. All other content is read only from the page the user is actively viewing. On chatgpt.com and claude.ai the content script makes one same-origin request for the conversation (two on a signed-in ChatGPT page, the first for the page's own session token), and nothing is stored or sent elsewhere.
+The background worker only makes outbound requests to hn.algolia.com for Hacker News comments, and that host is hard-coded in an allowlist. All other content is read only from the page the user is actively viewing. On chatgpt.com, claude.ai and gemini.google.com the content script makes same-origin requests for the conversation (one on Claude, one per 100 turns on Gemini, two on a signed-in ChatGPT page, the first for the page's own session token), and nothing is stored or sent elsewhere.
 ```
 
 **Are you using remote code?**
@@ -250,8 +250,8 @@ All executable code ships inside the package. There is no `eval`, no injected
 `<script>`, and no module fetched at runtime. The network requests the
 extension makes return data, not code: YouTube's own innertube endpoint for a
 transcript, a Reddit post's own page for its full body, hn.algolia.com for a
-comment tree, and chatgpt.com's and claude.ai's own conversation endpoints,
-same-origin from the page, for a conversation.
+comment tree, and chatgpt.com's, claude.ai's and gemini.google.com's own
+conversation endpoints, same-origin from the page, for a conversation.
 
 **Data usage** — tick this one box:
 
@@ -267,7 +267,10 @@ same browser. "Website content" is ticked anyway because that destination is our
 own site and its analytics can record file names and the on-screen preview, so
 the content the user clipped is disclosed rather than argued about. "Web
 history" stays unticked because the tray records only the pages the user chose
-to clip, and it never leaves the device.
+to clip, and it never leaves the device. "Personal communications" stays
+unticked too: a ChatGPT, Claude or Gemini clip is the user's own conversation
+with the product, not a message exchanged with another person, and the
+session token each site reads to fetch it never leaves the device either.
 
 **Certifications** — all three are true, tick all three:
 
