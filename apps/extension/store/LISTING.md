@@ -79,8 +79,8 @@ levels down, none of which was on screen when you pressed the button.
 
 ChatGPT and Claude conversations, whole. The page shows a window of the
 conversation; the extension reads it the way the site's own client does, one
-same-origin request on the page's own session. Files a Claude conversation
-wrote come along as files.
+or two same-origin requests on the page's own session. Files a Claude
+conversation wrote come along as files.
 
 Listings, one item at a time. A subreddit, a Hacker News front page, a YouTube
 channel or a search page lists what it has loaded, and one button scrolls the

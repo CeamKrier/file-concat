@@ -14,7 +14,7 @@ export default defineConfig({
   //
   // What this does *not* buy is a readable `article.js`: 110,931 of its
   // 124,292 unminified bytes are Readability and Turndown, ahead of our first
-  // line. The 81 KB that is ours — the four handlers, the worker, the panel —
+  // line. What is ours, the six handlers, the worker and the panel,
   // is what a reviewer can now read as written.
   vite: () => ({ build: { minify: false } }),
   manifest: {
