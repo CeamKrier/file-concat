@@ -79,8 +79,8 @@ export function SourcesSection() {
         <div className="mt-3.5 flex flex-wrap items-baseline gap-x-6 gap-y-2">
           <BandLink to="/clipper">Browser clipper</BandLink>
           <span className="text-ink-muted text-[13px]">
-            Also Reddit and Hacker News threads with every reply, ChatGPT and Claude
-            conversations, and any article.
+            Also Reddit and Hacker News threads with every reply, ChatGPT, Claude and
+            Gemini conversations, and any article.
           </span>
         </div>
       </div>

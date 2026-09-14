@@ -22,13 +22,13 @@ export const Route = createFileRoute("/clipper")({
       ...generateSEOMeta({
         title: "FileConcat Clipper: save threads, conversations and articles as Markdown",
         description:
-          "A browser side panel that saves Reddit and Hacker News threads, YouTube transcripts, ChatGPT and Claude conversations and any article as Markdown, straight into one bundle for your next prompt. Free and open source.",
+          "A browser side panel that saves Reddit and Hacker News threads, YouTube transcripts, ChatGPT, Claude and Gemini conversations and any article as Markdown, straight into one bundle for your next prompt. Free and open source.",
         url: "https://fileconcat.com/clipper",
       }),
       {
         name: "keywords",
         content:
-          "save reddit thread as markdown, export reddit thread, save hacker news thread, youtube transcript to markdown, web clipper for chatgpt, web clipper for claude, export chatgpt conversation, export claude conversation, save web page as markdown, article to markdown chrome extension, clip pages for llm",
+          "save reddit thread as markdown, export reddit thread, save hacker news thread, youtube transcript to markdown, web clipper for chatgpt, web clipper for claude, export chatgpt conversation, export claude conversation, save web page as markdown, article to markdown chrome extension, clip pages for llm, web clipper for gemini, export gemini conversation",
       },
     ],
     links: [{ rel: "canonical", href: "https://fileconcat.com/clipper" }],

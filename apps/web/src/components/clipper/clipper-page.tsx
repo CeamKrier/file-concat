@@ -505,7 +505,7 @@ function Everywhere() {
           },
           {
             label: "conversations",
-            body: "ChatGPT and Claude conversations, whole. The page shows 4 of 82 messages on a measured ChatGPT page and 2 of 11 on Claude; the extension reads the conversation the way the site's own client does, and files Claude wrote come along as files.",
+            body: "ChatGPT, Claude and Gemini conversations, whole. The page shows 4 of 82 messages on a measured ChatGPT page, 2 of 11 on Claude and 2 of 105 on Gemini; the extension reads the conversation the way the site's own client does, and files Claude or Gemini wrote come along as files.",
           },
           {
             label: "listings",
