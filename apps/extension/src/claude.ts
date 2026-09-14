@@ -75,6 +75,11 @@ export function walk(json: ClaudeConversation): Message[] {
     path.push(current);
     current = byId.get(current.parent_message_uuid);
   }
+  // The walk has to end at the root, whose parent is the nil UUID. With the
+  // leaf or `parent_message_uuid` renamed it would otherwise be an empty or
+  // one-turn file with no error at all.
+  const root = path[path.length - 1]?.parent_message_uuid;
+  if (json.chat_messages.length && !(typeof root === "string" && root.startsWith("00000000-"))) throw new Error(SHAPE_CHANGED);
   return path.reverse();
 }
 
@@ -209,7 +214,12 @@ export function readConversation(json: ClaudeConversation, id: string, activity:
   }
   const kept = activity ? blocks : blocks.filter((block) => block.kind === "user" || block.kind === "assistant");
   const turns = kept.filter((block) => block.kind === "user").length;
-  if (!turns) throw new Error("This conversation has no messages yet.");
+  if (!turns) {
+    // Human messages the walk could not read are a shape change, not an
+    // empty conversation.
+    const unread = path.some((message) => message.sender === "human");
+    throw new Error(unread ? SHAPE_CHANGED : "This conversation has no messages yet.");
+  }
   return {
     source: claudeUrl(id),
     assistant: "Claude",

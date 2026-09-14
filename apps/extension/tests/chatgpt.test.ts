@@ -201,6 +201,46 @@ describe("readConversation", () => {
     expect(() => readConversation(headless, REF, false)).toThrow("ChatGPT changed the shape of this conversation.");
   });
 
+  it("reports a shape change, never a short file, when the walk cannot reach the root", () => {
+    type Loose = Record<string, Record<string, unknown>>;
+    // `parent` renamed on every node: the walk from a user leaf is one node
+    // long and would otherwise render a one-turn file with no error.
+    const renamed = JSON.parse(JSON.stringify(fixture)) as Conversation;
+    for (const node of Object.values(renamed.mapping as unknown as Loose)) {
+      node.parent_id = node.parent;
+      delete node.parent;
+    }
+    expect(() => readConversation(renamed, REF, false)).toThrow("ChatGPT changed the shape of this conversation.");
+    // A parent the mapping does not hold.
+    const dangling = JSON.parse(JSON.stringify(fixture)) as Conversation;
+    (dangling.mapping as unknown as Loose).n2.parent = "gone";
+    expect(() => readConversation(dangling, REF, false)).toThrow("ChatGPT changed the shape of this conversation.");
+    // `parts` renamed: every user message reads as empty, which is not "no messages yet".
+    const noParts = JSON.parse(JSON.stringify(fixture)) as Conversation;
+    for (const node of Object.values(noParts.mapping as unknown as Loose)) {
+      const content = (node.message as { content?: Record<string, unknown> } | null)?.content;
+      if (content?.parts) {
+        content.content_parts = content.parts;
+        delete content.parts;
+      }
+    }
+    expect(() => readConversation(noParts, REF, false)).toThrow("ChatGPT changed the shape of this conversation.");
+  });
+
+  it("reads a voice turn's transcription and names any other part it does not know", () => {
+    const voice = conversation([
+      null,
+      message("user", { content_type: "multimodal_text", parts: [{ content_type: "audio_transcription", text: "Spoken question" }, { content_type: "audio_asset_pointer", asset_pointer: "a" }] }),
+      message("assistant", { content_type: "multimodal_text", parts: [{ content_type: "audio_transcription", text: "Spoken answer" }, { content_type: "real_time_user_audio_video_asset_pointer" }] }),
+    ]);
+    const clip = readConversation(voice, REF, false);
+    expect(clip.blocks).toEqual([
+      { kind: "user", text: "Spoken question" },
+      { kind: "assistant", text: "Spoken answer" },
+    ]);
+    expect(clip.skipped).toEqual({ "part/audio_asset_pointer": 1, "part/real_time_user_audio_video_asset_pointer": 1 });
+  });
+
   it("falls back to a generic title", () => {
     expect(readConversation(conversation([null, message("user", { content_type: "text", parts: ["q"] })], {}, { title: "" }), REF, false).title).toBe("Conversation");
   });

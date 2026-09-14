@@ -101,13 +101,19 @@ const PRIVATE_USE = /[\uE000-\uF8FF]/g;
  */
 function walk(json: Conversation): Node[] {
   if (!json.mapping || !json.current_node) throw new Error(SHAPE_CHANGED);
+  // Exactly one root (its `parent` is null signed in, absent on a share
+  // page). With `parent` renamed every node is a root, and the walk from a
+  // user leaf would otherwise be a one-turn file with no error at all.
+  if (Object.values(json.mapping).filter((node) => node.parent == null).length !== 1) throw new Error(SHAPE_CHANGED);
   const path: Node[] = [];
   const seen = new Set<string>();
   let id: string | null | undefined = json.current_node;
-  while (id && json.mapping[id] && !seen.has(id)) {
+  while (id) {
+    const node: Node | undefined = json.mapping[id];
+    if (!node || seen.has(id)) throw new Error(SHAPE_CHANGED);
     seen.add(id);
-    path.push(json.mapping[id]);
-    id = json.mapping[id].parent;
+    path.push(node);
+    id = node.parent;
   }
   return path.reverse();
 }
@@ -126,9 +132,18 @@ function clean(text: string, message: Message): string {
   return out.replace(MARKER, "").replace(PRIVATE_USE, "");
 }
 
-/** `text` and `multimodal_text` alike: strings verbatim, anything else an image. */
-function partsText(message: Message): string {
-  return clean((message.content?.parts ?? []).map((part) => (typeof part === "string" ? part : "[image]")).join("\n"), message);
+/** `text` and `multimodal_text` alike: strings verbatim, an image as `[image]`,
+ *  a voice turn as its transcription, and any other part named in `skipped`. */
+function partsText(message: Message, skip: (key: string) => void): string {
+  const parts = (message.content?.parts ?? []).map((part) => {
+    if (typeof part === "string") return part;
+    const kind = (part as { content_type?: string } | null)?.content_type ?? "unknown";
+    if (kind === "audio_transcription") return String((part as { text?: string }).text ?? "");
+    if (kind === "image_asset_pointer") return "[image]";
+    skip(`part/${kind}`);
+    return null;
+  });
+  return clean(parts.filter((part): part is string => part !== null).join("\n"), message);
 }
 
 export function readConversation(json: Conversation, ref: ConversationRef, activity: boolean): ChatClipping {
@@ -165,7 +180,7 @@ export function readConversation(json: Conversation, ref: ConversationRef, activ
         redacted++;
         continue;
       }
-      const text = partsText(message);
+      const text = partsText(message, skip);
       if (!text) continue;
       if (role === "user") {
         if (!started && message.create_time) started = new Date(message.create_time * 1000).toISOString();
@@ -213,7 +228,12 @@ export function readConversation(json: Conversation, ref: ConversationRef, activ
   // 4. The opt-in, then the joins.
   const kept = activity ? blocks : blocks.filter((block) => block.kind === "user" || block.kind === "assistant");
   const turns = kept.filter((block) => block.kind === "user").length;
-  if (!turns) throw new Error("This conversation has no messages yet.");
+  if (!turns) {
+    // User messages the walk could not read are a shape change, not an empty
+    // conversation: "no messages yet" on a 40-turn page gets no bug report.
+    const unread = Object.values(json.mapping ?? {}).some((node) => node.message?.author?.role === "user");
+    throw new Error(unread ? SHAPE_CHANGED : "This conversation has no messages yet.");
+  }
   return {
     source: chatUrl(ref),
     assistant: "ChatGPT",

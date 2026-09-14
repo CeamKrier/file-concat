@@ -139,6 +139,24 @@ describe("readConversation", () => {
     expect(readConversation(one, ID, false).title).toBe("Conversation");
   });
 
+  it("reports a shape change, never a short file, when the walk cannot reach the root", () => {
+    // `parent_message_uuid` renamed: the walk from the leaf is one message
+    // long and would otherwise render a one-turn file with no error.
+    const renamed = JSON.parse(JSON.stringify(fixture)) as ClaudeConversation;
+    for (const m of renamed.chat_messages ?? []) {
+      (m as unknown as Record<string, unknown>).parent_uuid = m.parent_message_uuid;
+      delete (m as unknown as Record<string, unknown>).parent_message_uuid;
+    }
+    expect(() => readConversation(renamed, ID, false)).toThrow("Claude changed the shape of this conversation.");
+    // The leaf pointer renamed: nothing walks, but the messages are there.
+    const noLeaf = { ...fixture, current_leaf_message_uuid: undefined } as unknown as ClaudeConversation;
+    expect(() => readConversation(noLeaf, ID, false)).toThrow("Claude changed the shape of this conversation.");
+    // The words moved: every human message reads as empty.
+    const noContent = JSON.parse(JSON.stringify(fixture)) as ClaudeConversation;
+    for (const m of noContent.chat_messages ?? []) if (m.sender === "human") Object.assign(m, { content: [], files: [], attachments: [] });
+    expect(() => readConversation(noContent, ID, false)).toThrow("Claude changed the shape of this conversation.");
+  });
+
   it("escapes brackets in a source title and parentheses in its url", () => {
     const cited = {
       name: "x",
