@@ -1,9 +1,25 @@
-import { describe, expect, it } from "vitest";
-import { conversationRef, createdFiles, geminiUrl, parseBatch, readConversation, readToken, SHAPE_CHANGED, type Turn } from "../src/gemini";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  conversationRef,
+  createdFiles,
+  fetchConversation,
+  geminiUrl,
+  parseBatch,
+  readConversation,
+  readToken,
+  SHAPE_CHANGED,
+  type Turn,
+} from "../src/gemini";
 import { renderChatClipping } from "../src/markdown";
 
 // A made-up id: a real conversation id has no place in a public repo.
 const ID = "0123456789abcdef";
+
+// The envelope: a magic prefix, a blank line, then <length>\n<json> chunks.
+// The length is not a JS string index, so the parser goes by lines. Shared
+// by parseBatch's own tests and fetchConversation's fake responses.
+const body = (payload: unknown) =>
+  `)]}'\n\n123\n${JSON.stringify([["wrb.fr", "hNvQHb", JSON.stringify(payload), null, null, null, "generic"]])}\n45\n[["di",947],["af.httprm",947,"-1234",5]]\n12\n[["e",4,null,null,999]]\n`;
 
 describe("conversationRef", () => {
   it("reads /app/<16 hex> and nothing else", () => {
@@ -19,11 +35,6 @@ describe("conversationRef", () => {
 });
 
 describe("parseBatch", () => {
-  // The envelope: a magic prefix, a blank line, then <length>\n<json> chunks.
-  // The length is not a JS string index, so the parser goes by lines.
-  const body = (payload: unknown, extra = "") =>
-    `)]}'\n\n123\n${JSON.stringify([["wrb.fr", "hNvQHb", JSON.stringify(payload), null, null, null, "generic"]])}\n${extra}45\n[["di",947],["af.httprm",947,"-1234",5]]\n12\n[["e",4,null,null,999]]\n`;
-
   it("returns the hNvQHb payload", () => {
     const payload = [[["t"]], "cursor", null, [[[]]]];
     expect(parseBatch(body(payload))).toEqual(payload);
@@ -39,6 +50,7 @@ describe("parseBatch", () => {
     expect(() => parseBatch("<html>bot check</html>")).toThrow(SHAPE_CHANGED);
     expect(() => parseBatch(body({ not: "turns" }))).toThrow(SHAPE_CHANGED);
     expect(() => parseBatch(body("[not json"))).toThrow(SHAPE_CHANGED);
+    expect(() => parseBatch(body(["x"]))).toThrow(SHAPE_CHANGED);
   });
 });
 
@@ -83,6 +95,8 @@ function candidate({ text, citations, sections, thinking, rich }: CandidateSpec)
   c[9] = "tr";
   c[12] = rich ?? [null, null, null, null, null, null, [0], []];
   if (sections) {
+    // The real section carries the markdown at [0][0] and a plain-text copy
+    // at [6]; the reader takes [0][0].
     c[37] = [[thinking ?? sections.map(([, body]) => body).join("\n")], sections.map(([title, body]) => [[body], "", "", "", [], title, body])];
   } else if (thinking !== undefined) {
     c[37] = [[thinking]];
@@ -112,6 +126,9 @@ const TURNS: Turn[] = [
             [["https://a.example/", "A page again"]],
           ],
           sections: [["Reading", "Read the **question**."], ["Planning", "Plan\nthe answer."]],
+          // The real slot 12 is an array whose element 0 is an object with
+          // numeric keys; an array spread into an object gives the same
+          // indexable shape.
           rich: {
             ...[null, null, null, null, [[["https://thumb.example/", null, null, null, null, null, ["YouTube", "https://g.example/", null, "id"]], null, null, null, [[["A video", "vid", "https://www.youtube.com/watch?v=vid", "Channel"]]]]]],
             0: { 7: [3], 8: [[[[null, null, null, file(1, "generated.png", "image/png")]]]], 77: [["app_1", null, null, "<!DOCTYPE html>\n<html><body>app</body></html>\n"]] },
@@ -219,6 +236,19 @@ describe("readConversation", () => {
     const moved: Turn[] = [[["c", "r"], ["c", "r", "rc"], [[null, "Q"]], modelTurn([candidate({ text: "A" })]), seconds(1)]];
     expect(() => readConversation(moved, ID, false)).toThrow(SHAPE_CHANGED);
   });
+
+  it("names a turn with no answer and refuses a conversation with none", () => {
+    const turns: Turn[] = [
+      [["c", "r2"], ["c", "r2", "rc2"], userTurn("Q2"), null, seconds(2)],
+      [["c", "r1"], ["c", "r1", "rc1"], userTurn("Q1"), modelTurn([candidate({ text: "A1" })]), seconds(1)],
+    ];
+    const clip = readConversation(turns, ID, false);
+    expect(clip.turns).toBe(2);
+    expect(clip.blocks[3]).toEqual({ kind: "assistant", text: "[no answer]" });
+
+    const none: Turn[] = [[["c", "r"], ["c", "r", "rc"], userTurn("Q"), null, seconds(1)]];
+    expect(() => readConversation(none, ID, false)).toThrow(SHAPE_CHANGED);
+  });
 });
 
 describe("createdFiles", () => {
@@ -237,5 +267,66 @@ describe("createdFiles", () => {
     const clip = readConversation(turns, ID, false);
     expect(clip.blocks[1]).toEqual({ kind: "assistant", text: "A1\n\n[file: app.html]" });
     expect(clip.blocks[3]).toEqual({ kind: "assistant", text: "A2\n\n[file: app-2.html]" });
+  });
+});
+
+describe("fetchConversation", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const signedIn = () => vi.stubGlobal("document", { documentElement: { innerHTML: '"SNlM0e":"tok"' } });
+
+  it("pages through the cursor until the server answers none", async () => {
+    const turnA: Turn = ["turn-a"];
+    const turnB: Turn = ["turn-b"];
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(body([[turnA], "cur", null, [[[]]]]), { status: 200 }))
+      .mockResolvedValueOnce(new Response(body([[turnB], null, null, [[[]]]]), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    signedIn();
+
+    const turns = await fetchConversation(ID);
+    expect(turns).toEqual([turnA, turnB]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    for (const call of fetchMock.mock.calls) {
+      expect(call[0]).toBe("/_/BardChatUi/data/batchexecute?rpcids=hNvQHb");
+      expect(call[1]?.method).toBe("POST");
+    }
+
+    const firstBody = fetchMock.mock.calls[0][1]?.body as string;
+    const secondBody = fetchMock.mock.calls[1][1]?.body as string;
+    expect(new URLSearchParams(firstBody).get("at")).toBe("tok");
+    expect(new URLSearchParams(secondBody).get("at")).toBe("tok");
+
+    const firstReq = JSON.parse(new URLSearchParams(firstBody).get("f.req") as string);
+    expect(firstReq).toEqual([[["hNvQHb", expect.any(String), null, "generic"]]]);
+    expect(JSON.parse(firstReq[0][0][1])).toEqual([`c_${ID}`, 100, null, 1, [0], [4], null, 1]);
+
+    const secondReq = JSON.parse(new URLSearchParams(secondBody).get("f.req") as string);
+    expect(JSON.parse(secondReq[0][0][1])[2]).toBe("cur");
+  });
+
+  it("refuses on a status that means the account cannot see this conversation", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 400 })));
+    signedIn();
+    await expect(fetchConversation(ID)).rejects.toThrow("Gemini would not hand over this conversation. Sign in and reload the page.");
+  });
+
+  it("refuses on a null payload: no conversation at this id", async () => {
+    const text = `)]}'\n\n90\n${JSON.stringify([["wrb.fr", "hNvQHb", null, null, null, [5, null, [["type.googleapis.com/x", [11]]]], "generic"]])}\n`;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(text, { status: 200 })));
+    signedIn();
+    await expect(fetchConversation(ID)).rejects.toThrow("Gemini has no conversation at this address.");
+  });
+
+  it("refuses with no token in the page, and never calls fetch", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("document", { documentElement: { innerHTML: "<html></html>" } });
+    await expect(fetchConversation(ID)).rejects.toThrow("Sign in to Gemini to clip this conversation.");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

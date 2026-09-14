@@ -166,6 +166,9 @@ export function createdFiles(turns: Turn[]): { path: string; text: string }[] {
  *  turn's own document pointers agree with `createdFiles`'s numbering. */
 function assistantBlocks(turn: Turn, written: number): ChatBlock[] {
   const candidate = candidateOf(turn);
+  // A stopped generation: none of the 453 measured turns, so the line is
+  // named in place rather than dropped in silence.
+  if (!Array.isArray(candidate)) return [{ kind: "assistant", text: "[no answer]" }];
   const blocks: ChatBlock[] = [];
   const sections = arr(at(candidate, 37, 1)).filter((section) => str(at(section, 5)).trim() || str(at(section, 0, 0)).trim());
   const full = str(at(candidate, 37, 0, 0)).trim();
@@ -183,6 +186,10 @@ function assistantBlocks(turn: Turn, written: number): ChatBlock[] {
 export function readConversation(turns: Turn[], id: string, activity: boolean): ChatClipping {
   const ordered = oldestFirst(turns);
   if (!ordered.length) throw new Error("This conversation has no messages yet.");
+  // A conversation in which no turn has a candidate is a moved slot, not a
+  // list of questions with no answers (the check Claude's walk makes with
+  // the nil-UUID root).
+  if (!ordered.some((turn) => Array.isArray(candidateOf(turn)))) throw new Error(SHAPE_CHANGED);
   const blocks: ChatBlock[] = [];
   const models: string[] = [];
   let written = 0;
@@ -214,6 +221,7 @@ export function readConversation(turns: Turn[], id: string, activity: boolean): 
 
 const RPC = "/_/BardChatUi/data/batchexecute?rpcids=hNvQHb";
 const PAGE = 100;
+const MAX_PAGES = 50;
 
 /**
  * Same-origin, on the session cookie plus the page's CSRF token, which is
@@ -221,14 +229,14 @@ const PAGE = 100;
  * envelope and arguments are the ones gemini.google.com's own client sends
  * (measured 2026-09-14); the server enforces the token and ignores the rest
  * of the client's query string. Pages of 100 turns, the cursor followed
- * until the server answers none.
+ * until the server answers none, at most 50 pages.
  */
 export async function fetchConversation(id: string): Promise<Turn[]> {
   const token = readToken(document.documentElement.innerHTML);
   if (!token) throw new Error("Sign in to Gemini to clip this conversation.");
   const turns: Turn[] = [];
   let cursor: string | null = null;
-  for (let page = 0; page < 50; page++) {
+  for (let page = 0; page < MAX_PAGES; page++) {
     const body = new URLSearchParams();
     body.set("f.req", JSON.stringify([[["hNvQHb", JSON.stringify([`c_${id}`, PAGE, cursor, 1, [0], [4], null, 1]), null, "generic"]]]));
     body.set("at", token);
