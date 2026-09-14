@@ -504,6 +504,10 @@ function Everywhere() {
             body: 'Reddit and Hacker News, whole. Expanding a Reddit thread clicks its own "more replies" three rounds deep, and is off by default because it is slower.',
           },
           {
+            label: "conversations",
+            body: "ChatGPT and Claude conversations, whole. The page shows 4 of 82 messages on a measured ChatGPT page and 2 of 11 on Claude; the extension reads the conversation the way the site's own client does, and files Claude wrote come along as files.",
+          },
+          {
             label: "listings",
             body: "Subreddits, front pages, channels and search pages, with a tap target on every row.",
           },

@@ -1,6 +1,6 @@
 ---
-title: "Browser clipper: save pages, threads and transcripts as Markdown"
-description: "How the FileConcat Clipper extension saves an article, a YouTube transcript, a Reddit thread or a Hacker News discussion as Markdown and pushes it into your bundle."
+title: "Browser clipper: save pages, threads, transcripts and conversations as Markdown"
+description: "How the FileConcat Clipper extension saves an article, a YouTube transcript, a Reddit thread, a Hacker News discussion or a ChatGPT or Claude conversation as Markdown and pushes it into your bundle."
 ---
 
 # Browser clipper
@@ -8,8 +8,8 @@ description: "How the FileConcat Clipper extension saves an article, a YouTube t
 FileConcat Clipper is a Chrome extension that turns the page you are
 reading into Markdown and pushes it into an open fileconcat.com tab,
 where it joins your bundle like any dropped file. It covers articles on
-any site, plus YouTube transcripts, Reddit threads and Hacker News
-discussions.
+any site, plus YouTube transcripts, Reddit threads, Hacker News
+discussions, and ChatGPT and Claude conversations.
 
 There is a page about it at [/clipper](/clipper), and the extension
 itself is on the
@@ -59,6 +59,15 @@ clipping of the same post.
 **Hacker News.** A thread returns its entire comment tree in one
 request, however deep it runs. The front page lists its stories with a
 tap target on each.
+
+**ChatGPT and Claude.** Both pages render a window of the conversation (4 of
+82 messages on a measured ChatGPT page, 2 of 11 on Claude), so the extension
+reads the conversation the way the site's own client does: one same-origin
+request, using the page's session, nothing stored. The file holds every turn
+with the assistant's own Markdown. The opt-in adds reasoning and tool
+activity, measured at 3 to 6.5 times the clipping's size on ChatGPT and 1 to
+3.7 times on Claude. Files a Claude conversation wrote arrive as their own
+files under the conversation's folder.
 
 ## Sending into a bundle
 

@@ -284,7 +284,8 @@ function Blank() {
     <div className="mt-3">
       <p className="text-ink text-[14px] font-semibold">Nothing to clip here</p>
       <p className="text-ink-faint mt-1.5 max-w-[36ch] text-[12.5px] leading-relaxed">
-        Open an article, a video, or a thread and this panel will report what it can read.
+        Open an article, a video, a thread or a conversation and this panel will report what it
+        can read.
       </p>
     </div>
   );

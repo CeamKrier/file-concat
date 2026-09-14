@@ -805,8 +805,8 @@ export function ResultView({
           people it is for are the ones already standing here with a bundle in
           front of them. */}
       <p className="text-ink-muted mt-[18px] border-t border-[oklch(var(--hairline))] pt-3.5 text-[12px] leading-[1.55]">
-        Send a YouTube transcript, a Reddit or Hacker News thread, or any article straight into
-        this bundle with{" "}
+        Send a YouTube transcript, a Reddit or Hacker News thread, a ChatGPT or Claude
+        conversation, or any article straight into this bundle with{" "}
         <Link to="/clipper" className="text-go-fg whitespace-nowrap underline underline-offset-4">
           the Clipper
         </Link>
