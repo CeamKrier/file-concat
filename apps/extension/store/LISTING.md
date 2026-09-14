@@ -16,7 +16,7 @@ manifest. Bump it by hand, once per submission rather than once per change:
 Chrome only accepts an upload numbered above the published one, a number that
 never reaches the store means nothing to anyone, and a review takes days, so
 there is no release cadence to automate against. Update this line in the same
-commit. `0.1.0` is what is live; `0.3.0` is the batch built since, ChatGPT and Claude
+commit. `0.2.0` is what is live; `0.3.0` is the batch built since, ChatGPT and Claude
 conversations included.
 
 ---
