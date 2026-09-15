@@ -344,12 +344,34 @@ export function minimalOdt(): Uint8Array {
   );
 }
 
-/** A minimal EPUB. Same `mimetype`-first trick as OpenDocument. */
-export function minimalEpub(): Uint8Array {
+/**
+ * A minimal but valid EPUB: `mimetype` first and stored (the same trick as
+ * OpenDocument, and what the detector keys on), the container manifest naming
+ * the OPF, an OPF whose spine holds one XHTML chapter carrying `text`.
+ */
+export function minimalEpub(text = ""): Uint8Array {
   return zipSync(
     {
       mimetype: strToU8("application/epub+zip"),
-      "META-INF/container.xml": strToU8(`<container version="1.0"/>`),
+      "META-INF/container.xml": strToU8(
+        `<?xml version="1.0"?>` +
+          `<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">` +
+          `<rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles>` +
+          `</container>`,
+      ),
+      "OEBPS/content.opf": strToU8(
+        `<?xml version="1.0"?>` +
+          `<package xmlns="http://www.idpf.org/2007/opf" xmlns:dc="http://purl.org/dc/elements/1.1/" version="3.0" unique-identifier="id">` +
+          `<metadata><dc:identifier id="id">fixture</dc:identifier><dc:title>Fixture</dc:title></metadata>` +
+          `<manifest><item id="ch1" href="chapter1.xhtml" media-type="application/xhtml+xml"/></manifest>` +
+          `<spine><itemref idref="ch1"/></spine>` +
+          `</package>`,
+      ),
+      "OEBPS/chapter1.xhtml": strToU8(
+        `<?xml version="1.0" encoding="UTF-8"?>` +
+          `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 1</title></head>` +
+          `<body><h1>Chapter 1</h1><p>${text}</p></body></html>`,
+      ),
     },
     { level: 0 },
   );

@@ -5,6 +5,7 @@ import { extractOfficeDocument } from "../src/file-processing/parsers/officepars
 import {
   furnitureDocx,
   minimalDocx,
+  minimalEpub,
   referencesDocx,
   tableDocx,
   SHEET_MACRO_ENABLED,
@@ -121,6 +122,14 @@ describe("extractOfficeDocument — structure survives extraction", () => {
     });
     expect(text).toMatch(/EMEA\D+1200\D+1350/);
     expect(text).toContain("Headcount");
+  });
+
+  it("reads the chapters of an epub through the office reader", async () => {
+    const { text } = await extractOfficeDocument(minimalEpub("The quick brown chapter."), {
+      format: "epub",
+    });
+    expect(text).toContain("Chapter 1");
+    expect(text).toContain("The quick brown chapter.");
   });
 
   it("keeps a spreadsheet's sheets named and separate", async () => {
