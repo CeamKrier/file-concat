@@ -15,7 +15,7 @@
  * with no loader for an id answers "couldn't extract text", it does not
  * reclassify the file.
  */
-export type ParserId = "office" | "epub" | "notebook" | "subtitles" | "email";
+export type ParserId = "office" | "epub" | "cfb" | "notebook" | "subtitles" | "email";
 
 /**
  * What a parser could not recover. A **closed** set, deliberately: these are
@@ -70,8 +70,12 @@ export interface ExtractionResult {
   notes?: ExtractionNote[];
 }
 
-/** A platform's implementation of one {@link ParserId}. */
-export type ParserLoader = (bytes: Uint8Array) => Promise<ExtractionResult>;
+/**
+ * A platform's implementation of one {@link ParserId}. `format` is what the
+ * router detected (`docx`, `xlsm`, ...); a loader whose library sniffs the
+ * bytes itself may ignore it, one whose library needs telling passes it on.
+ */
+export type ParserLoader = (bytes: Uint8Array, format?: string) => Promise<ExtractionResult>;
 
 export interface ParserRegistry {
   /** True when this build ships a reader for `id`. */
@@ -81,5 +85,5 @@ export interface ParserRegistry {
    * with empty text and a `parser-unavailable` note, which is the documented
    * behaviour for a format whose reader this build does not carry.
    */
-  extract(id: ParserId, bytes: Uint8Array): Promise<ExtractionResult>;
+  extract(id: ParserId, bytes: Uint8Array, format?: string): Promise<ExtractionResult>;
 }

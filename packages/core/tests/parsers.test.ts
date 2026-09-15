@@ -5,8 +5,10 @@ import { extractOfficeDocument } from "../src/file-processing/parsers/officepars
 import {
   furnitureDocx,
   minimalDocx,
+  minimalEpub,
   referencesDocx,
   tableDocx,
+  SHEET_MACRO_ENABLED,
   twoSheetXlsx,
   twoSlidePptx,
 } from "./fixtures/containers";
@@ -109,6 +111,25 @@ describe("extractOfficeDocument — structure survives extraction", () => {
     expect(text).not.toMatch(/12001350/);
     expect(text).toMatch(/EMEA\D+1200\D+1350/);
     expect(text).toMatch(/APAC\D+980\D+1105/);
+  });
+
+  it("reads a macro-enabled workbook when told its base format", async () => {
+    // The library sniffs the bytes as `xlsm`, which its reader table refuses;
+    // the router's format is translated to the reader that opens the same
+    // package. Without the hint this throws, and the file was "binary".
+    const { text } = await extractOfficeDocument(twoSheetXlsx(SHEET_MACRO_ENABLED), {
+      format: "xlsm",
+    });
+    expect(text).toMatch(/EMEA\D+1200\D+1350/);
+    expect(text).toContain("Headcount");
+  });
+
+  it("reads the chapters of an epub through the office reader", async () => {
+    const { text } = await extractOfficeDocument(minimalEpub("The quick brown chapter."), {
+      format: "epub",
+    });
+    expect(text).toContain("Chapter 1");
+    expect(text).toContain("The quick brown chapter.");
   });
 
   it("keeps a spreadsheet's sheets named and separate", async () => {

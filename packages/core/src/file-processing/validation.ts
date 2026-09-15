@@ -20,11 +20,14 @@ async function classifyFile(file: File): Promise<TextClassification> {
 }
 
 /**
- * Validate a file against the processing configuration
+ * Validate a file against the processing configuration. `sniffed` is the
+ * classification a caller already has for the same leading bytes (the web
+ * router reads them first); passing it saves the second read.
  */
 export const validateFile = async (
   file: File,
   config: ProcessingConfig,
+  sniffed?: TextClassification,
 ): Promise<FileValidationResult> => {
   const result: FileValidationResult = {
     isValid: true,
@@ -48,7 +51,7 @@ export const validateFile = async (
   // Content check: binary is excluded; ambiguous is kept but flagged so the
   // user can drop it if the bundle shows garbage.
   if (config.excludeBinaryFiles) {
-    const classification = await classifyFile(file);
+    const classification = sniffed ?? (await classifyFile(file));
     result.classification = classification;
     if (classification === "binary") {
       result.isValid = false;

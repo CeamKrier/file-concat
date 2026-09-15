@@ -2,6 +2,7 @@ import {
   createParserRegistry,
   extractNotebook,
   extractSubtitles,
+  type ParserLoader,
   type ParserRegistry,
 } from "@fileconcat/core";
 
@@ -16,13 +17,23 @@ import {
  * module. Importing a parser here to hand it to a worker would load the
  * multi-MB parser on the main thread — the exact cost the pool exists to avoid.
  */
+const office: ParserLoader = async (bytes, format) => {
+  // Mirrors tokens.ts: the heavy officeparser + pdf.js path is client-only and
+  // must never be pulled into the Cloudflare SSR worker bundle.
+  if (import.meta.env.SSR) return { text: "" };
+  const mod = await import("./extract-document-client");
+  return mod.extractOffice(bytes, format);
+};
+
 export const parsers: ParserRegistry = createParserRegistry({
-  office: async (bytes) => {
-    // Mirrors tokens.ts: the heavy officeparser + pdf.js path is client-only and
-    // must never be pulled into the Cloudflare SSR worker bundle.
+  office,
+  // The same library reads an epub (its zip of XHTML chapters walks the OPF
+  // spine), so the id costs no second download.
+  epub: office,
+  cfb: async (bytes) => {
     if (import.meta.env.SSR) return { text: "" };
-    const mod = await import("./extract-document-client");
-    return mod.extractOffice(bytes);
+    const mod = await import("./extract-cfb-client");
+    return mod.extractCfb(bytes);
   },
   email: async (bytes) => {
     if (import.meta.env.SSR) return { text: "" };
@@ -34,8 +45,4 @@ export const parsers: ParserRegistry = createParserRegistry({
   // a couple of KB. They are safe on the server for the same reason.
   notebook: async (bytes) => extractNotebook(bytes),
   subtitles: async (bytes) => extractSubtitles(bytes),
-  // `epub` is routed but deliberately has no loader yet: officeparser gains it
-  // in 7.5.1, which drags pdfjs-dist through a major version. Until then an
-  // EPUB surfaces "couldn't extract text" — the documented behaviour for a
-  // format whose reader a build does not carry, not a misclassification.
 });

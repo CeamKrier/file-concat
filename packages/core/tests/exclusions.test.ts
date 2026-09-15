@@ -24,6 +24,41 @@ describe("summarizeExclusions", () => {
     expect(result.binary).toEqual(["logo.png"]);
   });
 
+  it("groups binary files whose kind is named, and keeps the nameless ones as binary", () => {
+    const result = summarizeExclusions([
+      {
+        path: "budget.xls",
+        reason: "Excel 97-2003 workbook. Save it as .xlsx and it will be read.",
+        included: false,
+        classification: "binary",
+      },
+      {
+        path: "old/q1.xls",
+        reason: "Excel 97-2003 workbook. Save it as .xlsx and it will be read.",
+        included: false,
+        classification: "binary",
+      },
+      { path: "mail.msg", reason: "Outlook message. Save it as .eml and it will be read.", included: false, classification: "binary" },
+      { path: "logo.png", reason: "Image", included: false, classification: "binary" },
+      { path: "blob.dat", reason: "Binary file", included: false, classification: "binary" },
+    ]);
+    // The label is the reason's first sentence; the remedy stays on screen.
+    expect(result.unsupported).toEqual([
+      { label: "Excel 97-2003 workbook", paths: ["budget.xls", "old/q1.xls"] },
+      { label: "Outlook message", paths: ["mail.msg"] },
+    ]);
+    expect(result.binary).toEqual(["logo.png", "blob.dat"]);
+  });
+
+  it("still buckets on the reason's wording when no classification is given", () => {
+    const result = summarizeExclusions([
+      { path: "font.ttf", reason: "Font file", included: false, classification: "binary" },
+      { path: "legacy.bin", reason: "Binary file", included: false },
+    ]);
+    expect(result.unsupported).toEqual([{ label: "Font file", paths: ["font.ttf"] }]);
+    expect(result.binary).toEqual(["legacy.bin"]);
+  });
+
   it("ignores noise, hidden, gitignore, pattern and manual exclusions", () => {
     const result = summarizeExclusions([
       { path: "a", reason: "Matched .gitignore", included: false },

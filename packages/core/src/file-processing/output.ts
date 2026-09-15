@@ -115,6 +115,13 @@ function renderExclusions(excluded: ExcludedSummary | undefined): string[] {
   if (excluded.unextractable?.length) {
     lines.push(`- no extractable text: ${listPaths(excluded.unextractable)}`);
   }
+  // Named kinds first, each on its own line, so a model reading the note learns
+  // that a workbook existed rather than "a binary". The label is a noun phrase
+  // and is never pluralised: the count carries the plural.
+  for (const { label, paths } of excluded.unsupported ?? []) {
+    const n = paths.length;
+    lines.push(`- ${n} file${n === 1 ? "" : "s"} not readable here (${label}): ${listPaths(paths)}`);
+  }
   if (excluded.binary?.length) {
     const n = excluded.binary.length;
     lines.push(`- ${n} image or binary file${n === 1 ? "" : "s"}: ${listPaths(excluded.binary)}`);

@@ -10,8 +10,8 @@ import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
  * the pdfjs-dist bundled inside officeparser — see ADR-0003). Serving it from
  * our origin keeps extraction fully offline; officeparser's default is a CDN URL.
  */
-export function extractOffice(bytes: Uint8Array): Promise<ExtractionResult> {
-  return extractOfficeDocument(bytes, { pdfWorkerSrc: pdfWorkerUrl });
+export function extractOffice(bytes: Uint8Array, format?: string): Promise<ExtractionResult> {
+  return extractOfficeDocument(bytes, { pdfWorkerSrc: pdfWorkerUrl, format });
 }
 
 /**

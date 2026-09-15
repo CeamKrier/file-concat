@@ -200,9 +200,14 @@ export function referencesDocx(): Uint8Array {
  * A two-sheet `.xlsx`. Both halves matter: the cell values are adjacent numbers
  * that concatenate into a plausible-looking third number when a reader forgets
  * the separator, and the two sheets are what proves the boundary between them
- * survived.
+ * survived. `contentType` is the package's main part type: the default is a
+ * plain workbook, `SHEET_MACRO_ENABLED` turns the same bytes into an `.xlsm`.
  */
-export function twoSheetXlsx(): Uint8Array {
+export const SHEET_MACRO_ENABLED = "application/vnd.ms-excel.sheet.macroEnabled.main+xml";
+
+export function twoSheetXlsx(
+  contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+): Uint8Array {
   const cellXml = (ref: string, value: string | number) =>
     typeof value === "number"
       ? `<c r="${ref}"><v>${value}</v></c>`
@@ -226,7 +231,7 @@ export function twoSheetXlsx(): Uint8Array {
         `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
         `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
         `<Default Extension="xml" ContentType="application/xml"/>` +
-        `<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>` +
+        `<Override PartName="/xl/workbook.xml" ContentType="${contentType}"/>` +
         `<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>` +
         `<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>` +
         `</Types>`,
@@ -339,12 +344,34 @@ export function minimalOdt(): Uint8Array {
   );
 }
 
-/** A minimal EPUB. Same `mimetype`-first trick as OpenDocument. */
-export function minimalEpub(): Uint8Array {
+/**
+ * A minimal but valid EPUB: `mimetype` first and stored (the same trick as
+ * OpenDocument, and what the detector keys on), the container manifest naming
+ * the OPF, an OPF whose spine holds one XHTML chapter carrying `text`.
+ */
+export function minimalEpub(text = ""): Uint8Array {
   return zipSync(
     {
       mimetype: strToU8("application/epub+zip"),
-      "META-INF/container.xml": strToU8(`<container version="1.0"/>`),
+      "META-INF/container.xml": strToU8(
+        `<?xml version="1.0"?>` +
+          `<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">` +
+          `<rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles>` +
+          `</container>`,
+      ),
+      "OEBPS/content.opf": strToU8(
+        `<?xml version="1.0"?>` +
+          `<package xmlns="http://www.idpf.org/2007/opf" xmlns:dc="http://purl.org/dc/elements/1.1/" version="3.0" unique-identifier="id">` +
+          `<metadata><dc:identifier id="id">fixture</dc:identifier><dc:title>Fixture</dc:title></metadata>` +
+          `<manifest><item id="ch1" href="chapter1.xhtml" media-type="application/xhtml+xml"/></manifest>` +
+          `<spine><itemref idref="ch1"/></spine>` +
+          `</package>`,
+      ),
+      "OEBPS/chapter1.xhtml": strToU8(
+        `<?xml version="1.0" encoding="UTF-8"?>` +
+          `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 1</title></head>` +
+          `<body><h1>Chapter 1</h1><p>${text}</p></body></html>`,
+      ),
     },
     { level: 0 },
   );

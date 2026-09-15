@@ -333,6 +333,29 @@ describe("assembleOutput exclusions note", () => {
     expect(output).toContain("- 3 image or binary files: logo.png, hero.png, chart.png");
   });
 
+  it("names the kind of a file it could not read, one line per kind, before the binary line", () => {
+    const output = assembleOutput({
+      projectName: "demo",
+      files,
+      tree,
+      style: "xml",
+      excluded: {
+        unsupported: [
+          { label: "Excel 97-2003 workbook", paths: ["budget.xls", "old/q1.xls"] },
+          { label: "Outlook message", paths: ["mail.msg"] },
+        ],
+        binary: ["logo.png"],
+      },
+    });
+    const lines = output.split(/\r?\n/);
+    const at = (s: string) => lines.findIndex((l) => l === s);
+    expect(at("- 2 files not readable here (Excel 97-2003 workbook): budget.xls, old/q1.xls")).toBeGreaterThan(-1);
+    expect(at("- 1 file not readable here (Outlook message): mail.msg")).toBeGreaterThan(-1);
+    expect(at("- 1 image or binary file: logo.png")).toBeGreaterThan(
+      at("- 1 file not readable here (Outlook message): mail.msg"),
+    );
+  });
+
   it("caps a long path list and notes how many more", () => {
     const many = Array.from({ length: 14 }, (_, i) => `img/${i}.png`);
     const output = assembleOutput({

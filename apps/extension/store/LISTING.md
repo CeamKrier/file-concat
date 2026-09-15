@@ -9,20 +9,22 @@ Assets are in `assets/`. They are generated, not hand-drawn. Rebuild the
 extension, then run `node apps/extension/store/generate-assets.mjs` to
 reproduce all five from a real browser.
 
-Matches manifest version `0.3.0`.
+Matches manifest version `0.3.1`.
 
 The version lives in `apps/extension/package.json` and WXT copies it into the
 manifest. Bump it by hand, once per submission rather than once per change:
 Chrome only accepts an upload numbered above the published one, a number that
 never reaches the store means nothing to anyone, and a review takes days, so
 there is no release cadence to automate against. Update this line in the same
-commit. `0.2.0` is what is live; `0.3.0` is the batch built since, ChatGPT, Claude and Gemini
-conversations included.
+commit. `0.2.0` is what is live; `0.3.0` was the batch built since, ChatGPT, Claude and Gemini
+conversations included, and was rejected on 2026-09-15 for its six-brand
+summary (see "Rejected once" below); `0.3.1` is the same package with the
+summary and description cut to five brands.
 
-## Dashboard edits for 0.3.0
+## Dashboard edits for 0.3.1
 
 The package is `pnpm -C apps/extension zip`, which builds and writes
-`fileconcatextension-0.3.0-chrome.zip` into the build output folder (238 KB).
+`fileconcatextension-0.3.1-chrome.zip` into the build output folder (238 KB).
 Against the 0.2.0 listing, this is what changes and where each change is made.
 The title and the summary are the manifest's `name` and `description` and
 cannot be edited on the dashboard ("After uploading your item, you won't be
@@ -33,8 +35,8 @@ itself. The other three are pasted from the fenced blocks below.
 | Field                         | Where                        | What changes                                                              |
 | ----------------------------- | ---------------------------- | ------------------------------------------------------------------------- |
 | Title                         | the package (`wxt.config.ts`) | `FileConcat Clipper: threads, chats and transcripts to Markdown`, 62 of 75 |
-| Summary                       | the package (`wxt.config.ts`) | chats first, 129 of 132                                                   |
-| Description                   | paste                        | the "ChatGPT, Claude and Gemini conversations, whole" paragraph; Substack and Medium dropped |
+| Summary                       | the package (`wxt.config.ts`) | chats first, five brands, 116 of 132                                      |
+| Description                   | paste                        | the "ChatGPT, Claude and Gemini conversations, whole" paragraph; Hacker News unnamed, link to the full list; Substack and Medium dropped |
 | Single purpose                | paste                        | "seven ways of reading a page", the three conversation handlers named     |
 | Host permission justification | paste                        | last paragraph: the same-origin conversation requests on the three sites  |
 | Homepage URL                  | dashboard field              | still `https://fileconcat.com`; set it to `https://fileconcat.com/clipper` |
@@ -47,14 +49,38 @@ than joining them; the five that are live show the panel before the
 2026-08-22 redesign, and reshooting is its own session that does not hold
 this upload.
 
-One rule read for this submission, from the store's spam FAQ: "When listing
-supported websites or brands in the description, do not list more than
-five." The description names six, one per source the extension reads
-(Reddit, Hacker News, YouTube, ChatGPT, Claude, Gemini); the two that were
-examples rather than sources, Substack and Medium, are gone from the
-description and the host justification. Each brand appears at most twice,
-under the FAQ's "under 5 instances" line. If review objects to the sixth,
-the FAQ's own remedy is a link to the full list, which `/clipper` already is.
+### Rejected once
+
+0.3.0 was rejected on 2026-09-15: "Spam and Placement in the Store",
+reference "Yellow Argon", "the item's description contains unnecessary
+keywords", quoting the summary back verbatim: "ChatGPT, Claude and Gemini
+chats, Reddit and Hacker News threads, YouTube transcripts and articles".
+The rule it broke is the one this section had already read from the store's
+spam FAQ: "When listing supported websites or brands in the description, do
+not list more than five. To provide a longer list of brands or websites,
+provide a link that users can refer to or embed the list in one of the
+extension's promotional screenshots." Six were named, one per source. The
+remedy the FAQ names is the one applied for 0.3.1:
+
+- The summary and the description name five brands (ChatGPT, Claude, Gemini,
+  Reddit, YouTube) and no more. Hacker News is the one left unnamed, because
+  it is the niche of the six and the third screenshot already shows it, which
+  is the embedding the FAQ allows. Its paragraph in the description stays,
+  pointing at that screenshot instead of naming the site.
+- The description links `fileconcat.com/clipper` as the full list of sites.
+- Each brand appears at most twice in the description, `fileconcat.com` four
+  times, under the FAQ's "under 5 instances" line.
+
+Do not put the sixth name back. If review objects again, the next cut is the
+summary with no brands at all ("Save chats, discussion threads, video
+transcripts and any article as Markdown for your LLM"). One other developer
+reports approval after the same reference by naming no brand at all
+(github.com/lcajigasm/site-ip-badge/pull/1); none reports approval at five,
+so five is the FAQ's own line, not a tested one. The
+privacy fields (single purpose, host justification, remote-code answer) still
+name all six sites, because those are technical statements about which hosts
+are read, not listing copy, and the policy is about the listing. Substack
+and Medium, which were examples rather than sources, stay gone.
 
 ---
 
@@ -73,14 +99,15 @@ The same string is what Chrome shows in the install dialog and on
 chrome://extensions. The toolbar tooltip stays `FileConcat Clipper`
 (`action.default_title`).
 
-**Summary** (132 max, 129 used; the manifest `description`, shown read-only on
+**Summary** (132 max, 116 used; the manifest `description`, shown read-only on
 the dashboard)
 
 ```
-Save ChatGPT, Claude and Gemini chats, Reddit and Hacker News threads, YouTube transcripts and articles as Markdown for your LLM.
+Save ChatGPT, Claude and Gemini chats, Reddit threads, YouTube transcripts and any article as Markdown for your LLM.
 ```
 
-Leads with the conversations from 0.3.0 on. Until then it led with threads,
+Five brands, the store's cap; the six-brand line it replaces is quoted under
+"Rejected once". Leads with the conversations from 0.3.0 on. Until then it led with threads,
 because page-to-Markdown is the commodity half and a discussion with its
 nesting intact was the one thing nothing else did; a conversation the page
 only shows a window of is the same argument with more people searching for
@@ -116,17 +143,18 @@ level of nesting kept, so a reply reads as a reply to the thing above it rather
 than as one more paragraph. "Expand more comments" clicks the thread's own "more
 replies" three rounds deep, and it is off by default because it is slower.
 
-Hacker News threads, whole. The entire comment tree in one request, however deep
-it runs. Measured on a 638-comment thread: 264,851 characters, nested eight
-levels down, none of which was on screen when you pressed the button.
+The discussion site in the third screenshot, whole. The entire comment tree in
+one request, however deep it runs. Measured on a 638-comment thread: 264,851
+characters, nested eight levels down, none of which was on screen when you
+pressed the button.
 
 ChatGPT, Claude and Gemini conversations, whole. The page shows a window of the
 conversation; the extension reads it the way the site's own client does, one
 or two same-origin requests on the page's own session. Files a Claude or
 Gemini conversation wrote come along as files.
 
-Listings, one item at a time. A subreddit, a Hacker News front page, a YouTube
-channel or a search page lists what it has loaded, and one button scrolls the
+Listings, one item at a time. A subreddit, a YouTube channel, a front page or a
+search page lists what it has loaded, and one button scrolls the
 page for the rest so the whole listing is on offer. Tap a row to clip it, or
 press Select to take a batch. Each item is opened and read on its own, so a
 session of scrolling becomes a set of files rather than one flattened page of
@@ -143,6 +171,9 @@ Any article. Everywhere else, if a page reads as an article, the panel offers to
 clip it. Mozilla's Readability picks the body and Turndown renders it, which
 covers newsletters, documentation sites, news and blogs with no per-site code.
 Navigation, sidebars, cookie bars and footers are left behind.
+
+The full list of sites it reads, and what each one gives you, is at
+fileconcat.com/clipper.
 
 HOW IT WORKS
 

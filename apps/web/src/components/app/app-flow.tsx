@@ -269,10 +269,6 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   const { notText, skippedByDefault } = useMemo(() => {
     const notText: { name: string; why: string }[] = [];
     const skippedByDefault: { name: string; why: string }[] = [];
-    const archiveWhy = (name: string, fallback: string) =>
-      /\.(7z|rar)$/i.test(name)
-        ? "This archive type can't be opened in the browser. Unzip it first, or use .zip or .tar."
-        : fallback;
     // A document that opened but held no text has its own card and its own
     // remedy, so it must not also appear here as "isn't text" — a scan is text,
     // it is just text nobody has read yet.
@@ -287,7 +283,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       if (reason === "Hidden file") {
         skippedByDefault.push({ name, why: reason });
       } else {
-        notText.push({ name, why: archiveWhy(name, reason || "Not text") });
+        notText.push({ name, why: reason || "Not text" });
       }
     }
     for (const f of ingestion.failedFiles) {
@@ -449,8 +445,9 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         recognition.unreadDocumentCount,
         adjustableCount,
         recognition.offerableImageCount,
+        ingestion.pruned?.count ?? 0,
       ),
-    [droppedFiles, recognition, adjustableCount],
+    [droppedFiles, recognition, adjustableCount, ingestion.pruned],
   );
 
   /**
@@ -477,7 +474,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     const tally: Tally = new Map();
     for (const path of paths) {
       const reason = statuses.get(path)?.reason ?? ingestion.validations[path]?.reason;
-      addToTally(tally, emptyReasonSlug(reason));
+      addToTally(tally, emptyReasonSlug(reason, ingestion.validations[path]?.classification));
     }
     trackTally("empty_reason", tally);
   }, [phase, includedContents, filter.fileStatuses, ingestion.validations]);
@@ -829,6 +826,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
             <ResultEmpty
               droppedFiles={droppedFiles}
               kind={emptyKind}
+              pruned={ingestion.pruned}
               onStartOver={startOver}
               onAdjust={adjustableCount > 0 ? () => openSettings("empty") : undefined}
               byInclude={excludedByInclude}
@@ -856,6 +854,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               totalFiles={filter.fileStatuses.length}
               tokens={tokens}
               noiseFiles={noiseFiles}
+              pruned={ingestion.pruned}
               outputStyle={config.outputStyle}
               onOutputStyleChange={(style) => setConfig({ outputStyle: style })}
               isCopied={output.isCopied}

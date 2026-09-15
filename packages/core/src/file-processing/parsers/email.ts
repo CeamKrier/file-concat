@@ -2,6 +2,22 @@ import type { Email } from "postal-mime";
 import type { ExtractionNote, ExtractionResult } from "./types";
 
 /**
+ * What the rendering reads off a message: the fields of a parsed `.eml` that
+ * matter, and exactly the shape an Outlook `.msg` is lifted into, so both
+ * formats come out of {@link formatEmail} looking the same.
+ */
+export interface MessageFields {
+  from?: Email["from"];
+  to?: Email["to"];
+  cc?: Email["cc"];
+  date?: string;
+  subject?: string;
+  html?: string;
+  text?: string;
+  attachments?: ReadonlyArray<{ filename: string | null }>;
+}
+
+/**
  * Messages (`.eml`), rendered as the correspondence they are.
  *
  * A saved message is RFC 5322: text, and so it always classified as text and
@@ -71,7 +87,7 @@ function htmlToText(html: string): string {
  * text — the contract's "couldn't extract" (ADR-0003) — only when there is no
  * body and no header worth printing, so an empty entry never appears silently.
  */
-export function formatEmail(email: Email): ExtractionResult {
+export function formatEmail(email: MessageFields): ExtractionResult {
   const values: Record<(typeof KEPT_HEADERS)[number], string> = {
     From: formatAddress(email.from),
     To: formatAddresses(email.to),

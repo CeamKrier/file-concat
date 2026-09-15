@@ -1,4 +1,4 @@
-export type EmptyKind = "image" | "recognisable" | "archive" | "scanned" | "filtered" | "other";
+export type EmptyKind = "image" | "recognisable" | "archive" | "scanned" | "filtered" | "pruned" | "other";
 
 /**
  * Which rescue a drop that combined nothing earns, from what was dropped and
@@ -21,8 +21,12 @@ export function emptyKindFor(
   unreadDocumentCount: number,
   excludedReadableCount = 0,
   offerableImageCount = 0,
+  prunedCount = 0,
 ): EmptyKind {
-  if (droppedFiles.length === 0) return "other";
+  // Nothing was read. Either nothing was dropped, or all of it was turned
+  // away at the door (a build tree, a fonts folder); calling the second one
+  // "binary" would describe files nobody opened.
+  if (droppedFiles.length === 0) return prunedCount > 0 ? "pruned" : "other";
   if (unreadDocumentCount > 0) return "scanned";
   if (excludedReadableCount > 0) return "filtered";
   const ARCHIVE = /\.(7z|rar|zip|tar\.gz|tgz|tar|gz|bz2|xz)$/i;
@@ -65,8 +69,14 @@ const REASON_SLUGS: Record<string, string> = {
  * One counter value for one refused file. Anything unmapped becomes `other`
  * rather than being dropped, so a reason added later still shows up as a
  * quantity worth chasing instead of vanishing from the total.
+ *
+ * A binary file's reason now says what kind it is ("Excel 97-2003 workbook.
+ * Save it as .xlsx ...") and no longer reads "Binary file", so the verdict is
+ * taken from the classification when the caller has one. The counter value
+ * stays `binary`, and its history stays one series.
  */
-export function emptyReasonSlug(reason: string | undefined): string {
+export function emptyReasonSlug(reason: string | undefined, classification?: string): string {
+  if (classification === "binary") return "binary";
   if (reason === undefined) return "other";
   return REASON_SLUGS[reason] ?? "other";
 }

@@ -9,9 +9,12 @@ import type {
 import {
   defaultSourceRegistry,
   isPasswordProtected,
+  isPrunedDirectory,
   readFileAsText,
   RECOGNISABLE_IMAGE_FORMATS,
   replacePages,
+  unreadableReason,
+  unreadableReasonText,
   validateFile,
 } from "@fileconcat/core";
 
@@ -23,16 +26,7 @@ import { readPdfPagesWithOcr, readWithOcr, recogniseImageWithOcr } from "~/lib/o
 import { browserOcrLanguage, ocrLanguageFor, type OcrLanguage } from "~/lib/ocr-language";
 import { parsers } from "~/lib/parsers";
 import { prepareBatch } from "~/lib/prepare-batch";
-
-/** Final extension, lowercased — the only thing a counter ever carries from a path. */
-function extensionOf(path: string): string {
-  const name = path.split("/").pop() ?? path;
-  const dot = name.lastIndexOf(".");
-  return dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
-}
-
-/** Extensionless files are a real category, and the empty string is not a valid counter value. */
-const NO_EXTENSION = "none";
+import { extensionOf, mergePruned, NO_EXTENSION, pruneAtDoor, type PrunedAtDoor } from "~/lib/prune-at-door";
 
 const MB = 1024 * 1024;
 /**
@@ -46,11 +40,6 @@ const SIZE_THRESHOLDS = [
   ["32mb", 32 * MB],
 ] as const;
 type SizeThreshold = (typeof SIZE_THRESHOLDS)[number][0];
-
-// Directories that never make it into memory. These are not user-editable;
-// dropping their contents into a browser tab would crash the page long before
-// any pattern could filter them. Everything else honors the live filter rail.
-const HARDCODED_PRUNE_DIRS = new Set([".git", "node_modules"]);
 
 /**
  * Every stage a run can pass through. The label is also the note its stage
@@ -243,6 +232,12 @@ export interface FileIngestion {
   validations: Record<string, ValidationRecord>;
   failedFiles: FailedFile[];
   /**
+   * What the door turned away unread, so the screen can name it: the one
+   * thing that separates "you dropped nothing readable" from "you dropped
+   * nothing". Null until a drop has been through a door.
+   */
+  pruned: PrunedAtDoor | null;
+  /**
    * Every document in this Run that opened with no text in it, recovered or
    * not. Kept whole so a re-read in another language can go back over the ones
    * recognition already read, not just the ones it failed on.
@@ -337,6 +332,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   const [entries, setEntries] = useState<ContentEntry[]>([]);
   const [validations, setValidations] = useState<Record<string, ValidationRecord>>({});
   const [failedFiles, setFailedFiles] = useState<FailedFile[]>([]);
+  const [pruned, setPruned] = useState<PrunedAtDoor | null>(null);
   const [scannedDocuments, setScannedDocuments] = useState<ScannedDocument[]>([]);
   const [unreadDocuments, setUnreadDocuments] = useState<ScannedDocument[]>([]);
   const [isReading, setIsReading] = useState(false);
@@ -615,6 +611,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // that walks one. Reported here rather than where it happened so it lands
       // inside the Run, next to the file count that makes it mean something.
       scanMs = 0,
+      // What the door turned away, from the two doors that prune. Same
+      // reason: written inside the Run, beside the counters for what got in.
+      prunedAtDoor: PrunedAtDoor | null = null,
     ) => {
       const append = options?.append;
       const startedAt = performance.now();
@@ -624,15 +623,22 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
 
       // One pass decides every file's route from its own leading bytes and
       // unpacks the archives among them (ADR-0011), so nothing below sniffs a
-      // file twice.
+      // file twice. The archives' contents meet the same door as the drop.
       const {
         files: routed,
         expandedCount,
         unsupported,
+        pruned: prunedInArchives,
       } = await prepareBatch(incoming, (done, total) =>
         setProgress({ phase: "reading", done, total, note: STAGE.prepare, stages }),
       );
       setExpandedArchive((prev) => (append ? prev || expandedCount > 0 : expandedCount > 0));
+      const prunedNow = mergePruned(prunedAtDoor, prunedInArchives);
+      setPruned((prev) => (append ? mergePruned(prev, prunedNow) : prunedNow));
+      if (prunedNow) {
+        for (const dir of prunedNow.dirs) track("pruned_dir", dir);
+        trackTally("pruned_ext", prunedNow.exts);
+      }
 
       const nextEntries: ContentEntry[] = [];
       const nextValidations: Record<string, ValidationRecord> = {};
@@ -665,7 +671,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setProgress({ phase: "reading", done: 0, total, note: STAGE.read, stages });
 
       for (let i = 0; i < total; i++) {
-        const { item: entry, path, route } = routed[i];
+        const { item: entry, path, route, sniffed } = routed[i];
 
         // Composition of the drop, recorded for every file whatever happens to
         // it below. The extension and the size are the whole payload; the name
@@ -691,6 +697,12 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         // of classifying the container's raw bytes (ADR-0003). Which parser to
         // load came from the bytes, not the filename, so a renamed `.docx` and
         // an extensionless PDF both land here.
+        // A reader that opened the container and found nothing it reads (a Word
+        // 97-2003 file inside the compound format the workbook reader owns), or
+        // a build with no reader at all. Not a failed extraction: a file this
+        // build cannot read, which takes the same path as every other one so
+        // the ledger names it and `unreadable_ext` still counts its extension.
+        let unreadableHere = false;
         if (route.kind === "extract") {
           const size = entry.file.size;
           const type = entry.file.type || "application/octet-stream";
@@ -700,7 +712,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           // a drop can take. Weight is reported after the fact instead.
           try {
             const bytes = new Uint8Array(await entry.file.arrayBuffer());
-            const { text, notes } = await parsers.extract(route.parserId, bytes);
+            const { text, notes } = await parsers.extract(route.parserId, bytes, route.format);
             // What the reader gave up on, counted once per document rather than
             // once per lost page: the question these answer is "how many drops
             // hit this", and a fifty-page PDF failing wholesale must not swamp
@@ -734,10 +746,11 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                 extracted: true,
                 ...(kinds?.length ? { notes: kinds } : {}),
               };
+            } else if (kinds?.includes("parser-unavailable")) {
+              unreadableHere = true;
             } else {
-              // No recoverable text (scanned image-only or encrypted PDF, or
-              // a format this build ships no reader for) — surfaced as
-              // excluded, never silently dropped.
+              // No recoverable text (a scanned image-only or encrypted PDF):
+              // surfaced as excluded, never silently dropped.
               addToTally(extractFailed, route.format, size);
               // Keep the handle: this is the shape recognition can sometimes
               // read, and re-reading needs the bytes we are about to drop. Only
@@ -781,14 +794,22 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
               type,
             };
           }
-          tickProgress();
-          continue;
+          if (!unreadableHere) {
+            tickProgress();
+            continue;
+          }
         }
 
-        const result = await validateFile(entry.file, config);
+        const result = await validateFile(entry.file, config, sniffed);
         nextValidations[path] = {
           included: result.isValid,
-          reason: result.reason,
+          // "Binary file" said nothing about a 97-2003 workbook or an Outlook
+          // message. The router's own verdict on the bytes, refined by the
+          // extension, says what it was and what would make it readable.
+          reason:
+            result.classification === "binary"
+              ? unreadableReasonText(unreadableReason(path, route))
+              : result.reason,
           classification: result.classification,
           size: entry.file.size,
           type: entry.file.type || "text/plain",
@@ -1044,11 +1065,13 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setIsProcessing(true);
       tagSource("drop");
       try {
-        const incoming: IncomingFile[] = Array.from(selected).map((file) => ({
-          file,
-          path: file.webkitRelativePath || file.name,
-        }));
-        await ingestBatch(incoming, options);
+        // The browser has already enumerated everything, so the prune runs on
+        // the list; the drag walk applies it while walking. Not user-editable:
+        // what it drops never reaches the filter rail.
+        const { kept, pruned } = pruneAtDoor(
+          Array.from(selected).map((file) => ({ file, path: file.webkitRelativePath || file.name })),
+        );
+        await ingestBatch(kept, options, BATCH_STAGES, 0, pruned);
       } catch (error) {
         console.error("Error processing files:", error);
       } finally {
@@ -1099,9 +1122,16 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       tagSource("drop");
 
       const walkStartedAt = performance.now();
+      // Directories the walk declined to enter, one entry each: never
+      // enumerated, so the only count there is of them.
+      const refusedDirs: string[] = [];
       try {
         const { collected, failed } = await collectFromDataTransfer(e.dataTransfer.items, {
-          skipDir: (name) => HARDCODED_PRUNE_DIRS.has(name),
+          skipDir: (name) => {
+            const skip = isPrunedDirectory(name);
+            if (skip) refusedDirs.push(name);
+            return skip;
+          },
           // The walk has no total to count towards, so it reports what it has
           // found so far. Every 25th file, to cap re-renders on a big folder.
           onProgress: (found) => {
@@ -1115,9 +1145,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
               });
           },
         });
-        const incoming: IncomingFile[] = collected.map(({ file, path }) => ({ file, path }));
+        const { kept: incoming, pruned } = pruneAtDoor(collected, refusedDirs);
         setProcessingStatus(`Processing ${incoming.length} files...`);
-        await ingestBatch(incoming, options, DROP_STAGES, performance.now() - walkStartedAt);
+        await ingestBatch(incoming, options, DROP_STAGES, performance.now() - walkStartedAt, pruned);
         if (failed.length > 0) setFailedFiles((prev) => [...prev, ...failed]);
       } catch (error) {
         console.error("Error processing files:", error);
@@ -1203,6 +1233,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     setEntries([]);
     setValidations({});
     setFailedFiles([]);
+    setPruned(null);
     setScannedDocuments([]);
     setUnreadDocuments([]);
     // Abandons a pass still in flight; its own `finally` clears the rest.
@@ -1227,6 +1258,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     entries,
     validations,
     failedFiles,
+    pruned,
     unreadDocuments,
     isReading,
     readProgress,

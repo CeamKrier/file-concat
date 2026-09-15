@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { strToU8, zipSync } from "fflate";
+import * as XLSX from "xlsx";
 import { DEFAULT_CONFIG } from "@fileconcat/core";
 import { useFileIngestion } from "~/hooks/use-file-ingestion";
 
@@ -83,5 +84,155 @@ describe("useFileIngestion", () => {
     // Not the other failure tally: this file was never read well enough to be
     // called binary.
     expect(TALLIES.unreadable_ext).toBeUndefined();
+  });
+
+  it("prunes what the defaults name from a picked folder before a byte is read", async () => {
+    // The picker hands over every file the browser enumerated, so the prune
+    // has to happen on the list; before this it did not, and a picked project
+    // folder read all of node_modules before the filter rail hid it. Since
+    // 2026-09-15 the prune is every directory the defaults name and every
+    // extension that never holds text, so a picked build tree costs nothing.
+    const pick = (path: string, content: string): File => {
+      const file = new File([content], path.split("/").pop()!);
+      Object.defineProperty(file, "webkitRelativePath", { value: path });
+      return file;
+    };
+    const files = [
+      pick("proj/src/index.ts", "export {};\n"),
+      pick("proj/node_modules/dep/index.js", "module.exports = 1;\n"),
+      pick("proj/.git/HEAD", "ref: refs/heads/main\n"),
+      pick("proj/dist/index.js", "console.log(1);\n"),
+      pick("proj/pkg/__pycache__/mod.cpython-312.pyc", "not read"),
+      pick("proj/assets/Inter.woff2", "not read"),
+      // Filter-time noise, still read in: the rail can turn it back on.
+      pick("proj/package-lock.json", "{}\n"),
+    ];
+    const target = { files, value: "" } as unknown as HTMLInputElement;
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.handleFileInput({ target } as React.ChangeEvent<HTMLInputElement>);
+    });
+
+    expect(result.current.entries.map((e) => e.path)).toEqual(["proj/src/index.ts", "proj/package-lock.json"]);
+    // What the door turned away, by name, for the screen and the counters.
+    expect(result.current.pruned).toEqual({
+      dirs: ["node_modules", ".git", "dist", "__pycache__"],
+      exts: new Map([["woff2", { n: 1 }]]),
+      count: 5,
+      roots: [],
+    });
+    expect(TALLIES.pruned_ext).toEqual(["woff2"]);
+  });
+
+  it("reads a picked folder whose own name is on the list: the root is what someone chose", async () => {
+    const pick = (path: string, content: string): File => {
+      const file = new File([content], path.split("/").pop()!);
+      Object.defineProperty(file, "webkitRelativePath", { value: path });
+      return file;
+    };
+    const files = [pick("dist/index.js", "console.log(1);\n"), pick("dist/vendor/lib.js", "x\n")];
+    const target = { files, value: "" } as unknown as HTMLInputElement;
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.handleFileInput({ target } as React.ChangeEvent<HTMLInputElement>);
+    });
+
+    // `dist` itself was dropped, so it is read; the `vendor` inside it is not.
+    expect(result.current.entries.map((e) => e.path)).toEqual(["dist/index.js"]);
+    // The root is named so the screen can say it was read by choice.
+    expect(result.current.pruned).toEqual({ dirs: ["vendor"], exts: new Map(), count: 1, roots: ["dist"] });
+  });
+
+  it("adds what an archive's contents lost at the door to the drop's own record", async () => {
+    const pick = (path: string, content: BlobPart): File => {
+      const file = new File([content], path.split("/").pop()!);
+      Object.defineProperty(file, "webkitRelativePath", { value: path });
+      return file;
+    };
+    const zip = zipSync({
+      "app.js": strToU8("console.log(1);\n"),
+      "fonts/Inter.woff2": strToU8("wOF2"),
+      "vendor/lib.js": strToU8("x\n"),
+    });
+    const files = [
+      pick("proj/src/index.ts", "export {};\n"),
+      pick("proj/media/clip.mp4", "not read"),
+      pick("proj/build.zip", zip),
+    ];
+    const target = { files, value: "" } as unknown as HTMLInputElement;
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.handleFileInput({ target } as React.ChangeEvent<HTMLInputElement>);
+    });
+
+    expect(result.current.entries.map((e) => e.path).sort()).toEqual([
+      "build/app.js",
+      "proj/src/index.ts",
+    ]);
+    // One record: the door's mp4 and the archive's font and vendor folder.
+    expect(result.current.pruned).toEqual({
+      dirs: ["vendor"],
+      exts: new Map([
+        ["mp4", { n: 1 }],
+        ["woff2", { n: 1 }],
+      ]),
+      count: 3,
+      roots: [],
+    });
+    expect(TALLIES.pruned_ext).toEqual(["mp4", "woff2"]);
+  });
+
+  it("reads a 97-2003 workbook and includes its sheets", async () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ["Line", "Amount"],
+        ["Travel", 1200],
+      ]),
+      "Budget",
+    );
+    const xls = new Uint8Array(XLSX.write(workbook, { bookType: "xls", type: "array" }));
+    const file = new File([xls], "Part-B-BUDGETS.xls");
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([{ file, path: "forms/Part-B-BUDGETS.xls" }]);
+    });
+
+    const v = result.current.validations["forms/Part-B-BUDGETS.xls"];
+    expect(v.included).toBe(true);
+    expect(v.extracted).toBe(true);
+    const entry = result.current.entries.find((e) => e.path === "forms/Part-B-BUDGETS.xls");
+    expect(entry?.content).toContain("# Sheet: Budget");
+    expect(entry?.content).toMatch(/Travel\D+1200/);
+    // It left the demand counter: this is a format that reads now.
+    expect(TALLIES.unreadable_ext).toBeUndefined();
+  });
+
+  it("says what a 97-2003 PowerPoint file is and how to get it read, instead of calling it binary", async () => {
+    // The same signature as the workbook above, a different directory inside.
+    // The reader declines it, and the file takes the unreadable path under its
+    // own extension, so the counter that decides which reader comes next
+    // still sees it.
+    const container = XLSX.CFB.utils.cfb_new();
+    XLSX.CFB.utils.cfb_add(container, "/PowerPoint Document", new Uint8Array(64));
+    const deck = new Uint8Array(XLSX.CFB.write(container, { type: "array" }));
+    const file = new File([deck], "pitch.ppt");
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([{ file, path: "pitch.ppt" }]);
+    });
+
+    const v = result.current.validations["pitch.ppt"];
+    expect(v.included).toBe(false);
+    expect(v.classification).toBe("binary");
+    expect(v.reason).toBe("PowerPoint 97-2003 file. Save it as .pptx and it will be read.");
+    expect(TALLIES.unreadable_ext).toEqual(["ppt"]);
+    expect(TALLIES.extract_failed).toBeUndefined();
   });
 });

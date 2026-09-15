@@ -1,12 +1,23 @@
-import type { ArchiveKind, FileRoute } from "@fileconcat/core";
+import type { ArchiveKind, FileRoute, TextClassification } from "@fileconcat/core";
 
 import type { IncomingFile } from "~/hooks/use-file-ingestion";
+import type { PrunedAtDoor } from "~/lib/prune-at-door";
 
 /** An incoming file with its route already decided, so nothing is sniffed twice. */
 export interface RoutedFile {
   item: IncomingFile;
   path: string;
   route: FileRoute;
+  /**
+   * What the bytes the router sniffed read as, when it could tell: a signature
+   * names a binary, and the byte classifier settles an `unknown` route from
+   * the same prefix. The read loop then validates without a second read of
+   * the same 8 KB, which on a drop of ten thousand never-readable files is
+   * the difference between one pass over the disk and two. Absent when the
+   * prefix could not be read, or when the route already decides (a document
+   * is extracted, an archive expanded).
+   */
+  sniffed?: TextClassification;
 }
 
 /** Called with files routed so far, so a slow batch can report live progress. */
@@ -18,6 +29,12 @@ export interface PreparedBatch {
   expandedCount: number;
   /** Kinds of archive this build can't open (rar, 7z), one entry per archive found. */
   unsupported: ArchiveKind[];
+  /**
+   * What the door turned away inside the archives it opened, or null when
+   * nothing was. The archive stands as the dropped root: its own name is
+   * exempt, its contents are judged like the files beside it.
+   */
+  pruned: PrunedAtDoor | null;
 }
 
 /**
@@ -32,7 +49,7 @@ export async function prepareBatch(
   incoming: IncomingFile[],
   onProgress?: PrepareProgress,
 ): Promise<PreparedBatch> {
-  if (import.meta.env.SSR) return { files: [], expandedCount: 0, unsupported: [] };
+  if (import.meta.env.SSR) return { files: [], expandedCount: 0, unsupported: [], pruned: null };
   const mod = await import("./prepare-batch-client");
   return mod.prepareBatch(incoming, onProgress);
 }

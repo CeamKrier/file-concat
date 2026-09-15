@@ -1,4 +1,4 @@
-export { shouldSkipPath } from './skip-paths';
+export { shouldSkipPath, isPrunedDirectory, prunedAtWalk } from './skip-paths';
 export { generateFileTree } from './file-tree';
 export { getLanguageFromPath } from './language';
 export { generateProjectName } from './project-name';

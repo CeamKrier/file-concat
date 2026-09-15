@@ -154,7 +154,7 @@ export async function walkRepo(dir: string): Promise<WalkResult> {
    * the default filters: the CLI never walks the others, so it never names them.
    */
   const excluded: ExcludedSummary = { oversize: [], unextractable: [], unreadable: [] };
-  const noteGap = (bucket: keyof ExcludedSummary, rel: string) => {
+  const noteGap = (bucket: "oversize" | "unextractable" | "unreadable", rel: string) => {
     if (keptSet.has(rel)) excluded[bucket]!.push(rel);
   };
 

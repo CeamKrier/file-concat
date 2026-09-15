@@ -20,7 +20,10 @@ export interface CollectFromDataTransferResult {
 }
 
 export interface CollectFromDataTransferOptions {
-  /** Return `true` to skip a directory (e.g. `node_modules`) without recursing. */
+  /**
+   * Return `true` to skip a directory (e.g. `node_modules`) without recursing.
+   * Never asked about a top-level entry: that is the folder someone dropped.
+   */
   skipDir?: (name: string) => boolean;
   /**
    * Called with the running count as files are found. A walk over a large or
@@ -60,7 +63,7 @@ export async function collectFromDataTransfer(
     if (!entry.isDirectory) return;
 
     const dirEntry = entry as FileSystemDirectoryEntry;
-    if (shouldSkip(dirEntry.name)) return;
+    if (prefix && shouldSkip(dirEntry.name)) return;
 
     const nextPrefix = prefix ? `${prefix}/${dirEntry.name}` : dirEntry.name;
     const reader = dirEntry.createReader();

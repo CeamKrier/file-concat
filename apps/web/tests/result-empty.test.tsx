@@ -26,6 +26,14 @@ describe("the scanned rescue", () => {
     expect(emptyKindFor([], 0)).toBe("other");
   });
 
+  it("names a drop the walk turned away whole, instead of calling unread files binary", () => {
+    // A dropped build tree or fonts folder is pruned at the door since
+    // 2026-09-15, so nothing was read; "other" would say these look binary.
+    expect(emptyKindFor([], 0, 0, 0, 3)).toBe("pruned");
+    // With something read, the rescues judge what was read.
+    expect(emptyKindFor(["stuff.7z"], 0, 0, 0, 3)).toBe("archive");
+  });
+
   it("yields to nothing, but outranks the filters", () => {
     expect(emptyKindFor(["scan.pdf"], 1, 4)).toBe("scanned");
   });
@@ -205,6 +213,10 @@ describe("the empty-reason counter", () => {
 
   it("keeps the content refusals apart from the filters", () => {
     expect(emptyReasonSlug("Binary file")).toBe("binary");
+    // A named binary keeps the same counter value as the generic one did.
+    expect(emptyReasonSlug("Excel 97-2003 workbook. Save it as .xlsx and it will be read.", "binary")).toBe(
+      "binary",
+    );
     expect(emptyReasonSlug("Hidden file")).toBe("hidden");
     expect(emptyReasonSlug("No extractable text")).toBe("no-text");
     expect(emptyReasonSlug("Couldn't extract text")).toBe("extract-error");

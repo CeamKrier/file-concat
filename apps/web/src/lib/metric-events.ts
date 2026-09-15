@@ -111,6 +111,30 @@ export const METRIC_EVENTS = [
    */
   "unreadable_ext",
   /**
+   * A directory name from the default ignore list that the door refused to
+   * enter, one row per name per Run, `n` = 1. Unit is Runs, not files: the
+   * drag walk never enumerates a refused directory, so a file count exists
+   * on one door only. Read as COUNT(DISTINCT run) per value.
+   *
+   * Since 2026-09-15 these files never reach `batch_size`, `file_ext` or
+   * `unreadable_ext`, so this is where the drop's build trees and dependency
+   * folders went. A name that leads here in Runs is the one to ask about:
+   * either the defaults are right and the number is the time they saved, or
+   * people keep dropping a folder they wanted read (the dropped root itself
+   * is exempt, so this counts only what sat inside a drop). Since 2026-09-15
+   * the contents of an opened archive meet the same door, with the archive
+   * standing as the root, so a build zip's node_modules lands here too.
+   */
+  "pruned_dir",
+  /**
+   * Files the door refused for their extension, `n` per extension: fonts,
+   * media, compiled code, databases, data files (`NEVER_TEXT_EXTENSIONS`).
+   * The other half of what left `unreadable_ext` on 2026-09-15; the two
+   * together are the old series. An extension here is by construction one we
+   * have already named, so the question is only whether the list is right.
+   */
+  "pruned_ext",
+  /**
    * Files whose bytes refused to be read at all, one row per extension: `n`
    * files totalling `b` bytes. A file that moved, a permission, a network path
    * that blinked, a directory a running program holds open.
