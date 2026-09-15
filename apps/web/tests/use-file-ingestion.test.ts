@@ -114,26 +114,26 @@ describe("useFileIngestion", () => {
     expect(TALLIES.unreadable_ext).toBeUndefined();
   });
 
-  it("says what a 97-2003 Word file is and how to get it read, instead of calling it binary", async () => {
+  it("says what a 97-2003 PowerPoint file is and how to get it read, instead of calling it binary", async () => {
     // The same signature as the workbook above, a different directory inside.
     // The reader declines it, and the file takes the unreadable path under its
     // own extension, so the counter that decides which reader comes next
     // still sees it.
     const container = XLSX.CFB.utils.cfb_new();
-    XLSX.CFB.utils.cfb_add(container, "/WordDocument", new Uint8Array(64));
-    const doc = new Uint8Array(XLSX.CFB.write(container, { type: "array" }));
-    const file = new File([doc], "memo.doc");
+    XLSX.CFB.utils.cfb_add(container, "/PowerPoint Document", new Uint8Array(64));
+    const deck = new Uint8Array(XLSX.CFB.write(container, { type: "array" }));
+    const file = new File([deck], "pitch.ppt");
 
     const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
     await act(async () => {
-      await result.current.ingestBatch([{ file, path: "memo.doc" }]);
+      await result.current.ingestBatch([{ file, path: "pitch.ppt" }]);
     });
 
-    const v = result.current.validations["memo.doc"];
+    const v = result.current.validations["pitch.ppt"];
     expect(v.included).toBe(false);
     expect(v.classification).toBe("binary");
-    expect(v.reason).toBe("Word 97-2003 document. Save it as .docx and it will be read.");
-    expect(TALLIES.unreadable_ext).toEqual(["doc"]);
+    expect(v.reason).toBe("PowerPoint 97-2003 file. Save it as .pptx and it will be read.");
+    expect(TALLIES.unreadable_ext).toEqual(["ppt"]);
     expect(TALLIES.extract_failed).toBeUndefined();
   });
 });

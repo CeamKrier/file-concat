@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
 import { extractCfb } from "~/lib/extract-cfb-client";
+import { wordStreams } from "../../../packages/core/tests/fixtures/word";
 
 /** A BIFF8 workbook, written by the same library that reads it. */
 function biff8(sheets: Record<string, unknown[][]>): Uint8Array {
@@ -11,11 +12,20 @@ function biff8(sheets: Record<string, unknown[][]>): Uint8Array {
   return new Uint8Array(XLSX.write(workbook, { bookType: "xls", type: "array" }));
 }
 
-/** A compound file whose streams say Word, not Excel. */
+/** A Word 97 document with one paragraph, in its container. */
 function wordContainer(): Uint8Array {
   const container = XLSX.CFB.utils.cfb_new();
-  XLSX.CFB.utils.cfb_add(container, "/WordDocument", new Uint8Array(64));
-  XLSX.CFB.utils.cfb_add(container, "/1Table", new Uint8Array(16));
+  for (const [name, bytes] of wordStreams([{ text: "Minutes of the meeting.\r" }], { body: 24 })) {
+    XLSX.CFB.utils.cfb_add(container, `/${name}`, bytes);
+  }
+  return new Uint8Array(XLSX.CFB.write(container, { type: "array" }));
+}
+
+/** A compound file whose streams say PowerPoint, which nothing here reads. */
+function deckContainer(): Uint8Array {
+  const container = XLSX.CFB.utils.cfb_new();
+  XLSX.CFB.utils.cfb_add(container, "/PowerPoint Document", new Uint8Array(64));
+  XLSX.CFB.utils.cfb_add(container, "/Current User", new Uint8Array(16));
   return new Uint8Array(XLSX.CFB.write(container, { type: "array" }));
 }
 
@@ -83,10 +93,15 @@ describe("extractCfb", () => {
     expect(notes).toBeUndefined();
   });
 
-  it("answers a compound file that holds no workbook with parser-unavailable, not a throw", () => {
-    // A .doc, .ppt or .msg shares the signature; the ledger names it from
-    // there, under its own extension, exactly as a build with no reader would.
-    expect(extractCfb(wordContainer())).toEqual({
+  it("reads a Word 97-2003 document's text", () => {
+    // Measured 2026-09-15 against fifteen real Word files (docs/measurements).
+    expect(extractCfb(wordContainer())).toEqual({ text: "Minutes of the meeting." });
+  });
+
+  it("answers a compound file nothing here reads with parser-unavailable, not a throw", () => {
+    // A .ppt shares the signature; the ledger names it from there, under its
+    // own extension, exactly as a build with no reader would.
+    expect(extractCfb(deckContainer())).toEqual({
       text: "",
       notes: [{ kind: "parser-unavailable" }],
     });
