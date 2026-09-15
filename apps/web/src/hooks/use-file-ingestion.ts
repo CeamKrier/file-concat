@@ -667,7 +667,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setProgress({ phase: "reading", done: 0, total, note: STAGE.read, stages });
 
       for (let i = 0; i < total; i++) {
-        const { item: entry, path, route } = routed[i];
+        const { item: entry, path, route, sniffed } = routed[i];
 
         // Composition of the drop, recorded for every file whatever happens to
         // it below. The extension and the size are the whole payload; the name
@@ -796,7 +796,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           }
         }
 
-        const result = await validateFile(entry.file, config);
+        const result = await validateFile(entry.file, config, sniffed);
         nextValidations[path] = {
           included: result.isValid,
           // "Binary file" said nothing about a 97-2003 workbook or an Outlook

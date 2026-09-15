@@ -1,4 +1,4 @@
-import type { ArchiveKind, FileRoute } from "@fileconcat/core";
+import type { ArchiveKind, FileRoute, TextClassification } from "@fileconcat/core";
 
 import type { IncomingFile } from "~/hooks/use-file-ingestion";
 
@@ -7,6 +7,16 @@ export interface RoutedFile {
   item: IncomingFile;
   path: string;
   route: FileRoute;
+  /**
+   * What the bytes the router sniffed read as, when it could tell: a signature
+   * names a binary, and the byte classifier settles an `unknown` route from
+   * the same prefix. The read loop then validates without a second read of
+   * the same 8 KB, which on a drop of ten thousand never-readable files is
+   * the difference between one pass over the disk and two. Absent when the
+   * prefix could not be read, or when the route already decides (a document
+   * is extracted, an archive expanded).
+   */
+  sniffed?: TextClassification;
 }
 
 /** Called with files routed so far, so a slow batch can report live progress. */

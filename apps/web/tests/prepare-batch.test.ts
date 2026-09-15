@@ -62,6 +62,28 @@ describe("prepareBatch", () => {
     expect(files[0]!.route).toEqual({ kind: "extract", parserId: "office", format: "docx" });
   });
 
+  it("carries the classification it sniffed, so the read loop never reads the prefix twice", async () => {
+    // Measured 2026-09-15: a file the router leaves as `unknown` cost two 8 KB
+    // reads (router, then validation) at about 2.7 ms each for a binary that
+    // never reaches the bundle. The prefix is read once and both answers ride
+    // on it; a file whose bytes refuse to be read carries nothing and the
+    // read loop tries again on its own.
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...Array(64).fill(0)]);
+    const pyc = new Uint8Array([0xcb, 0x0d, 0x0d, 0x0a, ...Array.from({ length: 512 }, (_, i) => (i * 7919 + 13) & 0xff)]);
+    const { files } = await prepareBatch([
+      { file: new File(["export const a = 1;\n"], "a.ts"), path: "a.ts" },
+      { file: new File([pyc], "m.pyc"), path: "__pycache__/m.pyc" },
+      { file: new File([png], "logo.png"), path: "logo.png" },
+      { file: unreadable("gone.ts"), path: "gone.ts" },
+    ]);
+    expect(files.map((f) => [f.path, f.route.kind, f.sniffed])).toEqual([
+      ["a.ts", "unknown", "text"],
+      ["__pycache__/m.pyc", "unknown", "binary"],
+      ["logo.png", "binary", "binary"],
+      ["gone.ts", "unknown", undefined],
+    ]);
+  });
+
   it("reports progress as it routes", async () => {
     const seen: [number, number][] = [];
     await prepareBatch(

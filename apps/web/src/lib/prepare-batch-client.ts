@@ -1,10 +1,12 @@
 import {
   canExpandArchive,
+  classifyBytes,
   expandArchive,
   routeBytes,
-  routeFile,
   ROUTER_SNIFF_BYTES,
   type ArchiveKind,
+  type FileRoute,
+  type TextClassification,
 } from "@fileconcat/core";
 
 import type { IncomingFile } from "~/hooks/use-file-ingestion";
@@ -52,9 +54,13 @@ export async function prepareBatch(
     // took the whole drop down and the screen said "nothing text-like to
     // combine" about files it never opened. Route it as unknown instead and
     // let the ingest loop's own per-file handling record it as unreadable.
-    const route = await routeFile(item.file).catch(() => ({ kind: "unknown" }) as const);
+    const { route, sniffed } = await item.file
+      .slice(0, ROUTER_SNIFF_BYTES)
+      .arrayBuffer()
+      .then((buffer) => sniff(new Uint8Array(buffer)))
+      .catch(() => ({ route: { kind: "unknown" } as const, sniffed: undefined }));
     if (route.kind !== "expand") {
-      files.push({ item, path, route });
+      files.push({ item, path, route, sniffed });
       continue;
     }
 
@@ -97,7 +103,7 @@ export async function prepareBatch(
           path: entry.path,
           // Routed from the bytes we already hold rather than re-reading the
           // synthetic File we just built.
-          route: await routeBytes(entry.bytes.subarray(0, ROUTER_SNIFF_BYTES)),
+          ...(await sniff(entry.bytes.subarray(0, ROUTER_SNIFF_BYTES))),
         });
       }
     } catch {
@@ -106,4 +112,15 @@ export async function prepareBatch(
   }
 
   return { files, expandedCount, unsupported };
+}
+
+/**
+ * Route a prefix and, where the route leaves the question open, classify the
+ * same bytes. One read serves both; see `RoutedFile.sniffed`.
+ */
+async function sniff(prefix: Uint8Array): Promise<{ route: FileRoute; sniffed?: TextClassification }> {
+  const route = await routeBytes(prefix);
+  if (route.kind === "binary") return { route, sniffed: "binary" };
+  if (route.kind === "unknown") return { route, sniffed: classifyBytes(prefix).classification };
+  return { route };
 }
