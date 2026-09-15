@@ -16,10 +16,10 @@ export function createParserRegistry(
       return loaders[id] !== undefined;
     },
 
-    async extract(id: ParserId, bytes: Uint8Array): Promise<ExtractionResult> {
+    async extract(id: ParserId, bytes: Uint8Array, format?: string): Promise<ExtractionResult> {
       const load = loaders[id];
       if (!load) return { text: "", notes: [{ kind: "parser-unavailable" }] };
-      return load(bytes);
+      return load(bytes, format);
     },
   };
 }

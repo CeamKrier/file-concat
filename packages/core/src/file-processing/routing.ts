@@ -40,12 +40,29 @@ export type FileRoute =
 /**
  * Detected format → the parser that reads it. `officeparser` covers all of the
  * first group through a single entry point, so they share one id.
+ *
+ * The macro-enabled and template variants are the same package with a
+ * different content type, and the detector names each one separately. Before
+ * they were listed here an `.xlsm` fell through to the byte classifier and was
+ * reported as "image or binary". The office parser is told which base format
+ * to read them as (see {@link ./parsers/officeparser} `LIBRARY_FILE_TYPE`).
  */
 const DOCUMENT_PARSERS: Readonly<Record<string, ParserId>> = {
   pdf: "office",
   docx: "office",
+  docm: "office",
+  dotx: "office",
+  dotm: "office",
   xlsx: "office",
+  xlsm: "office",
+  xltx: "office",
+  xltm: "office",
   pptx: "office",
+  pptm: "office",
+  potx: "office",
+  potm: "office",
+  ppsx: "office",
+  ppsm: "office",
   odt: "office",
   ods: "office",
   odp: "office",

@@ -423,7 +423,7 @@ export function ResultView({
         count: unsupported.length,
         label: "left out",
         tone: "quiet",
-        lead: "Not text, so nothing could be combined from them.",
+        lead: "No text could be read from these. Each row says what the file is, and what would get it read when something would.",
         items: unsupported,
       },
       {
@@ -1033,9 +1033,12 @@ function FileRows({ items }: { items: { name: string; why?: string }[] }) {
         )}
       >
         {shown.map((f) => (
-          <li key={f.name} className="flex items-baseline gap-3.5 font-mono text-xs">
+          // The why used to be two words and sat beside the name; it is now a
+          // sentence with a remedy in it ("Excel 97-2003 workbook. Save it as
+          // .xlsx ..."), so it wraps under the name rather than squeezing it.
+          <li key={f.name} className="flex flex-wrap items-baseline gap-x-3.5 gap-y-0.5 font-mono text-xs">
             <span className="text-code min-w-0 flex-1 truncate">{f.name}</span>
-            {f.why && <span className="text-ink-muted shrink-0">{f.why}</span>}
+            {f.why && <span className="text-ink-muted min-w-0">{f.why}</span>}
           </li>
         ))}
       </ul>

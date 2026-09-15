@@ -47,6 +47,11 @@ const SIGNATURES: readonly Signature[] = [
   // heic, avif, mp4 and mov share this one and cannot be told apart without
   // reading the brand, so it stays a single unrecognisable format (ADR-0017).
   { offset: 4, magic: [...ascii("ftyp")], format: "iso-bmff" },
+  // Not media: the OLE2 compound file behind Excel/Word/PowerPoint 97-2003,
+  // Outlook `.msg` and every password-protected OOXML document. Nothing here
+  // reads it, and naming it is what lets the ledger say "a 97-2003 workbook,
+  // save it as .xlsx" instead of "image or binary" about a spreadsheet.
+  { offset: 0, magic: [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1], format: "cfb" },
 ];
 
 /** RIFF containers ("RIFF" + 4-byte size + a form tag) that are binary media. */

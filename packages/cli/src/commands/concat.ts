@@ -239,7 +239,7 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
     // agree on which formats qualify and how the text is pulled.
     if (extract && route.kind === "extract") {
       try {
-        const { text } = await parsers.extract(route.parserId, readAll(source));
+        const { text } = await parsers.extract(route.parserId, readAll(source), route.format);
         if (!text) {
           log.warn(`Skipped (no extractable text): ${file}`);
           skipped.parseFailed.push(file);

@@ -65,8 +65,14 @@ const REASON_SLUGS: Record<string, string> = {
  * One counter value for one refused file. Anything unmapped becomes `other`
  * rather than being dropped, so a reason added later still shows up as a
  * quantity worth chasing instead of vanishing from the total.
+ *
+ * A binary file's reason now says what kind it is ("Excel 97-2003 workbook.
+ * Save it as .xlsx ...") and no longer reads "Binary file", so the verdict is
+ * taken from the classification when the caller has one. The counter value
+ * stays `binary`, and its history stays one series.
  */
-export function emptyReasonSlug(reason: string | undefined): string {
+export function emptyReasonSlug(reason: string | undefined, classification?: string): string {
+  if (classification === "binary") return "binary";
   if (reason === undefined) return "other";
   return REASON_SLUGS[reason] ?? "other";
 }

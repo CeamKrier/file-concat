@@ -2,7 +2,15 @@ import { describe, expect, it } from "vitest";
 import { gzipSync, strToU8 } from "fflate";
 import { RECOGNISABLE_IMAGE_FORMATS } from "../src/file-processing/binary-signatures";
 import { routeBytes } from "../src/file-processing/routing";
-import { makeTar, minimalDocx, minimalEpub, minimalOdt, plainZip } from "./fixtures/containers";
+import {
+  makeTar,
+  minimalDocx,
+  minimalEpub,
+  minimalOdt,
+  plainZip,
+  SHEET_MACRO_ENABLED,
+  twoSheetXlsx,
+} from "./fixtures/containers";
 
 const utf8 = (s: string) => strToU8(s);
 
@@ -13,6 +21,25 @@ describe("routeBytes", () => {
       parserId: "office",
       format: "docx",
     });
+  });
+
+  it("routes the macro-enabled and template variants to the office parser too", async () => {
+    // The same package under another content type. Before the variants were
+    // listed, an `.xlsm` fell through to the byte classifier and the ledger
+    // called it an image.
+    expect(await routeBytes(twoSheetXlsx(SHEET_MACRO_ENABLED))).toEqual({
+      kind: "extract",
+      parserId: "office",
+      format: "xlsm",
+    });
+  });
+
+  it("names the 97-2003 Office container as binary without loading a parser", async () => {
+    // Excel/Word/PowerPoint 97-2003, Outlook .msg and a password-protected
+    // OOXML file all start with the OLE2 signature. Nothing reads them, but
+    // naming the container is what lets the ledger say which one it was.
+    const cfb = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, ...Array(64).fill(0)]);
+    expect(await routeBytes(cfb)).toEqual({ kind: "binary", format: "cfb" });
   });
 
   it("routes OpenDocument to the office parser", async () => {

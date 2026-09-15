@@ -75,6 +75,19 @@ export async function prepareBatch(
         files.push({ item, path, route });
         continue;
       }
+      // An Office package whose content-types part sits past the sniff window
+      // (a LibreOffice-shaped .docx with its thumbnail first, say) routes as a
+      // plain zip on its prefix, and unpacking it would put forty XML parts in
+      // the tree in place of one document. The part is the tell; the whole
+      // file settles it, and a zip someone made of a folder never carries it.
+      // Entries come back rooted at a folder named after the archive.
+      if (entries.some((entry) => /^(?:[^/]+\/)?\[Content_Types\]\.xml$/.test(entry.path))) {
+        const whole = await routeBytes(bytes);
+        if (whole.kind !== "expand") {
+          files.push({ item, path, route: whole });
+          continue;
+        }
+      }
 
       expandedCount++;
       for (const entry of entries) {

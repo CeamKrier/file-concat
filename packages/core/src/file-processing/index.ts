@@ -31,6 +31,8 @@ export { addLineNumbers } from "./transform";
 export { assembleOutput, fenceFor } from "./output";
 export type { OutputStyle, OutputFile, OutputPart, AssembleOutputOptions } from "./output";
 export { summarizeExclusions } from "./exclusions";
+export { unreadableReason, unreadableReasonText, unreadableLabel } from "./unreadable-reason";
+export type { UnreadableReason } from "./unreadable-reason";
 export type { ExcludedSummary, ExclusionInput } from "./exclusions";
 export { classifyBundleKind } from "./bundle-kind";
 export type { BundleKind } from "./bundle-kind";

@@ -24,7 +24,7 @@ import {
  * be self-hosted (ADR-0003). Under node officeparser resolves its own.
  */
 export const parsers: ParserRegistry = createParserRegistry({
-  office: (bytes) => extractOfficeDocument(bytes),
+  office: (bytes, format) => extractOfficeDocument(bytes, { format }),
   email: async (bytes) => formatEmail(await PostalMime.parse(bytes)),
   notebook: async (bytes) => extractNotebook(bytes),
   subtitles: async (bytes) => extractSubtitles(bytes),

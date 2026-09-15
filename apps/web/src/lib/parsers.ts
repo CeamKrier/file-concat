@@ -17,12 +17,12 @@ import {
  * multi-MB parser on the main thread — the exact cost the pool exists to avoid.
  */
 export const parsers: ParserRegistry = createParserRegistry({
-  office: async (bytes) => {
+  office: async (bytes, format) => {
     // Mirrors tokens.ts: the heavy officeparser + pdf.js path is client-only and
     // must never be pulled into the Cloudflare SSR worker bundle.
     if (import.meta.env.SSR) return { text: "" };
     const mod = await import("./extract-document-client");
-    return mod.extractOffice(bytes);
+    return mod.extractOffice(bytes, format);
   },
   email: async (bytes) => {
     if (import.meta.env.SSR) return { text: "" };

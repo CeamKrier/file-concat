@@ -38,7 +38,33 @@ export interface OfficeParserOptions {
    * the page in hand happens to finish.
    */
   abortSignal?: AbortSignal;
+  /**
+   * The format the router detected. The library sniffs a buffer itself, but its
+   * reader table stops at the base formats: an `.xlsm` sniffs as `xlsm` and
+   * is refused, although the package inside is an `.xlsx`. Naming the base
+   * format here is what lets the macro-enabled and template variants through.
+   */
+  format?: string;
 }
+
+/**
+ * Detected format -> the reader the library should run. The variants are the
+ * same package under a different content type; the library only warns about
+ * the mismatch between what it sniffed and what it was told.
+ */
+const LIBRARY_FILE_TYPE: Readonly<Record<string, string>> = {
+  docm: "docx",
+  dotx: "docx",
+  dotm: "docx",
+  xlsm: "xlsx",
+  xltx: "xlsx",
+  xltm: "xlsx",
+  pptm: "pptx",
+  potx: "pptx",
+  potm: "pptx",
+  ppsx: "pptx",
+  ppsm: "pptx",
+};
 
 /**
  * Where the recogniser comes from and what it should expect to read.
@@ -506,6 +532,11 @@ function numberFootnotes(): (node: OfficeContentNode) => void {
 function toLibraryConfig(options: OfficeParserOptions): Record<string, unknown> {
   const config: Record<string, unknown> = {};
   if (options.pdfWorkerSrc) config.pdfWorkerSrc = options.pdfWorkerSrc;
+  // Only the variants need translating; a base format sniffs the same either
+  // way, and leaving it to the library keeps that path exactly as it was.
+  if (options.format && LIBRARY_FILE_TYPE[options.format]) {
+    config.fileType = LIBRARY_FILE_TYPE[options.format];
+  }
   // Set at the top level rather than inside `ocrConfig`: the library copies it
   // down into the recogniser itself, and passing it here also aborts the parse
   // around the recognition instead of only the pages.

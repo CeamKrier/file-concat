@@ -200,9 +200,14 @@ export function referencesDocx(): Uint8Array {
  * A two-sheet `.xlsx`. Both halves matter: the cell values are adjacent numbers
  * that concatenate into a plausible-looking third number when a reader forgets
  * the separator, and the two sheets are what proves the boundary between them
- * survived.
+ * survived. `contentType` is the package's main part type: the default is a
+ * plain workbook, `SHEET_MACRO_ENABLED` turns the same bytes into an `.xlsm`.
  */
-export function twoSheetXlsx(): Uint8Array {
+export const SHEET_MACRO_ENABLED = "application/vnd.ms-excel.sheet.macroEnabled.main+xml";
+
+export function twoSheetXlsx(
+  contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+): Uint8Array {
   const cellXml = (ref: string, value: string | number) =>
     typeof value === "number"
       ? `<c r="${ref}"><v>${value}</v></c>`
@@ -226,7 +231,7 @@ export function twoSheetXlsx(): Uint8Array {
         `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
         `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
         `<Default Extension="xml" ContentType="application/xml"/>` +
-        `<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>` +
+        `<Override PartName="/xl/workbook.xml" ContentType="${contentType}"/>` +
         `<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>` +
         `<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>` +
         `</Types>`,

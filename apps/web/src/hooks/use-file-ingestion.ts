@@ -12,6 +12,8 @@ import {
   readFileAsText,
   RECOGNISABLE_IMAGE_FORMATS,
   replacePages,
+  unreadableReason,
+  unreadableReasonText,
   validateFile,
 } from "@fileconcat/core";
 
@@ -700,7 +702,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           // a drop can take. Weight is reported after the fact instead.
           try {
             const bytes = new Uint8Array(await entry.file.arrayBuffer());
-            const { text, notes } = await parsers.extract(route.parserId, bytes);
+            const { text, notes } = await parsers.extract(route.parserId, bytes, route.format);
             // What the reader gave up on, counted once per document rather than
             // once per lost page: the question these answer is "how many drops
             // hit this", and a fifty-page PDF failing wholesale must not swamp
@@ -788,7 +790,13 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         const result = await validateFile(entry.file, config);
         nextValidations[path] = {
           included: result.isValid,
-          reason: result.reason,
+          // "Binary file" said nothing about a 97-2003 workbook or an Outlook
+          // message. The router's own verdict on the bytes, refined by the
+          // extension, says what it was and what would make it readable.
+          reason:
+            result.classification === "binary"
+              ? unreadableReasonText(unreadableReason(path, route))
+              : result.reason,
           classification: result.classification,
           size: entry.file.size,
           type: entry.file.type || "text/plain",

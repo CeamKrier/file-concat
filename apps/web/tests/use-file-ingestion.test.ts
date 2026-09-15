@@ -84,4 +84,23 @@ describe("useFileIngestion", () => {
     // called binary.
     expect(TALLIES.unreadable_ext).toBeUndefined();
   });
+
+  it("says what a 97-2003 workbook is and how to get it read, instead of calling it binary", async () => {
+    // The OLE2 signature every legacy Office file and Outlook message starts
+    // with. Nothing here reads it; the reason is the whole product.
+    const cfb = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, ...Array(512).fill(0)]);
+    const file = new File([cfb], "Part-B-BUDGETS.xls");
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([{ file, path: "forms/Part-B-BUDGETS.xls" }]);
+    });
+
+    const v = result.current.validations["forms/Part-B-BUDGETS.xls"];
+    expect(v.included).toBe(false);
+    expect(v.classification).toBe("binary");
+    expect(v.reason).toBe("Excel 97-2003 workbook. Save it as .xlsx and it will be read.");
+    // The demand counter is unchanged by the wording.
+    expect(TALLIES.unreadable_ext).toEqual(["xls"]);
+  });
 });
