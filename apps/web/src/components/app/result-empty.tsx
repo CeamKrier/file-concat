@@ -2,6 +2,7 @@ import {
   Archive,
   FileQuestion,
   FilterX,
+  FolderX,
   ImageOff,
   LoaderCircle,
   RotateCcw,
@@ -98,6 +99,14 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
     title: "The filters left nothing in",
     body: "These files are readable. Every one of them matched an ignore pattern, a .gitignore rule, or the hidden and oversize defaults, so there was nothing to pack.",
     cta: "Adjust what's included",
+  },
+  // Turned away at the door, unread. Not a rescue: the same folder will be
+  // turned away again, so the way out is a different drop.
+  pruned: {
+    icon: FolderX,
+    title: "Nothing here gets read",
+    body: "Everything in this drop is a folder FileConcat never opens (dependencies, build output, caches) or a kind of file that never holds text (fonts, media, compiled code). Drop the folder that holds your files instead.",
+    cta: "Start over",
   },
   other: {
     icon: FileQuestion,

@@ -1,4 +1,4 @@
-export type EmptyKind = "image" | "recognisable" | "archive" | "scanned" | "filtered" | "other";
+export type EmptyKind = "image" | "recognisable" | "archive" | "scanned" | "filtered" | "pruned" | "other";
 
 /**
  * Which rescue a drop that combined nothing earns, from what was dropped and
@@ -21,8 +21,12 @@ export function emptyKindFor(
   unreadDocumentCount: number,
   excludedReadableCount = 0,
   offerableImageCount = 0,
+  prunedCount = 0,
 ): EmptyKind {
-  if (droppedFiles.length === 0) return "other";
+  // Nothing was read. Either nothing was dropped, or all of it was turned
+  // away at the door (a build tree, a fonts folder); calling the second one
+  // "binary" would describe files nobody opened.
+  if (droppedFiles.length === 0) return prunedCount > 0 ? "pruned" : "other";
   if (unreadDocumentCount > 0) return "scanned";
   if (excludedReadableCount > 0) return "filtered";
   const ARCHIVE = /\.(7z|rar|zip|tar\.gz|tgz|tar|gz|bz2|xz)$/i;

@@ -3,6 +3,8 @@ import {
   generateFileTree,
   generateProjectName,
   getLanguageFromPath,
+  isPrunedDirectory,
+  prunedAtWalk,
   shouldSkipPath,
 } from "../src/path-utils";
 
@@ -116,6 +118,37 @@ describe("shouldSkipPath", () => {
     expect(shouldSkipPath("src/third_party/zlib/inflate.c")).toBe(true);
     expect(shouldSkipPath("thirdparty/lib.js")).toBe(true);
     expect(shouldSkipPath("src/party.ts")).toBe(false);
+  });
+});
+
+describe("prunedAtWalk", () => {
+  it("drops what sits under a directory the defaults name", () => {
+    // The plain names in the list, read as directory names at any depth.
+    expect(prunedAtWalk("proj/node_modules/dep/index.js")).toBe(true);
+    expect(prunedAtWalk("proj/.git/HEAD")).toBe(true);
+    expect(prunedAtWalk("proj/pkg/__pycache__/mod.cpython-312.pyc")).toBe(true);
+    expect(prunedAtWalk("proj/dist/index.js")).toBe(true);
+    expect(prunedAtWalk("app/build/intermediates/res.xml")).toBe(true);
+    expect(prunedAtWalk("proj/src/index.ts")).toBe(false);
+    expect(isPrunedDirectory("vendor")).toBe(true);
+    expect(isPrunedDirectory("src")).toBe(false);
+  });
+
+  it("drops a file whose extension never holds text, and nothing else by name", () => {
+    expect(prunedAtWalk("assets/fonts/Inter.woff2")).toBe(true);
+    expect(prunedAtWalk("obj/Debug/app.o")).toBe(true);
+    expect(prunedAtWalk("lib/native.DLL")).toBe(true);
+    expect(prunedAtWalk("media/intro.mp4")).toBe(true);
+    // Images get the recognition offer, so they are read in.
+    expect(prunedAtWalk("assets/logo.png")).toBe(false);
+    // A glob or a file name in the defaults runs at filter time, where it can
+    // be turned back on: the walk leaves these in.
+    expect(prunedAtWalk("proj/package-lock.json")).toBe(false);
+    expect(prunedAtWalk("proj/src/api.test.ts")).toBe(false);
+    expect(prunedAtWalk("proj/server.log")).toBe(false);
+    // A file named like a pruned directory is a file, not a directory.
+    expect(prunedAtWalk("scripts/build")).toBe(false);
+    expect(prunedAtWalk(".gitignore")).toBe(false);
   });
 
   it("skips Godot sidecars but keeps scenes and resources", () => {

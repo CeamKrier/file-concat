@@ -86,10 +86,12 @@ describe("useFileIngestion", () => {
     expect(TALLIES.unreadable_ext).toBeUndefined();
   });
 
-  it("prunes node_modules and .git from a picked folder, as the drag walk already does", async () => {
+  it("prunes what the defaults name from a picked folder before a byte is read", async () => {
     // The picker hands over every file the browser enumerated, so the prune
     // has to happen on the list; before this it did not, and a picked project
-    // folder read all of node_modules before the filter rail hid it.
+    // folder read all of node_modules before the filter rail hid it. Since
+    // 2026-09-15 the prune is every directory the defaults name and every
+    // extension that never holds text, so a picked build tree costs nothing.
     const pick = (path: string, content: string): File => {
       const file = new File([content], path.split("/").pop()!);
       Object.defineProperty(file, "webkitRelativePath", { value: path });
@@ -99,6 +101,11 @@ describe("useFileIngestion", () => {
       pick("proj/src/index.ts", "export {};\n"),
       pick("proj/node_modules/dep/index.js", "module.exports = 1;\n"),
       pick("proj/.git/HEAD", "ref: refs/heads/main\n"),
+      pick("proj/dist/index.js", "console.log(1);\n"),
+      pick("proj/pkg/__pycache__/mod.cpython-312.pyc", "not read"),
+      pick("proj/assets/Inter.woff2", "not read"),
+      // Filter-time noise, still read in: the rail can turn it back on.
+      pick("proj/package-lock.json", "{}\n"),
     ];
     const target = { files, value: "" } as unknown as HTMLInputElement;
 
@@ -107,7 +114,7 @@ describe("useFileIngestion", () => {
       await result.current.handleFileInput({ target } as React.ChangeEvent<HTMLInputElement>);
     });
 
-    expect(result.current.entries.map((e) => e.path)).toEqual(["proj/src/index.ts"]);
+    expect(result.current.entries.map((e) => e.path)).toEqual(["proj/src/index.ts", "proj/package-lock.json"]);
   });
 
   it("reads a 97-2003 workbook and includes its sheets", async () => {

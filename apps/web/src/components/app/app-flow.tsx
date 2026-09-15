@@ -445,8 +445,9 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         recognition.unreadDocumentCount,
         adjustableCount,
         recognition.offerableImageCount,
+        ingestion.prunedCount,
       ),
-    [droppedFiles, recognition, adjustableCount],
+    [droppedFiles, recognition, adjustableCount, ingestion.prunedCount],
   );
 
   /**

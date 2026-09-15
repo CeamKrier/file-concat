@@ -44,14 +44,21 @@ const FAMILIES: ReadonlyArray<readonly [label: string, extensions: readonly stri
   ],
   [
     "Compiled code or library",
-    ["pyc", "pyo", "pyd", "o", "obj", "a", "lib", "so", "dll", "dylib", "exe", "pdb", "class", "jar", "dex", "apk", "wasm", "node", "rlib", "rmeta", "ilk", "exp", "res"],
+    ["pyc", "pyo", "pyd", "o", "obj", "a", "lib", "so", "dll", "dylib", "exe", "pdb", "class", "jar", "dex", "apk", "aab", "arsc", "flat", "wasm", "node", "rlib", "rmeta", "ilk", "exp", "res"],
   ],
   ["Database file", ["db", "sqlite", "sqlite3", "db-wal", "db-shm", "sqlite-wal", "sqlite-shm", "mdb", "accdb", "ldb"]],
   [
     "Data or model file",
-    ["npy", "npz", "pkl", "pickle", "parquet", "orc", "h5", "hdf5", "pt", "pth", "onnx", "safetensors", "ckpt", "gguf", "mat", "sav", "nc"],
+    ["bin", "dat", "npy", "npz", "pkl", "pickle", "parquet", "orc", "h5", "hdf5", "pt", "pth", "onnx", "safetensors", "ckpt", "gguf", "mat", "sav", "nc"],
   ],
 ];
+
+/**
+ * Every extension the families above name: a file that never holds text, so
+ * the web walk drops it before its first byte is read (`prunedAtWalk`). Images
+ * are deliberately not here, since a dropped image gets the recognition offer.
+ */
+export const NEVER_TEXT_EXTENSIONS: ReadonlySet<string> = new Set(FAMILIES.flatMap(([, extensions]) => extensions));
 
 /** Formats the office parser reads, for the "saved under a new name" remedy. */
 const OOXML_SAVE_AS: Readonly<Record<string, string>> = {
