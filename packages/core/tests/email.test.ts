@@ -98,6 +98,6 @@ describe("formatEmail", () => {
   });
 
   it("answers 'couldn't extract' for a message with nothing in it", async () => {
-    expect(formatEmail({ headers: [], headerLines: [], attachments: [] })).toEqual({ text: "" });
+    expect(formatEmail({ attachments: [] })).toEqual({ text: "" });
   });
 });

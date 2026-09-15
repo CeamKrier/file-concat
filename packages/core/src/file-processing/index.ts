@@ -10,6 +10,7 @@ export {
   extractOfficeDocument,
   extractSubtitles,
   formatEmail,
+  formatMsg,
   isPasswordProtected,
   replacePages,
 } from "./parsers";
@@ -17,6 +18,8 @@ export type {
   ExtractionNote,
   ExtractionNoteKind,
   ExtractionResult,
+  MessageFields,
+  MsgStreams,
   OcrOptions,
   OfficeParserOptions,
   ParserId,

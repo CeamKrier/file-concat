@@ -1,4 +1,4 @@
-import type { ExtractionResult } from "@fileconcat/core";
+import { formatMsg, type ExtractionResult } from "@fileconcat/core";
 import * as XLSX from "xlsx";
 
 /**
@@ -7,7 +7,8 @@ import * as XLSX from "xlsx";
  * all share that signature; only the stream directory inside says which, so
  * the router cannot tell them apart on a prefix and hands every one here.
  *
- * SheetJS reads the workbook ones (BIFF). For the rest this answers
+ * SheetJS reads the workbook ones (BIFF), and opens the container of an
+ * Outlook message for core's MAPI reader. For the rest this answers
  * `parser-unavailable`: the ingest loop then treats the file exactly as any
  * other it cannot read, and the ledger names it from the extension ("Word
  * 97-2003 document. Save it as .docx and it will be read.").
@@ -16,8 +17,26 @@ import * as XLSX from "xlsx";
  * lands in the SSR worker. The package is the maintained build from SheetJS's
  * own CDN, not npm's stale 0.18.5.
  */
+interface CfbContainer {
+  FullPaths: string[];
+  FileIndex: { content?: Uint8Array | number[] }[];
+}
+
 export function extractCfb(bytes: Uint8Array): ExtractionResult {
-  const container = XLSX.CFB.read(bytes, { type: "array" }) as { FullPaths: string[] };
+  const container = XLSX.CFB.read(bytes, { type: "array" }) as CfbContainer;
+  // Paths come back under the root storage's own name ("Root Entry/", or
+  // whatever the writer called it); the message reader wants them relative.
+  const rootless = (path: string) => path.slice(path.indexOf("/") + 1);
+  // A message keeps its fixed-size properties in one stream at the root; the
+  // same stream name inside a recipient or attachment storage is not the tell.
+  if (container.FullPaths.some((entry) => rootless(entry) === "__properties_version1.0")) {
+    const streams = new Map<string, Uint8Array>();
+    container.FullPaths.forEach((entry, index) => {
+      const content = container.FileIndex[index]?.content;
+      if (content && !entry.endsWith("/")) streams.set(rootless(entry), new Uint8Array(content));
+    });
+    return formatMsg(streams);
+  }
   // `Workbook` is BIFF8 (Excel 97-2003), `Book` is BIFF5 (Excel 5/95).
   if (!container.FullPaths.some((entry) => /(^|\/)(Workbook|Book)$/.test(entry))) {
     return { text: "", notes: [{ kind: "parser-unavailable" }] };

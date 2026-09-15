@@ -19,7 +19,47 @@ function wordContainer(): Uint8Array {
   return new Uint8Array(XLSX.CFB.write(container, { type: "array" }));
 }
 
+const utf16 = (s: string): Uint8Array => {
+  const out = new Uint8Array(s.length * 2);
+  for (let i = 0; i < s.length; i++) {
+    out[i * 2] = s.charCodeAt(i) & 0xff;
+    out[i * 2 + 1] = s.charCodeAt(i) >> 8;
+  }
+  return out;
+};
+
+/** An Outlook message: MAPI property streams in a compound file (MS-OXMSG). */
+function outlookMessage(): Uint8Array {
+  const container = XLSX.CFB.utils.cfb_new();
+  XLSX.CFB.utils.cfb_add(container, "/__properties_version1.0", new Uint8Array(32));
+  XLSX.CFB.utils.cfb_add(container, "/__substg1.0_0037001F", utf16("Quarterly numbers"));
+  XLSX.CFB.utils.cfb_add(container, "/__substg1.0_1000001F", utf16("Numbers are attached."));
+  XLSX.CFB.utils.cfb_add(container, "/__substg1.0_0C1A001F", utf16("Alice Example"));
+  XLSX.CFB.utils.cfb_add(container, "/__substg1.0_5D01001F", utf16("alice@example.com"));
+  XLSX.CFB.utils.cfb_add(container, "/__substg1.0_0E04001F", utf16("Bob"));
+  XLSX.CFB.utils.cfb_add(container, "/__attach_version1.0_#00000000/__properties_version1.0", new Uint8Array(8));
+  XLSX.CFB.utils.cfb_add(container, "/__attach_version1.0_#00000000/__substg1.0_3707001F", utf16("q3.pdf"));
+  return new Uint8Array(XLSX.CFB.write(container, { type: "array" }));
+}
+
 describe("extractCfb", () => {
+  it("reads an Outlook message as the correspondence it is", () => {
+    // Measured 2026-09-15 against ten real Outlook files as well (record in
+    // docs/measurements); this fixture pins the container-to-streams seam.
+    expect(extractCfb(outlookMessage())).toEqual({
+      text: [
+        "From: Alice Example <alice@example.com>",
+        "To: Bob",
+        "Subject: Quarterly numbers",
+        "",
+        "Numbers are attached.",
+        "",
+        "Attachments (1, not included): q3.pdf",
+      ].join("\n"),
+      notes: [{ kind: "attachments-skipped", count: 1 }],
+    });
+  });
+
   it("reads a 97-2003 workbook sheet by sheet, cells kept apart", () => {
     const { text, notes } = extractCfb(
       biff8({
