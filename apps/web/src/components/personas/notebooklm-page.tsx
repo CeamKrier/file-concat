@@ -136,17 +136,22 @@ function OneSource() {
 }
 
 /** NotebookLM-specific caps, deeper than the cross-platform hub table: the two
- * limits a large pile actually runs into, sources and per-source size. */
+ * limits a large pile actually runs into, sources and per-source size.
+ * Re-checked 2026-09-14 at the help center, which now calls the product
+ * Gemini Notebook: the plans table (support.google.com/gemininotebook/answer/
+ * 16213268) gives Standard 50, Plus 100, Pro 300, Ultra 500 or 600 sources per
+ * notebook, and the sources article (answer/16215270) 500,000 words or 200 MB
+ * per source. Move the date below only when these are checked again. */
 const CAPS = [
   {
     where: "Sources per notebook",
     caps: "How many sources you can add",
-    limit: "50 on free, 300 on paid",
+    limit: "50 free, 100 on Plus, 300 on Pro, 500 to 600 on Ultra",
   },
   {
     where: "Size per source",
     caps: "Words in a single source",
-    limit: "Up to about 500,000 words",
+    limit: "Up to 500,000 words, or 200 MB per upload",
   },
 ];
 
@@ -195,16 +200,17 @@ function WhereItStops() {
       </div>
 
       <p className="text-ink-faint mx-auto mt-4 max-w-[720px] text-[12.5px] leading-relaxed">
-        Figures as of August 2026, and Google changes them often. Check the current numbers in the{" "}
+        Figures as of September 2026, and Google changes them often. Check the current numbers in
+        the{" "}
         <a
-          href="https://support.google.com/notebooklm"
+          href="https://support.google.com/gemininotebook/answer/16213268"
           target="_blank"
           rel="noopener noreferrer"
           className="hover:text-ink-secondary underline decoration-[oklch(var(--border-strong))] underline-offset-2 transition-colors duration-150"
         >
-          NotebookLM help center
+          plans table at the help center
         </a>
-        . On ChatGPT, Claude, or Gemini instead? See{" "}
+        , which now calls the product Gemini Notebook. On ChatGPT, Claude, or Gemini instead? See{" "}
         <Link
           to="/how-to/share-all-files-with-ai"
           className="hover:text-ink-secondary underline decoration-[oklch(var(--border-strong))] underline-offset-2 transition-colors duration-150"

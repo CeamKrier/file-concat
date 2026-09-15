@@ -367,15 +367,21 @@ export function clippingPath(title: string, channel?: string): string {
  * never arrives. The first occurrence keeps the name and later ones take `-2`,
  * `-3`; the item id is no good as the suffix because an article's id is its
  * whole URL. The loop is there for the list that already contains a real `X-2`.
+ * The stem is split from the extension by the last dot, so a created `script.py`
+ * gets `script-2.py` and a name with no dot just gets the suffix.
  */
 export function uniquePaths(clippings: Clipping[]): Clipping[] {
   const taken = new Set<string>();
   return clippings.map((clipping) => {
     let path = clipping.path;
-    // Rebuilt from the stem rather than by substituting into the name: a path
-    // that does not end in `.md` would leave a `replace` unmatched, the string
-    // unchanged and this loop spinning forever inside the service worker.
-    for (let n = 2; taken.has(path); n++) path = `${clipping.path.replace(/\.md$/, "")}-${n}.md`;
+    // Split at the last dot after the last slash, so `A/script.py` suffixes
+    // the stem and a dotted folder is left alone; a name with no dot has an
+    // empty extension.
+    const dot = clipping.path.lastIndexOf(".");
+    const cut = dot > clipping.path.lastIndexOf("/") ? dot : clipping.path.length;
+    const stem = clipping.path.slice(0, cut);
+    const extension = clipping.path.slice(cut);
+    for (let n = 2; taken.has(path); n++) path = `${stem}-${n}${extension}`;
     taken.add(path);
     return path === clipping.path ? clipping : { ...clipping, path };
   });
@@ -421,4 +427,171 @@ const DENSE_SCRIPT = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf90
 export function estimateTokens(markdown: string): number {
   const dense = markdown.match(DENSE_SCRIPT)?.length ?? 0;
   return Math.ceil(dense / 1.5 + (markdown.length - dense) / 4);
+}
+
+// ---------- LLM conversations (ChatGPT, Claude) ----------
+//
+// One block list for every vendor, one renderer. A reader (chatgpt.ts,
+// claude.ts) walks the vendor's JSON into these; the file it becomes is the
+// same shape for both, so a reader that understands one understands the other.
+
+export type ChatBlock =
+  | { kind: "user"; text: string }
+  | { kind: "assistant"; text: string }
+  /** Thought summaries with optional bodies, plus free-text reasoning (a ChatGPT
+   *  preamble, or Claude's thinking text) rendered as a paragraph after them. */
+  | { kind: "reasoning"; entries: { summary: string; body: string }[]; preamble: string }
+  | { kind: "call"; tool: string; language: string; text: string }
+  | { kind: "output"; tool: string; text: string }
+  /** ChatGPT's "Worked for 1m 38s" line. */
+  | { kind: "recap"; text: string };
+
+export interface ChatClipping {
+  /** The page URL for this conversation: the frontmatter source and the banner image. */
+  source: string;
+  /** The name on the assistant turn marker: ChatGPT, Claude. */
+  assistant: string;
+  title: string;
+  /** Every model slug seen, the conversation's default first. */
+  models: string[];
+  /** First user message's timestamp as ISO; empty when the JSON has none. */
+  started: string;
+  /** Number of `user` blocks. */
+  turns: number;
+  /** The opt-in: reasoning and tool activity are in `blocks`. */
+  activity: boolean;
+  blocks: ChatBlock[];
+  /** Tool outputs the vendor redacted, counted only with the opt-in on. */
+  redacted: number;
+  /** Messages of a type this reader does not know, by type. Named at the end
+   *  of the file rather than dropped in silence (ADR-0004). */
+  skipped: Record<string, number>;
+  clippedOn: string;
+}
+
+/**
+ * A fence longer than any backtick run inside the body. A tool call that writes
+ * a Markdown file carries fences of its own, and three backticks around it
+ * would end the block at the first one.
+ */
+export function fence(text: string, language = ""): string {
+  const longest = Math.max(0, ...(text.match(/`+/g) ?? []).map((run) => run.length));
+  const ticks = "`".repeat(Math.max(3, longest + 1));
+  return `${ticks}${language}\n${text}\n${ticks}`;
+}
+
+/** A Markdown link whose title and url cannot break out of their brackets. */
+export function link(title: string, url: string): string {
+  return `[${title.replace(/[[\]]/g, "\\$&")}](${url.replace(/[()]/g, (c) => (c === "(" ? "%28" : "%29"))})`;
+}
+
+/**
+ * Adjacent assistant blocks become one, so the file shows one turn marker per
+ * answer once the activity between them is filtered out; adjacent reasoning
+ * blocks become one list. Everything else keeps its own block.
+ */
+export function mergeChatBlocks(blocks: ChatBlock[]): ChatBlock[] {
+  const merged: ChatBlock[] = [];
+  for (const block of blocks) {
+    const last = merged[merged.length - 1];
+    if (last?.kind === "assistant" && block.kind === "assistant") {
+      merged[merged.length - 1] = { kind: "assistant", text: `${last.text}\n\n${block.text}` };
+    } else if (last?.kind === "reasoning" && block.kind === "reasoning") {
+      merged[merged.length - 1] = {
+        kind: "reasoning",
+        entries: [...last.entries, ...block.entries],
+        preamble: [last.preamble, block.preamble].filter(Boolean).join("\n\n"),
+      };
+    } else {
+      merged.push(block);
+    }
+  }
+  return merged;
+}
+
+function renderReasoning(block: Extract<ChatBlock, { kind: "reasoning" }>): string {
+  const bullets = block.entries.map((entry) => {
+    const head = `- ${entry.summary}`;
+    if (!entry.body) return head;
+    // Every line of a body indented two spaces under its summary keeps a
+    // multi-line body inside the bullet.
+    return `${head}\n${entry.body.split("\n").map((line) => `  ${line}`).join("\n")}`;
+  });
+  const parts: string[] = [];
+  if (bullets.length) parts.push(bullets.join("\n"));
+  if (block.preamble) parts.push(block.preamble);
+  return parts.join("\n\n");
+}
+
+/**
+ * Turn markers are bold lines, never headings: assistant Markdown carries its
+ * own `#` headings and a `## User` would read as one of them. The assistant's
+ * marker is written once per answer, ahead of whatever activity precedes the
+ * text, and `---` separates turns.
+ */
+function renderChatBlocks(clip: ChatClipping): string {
+  const parts: string[] = [];
+  let markerDue = true;
+  for (const block of clip.blocks) {
+    if (block.kind === "user") {
+      if (parts.length) parts.push("---");
+      parts.push("**User**", block.text);
+      markerDue = true;
+      continue;
+    }
+    if (markerDue) {
+      parts.push(`**${clip.assistant}**`);
+      markerDue = false;
+    }
+    switch (block.kind) {
+      case "assistant":
+        parts.push(block.text);
+        break;
+      case "reasoning":
+        parts.push("_Reasoning_", renderReasoning(block));
+        break;
+      case "call":
+        parts.push(`_Call: ${block.tool}_`, fence(block.text, block.language));
+        break;
+      case "output":
+        parts.push(`_Output: ${block.tool}_`, fence(block.text));
+        break;
+      case "recap":
+        parts.push(`_${block.text}_`);
+        break;
+    }
+  }
+  return parts.join("\n\n");
+}
+
+export function renderChatClipping(clip: ChatClipping): string {
+  const firstUser = clip.blocks.find((block) => block.kind === "user");
+  const frontmatter = [
+    "---",
+    `title: ${yamlString(clip.title)}`,
+    `source: ${yamlString(clip.source)}`,
+    "author:",
+    `  - ${yamlString(`[[${clip.assistant}]]`)}`,
+    `published: ${clip.started ? isoDate(clip.started) : ""}`,
+    `created: ${clip.clippedOn}`,
+    `description: ${yamlString((firstUser?.text ?? "").slice(0, DESCRIPTION_PREVIEW_CHARS))}`,
+    "tags:",
+    '  - "clippings"',
+    "---",
+  ].join("\n");
+
+  const activity = clip.activity
+    ? `reasoning and tool activity included${clip.redacted ? `, ${clip.redacted} redacted tool outputs not shown` : ""}`
+    : "reasoning and tool activity left out";
+  const facts = `_${[clip.models.join(", "), `${clip.turns} turns`, activity].filter(Boolean).join(" - ")}_`;
+
+  const parts = [`${frontmatter}\n![](${clip.source})`, facts, renderChatBlocks(clip)];
+  const skipped = Object.entries(clip.skipped);
+  if (skipped.length) {
+    const named = skipped.map(([type, count], index) =>
+      index === 0 ? `${count} ${count === 1 ? "message" : "messages"} of type ${type}` : `${count} of type ${type}`,
+    );
+    parts.push(`_Not rendered: ${named.join(", ")}._`);
+  }
+  return parts.join("\n\n") + "\n";
 }

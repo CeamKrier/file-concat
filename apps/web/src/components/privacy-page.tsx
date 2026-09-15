@@ -71,8 +71,8 @@ const CLIPPER = [
     body: "A clipping that reaches the tool is treated exactly like a document you dropped, so everything above applies to it. That includes the session recording, which can show a clipping's file name and the on-screen preview of the combined output.",
   },
   {
-    title: "Three requests, each to the site you are already on.",
-    body: "Clipping a video asks YouTube for its transcript. Clipping a Reddit post from a listing asks Reddit for that post's page, the same way clicking through to it would. Clipping a Hacker News thread asks hn.algolia.com for its comments, because Hacker News blocks that request from its own page. None of the three go to us.",
+    title: "Requests go to the site you are already on, never to us.",
+    body: "Clipping a video asks YouTube for its transcript. Clipping a Reddit post from a listing asks Reddit for that post's page, the same way clicking through to it would. Clipping a Hacker News thread asks hn.algolia.com for its comments, because Hacker News blocks that request from its own page. Clipping a ChatGPT conversation asks chatgpt.com for it with the page's own session: one request on a share page, two on a signed-in page, the first for the session token, which is used once and not kept. Clipping a Claude conversation asks claude.ai the same way, one request. Clipping a Gemini conversation asks gemini.google.com the same way, one request per 100 turns, with the token the page itself sends. None of these go to us.",
   },
   {
     title: "It asks for access to all sites.",

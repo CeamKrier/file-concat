@@ -44,9 +44,15 @@ export const Route = createFileRoute("/for/chatgpt-projects")({
         // confident assertion with no way to age honestly. The caps live in the
         // table below the fold, next to their snapshot date and a link to the
         // help centre, and that is the only place on this page they belong.
+        //
+        // 2026-09-14: the description no longer opens on the counting question.
+        // Ninety days of per-query data split the page's named pool in two: the
+        // "how many sources" queries never click (the overview answers them),
+        // and every click came from "sources limit" queries, the searcher who
+        // has already hit the cap. The description now speaks to that person.
         title: "Get past the ChatGPT Projects source limit",
         description:
-          "How many sources a ChatGPT Project holds, and how to fit a whole folder into one slot. PDFs and Office docs included, read in your browser.",
+          "Hit the source limit in a ChatGPT Project? A whole folder, PDFs included, becomes one file that takes one slot. Read in your browser, nothing uploaded.",
         url: "https://fileconcat.com/for/chatgpt-projects",
       }),
       {

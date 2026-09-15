@@ -86,7 +86,9 @@ export function useClipperPush(onFiles: (files: IncomingFile[]) => void) {
       }
       latest.current(
         verdict.files.map(({ path, markdown }) => ({
-          file: new File([markdown], path.split("/").pop() ?? path, { type: "text/markdown" }),
+          file: new File([markdown], path.split("/").pop() ?? path, {
+            type: path.endsWith(".md") ? "text/markdown" : "text/plain",
+          }),
           path,
         })),
       );

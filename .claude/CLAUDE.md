@@ -50,6 +50,17 @@ That is why several web modules come in pairs — `tokens.ts` / `tokens-client.t
 
 `apps/web/scripts/check-worker-size.ts` runs as `postbuild` and watches this. It prunes SSR assets no server module references (Vite emits `?url` assets into the SSR output even when the importing module is dead code) and fails the build past a 1 MiB gzip budget. **The enforced Cloudflare limit is on the gzipped total, not the raw one** — the raw figure sits near 3 MiB and means nothing. The script's header comment is the authority; read it before changing the numbers.
 
+## Vendor caps are checked on every build
+
+`apps/web/src/data/vendor-caps.json` pins every third-party limit the site
+states (ChatGPT Project files per plan, Claude's context window, Gemini
+Notebook sources, ...) to the sentence on the vendor page it was read from.
+`prebuild` runs `apps/web/scripts/check-vendor-caps.ts`, which fetches each
+page and **fails the build when a quote is gone while the page's title is
+still there**; an unreachable page only warns. On a DRIFT line: read the page,
+fix the number in the files under `used_by`, then move the quote and the
+`checked` date in the JSON. The script never writes a number itself.
+
 ## Tooling conventions
 
 - Use `pnpm` for installs/scripts so the workspace protocol resolves.

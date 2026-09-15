@@ -426,7 +426,9 @@ export default defineBackground(() => {
         return true;
       case "fc:remove":
         void read()
-          .then((items) => write(items.filter((item) => item.id !== request.id)))
+          // A conversation's created files are `<id>#<n>` rows and go with it.
+          // Only there: an article's id is its URL, and `#` is a fragment.
+          .then((items) => write(items.filter((item) => item.id !== request.id && !(request.id.startsWith("chat/") && item.id.startsWith(`${request.id}#`)))))
           .then(done);
         return true;
       // The cart only. Sent is a record of what already left, and emptying the

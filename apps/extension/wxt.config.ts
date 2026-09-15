@@ -14,12 +14,15 @@ export default defineConfig({
   //
   // What this does *not* buy is a readable `article.js`: 110,931 of its
   // 124,292 unminified bytes are Readability and Turndown, ahead of our first
-  // line. The 81 KB that is ours — the four handlers, the worker, the panel —
+  // line. What is ours, the seven handlers, the worker and the panel,
   // is what a reviewer can now read as written.
   vite: () => ({ build: { minify: false } }),
   manifest: {
-    name: "FileConcat Clipper",
-    description: "Clip articles, YouTube transcripts and Reddit threads to Markdown and hand them to an open fileconcat.com tab.",
+    // The store's title and summary are these two fields and nothing on the
+    // dashboard can edit them, so the title carries the category words a
+    // searcher types and the summary the brands. 75 and 132 are the caps.
+    name: "FileConcat Clipper: threads, chats and transcripts to Markdown",
+    description: "Save ChatGPT, Claude and Gemini chats, Reddit and Hacker News threads, YouTube transcripts and articles as Markdown for your LLM.",
     permissions: ["storage", "unlimitedStorage", "sidePanel"],
     // The article handler is the catch-all, so the host list is the web. That
     // is the cost of "any article", and it is the feature rather than a side

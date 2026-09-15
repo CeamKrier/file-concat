@@ -9,38 +9,82 @@ Assets are in `assets/`. They are generated, not hand-drawn. Rebuild the
 extension, then run `node apps/extension/store/generate-assets.mjs` to
 reproduce all five from a real browser.
 
-Matches manifest version `0.2.0`.
+Matches manifest version `0.3.0`.
 
 The version lives in `apps/extension/package.json` and WXT copies it into the
 manifest. Bump it by hand, once per submission rather than once per change:
 Chrome only accepts an upload numbered above the published one, a number that
 never reaches the store means nothing to anyone, and a review takes days, so
 there is no release cadence to automate against. Update this line in the same
-commit. `0.1.0` is what is live; `0.2.0` is the batch built since.
+commit. `0.2.0` is what is live; `0.3.0` is the batch built since, ChatGPT, Claude and Gemini
+conversations included.
+
+## Dashboard edits for 0.3.0
+
+The package is `pnpm -C apps/extension zip`, which builds and writes
+`fileconcatextension-0.3.0-chrome.zip` into the build output folder (238 KB).
+Against the 0.2.0 listing, this is what changes and where each change is made.
+The title and the summary are the manifest's `name` and `description` and
+cannot be edited on the dashboard ("After uploading your item, you won't be
+able to edit the metadata of your manifest in the developer dashboard",
+developer.chrome.com/docs/webstore/prepare), so those two change by the upload
+itself. The other three are pasted from the fenced blocks below.
+
+| Field                         | Where                        | What changes                                                              |
+| ----------------------------- | ---------------------------- | ------------------------------------------------------------------------- |
+| Title                         | the package (`wxt.config.ts`) | `FileConcat Clipper: threads, chats and transcripts to Markdown`, 62 of 75 |
+| Summary                       | the package (`wxt.config.ts`) | chats first, 129 of 132                                                   |
+| Description                   | paste                        | the "ChatGPT, Claude and Gemini conversations, whole" paragraph; Substack and Medium dropped |
+| Single purpose                | paste                        | "seven ways of reading a page", the three conversation handlers named     |
+| Host permission justification | paste                        | last paragraph: the same-origin conversation requests on the three sites  |
+| Homepage URL                  | dashboard field              | still `https://fileconcat.com`; set it to `https://fileconcat.com/clipper` |
+
+Unchanged on purpose: the remote-code answer (still no), the data-usage boxes
+(only "Website content", see Privacy), the certifications, the privacy policy
+URL, the icon and the five screenshots. The store takes at most five
+screenshots ("up to 5 total"), so a conversation shot replaces one rather
+than joining them; the five that are live show the panel before the
+2026-08-22 redesign, and reshooting is its own session that does not hold
+this upload.
+
+One rule read for this submission, from the store's spam FAQ: "When listing
+supported websites or brands in the description, do not list more than
+five." The description names six, one per source the extension reads
+(Reddit, Hacker News, YouTube, ChatGPT, Claude, Gemini); the two that were
+examples rather than sources, Substack and Medium, are gone from the
+description and the host justification. Each brand appears at most twice,
+under the FAQ's "under 5 instances" line. If review objects to the sixth,
+the FAQ's own remedy is a link to the full list, which `/clipper` already is.
 
 ---
 
 ## Store listing
 
-**Item name** (75 max, 18 used)
+**Item name** (75 max, 62 used; the manifest `name`, shown read-only on the
+dashboard)
 
 ```
-FileConcat Clipper
+FileConcat Clipper: threads, chats and transcripts to Markdown
 ```
 
-**Summary** (132 max, 127 used)
+The store weighs the title in search, so it carries the three category words a
+searcher types rather than a list of brands; the brands are in the summary.
+The same string is what Chrome shows in the install dialog and on
+chrome://extensions. The toolbar tooltip stays `FileConcat Clipper`
+(`action.default_title`).
+
+**Summary** (132 max, 129 used; the manifest `description`, shown read-only on
+the dashboard)
 
 ```
-Clip Reddit and Hacker News threads, YouTube transcripts and any article to Markdown, straight into your fileconcat.com bundle.
+Save ChatGPT, Claude and Gemini chats, Reddit and Hacker News threads, YouTube transcripts and articles as Markdown for your LLM.
 ```
 
-Leads with threads on purpose. Page-to-Markdown is the commodity half of this
-and every bookmarklet does it. What nothing else on the page does is take a
-discussion with its nesting, scores and authors intact.
-
-The dashboard prefills this field from the manifest `description`, which is an
-older line in the other order. Overwrite it. Changing the manifest to match is
-optional and needs a rebuild.
+Leads with the conversations from 0.3.0 on. Until then it led with threads,
+because page-to-Markdown is the commodity half and a discussion with its
+nesting intact was the one thing nothing else did; a conversation the page
+only shows a window of is the same argument with more people searching for
+it. Neither order was measured, the store offers no search data.
 
 **Category**
 
@@ -76,6 +120,11 @@ Hacker News threads, whole. The entire comment tree in one request, however deep
 it runs. Measured on a 638-comment thread: 264,851 characters, nested eight
 levels down, none of which was on screen when you pressed the button.
 
+ChatGPT, Claude and Gemini conversations, whole. The page shows a window of the
+conversation; the extension reads it the way the site's own client does, one
+or two same-origin requests on the page's own session. Files a Claude or
+Gemini conversation wrote come along as files.
+
 Listings, one item at a time. A subreddit, a Hacker News front page, a YouTube
 channel or a search page lists what it has loaded, and one button scrolls the
 page for the rest so the whole listing is on offer. Tap a row to clip it, or
@@ -92,8 +141,8 @@ to four times the tokens.
 
 Any article. Everywhere else, if a page reads as an article, the panel offers to
 clip it. Mozilla's Readability picks the body and Turndown renders it, which
-covers Substack, Medium, documentation sites, news and blogs with no per-site
-code. Navigation, sidebars, cookie bars and footers are left behind.
+covers newsletters, documentation sites, news and blogs with no per-site code.
+Navigation, sidebars, cookie bars and footers are left behind.
 
 HOW IT WORKS
 
@@ -122,7 +171,7 @@ Nothing is read from a page until you ask for it. There is no background
 crawling, no page is touched because you happened to visit it, and no clipping
 is sent anywhere except the fileconcat.com tab you are looking at.
 
-There is no account, no sign-in, and no server of ours in the path. Clippings
+There is no account, no sign-in of ours, and no server of ours in the path. Clippings
 are held in your browser's own storage between the clip and the send.
 
 OPEN SOURCE
@@ -132,9 +181,10 @@ The extension and the site are both at github.com/CeamKrier/file-concat.
 
 **Store icon** — `assets/store-icon-128.png` (128x128 PNG)
 
-**Screenshots** — 1280x800 PNG, upload in this order. The order is the argument
-rather than a tour of the features: the store shows the first one largest, so it
-is a nested thread there and not the article a bookmarklet would also manage.
+**Screenshots**: 1280x800 PNG, at most five, upload in this order. The order
+is the argument rather than a tour of the features: the store shows the first
+one largest, so it is a nested thread there and not the article a bookmarklet
+would also manage.
 
 | File                                     | What it shows                                                                                    |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -207,18 +257,18 @@ page. **Changing it is a dashboard edit that has not been made yet.**
 FileConcat Clipper converts the web page the user is looking at into a Markdown
 file and delivers that file to an open fileconcat.com tab.
 
-Every feature serves that one purpose. The article, YouTube, Reddit and Hacker
-News handlers are four ways of reading a page into the same Markdown file. The
-side panel is where the user picks what to clip. The tray holds those files
-between the clip and the delivery. The send button performs the delivery. The
-extension has no other function and no other destination.
+Every feature serves that one purpose. The article, YouTube, Reddit, Hacker
+News, ChatGPT, Claude and Gemini handlers are seven ways of reading a page into the same
+Markdown file. The side panel is where the user picks what to clip. The tray
+holds those files between the clip and the delivery. The send button performs
+the delivery. The extension has no other function and no other destination.
 ```
 
 **Permission justifications**, one per permission the form lists:
 
 | Permission         | Justification to paste                                                                                                                                                                                                                                                                                                                                                                                 |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `storage`          | A clipping has to survive between the moment it is made and the moment the user sends it, and the extension's background worker can be shut down by Chrome at any point in between. The tray is therefore kept in `chrome.storage.local` rather than in memory. The same storage holds the user's two on/off preferences and the last status line shown in the panel. Nothing in it leaves the device. |
+| `storage`          | A clipping has to survive between the moment it is made and the moment the user sends it, and the extension's background worker can be shut down by Chrome at any point in between. The tray is therefore kept in `chrome.storage.local` rather than in memory. The same storage holds the user's per-site on/off preferences and the last status line shown in the panel. Nothing in it leaves the device. |
 | `unlimitedStorage` | Clippings are large. A single Hacker News thread measured 264,851 characters and a long article measured 39,509, and the tray holds up to 50 of them, which is well past the 5 MB the default quota allows. Without this permission a normal session of clipping fills the quota and the tray starts failing to save work the user has already done.                                                   |
 | `sidePanel`        | The entire user interface is a side panel. There is no popup and no options page. The panel is what lists what the current page offers, shows the tray, and carries the send button. A panel rather than a popup because clipping continues while the user keeps browsing, and a popup is dismissed the moment attention moves.                                                                        |
 
@@ -227,11 +277,11 @@ extension has no other function and no other destination.
 ```
 Two things require it.
 
-First, the extension can clip articles from any site using Mozilla Readability. That is why it works on Substack, Medium, docs, news sites, and blogs without site-specific code. Since the user may save any page, host access must cover the web. Page content is only read after the user presses the clip button.
+First, the extension can clip articles from any site using Mozilla Readability. That is why it works on newsletters, docs, news sites, and blogs without site-specific code. Since the user may save any page, host access must cover the web. Page content is only read after the user presses the clip button.
 
 Second, the side panel needs the active tab’s URL to show the current site and decide whether the page can be clipped. Chrome exposes tab.url only with either the tabs permission or host permission. We use host permissions instead of tabs because tabs would also expose the title and URL of every open tab, which we do not need.
 
-The background worker only makes outbound requests to hn.algolia.com for Hacker News comments, and that host is hard-coded in an allowlist. All other content is read only from the page the user is actively viewing.
+The background worker only makes outbound requests to hn.algolia.com for Hacker News comments, and that host is hard-coded in an allowlist. All other content is read only from the page the user is actively viewing. On chatgpt.com, claude.ai and gemini.google.com the content script makes same-origin requests for the conversation (one on Claude, one per 100 turns on Gemini, two on a signed-in ChatGPT page, the first for the page's own session token), and nothing is stored or sent elsewhere.
 ```
 
 **Are you using remote code?**
@@ -241,10 +291,11 @@ No, I am not using remote code.
 ```
 
 All executable code ships inside the package. There is no `eval`, no injected
-`<script>`, and no module fetched at runtime. The three network requests the
+`<script>`, and no module fetched at runtime. The network requests the
 extension makes return data, not code: YouTube's own innertube endpoint for a
-transcript, a Reddit post's own page for its full body, and hn.algolia.com for a
-comment tree.
+transcript, a Reddit post's own page for its full body, hn.algolia.com for a
+comment tree, and chatgpt.com's, claude.ai's and gemini.google.com's own
+conversation endpoints, same-origin from the page, for a conversation.
 
 **Data usage** — tick this one box:
 
@@ -260,7 +311,16 @@ same browser. "Website content" is ticked anyway because that destination is our
 own site and its analytics can record file names and the on-screen preview, so
 the content the user clipped is disclosed rather than argued about. "Web
 history" stays unticked because the tray records only the pages the user chose
-to clip, and it never leaves the device.
+to clip, and it never leaves the device. "Personal communications" stays
+unticked at the 0.3.0 submission. The form's own example for that box is
+"emails, texts, or chat messages", meaning messages between people; a
+ChatGPT, Claude or Gemini clip is the user's own exchange with a product,
+shown on a web page, read from that page on the user's request and handled
+exactly like any other clipped page. It is website content, and that box is
+ticked. Ticking the second box would put "Handles personal communications"
+on the listing's privacy tab for a thing the extension does not do. If a
+reviewer reads it the other way, tick it and resubmit; nothing in the code
+changes.
 
 **Certifications** — all three are true, tick all three:
 

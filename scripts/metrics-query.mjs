@@ -6,12 +6,12 @@
 // justifies nothing either, and "run the query by hand each time" reliably means
 // "never look".
 //
-// Zero dependencies: shells out to wrangler, which already holds the auth. The
-// --config flag is not optional — local and remote D1 state is keyed by the
-// config file path, so querying without it hits a different database.
+// Zero dependencies: `d1-snapshot.mjs` shells out to wrangler, which already
+// holds the auth, pulls the window once, and answers every statement here from
+// an in-memory copy. `--snapshot FILE` reuses a pull a reading already saved.
 //
 // Usage:
-//   node scripts/metrics-query.mjs [mode] [--days N] [--local]
+//   node scripts/metrics-query.mjs [mode] [--days N] [--local] [--snapshot FILE]
 //
 // Modes:
 //   overview    every section, briefly (default)
@@ -22,15 +22,9 @@
 //   ecosystems  which project types show up, from the marker list
 //   inventory   every counter in the window, and which have no reader here
 
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
-
-const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const WEB_DIR = join(REPO_ROOT, "apps", "web");
-const CONFIG = join(WEB_DIR, "wrangler.jsonc");
-const DB = "fileconcat-metrics";
+import { openEvents } from "./d1-snapshot.mjs";
 
 const args = process.argv.slice(2);
 const MODE = args.find((a) => !a.startsWith("-")) || "overview";
@@ -38,28 +32,16 @@ const LOCAL = args.includes("--local");
 const daysArg = args.indexOf("--days");
 const DAYS = daysArg !== -1 ? Number(args[daysArg + 1]) : 90;
 const SINCE = Math.floor(Date.now() / 1000) - DAYS * 86400;
+const snapshotArg = args.indexOf("--snapshot");
+const SNAPSHOT = snapshotArg !== -1 ? args[snapshotArg + 1] : null;
 
+// D1 is read once, by `d1-snapshot.mjs`; every mode below queries that copy.
+// A mode used to cost one remote round trip per statement, each one a scan of
+// the whole window, and D1 bills rows scanned.
+let db = null;
 function sql(query) {
-  const out = execFileSync(
-    "npx",
-    [
-      "wrangler",
-      "d1",
-      "execute",
-      DB,
-      LOCAL ? "--local" : "--remote",
-      "--config",
-      CONFIG,
-      "--json",
-      "--command",
-      query,
-    ],
-    { cwd: WEB_DIR, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
-  );
-  // wrangler prints a banner before the JSON payload on some versions.
-  const start = out.indexOf("[");
-  if (start === -1) throw new Error(`No JSON in wrangler output:\n${out}`);
-  return JSON.parse(out.slice(start))[0].results;
+  db ??= openEvents({ days: DAYS, local: LOCAL, file: SNAPSHOT });
+  return db.query(query);
 }
 
 const n = (v) => (v ?? 0).toLocaleString("en-US");
@@ -289,10 +271,8 @@ function inventory() {
 const MODES = { funnel, runs, formats, sizes, ecosystems, inventory };
 
 async function main() {
-  const scope = LOCAL ? "local" : "remote";
-  console.log(`fileconcat counters — ${scope}, last ${DAYS} days (since ts ${SINCE})`);
-
-  const total = sql(`SELECT COUNT(*) AS c FROM events WHERE ts >= ${SINCE};`)[0].c;
+  const total = sql(`SELECT COUNT(*) AS c FROM events WHERE ts >= ${SINCE}`)[0].c;
+  console.log(`fileconcat counters — ${db.meta.source}, last ${DAYS} days (since ts ${SINCE})`);
   console.log(`${n(total)} rows in window`);
   if (total === 0) {
     console.log("\nNothing recorded yet in this window.");

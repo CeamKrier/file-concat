@@ -136,7 +136,11 @@ function OneSlot() {
 }
 
 /** The one Gemini cap this page states, deeper than the cross-platform hub table:
- * the knowledge slots a Gem holds you to, carried next to its snapshot date. */
+ * the knowledge slots a Gem holds you to, carried next to its snapshot date.
+ * Re-checked 2026-09-14: no Gemini help-center page states a knowledge-file
+ * count (its "up to 10" lines are per-prompt uploads and ZIP contents); the
+ * only Google source is the Workspace announcement linked below, which is why
+ * the figure stays hedged. Move the date only when it is checked again. */
 const CAPS = [
   { where: "Gem knowledge files", caps: "Files a Gem can reference", limit: "About 10" },
 ];
@@ -185,16 +189,17 @@ function WhereItStops() {
       </div>
 
       <p className="text-ink-faint mx-auto mt-4 max-w-[720px] text-[12.5px] leading-relaxed">
-        Figure as of July 2026, and Google changes it often. Check the current number in the{" "}
+        Figure as of September 2026, from{" "}
         <a
-          href="https://support.google.com/gemini"
+          href="https://workspace.google.com/blog/product-announcements/new-gemini-gems-deeper-knowledge-and-business-context"
           target="_blank"
           rel="noopener noreferrer"
           className="hover:text-ink-secondary underline decoration-[oklch(var(--border-strong))] underline-offset-2 transition-colors duration-150"
         >
-          Gemini help center
+          Google's announcement of Gem knowledge files
         </a>
-        . On ChatGPT, Claude, or NotebookLM instead? See{" "}
+        . The Gemini help center states no count, so the Gem editor is where the current one shows.
+        On ChatGPT, Claude, or NotebookLM instead? See{" "}
         <Link
           to="/how-to/share-all-files-with-ai"
           className="hover:text-ink-secondary underline decoration-[oklch(var(--border-strong))] underline-offset-2 transition-colors duration-150"

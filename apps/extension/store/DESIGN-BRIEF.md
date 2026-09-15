@@ -1,7 +1,7 @@
 # Claude Design brief: FileConcat Clipper store art
 
 Paste this whole file into Claude Design. Seven artboards: five Chrome Web Store
-screenshots and two promo tiles.
+screenshots (the store takes no more than five) and two promo tiles.
 
 ## The product, in the terms the art has to carry
 
@@ -15,8 +15,9 @@ authors, scores and nesting intact. That difference is the only argument the
 art has to make. A panel that says "save pages as Markdown" describes a
 bookmarklet.
 
-Four sources: Reddit threads and listings, Hacker News threads, YouTube
-transcripts and playlists, any article via Readability.
+Seven sources: Reddit threads and listings, Hacker News threads, ChatGPT,
+Claude and Gemini conversations, YouTube transcripts and playlists, any
+article via Readability.
 
 Figures that are measured and safe to print:
 
@@ -51,7 +52,7 @@ What we are not taking:
 
 Every crop in these artboards is a real screenshot taken by
 `apps/extension/store/generate-assets.mjs` against live Reddit, Hacker News,
-YouTube and fileconcat.com. The design decides the field, the headline, the
+YouTube, Gemini and fileconcat.com. The design decides the field, the headline, the
 crop rectangle and where the crop sits. It does not redraw the panel, invent
 row text, restyle a button or improve a label.
 
@@ -131,7 +132,7 @@ same radial glow the site uses:
 Crops sit above it at `#16130f` with a `#4a4133` edge and a soft black shadow,
 so the separation comes from the product being the lighter thing in frame.
 
-Two of the five crops contain a white web page beside the panel, which lands on
+Some of the five crops contain a white web page beside the panel, which lands on
 this field with no help at all. That contrast is the composition, not a
 problem to soften.
 
@@ -152,14 +153,20 @@ that takes it.
   the region holding the comment tree and the panel's `Clip this post` button
   together. The panel column must be whole. The Reddit side can be cut.
 
-## S2: listings, 1280x800
+## S2: conversations, 1280x800
 
-- Headline across the top, centred, around 46px:
-  `Tick what you want. Each one is opened and read on its own.`
-  Set `opened and read on its own` in `#7acd8e`.
-- Crop below, centred, bleeding off the bottom edge:
-  `screenshot-2-reddit-listing.png`, the region holding the feed rows beside
-  the panel's checkbox list with four ticked and `Clip 4 posts` showing.
+- Headline, left, around 50px, two lines:
+  `The whole conversation,` in `#f1ebe0`, then `not the window on screen.` in
+  `#7acd8e`, with S1's indent echo.
+- One mono chip under it, JetBrains Mono 15px, `#b8b0a0`, on `#120f0a` with a
+  `#2c261d` border: `105 turns, 2 on screen, one file`. Measured on a Gemini
+  conversation on 2026-09-14 and already printed on fileconcat.com/clipper.
+- Crop, right, bleeding off the right edge: `screenshot-2-conversation.png`,
+  the region holding a Gemini conversation beside the panel's
+  `Clip this conversation` button and the echo line
+  `Include reasoning and tool activity: off for this site`. The panel column
+  must be whole. The conversation in the capture is one written for the shot,
+  never one of the author's own.
 
 ## S3: Hacker News, 1280x800
 
@@ -205,7 +212,7 @@ No crop. At this size a screenshot is texture, not information.
 2. Headline, Space Grotesk 700, around 32px, two lines, carrying S1's indent
    echo: `Whole threads,` in `#f1ebe0` then `not just the page` in `#7acd8e`.
 3. One line, Hanken Grotesk, 15px, `#b3a994`:
-   `Reddit, Hacker News, YouTube and any article, as Markdown.`
+   `Reddit, Hacker News, ChatGPT, Claude, Gemini, YouTube and any article.`
 
 One object and only one: the panel's green Send button as a filled pill reading
 `Send 9 files to FileConcat`, sitting low and clipped by the right edge so it
@@ -218,8 +225,9 @@ Split roughly 55/45, type left, crop right.
 1. Logo mark at 44px with `FileConcat Clipper` beside it.
 2. Headline, Space Grotesk 700, around 68px, same two lines and same echo as S1.
 3. Supporting paragraph, Hanken Grotesk 400, 20px, `#b3a994`, two lines max:
-   `Reddit and Hacker News discussions, YouTube transcripts and any article,
-   clipped to Markdown and sent to one fileconcat.com bundle.`
+   `Reddit and Hacker News discussions, ChatGPT, Claude and Gemini
+   conversations, YouTube transcripts and any article, clipped to Markdown
+   and sent to one fileconcat.com bundle.`
 4. `fileconcat.com` in JetBrains Mono 14px, `#6f675a`, bottom right.
 5. Crop, right, bleeding off the right and bottom edges: the side panel column
    from `screenshot-5-bundle.png`, showing tray rows across all four sources

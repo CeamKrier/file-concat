@@ -139,12 +139,17 @@ function Capacity() {
 }
 
 /** Claude-specific caps, deeper than the cross-platform hub table: what a project
- * is actually bounded by, so the reader sees why a file count never appears. */
+ * is actually bounded by, so the reader sees why a file count never appears.
+ * Re-checked at the Claude help center on 2026-09-14: the window is 200K
+ * outside the newest models and 500K or 1M with them on paid plans
+ * (support.claude.com/en/articles/8606394), paid plans switch to RAG mode
+ * "up to 10x" past it (articles/11473015), free accounts get five projects
+ * (articles/9517075). Move the date below only when these are checked again. */
 const CAPS = [
   {
     where: "Project knowledge",
     caps: "Total size, shared with the context window",
-    limit: "Around 200,000 tokens, not a file count",
+    limit: "The context window, not a file count; paid plans stretch it up to 10x with RAG mode",
   },
   {
     where: "Projects",
@@ -197,9 +202,10 @@ function WhereItStops() {
       </div>
 
       <p className="text-ink-faint mx-auto mt-4 max-w-[720px] text-[12.5px] leading-relaxed">
-        Figures as of July 2026, and Anthropic changes them often. Check the current numbers in the{" "}
+        Figures as of September 2026, and Anthropic changes them often. Check the current numbers in
+        the{" "}
         <a
-          href="https://support.anthropic.com"
+          href="https://support.claude.com/en/articles/9517075-what-are-projects"
           target="_blank"
           rel="noopener noreferrer"
           className="hover:text-ink-secondary underline decoration-[oklch(var(--border-strong))] underline-offset-2 transition-colors duration-150"

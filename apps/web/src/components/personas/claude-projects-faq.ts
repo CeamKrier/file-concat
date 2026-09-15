@@ -7,7 +7,7 @@
 export const CLAUDE_PROJECTS_FAQ = [
   {
     q: "How many files can I add to a Claude Project?",
-    a: "Claude does not cap a project by file count. Project knowledge shares Claude's context window, around 200,000 tokens, so what matters is the total size rather than the number of files. Combining everything into one file lets you see the token count up front and know it fits.",
+    a: "Claude does not cap a project by file count. Project knowledge shares Claude's context window, 200,000 tokens on most models and up to 1 million on paid plans with the newest ones, and paid plans switch to RAG mode as knowledge approaches that limit, stretching capacity up to 10x. So what matters is the total size rather than the number of files. Combining everything into one file lets you see the token count up front and know it fits.",
   },
   {
     q: "Why does Claude say my project knowledge is full?",

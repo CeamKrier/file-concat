@@ -91,7 +91,7 @@ const LIMITS = [
     limit: "5 free, 25 on Go and Plus, 40 on Pro and above",
     href: "/for/chatgpt-projects",
   },
-  { where: "ChatGPT uploads", caps: "Files in one upload", limit: "10 at a time" },
+  { where: "ChatGPT Project uploads", caps: "Files in one pass", limit: "10" },
   { where: "Custom GPTs", caps: "Knowledge files", limit: "20" },
   {
     where: "Claude Projects",
@@ -99,11 +99,11 @@ const LIMITS = [
     limit: "Capped by the context window, not a file count",
     href: "/for/claude-projects",
   },
-  { where: "Gemini Gems", caps: "Knowledge files", limit: "10", href: "/for/gemini-gems" },
+  { where: "Gemini Gems", caps: "Knowledge files", limit: "About 10", href: "/for/gemini-gems" },
   {
     where: "NotebookLM",
     caps: "Sources per notebook",
-    limit: "50 free, 300 on Pro",
+    limit: "50 free, 100 on Plus, 300 on Pro",
     href: "/for/notebooklm",
   },
 ];
@@ -163,11 +163,20 @@ function Limits() {
       </div>
 
       <p className="text-ink-faint mx-auto mt-4 max-w-[760px] text-[12.5px] leading-relaxed">
-        Figures as of August 2026, and providers change them often. Check the current cap in each
-        provider's help center: <SourceLink href="https://help.openai.com">OpenAI</SourceLink>
-        , <SourceLink href="https://support.anthropic.com">Anthropic</SourceLink>,{" "}
-        <SourceLink href="https://support.google.com/notebooklm">NotebookLM</SourceLink>,{" "}
-        <SourceLink href="https://support.google.com/gemini">Gemini</SourceLink>.
+        Figures as of September 2026, and providers change them often. Check the current cap in each
+        provider's help center:{" "}
+        <SourceLink href="https://help.openai.com/en/articles/10169521-using-projects-in-chatgpt">
+          OpenAI
+        </SourceLink>
+        ,{" "}
+        <SourceLink href="https://support.claude.com/en/articles/9517075-what-are-projects">
+          Anthropic
+        </SourceLink>
+        ,{" "}
+        <SourceLink href="https://support.google.com/gemininotebook/answer/16213268">
+          NotebookLM
+        </SourceLink>
+        , <SourceLink href="https://support.google.com/gemini">Gemini</SourceLink>.
       </p>
     </MarketingSection>
   );

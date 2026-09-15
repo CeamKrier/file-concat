@@ -2,11 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
   clippingPath,
   estimateTokens,
+  fence,
+  link,
+  mergeChatBlocks,
+  renderChatClipping,
   renderHnClipping,
   renderRedditClipping,
   renderYouTubeClipping,
   sanitizeFilename,
   uniquePaths,
+  type ChatBlock,
+  type ChatClipping,
   type Clipping,
 } from "../src/markdown";
 import { turndown } from "../src/article";
@@ -142,8 +148,13 @@ describe("uniquePaths", () => {
     expect(paths([at("X.md"), at("X.md"), at("X.md")])).toEqual(["X.md", "X-2.md", "X-3.md"]);
   });
 
-  it("terminates on a name the suffix rule cannot substitute into", () => {
-    expect(paths([at("X"), at("X")])).toEqual(["X", "X-2.md"]);
+  it("terminates on a name with no extension", () => {
+    expect(paths([at("X"), at("X")])).toEqual(["X", "X-2"]);
+  });
+
+  it("suffixes the stem, not the extension, and ignores a dot in the folder", () => {
+    expect(paths([at("A/script.py"), at("A/script.py")])).toEqual(["A/script.py", "A/script-2.py"]);
+    expect(paths([at("v1.0/notes"), at("v1.0/notes")])).toEqual(["v1.0/notes", "v1.0/notes-2"]);
   });
 });
 
@@ -309,5 +320,186 @@ describe("estimateTokens", () => {
     const mixed = `${"a".repeat(100)}${"日本語".repeat(10)}`;
     // 100 Latin at 1/4 plus 30 kana/kanji at 1/1.5.
     expect(estimateTokens(mixed)).toBe(45);
+  });
+});
+
+describe("fence", () => {
+  it("uses three backticks when the body has none", () => {
+    expect(fence("print(1)", "python")).toBe("```python\nprint(1)\n```");
+  });
+
+  it("outruns the longest backtick run inside the body", () => {
+    expect(fence("a\n```md\nb\n```")).toBe("````\na\n```md\nb\n```\n````");
+    expect(fence("x ````` y")).toBe("``````\nx ````` y\n``````");
+  });
+});
+
+describe("link", () => {
+  it("escapes brackets in the title and parens in the url", () => {
+    expect(link("A [b]", "https://x.example/a(b)")).toBe("[A \\[b\\]](https://x.example/a%28b%29)");
+  });
+});
+
+describe("mergeChatBlocks", () => {
+  it("joins adjacent assistant blocks and adjacent reasoning blocks, nothing else", () => {
+    const merged = mergeChatBlocks([
+      { kind: "user", text: "q" },
+      { kind: "reasoning", entries: [{ summary: "a", body: "" }], preamble: "" },
+      { kind: "reasoning", entries: [{ summary: "b", body: "x" }], preamble: "p" },
+      { kind: "assistant", text: "one" },
+      { kind: "assistant", text: "two" },
+      { kind: "call", tool: "python", language: "", text: "1" },
+      { kind: "call", tool: "python", language: "", text: "2" },
+    ] satisfies ChatBlock[]);
+    expect(merged).toEqual([
+      { kind: "user", text: "q" },
+      { kind: "reasoning", entries: [{ summary: "a", body: "" }, { summary: "b", body: "x" }], preamble: "p" },
+      { kind: "assistant", text: "one\n\ntwo" },
+      { kind: "call", tool: "python", language: "", text: "1" },
+      { kind: "call", tool: "python", language: "", text: "2" },
+    ]);
+  });
+});
+
+describe("renderChatClipping", () => {
+  const clip: ChatClipping = {
+    source: "https://chatgpt.com/share/abc",
+    assistant: "ChatGPT",
+    title: "Plan",
+    models: ["gpt-5", "gpt-5-mini"],
+    started: "2026-09-13T11:46:40.000Z",
+    turns: 2,
+    activity: true,
+    blocks: [
+      { kind: "user", text: "First question" },
+      {
+        kind: "reasoning",
+        entries: [
+          { summary: "Weighing options", body: "line one\nline two" },
+          { summary: "Done", body: "" },
+        ],
+        preamble: "I will check.",
+      },
+      { kind: "call", tool: "python", language: "python", text: "print(1)" },
+      { kind: "output", tool: "python", text: "1" },
+      { kind: "recap", text: "Worked for 3s" },
+      { kind: "assistant", text: "One." },
+      { kind: "user", text: "Second question" },
+    ],
+    redacted: 2,
+    skipped: { tether_browsing_display: 3, "assistant/foo": 1 },
+    clippedOn: "2026-09-14",
+  };
+
+  it("renders the frontmatter, the fact line, every block kind, turn separators and the skip line", () => {
+    expect(renderChatClipping(clip)).toBe(
+      [
+        "---",
+        'title: "Plan"',
+        'source: "https://chatgpt.com/share/abc"',
+        "author:",
+        '  - "[[ChatGPT]]"',
+        "published: 2026-09-13",
+        "created: 2026-09-14",
+        'description: "First question"',
+        "tags:",
+        '  - "clippings"',
+        "---",
+        "![](https://chatgpt.com/share/abc)",
+        "",
+        "_gpt-5, gpt-5-mini - 2 turns - reasoning and tool activity included, 2 redacted tool outputs not shown_",
+        "",
+        "**User**",
+        "",
+        "First question",
+        "",
+        "**ChatGPT**",
+        "",
+        "_Reasoning_",
+        "",
+        "- Weighing options",
+        "  line one",
+        "  line two",
+        "- Done",
+        "",
+        "I will check.",
+        "",
+        "_Call: python_",
+        "",
+        "```python",
+        "print(1)",
+        "```",
+        "",
+        "_Output: python_",
+        "",
+        "```",
+        "1",
+        "```",
+        "",
+        "_Worked for 3s_",
+        "",
+        "One.",
+        "",
+        "---",
+        "",
+        "**User**",
+        "",
+        "Second question",
+        "",
+        "_Not rendered: 3 messages of type tether_browsing_display, 1 of type assistant/foo._",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("says the activity was left out, names no redaction and writes no skip line when there is nothing to say", () => {
+    const off: ChatClipping = {
+      ...clip,
+      activity: false,
+      redacted: 0,
+      skipped: {},
+      blocks: [
+        { kind: "user", text: "First question" },
+        { kind: "assistant", text: "One." },
+      ],
+    };
+    const markdown = renderChatClipping(off);
+    expect(markdown).toContain("\n_gpt-5, gpt-5-mini - 2 turns - reasoning and tool activity left out_\n");
+    expect(markdown).not.toContain("Not rendered");
+    expect(markdown.endsWith("**ChatGPT**\n\nOne.\n")).toBe(true);
+  });
+
+  it("uses the assistant's own name on its marker and in the author", () => {
+    const markdown = renderChatClipping({ ...clip, assistant: "Claude", activity: false, redacted: 0, skipped: {} });
+    expect(markdown).toContain('  - "[[Claude]]"');
+    expect(markdown).toContain("\n**Claude**\n");
+    expect(markdown).not.toContain("ChatGPT");
+  });
+
+  it("leaves a user message that got no answer standing alone and a body with fences inside a longer fence", () => {
+    const markdown = renderChatClipping({
+      ...clip,
+      redacted: 0,
+      skipped: {},
+      blocks: [
+        { kind: "user", text: "q" },
+        { kind: "call", tool: "python", language: "", text: "open('a.md').write('```md\\n# T\\n```')" },
+        { kind: "user", text: "still there?" },
+      ],
+    });
+    expect(markdown).toContain("_Call: python_\n\n````\nopen('a.md')");
+    expect(markdown).toContain("\n---\n\n**User**\n\nstill there?\n");
+    // The fact line's third form: activity on, nothing redacted.
+    expect(markdown).toContain("- reasoning and tool activity included_\n");
+  });
+
+  it("dates from the first user message and takes the description from it, with an empty published when there is none", () => {
+    const markdown = renderChatClipping({ ...clip, started: "", redacted: 0, skipped: {} });
+    expect(markdown).toContain("\npublished: \n");
+  });
+
+  it("starts the facts line at the turn count when no model is named", () => {
+    const markdown = renderChatClipping({ ...clip, models: [], redacted: 0, skipped: {} });
+    expect(markdown).toContain("\n_2 turns - reasoning and tool activity included_\n");
   });
 });
