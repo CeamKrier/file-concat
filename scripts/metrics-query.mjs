@@ -132,10 +132,13 @@ function formats() {
     SELECT name, value, SUM(n) AS files, SUM(b) AS total_bytes,
            COUNT(DISTINCT page) AS visits
     FROM events
-    WHERE name IN ('unreadable_ext','extract_failed','archive_unsupported','read_failed')
+    WHERE name IN ('unreadable_ext','extract_failed','archive_unsupported','read_failed','pruned_ext','pruned_dir')
       AND ts >= ${SINCE}
     GROUP BY name, value ORDER BY visits DESC, files DESC;`);
   if (rows.length === 0) return console.log("  nothing failed to read in window");
+  // `pruned_dir` is one row per Run per name (n = 1, unit Runs), `pruned_ext`
+  // is files: both are what the door turned away unread since 2026-09-15,
+  // which is where the build-tree and font rows of `unreadable_ext` went.
   console.log("  counter".padEnd(22) + "value".padEnd(14) + "visits  files    bytes");
   for (const r of rows) {
     console.log(

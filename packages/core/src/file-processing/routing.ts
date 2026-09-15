@@ -107,6 +107,18 @@ const TEXTUAL_PARSERS: Readonly<Record<TextualFormat, ParserId>> = {
   eml: "email",
 };
 
+/**
+ * Every format name a route can carry into a parser, as the file-type or
+ * textual detector spells it. For a reading, not for routing: `cfb` is one
+ * entry here and covers xls, doc, msg and ppt alike, and the router never
+ * looks at an extension.
+ */
+export const EXTRACTED_FORMATS: ReadonlySet<string> = new Set([
+  ...Object.keys(DOCUMENT_PARSERS),
+  ...Object.keys(TEXTUAL_PARSERS),
+  ...Object.keys(ARCHIVE_KINDS),
+]);
+
 type Detector = (bytes: Uint8Array) => Promise<{ ext: string } | undefined>;
 
 let detector: Promise<Detector> | null = null;

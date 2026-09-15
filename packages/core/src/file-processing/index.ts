@@ -1,6 +1,6 @@
 export { BINARY_EXTENSIONS } from "./binary-extensions";
 export { RECOGNISABLE_IMAGE_FORMATS } from "./binary-signatures";
-export { routeBytes, routeFile, ROUTER_SNIFF_BYTES } from "./routing";
+export { routeBytes, routeFile, ROUTER_SNIFF_BYTES, EXTRACTED_FORMATS } from "./routing";
 export type { FileRoute } from "./routing";
 export { canExpandArchive, expandArchive, isTarHeader, stripArchiveSuffix } from "./archives";
 export type { ArchiveEntry, ArchiveKind } from "./archives";
@@ -35,7 +35,7 @@ export { addLineNumbers } from "./transform";
 export { assembleOutput, fenceFor } from "./output";
 export type { OutputStyle, OutputFile, OutputPart, AssembleOutputOptions } from "./output";
 export { summarizeExclusions } from "./exclusions";
-export { unreadableReason, unreadableReasonText, unreadableLabel } from "./unreadable-reason";
+export { unreadableReason, unreadableReasonText, unreadableLabel, NEVER_TEXT_EXTENSIONS } from "./unreadable-reason";
 export type { UnreadableReason } from "./unreadable-reason";
 export type { ExcludedSummary, ExclusionInput } from "./exclusions";
 export { classifyBundleKind } from "./bundle-kind";
