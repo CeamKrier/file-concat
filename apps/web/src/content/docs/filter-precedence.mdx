@@ -39,6 +39,11 @@ everything else was read into memory first and hidden by the pattern
 layer. A file that never reaches the bundle still cost a read and a
 classification, and the largest drops were mostly such files.
 
+The folder you drop is exempt: drop `dist` by itself and it is read,
+whatever it is called. Only what sits inside a drop is judged by name. A
+drop turned away whole says so on the empty screen and lists the names it
+refused.
+
 What this layer drops cannot be turned back on from the drawer, because
 it never entered memory. Every glob and every plain file name in the
 default list (`*.log`, `*.test.ts`, `package-lock.json`) runs at filter

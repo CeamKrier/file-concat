@@ -45,4 +45,13 @@ describe("collectFromDataTransfer", () => {
     expect(collected).toHaveLength(5);
     expect(seen).toEqual([1, 2, 3, 4, 5]);
   });
+
+  it("asks skipDir about what sits inside a drop, never about the folder dropped", async () => {
+    // Someone who drops `dist` itself chose it; the `dist` nested inside a
+    // project is the one nobody wants read.
+    const root = dirEntry("dist", [fileEntry("app.js"), dirEntry("dist", [fileEntry("inner.js")])]);
+    const { collected } = await collectFromDataTransfer(items(root), { skipDir: (name) => name === "dist" });
+
+    expect(collected.map((f) => f.path)).toEqual(["dist/app.js"]);
+  });
 });

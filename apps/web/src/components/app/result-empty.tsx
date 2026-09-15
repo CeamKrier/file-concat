@@ -12,10 +12,13 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import type { EmptyKind } from "./empty-kind";
+import type { PrunedAtDoor } from "~/hooks/use-file-ingestion";
 
 type ResultEmptyProps = {
   droppedFiles: string[];
   kind?: EmptyKind;
+  /** What the door turned away unread; the chips for the `pruned` variant. */
+  pruned?: PrunedAtDoor | null;
   onStartOver: () => void;
   /** Open the settings drawer. Only passed when something is there to re-include. */
   onAdjust?: () => void;
@@ -100,12 +103,13 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
     body: "These files are readable. Every one of them matched an ignore pattern, a .gitignore rule, or the hidden and oversize defaults, so there was nothing to pack.",
     cta: "Adjust what's included",
   },
-  // Turned away at the door, unread. Not a rescue: the same folder will be
-  // turned away again, so the way out is a different drop.
+  // Turned away at the door, unread. The chips underneath name what was
+  // refused, and the one way back in is the door's own rule: a folder dropped
+  // by itself is read whatever it is called.
   pruned: {
     icon: FolderX,
     title: "Nothing here gets read",
-    body: "Everything in this drop is a folder FileConcat never opens (dependencies, build output, caches) or a kind of file that never holds text (fonts, media, compiled code). Drop the folder that holds your files instead.",
+    body: "Everything in this drop sits in a folder FileConcat never opens (dependencies, build output, caches) or is a kind of file that never holds text (fonts, media, compiled code). To read one of these folders anyway, drop it by itself.",
     cta: "Start over",
   },
   other: {
@@ -136,6 +140,19 @@ const MAX_EXT_CHIPS = 16;
 // worth surfacing when nothing combined — "lots of .heic → maybe worth
 // supporting" — and it reads at a glance without putting anyone's actual
 // filenames on screen. Sorted by frequency, ties broken alphabetically.
+/**
+ * The same chip row for what the door refused: folders first, as `dist/`,
+ * then extensions by count. These are names from the default list and
+ * extensions, never a path of anyone's, like the histogram beside it.
+ */
+function prunedChips(pruned: PrunedAtDoor): { ext: string; count: number }[] {
+  const dirs = pruned.dirs.map((name) => ({ ext: `${name}/`, count: 1 }));
+  const exts = [...pruned.exts.entries()]
+    .map(([ext, { n }]) => ({ ext: ext === "none" ? "no extension" : `.${ext}`, count: n }))
+    .sort((a, b) => b.count - a.count || a.ext.localeCompare(b.ext));
+  return [...dirs, ...exts];
+}
+
 function extensionHistogram(files: string[]): { ext: string; count: number }[] {
   const counts = new Map<string, number>();
   for (const name of files) {
@@ -155,6 +172,7 @@ function extensionHistogram(files: string[]): { ext: string; count: number }[] {
 export function ResultEmpty({
   droppedFiles,
   kind = "image",
+  pruned = null,
   onStartOver,
   onAdjust,
   byInclude = false,
@@ -192,7 +210,7 @@ export function ResultEmpty({
       : kind === "recognisable"
         ? startOver
         : adjust;
-  const extensions = extensionHistogram(droppedFiles);
+  const extensions = kind === "pruned" && pruned ? prunedChips(pruned) : extensionHistogram(droppedFiles);
   const shownExts = extensions.slice(0, MAX_EXT_CHIPS);
   const extraExts = extensions.length - shownExts.length;
 

@@ -115,6 +115,32 @@ describe("useFileIngestion", () => {
     });
 
     expect(result.current.entries.map((e) => e.path)).toEqual(["proj/src/index.ts", "proj/package-lock.json"]);
+    // What the door turned away, by name, for the screen and the counters.
+    expect(result.current.pruned).toEqual({
+      dirs: ["node_modules", ".git", "dist", "__pycache__"],
+      exts: new Map([["woff2", { n: 1 }]]),
+      count: 5,
+    });
+    expect(TALLIES.pruned_ext).toEqual(["woff2"]);
+  });
+
+  it("reads a picked folder whose own name is on the list: the root is what someone chose", async () => {
+    const pick = (path: string, content: string): File => {
+      const file = new File([content], path.split("/").pop()!);
+      Object.defineProperty(file, "webkitRelativePath", { value: path });
+      return file;
+    };
+    const files = [pick("dist/index.js", "console.log(1);\n"), pick("dist/vendor/lib.js", "x\n")];
+    const target = { files, value: "" } as unknown as HTMLInputElement;
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.handleFileInput({ target } as React.ChangeEvent<HTMLInputElement>);
+    });
+
+    // `dist` itself was dropped, so it is read; the `vendor` inside it is not.
+    expect(result.current.entries.map((e) => e.path)).toEqual(["dist/index.js"]);
+    expect(result.current.pruned).toEqual({ dirs: ["vendor"], exts: new Map(), count: 1 });
   });
 
   it("reads a 97-2003 workbook and includes its sheets", async () => {

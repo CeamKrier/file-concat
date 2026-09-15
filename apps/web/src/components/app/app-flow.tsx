@@ -445,9 +445,9 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         recognition.unreadDocumentCount,
         adjustableCount,
         recognition.offerableImageCount,
-        ingestion.prunedCount,
+        ingestion.pruned?.count ?? 0,
       ),
-    [droppedFiles, recognition, adjustableCount, ingestion.prunedCount],
+    [droppedFiles, recognition, adjustableCount, ingestion.pruned],
   );
 
   /**
@@ -826,6 +826,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
             <ResultEmpty
               droppedFiles={droppedFiles}
               kind={emptyKind}
+              pruned={ingestion.pruned}
               onStartOver={startOver}
               onAdjust={adjustableCount > 0 ? () => openSettings("empty") : undefined}
               byInclude={excludedByInclude}

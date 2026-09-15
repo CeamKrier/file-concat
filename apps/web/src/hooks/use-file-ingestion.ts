@@ -38,6 +38,60 @@ function extensionOf(path: string): string {
 /** Extensionless files are a real category, and the empty string is not a valid counter value. */
 const NO_EXTENSION = "none";
 
+/**
+ * What the walk-time prune turned away at the door, never read
+ * (`prunedAtWalk`): a directory the defaults name, or a file whose extension
+ * never holds text.
+ */
+export interface PrunedAtDoor {
+  /** Directory names from the defaults the walk refused, each once. */
+  dirs: string[];
+  /** Files refused for their extension, `n` per extension. */
+  exts: Tally;
+  /** Entries refused: files, plus one per directory the walk never entered. */
+  count: number;
+}
+
+/**
+ * Run the door prune over a list and say what it turned away. The dropped
+ * root is exempt: someone who drops `dist` or `vendor` by itself chose it,
+ * and only what sits inside a drop is judged by name. `refusedDirs` is what
+ * the drag walk already declined to enter, one entry per directory.
+ */
+function pruneAtDoor(
+  list: IncomingFile[],
+  refusedDirs: readonly string[] = [],
+): { kept: IncomingFile[]; pruned: PrunedAtDoor } {
+  const kept: IncomingFile[] = [];
+  const dirs = new Set(refusedDirs);
+  const exts: Tally = new Map();
+  for (const item of list) {
+    const path = item.path || item.file.name;
+    const inside = path.slice(path.indexOf("/") + 1);
+    if (!prunedAtWalk(inside)) {
+      kept.push(item);
+      continue;
+    }
+    const dir = inside.split("/").slice(0, -1).find(isPrunedDirectory);
+    if (dir) dirs.add(dir);
+    else addToTally(exts, extensionOf(inside) || NO_EXTENSION);
+  }
+  return {
+    kept,
+    pruned: { dirs: [...dirs], exts, count: list.length - kept.length + refusedDirs.length },
+  };
+}
+
+/** `a` plus `b`, for an append's record on top of the drop it landed on. */
+function mergeTallies(a: Tally, b: Tally): Tally {
+  const out: Tally = new Map(a);
+  for (const [key, amounts] of b) {
+    const existing = out.get(key);
+    out.set(key, existing ? { n: existing.n + amounts.n } : { ...amounts });
+  }
+  return out;
+}
+
 const MB = 1024 * 1024;
 /**
  * Cumulative on purpose: a 40 MB file counts in all three. These are the reading
@@ -242,12 +296,11 @@ export interface FileIngestion {
   validations: Record<string, ValidationRecord>;
   failedFiles: FailedFile[];
   /**
-   * Files and folders the walk-time prune turned away at the door, never read:
-   * a directory the defaults name, or a file whose extension never holds text.
-   * Only its sign is used, to tell "you dropped nothing readable" from "you
-   * dropped nothing".
+   * What the door turned away unread, so the screen can name it: the one
+   * thing that separates "you dropped nothing readable" from "you dropped
+   * nothing". Null until a drop has been through a door.
    */
-  prunedCount: number;
+  pruned: PrunedAtDoor | null;
   /**
    * Every document in this Run that opened with no text in it, recovered or
    * not. Kept whole so a re-read in another language can go back over the ones
@@ -343,7 +396,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   const [entries, setEntries] = useState<ContentEntry[]>([]);
   const [validations, setValidations] = useState<Record<string, ValidationRecord>>({});
   const [failedFiles, setFailedFiles] = useState<FailedFile[]>([]);
-  const [prunedCount, setPrunedCount] = useState(0);
+  const [pruned, setPruned] = useState<PrunedAtDoor | null>(null);
   const [scannedDocuments, setScannedDocuments] = useState<ScannedDocument[]>([]);
   const [unreadDocuments, setUnreadDocuments] = useState<ScannedDocument[]>([]);
   const [isReading, setIsReading] = useState(false);
@@ -622,12 +675,28 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // that walks one. Reported here rather than where it happened so it lands
       // inside the Run, next to the file count that makes it mean something.
       scanMs = 0,
+      // What the door turned away, from the two doors that prune. Same
+      // reason: written inside the Run, beside the counters for what got in.
+      prunedAtDoor: PrunedAtDoor | null = null,
     ) => {
       const append = options?.append;
       const startedAt = performance.now();
       // Everything recorded below belongs to this Run (ADR-0014): one drop and
       // everything that follows it until the next drop replaces it.
       startRun();
+      setPruned((prev) =>
+        append && prev && prunedAtDoor
+          ? {
+              dirs: [...new Set([...prev.dirs, ...prunedAtDoor.dirs])],
+              exts: mergeTallies(prev.exts, prunedAtDoor.exts),
+              count: prev.count + prunedAtDoor.count,
+            }
+          : (prunedAtDoor ?? (append ? prev : null)),
+      );
+      if (prunedAtDoor) {
+        for (const dir of prunedAtDoor.dirs) track("pruned_dir", dir);
+        trackTally("pruned_ext", prunedAtDoor.exts);
+      }
 
       // One pass decides every file's route from its own leading bytes and
       // unpacks the archives among them (ADR-0011), so nothing below sniffs a
@@ -1066,16 +1135,13 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setIsProcessing(true);
       tagSource("drop");
       try {
-        // The browser has already enumerated everything, so the prune (see
-        // `prunedAtWalk`) runs on the list; the drag walk applies it while
-        // walking. Not user-editable: what it drops never reaches the filter
-        // rail.
-        const incoming: IncomingFile[] = Array.from(selected)
-          .map((file) => ({ file, path: file.webkitRelativePath || file.name }))
-          .filter(({ path }) => !prunedAtWalk(path));
-        const pruned = selected.length - incoming.length;
-        setPrunedCount((n) => (options?.append ? n + pruned : pruned));
-        await ingestBatch(incoming, options);
+        // The browser has already enumerated everything, so the prune runs on
+        // the list; the drag walk applies it while walking. Not user-editable:
+        // what it drops never reaches the filter rail.
+        const { kept, pruned } = pruneAtDoor(
+          Array.from(selected).map((file) => ({ file, path: file.webkitRelativePath || file.name })),
+        );
+        await ingestBatch(kept, options, BATCH_STAGES, 0, pruned);
       } catch (error) {
         console.error("Error processing files:", error);
       } finally {
@@ -1126,13 +1192,14 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       tagSource("drop");
 
       const walkStartedAt = performance.now();
-      // A pruned directory is never enumerated, so it counts as one.
-      let pruned = 0;
+      // Directories the walk declined to enter, one entry each: never
+      // enumerated, so the only count there is of them.
+      const refusedDirs: string[] = [];
       try {
         const { collected, failed } = await collectFromDataTransfer(e.dataTransfer.items, {
           skipDir: (name) => {
             const skip = isPrunedDirectory(name);
-            if (skip) pruned++;
+            if (skip) refusedDirs.push(name);
             return skip;
           },
           // The walk has no total to count towards, so it reports what it has
@@ -1148,13 +1215,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
               });
           },
         });
-        const incoming: IncomingFile[] = collected
-          .filter(({ path }) => !prunedAtWalk(path))
-          .map(({ file, path }) => ({ file, path }));
-        pruned += collected.length - incoming.length;
-        setPrunedCount((n) => (options?.append ? n + pruned : pruned));
+        const { kept: incoming, pruned } = pruneAtDoor(collected, refusedDirs);
         setProcessingStatus(`Processing ${incoming.length} files...`);
-        await ingestBatch(incoming, options, DROP_STAGES, performance.now() - walkStartedAt);
+        await ingestBatch(incoming, options, DROP_STAGES, performance.now() - walkStartedAt, pruned);
         if (failed.length > 0) setFailedFiles((prev) => [...prev, ...failed]);
       } catch (error) {
         console.error("Error processing files:", error);
@@ -1240,7 +1303,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     setEntries([]);
     setValidations({});
     setFailedFiles([]);
-    setPrunedCount(0);
+    setPruned(null);
     setScannedDocuments([]);
     setUnreadDocuments([]);
     // Abandons a pass still in flight; its own `finally` clears the rest.
@@ -1265,7 +1328,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     entries,
     validations,
     failedFiles,
-    prunedCount,
+    pruned,
     unreadDocuments,
     isReading,
     readProgress,
