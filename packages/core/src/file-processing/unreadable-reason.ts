@@ -83,7 +83,10 @@ export function unreadableReason(path: string, route?: FileRoute): UnreadableRea
     return { label: `${route.archive} archive the browser can't open`, remedy: ARCHIVE_REMEDY };
   }
 
-  if (route?.kind === "binary" && route.format === "cfb") {
+  // The compound-file reader opened it and found no workbook inside (or the
+  // build carries no such reader). The directory would say what it is; the
+  // extension is the cheap proxy and has been right on every one counted.
+  if (route?.kind === "extract" && route.format === "cfb") {
     switch (ext) {
       case "xls":
       case "xlt":

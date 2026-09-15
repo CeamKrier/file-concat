@@ -210,14 +210,13 @@ function Ledger() {
  * one extension per pill: a reader recognises a spreadsheet icon faster than
  * "ods", and seven chips wrap where sixteen pills did not.
  *
- * Only what `routing.ts` maps to a loader this build carries. The 97-2003
- * trio (doc, xls, ppt) sat here for a day with no reader behind any: they are
- * compound files nothing here opens. A chip is a promise, and the ledger now
- * says which promise a drop of an .xls would have broken.
+ * Only what `routing.ts` maps to a loader this build carries. doc and ppt
+ * sat here for a day with no reader behind them: compound files nothing here
+ * opens. A chip is a promise, and the ledger says what would keep it.
  */
 const FORMATS: { icon: LucideIcon; kind: string; ext: string[] }[] = [
   { icon: FileText, kind: "documents", ext: ["pdf", "docx", "odt", "rtf"] },
-  { icon: FileSpreadsheet, kind: "spreadsheets", ext: ["xlsx", "ods"] },
+  { icon: FileSpreadsheet, kind: "spreadsheets", ext: ["xls", "xlsx", "ods"] },
   { icon: Presentation, kind: "slides", ext: ["pptx", "odp"] },
   { icon: BookOpen, kind: "ebooks", ext: ["epub"] },
   { icon: Mail, kind: "email", ext: ["eml"] },

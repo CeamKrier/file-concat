@@ -68,6 +68,12 @@ const DOCUMENT_PARSERS: Readonly<Record<string, ParserId>> = {
   odp: "office",
   rtf: "office",
   epub: "epub",
+  // The OLE2 compound file behind Excel/Word/PowerPoint 97-2003, Outlook
+  // `.msg` and every password-protected OOXML document. The signature is the
+  // same for all of them and only the stream directory inside says which, so
+  // the reader decides: it reads a workbook, and answers parser-unavailable
+  // for the rest, which the ledger then names from the extension.
+  cfb: "cfb",
 };
 
 /**

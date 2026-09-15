@@ -693,6 +693,12 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         // of classifying the container's raw bytes (ADR-0003). Which parser to
         // load came from the bytes, not the filename, so a renamed `.docx` and
         // an extensionless PDF both land here.
+        // A reader that opened the container and found nothing it reads (a Word
+        // 97-2003 file inside the compound format the workbook reader owns), or
+        // a build with no reader at all. Not a failed extraction: a file this
+        // build cannot read, which takes the same path as every other one so
+        // the ledger names it and `unreadable_ext` still counts its extension.
+        let unreadableHere = false;
         if (route.kind === "extract") {
           const size = entry.file.size;
           const type = entry.file.type || "application/octet-stream";
@@ -736,10 +742,11 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                 extracted: true,
                 ...(kinds?.length ? { notes: kinds } : {}),
               };
+            } else if (kinds?.includes("parser-unavailable")) {
+              unreadableHere = true;
             } else {
-              // No recoverable text (scanned image-only or encrypted PDF, or
-              // a format this build ships no reader for) — surfaced as
-              // excluded, never silently dropped.
+              // No recoverable text (a scanned image-only or encrypted PDF):
+              // surfaced as excluded, never silently dropped.
               addToTally(extractFailed, route.format, size);
               // Keep the handle: this is the shape recognition can sometimes
               // read, and re-reading needs the bytes we are about to drop. Only
@@ -783,8 +790,10 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
               type,
             };
           }
-          tickProgress();
-          continue;
+          if (!unreadableHere) {
+            tickProgress();
+            continue;
+          }
         }
 
         const result = await validateFile(entry.file, config);

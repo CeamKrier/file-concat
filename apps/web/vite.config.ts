@@ -64,8 +64,10 @@ export default defineConfig({
     // officeparser + its bundled pdf.js are heavy and client-only (loaded
     // lazily via lib/extract-document → extract-document-client). Excluding
     // them from dev pre-bundling keeps them out of the eager graph, same as
-    // tiktoken; the SSR guard keeps them out of the Cloudflare worker.
-    exclude: ["@dqbd/tiktoken", "officeparser", "pdfjs-dist"],
+    // tiktoken; the SSR guard keeps them out of the Cloudflare worker. xlsx
+    // (SheetJS, the 97-2003 workbook reader) is the same shape behind
+    // lib/extract-cfb-client.
+    exclude: ["@dqbd/tiktoken", "officeparser", "pdfjs-dist", "xlsx"],
   },
   build: {
     // Disable sourcemaps in production for smaller bundle size

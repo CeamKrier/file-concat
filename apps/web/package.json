@@ -57,7 +57,8 @@
     "tailwindcss-animate": "^1.0.7",
     "tesseract.js": "7.0.0",
     "vite-plugin-top-level-await": "^1.6.0",
-    "vite-plugin-wasm": "^3.5.0"
+    "vite-plugin-wasm": "^3.5.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.22.0",

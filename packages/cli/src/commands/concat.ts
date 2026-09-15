@@ -239,8 +239,14 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
     // agree on which formats qualify and how the text is pulled.
     if (extract && route.kind === "extract") {
       try {
-        const { text } = await parsers.extract(route.parserId, readAll(source), route.format);
+        const { text, notes } = await parsers.extract(route.parserId, readAll(source), route.format);
         if (!text) {
+          // A container this build carries no reader for (a 97-2003 Word file,
+          // an Outlook message) is a binary skip, not a parse that failed.
+          if (notes?.some((note) => note.kind === "parser-unavailable")) {
+            skipped.binary.push(file);
+            continue;
+          }
           log.warn(`Skipped (no extractable text): ${file}`);
           skipped.parseFailed.push(file);
           continue;

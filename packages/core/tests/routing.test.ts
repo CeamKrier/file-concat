@@ -34,12 +34,14 @@ describe("routeBytes", () => {
     });
   });
 
-  it("names the 97-2003 Office container as binary without loading a parser", async () => {
+  it("routes the 97-2003 Office container to the compound-file reader", async () => {
     // Excel/Word/PowerPoint 97-2003, Outlook .msg and a password-protected
-    // OOXML file all start with the OLE2 signature. Nothing reads them, but
-    // naming the container is what lets the ledger say which one it was.
+    // OOXML file all start with the OLE2 signature, and only the directory
+    // inside says which. The reader opens it; a build without one, or a
+    // container holding something the reader does not read, answers
+    // parser-unavailable and the ledger names the file from there.
     const cfb = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, ...Array(64).fill(0)]);
-    expect(await routeBytes(cfb)).toEqual({ kind: "binary", format: "cfb" });
+    expect(await routeBytes(cfb)).toEqual({ kind: "extract", parserId: "cfb", format: "cfb" });
   });
 
   it("routes OpenDocument to the office parser", async () => {

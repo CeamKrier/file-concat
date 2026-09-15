@@ -30,6 +30,11 @@ export const parsers: ParserRegistry = createParserRegistry({
   // The same library reads an epub (its zip of XHTML chapters walks the OPF
   // spine), so the id costs no second download.
   epub: office,
+  cfb: async (bytes) => {
+    if (import.meta.env.SSR) return { text: "" };
+    const mod = await import("./extract-cfb-client");
+    return mod.extractCfb(bytes);
+  },
   email: async (bytes) => {
     if (import.meta.env.SSR) return { text: "" };
     const mod = await import("./extract-email-client");

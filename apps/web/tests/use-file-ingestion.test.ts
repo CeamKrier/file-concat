@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { strToU8, zipSync } from "fflate";
+import * as XLSX from "xlsx";
 import { DEFAULT_CONFIG } from "@fileconcat/core";
 import { useFileIngestion } from "~/hooks/use-file-ingestion";
 
@@ -85,11 +86,18 @@ describe("useFileIngestion", () => {
     expect(TALLIES.unreadable_ext).toBeUndefined();
   });
 
-  it("says what a 97-2003 workbook is and how to get it read, instead of calling it binary", async () => {
-    // The OLE2 signature every legacy Office file and Outlook message starts
-    // with. Nothing here reads it; the reason is the whole product.
-    const cfb = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, ...Array(512).fill(0)]);
-    const file = new File([cfb], "Part-B-BUDGETS.xls");
+  it("reads a 97-2003 workbook and includes its sheets", async () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ["Line", "Amount"],
+        ["Travel", 1200],
+      ]),
+      "Budget",
+    );
+    const xls = new Uint8Array(XLSX.write(workbook, { bookType: "xls", type: "array" }));
+    const file = new File([xls], "Part-B-BUDGETS.xls");
 
     const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
     await act(async () => {
@@ -97,10 +105,35 @@ describe("useFileIngestion", () => {
     });
 
     const v = result.current.validations["forms/Part-B-BUDGETS.xls"];
+    expect(v.included).toBe(true);
+    expect(v.extracted).toBe(true);
+    const entry = result.current.entries.find((e) => e.path === "forms/Part-B-BUDGETS.xls");
+    expect(entry?.content).toContain("# Sheet: Budget");
+    expect(entry?.content).toMatch(/Travel\D+1200/);
+    // It left the demand counter: this is a format that reads now.
+    expect(TALLIES.unreadable_ext).toBeUndefined();
+  });
+
+  it("says what a 97-2003 Word file is and how to get it read, instead of calling it binary", async () => {
+    // The same signature as the workbook above, a different directory inside.
+    // The reader declines it, and the file takes the unreadable path under its
+    // own extension, so the counter that decides which reader comes next
+    // still sees it.
+    const container = XLSX.CFB.utils.cfb_new();
+    XLSX.CFB.utils.cfb_add(container, "/WordDocument", new Uint8Array(64));
+    const doc = new Uint8Array(XLSX.CFB.write(container, { type: "array" }));
+    const file = new File([doc], "memo.doc");
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([{ file, path: "memo.doc" }]);
+    });
+
+    const v = result.current.validations["memo.doc"];
     expect(v.included).toBe(false);
     expect(v.classification).toBe("binary");
-    expect(v.reason).toBe("Excel 97-2003 workbook. Save it as .xlsx and it will be read.");
-    // The demand counter is unchanged by the wording.
-    expect(TALLIES.unreadable_ext).toEqual(["xls"]);
+    expect(v.reason).toBe("Word 97-2003 document. Save it as .docx and it will be read.");
+    expect(TALLIES.unreadable_ext).toEqual(["doc"]);
+    expect(TALLIES.extract_failed).toBeUndefined();
   });
 });

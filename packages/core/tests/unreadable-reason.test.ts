@@ -5,7 +5,7 @@ import {
   unreadableReasonText,
 } from "../src/file-processing/unreadable-reason";
 
-const cfb = { kind: "binary", format: "cfb" } as const;
+const cfb = { kind: "extract", parserId: "cfb", format: "cfb" } as const;
 
 describe("unreadableReason", () => {
   it("names a 97-2003 Office file by what it is and says what would make it readable", () => {
