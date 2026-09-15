@@ -1,5 +1,4 @@
 import {
-  BookOpen,
   Captions,
   FileSpreadsheet,
   FileText,
@@ -208,13 +207,18 @@ function Ledger() {
 /**
  * The formats the tab reads, grouped by what the file is rather than listed
  * one extension per pill: a reader recognises a spreadsheet icon faster than
- * "ods", and seven chips wrap where sixteen pills did not.
+ * "ods", and six chips wrap where sixteen pills did not.
+ *
+ * Only what `routing.ts` maps to a loader this build carries. The 97-2003
+ * trio (doc, xls, ppt) and epub sat here for a day and none of them is read:
+ * the first three are compound files nothing here opens, epub is routed with
+ * no loader. A chip is a promise, and the ledger now says which promise a
+ * drop of an .xls would have broken.
  */
 const FORMATS: { icon: LucideIcon; kind: string; ext: string[] }[] = [
-  { icon: FileText, kind: "documents", ext: ["pdf", "doc", "docx", "odt", "rtf"] },
-  { icon: FileSpreadsheet, kind: "spreadsheets", ext: ["xls", "xlsx", "ods"] },
-  { icon: Presentation, kind: "slides", ext: ["ppt", "pptx", "odp"] },
-  { icon: BookOpen, kind: "ebooks", ext: ["epub"] },
+  { icon: FileText, kind: "documents", ext: ["pdf", "docx", "odt", "rtf"] },
+  { icon: FileSpreadsheet, kind: "spreadsheets", ext: ["xlsx", "ods"] },
+  { icon: Presentation, kind: "slides", ext: ["pptx", "odp"] },
   { icon: Mail, kind: "email", ext: ["eml"] },
   { icon: NotebookPen, kind: "notebooks", ext: ["ipynb"] },
   { icon: Captions, kind: "subtitles", ext: ["vtt", "srt"] },
