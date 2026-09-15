@@ -121,7 +121,9 @@ export const METRIC_EVENTS = [
    * folders went. A name that leads here in Runs is the one to ask about:
    * either the defaults are right and the number is the time they saved, or
    * people keep dropping a folder they wanted read (the dropped root itself
-   * is exempt, so this counts only what sat inside a drop).
+   * is exempt, so this counts only what sat inside a drop). Since 2026-09-15
+   * the contents of an opened archive meet the same door, with the archive
+   * standing as the root, so a build zip's node_modules lands here too.
    */
   "pruned_dir",
   /**

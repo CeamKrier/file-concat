@@ -1,6 +1,7 @@
 import type { ArchiveKind, FileRoute, TextClassification } from "@fileconcat/core";
 
 import type { IncomingFile } from "~/hooks/use-file-ingestion";
+import type { PrunedAtDoor } from "~/lib/prune-at-door";
 
 /** An incoming file with its route already decided, so nothing is sniffed twice. */
 export interface RoutedFile {
@@ -28,6 +29,12 @@ export interface PreparedBatch {
   expandedCount: number;
   /** Kinds of archive this build can't open (rar, 7z), one entry per archive found. */
   unsupported: ArchiveKind[];
+  /**
+   * What the door turned away inside the archives it opened, or null when
+   * nothing was. The archive stands as the dropped root: its own name is
+   * exempt, its contents are judged like the files beside it.
+   */
+  pruned: PrunedAtDoor | null;
 }
 
 /**
@@ -42,7 +49,7 @@ export async function prepareBatch(
   incoming: IncomingFile[],
   onProgress?: PrepareProgress,
 ): Promise<PreparedBatch> {
-  if (import.meta.env.SSR) return { files: [], expandedCount: 0, unsupported: [] };
+  if (import.meta.env.SSR) return { files: [], expandedCount: 0, unsupported: [], pruned: null };
   const mod = await import("./prepare-batch-client");
   return mod.prepareBatch(incoming, onProgress);
 }

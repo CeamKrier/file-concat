@@ -44,6 +44,13 @@ whatever it is called. Only what sits inside a drop is judged by name. A
 drop turned away whole says so on the empty screen and lists the names it
 refused.
 
+An archive in the drop is opened and its contents meet the same door, with
+the archive standing as their root: `build.zip` is opened whatever it is
+called, and the `fonts/` and `node_modules/` inside it are turned away
+like the ones beside it. Until 2026-09-15 an archive's contents skipped
+this layer, so a zipped build tree was read in full while the unzipped
+one next to it was not.
+
 What this layer drops cannot be turned back on from the drawer, because
 it never entered memory. Every glob and every plain file name in the
 default list (`*.log`, `*.test.ts`, `package-lock.json`) runs at filter

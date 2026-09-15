@@ -12,7 +12,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import type { EmptyKind } from "./empty-kind";
-import type { PrunedAtDoor } from "~/hooks/use-file-ingestion";
+import type { PrunedAtDoor } from "~/lib/prune-at-door";
 
 type ResultEmptyProps = {
   droppedFiles: string[];

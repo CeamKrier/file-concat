@@ -11,6 +11,7 @@ import {
 
 import type { IncomingFile } from "~/hooks/use-file-ingestion";
 import type { PreparedBatch, PrepareProgress, RoutedFile } from "./prepare-batch";
+import { mergePruned, pruneAtDoor, type PrunedAtDoor } from "./prune-at-door";
 
 /**
  * Client-only batch preparation. Reached solely through the dynamic import in
@@ -21,7 +22,9 @@ import type { PreparedBatch, PrepareProgress, RoutedFile } from "./prepare-batch
  * module dead code there.
  *
  * Archives are opened here and their entries flow through the same pipeline as
- * loose files, each routed on its own bytes. Nesting is one level deep: a zip
+ * loose files, each routed on its own bytes, after the same door prune the
+ * drop itself went through: a build zip's fonts and node_modules are turned
+ * away unread, as they would be beside it. Nesting is one level deep: a zip
  * inside a zip stays packed, exactly as before.
  */
 export async function prepareBatch(
@@ -31,6 +34,7 @@ export async function prepareBatch(
   const files: RoutedFile[] = [];
   const unsupported: ArchiveKind[] = [];
   let expandedCount = 0;
+  let pruned: PrunedAtDoor | null = null;
   // Routing reads the leading bytes of every file, one round-trip each, which
   // on a few thousand files is long enough that the screen has to say so.
   // Cap re-renders at ~100 ticks regardless of how large the drop is.
@@ -96,14 +100,20 @@ export async function prepareBatch(
       }
 
       expandedCount++;
-      for (const entry of entries) {
-        const name = entry.path.split("/").pop() || entry.path;
+      const unpacked = entries.map((entry) => ({
+        file: new File([entry.bytes], entry.path.split("/").pop() || entry.path),
+        path: entry.path,
+        bytes: entry.bytes,
+      }));
+      const door = pruneAtDoor(unpacked);
+      if (door.pruned.count > 0) pruned = mergePruned(pruned, door.pruned);
+      for (const { bytes: entryBytes, ...entryItem } of door.kept) {
         files.push({
-          item: { file: new File([entry.bytes], name), path: entry.path },
-          path: entry.path,
+          item: entryItem,
+          path: entryItem.path,
           // Routed from the bytes we already hold rather than re-reading the
           // synthetic File we just built.
-          ...(await sniff(entry.bytes.subarray(0, ROUTER_SNIFF_BYTES))),
+          ...(await sniff(entryBytes.subarray(0, ROUTER_SNIFF_BYTES))),
         });
       }
     } catch {
@@ -111,7 +121,7 @@ export async function prepareBatch(
     }
   }
 
-  return { files, expandedCount, unsupported };
+  return { files, expandedCount, unsupported, pruned };
 }
 
 /**

@@ -143,6 +143,45 @@ describe("useFileIngestion", () => {
     expect(result.current.pruned).toEqual({ dirs: ["vendor"], exts: new Map(), count: 1 });
   });
 
+  it("adds what an archive's contents lost at the door to the drop's own record", async () => {
+    const pick = (path: string, content: BlobPart): File => {
+      const file = new File([content], path.split("/").pop()!);
+      Object.defineProperty(file, "webkitRelativePath", { value: path });
+      return file;
+    };
+    const zip = zipSync({
+      "app.js": strToU8("console.log(1);\n"),
+      "fonts/Inter.woff2": strToU8("wOF2"),
+      "vendor/lib.js": strToU8("x\n"),
+    });
+    const files = [
+      pick("out/src/index.ts", "export {};\n"),
+      pick("out/media/clip.mp4", "not read"),
+      pick("out/build.zip", zip),
+    ];
+    const target = { files, value: "" } as unknown as HTMLInputElement;
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.handleFileInput({ target } as React.ChangeEvent<HTMLInputElement>);
+    });
+
+    expect(result.current.entries.map((e) => e.path).sort()).toEqual([
+      "build/app.js",
+      "out/src/index.ts",
+    ]);
+    // One record: the door's mp4 and the archive's font and vendor folder.
+    expect(result.current.pruned).toEqual({
+      dirs: ["vendor"],
+      exts: new Map([
+        ["mp4", { n: 1 }],
+        ["woff2", { n: 1 }],
+      ]),
+      count: 3,
+    });
+    expect(TALLIES.pruned_ext).toEqual(["mp4", "woff2"]);
+  });
+
   it("reads a 97-2003 workbook and includes its sheets", async () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(

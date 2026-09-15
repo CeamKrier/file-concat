@@ -84,6 +84,33 @@ describe("prepareBatch", () => {
     ]);
   });
 
+  it("turns away inside an archive what the door turns away beside it", async () => {
+    // A zipped build tree used to be read in full while the unzipped one next
+    // to it was pruned: the door ran on the drop, never on what the archives
+    // in it held. The archive stands as the root now, so its own name is
+    // exempt and its contents are judged like loose files.
+    const zip = zipSync({
+      "src/index.ts": strToU8("export {};\n"),
+      "fonts/Inter.woff2": strToU8("wOF2"),
+      "node_modules/dep/index.js": strToU8("module.exports = 1;\n"),
+      "icon/16.png": strToU8("png"),
+    });
+    const { files, expandedCount, pruned } = await prepareBatch([
+      { file: new File([zip], "dist.zip"), path: "dist.zip" },
+    ]);
+
+    expect(expandedCount).toBe(1);
+    // `dist` is the archive's own name and reads; the image is offered, not pruned.
+    expect(files.map((f) => f.path).sort()).toEqual(["dist/icon/16.png", "dist/src/index.ts"]);
+    expect(pruned).toEqual({ dirs: ["node_modules"], exts: new Map([["woff2", { n: 1 }]]), count: 2 });
+  });
+
+  it("reports no prune for an archive that holds nothing on the list", async () => {
+    const zip = zipSync({ "notes.md": strToU8("# Notes\n") });
+    const { pruned } = await prepareBatch([{ file: new File([zip], "notes.zip"), path: "notes.zip" }]);
+    expect(pruned).toBeNull();
+  });
+
   it("reports progress as it routes", async () => {
     const seen: [number, number][] = [];
     await prepareBatch(

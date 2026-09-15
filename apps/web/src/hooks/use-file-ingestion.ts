@@ -10,7 +10,6 @@ import {
   defaultSourceRegistry,
   isPasswordProtected,
   isPrunedDirectory,
-  prunedAtWalk,
   readFileAsText,
   RECOGNISABLE_IMAGE_FORMATS,
   replacePages,
@@ -27,70 +26,7 @@ import { readPdfPagesWithOcr, readWithOcr, recogniseImageWithOcr } from "~/lib/o
 import { browserOcrLanguage, ocrLanguageFor, type OcrLanguage } from "~/lib/ocr-language";
 import { parsers } from "~/lib/parsers";
 import { prepareBatch } from "~/lib/prepare-batch";
-
-/** Final extension, lowercased — the only thing a counter ever carries from a path. */
-function extensionOf(path: string): string {
-  const name = path.split("/").pop() ?? path;
-  const dot = name.lastIndexOf(".");
-  return dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
-}
-
-/** Extensionless files are a real category, and the empty string is not a valid counter value. */
-const NO_EXTENSION = "none";
-
-/**
- * What the walk-time prune turned away at the door, never read
- * (`prunedAtWalk`): a directory the defaults name, or a file whose extension
- * never holds text.
- */
-export interface PrunedAtDoor {
-  /** Directory names from the defaults the walk refused, each once. */
-  dirs: string[];
-  /** Files refused for their extension, `n` per extension. */
-  exts: Tally;
-  /** Entries refused: files, plus one per directory the walk never entered. */
-  count: number;
-}
-
-/**
- * Run the door prune over a list and say what it turned away. The dropped
- * root is exempt: someone who drops `dist` or `vendor` by itself chose it,
- * and only what sits inside a drop is judged by name. `refusedDirs` is what
- * the drag walk already declined to enter, one entry per directory.
- */
-function pruneAtDoor(
-  list: IncomingFile[],
-  refusedDirs: readonly string[] = [],
-): { kept: IncomingFile[]; pruned: PrunedAtDoor } {
-  const kept: IncomingFile[] = [];
-  const dirs = new Set(refusedDirs);
-  const exts: Tally = new Map();
-  for (const item of list) {
-    const path = item.path || item.file.name;
-    const inside = path.slice(path.indexOf("/") + 1);
-    if (!prunedAtWalk(inside)) {
-      kept.push(item);
-      continue;
-    }
-    const dir = inside.split("/").slice(0, -1).find(isPrunedDirectory);
-    if (dir) dirs.add(dir);
-    else addToTally(exts, extensionOf(inside) || NO_EXTENSION);
-  }
-  return {
-    kept,
-    pruned: { dirs: [...dirs], exts, count: list.length - kept.length + refusedDirs.length },
-  };
-}
-
-/** `a` plus `b`, for an append's record on top of the drop it landed on. */
-function mergeTallies(a: Tally, b: Tally): Tally {
-  const out: Tally = new Map(a);
-  for (const [key, amounts] of b) {
-    const existing = out.get(key);
-    out.set(key, existing ? { n: existing.n + amounts.n } : { ...amounts });
-  }
-  return out;
-}
+import { extensionOf, mergePruned, NO_EXTENSION, pruneAtDoor, type PrunedAtDoor } from "~/lib/prune-at-door";
 
 const MB = 1024 * 1024;
 /**
@@ -684,31 +620,25 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // Everything recorded below belongs to this Run (ADR-0014): one drop and
       // everything that follows it until the next drop replaces it.
       startRun();
-      setPruned((prev) =>
-        append && prev && prunedAtDoor
-          ? {
-              dirs: [...new Set([...prev.dirs, ...prunedAtDoor.dirs])],
-              exts: mergeTallies(prev.exts, prunedAtDoor.exts),
-              count: prev.count + prunedAtDoor.count,
-            }
-          : (prunedAtDoor ?? (append ? prev : null)),
-      );
-      if (prunedAtDoor) {
-        for (const dir of prunedAtDoor.dirs) track("pruned_dir", dir);
-        trackTally("pruned_ext", prunedAtDoor.exts);
-      }
 
       // One pass decides every file's route from its own leading bytes and
       // unpacks the archives among them (ADR-0011), so nothing below sniffs a
-      // file twice.
+      // file twice. The archives' contents meet the same door as the drop.
       const {
         files: routed,
         expandedCount,
         unsupported,
+        pruned: prunedInArchives,
       } = await prepareBatch(incoming, (done, total) =>
         setProgress({ phase: "reading", done, total, note: STAGE.prepare, stages }),
       );
       setExpandedArchive((prev) => (append ? prev || expandedCount > 0 : expandedCount > 0));
+      const prunedNow = mergePruned(prunedAtDoor, prunedInArchives);
+      setPruned((prev) => (append ? mergePruned(prev, prunedNow) : prunedNow));
+      if (prunedNow) {
+        for (const dir of prunedNow.dirs) track("pruned_dir", dir);
+        trackTally("pruned_ext", prunedNow.exts);
+      }
 
       const nextEntries: ContentEntry[] = [];
       const nextValidations: Record<string, ValidationRecord> = {};
