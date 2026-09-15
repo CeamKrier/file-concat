@@ -21,8 +21,11 @@ export default defineConfig({
     // The store's title and summary are these two fields and nothing on the
     // dashboard can edit them, so the title carries the category words a
     // searcher types and the summary the brands. 75 and 132 are the caps.
+    // At most five brands: 0.3.0 named six here and was rejected 2026-09-15
+    // ("Yellow Argon", keyword spam), see store/LISTING.md. Hacker News is
+    // the one left unnamed; it stays in the third screenshot.
     name: "FileConcat Clipper: threads, chats and transcripts to Markdown",
-    description: "Save ChatGPT, Claude and Gemini chats, Reddit and Hacker News threads, YouTube transcripts and articles as Markdown for your LLM.",
+    description: "Save ChatGPT, Claude and Gemini chats, Reddit threads, YouTube transcripts and any article as Markdown for your LLM.",
     permissions: ["storage", "unlimitedStorage", "sidePanel"],
     // The article handler is the catch-all, so the host list is the web. That
     // is the cost of "any article", and it is the feature rather than a side
