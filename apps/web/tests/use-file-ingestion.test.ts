@@ -86,6 +86,30 @@ describe("useFileIngestion", () => {
     expect(TALLIES.unreadable_ext).toBeUndefined();
   });
 
+  it("prunes node_modules and .git from a picked folder, as the drag walk already does", async () => {
+    // The picker hands over every file the browser enumerated, so the prune
+    // has to happen on the list; before this it did not, and a picked project
+    // folder read all of node_modules before the filter rail hid it.
+    const pick = (path: string, content: string): File => {
+      const file = new File([content], path.split("/").pop()!);
+      Object.defineProperty(file, "webkitRelativePath", { value: path });
+      return file;
+    };
+    const files = [
+      pick("proj/src/index.ts", "export {};\n"),
+      pick("proj/node_modules/dep/index.js", "module.exports = 1;\n"),
+      pick("proj/.git/HEAD", "ref: refs/heads/main\n"),
+    ];
+    const target = { files, value: "" } as unknown as HTMLInputElement;
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.handleFileInput({ target } as React.ChangeEvent<HTMLInputElement>);
+    });
+
+    expect(result.current.entries.map((e) => e.path)).toEqual(["proj/src/index.ts"]);
+  });
+
   it("reads a 97-2003 workbook and includes its sheets", async () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(

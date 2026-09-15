@@ -52,7 +52,10 @@ type SizeThreshold = (typeof SIZE_THRESHOLDS)[number][0];
 // Directories that never make it into memory. These are not user-editable;
 // dropping their contents into a browser tab would crash the page long before
 // any pattern could filter them. Everything else honors the live filter rail.
+// The drag walk skips them before reading; the folder picker cannot, since
+// the browser has already enumerated everything, so it drops them by path.
 const HARDCODED_PRUNE_DIRS = new Set([".git", "node_modules"]);
+const underPrunedDir = (path: string): boolean => path.split("/").some((segment) => HARDCODED_PRUNE_DIRS.has(segment));
 
 /**
  * Every stage a run can pass through. The label is also the note its stage
@@ -1061,10 +1064,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setIsProcessing(true);
       tagSource("drop");
       try {
-        const incoming: IncomingFile[] = Array.from(selected).map((file) => ({
-          file,
-          path: file.webkitRelativePath || file.name,
-        }));
+        const incoming: IncomingFile[] = Array.from(selected)
+          .map((file) => ({ file, path: file.webkitRelativePath || file.name }))
+          .filter(({ path }) => !underPrunedDir(path));
         await ingestBatch(incoming, options);
       } catch (error) {
         console.error("Error processing files:", error);
