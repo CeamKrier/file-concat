@@ -941,7 +941,7 @@ function Row({ row }: { row: LedgerRow }) {
   );
 }
 
-type FileGroup = {
+export type FileGroup = {
   key: string;
   count: number;
   label: string;
@@ -957,8 +957,17 @@ type FileGroup = {
  * cards, which is five cards saying "here is a list of files" — the counts are
  * the part anyone reads, and the lists are evidence you open when a count
  * surprises you.
+ *
+ * The counts are the controls, and they have to look it. This row used to
+ * carry a line under the sentence, "Open a group to see which files, and
+ * why.", and a visitor on 2026-09-11 clicked that line four times and the
+ * sentence three before finding the chips beneath them: the instruction read
+ * as the link and the chips read as labels. So the instruction is gone, the
+ * chips wear the border and ink of every other action chip in the ledger, and
+ * each carries the header's own chevron, which is the one glyph this panel
+ * uses to mean "opens".
  */
-function FileGroups({
+export function FileGroups({
   groups,
   total,
   isGap,
@@ -978,9 +987,6 @@ function FileGroups({
           <div className="text-ink text-sm leading-[1.5]">
             {total} {total === 1 ? "file did" : "files did"} not come through as plain text.
           </div>
-          <div className="text-ink-muted mt-[3px] text-[13px] leading-[1.55]">
-            Open a group to see which files, and why.
-          </div>
         </div>
       </div>
       <div className="mt-2.5 flex flex-wrap gap-1.5 sm:ml-8">
@@ -992,15 +998,23 @@ function FileGroups({
             aria-controls="file-group-list"
             onClick={() => setOpen((o) => (o === g.key ? null : g.key))}
             className={cn(
-              "rounded-chip focus-visible:ring-ring focus-visible:ring-offset-surface-alt flex items-baseline gap-1.5 border px-2.5 py-1.5 font-mono text-[11.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+              "rounded-chip hover:bg-accent focus-visible:ring-ring focus-visible:ring-offset-surface-alt flex items-center gap-1.5 border px-2.5 py-1.5 font-mono text-[11.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
               g.tone === "warn"
-                ? "text-info border-[oklch(var(--info)/0.34)]"
-                : "text-ink-muted border-border hover:text-ink-secondary",
+                ? "text-info border-[oklch(var(--info)/0.42)]"
+                : "text-ink-secondary border-border-strong hover:text-ink",
               open === g.key && "bg-accent",
             )}
           >
             <span className="font-semibold">{g.count}</span>
             {g.label}
+            <ChevronDown
+              aria-hidden="true"
+              className={cn(
+                "h-3 w-3 shrink-0 opacity-70 transition-transform duration-200 motion-reduce:transition-none",
+                open === g.key && "rotate-180",
+              )}
+              strokeWidth={2.2}
+            />
           </button>
         ))}
       </div>
