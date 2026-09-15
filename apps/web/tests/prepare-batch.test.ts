@@ -102,7 +102,13 @@ describe("prepareBatch", () => {
     expect(expandedCount).toBe(1);
     // `dist` is the archive's own name and reads; the image is offered, not pruned.
     expect(files.map((f) => f.path).sort()).toEqual(["dist/icon/16.png", "dist/src/index.ts"]);
-    expect(pruned).toEqual({ dirs: ["node_modules"], exts: new Map([["woff2", { n: 1 }]]), count: 2 });
+    // No root reported: `dist` is the archive's stem, not something anyone dropped.
+    expect(pruned).toEqual({
+      dirs: ["node_modules"],
+      exts: new Map([["woff2", { n: 1 }]]),
+      count: 2,
+      roots: [],
+    });
   });
 
   it("reports no prune for an archive that holds nothing on the list", async () => {

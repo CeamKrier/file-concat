@@ -854,6 +854,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               totalFiles={filter.fileStatuses.length}
               tokens={tokens}
               noiseFiles={noiseFiles}
+              pruned={ingestion.pruned}
               outputStyle={config.outputStyle}
               onOutputStyleChange={(style) => setConfig({ outputStyle: style })}
               isCopied={output.isCopied}

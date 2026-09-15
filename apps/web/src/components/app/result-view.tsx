@@ -9,6 +9,8 @@ import {
   FilePlus,
   FileX2,
   Filter,
+  FolderOpen,
+  FolderX,
   Gauge,
   Image as ImageIcon,
   Info,
@@ -29,6 +31,7 @@ import {
 } from "~/components/ui/dialog";
 import { cn } from "~/lib/utils";
 import type { BundleWeight } from "~/lib/bundle-weight";
+import type { PrunedAtDoor } from "~/lib/prune-at-door";
 import { SegmentedControl } from "./segmented-control";
 
 type OutputStyle = "xml" | "markdown" | "plain";
@@ -51,6 +54,12 @@ type ResultViewProps = {
   /** Every file a default ignore rule kept out. The count is the headline and
    * the names are the evidence, so the row takes the list, not a number. */
   noiseFiles: string[];
+  /**
+   * What the door turned away before a byte was read, and which dropped roots
+   * it let through by name. Null before the first drop. Distinct from
+   * `noiseFiles`: those were read and can be turned back on, these were not.
+   */
+  pruned?: PrunedAtDoor | null;
   outputStyle: OutputStyle;
   onOutputStyleChange: (style: OutputStyle) => void;
   isCopied: boolean;
@@ -150,6 +159,7 @@ export function ResultView({
   totalFiles,
   tokens,
   noiseFiles,
+  pruned,
   outputStyle,
   onOutputStyleChange,
   isCopied,
@@ -374,11 +384,44 @@ export function ResultView({
       kind: "note",
       icon: Filter,
       title: `${noiseSkipped} noise ${noiseSkipped === 1 ? "file was" : "files were"} skipped for you.`,
-      body: "Lockfiles, dependency folders and build output. None of it reached the bundle.",
+      body: "Lockfiles, logs, test files and the rest of the default rules. Any of them can be turned back on under Adjust what's included.",
       panel: {
         label: noiseSkipped === 1 ? "Which file" : "Which files",
         content: <FileRows items={noiseFiles.map((name) => ({ name }))} />,
       },
+    });
+  }
+
+  // The door's two facts, each its own row because each answers a different
+  // surprise. Whole folders and never-text files leave before they are read,
+  // so they are in no count on this screen and the drawer cannot bring them
+  // back; until this row existed a drop of a project with 2,700 files of
+  // build output said "47 of 65" and nothing else, and the same folder dropped
+  // by itself read in full, which looked like two different tools.
+  if (pruned && pruned.count > 0) {
+    rows.push({
+      key: "pruned",
+      kind: "note",
+      icon: FolderX,
+      title: `${prunedSubject(pruned)} never opened.`,
+      body: "Dependency folders, build output, caches and files that never hold text (fonts, media, compiled code) are turned away before they are read, so they are not in the drawer. To read one of these folders, drop it by itself.",
+      panel: {
+        label: "Which ones",
+        content: <FileRows items={prunedRows(pruned)} />,
+      },
+    });
+  }
+  if (pruned && pruned.roots.length > 0) {
+    const [first, ...rest] = pruned.roots;
+    rows.push({
+      key: "root",
+      kind: "note",
+      icon: FolderOpen,
+      title:
+        rest.length === 0
+          ? `${first} was read because you dropped it, though inside a project it is skipped.`
+          : `${pruned.roots.join(", ")} were read because you dropped them, though inside a project they are skipped.`,
+      body: "A folder with this name is never opened when it sits inside something you drop: dependencies, build output, a cache. Dropped on its own it is what you chose, so it is read in full.",
     });
   }
 
@@ -951,6 +994,38 @@ export type FileGroup = {
   lead: string;
   items: { name: string; why?: string }[];
 };
+
+/**
+ * The subject of the pruned row: folders by name, files by count, both when
+ * both. "3 folders" past three names, so a monorepo's list does not run the
+ * title to three lines; the panel carries every name.
+ */
+function prunedSubject(pruned: PrunedAtDoor): string {
+  const files = [...pruned.exts.values()].reduce((sum, amounts) => sum + amounts.n, 0);
+  const names = pruned.dirs.map((d) => `${d}/`);
+  const parts = names.length > 3 ? [`${names.length} folders`] : names;
+  if (files > 0) parts.push(`${fmt.format(files)} ${files === 1 ? "file" : "files"}`);
+  const plural = parts.length > 1 || pruned.dirs.length > 1 || (pruned.dirs.length === 0 && files > 1);
+  return `${listOf(parts)} ${plural ? "were" : "was"}`;
+}
+
+/** "a", "a and b", "a, b and c". */
+function listOf(items: string[]): string {
+  if (items.length <= 1) return items.join("");
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
+/** The pruned row's evidence: every folder name, then every extension with its count. */
+function prunedRows(pruned: PrunedAtDoor): { name: string; why?: string }[] {
+  const folders = pruned.dirs.map((name) => ({ name: `${name}/`, why: "folder, never entered" }));
+  const files = [...pruned.exts.entries()]
+    .sort((a, b) => b[1].n - a[1].n)
+    .map(([ext, amounts]) => ({
+      name: ext === "none" ? "no extension" : `.${ext}`,
+      why: `${fmt.format(amounts.n)} ${amounts.n === 1 ? "file" : "files"}, never read`,
+    }));
+  return [...folders, ...files];
+}
 
 /**
  * The five caveat buckets as one row with five counts. They were five stacked

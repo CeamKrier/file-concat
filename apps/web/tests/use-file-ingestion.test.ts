@@ -120,6 +120,7 @@ describe("useFileIngestion", () => {
       dirs: ["node_modules", ".git", "dist", "__pycache__"],
       exts: new Map([["woff2", { n: 1 }]]),
       count: 5,
+      roots: [],
     });
     expect(TALLIES.pruned_ext).toEqual(["woff2"]);
   });
@@ -140,7 +141,8 @@ describe("useFileIngestion", () => {
 
     // `dist` itself was dropped, so it is read; the `vendor` inside it is not.
     expect(result.current.entries.map((e) => e.path)).toEqual(["dist/index.js"]);
-    expect(result.current.pruned).toEqual({ dirs: ["vendor"], exts: new Map(), count: 1 });
+    // The root is named so the screen can say it was read by choice.
+    expect(result.current.pruned).toEqual({ dirs: ["vendor"], exts: new Map(), count: 1, roots: ["dist"] });
   });
 
   it("adds what an archive's contents lost at the door to the drop's own record", async () => {
@@ -155,9 +157,9 @@ describe("useFileIngestion", () => {
       "vendor/lib.js": strToU8("x\n"),
     });
     const files = [
-      pick("out/src/index.ts", "export {};\n"),
-      pick("out/media/clip.mp4", "not read"),
-      pick("out/build.zip", zip),
+      pick("proj/src/index.ts", "export {};\n"),
+      pick("proj/media/clip.mp4", "not read"),
+      pick("proj/build.zip", zip),
     ];
     const target = { files, value: "" } as unknown as HTMLInputElement;
 
@@ -168,7 +170,7 @@ describe("useFileIngestion", () => {
 
     expect(result.current.entries.map((e) => e.path).sort()).toEqual([
       "build/app.js",
-      "out/src/index.ts",
+      "proj/src/index.ts",
     ]);
     // One record: the door's mp4 and the archive's font and vendor folder.
     expect(result.current.pruned).toEqual({
@@ -178,6 +180,7 @@ describe("useFileIngestion", () => {
         ["woff2", { n: 1 }],
       ]),
       count: 3,
+      roots: [],
     });
     expect(TALLIES.pruned_ext).toEqual(["mp4", "woff2"]);
   });

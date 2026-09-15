@@ -25,6 +25,12 @@ export interface PrunedAtDoor {
   exts: Tally;
   /** Entries refused: files, plus one per directory the walk never entered. */
   count: number;
+  /**
+   * Dropped roots whose own name the defaults would prune (`dist`, `.output`,
+   * `node_modules`), read because someone chose them. The screen says so,
+   * since the same folder inside a drop is turned away without a word.
+   */
+  roots: string[];
 }
 
 /**
@@ -43,9 +49,12 @@ export function pruneAtDoor<T extends IncomingFile>(
   const kept: T[] = [];
   const dirs = new Set(refusedDirs);
   const exts: Tally = new Map();
+  const roots = new Set<string>();
   for (const item of list) {
     const path = item.path || item.file.name;
-    const inside = path.slice(path.indexOf("/") + 1);
+    const slash = path.indexOf("/");
+    if (slash > 0 && isPrunedDirectory(path.slice(0, slash))) roots.add(path.slice(0, slash));
+    const inside = path.slice(slash + 1);
     if (!prunedAtWalk(inside)) {
       kept.push(item);
       continue;
@@ -56,7 +65,12 @@ export function pruneAtDoor<T extends IncomingFile>(
   }
   return {
     kept,
-    pruned: { dirs: [...dirs], exts, count: list.length - kept.length + refusedDirs.length },
+    pruned: {
+      dirs: [...dirs],
+      exts,
+      count: list.length - kept.length + refusedDirs.length,
+      roots: [...roots],
+    },
   };
 }
 
@@ -79,5 +93,6 @@ export function mergePruned(a: PrunedAtDoor | null, b: PrunedAtDoor | null): Pru
     dirs: [...new Set([...a.dirs, ...b.dirs])],
     exts: mergeTallies(a.exts, b.exts),
     count: a.count + b.count,
+    roots: [...new Set([...a.roots, ...b.roots])],
   };
 }

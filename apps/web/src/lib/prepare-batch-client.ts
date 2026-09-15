@@ -106,7 +106,9 @@ export async function prepareBatch(
         bytes: entry.bytes,
       }));
       const door = pruneAtDoor(unpacked);
-      if (door.pruned.count > 0) pruned = mergePruned(pruned, door.pruned);
+      // The stem is exempt like a dropped root but nobody dropped it, so it
+      // is not reported as one.
+      if (door.pruned.count > 0) pruned = mergePruned(pruned, { ...door.pruned, roots: [] });
       for (const { bytes: entryBytes, ...entryItem } of door.kept) {
         files.push({
           item: entryItem,
