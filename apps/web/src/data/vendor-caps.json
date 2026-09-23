@@ -13,15 +13,30 @@
       ],
       "used_by": [
         "apps/web/src/components/personas/chatgpt-projects-page.tsx",
-        "apps/web/src/components/how-to/share-all-files-page.tsx"
+        "apps/web/src/components/how-to/share-all-files-page.tsx",
+        "apps/web/src/components/how-to/chatgpt-upload-limit-faq.ts"
       ]
     },
     {
       "url": "https://help.openai.com/en/articles/8555545-file-uploads-faq",
       "anchor": "File uploads FAQ",
-      "checked": "2026-09-14",
-      "quotes": ["hard limit of 512MB per file", "capped at 2M tokens per file"],
-      "used_by": ["apps/web/src/components/personas/chatgpt-projects-faq.ts"]
+      "checked": "2026-09-24",
+      "quotes": [
+        "hard limit of 512MB per file",
+        "capped at 2M tokens per file",
+        "Users can upload up to 80 files every 3 hours",
+        "Free users are limited to 3 file uploads per day",
+        "we may lower these limits during peak hours",
+        "Each end-user is capped at 25GB",
+        "Failed upload attempts can sometimes count toward the upload-rate cap",
+        "does not currently show how much of your rolling upload-rate quota has been used"
+      ],
+      "used_by": [
+        "apps/web/src/components/personas/chatgpt-projects-faq.ts",
+        "apps/web/src/components/how-to/chatgpt-upload-limit-page.tsx",
+        "apps/web/src/components/how-to/chatgpt-upload-limit-faq.ts",
+        "apps/web/src/components/how-to/share-all-files-page.tsx"
+      ]
     },
     {
       "url": "https://help.openai.com/en/articles/8843948-knowledge-in-gpts",

@@ -91,6 +91,12 @@ const LIMITS = [
     limit: "5 free, 25 on Go and Plus, 40 on Pro and above",
     href: "/for/chatgpt-projects",
   },
+  {
+    where: "ChatGPT uploads",
+    caps: "Files you send, in any chat",
+    limit: "80 every 3 hours, 3 a day on Free",
+    href: "/how-to/chatgpt-file-upload-limit",
+  },
   { where: "ChatGPT Project uploads", caps: "Files in one pass", limit: "10" },
   { where: "Custom GPTs", caps: "Knowledge files", limit: "20" },
   {

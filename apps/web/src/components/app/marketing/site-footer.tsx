@@ -64,6 +64,9 @@ export function SiteFooter() {
             <Link to="/for/chatgpt-projects" className={linkClass}>
               For ChatGPT Projects
             </Link>
+            <Link to="/how-to/chatgpt-file-upload-limit" className={linkClass}>
+              ChatGPT upload limit
+            </Link>
             <Link to="/for/claude-projects" className={linkClass}>
               For Claude Projects
             </Link>

@@ -132,6 +132,15 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    url: "/how-to/chatgpt-file-upload-limit",
+    sourceFile: [
+      "apps/web/src/routes/how-to/chatgpt-file-upload-limit.tsx",
+      "apps/web/src/components/how-to/chatgpt-upload-limit-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
     url: "/how-to/share-all-files-with-ai",
     sourceFile: [
       "apps/web/src/routes/how-to/share-all-files-with-ai.tsx",
