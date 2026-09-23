@@ -59,7 +59,7 @@ export function SiteFooter() {
           <div className={columnClass}>
             <h2 className={headingClass}>Guides</h2>
             <Link to="/how-to/share-all-files-with-ai" className={linkClass}>
-              Share all your files
+              AI file upload limits
             </Link>
             <Link to="/for/chatgpt-projects" className={linkClass}>
               For ChatGPT Projects
@@ -69,6 +69,9 @@ export function SiteFooter() {
             </Link>
             <Link to="/how-to/upload-folder-to-chatgpt" className={linkClass}>
               Folder or ZIP to ChatGPT
+            </Link>
+            <Link to="/how-to/upload-book-to-chatgpt" className={linkClass}>
+              Book or textbook to ChatGPT
             </Link>
             <Link to="/how-to/github-repo-to-text" className={linkClass}>
               GitHub repo to text

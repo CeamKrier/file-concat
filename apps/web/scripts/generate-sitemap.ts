@@ -150,6 +150,15 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    url: "/how-to/upload-book-to-chatgpt",
+    sourceFile: [
+      "apps/web/src/routes/how-to/upload-book-to-chatgpt.tsx",
+      "apps/web/src/components/how-to/upload-book-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
     url: "/how-to/github-repo-to-text",
     sourceFile: [
       "apps/web/src/routes/how-to/github-repo-to-text.tsx",

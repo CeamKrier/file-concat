@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as HowToUploadFolderToChatgptRouteImport } from './routes/how-to/upload-folder-to-chatgpt'
+import { Route as HowToUploadBookToChatgptRouteImport } from './routes/how-to/upload-book-to-chatgpt'
 import { Route as HowToShareAllFilesWithAiRouteImport } from './routes/how-to/share-all-files-with-ai'
 import { Route as HowToGithubRepoToTextRouteImport } from './routes/how-to/github-repo-to-text'
 import { Route as HowToChatgptFileUploadLimitRouteImport } from './routes/how-to/chatgpt-file-upload-limit'
@@ -67,6 +68,12 @@ const HowToUploadFolderToChatgptRoute =
   HowToUploadFolderToChatgptRouteImport.update({
     id: '/how-to/upload-folder-to-chatgpt',
     path: '/how-to/upload-folder-to-chatgpt',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const HowToUploadBookToChatgptRoute =
+  HowToUploadBookToChatgptRouteImport.update({
+    id: '/how-to/upload-book-to-chatgpt',
+    path: '/how-to/upload-book-to-chatgpt',
     getParentRoute: () => rootRouteImport,
   } as any)
 const HowToShareAllFilesWithAiRoute =
@@ -173,6 +180,7 @@ export interface FileRoutesByFullPath {
   '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
   '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
+  '/how-to/upload-book-to-chatgpt': typeof HowToUploadBookToChatgptRoute
   '/how-to/upload-folder-to-chatgpt': typeof HowToUploadFolderToChatgptRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -198,6 +206,7 @@ export interface FileRoutesByTo {
   '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
   '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
+  '/how-to/upload-book-to-chatgpt': typeof HowToUploadBookToChatgptRoute
   '/how-to/upload-folder-to-chatgpt': typeof HowToUploadFolderToChatgptRoute
   '/blog': typeof BlogIndexRoute
   '/docs': typeof DocsIndexRoute
@@ -224,6 +233,7 @@ export interface FileRoutesById {
   '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
   '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
+  '/how-to/upload-book-to-chatgpt': typeof HowToUploadBookToChatgptRoute
   '/how-to/upload-folder-to-chatgpt': typeof HowToUploadFolderToChatgptRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -251,6 +261,7 @@ export interface FileRouteTypes {
     | '/how-to/chatgpt-file-upload-limit'
     | '/how-to/github-repo-to-text'
     | '/how-to/share-all-files-with-ai'
+    | '/how-to/upload-book-to-chatgpt'
     | '/how-to/upload-folder-to-chatgpt'
     | '/blog/'
     | '/docs/'
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/how-to/chatgpt-file-upload-limit'
     | '/how-to/github-repo-to-text'
     | '/how-to/share-all-files-with-ai'
+    | '/how-to/upload-book-to-chatgpt'
     | '/how-to/upload-folder-to-chatgpt'
     | '/blog'
     | '/docs'
@@ -301,6 +313,7 @@ export interface FileRouteTypes {
     | '/how-to/chatgpt-file-upload-limit'
     | '/how-to/github-repo-to-text'
     | '/how-to/share-all-files-with-ai'
+    | '/how-to/upload-book-to-chatgpt'
     | '/how-to/upload-folder-to-chatgpt'
     | '/blog/'
     | '/docs/'
@@ -327,6 +340,7 @@ export interface RootRouteChildren {
   HowToChatgptFileUploadLimitRoute: typeof HowToChatgptFileUploadLimitRoute
   HowToGithubRepoToTextRoute: typeof HowToGithubRepoToTextRoute
   HowToShareAllFilesWithAiRoute: typeof HowToShareAllFilesWithAiRoute
+  HowToUploadBookToChatgptRoute: typeof HowToUploadBookToChatgptRoute
   HowToUploadFolderToChatgptRoute: typeof HowToUploadFolderToChatgptRoute
   BlogIndexRoute: typeof BlogIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
@@ -381,6 +395,13 @@ declare module '@tanstack/react-router' {
       path: '/how-to/upload-folder-to-chatgpt'
       fullPath: '/how-to/upload-folder-to-chatgpt'
       preLoaderRoute: typeof HowToUploadFolderToChatgptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-to/upload-book-to-chatgpt': {
+      id: '/how-to/upload-book-to-chatgpt'
+      path: '/how-to/upload-book-to-chatgpt'
+      fullPath: '/how-to/upload-book-to-chatgpt'
+      preLoaderRoute: typeof HowToUploadBookToChatgptRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/how-to/share-all-files-with-ai': {
@@ -519,6 +540,7 @@ const rootRouteChildren: RootRouteChildren = {
   HowToChatgptFileUploadLimitRoute: HowToChatgptFileUploadLimitRoute,
   HowToGithubRepoToTextRoute: HowToGithubRepoToTextRoute,
   HowToShareAllFilesWithAiRoute: HowToShareAllFilesWithAiRoute,
+  HowToUploadBookToChatgptRoute: HowToUploadBookToChatgptRoute,
   HowToUploadFolderToChatgptRoute: HowToUploadFolderToChatgptRoute,
   BlogIndexRoute: BlogIndexRoute,
   DocsIndexRoute: DocsIndexRoute,

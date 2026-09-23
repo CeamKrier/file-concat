@@ -103,6 +103,12 @@ const LIMITS = [
     href: "/how-to/upload-folder-to-chatgpt",
   },
   {
+    where: "A book or textbook",
+    caps: "EPUB and long PDFs",
+    limit: "EPUB not named by ChatGPT; Claude takes PDFs up to 1,000 pages",
+    href: "/how-to/upload-book-to-chatgpt",
+  },
+  {
     where: "ChatGPT Projects",
     caps: "Files per project",
     limit: "5 free, 25 on Go and Plus, 40 on Pro and above",
