@@ -76,6 +76,9 @@ export function SiteFooter() {
             <Link to="/how-to/github-repo-to-text" className={linkClass}>
               GitHub repo to text
             </Link>
+            <Link to="/how-to/gitingest-alternative" className={linkClass}>
+              gitingest and Repomix alternative
+            </Link>
             <Link to="/for/claude-projects" className={linkClass}>
               For Claude Projects
             </Link>

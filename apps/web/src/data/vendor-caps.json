@@ -178,6 +178,58 @@
       "checked": "2026-09-14",
       "quotes": ["upload up to 10 files when creating a custom Gem"],
       "used_by": ["apps/web/src/components/personas/gemini-gems-page.tsx"]
+    },
+    {
+      "url": "https://repomix.com/guide/privacy",
+      "anchor": "Repomix CLI Tool",
+      "checked": "2026-09-24",
+      "quotes": [
+        "When uploading ZIP files or folders, your files are temporarily stored on our servers for processing",
+        "All uploaded files and processed data are automatically deleted immediately after processing is complete",
+        "Since all processing is local, Repomix CLI is safe to use with private and internal repositories",
+        "Comment Removal",
+        "Code Compression",
+        "MCP Server"
+      ],
+      "used_by": [
+        "apps/web/src/components/how-to/gitingest-alternative-page.tsx",
+        "apps/web/src/components/how-to/gitingest-alternative-faq.ts"
+      ]
+    },
+    {
+      "url": "https://repomix.com/",
+      "anchor": "Pack your codebase into AI-friendly formats",
+      "checked": "2026-09-24",
+      "quotes": ["You can try Repomix instantly in your project directory without installation"],
+      "used_by": [
+        "apps/web/src/components/how-to/gitingest-alternative-page.tsx",
+        "apps/web/src/components/how-to/gitingest-alternative-faq.ts"
+      ]
+    },
+    {
+      "url": "https://gitingest.com/",
+      "anchor": "Prompt-friendly codebase",
+      "checked": "2026-09-24",
+      "quotes": [
+        "Turn any Git repository into a simple text digest of its codebase",
+        "PAT is never stored in the backend",
+        "Used once for cloning, then discarded from memory",
+        "Cloned repos are deleted after processing"
+      ],
+      "used_by": [
+        "apps/web/src/components/how-to/gitingest-alternative-page.tsx",
+        "apps/web/src/components/how-to/gitingest-alternative-faq.ts"
+      ]
+    },
+    {
+      "url": "https://github.com/coderamp-labs/gitingest",
+      "anchor": "coderamp-labs/gitingest",
+      "checked": "2026-09-24",
+      "quotes": ["pip install gitingest", "gitingest /path/to/directory"],
+      "used_by": [
+        "apps/web/src/components/how-to/gitingest-alternative-page.tsx",
+        "apps/web/src/components/how-to/gitingest-alternative-faq.ts"
+      ]
     }
   ]
 }

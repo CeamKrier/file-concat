@@ -168,6 +168,15 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    url: "/how-to/gitingest-alternative",
+    sourceFile: [
+      "apps/web/src/routes/how-to/gitingest-alternative.tsx",
+      "apps/web/src/components/how-to/gitingest-alternative-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
     url: "/how-to/share-all-files-with-ai",
     sourceFile: [
       "apps/web/src/routes/how-to/share-all-files-with-ai.tsx",
