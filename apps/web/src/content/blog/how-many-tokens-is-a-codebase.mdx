@@ -1,6 +1,6 @@
 ---
 title: "How Many Tokens Is a Codebase? 60 Repositories Measured"
-description: "How many tokens is a codebase? We tokenized 60 public repositories end to end: median bundle 236,218 tokens, only 38% fit a 128K window, and the default filters remove a median 22.7%, most of it test files."
+description: "How many tokens is a codebase? We bundled 60 public repositories whole: a typical one is about 240K tokens, only 4 in 10 fit a 128K window, and the default filters remove about a fifth, mostly test files."
 date: "2026-09-07"
 author: "CeamKrier"
 draft: false
@@ -12,80 +12,32 @@ import bundleSizes from "~/data/repo-funnel-values.json";
 <KeyFindings
   items={[
     {
-      figure: "236,218",
-      text: "Median tokens for a whole public repository turned into one LLM-ready artifact, across 60 repositories in 10 languages. The spread is what matters: 34,860 at the 10th percentile, 3,044,662 at the 90th.",
+      figure: "About 240K",
+      text: "Tokens in a typical public repository once it is bundled whole. The middle half of the sample spans a factor of 20, so there is no typical size to plan around.",
     },
     {
-      figure: "38%",
-      text: "Share of the 60 repositories that fit a 128,000 token context window. 43% fit 200,000 and 72% fit 1,000,000. A window big enough for the median repository is not big enough for the ones people actually struggle with.",
+      figure: "4 in 10",
+      text: "Repositories that fit a 128K context window. Fewer than half fit 200K, and about 7 in 10 fit a million.",
     },
     {
-      figure: "22.7%",
-      text: "Median share of tokens the defaults remove from a fresh clone, and more than half of that is the test suite, dropped by file name since 2026-09-09. Before that rule the same defaults removed 3.5%: a clone has no node_modules and no build output, so what a filter removes from one is code somebody named.",
-    },
-    {
-      figure: "12.4% vs 1.6%",
-      text: "Hidden files are 12.4% of the files the defaults exclude but 1.6% of the tokens. The default ignore list is 87.0% of the files and 97.8% of the tokens. Any sentence about what a filter removes is wrong until it names its unit.",
-    },
-    {
-      figure: "70.7%",
-      text: "Share of kept tokens that are source code, pooled across the sample. Documentation is 8.6%, text-encoded assets such as SVG 7.1%, configuration 6.5%, and the tests the naming rule does not see 6.4%. Per repository the source share median is 71.8%, with a quarter of repositories below 48.7%.",
-    },
-    {
-      figure: "2.5%",
-      text: "Median token cost of the bundle wrapper itself, the XML tags and header and file tree. We were not counting it. On one repository of many small files it was 18.6%.",
+      figure: "About a fifth",
+      text: "Share of a fresh clone's tokens the default filters remove, mostly test files dropped by their names. A clone has no node_modules to remove.",
     },
   ]}
-  snapshot="2026-09-11 / 60 public repositories, 39,107 files, 55,092,425 tokens"
+  snapshot="2026-09-11 / 60 public repositories in 10 languages"
   citation="Across 60 public repositories in 10 languages measured on 2026-09-11, the median repository assembles into 236,218 tokens of LLM context, and the default filters remove a median of 22.7% of tokens from a fresh clone, most of it test files dropped by name (FileConcat, fileconcat.com)."
 />
 
-Every tool that turns a folder into LLM context tells you it removes the noise. None of them tells you
-how much noise there was, what the rest is made of, or what is left after. The number people quote for
-their own repository is usually the one their editor's status bar showed them once.
-
-So we measured it. Sixty public repositories, ten languages, three size bands, every file routed through
-the same engine the tool ships, every bundle assembled and tokenized whole, and the same 60 commits
-measured again each time a default changed, so every number here is the shipped build's. Three results
-change what you should do with your own folder.
-
-<Payoff
-  rows={[
-    {
-      lead: "Your repository probably does not fit where you think",
-      body: "Half of the 60 land between 60,831 and 1,201,507 tokens. Only 38% fit a 128,000 token window, and 28% do not fit 1,000,000.",
-      action: "Count yours before you pick a model",
-    },
-    {
-      lead: "A filter removes what somebody named, not what is big",
-      body: "The defaults removed a median 22.7% of tokens from a fresh clone, and 11.9% of every token in the sample was a test file dropped by its name. Before that rule the same defaults removed 3.5%.",
-      action: "Decide what belongs in this question, not what looks like noise",
-    },
-    {
-      lead: "Read the unit on any reduction claim",
-      body: "The same exclusion is 12.4% of the files removed and 1.6% of the tokens removed. Both sentences are true and they mean different things.",
-      action: "Ask any tool which one it counted, ours included",
-    },
-  ]}
-/>
+Every tool that turns a folder into LLM context says it removes the noise. None says how much noise
+there was or what is left after. So we bundled 60 public repositories whole, with the same engine the
+tool ships, and counted.
 
 <Contents />
 
-<Method
-  compact
-  dataset="60 public GitHub repositories, 10 languages x 3 size bands x 2 repositories"
-  sample="39,107 files walked, 37,293 text eligible, 28,409 kept, 55,092,425 tokens"
-  measured="2026-09-11"
-  build="@fileconcat/core 2.0.0"
-  tokenizer="o200k_base via tiktoken, the o1-preview-2024-09-12 encoding"
-  script="packages/cli/scripts/measure-repo-funnel.ts"
-  excludes="Accuracy. This measures what reaches the model, never whether the model answers better for it."
-/>
-
 ## How many tokens is a codebase, exactly?
 
-There is no single answer, and the distribution is the finding. Half the repositories in our sample sit
-between 60,831 and 1,201,507 tokens. That is a factor of 20 inside the middle half alone.
+About 240,000 for a typical public repository, but the figure is the real answer: the sizes run from
+tens of thousands of tokens to millions.
 
 <FitCurve
   label="60 public repositories, smallest to largest"
@@ -99,16 +51,67 @@ between 60,831 and 1,201,507 tokens. That is a factor of 20 inside the middle ha
   source="Each row is one repository. A window fits every row ending left of its line."
 />
 
-The largest is `certd/certd`, an SSL certificate renewal tool whose monorepo carries a web front end, a
-server and one deployment plugin per hosting provider, at 5,535,907 tokens. The smallest bundles come from
-single-purpose libraries with a handful of source files. In the first two runs the largest was
-`KDE/ghostwriter` at 9,373,193, and 8,633,558 of that was a vendored `3rdparty` directory our defaults did
-not know the name of; it is 861,866 tokens now, and the fix is in the list of our own defects below.
+The smallest bundles come from single-purpose libraries with a handful of source files. The largest,
+`certd/certd`, is a monorepo with a web front end, a server and one deployment plugin per hosting
+provider, at over five million tokens.
 
-<Stopper value="20x" source="60,831 to 1,201,507 tokens / 60 public repositories / 2026-09-11">
-  Between the 25th and 75th percentile. Not the whole range, the middle half. There is no typical
-  codebase size to plan around, which is why a rule of thumb fails here and a measurement does not.
+The lines on the figure are context windows. A window big enough for the typical repository is not big
+enough for the ones people actually struggle with.
+
+<Stopper value="Fitting is not being read" source="Liu et al. 2023 / Chroma 2025 / see the references">
+  Every repository here that needs a million-token window lands exactly where the published
+  accuracy studies measured the worst retrieval. Getting the bundle to fit is the easy half.
 </Stopper>
+
+## How much do the default filters remove?
+
+About a fifth of a fresh clone's tokens, and most of that is test files dropped by their names.
+
+A clone has no `node_modules`, no build output and no local env files, because none of that is
+committed. What a filter can remove from it is only what somebody named: lockfiles, vendored
+directories and test files. Before our defaults started dropping test files by name, they removed only
+a few percent. On a working folder with its dependencies installed the same filters remove far more.
+We did not measure that, and we are not going to guess it.
+
+What stays is mostly your own source, about 70% of the tokens. Documentation, configuration, images in
+a text format such as SVG, and the tests the naming rule misses share the rest. If your question is
+about behaviour rather than about the test suite, those remaining tests are yours to remove.
+
+Ask any tool which unit its reduction is counted in, ours included. Hidden files are one in eight of
+the files our defaults remove, and one in sixty of the tokens.
+
+## Count your own folder
+
+The numbers above are a distribution. Yours is one point in it, and the only one that decides anything.
+
+- **Count it before you pick a model.** A typical repository fits almost anywhere. One in six is still
+  past the 2M line after the defaults, the largest window on the figure.
+- **Decide what belongs in this question.** A default can only drop what is named. Whether the
+  documentation or the rest of the tests belong is a choice about what you are asking.
+- **Trust the count you are shown.** Measuring this found four defects in our own tool, all fixed
+  before these numbers were taken. The one you would notice is the token count, which now lands within
+  a percent of what a paste really costs on four in five of the repositories, against one before.
+
+Drop a folder here and the same engine runs on your machine: nothing is uploaded to us, the whole thing
+runs in your browser. If the destination is a ChatGPT Project, whose limit is a file count, the bundle
+takes one of its slots; the per-plan caps are on [the ChatGPT Projects page](/for/chatgpt-projects).
+
+<TryIt
+  title="Run the funnel on your own folder"
+  hint="Files in, text out, what the defaults keep, and what it costs to send. Nothing is uploaded."
+  distribution={{
+    label: "Your folder against 60 public repositories",
+    values: bundleSizes,
+    thresholds: [
+      { label: "128K window", value: 128000 },
+      { label: "200K window", value: 200000 },
+      { label: "1M window", value: 1000000 },
+      { label: "2M window", value: 2000000 },
+    ],
+  }}
+/>
+
+{/* evidence */}
 
 ## What nobody had measured yet
 
@@ -163,6 +166,16 @@ results, at the top of the documentation share, exactly where they were predicte
 Every decision in the measurement comes from the shipped engine. There is no second implementation of
 the classifier, the filter, or the tokenizer, because a reimplementation measures a tool nobody uses.
 
+<Method
+  dataset="60 public GitHub repositories drawn by a pre-registered GitHub search query, 10 languages x 3 size bands x 2 repositories"
+  sample="39,107 files walked, 37,293 text eligible, 28,409 kept by the defaults, 55,092,425 tokens assembled"
+  measured="2026-09-11, on the 60 commits first cloned on 2026-09-07"
+  build="@fileconcat/core 2.0.0, the commit that added 3rdparty and bun.lock to the default ignore list"
+  tokenizer="o200k_base via @dqbd/tiktoken, the o1-preview-2024-09-12 encoding, run over the assembled XML bundle"
+  script="packages/cli/scripts/measure-repo-funnel.ts, with analyze-repo-funnel.ts for the cuts"
+  excludes="Working folders, private repositories, model accuracy, and any language outside the ten sampled. A fresh clone carries no build output, so generated and vendored shares are a floor."
+/>
+
 <Steps>
   <Step title="Clone at depth 1 and record the commit">
     A shallow clone, so the measurement describes repository content and not version control history.
@@ -194,6 +207,23 @@ the defaults keep them, and until the map was revised on 2026-09-10 for the tool
 counted as source. Every composition figure below is cut under the current map.
 
 ## What 60 repositories actually weigh
+
+### The spread
+
+The median bundle is 236,218 tokens, the 10th percentile 34,860 and the 90th 3,044,662. Half the
+repositories in our sample sit between 60,831 and 1,201,507 tokens. That is a factor of 20 inside the
+middle half alone.
+
+The largest is `certd/certd`, an SSL certificate renewal tool whose monorepo carries a web front end, a
+server and one deployment plugin per hosting provider, at 5,535,907 tokens. The smallest bundles come from
+single-purpose libraries with a handful of source files. In the first two runs the largest was
+`KDE/ghostwriter` at 9,373,193, and 8,633,558 of that was a vendored `3rdparty` directory our defaults did
+not know the name of; it is 861,866 tokens now, and the fix is in the list of our own defects below.
+
+<Stopper value="20x" source="60,831 to 1,201,507 tokens / 60 public repositories / 2026-09-11">
+  Between the 25th and 75th percentile. Not the whole range, the middle half. There is no typical
+  codebase size to plan around, which is why a rule of thumb fails here and a measurement does not.
+</Stopper>
 
 ### The funnel
 
@@ -402,31 +432,6 @@ been on the list from the start; the other name the same thing travels by was no
 those five repositories and no other: ghostwriter to 861,866 tokens, the four `bun.lock` repositories by
 between 20,499 and 400,854 each, and the remaining 55 reproduce to the token.
 
-## What this means when you bundle your own
-
-**Ask what your repository is before asking which model fits it.** The median here is 236,218 tokens and
-the 90th percentile is 3,044,662. Those two repositories have nothing in common as context problems. The
-first fits anywhere; the second does not fit anything, and no filter setting will change that.
-
-**A filter removes what is named, and the rest is a decision.** On a clone the defaults remove a median
-22.7% of tokens, and 11.9% of every token in the sample was a test file dropped by its name; before that
-rule the same defaults removed 3.5%, because the node_modules a filter is famous for was never committed.
-What moves the number past that is deciding that a whole category does not belong in this particular
-question: the documentation at 8.6% of kept tokens, the tests the rule does not see at 6.4%. That is a
-choice about intent, and a default cannot make it for you.
-
-**Read the unit on every claim, including ours.** 12.4% against 1.6% is the same exclusion described
-twice. Whenever a tool tells you how much it removed, the first question is what it counted.
-
-<Stopper value="Fitting is not being read" source="Liu et al. 2023 / Chroma 2025 / see the references">
-  Every repository here that needs a million-token window lands exactly where the published
-  accuracy studies measured the worst retrieval. Getting the bundle to fit is the easy half.
-</Stopper>
-
-**A bigger window is not a free pass.** The repositories in this sample that need a million-token window
-are the ones that land where Liu et al. and Chroma both measured the worst accuracy. Fitting is not the
-same as being read.
-
 ## Limitations
 
 - **A fresh clone is not a working folder.** No `node_modules`, no build output, no local env files. The
@@ -511,38 +516,6 @@ The limit of the test rule is that it is naming, not detection. A `tests/` direc
 convention survives, Rust's integration tests in `tests/*.rs` survive, and a suite that does not follow
 its ecosystem's spelling survives. Tests at 6.4% of kept tokens is what remains after the named part is
 gone, not proof that 6.4% is all the test code there is.
-
-<Method
-  dataset="60 public GitHub repositories drawn by a pre-registered GitHub search query, 10 languages x 3 size bands x 2 repositories"
-  sample="39,107 files walked, 37,293 text eligible, 28,409 kept by the defaults, 55,092,425 tokens assembled"
-  measured="2026-09-11, on the 60 commits first cloned on 2026-09-07"
-  build="@fileconcat/core 2.0.0, the commit that added 3rdparty and bun.lock to the default ignore list"
-  tokenizer="o200k_base via @dqbd/tiktoken, the o1-preview-2024-09-12 encoding, run over the assembled XML bundle"
-  script="packages/cli/scripts/measure-repo-funnel.ts, with analyze-repo-funnel.ts for the cuts"
-  excludes="Working folders, private repositories, model accuracy, and any language outside the ten sampled. A fresh clone carries no build output, so generated and vendored shares are a floor."
-/>
-
-## Count your own folder
-
-The numbers above are a distribution. Yours is one point in it, and the only one that decides anything.
-Drop a folder here and the same engine runs on your machine: nothing is uploaded to us, the whole thing
-runs in your browser. If the destination is a ChatGPT Project, whose limit is a file count, the bundle
-takes one of its slots; the per-plan caps are on [the ChatGPT Projects page](/for/chatgpt-projects).
-
-<TryIt
-  title="Run the funnel on your own folder"
-  hint="Files in, text out, what the defaults keep, and what it costs to send. Nothing is uploaded."
-  distribution={{
-    label: "Your folder against 60 public repositories",
-    values: bundleSizes,
-    thresholds: [
-      { label: "128K window", value: 128000 },
-      { label: "200K window", value: 200000 },
-      { label: "1M window", value: 1000000 },
-      { label: "2M window", value: 2000000 },
-    ],
-  }}
-/>
 
 ## Frequently asked questions
 
