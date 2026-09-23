@@ -46,8 +46,13 @@ const SCHEMA = `
   CREATE INDEX idx_events_page_run ON events (page, run);`;
 const COLUMNS = ["id", "ts", "page", "name", "value", "run", "n", "b"];
 
-function pull({ days, local }) {
-  const since = Math.floor(Date.now() / 1000) - days * 86400;
+// One remote response past roughly 5 MB comes back as wrangler's bare "fetch
+// failed" (2026-09-23: the 90-day window failed whole while a 10-day slice of
+// it came back fine), so the window is pulled in ts slices. Each slice is still
+// an idx_events_ts range scan, and rows_read stays near twice the rows returned.
+const SLICE_DAYS = 10;
+
+function pullSlice({ from, to, local }) {
   // The --config flag is not optional: D1 state is keyed by the config file
   // path, so querying without it hits a different database and reports zero.
   const out = execFileSync(
@@ -62,7 +67,7 @@ function pull({ days, local }) {
       CONFIG,
       "--json",
       "--command",
-      `SELECT ${COLUMNS.join(", ")} FROM events WHERE ts >= ${since} ORDER BY id;`,
+      `SELECT ${COLUMNS.join(", ")} FROM events WHERE ts >= ${from} AND ts < ${to} ORDER BY id;`,
     ],
     { cwd: WEB_DIR, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 },
   );
@@ -70,15 +75,29 @@ function pull({ days, local }) {
   const start = out.indexOf("[");
   if (start === -1) throw new Error(`no JSON in wrangler output:\n${out.slice(0, 400)}`);
   const [set] = JSON.parse(out.slice(start));
+  return set;
+}
+
+function pull({ days, local }) {
+  const now = Math.floor(Date.now() / 1000);
+  const since = now - days * 86400;
+  const results = [];
+  let rowsRead = 0;
+  for (let from = since; from < now; from += SLICE_DAYS * 86400) {
+    const set = pullSlice({ from, to: from + SLICE_DAYS * 86400, local });
+    results.push(...set.results);
+    rowsRead += set.meta?.rows_read ?? 0;
+  }
+  results.sort((a, b) => a.id - b.id);
   return {
     meta: {
       source: local ? "local" : "remote",
       pulled_at: new Date().toISOString(),
       since_ts: since,
-      rows: set.results.length,
-      rows_read: set.meta?.rows_read ?? null,
+      rows: results.length,
+      rows_read: rowsRead,
     },
-    rows: set.results.map((r) => COLUMNS.map((c) => r[c] ?? null)),
+    rows: results.map((r) => COLUMNS.map((c) => r[c] ?? null)),
   };
 }
 
