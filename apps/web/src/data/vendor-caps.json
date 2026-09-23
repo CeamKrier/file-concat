@@ -9,12 +9,15 @@
         "Pro users: up to 40 files",
         "Plus and Go users: up to 25 files",
         "Free users: up to 5 files",
-        "Business, Enterprise, and Edu projects support up to 40 files"
+        "Business, Enterprise, and Edu projects support up to 40 files",
+        "Google Drive (files and folders)"
       ],
       "used_by": [
         "apps/web/src/components/personas/chatgpt-projects-page.tsx",
         "apps/web/src/components/how-to/share-all-files-page.tsx",
-        "apps/web/src/components/how-to/chatgpt-upload-limit-faq.ts"
+        "apps/web/src/components/how-to/chatgpt-upload-limit-faq.ts",
+        "apps/web/src/components/how-to/upload-folder-page.tsx",
+        "apps/web/src/components/how-to/upload-folder-faq.ts"
       ]
     },
     {
@@ -35,8 +38,30 @@
         "apps/web/src/components/personas/chatgpt-projects-faq.ts",
         "apps/web/src/components/how-to/chatgpt-upload-limit-page.tsx",
         "apps/web/src/components/how-to/chatgpt-upload-limit-faq.ts",
-        "apps/web/src/components/how-to/share-all-files-page.tsx"
+        "apps/web/src/components/how-to/share-all-files-page.tsx",
+        "apps/web/src/components/how-to/upload-folder-faq.ts"
       ]
+    },
+    {
+      "url": "https://help.openai.com/en/articles/8983675-what-types-of-files-are-supported",
+      "anchor": "What types of files are supported",
+      "checked": "2026-09-24",
+      "quotes": [
+        "Most common file extensions for text files, spreadsheets, presentations, and documents are supported, including XLSX, XLS, CSV, TSV, DOCX, PPTX, PDF, and TXT"
+      ],
+      "used_by": [
+        "apps/web/src/components/how-to/upload-folder-page.tsx",
+        "apps/web/src/components/how-to/upload-folder-faq.ts"
+      ]
+    },
+    {
+      "url": "https://help.openai.com/en/articles/20001052-file-storage-and-library-in-chatgpt",
+      "anchor": "Using Library to manage files in ChatGPT",
+      "checked": "2026-09-24",
+      "quotes": [
+        "You can also select a folder in Library and ask ChatGPT to work across the files it contains"
+      ],
+      "used_by": ["apps/web/src/components/how-to/upload-folder-faq.ts"]
     },
     {
       "url": "https://help.openai.com/en/articles/8843948-knowledge-in-gpts",
