@@ -16,7 +16,9 @@ import { CLAUDE_PROJECTS_FAQ } from "./claude-projects-faq";
  * page leads with capacity and leans on the token counter, the feature that
  * directly answers "will it fit". Bespoke, not a template row, so it earns its
  * own index entry. Hosts the real app flow via AppFlow's renderLanding slot.
- * Grammar stays clean; the raw search query is never mirrored verbatim.
+ * The H1 quotes the error Claude prints, because that is what its searchers
+ * paste. Combining does not shrink a project, so the remedy the page offers is
+ * leaving things out with the token count in view, never "combine and it fits".
  */
 export function ClaudeProjectsPage() {
   return <AppFlow renderLanding={(dropProps) => <ClaudeProjectsLanding {...dropProps} />} />;
@@ -53,14 +55,14 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
-            Get past the Claude Projects knowledge limit.
+            Fix "Project knowledge exceeds maximum" in Claude.
           </h1>
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
-            A Claude Project fills up by size, not by file count, so a few large documents can max
-            out its knowledge. Drop the whole folder here instead. Everything, even the PDFs, is
-            read in your browser and packed into one file, with the token count shown so you know it
-            fits.
+            Claude shows this when a project's files no longer fit. It limits a project by total
+            size, not by file count, so the fix is choosing what to leave out. Drop the folder here:
+            every file and folder shows its size, the token count updates as you take things out,
+            and what remains comes back as one file you know fits.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -129,7 +131,7 @@ function Capacity() {
             </div>
             <div className="text-ink-faint mt-2 flex items-baseline justify-between text-[11px]">
               <span>71% of a 200k window</span>
-              <span className="text-go-fg">fits as one file</span>
+              <span className="text-go-fg">fits in the window</span>
             </div>
           </div>
         </MockWindow>
@@ -144,18 +146,24 @@ function Capacity() {
  * outside the newest models and 500K or 1M with them on paid plans
  * (support.claude.com/en/articles/8606394), paid plans switch to RAG mode
  * "up to 10x" past it (articles/11473015), free accounts get five projects
- * (articles/9517075). Move the date below only when these are checked again. */
+ * (articles/9517075). The per-file and per-chat rows were read on 2026-09-24
+ * at CLAUDE_UPLOADS_HELP: project files 30MB each, chat uploads 20 files of
+ * up to 500MB each. Move the date below only when these are checked again. */
+const CLAUDE_UPLOADS_HELP = "https://support.claude.com/en/articles/8241126-upload-files-to-claude";
+
 const CAPS = [
   {
     where: "Project knowledge",
     caps: "Total size, shared with the context window",
     limit: "The context window, not a file count; paid plans stretch it up to 10x with RAG mode",
   },
+  { where: "One project file", caps: "Size of a single file", limit: "30 MB" },
   {
     where: "Projects",
     caps: "How many projects you can create",
     limit: "5 on the free plan, more on paid",
   },
+  { where: "A chat", caps: "Files you attach", limit: "20, up to 500 MB each" },
 ];
 
 function WhereItStops() {
@@ -169,8 +177,9 @@ function WhereItStops() {
           Where Claude stops you.
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[50ch] text-[15px] leading-relaxed">
-          The caps that matter are about size and project count, not a number of files. One combined
-          file makes the size easy to see and keeps the whole set in a single place.
+          A project is capped by size, not by a number of files. The only count Claude sets is in a
+          chat, where you can attach twenty. There, combining is the whole fix: forty documents go
+          in as one file, and one slot of the twenty.
         </p>
       </div>
 
@@ -211,6 +220,15 @@ function WhereItStops() {
           className="hover:text-ink-secondary underline decoration-[oklch(var(--border-strong))] underline-offset-2 transition-colors duration-150"
         >
           Anthropic help center
+        </a>{" "}
+        and its{" "}
+        <a
+          href={CLAUDE_UPLOADS_HELP}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-ink-secondary underline decoration-[oklch(var(--border-strong))] underline-offset-2 transition-colors duration-150"
+        >
+          file upload limits
         </a>
         . On ChatGPT, Gemini, or NotebookLM instead? See{" "}
         <Link
@@ -228,15 +246,15 @@ function WhereItStops() {
 const STEPS = [
   {
     title: "Drop the whole folder",
-    body: "Drag in every document you want the project to know about. Subfolders come along, and you can add a repo or a link too.",
+    body: "Drag in every document the project might need. PDFs, Word, Excel, and notes become text in this tab. Nothing is uploaded.",
   },
   {
-    title: "It reads and counts",
-    body: "PDFs, Word, Excel, and notes become text in this tab, and the token count is shown as it goes. Nothing is uploaded.",
+    title: "Leave out what it does not need",
+    body: "Open Adjust what's included: every file and folder shows its size. Click a row to take it out and the token count updates. Dependencies, lock files and build output are left out already.",
   },
   {
-    title: "Add the one file to your project",
-    body: "Upload the single file to the project once you have seen it fits, and every chat in the project can read the whole set.",
+    title: "Add the one file once it fits",
+    body: "Replace the project's files with the single file, and every chat in the project reads the whole trimmed set.",
   },
 ];
 
@@ -248,7 +266,7 @@ function Workflow() {
           id="claude-workflow"
           className="font-display text-ink max-w-[18ch] text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          From a full folder to one project file.
+          From "exceeds maximum" to a project that fits.
         </h2>
 
         <ol className="space-y-6">
@@ -280,8 +298,9 @@ function WorkedExample() {
           A full folder, packed and counted.
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[46ch] text-[15px] leading-relaxed">
-          A folder that would fill the knowledge on its own goes in. One document comes out, labeled
-          as documents, with the token count already known so you can see it lands in the window.
+          A folder goes in and one document comes out, labeled as documents, with its token count
+          known so you can see it lands in the window. If it does not, leave out a folder and the
+          count updates.
         </p>
       </div>
 
@@ -381,7 +400,7 @@ function ClosingCta() {
         id="claude-cta"
         className="font-display text-ink mx-auto max-w-[20ch] text-balance text-[clamp(1.7rem,4vw,2.2rem)] font-bold leading-[1.08] tracking-[-0.025em]"
       >
-        Fit the whole folder in one project.
+        Make your project fit again.
       </h2>
       <div className="mt-8">
         <button

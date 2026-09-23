@@ -35,15 +35,22 @@ export const Route = createFileRoute("/for/claude-projects")({
         // An error string carries no figure, which is why it is safe here when a
         // cap is not: Google caches a description and it cannot say how old it is.
         // The caps stay in the dated table below the fold.
-        title: "Get past the Claude Projects knowledge limit",
+        //
+        // 2026-09-24: the title now carries the error string itself, the words
+        // people search for, which until then only the description and the
+        // keywords carried. The description also stopped promising that
+        // combining makes a project fit: Claude caps a project by total size, so
+        // one file of the same content is the same size. What clears the error is
+        // leaving things out, with the count in view.
+        title: 'Fix "Project knowledge exceeds maximum" in Claude',
         description:
-          "Project knowledge exceeds maximum? Combine the whole folder into one file and check its token count first. Read in your browser, nothing uploaded.",
+          "Project knowledge exceeds maximum? See which files fill your Claude project, leave out what it doesn't need, add the rest as one file. Nothing uploaded to us.",
         url: "https://fileconcat.com/for/claude-projects",
       }),
       {
         name: "keywords",
         content:
-          "claude project knowledge exceeds maximum, project knowledge exceeds maximum remove files to continue, claude project knowledge limit, claude project file limit, add files to claude project, combine files for claude, claude projects context window, claude project size limit, merge pdfs for claude",
+          "claude project knowledge exceeds maximum, project knowledge exceeds maximum remove files to continue, claude project knowledge limit, claude 20 file limit, claude file upload limit per chat, claude project file limit, add files to claude project, combine files for claude, claude projects context window, claude project size limit, merge pdfs for claude",
       },
     ],
     links: [{ rel: "canonical", href: "https://fileconcat.com/for/claude-projects" }],
