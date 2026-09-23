@@ -40,7 +40,8 @@
         "apps/web/src/components/how-to/chatgpt-upload-limit-faq.ts",
         "apps/web/src/components/how-to/share-all-files-page.tsx",
         "apps/web/src/components/how-to/upload-folder-faq.ts",
-        "apps/web/src/components/how-to/upload-book-faq.ts"
+        "apps/web/src/components/how-to/upload-book-faq.ts",
+        "apps/web/src/content/blog/combine-files-for-llm.mdx"
       ]
     },
     {
@@ -144,7 +145,8 @@
       ],
       "used_by": [
         "apps/web/src/components/how-to/share-all-files-page.tsx",
-        "apps/web/src/components/how-to/upload-book-page.tsx"
+        "apps/web/src/components/how-to/upload-book-page.tsx",
+        "apps/web/src/content/blog/feed-codebase-to-llm.mdx"
       ]
     },
     {

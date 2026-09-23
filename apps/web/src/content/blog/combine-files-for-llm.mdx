@@ -1,6 +1,6 @@
 ---
-title: "How to Combine Multiple Files Into One for ChatGPT"
-description: "Turn several files into one clean, LLM-ready text blob for ChatGPT or Claude. Bundle folders and repos in your browser, with live token counts."
+title: "How to Upload Multiple Files to ChatGPT at Once"
+description: "Upload multiple files to ChatGPT at once as one labeled file: one upload against the cap, every file boundary kept, and the token count shown first."
 date: "2026-07-11"
 author: "CeamKrier"
 draft: false
@@ -20,9 +20,9 @@ config or two. ChatGPT and Claude give you a single box. Getting everything from
 folder into that box, in a shape the model can follow, is the small chore that sits
 between you and the actual question.
 
-This is a practical guide to how to combine multiple files into one for ChatGPT or
-Claude: what the quick approaches cost you, what a labeled bundle looks like, and a
-place partway down to try it on your own files.
+This is a practical guide to uploading multiple files to ChatGPT at once, or to Claude,
+by combining them into one: what the quick approaches cost you, what a labeled bundle
+looks like, and a place partway down to try it on your own files.
 
 ## Why one paste of everything falls short
 
@@ -118,6 +118,15 @@ measurement.
   tokens of `path="..."` buy the model a map it would otherwise have to guess at.
 </Callout>
 
+## Upload multiple files to ChatGPT as one
+
+ChatGPT counts files, not bytes. OpenAI's File Uploads FAQ allows 80 files every 3 hours,
+and 3 a day on the Free plan, as of September 2026, and a Project holds a set number of
+files per plan. A bundle is one file however many went into it, so twenty source files
+and a spec cost one upload and take one Project slot. Every cap by plan:
+[the ChatGPT file upload limit](/how-to/chatgpt-file-upload-limit), and for Projects,
+[the ChatGPT Projects page](/for/chatgpt-projects).
+
 ## How many tokens is that?
 
 The other thing the chat box has is a ceiling: it accepts only so much text at once. So
@@ -139,10 +148,6 @@ per-language spread are in
 
 FileConcat [counts tokens live](/docs/token-estimation) as you build the bundle, so you
 see that number before you paste rather than after.
-
-A ChatGPT Project has a second ceiling, a file count per plan, and one bundle takes one of
-those slots however many documents went into it. The per-plan caps and a worked example are
-on [the ChatGPT Projects page](/for/chatgpt-projects).
 
 [The default filter](/docs/file-filtering) leaves out the parts you almost never want to
 send: lock files, build output, vendored code, and test files by their ecosystem's naming
