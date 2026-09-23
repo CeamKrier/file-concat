@@ -1,6 +1,6 @@
 ---
 title: "What Gets Lost Converting Documents to Text for an LLM"
-description: "What gets lost converting documents to text: 27 documents, each isolating one structure, run through extraction and scored against an independent reader. 13 of 16 defects closed, 3 still open, and the losses the PDF format forces separated from the ones a library chose."
+description: "What gets lost converting documents to text for an LLM: which structures break, which losses a reader chooses and which the format forces, and how to check your own file before you paste it."
 date: "2026-09-07"
 author: "CeamKrier"
 draft: false
@@ -11,76 +11,98 @@ kind: "research"
   items={[
     {
       figure: "13 of 16",
-      text: "Document structures that were losing data in our August reading and no longer are, re-tested on the current build as executable predicates rather than remembered prose. Three remain open and are named below.",
-    },
-    {
-      figure: "27 / 27",
-      text: "Documents routed to the correct reader from their leading bytes alone, across 12 formats. No file was misidentified, including a spreadsheet and a slide deck that share a container signature with a plain zip.",
+      text: "Structure losses we found in our own document reader in August and have fixed since, from merged table cells to footnotes and links.",
     },
     {
       figure: "2 of 4",
-      text: "Comparable PDF structures where our reader recovers something an independent reader loses on identical bytes: column order under an adversarial content stream, and running headers repeated at every page seam.",
+      text: "PDF structures where our reader keeps what an independent reader loses from the same file: column order, and running headers repeated at every page break.",
     },
     {
-      figure: "3 open",
-      text: "Defects still present: spreadsheet dates arriving as raw serial numbers, a superscript footnote marker sorting above the line it annotates, and a page with no text layer disappearing without a note.",
-    },
-    {
-      figure: "981",
-      text: "Pages in OmniDocBench, the largest document parsing benchmark, which explicitly excludes headers, footers, page numbers and footnotes from scoring because tools handle them inconsistently. That is one of the structures we found breaks things.",
+      figure: "3 still open",
+      text: "Losses we have not fixed: spreadsheet dates arriving as raw numbers, a footnote marker sorting above its line, and a scanned page dropped without a note.",
     },
   ]}
-  snapshot="2026-09-07 / 27 documents, 12 formats, 22,789 characters extracted"
+  snapshot="2026-09-07 / 27 test documents in 12 formats"
   citation="Across 27 documents each isolating one structure, measured on 2026-09-07, 13 of 16 known extraction defects were closed and 3 remain; on identical PDF bytes our reader recovered column order and deduplicated running headers where an independent reader (pypdf 6.14.2) did neither (FileConcat, fileconcat.com)."
 />
 
 A PDF is not text. Neither is a Word file or a spreadsheet. Something has to walk the container and
 decide what the words were, and that step is where a document quietly stops meaning what it meant.
 
-The usual way to measure this is to score a parser against ground truth on a pile of real pages and
-report an edit distance. That tells you one tool is a few points better than another. It does not tell
-you **which structure broke**, and it does not tell you whether the loss was the format's fault or the
-library's. Those are different problems with different fixes, and only one of them is worth swapping a
-library over.
+<Contents />
 
-So we built a corpus where every file isolates one structure, ran it through the reader we ship, and ran
-the PDFs through a second reader that shares no code with ours. Three results change what you do with a
-document before you paste it.
+## What gets lost converting documents to text
 
-<Payoff
-  rows={[
+Structure, mostly. The words usually survive, and what they belonged to often does not.
+
+The losses that hurt are not exotic. A running header spliced into the middle of your sentences, a
+footnote detached from its claim, a link reduced to its anchor text, a table value shifted one column
+over. None of them look like errors. A row missing a cell still reads as a row, and a date arriving as
+`46037` still reads as a number somebody meant. A model has no way to know.
+
+<Stopper value="A silent loss is worse" source="every defect ranked broken in this study shares it">
+  Nothing in a bad extraction looks wrong. The row still has a number in it, the date still reads as a
+  date, the report still reads as a whole report. That is the property that makes these worth checking.
+</Stopper>
+
+So if a structure matters to your question, check that it survived. None of these checks needs a tool,
+and each one is faster than reading the document again.
+
+<Checklist
+  label="Before you trust an extracted document"
+  items={[
     {
-      lead: "A silent loss is the one that costs you",
-      body: "Every defect we ranked BROKEN leaves output that still reads as correct. A row missing a cell still reads as a row, a date arriving as 46037 still reads as a number somebody meant.",
-      action: "Open the extracted text and search for the thing you are about to ask about",
+      check: "Search the text for the specific figure you plan to ask about",
+      why: "Every defect we ranked broken produces output that still looks plausible",
     },
     {
-      lead: "The furniture is what wrecks a long document",
-      body: "On three pages with a running header and a footer, an independent reader poured 3 headers and 3 footers into the prose. On a 40-page report that is 80 lines of furniture spliced through your sentences.",
-      action: "Search your output for your own header text before you trust it",
+      check: "Look for your running header repeated inside sentences",
+      why: "A 40-page report can splice 80 lines of furniture through its own prose",
     },
     {
-      lead: "Swapping libraries does not fix reading order",
-      body: "Both readers handle a naturally ordered two-column page. Only one handles a page whose content stream runs across the gutter, and published rankings are averages over pages that are not yours.",
-      action: "Test the page you actually care about, not a benchmark average",
+      check: "Open a date column",
+      why: "A spreadsheet date can arrive as 46037, which reads like a number somebody meant",
+    },
+    {
+      check: "Count the pages",
+      why: "A page that is a scan can vanish with no note",
     },
   ]}
 />
 
-<Contents />
+## Is the loss the format's fault or the reader's?
 
-<Method
-  compact
-  dataset="27 documents across 12 formats, each written to isolate one document structure"
-  sample="22,789 characters extracted, 17 structures encoded as predicates"
-  measured="2026-09-07"
-  build="@fileconcat/core 2.0.0 at 3b73d78"
-  tokenizer="Not applicable. This measures recovered text, not tokens."
-  script="packages/cli/scripts/measure-extraction-quality.ts"
-  excludes="Real-world documents. Every fixture is generated by a real writer library, which is closer to a real file than hand-written XML and is still not a real file."
+It can be either, and only a second reader on the same file tells you which.
+
+Some structure is not in the file at all. A PDF holds positioned text with no notion of a cell, so
+every reader has to guess where a table's cells begin and end.
+
+Other losses are a reader's choice. We ran every PDF through an independent reader that shares no
+code with ours. Both read an ordinary
+two-column page correctly. On one whose internal order runs across the gutter, the other reader
+alternated one line from each column, where ours kept the columns apart. On pages with a running
+header and footer it poured every copy into the prose, where ours kept the header once and marked the
+page breaks instead.
+
+That is why swapping libraries on the strength of a published ranking is a gamble. The rankings score
+whole pages and average them, and the largest one leaves headers and footers out of the score. Test
+the page you actually care about.
+
+## Try it on your own files
+
+Drop a document and read what comes out before you paste it. Three losses are still open in ours:
+spreadsheet dates arrive as raw serial numbers, a superscript footnote marker lands on its own line
+above the claim, and a scanned page inside an otherwise text document is dropped without a note. In
+the browser, the OCR the tool offers can bring that page back if you accept it.
+
+<TryIt
+  title="Drop your own documents"
+  hint="Extraction runs in your browser, on your machine. Nothing is uploaded to us."
 />
 
-## What gets lost converting documents to text
+{/* evidence */}
+
+## What nobody had measured yet
 
 The question this page answers: when a document becomes LLM context, which structures survive, and
 where one does not, is the loss forced by the format or chosen by the reader?
@@ -88,8 +110,6 @@ where one does not, is the loss forced by the format or chosen by the reader?
 The second half is what makes the first half actionable. A structure that every reader loses is a
 property of the file format, and no amount of library shopping will get it back. A structure that
 another reader recovers on the same bytes is a decision, and decisions can be changed.
-
-## What nobody had measured yet
 
 Document extraction is well benchmarked and the benchmarks answer a different question.
 
@@ -174,6 +194,16 @@ structures that are hard, which is a different thing and the right thing for a f
 ## How we measured what was lost
 
 Every file goes through the path the product actually uses. Nothing here reimplements extraction.
+
+<Method
+  dataset="27 generated documents across 12 formats, each isolating one document structure"
+  sample="22,789 characters extracted, 27 of 27 routed correctly, 17 predicates evaluated"
+  measured="2026-09-07"
+  build="@fileconcat/core 2.0.0 at 3b73d78, Node path"
+  tokenizer="Not applicable. Recovered text, not tokens."
+  script="packages/cli/scripts/measure-extraction-quality.ts and extract-pdf-with-pypdf.py"
+  excludes="Real-world documents, non-PDF attribution, model accuracy, and any judgment about whether recovered structure helps an answer."
+/>
 
 <Steps>
   <Step title="Route from the bytes, never the name">
@@ -422,50 +452,6 @@ never for one that loaded carrying no text. The browser's OCR can recover the mi
 the reader accepts it. We are not promising a fix date; emitting the note needs page-level text
 accounting the underlying library does not currently expose.
 
-## What this means for your own documents
-
-**Check the furniture before you trust a long document.** The losses that hurt most are not exotic. They
-are running headers spliced into prose, a footnote detached from its claim, a hyperlink reduced to its
-anchor text. None of them look like errors in the output. All of them change what the document says.
-
-<Stopper value="A silent loss is worse" source="every defect ranked BROKEN in this study shares it">
-  Nothing in a bad extraction looks wrong. The row still has a number in it, the date still reads as a
-  date, the report still reads as a whole report. That is the property that makes these worth checking.
-</Stopper>
-
-**A silent loss is worse than a loud one.** Every defect above that we ranked BROKEN shares one property:
-the output stays plausible. `APAC 980 980` reads as a complete row. A date reading `46037` reads as a
-number someone meant. A part-scanned report reads as a whole report. A model has no way to know.
-
-**If a structure matters to your question, verify it survived.** None of these checks needs a tool, and
-each one is faster than reading the document again.
-
-<Checklist
-  label="Before you trust an extracted document"
-  items={[
-    {
-      check: "Search the text for the specific figure you plan to ask about",
-      why: "Every defect we ranked broken produces output that still looks plausible",
-    },
-    {
-      check: "Look for your running header repeated inside sentences",
-      why: "A 40-page report can splice 80 lines of furniture through its own prose",
-    },
-    {
-      check: "Open a date column",
-      why: "A spreadsheet date can arrive as 46037, which reads like a number somebody meant",
-    },
-    {
-      check: "Count the pages",
-      why: "A page that is a scan can vanish with no note",
-    },
-  ]}
-/>
-
-**Do not assume a library swap fixes reading order.** Both readers here handle a naturally ordered
-two-column page and only one handles an adversarial one. The published rankings are averages over real
-pages, and the page you care about is not the average.
-
 ## Limitations
 
 - **Every fixture is generated.** Real documents are written by software with its own habits, and Word's
@@ -508,23 +494,6 @@ failure does to a run, is in the [CLI usage docs](/docs/cli-usage).
 One number here cannot be reproduced from the current build, and it is named where it appears: the
 defect states as they stood in August describe builds that no longer exist. What the command reproduces
 is the right-hand column, which is the claim this page actually makes.
-
-<Method
-  dataset="27 generated documents across 12 formats, each isolating one document structure"
-  sample="22,789 characters extracted, 27 of 27 routed correctly, 17 predicates evaluated"
-  measured="2026-09-07"
-  build="@fileconcat/core 2.0.0 at 3b73d78, Node path"
-  tokenizer="Not applicable. Recovered text, not tokens."
-  script="packages/cli/scripts/measure-extraction-quality.ts and extract-pdf-with-pypdf.py"
-  excludes="Real-world documents, non-PDF attribution, model accuracy, and any judgment about whether recovered structure helps an answer."
-/>
-
-## Try it on your own files
-
-<TryIt
-  title="Drop your own documents"
-  hint="Extraction runs in your browser, on your machine. Nothing is uploaded to us."
-/>
 
 ## Frequently asked questions
 

@@ -1,6 +1,6 @@
 ---
 title: "XML vs Markdown for LLM Context: 4 Benchmarks, 5 Codebases Measured"
-description: "XML vs Markdown vs plain text for LLM context: what four benchmarks measured, token overhead on five real codebases, and a rule for picking one."
+description: "XML vs Markdown vs plain text for LLM context: which one to pick, what the choice costs on five real codebases, and what four published benchmarks do and do not show."
 date: "2026-08-31"
 author: "CeamKrier"
 draft: false
@@ -10,24 +10,16 @@ kind: "research"
 <KeyFindings
   items={[
     {
-      figure: "0.24 to 1.13%",
-      text: "The whole gap between FileConcat's XML, Markdown and plain output, measured across five real codebases, 248 files and 350,000 tokens of content. Picking a format to save context is optimizing the wrong number.",
-    },
-    {
-      figure: "40% vs 0.036",
-      text: "Format sensitivity is real and it is shrinking. GPT-3.5-turbo swung up to 40% on a code translation task on the prompt template alone, while GPT-4-1106-preview held its dispersion below 0.036 across every benchmark, against 0.035 to 0.176 for the GPT-3.5 series.",
-    },
-    {
-      figure: "2nd and last",
-      text: "No format wins everywhere and the studies contradict each other. XML placed 2nd of 11 on tabular lookup at 56.0%, and last on nested data for two of three models tested: 33.8% for Gemini 2.5 Flash Lite against YAML's 51.9%.",
+      figure: "About 1%",
+      text: "The most the XML, Markdown or plain switch changed a bundle's size across five real codebases. On a typical one it was about half that.",
     },
     {
       figure: "0 of 4",
-      text: "Benchmarks that measure a file bundle. All four measure tables, records or short prompts. A concatenated codebase asks the wrapper for one thing only, to say unambiguously where each file starts and ends, and that is not what a table format gets scored on.",
+      text: "Published format benchmarks that measured a bundle of files rather than tables, records or short prompts. Their rankings also contradict each other.",
     },
     {
-      figure: "7.3%",
-      text: "Share of real files carrying a closing tag that would end an HTML block early. Escaping instead corrupts the code, turning Record<T> into an entity at +5.9% to +10.6% tokens. Markdown has the same trap and a clean fix; HTML has none.",
+      figure: "Up to 40%",
+      text: "How much an older model's score moved on one task from the prompt format alone. Larger, newer models held steadier, so test formats only on a small or local model.",
     },
   ]}
   snapshot="2026-08-31 / 5 codebases, 248 files, 4 published benchmarks"
@@ -37,51 +29,53 @@ kind: "research"
 Under the bundle preview there is a switch with three positions: XML, Markdown, Plain. Most
 people never touch it, and for most bundles that is the right call.
 
-The question comes up often enough to deserve a real answer though, and the answer that
-circulates online is mostly extrapolated from benchmarks that measured something else. Two of
-those results change what you do.
-
-<Payoff
-  rows={[
-    {
-      lead: "The format switch is not where your tokens go",
-      body: "The spread between the three styles is 0.24% to 1.13% of a bundle, roughly 590 to 2,800 tokens on a median one. The wrapper altogether is 0.6% to 3.8%.",
-      action: "Leave the switch alone and cut files instead",
-    },
-    {
-      lead: "Order matters more than markup",
-      body: "Google's own long-context guidance says to supply all the context first and put the question at the very end. That is worth more than every format difference measured on this page combined.",
-      action: "Paste the bundle first, ask your question last",
-    },
-    {
-      lead: "If you run a small or local model, test it yourself",
-      body: "GPT-3.5-turbo swung up to 40% on the prompt template alone while GPT-4 stayed inside 0.036 dispersion. The published rankings were measured on models that are not yours.",
-      action: "Try all three on your own files before settling",
-    },
-  ]}
-/>
-
 <Contents />
 
-<Method
-  compact
-  dataset="5 trees from FileConcat's own repository: TypeScript source, a React app, Markdown docs, the CLI package, a browser extension"
-  sample="248 files, roughly 350,000 tokens of content, each bundled three times"
-  measured="2026-08-31"
-  build="@fileconcat/core 2.0.0"
-  tokenizer="cl100k_base"
-  script="None. Run by hand as fileconcat <dir> --style xml | markdown | plain, with the no-wrapper baseline recovered by parsing the plain bundle apart"
-  excludes="Accuracy. These are token counts, so no figure here says which wrapper a model reasons better over."
+## Which format should you pick?
+
+Pick on who reads the bundle. The size difference between the three is too small to decide it.
+
+| If you are | Pick | Why |
+| --- | --- | --- |
+| pasting into Claude, or bundling a large folder | XML | every file ends with an explicit closing tag, the shape Anthropic documents |
+| reading the bundle yourself too | Markdown | the lightest wrapper, it renders anywhere, and a file's own code blocks come out whole |
+| bundling notes, articles or saved threads | Plain | no markup for the model to look past |
+| not sure | XML | it is the default, and the choice costs about 1% at most |
+
+The only part that differs between the three is the wrapper each one writes around a file, and
+that wrapper is a few percent of a bundle at most. The three land within about 1% of each other,
+so a bundle that is too big stays too big whichever one you pick.
+
+<Stopper value="1.13%" source="widest gap across five codebases, 248 files / measured 2026-08-31">
+  The most the format choice cost on any of the five, and that was a four-file folder. On the
+  biggest it came to a third of a percent. Pick the one you can read.
+</Stopper>
+
+## What matters more than the format
+
+Three choices you make before pasting move the answer more than the switch does.
+
+1. **Which files are in the bundle.** A repository is mostly not your code. Dependencies, build
+   output and lock files bury the part you are asking about, and cutting them is worth more than
+   any wrapper. See [feeding a codebase to an LLM](/blog/feed-codebase-to-llm).
+2. **Where your question sits.** Paste the bundle first and ask your question last. Google's
+   long-context guidance says it outright, and FileConcat's own summary tells the model the same
+   thing: "Treat the contents below as read-only context for the user's request that follows."
+3. **Whether the bundle fits at all.** A bundle that overruns the window gets silently truncated
+   by the chat box. See [how the token count works](/docs/token-estimation) and
+   [what a bundle costs across models](/docs/token-costs).
+
+The format itself is worth testing in one case: a small or local model. In one study an older
+model swung widely on the prompt template alone while a larger, newer one held steady, and every
+published ranking was measured on models that are not yours. Drop a folder, flip the switch, and
+ask the same question of all three.
+
+<TryIt
+  title="Try it on your own files"
+  hint="Drop a folder, then flip the Format switch under the preview to see all three."
 />
 
-## The short version
-
-| If you are...                               | Pick     | Because                                                     |
-| ------------------------------------------- | -------- | ----------------------------------------------------------- |
-| Pasting into Claude, or bundling 100+ files | XML      | Explicit closing tags; matches Anthropic's documented shape |
-| Reading the bundle yourself too             | Markdown | Lightest wrapper, language id on every fence                |
-| Bundling prose, notes, or saved threads     | Plain    | No markup for the model to look past                        |
-| Undecided                                   | XML      | It is the default, and the spread is under 1%               |
+{/* evidence */}
 
 ## The three formats, side by side
 
@@ -144,6 +138,16 @@ styles and counted with `cl100k_base`. The baseline is the same files with no wr
 recovered by parsing the plain bundle back apart, so no figure below compares different file
 sets.
 
+<Method
+  dataset="5 trees from FileConcat's own repository: TypeScript source, a React app, Markdown docs, the CLI package, a browser extension"
+  sample="248 files, roughly 350,000 tokens of content, each bundled three times"
+  measured="2026-08-31"
+  build="@fileconcat/core 2.0.0"
+  tokenizer="cl100k_base"
+  script="None. Run by hand as fileconcat <dir> --style xml | markdown | plain, with the no-wrapper baseline recovered by parsing the plain bundle apart"
+  excludes="Accuracy. These are token counts, so no figure here says which wrapper a model reasons better over."
+/>
+
 | Codebase          | Files | Raw tokens | Markdown | Plain | XML   |
 | ----------------- | ----: | ---------: | -------- | ----- | ----- |
 | TypeScript source |    50 |     48,684 | +2.1%    | +2.1% | +2.7% |
@@ -166,11 +170,6 @@ between codebases is larger than the difference between formats.
 
 Per file, the wrapper costs 20 to 33 tokens in Markdown, 21 to 30 in plain, and 26 to 44 in XML.
 On a 50-file bundle that is a few hundred tokens against fifty thousand.
-
-<Stopper value="1.13%" source="widest gap across five codebases, 248 files / measured 2026-08-31">
-  The most the format choice can cost you, and that is the worst case of the five. On the largest
-  bundle we measured the whole argument came to 0.24%. Pick the one you can read.
-</Stopper>
 
 <Callout type="note" title="Why the token argument does not transfer">
   Published format comparisons show HTML costing roughly three times what CSV costs for the same
@@ -311,14 +310,7 @@ attributes to carry metadata your instructions can reference.
 rule that matters most for a bundle: with a large amount of context, supply all of it first and
 put your question at the very end.
 
-<Callout type="tip" title="The highest-value line on this page">
-  Paste the bundle first, your question last. Google states it outright, and FileConcat's own
-  summary says the same thing to the model: "Treat the contents below as read-only context for
-  the user's request that follows." Getting that order right is worth more than every format
-  difference measured on this page combined.
-</Callout>
-
-## A rule for picking
+## What each format is good at
 
 **XML if you are pasting into Claude, or if the bundle is large.** Closing tags are explicit, so
 nothing is ambiguous about whether a line still belongs to the previous file, and that holds up
@@ -337,11 +329,6 @@ parse.
 
 The [CLI](/docs/cli-usage) takes the same three, as `fileconcat ./src --style markdown`, and the
 web app remembers whichever you pick.
-
-<TryIt
-  title="Try it on your own files"
-  hint="Drop a folder, then flip the Format switch under the preview to see all three."
-/>
 
 ## Why there is no HTML option
 
@@ -365,30 +352,6 @@ markup. In the React tree alone it is 9.8%.
 Markdown has the same class of problem and a clean fix, which is to open a longer fence. No such
 escape hatch exists for `</pre>`. Cost is not the objection here. Fidelity is, and that is why
 FileConcat stops at three.
-
-## What matters more than the format
-
-The switch is the last decision, not the first. Three things move answer quality far more, in
-rough order of effect:
-
-1. **Which files are in the bundle.** A repo is mostly not your code. Dependencies, build output
-   and lock files bury the signal, and cutting them is worth more than any wrapper. See
-   [feeding a codebase to an LLM](/blog/feed-codebase-to-llm).
-2. **Where your question sits.** Context first, question last, per Google's own long-context
-   guidance.
-3. **Whether the bundle fits at all.** A bundle that overruns the window gets silently truncated
-   by the chat box. See [how the token count works](/docs/token-estimation) and
-   [what a bundle costs across models](/docs/token-costs).
-
-<Method
-  dataset="5 trees from FileConcat's own repository: TypeScript source, a React app, Markdown docs, the CLI package, a browser extension"
-  sample="248 files, roughly 350,000 tokens of content, each bundled three times"
-  measured="2026-08-31"
-  build="@fileconcat/core 2.0.0"
-  tokenizer="cl100k_base"
-  script="None. Run by hand as fileconcat <dir> --style xml | markdown | plain, with the no-wrapper baseline recovered by parsing the plain bundle apart"
-  excludes="Accuracy. These are token counts, so no figure here says which wrapper a model reasons better over."
-/>
 
 ## Limitations
 
