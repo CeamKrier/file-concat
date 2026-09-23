@@ -94,9 +94,9 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
 }
 
 /** The answer to the query this page ranks for, so the hero and the table below
- * cannot drift apart. Re-checked at OPENAI_PROJECTS_HELP on 2026-09-14: its
+ * cannot drift apart. Re-checked at OPENAI_PROJECTS_HELP on 2026-09-23: its
  * "Plans and limits" section states Free 5, Go and Plus 25,
- * Edu/Pro/Business/Enterprise 40 files per project. The same day a Plus
+ * Edu/Pro/Business/Enterprise 40 files per project. On 2026-09-14 a Plus
  * account took files 21 to 25 and refused the 26th, so the Plus figure is
  * measured, not only read. The article's "only 10 files can be uploaded at
  * the same time" did not bite (11 went in one pass), so the page no longer

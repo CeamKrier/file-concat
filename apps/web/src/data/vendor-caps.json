@@ -4,12 +4,12 @@
     {
       "url": "https://help.openai.com/en/articles/10169521-using-projects-in-chatgpt",
       "anchor": "Projects in ChatGPT",
-      "checked": "2026-09-14",
+      "checked": "2026-09-23",
       "quotes": [
         "Pro users: up to 40 files",
         "Plus and Go users: up to 25 files",
         "Free users: up to 5 files",
-        "40 for Business, Enterprise and Edu users"
+        "Business, Enterprise, and Edu projects support up to 40 files"
       ],
       "used_by": [
         "apps/web/src/components/personas/chatgpt-projects-page.tsx",
@@ -49,10 +49,10 @@
     {
       "url": "https://support.claude.com/en/articles/8606394-how-large-is-the-context-window-on-paid-claude-plans",
       "anchor": "How large is the context window on paid Claude plans",
-      "checked": "2026-09-14",
+      "checked": "2026-09-23",
       "quotes": [
-        "support a 1M token context window on all paid plans when chatting with Claude",
-        "support a 500K token context window on all paid plans when chatting with Claude",
+        "Chatting with Claude Model Context window Claude Fable 5.1 1M tokens",
+        "Claude Sonnet 4.6 500K tokens",
         "context window size is 200K"
       ],
       "used_by": [

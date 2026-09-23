@@ -140,7 +140,7 @@ function Capacity() {
 
 /** Claude-specific caps, deeper than the cross-platform hub table: what a project
  * is actually bounded by, so the reader sees why a file count never appears.
- * Re-checked at the Claude help center on 2026-09-14: the window is 200K
+ * Re-checked at the Claude help center on 2026-09-23: the window is 200K
  * outside the newest models and 500K or 1M with them on paid plans
  * (support.claude.com/en/articles/8606394), paid plans switch to RAG mode
  * "up to 10x" past it (articles/11473015), free accounts get five projects
