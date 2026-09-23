@@ -14,11 +14,11 @@ export const NOTEBOOKLM_FAQ = [
     // mid-research: people paste the notebook's own refusal into a search box.
     // Answered as a question about the situation, not as the message itself.
     q: "What can I do when a notebook will not take any more sources?",
-    a: "The notebook has reached its source cap, so the fix is to make the next batch arrive as fewer sources rather than to delete what is already there. Combine the documents you were about to add into one file and add that: however many went in, the notebook counts one source. The file tree at the top keeps each document labeled, so citations still point at the right one.",
+    a: "The notebook has reached its source cap, so the fix is to make the next batch arrive as fewer sources rather than to delete what is already there. Combine the documents you were about to add into one file and add that: however many went in, the notebook counts one source. Each document sits under its own name in the file, so a cited passage can be traced back to it.",
   },
   {
     q: "Is there a size limit per source in NotebookLM?",
-    a: "Yes. Each source can hold up to 500,000 words, or 200 MB for an uploaded file. A combined file stays one source, and FileConcat leaves out boilerplate so the word count goes to the content that matters.",
+    a: "Yes. Each source can hold up to 500,000 words, or 200 MB for an uploaded file, as of September 2026. FileConcat counts the combined file in tokens before you add it, and words run fewer than tokens, so a file under 500,000 tokens is under the cap.",
   },
   {
     q: "Does combining files count as one source?",
@@ -29,7 +29,15 @@ export const NOTEBOOKLM_FAQ = [
     a: "Yes. FileConcat reads PDF, Word, Excel, and PowerPoint files in your browser and turns them into text, so the combined source is plain text NotebookLM can ground its answers and citations on.",
   },
   {
+    q: "Which file type should I download for NotebookLM?",
+    a: "Markdown or Plain, set under Format before you download, which saves a .md or .txt file. Google lists both among the file types a notebook takes, and XML, the default format, is not on that list. Copying the file and adding it as pasted text works too.",
+  },
+  {
+    q: "Can I add a GitHub repository to NotebookLM?",
+    a: "Not by its link alone: a website source brings in the text of that one page, and Google says nested pages are not imported, so the code stays out. Paste the repository link on this page instead, and the whole repository comes back as one file you add as a single source.",
+  },
+  {
     q: "Are my documents uploaded to a server?",
-    a: "No. Every file, including the PDFs and Office documents, is read in your browser tab. Nothing is uploaded, and there is no account to create.",
+    a: "Not to us. Every file, including the PDFs and Office documents, is read in your browser tab, and there is no account to create.",
   },
 ];

@@ -150,10 +150,11 @@
     {
       "url": "https://support.google.com/gemininotebook/answer/16213268",
       "anchor": "Gemini Notebook",
-      "checked": "2026-09-14",
+      "checked": "2026-09-24",
       "quotes": ["Sources 50/notebook 100/notebook 300/notebook 500/notebook 600/notebook"],
       "used_by": [
         "apps/web/src/components/personas/notebooklm-page.tsx",
+        "apps/web/src/components/personas/notebooklm-faq.ts",
         "apps/web/src/components/how-to/share-all-files-page.tsx"
       ]
     },
@@ -163,10 +164,14 @@
       "checked": "2026-09-24",
       "quotes": [
         "Each source can contain up to 500,000 words or up to 200MB for uploaded files",
-        "ePub files"
+        "ePub files",
+        "Text (txt), Markdown (md)",
+        "Only the text content of the given HTML webpage is scraped for use as a source",
+        "nested webpages are not imported"
       ],
       "used_by": [
         "apps/web/src/components/personas/notebooklm-page.tsx",
+        "apps/web/src/components/personas/notebooklm-faq.ts",
         "apps/web/src/components/how-to/share-all-files-page.tsx",
         "apps/web/src/components/how-to/upload-book-page.tsx",
         "apps/web/src/components/how-to/upload-book-faq.ts"

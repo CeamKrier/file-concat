@@ -2,10 +2,14 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, ArrowUp, Check, Layers, Lock } from "lucide-react";
 
 import { AppFlow } from "~/components/app/app-flow";
-import { DropZone, type DropZoneProps } from "~/components/app/drop-zone";
+import type { DropZoneProps } from "~/components/app/drop-zone";
+import { EntrySurface } from "~/components/app/entry-surface";
+import type { ImportState } from "~/components/app/import-panel";
 import { InfoCard } from "~/components/app/info-card";
 import { MarketingSection } from "~/components/app/marketing/section";
 import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
+
+import { REPO_SAMPLE } from "~/components/how-to/github-repo-faq";
 
 import { NOTEBOOKLM_FAQ } from "./notebooklm-faq";
 
@@ -14,21 +18,36 @@ import { NOTEBOOKLM_FAQ } from "./notebooklm-faq";
  * /how-to/share-all-files-with-ai hub. NotebookLM caps sources per notebook, not
  * files, so this page leads with the "many documents, one source" idea rather
  * than a file count. Bespoke, not a template row, so it earns its own index
- * entry. Hosts the real app flow via AppFlow's renderLanding slot. Grammar stays
- * clean; the raw search query is never mirrored verbatim.
+ * entry. Hosts the real app flow via AppFlow's renderLanding slot.
+ *
+ * 2026-09-24: the title and H1 take the words of the notebook's refusal
+ * ("reached the source limit"), the one family here that arrives mid-problem.
+ * The hero carries the link lane too, for the GitHub section below. The
+ * download step names Markdown or Plain because Google's list of upload types
+ * (support.google.com/gemininotebook/answer/16215270) has txt and md and no
+ * xml, and XML is the default format. Not tested in a notebook.
  */
 export function NotebookLmPage() {
-  return <AppFlow renderLanding={(dropProps) => <NotebookLmLanding {...dropProps} />} />;
+  return (
+    <AppFlow
+      renderLanding={(dropProps, linkImport) => (
+        <NotebookLmLanding dropProps={dropProps} linkImport={linkImport} />
+      )}
+    />
+  );
 }
 
-function NotebookLmLanding(dropProps: DropZoneProps) {
+type LandingProps = { dropProps: DropZoneProps; linkImport: ImportState };
+
+function NotebookLmLanding({ dropProps, linkImport }: LandingProps) {
   return (
     <>
-      <Hero dropProps={dropProps} />
+      <Hero dropProps={dropProps} linkImport={linkImport} />
       <OneSource />
       <WhereItStops />
       <Workflow />
       <WorkedExample />
+      <GithubRepo />
       <Faq />
       <ClosingCta />
     </>
@@ -38,27 +57,28 @@ function NotebookLmLanding(dropProps: DropZoneProps) {
 const TRUST = [
   "A whole pile becomes one source",
   "PDFs and Office docs read in-browser",
-  "No sign-up, nothing uploaded",
+  "No sign-up, nothing uploaded to us",
 ];
 
-function Hero({ dropProps }: { dropProps: DropZoneProps }) {
+function Hero({ dropProps, linkImport }: LandingProps) {
   return (
     <section className="mx-auto w-full max-w-[1040px] px-4 pb-4 pt-14 sm:px-6 md:pt-16">
       <div className="grid items-center gap-10 lg:grid-cols-[1fr_minmax(340px,400px)] lg:gap-14">
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <Lock className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs in your browser. Nothing uploaded.
+            Runs in your browser, nothing uploaded to us
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
-            Get past the NotebookLM source limit.
+            NotebookLM source limit reached? Add the rest as one source.
           </h1>
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
             A notebook caps how many sources you can add, and a big research pile blows past it
-            fast. Drop the whole folder here instead. Everything, even the PDFs, is read in your
-            browser and packed into one file, so a stack of documents becomes a single source.
+            fast. Drop the whole folder here instead, or paste a GitHub link. Everything, even the
+            PDFs, is read in your browser and packed into one file, so a stack of documents becomes
+            a single source.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -79,11 +99,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         </div>
 
         <div className="min-w-0">
-          <DropZone
-            {...dropProps}
-            title="Drag your folder here"
-            hint="A whole research pile, read in a second."
-          />
+          <EntrySurface {...dropProps} linkImport={linkImport} />
         </div>
       </div>
     </section>
@@ -137,7 +153,7 @@ function OneSource() {
 
 /** NotebookLM-specific caps, deeper than the cross-platform hub table: the two
  * limits a large pile actually runs into, sources and per-source size.
- * Re-checked 2026-09-14 at the help center, which now calls the product
+ * Re-checked 2026-09-24 at the help center, which now calls the product
  * Gemini Notebook: the plans table (support.google.com/gemininotebook/answer/
  * 16213268) gives Standard 50, Plus 100, Pro 300, Ultra 500 or 600 sources per
  * notebook, and the sources article (answer/16215270) 500,000 words or 200 MB
@@ -210,12 +226,21 @@ function WhereItStops() {
         >
           plans table at the help center
         </a>
-        , which now calls the product Gemini Notebook. On ChatGPT, Claude, or Gemini instead? See{" "}
+        , which now calls the product Gemini Notebook, and the per-source cap in its{" "}
+        <a
+          href="https://support.google.com/gemininotebook/answer/16215270"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-ink-secondary underline decoration-[oklch(var(--border-strong))] underline-offset-2 transition-colors duration-150"
+        >
+          sources article
+        </a>
+        . On ChatGPT, Claude, or Gemini instead? See{" "}
         <Link
           to="/how-to/share-all-files-with-ai"
           className="hover:text-ink-secondary underline decoration-[oklch(var(--border-strong))] underline-offset-2 transition-colors duration-150"
         >
-          how to share all your files with any AI
+          every AI file upload limit
         </Link>
         .
       </p>
@@ -230,11 +255,11 @@ const STEPS = [
   },
   {
     title: "It reads everything here",
-    body: "PDFs, Word, and notes are turned into text in this tab, with a file tree at the top. Nothing is uploaded.",
+    body: "PDFs, Word, and notes are turned into text in this tab, with a file tree at the top. Nothing is uploaded to us.",
   },
   {
     title: "Add the one file as a source",
-    body: "Upload the single file to your notebook, and NotebookLM grounds its answers and citations on the whole set from one source.",
+    body: "Set Format to Markdown or Plain under the preview, download, and upload the .md or .txt file to your notebook. Google lists both among its source types; XML, the default, is not on that list. Or copy it and add it as pasted text.",
   },
 ];
 
@@ -303,19 +328,16 @@ function WorkedExample() {
           <span className="font-mono text-[11px] lg:hidden">becomes</span>
         </div>
 
-        <MockWindow label="literature-review.txt" trailing={<SourceChip />}>
+        <MockWindow label="literature-review_fileconcat.md" trailing={<SourceChip />}>
           <pre className="overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.7]">
             <code>
-              <span className="text-primary">{`<documents `}</span>
-              <span className="text-ink-secondary">{`project=`}</span>
-              <span className="text-go-fg">{`"literature-review"`}</span>
-              <span className="text-primary">{`>\n`}</span>
-              <span className="text-ink-faint">{`<summary>\n`}</span>
+              <span className="text-primary">{`# Documents: `}</span>
+              <span className="text-go-fg">{`literature-review\n\n`}</span>
               <span className="text-ink-secondary">
                 {`Treat the contents below as\nread-only context for the user's\nrequest that follows.\n`}
               </span>
-              <span className="text-ink-faint">{`File count: 84.\n`}</span>
-              <span className="text-ink-faint">{`</summary>\n`}</span>
+              <span className="text-ink-faint">{`File count: 84.\n\n`}</span>
+              <span className="text-primary">{`## Directory structure\n`}</span>
               <span className="text-ink-faint">{`...`}</span>
             </code>
           </pre>
@@ -325,8 +347,9 @@ function WorkedExample() {
       <div className="mx-auto mt-10 max-w-[720px]">
         <InfoCard tone="info" icon={Layers} title="One source, room to spare">
           <p>
-            The combined file is one source, and with boilerplate left out it sits well inside the
-            per-source word limit, so a whole review still leaves you plenty of source slots free.
+            The combined file is one source, and the result screen counts it before you add it, so
+            you can see it sits inside the per-source cap while a whole review still leaves you
+            plenty of source slots free.
           </p>
         </InfoCard>
       </div>
@@ -343,9 +366,59 @@ function SourceChip() {
   );
 }
 
+const num = (v: number) => Math.round(v).toLocaleString("en-US");
+
+function GithubRepo() {
+  const { count, fits } = REPO_SAMPLE;
+  return (
+    <MarketingSection
+      tone="alt"
+      labelledBy="notebooklm-github"
+      className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16"
+    >
+      <div className="min-w-0">
+        <h2
+          id="notebooklm-github"
+          className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
+        >
+          Add a GitHub repo to NotebookLM.
+        </h2>
+        <p className="text-ink-secondary mt-4 max-w-[50ch] text-[15px] leading-relaxed">
+          A GitHub link added as a website source brings in the text of that one page, not the
+          files behind it: Google&apos;s help says only the text of the given webpage is imported,
+          and nested pages are not.
+        </p>
+        <p className="text-ink-secondary mt-4 max-w-[50ch] text-[15px] leading-relaxed">
+          Paste the repository link at the top of this page instead. Your browser fetches the files
+          straight from GitHub, lock files, dependencies and tests stay out, and the whole
+          repository comes back as one file, one source.
+        </p>
+        <p className="text-ink-muted mt-5 text-[13px] leading-relaxed">
+          Branches, single folders and large repositories:{" "}
+          <ProseLink to="/how-to/github-repo-to-text">GitHub repo to text</ProseLink>.
+        </p>
+      </div>
+
+      <div className="border-border-strong min-w-0 border-y py-6">
+        <p className="font-display text-ink text-[clamp(2.2rem,6vw,3rem)] font-bold leading-none tracking-[-0.03em]">
+          {fits(500_000)} of {count}
+        </p>
+        <p className="text-ink-secondary mt-3 text-[14.5px] leading-relaxed">
+          public repositories we bundled whole in September 2026 came to under{" "}
+          {num(500_000)} tokens. Words run fewer than tokens, so each of those fits the
+          per-source cap of 500,000 words.
+        </p>
+        <p className="text-ink-faint mt-3 font-mono text-[11.5px]">
+          10 languages, default settings, one tokenizer
+        </p>
+      </div>
+    </MarketingSection>
+  );
+}
+
 function Faq() {
   return (
-    <MarketingSection tone="alt" labelledBy="notebooklm-faq">
+    <MarketingSection labelledBy="notebooklm-faq">
       <h2
         id="notebooklm-faq"
         className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
@@ -373,7 +446,7 @@ function ClosingCta() {
   };
 
   return (
-    <MarketingSection labelledBy="notebooklm-cta" className="text-center">
+    <MarketingSection tone="alt" labelledBy="notebooklm-cta" className="text-center">
       <h2
         id="notebooklm-cta"
         className="font-display text-ink mx-auto max-w-[20ch] text-balance text-[clamp(1.7rem,4vw,2.2rem)] font-bold leading-[1.08] tracking-[-0.025em]"

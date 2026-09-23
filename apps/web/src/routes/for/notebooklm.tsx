@@ -27,15 +27,18 @@ export const Route = createFileRoute("/for/notebooklm")({
         // Same rule as /for/chatgpt-projects: no figures in a meta description,
         // because it cannot carry the snapshot date and the link that make a
         // vendor's number safe to state.
-        title: "Get past the NotebookLM source limit",
+        // 2026-09-24: the refusal's own words lead ("reached the source limit"),
+        // since that family arrives mid-problem and the count questions do not
+        // click; GitHub repo into NotebookLM has a section and a keyword.
+        title: "NotebookLM source limit reached? Add more as one source",
         description:
-          "Notebook reached the source limit? Combine a whole research pile into one file that lands as a single source. Read in your browser, nothing uploaded.",
+          "Notebook reached the source limit? Combine your documents, or a GitHub repo, into one text file NotebookLM adds as a single source. Nothing uploaded to us.",
         url: "https://fileconcat.com/for/notebooklm",
       }),
       {
         name: "keywords",
         content:
-          "notebooklm source limit, notebooklm sources limit, notebook has reached the source limit, how many files can notebooklm handle, notebooklm source limit workaround, add more sources to notebooklm, combine files for notebooklm, notebooklm 50 sources, notebooklm max sources, notebooklm source size limit",
+          "notebooklm source limit, notebooklm sources limit, notebook has reached the source limit, how many files can notebooklm handle, notebooklm source limit workaround, add more sources to notebooklm, combine files for notebooklm, notebooklm 50 sources, notebooklm max sources, notebooklm source size limit, notebooklm file size limit, github repo to notebooklm, add github repository to notebooklm",
       },
     ],
     links: [{ rel: "canonical", href: "https://fileconcat.com/for/notebooklm" }],
