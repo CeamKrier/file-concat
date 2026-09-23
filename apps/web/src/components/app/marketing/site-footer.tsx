@@ -70,6 +70,9 @@ export function SiteFooter() {
             <Link to="/how-to/upload-folder-to-chatgpt" className={linkClass}>
               Folder or ZIP to ChatGPT
             </Link>
+            <Link to="/how-to/github-repo-to-text" className={linkClass}>
+              GitHub repo to text
+            </Link>
             <Link to="/for/claude-projects" className={linkClass}>
               For Claude Projects
             </Link>

@@ -17,6 +17,7 @@ import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as HowToUploadFolderToChatgptRouteImport } from './routes/how-to/upload-folder-to-chatgpt'
 import { Route as HowToShareAllFilesWithAiRouteImport } from './routes/how-to/share-all-files-with-ai'
+import { Route as HowToGithubRepoToTextRouteImport } from './routes/how-to/github-repo-to-text'
 import { Route as HowToChatgptFileUploadLimitRouteImport } from './routes/how-to/chatgpt-file-upload-limit'
 import { Route as ForResearchersRouteImport } from './routes/for/researchers'
 import { Route as ForNotebooklmRouteImport } from './routes/for/notebooklm'
@@ -74,6 +75,11 @@ const HowToShareAllFilesWithAiRoute =
     path: '/how-to/share-all-files-with-ai',
     getParentRoute: () => rootRouteImport,
   } as any)
+const HowToGithubRepoToTextRoute = HowToGithubRepoToTextRouteImport.update({
+  id: '/how-to/github-repo-to-text',
+  path: '/how-to/github-repo-to-text',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HowToChatgptFileUploadLimitRoute =
   HowToChatgptFileUploadLimitRouteImport.update({
     id: '/how-to/chatgpt-file-upload-limit',
@@ -165,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
   '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
+  '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/how-to/upload-folder-to-chatgpt': typeof HowToUploadFolderToChatgptRoute
   '/blog/': typeof BlogIndexRoute
@@ -189,6 +196,7 @@ export interface FileRoutesByTo {
   '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
   '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
+  '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/how-to/upload-folder-to-chatgpt': typeof HowToUploadFolderToChatgptRoute
   '/blog': typeof BlogIndexRoute
@@ -214,6 +222,7 @@ export interface FileRoutesById {
   '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
   '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
+  '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/how-to/upload-folder-to-chatgpt': typeof HowToUploadFolderToChatgptRoute
   '/blog/': typeof BlogIndexRoute
@@ -240,6 +249,7 @@ export interface FileRouteTypes {
     | '/for/notebooklm'
     | '/for/researchers'
     | '/how-to/chatgpt-file-upload-limit'
+    | '/how-to/github-repo-to-text'
     | '/how-to/share-all-files-with-ai'
     | '/how-to/upload-folder-to-chatgpt'
     | '/blog/'
@@ -264,6 +274,7 @@ export interface FileRouteTypes {
     | '/for/notebooklm'
     | '/for/researchers'
     | '/how-to/chatgpt-file-upload-limit'
+    | '/how-to/github-repo-to-text'
     | '/how-to/share-all-files-with-ai'
     | '/how-to/upload-folder-to-chatgpt'
     | '/blog'
@@ -288,6 +299,7 @@ export interface FileRouteTypes {
     | '/for/notebooklm'
     | '/for/researchers'
     | '/how-to/chatgpt-file-upload-limit'
+    | '/how-to/github-repo-to-text'
     | '/how-to/share-all-files-with-ai'
     | '/how-to/upload-folder-to-chatgpt'
     | '/blog/'
@@ -313,6 +325,7 @@ export interface RootRouteChildren {
   ForNotebooklmRoute: typeof ForNotebooklmRoute
   ForResearchersRoute: typeof ForResearchersRoute
   HowToChatgptFileUploadLimitRoute: typeof HowToChatgptFileUploadLimitRoute
+  HowToGithubRepoToTextRoute: typeof HowToGithubRepoToTextRoute
   HowToShareAllFilesWithAiRoute: typeof HowToShareAllFilesWithAiRoute
   HowToUploadFolderToChatgptRoute: typeof HowToUploadFolderToChatgptRoute
   BlogIndexRoute: typeof BlogIndexRoute
@@ -375,6 +388,13 @@ declare module '@tanstack/react-router' {
       path: '/how-to/share-all-files-with-ai'
       fullPath: '/how-to/share-all-files-with-ai'
       preLoaderRoute: typeof HowToShareAllFilesWithAiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-to/github-repo-to-text': {
+      id: '/how-to/github-repo-to-text'
+      path: '/how-to/github-repo-to-text'
+      fullPath: '/how-to/github-repo-to-text'
+      preLoaderRoute: typeof HowToGithubRepoToTextRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/how-to/chatgpt-file-upload-limit': {
@@ -497,6 +517,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForNotebooklmRoute: ForNotebooklmRoute,
   ForResearchersRoute: ForResearchersRoute,
   HowToChatgptFileUploadLimitRoute: HowToChatgptFileUploadLimitRoute,
+  HowToGithubRepoToTextRoute: HowToGithubRepoToTextRoute,
   HowToShareAllFilesWithAiRoute: HowToShareAllFilesWithAiRoute,
   HowToUploadFolderToChatgptRoute: HowToUploadFolderToChatgptRoute,
   BlogIndexRoute: BlogIndexRoute,

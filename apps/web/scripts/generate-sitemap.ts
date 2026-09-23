@@ -150,6 +150,15 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    url: "/how-to/github-repo-to-text",
+    sourceFile: [
+      "apps/web/src/routes/how-to/github-repo-to-text.tsx",
+      "apps/web/src/components/how-to/github-repo-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
     url: "/how-to/share-all-files-with-ai",
     sourceFile: [
       "apps/web/src/routes/how-to/share-all-files-with-ai.tsx",
