@@ -51,7 +51,8 @@
       ],
       "used_by": [
         "apps/web/src/components/how-to/upload-folder-page.tsx",
-        "apps/web/src/components/how-to/upload-folder-faq.ts"
+        "apps/web/src/components/how-to/upload-folder-faq.ts",
+        "apps/web/src/components/how-to/share-all-files-page.tsx"
       ]
     },
     {
@@ -121,8 +122,20 @@
       "used_by": [
         "apps/web/src/components/personas/claude-projects-page.tsx",
         "apps/web/src/components/personas/claude-projects-faq.ts",
-        "apps/web/src/routes/for/claude-projects.tsx"
+        "apps/web/src/routes/for/claude-projects.tsx",
+        "apps/web/src/components/how-to/share-all-files-page.tsx"
       ]
+    },
+    {
+      "url": "https://support.google.com/gemini/answer/14903178",
+      "anchor": "analyze files in Gemini Apps",
+      "checked": "2026-09-24",
+      "quotes": [
+        "Up to 10 files (subject to availability) can be uploaded in the same prompt",
+        "All other supported file types can be up to 100 MB",
+        "One code folder, or one GitHub repository, with up to 5,000 files and a maximum size of 100 MB, can be added to a chat"
+      ],
+      "used_by": ["apps/web/src/components/how-to/share-all-files-page.tsx"]
     },
     {
       "url": "https://support.google.com/gemininotebook/answer/16213268",
@@ -139,7 +152,10 @@
       "anchor": "Gemini Notebook",
       "checked": "2026-09-14",
       "quotes": ["Each source can contain up to 500,000 words or up to 200MB for uploaded files"],
-      "used_by": ["apps/web/src/components/personas/notebooklm-page.tsx"]
+      "used_by": [
+        "apps/web/src/components/personas/notebooklm-page.tsx",
+        "apps/web/src/components/how-to/share-all-files-page.tsx"
+      ]
     },
     {
       "url": "https://workspace.google.com/blog/product-announcements/new-gemini-gems-deeper-knowledge-and-business-context",
