@@ -1,6 +1,6 @@
 /**
- * FAQ for /how-to/gitingest-alternative. Rendered on the page and emitted as
- * FAQPage JSON-LD from the route, so it lives in its own module.
+ * FAQ for /how-to/gitingest-repomix-alternative. Rendered on the page and
+ * emitted as FAQPage JSON-LD from the route, so it lives in its own module.
  *
  * Every statement about gitingest and Repomix is their own, read on 2026-09-24
  * and pinned in src/data/vendor-caps.json: gitingest.com, its README on
