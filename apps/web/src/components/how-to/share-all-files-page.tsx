@@ -46,7 +46,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <Lock className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs in your browser. Nothing uploaded.
+            Runs in your browser. Nothing uploaded to us.
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
@@ -242,11 +242,11 @@ const STEPS = [
   },
   {
     title: "It reads everything here",
-    body: "PDFs, Word, Excel, code, and notes are turned into text right in this tab. Nothing is uploaded.",
+    body: "PDFs, Word, Excel, code, and notes are turned into text right in this tab. Nothing is uploaded to us.",
   },
   {
     title: "Paste the one file in",
-    body: "Copy the single file and paste it into ChatGPT, Claude, or Gemini, or add it to a project, with its token count already known.",
+    body: "Copy the single file and paste it into ChatGPT, Claude, or Gemini, with its token count already known. For a ChatGPT or Claude project, set Format to Plain and upload the .txt, a type both list.",
   },
 ];
 

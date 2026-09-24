@@ -41,7 +41,7 @@ function ClaudeProjectsLanding(dropProps: DropZoneProps) {
 const TRUST = [
   "See the token count before you add it",
   "PDFs and Office docs read in-browser",
-  "No sign-up, nothing uploaded",
+  "No sign-up, nothing uploaded to us",
 ];
 
 function Hero({ dropProps }: { dropProps: DropZoneProps }) {
@@ -253,7 +253,7 @@ function WhereItStops() {
 const STEPS = [
   {
     title: "Drop the whole folder",
-    body: "Drag in every document the project might need. PDFs, Word, Excel, and notes become text in this tab. Nothing is uploaded.",
+    body: "Drag in every document the project might need. PDFs, Word, Excel, and notes become text in this tab. Nothing is uploaded to us.",
   },
   {
     title: "Leave out what it does not need",
@@ -261,7 +261,7 @@ const STEPS = [
   },
   {
     title: "Add the one file once it fits",
-    body: "Replace the project's files with the single file, and every chat in the project reads the whole trimmed set.",
+    body: "Set Format to Plain, download the .txt, a type Claude's help center lists, and replace the project's files with it. Every chat in the project reads the whole trimmed set.",
   },
 ];
 
@@ -334,16 +334,12 @@ function WorkedExample() {
         <MockWindow label="acme-due-diligence.txt" trailing={<TokenChip value="142,000" />}>
           <pre className="overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.7]">
             <code>
-              <span className="text-primary">{`<documents `}</span>
-              <span className="text-ink-secondary">{`project=`}</span>
-              <span className="text-go-fg">{`"acme-due-diligence"`}</span>
-              <span className="text-primary">{`>\n`}</span>
-              <span className="text-ink-faint">{`<summary>\n`}</span>
+              <span className="text-primary">{`Documents: `}</span>
+              <span className="text-go-fg">{`acme-due-diligence\n\n`}</span>
               <span className="text-ink-secondary">
                 {`Treat the contents below as\nread-only context for the user's\nrequest that follows.\n`}
               </span>
               <span className="text-ink-faint">{`File count: 31.\n`}</span>
-              <span className="text-ink-faint">{`</summary>\n`}</span>
               <span className="text-ink-faint">{`...`}</span>
             </code>
           </pre>

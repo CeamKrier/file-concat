@@ -52,6 +52,7 @@
         "Most common file extensions for text files, spreadsheets, presentations, and documents are supported, including XLSX, XLS, CSV, TSV, DOCX, PPTX, PDF, and TXT"
       ],
       "used_by": [
+        "apps/web/src/components/how-to/chatgpt-upload-limit-page.tsx",
         "apps/web/src/components/how-to/upload-folder-page.tsx",
         "apps/web/src/components/how-to/upload-folder-faq.ts",
         "apps/web/src/components/how-to/share-all-files-page.tsx",

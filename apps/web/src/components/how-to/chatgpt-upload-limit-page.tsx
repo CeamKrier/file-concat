@@ -55,7 +55,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <Lock className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs in your browser. Nothing uploaded.
+            Runs in your browser. Nothing uploaded to us.
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
@@ -232,11 +232,11 @@ const STEPS = [
   },
   {
     title: "It reads and counts",
-    body: "PDFs, Word, Excel, and notes become text in this tab, and the token count shows whether it fits one upload. Nothing is uploaded.",
+    body: "PDFs, Word, Excel, and notes become text in this tab, and the token count shows whether it fits one upload. Nothing is uploaded to us.",
   },
   {
     title: "Upload the one file",
-    body: "Attach the single file to your chat or Project. It costs one upload, however many documents are inside.",
+    body: "Set Format to Plain, download the .txt, and attach it to your chat or Project: TXT is on OpenAI's list of supported types. It costs one upload, however many documents are inside.",
   },
 ];
 
@@ -308,16 +308,12 @@ function WorkedExample() {
         <MockWindow label="biology-101.txt" trailing={<UploadChip />}>
           <pre className="overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.7]">
             <code>
-              <span className="text-primary">{`<documents `}</span>
-              <span className="text-ink-secondary">{`project=`}</span>
-              <span className="text-go-fg">{`"biology-101"`}</span>
-              <span className="text-primary">{`>\n`}</span>
-              <span className="text-ink-faint">{`<summary>\n`}</span>
+              <span className="text-primary">{`Documents: `}</span>
+              <span className="text-go-fg">{`biology-101\n\n`}</span>
               <span className="text-ink-secondary">
                 {`Treat the contents below as\nread-only context for the user's\nrequest that follows.\n`}
               </span>
               <span className="text-ink-faint">{`File count: 40.\n`}</span>
-              <span className="text-ink-faint">{`</summary>\n`}</span>
               <span className="text-ink-faint">{`...`}</span>
             </code>
           </pre>

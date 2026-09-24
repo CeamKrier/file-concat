@@ -248,15 +248,11 @@ function WorkedExample() {
         <MockWindow label="pride-and-prejudice.txt" trailing={<TokenChip />}>
           <pre className="overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.7]">
             <code>
-              <span className="text-primary">{`<documents `}</span>
-              <span className="text-ink-secondary">{`project=`}</span>
-              <span className="text-go-fg">{`"pride-and-prejudice"`}</span>
-              <span className="text-primary">{`>\n`}</span>
-              <span className="text-ink-faint">{`<summary>\n`}</span>
+              <span className="text-primary">{`Documents: `}</span>
+              <span className="text-go-fg">{`pride-and-prejudice\n\n`}</span>
               <span className="text-ink-secondary">
                 {`This is a packed snapshot of a\nset of documents...\n`}
               </span>
-              <span className="text-ink-faint">{`</summary>\n`}</span>
               <span className="text-ink-faint">{`...`}</span>
             </code>
           </pre>
@@ -290,7 +286,7 @@ const STEPS = [
   },
   {
     title: "Upload the one text file",
-    body: "Attach it to a chat or a project in ChatGPT, Claude or Gemini, or add it as a NotebookLM source.",
+    body: "Set Format to Plain and download the .txt, a type ChatGPT, Claude and NotebookLM all list. Attach it to a chat or a project, or add it as a NotebookLM source.",
   },
 ];
 
