@@ -177,9 +177,9 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
-    url: "/how-to/gitingest-alternative",
+    url: "/how-to/gitingest-repomix-alternative",
     sourceFile: [
-      "apps/web/src/routes/how-to/gitingest-alternative.tsx",
+      "apps/web/src/routes/how-to/gitingest-repomix-alternative.tsx",
       "apps/web/src/components/how-to/gitingest-alternative-page.tsx",
     ],
     changefreq: "monthly",

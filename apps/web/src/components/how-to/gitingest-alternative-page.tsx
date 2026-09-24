@@ -11,7 +11,7 @@ import { MarketingSection } from "~/components/app/marketing/section";
 import { GITINGEST_ALTERNATIVE_FAQ } from "./gitingest-alternative-faq";
 
 /**
- * /how-to/gitingest-alternative: for the searcher weighing gitingest or
+ * /how-to/gitingest-repomix-alternative: for the searcher weighing gitingest or
  * Repomix, usually over where their code goes. Every sentence about the two
  * tools is quoted from their own pages, read on 2026-09-24 and pinned in
  * src/data/vendor-caps.json. The measured band is the homepage's
