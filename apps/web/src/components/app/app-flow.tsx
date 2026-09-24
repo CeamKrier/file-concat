@@ -168,7 +168,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // so trackEntrySurface itself only records the first call of a page load —
   // the counter describes the page load, not this component's lifetime.
   useEffect(() => {
-    trackEntrySurface(window.location.pathname);
+    trackEntrySurface(window.location.pathname, document.referrer, window.location.search);
     tagSurface(window.location.pathname);
   }, []);
 

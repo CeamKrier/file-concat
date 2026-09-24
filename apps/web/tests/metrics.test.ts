@@ -202,7 +202,47 @@ describe("trackEntrySurface", () => {
     metrics.trackEntrySurface("/for/legal");
     const events = await flush();
 
-    expect(events).toHaveLength(1);
-    expect(events[0].v).toBe("home");
+    expect(events).toEqual([
+      { n: "entry_surface", v: "home" },
+      { n: "entry_source", v: "none" },
+    ]);
+  });
+
+  it("sends the source label and nothing it was read from", async () => {
+    metrics.trackEntrySurface(
+      "/",
+      "https://www.bing.com/search?q=secret",
+      "?utm_source=x&q=secret",
+    );
+    const body = JSON.stringify(await flush());
+
+    expect(body).toContain('"v":"bing"');
+    expect(body).not.toContain("secret");
+  });
+});
+
+describe("sourceLabel", () => {
+  it.each([
+    ["", "", "none"],
+    ["https://www.google.com/", "", "google"],
+    ["https://www.google.co.uk/", "", "google"],
+    ["android-app://com.google.android.googlequicksearchbox/", "", "google"],
+    ["https://gemini.google.com/", "", "gemini"],
+    ["https://www.bing.com/", "", "bing"],
+    ["https://copilot.microsoft.com/", "", "copilot"],
+    ["https://duckduckgo.com/", "", "duckduckgo"],
+    ["https://yandex.ru/", "", "yandex"],
+    ["https://www.perplexity.ai/", "", "perplexity"],
+    ["https://claude.ai/", "", "claude"],
+    ["https://chatgpt.com/", "", "chatgpt"],
+    ["", "?utm_source=chatgpt.com", "chatgpt"],
+    ["https://www.bing.com/", "?utm_source=chatgpt.com", "chatgpt"],
+    ["https://www.bing.com/", "?utm_source=newsletter", "bing"],
+    ["", "?utm_source=newsletter", "other"],
+    ["https://fileconcat.com/blog", "", "self"],
+    ["https://notgoogle.example/", "", "other"],
+    ["not a url", "", "other"],
+  ])("labels %s %s as %s", (referrer, search, expected) => {
+    expect(metrics.sourceLabel(referrer, search)).toBe(expected);
   });
 });

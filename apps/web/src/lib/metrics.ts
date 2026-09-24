@@ -239,11 +239,61 @@ export function addToTally(tally: Tally, key: string, bytes?: number): void {
  * which tool-hosting surface a visit opened the tool on. It is deliberately not
  * a page-view counter: routes that do not host the tool (`/docs`, `/blog`,
  * `/privacy`) record nothing, and Search Console covers those (ADR-0014).
+ *
+ * `entry_source` is written under the same guard, so every surface row has the
+ * row saying what sent that visit, and neither exists without the other.
  */
-export function trackEntrySurface(pathname: string): void {
+export function trackEntrySurface(pathname: string, referrer = "", search = ""): void {
   if (entrySurfaceRecorded) return;
   entrySurfaceRecorded = true;
   track("entry_surface", surfaceLabel(pathname));
+  track("entry_source", sourceLabel(referrer, search));
+}
+
+/**
+ * Referrer hosts worth telling apart, first match wins (Gemini before Google).
+ * Search Console sees Google only, so the rest of this list is the one place a
+ * visit from Bing, a Bing-backed engine or an AI assistant can be counted.
+ */
+const SOURCE_HOSTS: [RegExp, string][] = [
+  [/^(gemini|bard)\.google\.com$/, "gemini"],
+  [/(^|\.)google\.[a-z.]+$|googlequicksearchbox/, "google"],
+  [/(^|\.)(chatgpt|openai)\.com$/, "chatgpt"],
+  [/(^|\.)perplexity\.ai$/, "perplexity"],
+  [/(^|\.)claude\.ai$/, "claude"],
+  [/^copilot\.(microsoft\.com|cloud\.microsoft)$/, "copilot"],
+  [/(^|\.)bing\.com$/, "bing"],
+  [/(^|\.)duckduckgo\.com$/, "duckduckgo"],
+  [/(^|\.)yahoo\.com$/, "yahoo"],
+  [/(^|\.)ecosia\.org$/, "ecosia"],
+  [/^search\.brave\.com$/, "brave"],
+  [/(^|\.)yandex\.[a-z.]+$|^ya\.ru$/, "yandex"],
+  [/(^|\.)github\.com$/, "github"],
+  [/(^|\.)reddit\.com$/, "reddit"],
+  [/^news\.ycombinator\.com$/, "hn"],
+  [/(^|\.)fileconcat\.com$/, "self"],
+];
+
+function hostLabel(host: string): string | undefined {
+  return SOURCE_HOSTS.find(([pattern]) => pattern.test(host))?.[1];
+}
+
+/**
+ * The label a visit's origin is recorded under. `utm_source` wins when it names
+ * a known host, because ChatGPT tags its links with `utm_source=chatgpt.com`
+ * and a browser may send no referrer at all. Exported for its test; nothing it
+ * reads is ever sent.
+ */
+export function sourceLabel(referrer: string, search: string): string {
+  const utm = new URLSearchParams(search).get("utm_source")?.toLowerCase();
+  const tagged = utm ? hostLabel(utm) : undefined;
+  if (tagged) return tagged;
+  if (!referrer) return utm ? "other" : "none";
+  try {
+    return hostLabel(new URL(referrer).hostname.toLowerCase()) ?? "other";
+  } catch {
+    return "other";
+  }
 }
 
 /**
