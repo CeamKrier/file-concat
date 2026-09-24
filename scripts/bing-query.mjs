@@ -5,17 +5,17 @@
 // Copilot answer from, so this is the Bing half of what gsc-query.mjs is for
 // Google.
 //
-// Zero dependencies. The API key comes from BING_API_KEY in the environment and
-// is never printed: every line this script writes has it masked. Load it from
-// the gitignored env file at the repo root with Node's own flag:
+// Zero dependencies. The API key is BING_API_KEY in the gitignored .env at the
+// repo root, which this script loads itself; it throws when that file cannot be
+// read or the variable is not in it. The key is never printed: every line this
+// script writes has it masked.
 //
-//   node --env-file=.env scripts/bing-query.mjs            # report, URLs from the live sitemap
-//   node --env-file=.env scripts/bing-query.mjs <url>...   # report, only these URLs
-//   node --env-file=.env scripts/bing-query.mjs --save     # report, and docs/reviews/bing/<date>.json
+//   node scripts/bing-query.mjs            # report, URLs from the live sitemap
+//   node scripts/bing-query.mjs <url>...   # report, only these URLs
+//   node scripts/bing-query.mjs --save     # report, and docs/reviews/bing/<date>.json
 //
-// `--save` is what a reading needs: the pulse skill reads the newest file in
-// docs/reviews/bing/ rather than calling Bing, because the key is kept out of
-// the agent's reach. Run it before a reading.
+// The pulse skill runs `--save` at the start of every reading and reads the
+// file it leaves, so the saved reports are also Bing's history.
 //
 // Bing reports traffic about two days behind. GetUrlInfo answers ThrottleHost
 // after roughly fifteen quick calls, so URL lookups are paced and retried.
@@ -29,13 +29,12 @@ import { fileURLToPath } from "node:url";
 
 const API = "https://ssl.bing.com/webmaster/api.svc/json/";
 const HOST = "fileconcat.com";
-const KEY = process.env.BING_API_KEY;
-if (!KEY) {
-  console.error("BING_API_KEY is not set. Run with node --env-file=.env scripts/bing-query.mjs");
-  process.exit(1);
-}
-
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+process.loadEnvFile(join(REPO_ROOT, ".env"));
+const KEY = process.env.BING_API_KEY;
+if (!KEY) throw new Error("BING_API_KEY is not set in the repo's .env");
+
 const args = process.argv.slice(2);
 const SAVE = args.includes("--save");
 const argUrls = args.filter((a) => a.startsWith("http"));
