@@ -52,6 +52,22 @@ describe("generateProjectName", () => {
   it("combines multiple top-level dirs", () => {
     expect(generateProjectName(["api/index.ts", "web/app.tsx"]).includes("api")).toBe(true);
   });
+
+  it("names an import after its repository, not its paths", () => {
+    // An import's paths are relative to the repository root, so the root name
+    // never appears in them; guessing from paths named every repository with a
+    // .github folder "github".
+    const paths = [".github/funding.yml", ".github/workflows/main.yml", "index.js", "readme.md"];
+    expect(generateProjectName(paths)).toBe("github");
+    expect(generateProjectName(paths, "https://github.com/sindresorhus/slugify")).toBe("slugify");
+    expect(
+      generateProjectName(paths, "https://github.com/vercel/next.js/tree/canary/packages/next"),
+    ).toBe("next-js");
+    expect(generateProjectName(paths, "https://gitlab.com/group/sub/My_Tool")).toBe("my_tool");
+    expect(generateProjectName(paths, "https://bitbucket.org/team/api-server")).toBe("api-server");
+    // A source with no repository in it keeps the path guess.
+    expect(generateProjectName(["notes.md"], "https://example.com/notes.md")).toBe("notes");
+  });
 });
 
 describe("shouldSkipPath", () => {

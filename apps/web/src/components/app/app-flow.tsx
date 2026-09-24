@@ -117,7 +117,7 @@ function bundleOptions(
 ): AssembleOutputOptions {
   const paths = files.map((f) => f.path);
   return {
-    projectName: generateProjectName(paths),
+    projectName: generateProjectName(paths, source),
     files,
     tree: generateFileTree(paths),
     style,
@@ -361,8 +361,13 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   );
   const projectName = useMemo(
     () =>
-      ingestion.entries.length ? generateProjectName(ingestion.entries.map((e) => e.path)) : "",
-    [ingestion.entries],
+      ingestion.entries.length
+        ? generateProjectName(
+            ingestion.entries.map((e) => e.path),
+            ingestion.sourceUrl ?? undefined,
+          )
+        : "",
+    [ingestion.entries, ingestion.sourceUrl],
   );
   const isFolder = useMemo(
     () => ingestion.entries.some((e) => e.path.includes("/")),

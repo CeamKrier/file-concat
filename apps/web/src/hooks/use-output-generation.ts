@@ -124,7 +124,10 @@ export function useOutputGeneration({
   const buildSingle = useCallback(
     (files: ContentEntry[], part?: { index: number; total: number }) => {
       const tree = generateFileTree(files.map((f) => f.path));
-      const projectName = generateProjectName(files.map((f) => f.path));
+      const projectName = generateProjectName(
+        files.map((f) => f.path),
+        sourceUrl ?? undefined,
+      );
       return {
         projectName,
         text: assembleOutput({
