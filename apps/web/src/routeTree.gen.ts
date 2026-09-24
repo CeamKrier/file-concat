@@ -15,7 +15,13 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as HowToUploadFolderToChatgptRouteImport } from './routes/how-to/upload-folder-to-chatgpt'
+import { Route as HowToUploadBookToChatgptRouteImport } from './routes/how-to/upload-book-to-chatgpt'
 import { Route as HowToShareAllFilesWithAiRouteImport } from './routes/how-to/share-all-files-with-ai'
+import { Route as HowToGitingestAlternativeRouteImport } from './routes/how-to/gitingest-alternative'
+import { Route as HowToGithubRepoToTextRouteImport } from './routes/how-to/github-repo-to-text'
+import { Route as HowToClaudeFileUploadLimitRouteImport } from './routes/how-to/claude-file-upload-limit'
+import { Route as HowToChatgptFileUploadLimitRouteImport } from './routes/how-to/chatgpt-file-upload-limit'
 import { Route as ForResearchersRouteImport } from './routes/for/researchers'
 import { Route as ForNotebooklmRouteImport } from './routes/for/notebooklm'
 import { Route as ForLegalRouteImport } from './routes/for/legal'
@@ -60,10 +66,45 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
   path: '/blog/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HowToUploadFolderToChatgptRoute =
+  HowToUploadFolderToChatgptRouteImport.update({
+    id: '/how-to/upload-folder-to-chatgpt',
+    path: '/how-to/upload-folder-to-chatgpt',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const HowToUploadBookToChatgptRoute =
+  HowToUploadBookToChatgptRouteImport.update({
+    id: '/how-to/upload-book-to-chatgpt',
+    path: '/how-to/upload-book-to-chatgpt',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const HowToShareAllFilesWithAiRoute =
   HowToShareAllFilesWithAiRouteImport.update({
     id: '/how-to/share-all-files-with-ai',
     path: '/how-to/share-all-files-with-ai',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const HowToGitingestAlternativeRoute =
+  HowToGitingestAlternativeRouteImport.update({
+    id: '/how-to/gitingest-alternative',
+    path: '/how-to/gitingest-alternative',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const HowToGithubRepoToTextRoute = HowToGithubRepoToTextRouteImport.update({
+  id: '/how-to/github-repo-to-text',
+  path: '/how-to/github-repo-to-text',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowToClaudeFileUploadLimitRoute =
+  HowToClaudeFileUploadLimitRouteImport.update({
+    id: '/how-to/claude-file-upload-limit',
+    path: '/how-to/claude-file-upload-limit',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const HowToChatgptFileUploadLimitRoute =
+  HowToChatgptFileUploadLimitRouteImport.update({
+    id: '/how-to/chatgpt-file-upload-limit',
+    path: '/how-to/chatgpt-file-upload-limit',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ForResearchersRoute = ForResearchersRouteImport.update({
@@ -150,7 +191,13 @@ export interface FileRoutesByFullPath {
   '/for/legal': typeof ForLegalRoute
   '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
+  '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
+  '/how-to/claude-file-upload-limit': typeof HowToClaudeFileUploadLimitRoute
+  '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
+  '/how-to/gitingest-alternative': typeof HowToGitingestAlternativeRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
+  '/how-to/upload-book-to-chatgpt': typeof HowToUploadBookToChatgptRoute
+  '/how-to/upload-folder-to-chatgpt': typeof HowToUploadFolderToChatgptRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
 }
@@ -172,7 +219,13 @@ export interface FileRoutesByTo {
   '/for/legal': typeof ForLegalRoute
   '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
+  '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
+  '/how-to/claude-file-upload-limit': typeof HowToClaudeFileUploadLimitRoute
+  '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
+  '/how-to/gitingest-alternative': typeof HowToGitingestAlternativeRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
+  '/how-to/upload-book-to-chatgpt': typeof HowToUploadBookToChatgptRoute
+  '/how-to/upload-folder-to-chatgpt': typeof HowToUploadFolderToChatgptRoute
   '/blog': typeof BlogIndexRoute
   '/docs': typeof DocsIndexRoute
 }
@@ -195,7 +248,13 @@ export interface FileRoutesById {
   '/for/legal': typeof ForLegalRoute
   '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
+  '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
+  '/how-to/claude-file-upload-limit': typeof HowToClaudeFileUploadLimitRoute
+  '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
+  '/how-to/gitingest-alternative': typeof HowToGitingestAlternativeRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
+  '/how-to/upload-book-to-chatgpt': typeof HowToUploadBookToChatgptRoute
+  '/how-to/upload-folder-to-chatgpt': typeof HowToUploadFolderToChatgptRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
 }
@@ -219,7 +278,13 @@ export interface FileRouteTypes {
     | '/for/legal'
     | '/for/notebooklm'
     | '/for/researchers'
+    | '/how-to/chatgpt-file-upload-limit'
+    | '/how-to/claude-file-upload-limit'
+    | '/how-to/github-repo-to-text'
+    | '/how-to/gitingest-alternative'
     | '/how-to/share-all-files-with-ai'
+    | '/how-to/upload-book-to-chatgpt'
+    | '/how-to/upload-folder-to-chatgpt'
     | '/blog/'
     | '/docs/'
   fileRoutesByTo: FileRoutesByTo
@@ -241,7 +306,13 @@ export interface FileRouteTypes {
     | '/for/legal'
     | '/for/notebooklm'
     | '/for/researchers'
+    | '/how-to/chatgpt-file-upload-limit'
+    | '/how-to/claude-file-upload-limit'
+    | '/how-to/github-repo-to-text'
+    | '/how-to/gitingest-alternative'
     | '/how-to/share-all-files-with-ai'
+    | '/how-to/upload-book-to-chatgpt'
+    | '/how-to/upload-folder-to-chatgpt'
     | '/blog'
     | '/docs'
   id:
@@ -263,7 +334,13 @@ export interface FileRouteTypes {
     | '/for/legal'
     | '/for/notebooklm'
     | '/for/researchers'
+    | '/how-to/chatgpt-file-upload-limit'
+    | '/how-to/claude-file-upload-limit'
+    | '/how-to/github-repo-to-text'
+    | '/how-to/gitingest-alternative'
     | '/how-to/share-all-files-with-ai'
+    | '/how-to/upload-book-to-chatgpt'
+    | '/how-to/upload-folder-to-chatgpt'
     | '/blog/'
     | '/docs/'
   fileRoutesById: FileRoutesById
@@ -286,7 +363,13 @@ export interface RootRouteChildren {
   ForLegalRoute: typeof ForLegalRoute
   ForNotebooklmRoute: typeof ForNotebooklmRoute
   ForResearchersRoute: typeof ForResearchersRoute
+  HowToChatgptFileUploadLimitRoute: typeof HowToChatgptFileUploadLimitRoute
+  HowToClaudeFileUploadLimitRoute: typeof HowToClaudeFileUploadLimitRoute
+  HowToGithubRepoToTextRoute: typeof HowToGithubRepoToTextRoute
+  HowToGitingestAlternativeRoute: typeof HowToGitingestAlternativeRoute
   HowToShareAllFilesWithAiRoute: typeof HowToShareAllFilesWithAiRoute
+  HowToUploadBookToChatgptRoute: typeof HowToUploadBookToChatgptRoute
+  HowToUploadFolderToChatgptRoute: typeof HowToUploadFolderToChatgptRoute
   BlogIndexRoute: typeof BlogIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
 }
@@ -335,11 +418,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/how-to/upload-folder-to-chatgpt': {
+      id: '/how-to/upload-folder-to-chatgpt'
+      path: '/how-to/upload-folder-to-chatgpt'
+      fullPath: '/how-to/upload-folder-to-chatgpt'
+      preLoaderRoute: typeof HowToUploadFolderToChatgptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-to/upload-book-to-chatgpt': {
+      id: '/how-to/upload-book-to-chatgpt'
+      path: '/how-to/upload-book-to-chatgpt'
+      fullPath: '/how-to/upload-book-to-chatgpt'
+      preLoaderRoute: typeof HowToUploadBookToChatgptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/how-to/share-all-files-with-ai': {
       id: '/how-to/share-all-files-with-ai'
       path: '/how-to/share-all-files-with-ai'
       fullPath: '/how-to/share-all-files-with-ai'
       preLoaderRoute: typeof HowToShareAllFilesWithAiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-to/gitingest-alternative': {
+      id: '/how-to/gitingest-alternative'
+      path: '/how-to/gitingest-alternative'
+      fullPath: '/how-to/gitingest-alternative'
+      preLoaderRoute: typeof HowToGitingestAlternativeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-to/github-repo-to-text': {
+      id: '/how-to/github-repo-to-text'
+      path: '/how-to/github-repo-to-text'
+      fullPath: '/how-to/github-repo-to-text'
+      preLoaderRoute: typeof HowToGithubRepoToTextRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-to/claude-file-upload-limit': {
+      id: '/how-to/claude-file-upload-limit'
+      path: '/how-to/claude-file-upload-limit'
+      fullPath: '/how-to/claude-file-upload-limit'
+      preLoaderRoute: typeof HowToClaudeFileUploadLimitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-to/chatgpt-file-upload-limit': {
+      id: '/how-to/chatgpt-file-upload-limit'
+      path: '/how-to/chatgpt-file-upload-limit'
+      fullPath: '/how-to/chatgpt-file-upload-limit'
+      preLoaderRoute: typeof HowToChatgptFileUploadLimitRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/for/researchers': {
@@ -454,7 +579,13 @@ const rootRouteChildren: RootRouteChildren = {
   ForLegalRoute: ForLegalRoute,
   ForNotebooklmRoute: ForNotebooklmRoute,
   ForResearchersRoute: ForResearchersRoute,
+  HowToChatgptFileUploadLimitRoute: HowToChatgptFileUploadLimitRoute,
+  HowToClaudeFileUploadLimitRoute: HowToClaudeFileUploadLimitRoute,
+  HowToGithubRepoToTextRoute: HowToGithubRepoToTextRoute,
+  HowToGitingestAlternativeRoute: HowToGitingestAlternativeRoute,
   HowToShareAllFilesWithAiRoute: HowToShareAllFilesWithAiRoute,
+  HowToUploadBookToChatgptRoute: HowToUploadBookToChatgptRoute,
+  HowToUploadFolderToChatgptRoute: HowToUploadFolderToChatgptRoute,
   BlogIndexRoute: BlogIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
 }

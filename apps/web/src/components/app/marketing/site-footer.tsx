@@ -59,13 +59,31 @@ export function SiteFooter() {
           <div className={columnClass}>
             <h2 className={headingClass}>Guides</h2>
             <Link to="/how-to/share-all-files-with-ai" className={linkClass}>
-              Share all your files
+              AI file upload limits
             </Link>
             <Link to="/for/chatgpt-projects" className={linkClass}>
               For ChatGPT Projects
             </Link>
+            <Link to="/how-to/chatgpt-file-upload-limit" className={linkClass}>
+              ChatGPT upload limit
+            </Link>
+            <Link to="/how-to/upload-folder-to-chatgpt" className={linkClass}>
+              Folder or ZIP to ChatGPT
+            </Link>
+            <Link to="/how-to/upload-book-to-chatgpt" className={linkClass}>
+              Book or textbook to ChatGPT
+            </Link>
+            <Link to="/how-to/github-repo-to-text" className={linkClass}>
+              GitHub repo to text
+            </Link>
+            <Link to="/how-to/gitingest-alternative" className={linkClass}>
+              gitingest and Repomix alternative
+            </Link>
             <Link to="/for/claude-projects" className={linkClass}>
               For Claude Projects
+            </Link>
+            <Link to="/how-to/claude-file-upload-limit" className={linkClass}>
+              Claude upload limit
             </Link>
             <Link to="/for/gemini-gems" className={linkClass}>
               For Gemini Gems

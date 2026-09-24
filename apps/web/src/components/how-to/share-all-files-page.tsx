@@ -10,13 +10,12 @@ import { MarketingSection } from "~/components/app/marketing/section";
 import { FAQ_ITEMS } from "./faq-data";
 
 /**
- * /how-to/share-all-files-with-ai — the highest-intent acquisition page. Answers
- * the real query ("how do I get all my files into one AI app at once") with a
- * working tool in place, not a manual recipe: the hero embeds the DropZone via
- * AppFlow's renderLanding slot, so the answer to "how" is "do it right here".
- * Copy is action-framed so a model that cites the page sends the reader here
- * rather than teaching them to do it by hand. Grammar stays clean; the raw,
- * ungrammatical search query never appears verbatim.
+ * /how-to/share-all-files-with-ai: the limits hub. Since 2026-09-24 it answers
+ * what people type ("chatgpt file upload limit", "how many files can I upload
+ * to claude") with every cap in one dated, sourced table, and each row links to
+ * the page that gets past that cap. The URL stays for its history. Count
+ * questions rarely click, so the hub's job is the links; the tool still sits in
+ * the hero via AppFlow's renderLanding slot.
  */
 export function ShareAllFilesPage() {
   return <AppFlow renderLanding={(dropProps) => <ShareLanding {...dropProps} />} />;
@@ -36,7 +35,7 @@ function ShareLanding(dropProps: DropZoneProps) {
 
 const TRUST = [
   "No sign-up, no install",
-  "Nothing is uploaded, not even PDFs",
+  "Nothing uploaded to us, not even PDFs",
   "One file back in about a second",
 ];
 
@@ -47,17 +46,18 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <Lock className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs in your browser. Nothing uploaded.
+            Runs in your browser. Nothing uploaded to us.
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
-            How to share all your files with ChatGPT, Claude, or Gemini at once.
+            AI file upload limits, and a way past each one.
           </h1>
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
-            Every AI app caps how many files you can add, and none of them will merge your files for
-            you. Drop the whole folder here instead. Everything, even the PDFs, is read right in
-            your browser and comes back as one file to paste in.
+            ChatGPT, Claude, Gemini and NotebookLM each cap what you can add: a number of files, a
+            size per file, or a total. The table below has every cap with its source. Drop your
+            folder here and it comes back as one file, read in your browser, PDFs included, with
+            its token count shown.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -82,28 +82,67 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
   );
 }
 
-/** Live per-platform caps, the substance a search lands on. Figures drift, so the
- * table carries a snapshot date and points at each provider for the current cap. */
+/** Live per-platform caps, the substance a search lands on. Every figure is
+ * pinned to the vendor sentence it was read from in src/data/vendor-caps.json,
+ * which the build re-checks. Rows with a page link to the page that gets past
+ * that cap. Gone on 2026-09-24: "10 files in one pass" for ChatGPT Projects,
+ * which a Plus account disproved on 2026-09-14 (11 went in at once; see
+ * chatgpt-projects-page.tsx). */
 const LIMITS = [
+  {
+    where: "ChatGPT uploads",
+    caps: "Files you send, in any chat",
+    limit: "80 every 3 hours, 3 a day on Free",
+    href: "/how-to/chatgpt-file-upload-limit",
+  },
+  { where: "ChatGPT, one file", caps: "Size and length", limit: "512 MB, 2M tokens" },
+  {
+    where: "ChatGPT folders and ZIPs",
+    caps: "What it opens",
+    limit: "No folder upload; archives are not a listed file type",
+    href: "/how-to/upload-folder-to-chatgpt",
+  },
+  {
+    where: "A book or textbook",
+    caps: "EPUB and long PDFs",
+    limit: "EPUB not named by ChatGPT; Claude takes PDFs up to 1,000 pages",
+    href: "/how-to/upload-book-to-chatgpt",
+  },
   {
     where: "ChatGPT Projects",
     caps: "Files per project",
     limit: "5 free, 25 on Go and Plus, 40 on Pro and above",
     href: "/for/chatgpt-projects",
   },
-  { where: "ChatGPT Project uploads", caps: "Files in one pass", limit: "10" },
-  { where: "Custom GPTs", caps: "Knowledge files", limit: "20" },
+  { where: "Custom GPTs", caps: "Knowledge files", limit: "20, until GPTs retire in December 2026" },
+  {
+    where: "Claude chats",
+    caps: "Files you attach",
+    limit: "20 per chat, up to 500 MB each",
+    href: "/how-to/claude-file-upload-limit",
+  },
   {
     where: "Claude Projects",
-    caps: "Files in project knowledge",
-    limit: "Capped by the context window, not a file count",
+    caps: "Project knowledge",
+    limit: "The context window, not a file count; 30 MB per file",
     href: "/for/claude-projects",
+  },
+  {
+    where: "Gemini chats",
+    caps: "Files in one prompt",
+    limit: "10, up to 100 MB each; one repository of up to 5,000 files",
   },
   { where: "Gemini Gems", caps: "Knowledge files", limit: "About 10", href: "/for/gemini-gems" },
   {
     where: "NotebookLM",
     caps: "Sources per notebook",
     limit: "50 free, 100 on Plus, 300 on Pro",
+    href: "/for/notebooklm",
+  },
+  {
+    where: "NotebookLM, one source",
+    caps: "Size of a source",
+    limit: "500,000 words or 200 MB",
     href: "/for/notebooklm",
   },
 ];
@@ -116,11 +155,11 @@ function Limits() {
           id="the-limits"
           className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          Where each AI app stops you.
+          Every AI file upload limit, in one table.
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[48ch] text-[15px] leading-relaxed">
-          Every assistant limits how much you can hand it in one go. Combining your files into a
-          single file is how you stay under the cap without leaving anything out.
+          Where a cap counts files, one combined file takes one slot. Where it counts size, the
+          token count shows what to leave out. Each linked row has its own page.
         </p>
       </div>
 
@@ -176,7 +215,8 @@ function Limits() {
         <SourceLink href="https://support.google.com/gemininotebook/answer/16213268">
           NotebookLM
         </SourceLink>
-        , <SourceLink href="https://support.google.com/gemini">Gemini</SourceLink>.
+        ,{" "}
+        <SourceLink href="https://support.google.com/gemini/answer/14903178">Gemini</SourceLink>.
       </p>
     </MarketingSection>
   );
@@ -202,11 +242,11 @@ const STEPS = [
   },
   {
     title: "It reads everything here",
-    body: "PDFs, Word, Excel, code, and notes are turned into text right in this tab. Nothing is uploaded.",
+    body: "PDFs, Word, Excel, code, and notes are turned into text right in this tab. Nothing is uploaded to us.",
   },
   {
     title: "Paste the one file in",
-    body: "Copy the single file and paste it into ChatGPT, Claude, or Gemini. One upload, well under any limit.",
+    body: "Copy the single file and paste it into ChatGPT, Claude, or Gemini, with its token count already known. For a ChatGPT or Claude project, set Format to Plain and upload the .txt, a type both list.",
   },
 ];
 
@@ -244,9 +284,9 @@ function HowItWorks() {
       <div className="mt-10 max-w-[760px]">
         <InfoCard tone="info" icon={FileStack} title="One upload beats twenty">
           <p>
-            Adding files one by one runs into the caps above and scatters them across separate
-            uploads. A single file keeps every document together, in order, so the assistant reads
-            the whole set as one thing.
+            Adding files one by one runs into the count caps above and scatters them across
+            separate uploads. A single file keeps every document together, in order, so the
+            assistant reads the whole set as one thing.
           </p>
         </InfoCard>
       </div>

@@ -1,9 +1,11 @@
-/**
- * Generate a project name from file paths
- */
-export const generateProjectName = (filePaths: string[]): string => {
-  if (filePaths.length === 0) return "project";
+import { defaultSourceRegistry } from "../sources/default-registry";
 
+/**
+ * Generate a project name from file paths, or from the repository when the
+ * files came from one. An import's paths are relative to the repository root,
+ * so its name is only in the source URL.
+ */
+export const generateProjectName = (filePaths: string[], source?: string): string => {
   const cleanString = (str: string): string => {
     return str
       .toLowerCase()
@@ -11,6 +13,11 @@ export const generateProjectName = (filePaths: string[]): string => {
       .replace(/-+/g, "-")
       .replace(/^-|-$/g, "");
   };
+
+  const repo = source ? defaultSourceRegistry.getAdapter(source)?.parseUrl(source).repo : undefined;
+  if (repo) return cleanString(repo);
+
+  if (filePaths.length === 0) return "project";
 
   // Split all paths into parts
   const splitPaths = filePaths.map((p) => p.split("/").filter(Boolean));

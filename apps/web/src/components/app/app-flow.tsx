@@ -41,6 +41,7 @@ import { MarketingSections, SiteFooter } from "./marketing";
 import { TopBar } from "./top-bar";
 import { LandingHero } from "./landing-hero";
 import type { DropZoneProps } from "./drop-zone";
+import type { ImportState } from "./import-panel";
 import { ProcessingView, type ProcessingStep } from "./processing-view";
 import { ResultView } from "./result-view";
 import { ResultEmpty } from "./result-empty";
@@ -116,7 +117,7 @@ function bundleOptions(
 ): AssembleOutputOptions {
   const paths = files.map((f) => f.path);
   return {
-    projectName: generateProjectName(paths),
+    projectName: generateProjectName(paths, source),
     files,
     tree: generateFileTree(paths),
     style,
@@ -133,10 +134,11 @@ type AppFlowProps = {
    * flow in place. When omitted, the home landing renders. Processing, result,
    * TopBar, and the settings drawer are unaffected either way.
    *
-   * Drop handlers only, deliberately: the link-import row is a home-landing
-   * affordance, so a persona hero gets no way to render one. See `ImportPanel`.
+   * The link-import state comes second. Persona heroes ignore it, since a repo
+   * field under a hero about a folder of case files is clutter (see
+   * `ImportPanel`); a page about a remote source renders it above the fold.
    */
-  renderLanding?: (dropProps: DropZoneProps) => React.ReactNode;
+  renderLanding?: (dropProps: DropZoneProps, linkImport: ImportState) => React.ReactNode;
 };
 
 /**
@@ -359,8 +361,13 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   );
   const projectName = useMemo(
     () =>
-      ingestion.entries.length ? generateProjectName(ingestion.entries.map((e) => e.path)) : "",
-    [ingestion.entries],
+      ingestion.entries.length
+        ? generateProjectName(
+            ingestion.entries.map((e) => e.path),
+            ingestion.sourceUrl ?? undefined,
+          )
+        : "",
+    [ingestion.entries, ingestion.sourceUrl],
   );
   const isFolder = useMemo(
     () => ingestion.entries.some((e) => e.path.includes("/")),
@@ -773,6 +780,22 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     })();
   }, [importUrl, importTab, begin, ingestion]);
 
+  const linkImport: ImportState = {
+    tab: importTab,
+    onTabChange: (t) => {
+      setImportTab(t);
+      setImportError(null);
+    },
+    url: importUrl,
+    onUrlChange: (u) => {
+      setImportUrl(u);
+      setImportError(null);
+    },
+    error: importError,
+    onFetch: runImport,
+    isFetching: ingestion.isRepoLoading,
+  };
+
   return (
     <div className="bg-background flex min-h-screen flex-col">
       <TopBar onStartOver={startOver} />
@@ -780,27 +803,10 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       <main className="flex-1">
         {phase === "landing" &&
           (renderLanding ? (
-            renderLanding(dropProps)
+            renderLanding(dropProps, linkImport)
           ) : (
             <>
-              <LandingHero
-                {...dropProps}
-                linkImport={{
-                  tab: importTab,
-                  onTabChange: (t) => {
-                    setImportTab(t);
-                    setImportError(null);
-                  },
-                  url: importUrl,
-                  onUrlChange: (u) => {
-                    setImportUrl(u);
-                    setImportError(null);
-                  },
-                  error: importError,
-                  onFetch: runImport,
-                  isFetching: ingestion.isRepoLoading,
-                }}
-              />
+              <LandingHero {...dropProps} linkImport={linkImport} />
               <div className="mt-16">
                 <MarketingSections />
               </div>

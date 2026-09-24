@@ -1,6 +1,6 @@
 ---
-title: "How to Feed Your Entire Codebase to an LLM"
-description: "Pack your whole repo into one AI-friendly text blob and paste it into ChatGPT or Claude. Import from GitHub, filter noise, and see token counts live."
+title: "How to Upload Your Entire Codebase to ChatGPT, Claude or Gemini"
+description: "Upload your entire codebase to ChatGPT, Claude or Gemini as one file: paste a GitHub URL or drop the folder, leave the noise out, and see the token count first."
 date: "2026-07-11"
 author: "CeamKrier"
 draft: false
@@ -19,7 +19,7 @@ Sometimes the thing you want to ask about is not one file, it is the whole proje
 the pieces fit, where a bug is hiding, whether an approach holds across the codebase.
 For that, the model needs to see the repo, not a snippet of it.
 
-This guide covers how to feed your entire codebase to an LLM like ChatGPT or Claude: why
+This guide covers how to upload your entire codebase to ChatGPT, Claude or Gemini: why
 pasting the raw folder rarely works, how to cut it down to what matters, and how to pull
 a repo straight from a URL. There is a spot to try it on your own repo partway down.
 
@@ -95,12 +95,21 @@ convert a GitHub repo to text for either one.
   </Step>
 </Steps>
 
+## Upload the codebase to ChatGPT, Claude or Gemini
+
+In ChatGPT and Claude the whole codebase goes in as the one bundle file, attached or pasted,
+and it counts as one file against their upload caps; [ChatGPT's](/how-to/chatgpt-file-upload-limit)
+are the tightest. Gemini is the one that takes a repository itself: one code folder or one
+GitHub repository per chat, up to 5,000 files and 100 MB, as of September 2026. The bundle
+still helps there when the repository is larger than that, or when you want tests and lock
+files out before the model reads it.
+
 ## Try it on your own repo
 
 Drop a project folder below, or open the full tool to paste a repository URL. It runs in
 your browser, there is no account, and nothing is uploaded to us.
 
-<TryIt title="Bundle your own project" hint="Drop a project folder. It runs here in your browser, nothing is uploaded." />
+<TryIt title="Bundle your own project" hint="Drop a project folder. It runs here in your browser, nothing is uploaded to us." />
 
 ## When a paste is the wrong tool
 

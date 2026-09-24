@@ -53,10 +53,11 @@ function caption(c: Classification): { text: string; tone: "go" | "info" } | nul
  * files. Progressive disclosure is right for a rare escape hatch and wrong for
  * one of two ways in, so the extra click is gone rather than relocated.
  *
- * Home only, deliberately. The nine `/for` pages and the `/how-to` hub each
- * argue one audience into one workflow, and a repo field under a hero about a
- * folder of case files is clutter that page has to carry for nobody. Remote
- * sources get their own pages instead of a row bolted onto every other one.
+ * Home only, deliberately, plus pages about a remote source. The nine `/for`
+ * pages and the `/how-to` hub each argue one audience into one workflow, and a
+ * repo field under a hero about a folder of case files is clutter that page has
+ * to carry for nobody. Remote sources get their own pages instead of a row
+ * bolted onto every other one: `/how-to/github-repo-to-text` is the first.
  *
  * The host is a select rather than the five-tab strip it replaced, because the
  * choice is smaller than the strip implied: classification is host-driven (see

@@ -19,15 +19,20 @@ export const Route = createFileRoute("/how-to/share-all-files-with-ai")({
   head: () => ({
     meta: [
       ...generateSEOMeta({
-        title: "How to share all your files with an AI at once",
+        // Retitled 2026-09-24 from "How to share all your files with an AI at
+        // once": nobody types the remedy, they type the limit. The page is the
+        // hub every limit page links from, and a title of its own gives it a
+        // second chance at its own canonical. No figures in the description,
+        // same call as the limit pages: the dated table carries them.
+        title: "AI file upload limits: ChatGPT, Claude, Gemini, NotebookLM",
         description:
-          "Combine a whole folder, PDFs and Office docs included, into one file that ChatGPT, Claude, Gemini, or NotebookLM takes in one slot. Nothing is uploaded.",
+          "Every file upload limit in ChatGPT, Claude, Gemini and NotebookLM in one dated, sourced table, and a way past each one. Nothing uploaded to us.",
         url: "https://fileconcat.com/how-to/share-all-files-with-ai",
       }),
       {
         name: "keywords",
         content:
-          "share all files with AI, combine files for ChatGPT, chatgpt file limit, add more files to chatgpt project, merge PDFs for Claude, NotebookLM sources, Gemini Gems files, upload limit",
+          "ai file upload limits, chatgpt file upload limit, claude file upload limit, gemini file upload limit, notebooklm source limit, how many files can i upload to chatgpt, how many files can i upload to claude, share all files with AI, combine files for ChatGPT",
       },
     ],
     links: [{ rel: "canonical", href: "https://fileconcat.com/how-to/share-all-files-with-ai" }],
