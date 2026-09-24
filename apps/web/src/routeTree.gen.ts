@@ -20,6 +20,7 @@ import { Route as HowToUploadBookToChatgptRouteImport } from './routes/how-to/up
 import { Route as HowToShareAllFilesWithAiRouteImport } from './routes/how-to/share-all-files-with-ai'
 import { Route as HowToGitingestAlternativeRouteImport } from './routes/how-to/gitingest-alternative'
 import { Route as HowToGithubRepoToTextRouteImport } from './routes/how-to/github-repo-to-text'
+import { Route as HowToClaudeFileUploadLimitRouteImport } from './routes/how-to/claude-file-upload-limit'
 import { Route as HowToChatgptFileUploadLimitRouteImport } from './routes/how-to/chatgpt-file-upload-limit'
 import { Route as ForResearchersRouteImport } from './routes/for/researchers'
 import { Route as ForNotebooklmRouteImport } from './routes/for/notebooklm'
@@ -94,6 +95,12 @@ const HowToGithubRepoToTextRoute = HowToGithubRepoToTextRouteImport.update({
   path: '/how-to/github-repo-to-text',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HowToClaudeFileUploadLimitRoute =
+  HowToClaudeFileUploadLimitRouteImport.update({
+    id: '/how-to/claude-file-upload-limit',
+    path: '/how-to/claude-file-upload-limit',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const HowToChatgptFileUploadLimitRoute =
   HowToChatgptFileUploadLimitRouteImport.update({
     id: '/how-to/chatgpt-file-upload-limit',
@@ -185,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
   '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
+  '/how-to/claude-file-upload-limit': typeof HowToClaudeFileUploadLimitRoute
   '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
   '/how-to/gitingest-alternative': typeof HowToGitingestAlternativeRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
@@ -212,6 +220,7 @@ export interface FileRoutesByTo {
   '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
   '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
+  '/how-to/claude-file-upload-limit': typeof HowToClaudeFileUploadLimitRoute
   '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
   '/how-to/gitingest-alternative': typeof HowToGitingestAlternativeRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
@@ -240,6 +249,7 @@ export interface FileRoutesById {
   '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
   '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
+  '/how-to/claude-file-upload-limit': typeof HowToClaudeFileUploadLimitRoute
   '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
   '/how-to/gitingest-alternative': typeof HowToGitingestAlternativeRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
@@ -269,6 +279,7 @@ export interface FileRouteTypes {
     | '/for/notebooklm'
     | '/for/researchers'
     | '/how-to/chatgpt-file-upload-limit'
+    | '/how-to/claude-file-upload-limit'
     | '/how-to/github-repo-to-text'
     | '/how-to/gitingest-alternative'
     | '/how-to/share-all-files-with-ai'
@@ -296,6 +307,7 @@ export interface FileRouteTypes {
     | '/for/notebooklm'
     | '/for/researchers'
     | '/how-to/chatgpt-file-upload-limit'
+    | '/how-to/claude-file-upload-limit'
     | '/how-to/github-repo-to-text'
     | '/how-to/gitingest-alternative'
     | '/how-to/share-all-files-with-ai'
@@ -323,6 +335,7 @@ export interface FileRouteTypes {
     | '/for/notebooklm'
     | '/for/researchers'
     | '/how-to/chatgpt-file-upload-limit'
+    | '/how-to/claude-file-upload-limit'
     | '/how-to/github-repo-to-text'
     | '/how-to/gitingest-alternative'
     | '/how-to/share-all-files-with-ai'
@@ -351,6 +364,7 @@ export interface RootRouteChildren {
   ForNotebooklmRoute: typeof ForNotebooklmRoute
   ForResearchersRoute: typeof ForResearchersRoute
   HowToChatgptFileUploadLimitRoute: typeof HowToChatgptFileUploadLimitRoute
+  HowToClaudeFileUploadLimitRoute: typeof HowToClaudeFileUploadLimitRoute
   HowToGithubRepoToTextRoute: typeof HowToGithubRepoToTextRoute
   HowToGitingestAlternativeRoute: typeof HowToGitingestAlternativeRoute
   HowToShareAllFilesWithAiRoute: typeof HowToShareAllFilesWithAiRoute
@@ -437,6 +451,13 @@ declare module '@tanstack/react-router' {
       path: '/how-to/github-repo-to-text'
       fullPath: '/how-to/github-repo-to-text'
       preLoaderRoute: typeof HowToGithubRepoToTextRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-to/claude-file-upload-limit': {
+      id: '/how-to/claude-file-upload-limit'
+      path: '/how-to/claude-file-upload-limit'
+      fullPath: '/how-to/claude-file-upload-limit'
+      preLoaderRoute: typeof HowToClaudeFileUploadLimitRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/how-to/chatgpt-file-upload-limit': {
@@ -559,6 +580,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForNotebooklmRoute: ForNotebooklmRoute,
   ForResearchersRoute: ForResearchersRoute,
   HowToChatgptFileUploadLimitRoute: HowToChatgptFileUploadLimitRoute,
+  HowToClaudeFileUploadLimitRoute: HowToClaudeFileUploadLimitRoute,
   HowToGithubRepoToTextRoute: HowToGithubRepoToTextRoute,
   HowToGitingestAlternativeRoute: HowToGitingestAlternativeRoute,
   HowToShareAllFilesWithAiRoute: HowToShareAllFilesWithAiRoute,

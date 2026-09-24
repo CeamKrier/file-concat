@@ -82,6 +82,9 @@ export function SiteFooter() {
             <Link to="/for/claude-projects" className={linkClass}>
               For Claude Projects
             </Link>
+            <Link to="/how-to/claude-file-upload-limit" className={linkClass}>
+              Claude upload limit
+            </Link>
             <Link to="/for/gemini-gems" className={linkClass}>
               For Gemini Gems
             </Link>

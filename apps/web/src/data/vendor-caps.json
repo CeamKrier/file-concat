@@ -94,7 +94,7 @@
     {
       "url": "https://support.claude.com/en/articles/8606394-how-large-is-the-context-window-on-paid-claude-plans",
       "anchor": "How large is the context window on paid Claude plans",
-      "checked": "2026-09-23",
+      "checked": "2026-09-24",
       "quotes": [
         "Chatting with Claude Model Context window Claude Fable 5.1 1M tokens",
         "Claude Sonnet 4.6 500K tokens",
@@ -102,7 +102,9 @@
       ],
       "used_by": [
         "apps/web/src/components/personas/claude-projects-page.tsx",
-        "apps/web/src/components/personas/claude-projects-faq.ts"
+        "apps/web/src/components/personas/claude-projects-faq.ts",
+        "apps/web/src/components/how-to/claude-upload-limit-page.tsx",
+        "apps/web/src/components/how-to/claude-upload-limit-faq.ts"
       ]
     },
     {
@@ -123,7 +125,10 @@
         "Chat uploads File size: 500MB per file Number of files: Up to 20 files per chat",
         "Project files File size: 30MB per file Number of files: Unlimited, but total content must fit within Claude's context window",
         "PDF DOCX CSV TXT HTML ODT RTF EPUB JSON",
-        "You can't upload PDFs over 1000 pages"
+        "You can't upload PDFs over 1000 pages",
+        "Image dimensions: Up to 8000x8000 pixels",
+        "For PDFs from 101 to 1000 pages, Claude processes text only",
+        "Uploaded file is too large"
       ],
       "used_by": [
         "apps/web/src/components/personas/claude-projects-page.tsx",
@@ -131,7 +136,24 @@
         "apps/web/src/routes/for/claude-projects.tsx",
         "apps/web/src/components/how-to/share-all-files-page.tsx",
         "apps/web/src/components/how-to/upload-book-page.tsx",
-        "apps/web/src/components/how-to/upload-book-faq.ts"
+        "apps/web/src/components/how-to/upload-book-faq.ts",
+        "apps/web/src/components/how-to/claude-upload-limit-page.tsx",
+        "apps/web/src/components/how-to/claude-upload-limit-faq.ts",
+        "apps/web/src/routes/how-to/claude-file-upload-limit.tsx"
+      ]
+    },
+    {
+      "url": "https://support.claude.com/en/articles/12466728-troubleshoot-claude-error-messages",
+      "anchor": "Troubleshoot Claude error messages",
+      "checked": "2026-09-24",
+      "quotes": [
+        "Your message will exceed the length limit for this chat. Try attaching fewer or smaller files or starting a new conversation.",
+        "such as when sending a very large first message",
+        "For users on paid plans with code execution enabled, Claude automatically manages long conversations"
+      ],
+      "used_by": [
+        "apps/web/src/components/how-to/claude-upload-limit-page.tsx",
+        "apps/web/src/components/how-to/claude-upload-limit-faq.ts"
       ]
     },
     {

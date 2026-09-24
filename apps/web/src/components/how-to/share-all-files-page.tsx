@@ -119,7 +119,7 @@ const LIMITS = [
     where: "Claude chats",
     caps: "Files you attach",
     limit: "20 per chat, up to 500 MB each",
-    href: "/for/claude-projects",
+    href: "/how-to/claude-file-upload-limit",
   },
   {
     where: "Claude Projects",

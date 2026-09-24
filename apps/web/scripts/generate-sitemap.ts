@@ -141,6 +141,15 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    url: "/how-to/claude-file-upload-limit",
+    sourceFile: [
+      "apps/web/src/routes/how-to/claude-file-upload-limit.tsx",
+      "apps/web/src/components/how-to/claude-upload-limit-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
     url: "/how-to/upload-folder-to-chatgpt",
     sourceFile: [
       "apps/web/src/routes/how-to/upload-folder-to-chatgpt.tsx",

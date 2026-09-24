@@ -230,6 +230,13 @@ function WhereItStops() {
         >
           file upload limits
         </a>
+        . Stopped at twenty files in a chat instead? See{" "}
+        <Link
+          to="/how-to/claude-file-upload-limit"
+          className="hover:text-ink-secondary underline decoration-[oklch(var(--border-strong))] underline-offset-2 transition-colors duration-150"
+        >
+          the Claude file upload limit per chat
+        </Link>
         . On ChatGPT, Gemini, or NotebookLM instead? See{" "}
         <Link
           to="/how-to/share-all-files-with-ai"
