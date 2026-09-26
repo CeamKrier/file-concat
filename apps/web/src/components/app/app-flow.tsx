@@ -33,6 +33,7 @@ import {
   type Tally,
 } from "~/lib/metrics";
 import { tagSurface } from "~/lib/clarity-tags";
+import { cn } from "~/lib/utils";
 import { ocrLanguageName, ocrLanguageOptions } from "~/lib/ocr-language";
 import { flushTreeInteractions } from "~/components/file-tree/interaction-tally";
 
@@ -45,6 +46,7 @@ import type { ImportState } from "./import-panel";
 import { ProcessingView, type ProcessingStep } from "./processing-view";
 import { ResultView } from "./result-view";
 import { ResultEmpty } from "./result-empty";
+import { FeedbackDock } from "./feedback-dock";
 import { ReadingDialog } from "./reading-dialog";
 import { emptyKindFor, emptyReasonSlug } from "./empty-kind";
 import {
@@ -183,6 +185,9 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     track("drawer_opened", door);
   };
   const [readingOpen, setReadingOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  /** Successful exports this page load; the feedback ask waits on the first. */
+  const [exports, setExports] = useState(0);
   // The source identity shown under the spinner (import slug/host, else "").
   const [processingLabel, setProcessingLabel] = useState("");
 
@@ -800,7 +805,14 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     <div className="bg-background flex min-h-screen flex-col">
       <TopBar onStartOver={startOver} />
 
-      <main className="flex-1">
+      {/* Room for the feedback panel rather than a panel over the work: the
+          bundle it is about stays readable beside it. */}
+      <main
+        className={cn(
+          "ease-out-expo flex-1 transition-[padding] duration-300 motion-reduce:transition-none",
+          feedbackOpen && "max-lg:pb-[448px] lg:pr-[400px]",
+        )}
+      >
         {phase === "landing" &&
           (renderLanding ? (
             renderLanding(dropProps, linkImport)
@@ -865,8 +877,13 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               onOutputStyleChange={(style) => setConfig({ outputStyle: style })}
               isCopied={output.isCopied}
               isGenerating={output.isGenerating}
-              onCopy={output.copy}
-              onDownload={output.download}
+              onCopy={async () => {
+                if (await output.copy()) setExports((n) => n + 1);
+              }}
+              onDownload={async () => {
+                if (await output.download()) setExports((n) => n + 1);
+              }}
+              onFeedback={() => setFeedbackOpen(true)}
               onStartOver={startOver}
               onAddFiles={onAddFiles}
               previewText={previewText}
@@ -917,6 +934,14 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         onRead={ingestion.readSelected}
         onStop={ingestion.stopReading}
         isStopping={ingestion.isStopping}
+      />
+
+      <FeedbackDock
+        active={phase === "result"}
+        exports={exports}
+        empty={phase === "result" && filesCombined === 0 && !ingestion.isReading}
+        open={feedbackOpen}
+        onOpenChange={setFeedbackOpen}
       />
 
       <SettingsDrawer

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   METRICS_RETENTION_DAYS,
   pruneCounters,
+  pruneFeedback,
   retentionCutoff,
 } from "~/lib/metrics-retention";
 
@@ -78,6 +79,15 @@ describe("pruneCounters", () => {
 
     expect(await pruneCounters(db)).toBe(0);
     expect(log).not.toHaveBeenCalled();
+  });
+
+  it("prunes feedback notes on the same window", async () => {
+    const { db, calls } = fakeDb({ changes: 0 });
+
+    await pruneFeedback(db, 1_800_000_000_000);
+
+    expect(calls[0].sql).toBe("DELETE FROM feedback WHERE ts < ?");
+    expect(calls[0].args).toEqual([retentionCutoff(1_800_000_000_000)]);
   });
 
   it("swallows a database failure so a missed night is never an incident", async () => {
