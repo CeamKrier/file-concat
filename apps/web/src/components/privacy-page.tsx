@@ -5,7 +5,7 @@ import { SiteFooter } from "~/components/app/marketing";
 import { TopBar } from "~/components/app/top-bar";
 import { METRICS_RETENTION_DAYS } from "~/lib/metrics-retention";
 
-const LAST_UPDATED = "August 20, 2026";
+const LAST_UPDATED = "September 26, 2026";
 
 /** Items that are never uploaded to a server. Scoped to the actual file work. */
 const STAYS = [
@@ -31,7 +31,11 @@ const COLLECTED = [
   },
   {
     title: "Anonymous counts, kept by us.",
-    body: `So we know which formats to support next and where the tool struggles, we count the file types in a drop (how many of each, how many bytes, and the size of the largest file), the number of files, how long reading them took, how large the combined result was, and whether you copied or downloaded. We also record what kind of site sent you here, such as a search engine or an AI assistant, as a single label, and never the address you came from. When the tool itself crashes we record the kind of error, such as a type error or a script that failed to load, and never its message. Filenames are checked against a short published list of project files such as package.json and go.mod, and only a match is recorded. Nothing else about a filename leaves your browser, and no folder path or file content ever does. Each count carries a random id that lasts for one page load, is never stored on your device, and is never reused, so nothing ties a count to you, to another visit, or to your files. We delete these counts after ${METRICS_RETENTION_DAYS} days.`,
+    body: `So we know which formats to support next and where the tool struggles, we count the file types in a drop (how many of each, how many bytes, and the size of the largest file), the number of files, how long reading them took, how large the combined result was, and whether you copied or downloaded. We also record what kind of site sent you here, such as a search engine or an AI assistant, as a single label, and never the address you came from. When the tool itself crashes we record the kind of error, such as a type error or a script that failed to load, and never its message. Filenames are checked against a short published list of project files such as package.json and go.mod, and only a match is recorded. Nothing else about a filename leaves your browser, and no folder path or file content ever does. Each count carries a random id that lasts for one page load, is never stored on your device, and is never reused, so nothing ties a count to you, to another visit, or to your files, unless you add your email to a feedback note as described below. We delete these counts after ${METRICS_RETENTION_DAYS} days.`,
+  },
+  {
+    title: "Feedback, when you send it.",
+    body: `After you copy or download, the tool may ask whether it did what you needed. A tap on Yes or Not quite is recorded like the counts above. If you write a note and press Send, we keep what you typed together with that visit's random id, so we can read it beside the counts from the same drop, such as which file types failed to read. If you add your email to get a reply, we keep it with the note and use it only to answer you, which also means the counts from that visit are no longer anonymous to us. Nothing is sent unless you press a button, and your files and their names are never part of it. We delete notes, and any email with them, after ${METRICS_RETENTION_DAYS} days.`,
   },
   {
     title: "Standard analytics signals.",
@@ -47,7 +51,7 @@ const COLLECTED = [
   },
   {
     title: "Your settings.",
-    body: "Filters and preferences are saved in your browser's local storage. They stay on your device and are never sent anywhere.",
+    body: "Filters and preferences are saved in your browser's local storage, along with the date the feedback question was last shown, so it is not asked again for a month. They stay on your device and are never sent anywhere.",
   },
 ];
 
@@ -198,8 +202,8 @@ export function PrivacyPage() {
           <p className="text-ink-secondary mt-4 text-[15px] leading-relaxed">
             Open your browser's network panel and drop a folder. Your documents are never
             uploaded. The requests you will see are the analytics beacon, the repository fetch if you
-            imported one, and the recognition download if a scanned page was in the drop. Never your
-            files. Any content blocker stops the analytics, and the whole app is open source, so you
+            imported one, the recognition download if a scanned page was in the drop, and your
+            feedback note if you send one. Never your files. Any content blocker stops the analytics, and the whole app is open source, so you
             can read exactly what it does.
           </p>
           <a

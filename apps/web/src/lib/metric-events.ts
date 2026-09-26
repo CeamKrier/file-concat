@@ -443,6 +443,18 @@ export const METRIC_EVENTS = [
   // --- not tied to a run ---
 
   /**
+   * The feedback ask on the result screen: `asked` when the note appears, then
+   * `yes` or `no` for the one-tap answer, or `closed` when it was dismissed
+   * unanswered. Denominator for the answers is `asked`, by page.
+   *
+   * Carries the Run it was asked in, so the drop behind a `no` is readable from
+   * the Run's own rows (`empty_reason` says the ask came from the empty screen,
+   * whose note has no yes/no and so writes only `asked` and `closed`). What
+   * someone typed is not a counter: it goes to `/api/feedback` under the same
+   * page id, and only when they press Send.
+   */
+  "feedback",
+  /**
    * An uncaught JavaScript error, as `<source>/<kind>`: where it surfaced
    * (`error` a sync throw, `rejection` an unhandled promise, `boundary` a render
    * React caught and replaced the page with) and what it was (an allowlisted
@@ -464,3 +476,6 @@ export const METRIC_EVENTS = [
 ] as const;
 
 export type MetricEvent = (typeof METRIC_EVENTS)[number];
+
+/** The client's page-lifetime id, as both server sinks accept it. */
+export const PAGE_ID_PATTERN = /^[a-z0-9-]{8,64}$/i;

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { env } from "cloudflare:workers";
 
-import { METRIC_EVENTS, type MetricEvent } from "~/lib/metric-events";
+import { METRIC_EVENTS, PAGE_ID_PATTERN, type MetricEvent } from "~/lib/metric-events";
 
 /**
  * Product counter sink (ADR-0013, revised by ADR-0014).
@@ -49,7 +49,6 @@ const UNKNOWN_CLIENT = "no-connecting-ip";
 
 /** Same shape the client normalizes to. Rejected rather than sanitized here. */
 const VALUE_PATTERN = /^[a-z0-9._/+-]{1,32}$/;
-const PAGE_ID_PATTERN = /^[a-z0-9-]{8,64}$/i;
 
 /** Wire shape: `n` name, `v` value, `q` quantity, `b` bytes, `r` run. */
 type IncomingEvent = { n: string; v?: unknown; q?: unknown; b?: unknown; r?: unknown };

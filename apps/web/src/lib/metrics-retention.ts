@@ -28,19 +28,37 @@ export function retentionCutoff(nowMs: number = Date.now()): number {
  * day's worth, so a missed run costs nothing, and nothing about a counter should
  * ever be able to surface as an incident.
  */
-export async function pruneCounters(db: D1Database, nowMs: number = Date.now()): Promise<number> {
+export function pruneCounters(db: D1Database, nowMs: number = Date.now()): Promise<number> {
+  return prune(db, "events", "counter", nowMs);
+}
+
+/**
+ * Feedback notes keep the counters' window, so `/privacy` states one number for
+ * everything the tool keeps. A note is free text and may hold more than anyone
+ * meant to leave with us, which is a reason to keep it no longer, not longer.
+ */
+export function pruneFeedback(db: D1Database, nowMs: number = Date.now()): Promise<number> {
+  return prune(db, "feedback", "feedback", nowMs);
+}
+
+async function prune(
+  db: D1Database,
+  table: "events" | "feedback",
+  noun: string,
+  nowMs: number,
+): Promise<number> {
   try {
     const result = await db
-      .prepare("DELETE FROM events WHERE ts < ?")
+      .prepare(`DELETE FROM ${table} WHERE ts < ?`)
       .bind(retentionCutoff(nowMs))
       .run();
     const deleted = result.meta?.changes ?? 0;
     if (deleted > 0) {
-      console.log(`Pruned ${deleted} counter rows older than ${METRICS_RETENTION_DAYS} days`);
+      console.log(`Pruned ${deleted} ${noun} rows older than ${METRICS_RETENTION_DAYS} days`);
     }
     return deleted;
   } catch (error) {
-    console.error("Failed to prune counters:", error);
+    console.error(`Failed to prune ${noun} rows:`, error);
     return 0;
   }
 }

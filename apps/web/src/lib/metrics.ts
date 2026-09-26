@@ -17,6 +17,7 @@
  * request rather than one per file.
  */
 
+import type { FeedbackOrigin } from "./feedback";
 import type { MetricEvent } from "./metric-events";
 
 export type { MetricEvent };
@@ -169,6 +170,39 @@ export function track(name: MetricEvent, value?: string): void {
   const v = normalizeValue(value);
   const r = currentRun();
   enqueue({ n: name, ...(v === undefined ? {} : { v }), ...(r === null ? {} : { r }) });
+}
+
+/**
+ * Send a note from the feedback panel, under this page load's id and Run so it
+ * can be read beside the counters of the drop it is about. Lives here because
+ * the page id does: it never leaves this module any other way.
+ *
+ * Unlike a counter, the caller waits for the answer, because a note that
+ * failed has to stay in the textarea. Resolves true only when it was stored.
+ */
+export async function sendFeedback(
+  origin: FeedbackOrigin,
+  message: string,
+  email: string,
+): Promise<boolean> {
+  if (import.meta.env.SSR) return false;
+  const r = currentRun();
+  try {
+    const res = await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        s: getPageId(),
+        o: origin,
+        m: message,
+        ...(r === null ? {} : { r }),
+        ...(email ? { e: email } : {}),
+      }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 /**

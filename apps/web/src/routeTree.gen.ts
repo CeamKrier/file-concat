@@ -35,6 +35,7 @@ import { Route as ForAccountantsRouteImport } from './routes/for/accountants'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as ApiModelsRouteImport } from './routes/api/models'
+import { Route as ApiFeedbackRouteImport } from './routes/api/feedback'
 import { Route as ApiERouteImport } from './routes/api/e'
 
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -174,6 +175,11 @@ const ApiModelsRoute = ApiModelsRouteImport.update({
   path: '/api/models',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFeedbackRoute = ApiFeedbackRouteImport.update({
+  id: '/api/feedback',
+  path: '/api/feedback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiERoute = ApiERouteImport.update({
   id: '/api/e',
   path: '/api/e',
@@ -186,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/clipper': typeof ClipperRoute
   '/privacy': typeof PrivacyRoute
   '/api/e': typeof ApiERoute
+  '/api/feedback': typeof ApiFeedbackRoute
   '/api/models': typeof ApiModelsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
@@ -215,6 +222,7 @@ export interface FileRoutesByTo {
   '/clipper': typeof ClipperRoute
   '/privacy': typeof PrivacyRoute
   '/api/e': typeof ApiERoute
+  '/api/feedback': typeof ApiFeedbackRoute
   '/api/models': typeof ApiModelsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
@@ -245,6 +253,7 @@ export interface FileRoutesById {
   '/clipper': typeof ClipperRoute
   '/privacy': typeof PrivacyRoute
   '/api/e': typeof ApiERoute
+  '/api/feedback': typeof ApiFeedbackRoute
   '/api/models': typeof ApiModelsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
@@ -276,6 +285,7 @@ export interface FileRouteTypes {
     | '/clipper'
     | '/privacy'
     | '/api/e'
+    | '/api/feedback'
     | '/api/models'
     | '/blog/$slug'
     | '/docs/$slug'
@@ -305,6 +315,7 @@ export interface FileRouteTypes {
     | '/clipper'
     | '/privacy'
     | '/api/e'
+    | '/api/feedback'
     | '/api/models'
     | '/blog/$slug'
     | '/docs/$slug'
@@ -334,6 +345,7 @@ export interface FileRouteTypes {
     | '/clipper'
     | '/privacy'
     | '/api/e'
+    | '/api/feedback'
     | '/api/models'
     | '/blog/$slug'
     | '/docs/$slug'
@@ -364,6 +376,7 @@ export interface RootRouteChildren {
   ClipperRoute: typeof ClipperRoute
   PrivacyRoute: typeof PrivacyRoute
   ApiERoute: typeof ApiERoute
+  ApiFeedbackRoute: typeof ApiFeedbackRoute
   ApiModelsRoute: typeof ApiModelsRoute
   BlogSlugRoute: typeof BlogSlugRoute
   DocsSlugRoute: typeof DocsSlugRoute
@@ -572,6 +585,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiModelsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/feedback': {
+      id: '/api/feedback'
+      path: '/api/feedback'
+      fullPath: '/api/feedback'
+      preLoaderRoute: typeof ApiFeedbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/e': {
       id: '/api/e'
       path: '/api/e'
@@ -588,6 +608,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClipperRoute: ClipperRoute,
   PrivacyRoute: PrivacyRoute,
   ApiERoute: ApiERoute,
+  ApiFeedbackRoute: ApiFeedbackRoute,
   ApiModelsRoute: ApiModelsRoute,
   BlogSlugRoute: BlogSlugRoute,
   DocsSlugRoute: DocsSlugRoute,

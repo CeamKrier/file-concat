@@ -168,6 +168,13 @@ export function SiteFooter() {
               className="text-ink decoration-primary/40 underline decoration-1 underline-offset-[3px] transition-colors duration-150 hover:decoration-[oklch(var(--primary))]"
             >
               @CeamKrier
+            </a>{" "}
+            /{" "}
+            <a
+              href="mailto:hello@ceamkrier.com"
+              className="text-ink-muted hover:text-ink decoration-[oklch(var(--border-strong))] underline underline-offset-[3px] transition-colors duration-150"
+            >
+              hello@ceamkrier.com
             </a>
           </p>
           <a

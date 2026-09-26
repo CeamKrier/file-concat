@@ -47,8 +47,9 @@ export interface OutputGeneration {
   isCopied: boolean;
   isGenerating: boolean;
   canEmit: boolean;
-  copy: () => Promise<void>;
-  download: () => Promise<void>;
+  /** Resolve true when the bundle actually left: the feedback ask waits on it. */
+  copy: () => Promise<boolean>;
+  download: () => Promise<boolean>;
   reset: () => void;
 }
 
@@ -154,8 +155,10 @@ export function useOutputGeneration({
       track("output_taken", "copy");
       track("output_style", outputStyle);
       tagOutcome("copied");
+      return true;
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
+      return false;
     }
   }, [buildSingle, includedContents, outputStyle]);
 
@@ -176,7 +179,7 @@ export function useOutputGeneration({
         track("output_taken", "download");
         track("output_style", outputStyle);
         tagOutcome("downloaded");
-        return;
+        return true;
       }
 
       const total = chunks.length;
@@ -195,8 +198,10 @@ export function useOutputGeneration({
       track("output_taken", "download");
       track("output_style", outputStyle);
       tagOutcome("downloaded");
+      return true;
     } catch (error) {
       console.error("Error generating output:", error);
+      return false;
     } finally {
       setIsGenerating(false);
     }

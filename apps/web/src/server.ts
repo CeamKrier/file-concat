@@ -1,6 +1,6 @@
 import { createStartHandler, defaultStreamHandler } from "@tanstack/react-start/server";
 
-import { pruneCounters } from "~/lib/metrics-retention";
+import { pruneCounters, pruneFeedback } from "~/lib/metrics-retention";
 
 /**
  * Custom server entry.
@@ -53,6 +53,6 @@ export default {
    * nothing.
    */
   async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext) {
-    ctx.waitUntil(pruneCounters(env.METRICS));
+    ctx.waitUntil(Promise.all([pruneCounters(env.METRICS), pruneFeedback(env.METRICS)]));
   },
 };

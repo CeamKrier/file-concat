@@ -15,6 +15,7 @@ import {
   Image as ImageIcon,
   Info,
   LoaderCircle,
+  MessageSquare,
   RotateCcw,
   ScanText,
   SlidersHorizontal,
@@ -115,6 +116,8 @@ type ResultViewProps = {
   weight: BundleWeight;
   splitMode: SplitMode;
   onSplitModeChange: (mode: SplitMode) => void;
+  /** Open the feedback panel. The way back to it after the ask was dismissed. */
+  onFeedback?: () => void;
 };
 
 const fmt = new Intl.NumberFormat("en-US");
@@ -192,6 +195,7 @@ export function ResultView({
   weight,
   splitMode,
   onSplitModeChange,
+  onFeedback,
 }: ResultViewProps) {
   // A hidden input behind a real button, the same idiom the drop zone uses: the
   // native file picker with a label we control.
@@ -681,8 +685,9 @@ export function ResultView({
           )}
 
           {/* The card's footer: everything you might do to the bundle instead
-              of exporting it. Under the buttons rather than over them, centred
-              on the pair, and at the quietest weight on the card. */}
+              of exporting it, and the way to tell us it went wrong. Under the
+              buttons rather than over them, centred on the pair, and at the
+              quietest weight on the card. */}
           <div className="mt-[18px] flex flex-wrap items-center justify-center gap-x-[22px] gap-y-2.5">
             <QuietAction
               icon={FilePlus}
@@ -702,6 +707,9 @@ export function ResultView({
               label="Adjust what's included"
               onClick={onAdjust}
             />
+            {onFeedback && (
+              <QuietAction icon={MessageSquare} label="Give feedback" onClick={onFeedback} />
+            )}
             {/* Asked in a modal, because it is the one control here that
                 throws work away and there is no undo behind it. */}
             <QuietAction
