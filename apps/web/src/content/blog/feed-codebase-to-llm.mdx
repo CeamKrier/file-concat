@@ -102,7 +102,10 @@ and it counts as one file against their upload caps; [ChatGPT's](/how-to/chatgpt
 are the tightest. Gemini is the one that takes a repository itself: one code folder or one
 GitHub repository per chat, up to 5,000 files and 100 MB, as of September 2026. The bundle
 still helps there when the repository is larger than that, or when you want tests and lock
-files out before the model reads it.
+files out before the model reads it. NotebookLM reads only the text of a page given as a
+link, so a GitHub URL brings in the text of that one page and not the files behind it; set
+Format to Plain and the bundle goes in as one source instead. The steps are on
+[adding a GitHub repo to NotebookLM](/for/notebooklm#notebooklm-github).
 
 ## Try it on your own repo
 
