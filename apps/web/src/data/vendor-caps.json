@@ -10,14 +10,19 @@
         "Plus and Go users: up to 25 files",
         "Free users: up to 5 files",
         "Business, Enterprise, and Edu projects support up to 40 files",
-        "Google Drive (files and folders)"
+        "Google Drive (files and folders)",
+        "After moving, the chat inherits the project's instructions and file context",
+        "ChatGPT can reference previous chats within a project",
+        "Chats created with a GPT can't be moved into a project"
       ],
       "used_by": [
         "apps/web/src/components/personas/chatgpt-projects-page.tsx",
         "apps/web/src/components/how-to/share-all-files-page.tsx",
         "apps/web/src/components/how-to/chatgpt-upload-limit-faq.ts",
         "apps/web/src/components/how-to/upload-folder-page.tsx",
-        "apps/web/src/components/how-to/upload-folder-faq.ts"
+        "apps/web/src/components/how-to/upload-folder-faq.ts",
+        "apps/web/src/components/how-to/chatgpt-conversation-too-long-page.tsx",
+        "apps/web/src/components/how-to/chatgpt-conversation-too-long-faq.ts"
       ]
     },
     {
@@ -41,7 +46,9 @@
         "apps/web/src/components/how-to/share-all-files-page.tsx",
         "apps/web/src/components/how-to/upload-folder-faq.ts",
         "apps/web/src/components/how-to/upload-book-faq.ts",
-        "apps/web/src/content/blog/combine-files-for-llm.mdx"
+        "apps/web/src/content/blog/combine-files-for-llm.mdx",
+        "apps/web/src/components/how-to/chatgpt-conversation-too-long-page.tsx",
+        "apps/web/src/components/how-to/chatgpt-conversation-too-long-faq.ts"
       ]
     },
     {
@@ -57,7 +64,9 @@
         "apps/web/src/components/how-to/upload-folder-faq.ts",
         "apps/web/src/components/how-to/share-all-files-page.tsx",
         "apps/web/src/components/how-to/upload-book-page.tsx",
-        "apps/web/src/components/how-to/upload-book-faq.ts"
+        "apps/web/src/components/how-to/upload-book-faq.ts",
+        "apps/web/src/content/blog/youtube-transcript-to-chatgpt.mdx",
+        "apps/web/src/components/how-to/chatgpt-conversation-too-long-page.tsx"
       ]
     },
     {
@@ -140,7 +149,8 @@
         "apps/web/src/components/how-to/upload-book-faq.ts",
         "apps/web/src/components/how-to/claude-upload-limit-page.tsx",
         "apps/web/src/components/how-to/claude-upload-limit-faq.ts",
-        "apps/web/src/routes/how-to/claude-file-upload-limit.tsx"
+        "apps/web/src/routes/how-to/claude-file-upload-limit.tsx",
+        "apps/web/src/content/blog/youtube-transcript-to-chatgpt.mdx"
       ]
     },
     {
@@ -199,7 +209,8 @@
         "apps/web/src/components/personas/notebooklm-faq.ts",
         "apps/web/src/components/how-to/share-all-files-page.tsx",
         "apps/web/src/components/how-to/upload-book-page.tsx",
-        "apps/web/src/components/how-to/upload-book-faq.ts"
+        "apps/web/src/components/how-to/upload-book-faq.ts",
+        "apps/web/src/content/blog/feed-codebase-to-llm.mdx"
       ]
     },
     {
@@ -259,6 +270,30 @@
       "used_by": [
         "apps/web/src/components/how-to/gitingest-alternative-page.tsx",
         "apps/web/src/components/how-to/gitingest-alternative-faq.ts"
+      ]
+    },
+    {
+      "url": "https://community.openai.com/t/youve-reached-the-maximum-length-for-this-conversation-but-you-can-keep-talking-by-starting-a-new-chat-but-how-do-you-actually-continue-a-complex-project/1392865",
+      "anchor": "OpenAI Developer Community",
+      "checked": "2026-09-30",
+      "quotes": [
+        "You've reached the maximum length for this conversation, but you can keep talking by starting a new chat"
+      ],
+      "used_by": [
+        "apps/web/src/components/how-to/chatgpt-conversation-too-long-page.tsx",
+        "apps/web/src/components/how-to/chatgpt-conversation-too-long-faq.ts",
+        "apps/web/src/routes/how-to/chatgpt-conversation-too-long.tsx"
+      ]
+    },
+    {
+      "url": "https://community.openai.com/t/can-no-longer-even-read-conversations-that-say-this-conversation-is-too-long-please-start-a-new-one/1380959",
+      "anchor": "OpenAI Developer Community",
+      "checked": "2026-09-30",
+      "quotes": ["This conversation is too long, please start a new one"],
+      "used_by": [
+        "apps/web/src/components/how-to/chatgpt-conversation-too-long-page.tsx",
+        "apps/web/src/components/how-to/chatgpt-conversation-too-long-faq.ts",
+        "apps/web/src/routes/how-to/chatgpt-conversation-too-long.tsx"
       ]
     }
   ]

@@ -150,6 +150,15 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    url: "/how-to/chatgpt-conversation-too-long",
+    sourceFile: [
+      "apps/web/src/routes/how-to/chatgpt-conversation-too-long.tsx",
+      "apps/web/src/components/how-to/chatgpt-conversation-too-long-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
     url: "/how-to/upload-folder-to-chatgpt",
     sourceFile: [
       "apps/web/src/routes/how-to/upload-folder-to-chatgpt.tsx",
