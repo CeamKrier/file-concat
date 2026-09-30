@@ -23,6 +23,7 @@ import { Route as HowToGitingestAlternativeRouteImport } from './routes/how-to/g
 import { Route as HowToGithubRepoToTextRouteImport } from './routes/how-to/github-repo-to-text'
 import { Route as HowToClaudeFileUploadLimitRouteImport } from './routes/how-to/claude-file-upload-limit'
 import { Route as HowToChatgptFileUploadLimitRouteImport } from './routes/how-to/chatgpt-file-upload-limit'
+import { Route as HowToChatgptConversationTooLongRouteImport } from './routes/how-to/chatgpt-conversation-too-long'
 import { Route as ForResearchersRouteImport } from './routes/for/researchers'
 import { Route as ForNotebooklmRouteImport } from './routes/for/notebooklm'
 import { Route as ForLegalRouteImport } from './routes/for/legal'
@@ -115,6 +116,12 @@ const HowToChatgptFileUploadLimitRoute =
     path: '/how-to/chatgpt-file-upload-limit',
     getParentRoute: () => rootRouteImport,
   } as any)
+const HowToChatgptConversationTooLongRoute =
+  HowToChatgptConversationTooLongRouteImport.update({
+    id: '/how-to/chatgpt-conversation-too-long',
+    path: '/how-to/chatgpt-conversation-too-long',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ForResearchersRoute = ForResearchersRouteImport.update({
   id: '/for/researchers',
   path: '/for/researchers',
@@ -205,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/for/legal': typeof ForLegalRoute
   '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
+  '/how-to/chatgpt-conversation-too-long': typeof HowToChatgptConversationTooLongRoute
   '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
   '/how-to/claude-file-upload-limit': typeof HowToClaudeFileUploadLimitRoute
   '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
@@ -235,6 +243,7 @@ export interface FileRoutesByTo {
   '/for/legal': typeof ForLegalRoute
   '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
+  '/how-to/chatgpt-conversation-too-long': typeof HowToChatgptConversationTooLongRoute
   '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
   '/how-to/claude-file-upload-limit': typeof HowToClaudeFileUploadLimitRoute
   '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
@@ -266,6 +275,7 @@ export interface FileRoutesById {
   '/for/legal': typeof ForLegalRoute
   '/for/notebooklm': typeof ForNotebooklmRoute
   '/for/researchers': typeof ForResearchersRoute
+  '/how-to/chatgpt-conversation-too-long': typeof HowToChatgptConversationTooLongRoute
   '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
   '/how-to/claude-file-upload-limit': typeof HowToClaudeFileUploadLimitRoute
   '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
@@ -298,6 +308,7 @@ export interface FileRouteTypes {
     | '/for/legal'
     | '/for/notebooklm'
     | '/for/researchers'
+    | '/how-to/chatgpt-conversation-too-long'
     | '/how-to/chatgpt-file-upload-limit'
     | '/how-to/claude-file-upload-limit'
     | '/how-to/github-repo-to-text'
@@ -328,6 +339,7 @@ export interface FileRouteTypes {
     | '/for/legal'
     | '/for/notebooklm'
     | '/for/researchers'
+    | '/how-to/chatgpt-conversation-too-long'
     | '/how-to/chatgpt-file-upload-limit'
     | '/how-to/claude-file-upload-limit'
     | '/how-to/github-repo-to-text'
@@ -358,6 +370,7 @@ export interface FileRouteTypes {
     | '/for/legal'
     | '/for/notebooklm'
     | '/for/researchers'
+    | '/how-to/chatgpt-conversation-too-long'
     | '/how-to/chatgpt-file-upload-limit'
     | '/how-to/claude-file-upload-limit'
     | '/how-to/github-repo-to-text'
@@ -389,6 +402,7 @@ export interface RootRouteChildren {
   ForLegalRoute: typeof ForLegalRoute
   ForNotebooklmRoute: typeof ForNotebooklmRoute
   ForResearchersRoute: typeof ForResearchersRoute
+  HowToChatgptConversationTooLongRoute: typeof HowToChatgptConversationTooLongRoute
   HowToChatgptFileUploadLimitRoute: typeof HowToChatgptFileUploadLimitRoute
   HowToClaudeFileUploadLimitRoute: typeof HowToClaudeFileUploadLimitRoute
   HowToGithubRepoToTextRoute: typeof HowToGithubRepoToTextRoute
@@ -499,6 +513,13 @@ declare module '@tanstack/react-router' {
       path: '/how-to/chatgpt-file-upload-limit'
       fullPath: '/how-to/chatgpt-file-upload-limit'
       preLoaderRoute: typeof HowToChatgptFileUploadLimitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-to/chatgpt-conversation-too-long': {
+      id: '/how-to/chatgpt-conversation-too-long'
+      path: '/how-to/chatgpt-conversation-too-long'
+      fullPath: '/how-to/chatgpt-conversation-too-long'
+      preLoaderRoute: typeof HowToChatgptConversationTooLongRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/for/researchers': {
@@ -621,6 +642,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForLegalRoute: ForLegalRoute,
   ForNotebooklmRoute: ForNotebooklmRoute,
   ForResearchersRoute: ForResearchersRoute,
+  HowToChatgptConversationTooLongRoute: HowToChatgptConversationTooLongRoute,
   HowToChatgptFileUploadLimitRoute: HowToChatgptFileUploadLimitRoute,
   HowToClaudeFileUploadLimitRoute: HowToClaudeFileUploadLimitRoute,
   HowToGithubRepoToTextRoute: HowToGithubRepoToTextRoute,

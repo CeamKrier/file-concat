@@ -97,6 +97,12 @@ const LIMITS = [
   },
   { where: "ChatGPT, one file", caps: "Size and length", limit: "512 MB, 2M tokens" },
   {
+    where: "A ChatGPT conversation",
+    caps: "How long it grows",
+    limit: "Not published; past it, a new chat starts empty",
+    href: "/how-to/chatgpt-conversation-too-long",
+  },
+  {
     where: "ChatGPT folders and ZIPs",
     caps: "What it opens",
     limit: "No folder upload; archives are not a listed file type",

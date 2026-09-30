@@ -67,6 +67,9 @@ export function SiteFooter() {
             <Link to="/how-to/chatgpt-file-upload-limit" className={linkClass}>
               ChatGPT upload limit
             </Link>
+            <Link to="/how-to/chatgpt-conversation-too-long" className={linkClass}>
+              ChatGPT conversation too long
+            </Link>
             <Link to="/how-to/upload-folder-to-chatgpt" className={linkClass}>
               Folder or ZIP to ChatGPT
             </Link>
