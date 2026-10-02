@@ -271,6 +271,9 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2
     devDependencies:
+      7z-wasm:
+        specifier: ^1.2.0
+        version: 1.2.0
       '@anthropic-ai/sdk':
         specifier: ^0.124.0
         version: 0.124.0(zod@3.25.76)
@@ -289,15 +292,24 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.1
+      '@zip.js/zip.js':
+        specifier: ^2.22.0
+        version: 2.22.0
       docling.rs-wasm:
         specifier: ^1.89.0
         version: 1.89.0
       execa:
         specifier: ^9.6.1
         version: 9.6.1
+      libarchive-wasm:
+        specifier: ^1.2.0
+        version: 1.2.0
       mammoth:
         specifier: ^1.13.0
         version: 1.13.0
+      node-unrar-js:
+        specifier: ^2.0.2
+        version: 2.0.2
       officeparser8:
         specifier: npm:officeparser@8.1.0
         version: officeparser@8.1.0
@@ -307,6 +319,9 @@ importers:
       tsup:
         specifier: ^8.0.0
         version: 8.5.1(@swc/core@1.15.3)(jiti@2.7.0)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.6.3)(yaml@2.6.1)
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
       typescript:
         specifier: ^5.0.0
         version: 5.6.3
@@ -346,6 +361,11 @@ importers:
         version: 2.1.9(@types/node@22.19.1)(jsdom@29.1.1)
 
 packages:
+
+  7z-wasm@1.2.0:
+    resolution: {integrity: sha512-AZjtWXFleAe5nQ27JYISs70cICjO0zZr4LU45I9pXKcrhG0qiEWgq3Vjwr9JHHihFLuqgc7uSHYVn/z3vXCjdw==}
+    engines: {node: '>=8.0.0'}
+    hasBin: true
 
   '@1natsu/wait-element@4.2.0':
     resolution: {integrity: sha512-Om0Q+WE9mNrpY4AwMTvkFiYHv8VM7TML3PvOqXy+w6kAjLjKhGYHYX+305+a6J8RVpds9s7IF2Z5aOPYwULFNw==}
@@ -2912,6 +2932,10 @@ packages:
     resolution: {integrity: sha512-/HcYgtUSiJiot/XWGLOlGxPYUG65+/31V8oqk17vZLW1xlCoR4PampyePljOxY2n8/3jz9+tIFzICsyGujJZoA==}
     engines: {node: '>=18.12.0'}
 
+  '@zip.js/zip.js@2.22.0':
+    resolution: {integrity: sha512-QgkA+BSEPNR0C2l6xbSu5HDXieUxiuDK+Jx4ZeZlp22QO/qRUIF6JRXdxh4WlLiQUmnE/9aaGerlni+OY81wqg==}
+    engines: {bun: '>=0.7.0', deno: '>=1.0.0', node: '>=18.0.0'}
+
   '@zkochan/js-yaml@0.0.7':
     resolution: {integrity: sha512-nrUSn7hzt7J6JWgWGz78ZYI8wj+gdIJdk0Ynjpp8l+trkn58Uqsf6RYrYkEK+3X18EX+TNdtJI0WxAtc+L84SQ==}
     hasBin: true
@@ -4115,6 +4139,9 @@ packages:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
 
+  libarchive-wasm@1.2.0:
+    resolution: {integrity: sha512-aunFn8oL9VwGRj+brRvdOv8BRUD4Ea1WxJW45IdiuXE2Vp/m/X+M1UxSU+yPzXfc1mPPC8AARaflg/CtF11u8g==}
+
   lie@3.3.0:
     resolution: {integrity: sha512-UaiMJzeWRlEujzAuw5LokY1L5ecNQYZKfmyZ9L7wDHb/p5etKaxXhohBcrw0EYby+G/NA52vRSN4N39dxHAIwQ==}
 
@@ -4470,6 +4497,10 @@ packages:
 
   node-releases@2.0.27:
     resolution: {integrity: sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA==}
+
+  node-unrar-js@2.0.2:
+    resolution: {integrity: sha512-hLNmoJzqaKJnod8yiTVGe9hnlNRHotUi0CreSv/8HtfRi/3JnRC8DvsmKfeGGguRjTEulhZK6zXX5PXoVuDZ2w==}
+    engines: {node: '>=10.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -4929,6 +4960,10 @@ packages:
   readdirp@5.1.1:
     resolution: {integrity: sha512-Kko+Y5XQ6fM+Ce3dq3m9YGxnacYZYl9cA1wZjaF3Vbry2L3i1qVg8+CAgNPsXRArPMUMCaOR7oa9Nqntc43JKA==}
     engines: {node: '>= 20.19.0'}
+
+  readline-sync@1.4.10:
+    resolution: {integrity: sha512-gNva8/6UAe8QYepIQH/jQ2qn91Qj0B9sYjMBBs3QOB8F2CXcKgLxQaJRP76sWVRQt+QU+8fAkCbCvjjMFu7Ycw==}
+    engines: {node: '>= 0.8.0'}
 
   recast@0.23.11:
     resolution: {integrity: sha512-YTUo+Flmw4ZXiWfQKGcwwc11KnoRAYgzAE2E7mXKCjSviTKShtxBsN6YUUBB2gtaBzKzeKunxhUwNHQuRryhWA==}
@@ -5942,6 +5977,10 @@ packages:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
 snapshots:
+
+  7z-wasm@1.2.0:
+    dependencies:
+      readline-sync: 1.4.10
 
   '@1natsu/wait-element@4.2.0':
     dependencies:
@@ -8147,6 +8186,8 @@ snapshots:
       js-yaml: 3.14.2
       tslib: 2.8.1
 
+  '@zip.js/zip.js@2.22.0': {}
+
   '@zkochan/js-yaml@0.0.7':
     dependencies:
       argparse: 2.0.1
@@ -9464,6 +9505,8 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
 
+  libarchive-wasm@1.2.0: {}
+
   lie@3.3.0:
     dependencies:
       immediate: 3.0.6
@@ -10104,6 +10147,8 @@ snapshots:
 
   node-releases@2.0.27: {}
 
+  node-unrar-js@2.0.2: {}
+
   normalize-path@3.0.0: {}
 
   normalize-range@0.1.2: {}
@@ -10526,6 +10571,8 @@ snapshots:
   readdirp@4.1.2: {}
 
   readdirp@5.1.1: {}
+
+  readline-sync@1.4.10: {}
 
   recast@0.23.11:
     dependencies:

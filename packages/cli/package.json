@@ -59,18 +59,23 @@
     "postal-mime": "^4.0.2"
   },
   "devDependencies": {
+    "7z-wasm": "^1.2.0",
     "@anthropic-ai/sdk": "^0.124.0",
     "@dqbd/tiktoken": "^1.0.22",
     "@fileconcat/core": "workspace:*",
     "@firecrawl/anydoc-wasm": "^0.2.4",
     "@llamaindex/liteparse-wasm": "^2.15.1",
     "@types/node": "^22.0.0",
+    "@zip.js/zip.js": "^2.22.0",
     "docling.rs-wasm": "^1.89.0",
     "execa": "^9.6.1",
+    "libarchive-wasm": "^1.2.0",
     "mammoth": "^1.13.0",
+    "node-unrar-js": "^2.0.2",
     "officeparser8": "npm:officeparser@8.1.0",
     "pdf-oxide-wasm": "^0.3.77",
     "tsup": "^8.0.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.0.0",
     "vitest": "^4.1.8"
   },
