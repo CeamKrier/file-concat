@@ -286,6 +286,9 @@ importers:
       execa:
         specifier: ^9.6.1
         version: 9.6.1
+      officeparser8:
+        specifier: npm:officeparser@8.1.0
+        version: officeparser@8.1.0
       tsup:
         specifier: ^8.0.0
         version: 8.5.1(@swc/core@1.15.3)(jiti@2.7.0)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.6.3)(yaml@2.6.1)
@@ -2872,6 +2875,10 @@ packages:
     engines: {node: '>=14.6'}
     deprecated: this version has critical issues, please update to the latest version
 
+  '@xmldom/xmldom@0.9.12':
+    resolution: {integrity: sha512-5AXjrcMClTryPe9LgZrygpB1lj7s0S9E0+W+AHaVKAVyHanafK86iPSvG5xHVSp/jC+VH1UXu0TAEmY279xH7A==}
+    engines: {node: '>=14.6'}
+
   '@yarnpkg/lockfile@1.1.0':
     resolution: {integrity: sha512-GpSwvyXOcOOlV70vbnzjj4fW5xW/FdUF6nQEt1ENy7m4ZCczi1+/buVUPAqmGfqznsORNFzUMjctTIp8a9tuCQ==}
 
@@ -3662,6 +3669,10 @@ packages:
 
   file-type@22.0.1:
     resolution: {integrity: sha512-ww5Mhre0EE+jmBvOXTmXAbEMuZE7uX4a3+oRCQFNj8w++g3ev913N6tXQz0XTXbueQ5TWQfm6BdaViEHHn8bhA==}
+    engines: {node: '>=22'}
+
+  file-type@22.1.1:
+    resolution: {integrity: sha512-sEB0oStmeLGtpmSAD88RDNuLsvhv4iC3u0lE25CUvfCULvj49xoQ3l3K525Vn+ZzsZ6DOLajQCV6RmhwwhqiJg==}
     engines: {node: '>=22'}
 
   filesize@11.0.22:
@@ -4464,6 +4475,19 @@ packages:
       puppeteer:
         optional: true
 
+  officeparser@8.1.0:
+    resolution: {integrity: sha512-K48VPRUUIHqPBpmUiE3DVquWvrqubyWK+4jo3b/IGqiwejywxOTSU4Te4IRQN/7xP9QaM09AUfjQ0lEYDA2mWA==}
+    engines: {node: '>=22.13.0'}
+    hasBin: true
+    peerDependencies:
+      pdf-lib: ^1.17.1
+      puppeteer: '>=22'
+    peerDependenciesMeta:
+      pdf-lib:
+        optional: true
+      puppeteer:
+        optional: true
+
   ohash@2.0.12:
     resolution: {integrity: sha512-65S/5gk9YSsaRjcyf7Nfa6h/d3E8/1gslpXfI4W7Dxn/oap8IKRuNT5VXkLQ1YFKIEg4apRY4Pj6aiwFzrDdmw==}
 
@@ -4561,6 +4585,10 @@ packages:
 
   pdfjs-dist@6.1.200:
     resolution: {integrity: sha512-o8MolyzirkkLrcdsae/HEOiIcXWI7DS5zGpvqW8xTC2YUsW30rltFw2bDGvw/fskUdEMrQm2br68jzDS5BH2vw==}
+    engines: {node: '>=22.13.0 || >=24'}
+
+  pdfjs-dist@6.2.108:
+    resolution: {integrity: sha512-YxFb+SQcodN2rnX9Tn3dHYlqfb7NjlzzfONPpJd+AKoKtUjEdevTfbC07d5TcczzOK6261auRkP/M8OBHs9vFQ==}
     engines: {node: '>=22.13.0 || >=24'}
 
   perfect-debounce@2.1.0:
@@ -8014,6 +8042,8 @@ snapshots:
 
   '@xmldom/xmldom@0.9.10': {}
 
+  '@xmldom/xmldom@0.9.12': {}
+
   '@yarnpkg/lockfile@1.1.0': {}
 
   '@yarnpkg/parsers@3.0.2':
@@ -8899,6 +8929,15 @@ snapshots:
       flat-cache: 4.0.1
 
   file-type@22.0.1:
+    dependencies:
+      '@tokenizer/inflate': 0.4.1
+      strtok3: 10.3.5
+      token-types: 6.1.2
+      uint8array-extras: 1.5.0
+    transitivePeerDependencies:
+      - supports-color
+
+  file-type@22.1.1:
     dependencies:
       '@tokenizer/inflate': 0.4.1
       strtok3: 10.3.5
@@ -10023,6 +10062,17 @@ snapshots:
       - encoding
       - supports-color
 
+  officeparser@8.1.0:
+    dependencies:
+      '@xmldom/xmldom': 0.9.12
+      fflate: 0.8.3
+      file-type: 22.1.1
+      pdfjs-dist: 6.2.108
+      tesseract.js: 7.0.0
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+
   ohash@2.0.12: {}
 
   once@1.4.0:
@@ -10128,6 +10178,10 @@ snapshots:
   pathval@2.0.1: {}
 
   pdfjs-dist@6.1.200:
+    optionalDependencies:
+      '@napi-rs/canvas': 1.0.6
+
+  pdfjs-dist@6.2.108:
     optionalDependencies:
       '@napi-rs/canvas': 1.0.6
 
