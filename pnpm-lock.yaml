@@ -147,8 +147,8 @@ importers:
         specifier: 6.1.200
         version: 6.1.200
       postal-mime:
-        specifier: ^2.7.5
-        version: 2.7.5
+        specifier: ^4.0.2
+        version: 4.0.2
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -268,8 +268,8 @@ importers:
         specifier: ^7.6.1
         version: 7.6.1(patch_hash=c8a3d06755fde46770678f8d51d719cfa5b66ea202d2431da746267e2d537727)
       postal-mime:
-        specifier: ^2.7.5
-        version: 2.7.5
+        specifier: ^4.0.2
+        version: 4.0.2
     devDependencies:
       '@anthropic-ai/sdk':
         specifier: ^0.124.0
@@ -321,8 +321,8 @@ importers:
         specifier: ^4.8.0
         version: 4.8.0
       postal-mime:
-        specifier: ^2.7.5
-        version: 2.7.5
+        specifier: ^4.0.2
+        version: 4.0.2
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.19.1)(jsdom@29.1.1)
@@ -4600,8 +4600,9 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  postal-mime@2.7.5:
-    resolution: {integrity: sha512-GNEXKvWFQnbgO5NlrGzVa0FmWzBZ24PersAWErttSg1Hjpf0ATxTwS5DOMGaOpTG6bUh5cTr7xi0jAD942wCJA==}
+  postal-mime@4.0.2:
+    resolution: {integrity: sha512-b/FqJGdS+Y+leh30r2ord1gWZNPfYcTiFBR1BIPvZYvQrKJjYYqGeECh9sQ5BpkWtcjSj39ngIAiE2w6XNfMjA==}
+    engines: {node: '>=20'}
 
   postcss-import@15.1.0:
     resolution: {integrity: sha512-hpr+J05B2FVYUAXHeK1YyI267J/dDDhMU6B6civm8hSY1jYJnBXxzKDKDswzJmtLHryrjhnDjqqp/49t8FALew==}
@@ -10158,7 +10159,7 @@ snapshots:
 
   playwright-core@1.61.1: {}
 
-  postal-mime@2.7.5: {}
+  postal-mime@4.0.2: {}
 
   postcss-import@15.1.0(postcss@8.5.6):
     dependencies:
