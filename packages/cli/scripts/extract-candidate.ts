@@ -20,6 +20,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -44,10 +45,63 @@ function officeparser8(config: Record<string, unknown>): Candidate {
   };
 }
 
+const require = createRequire(import.meta.url);
+
+/** A wasm-bindgen web build initialised from its file, as Node has no fetch for it. */
+function wasmFile(specifier: string): Buffer {
+  return fs.readFileSync(require.resolve(specifier));
+}
+
 const CANDIDATES: Record<string, Candidate> = {
   "officeparser-8.1": officeparser8({}),
   "officeparser-8.1-flow": officeparser8({ ignorePageGeometry: true }),
+  anydoc: {
+    formats: ["pdf", "docx", "xlsx", "pptx", "odt", "ods", "odp", "rtf"],
+    extract: async (bytes) => {
+      const anydoc = await import("@firecrawl/anydoc-wasm");
+      anydoc.initSync({ module: wasmFile("@firecrawl/anydoc-wasm/anydoc_wasm_bg.wasm") });
+      return anydoc.toMarkdownBytes(bytes);
+    },
+  },
+  "docling.rs": {
+    formats: ["pdf", "docx", "xlsx", "pptx"],
+    extract: async (bytes) => {
+      const docling = await import("docling.rs-wasm/web");
+      docling.initSync({ module: wasmFile("docling.rs-wasm/web/docling_wasm_bg.wasm") });
+      // The name only carries the format; docling sniffs nothing else from it.
+      return docling.convert(bytes, `input.${currentExt}`, "markdown");
+    },
+  },
+  liteparse: {
+    formats: ["pdf"],
+    extract: async (bytes) => {
+      const lite = await import("@llamaindex/liteparse-wasm");
+      lite.initSync({ module: wasmFile("@llamaindex/liteparse-wasm/liteparse_wasm_bg.wasm") });
+      const parser = new lite.LiteParse({ ocrEnabled: false, outputFormat: "markdown" });
+      return (await parser.parse(bytes)).text;
+    },
+  },
+  "pdf-oxide": {
+    formats: ["pdf"],
+    extract: async (bytes) => {
+      const { WasmPdfDocument } = await import("pdf-oxide-wasm");
+      return new WasmPdfDocument(bytes).toMarkdownAll(true);
+    },
+  },
+  mammoth: {
+    formats: ["docx"],
+    extract: async (bytes) => {
+      const mammoth = await import("mammoth");
+      // Deprecated upstream in favour of HTML and missing from its types, but
+      // still the library's own markdown.
+      const { convertToMarkdown } = mammoth as unknown as { convertToMarkdown: typeof mammoth.convertToHtml };
+      return (await convertToMarkdown({ buffer: Buffer.from(bytes) })).value;
+    },
+  },
 };
+
+/** The fixture being read, for the one candidate that wants a file name. */
+let currentExt = "";
 
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
@@ -74,6 +128,7 @@ async function main(): Promise<void> {
   const results = [];
   for (const fixture of fixtures) {
     const bytes = new Uint8Array(fs.readFileSync(path.join(CORPUS, fixture)));
+    currentExt = path.extname(fixture).slice(1);
     const start = performance.now();
     let text = "";
     let error: string | null = null;

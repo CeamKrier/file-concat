@@ -186,7 +186,11 @@ const CHECKS: Check[] = [
     anchor: "Claim needing support",
     severity: "DEGRADED",
     finding: "A superscript footnote marker sorts above the line it annotates",
-    stillBroken: (r) => /^1$/m.test(r.text) && r.text.indexOf("\n1\n") < r.text.indexOf("Claim needing support"),
+    // The fix, not the defect's old shape: the marker follows the claim it
+    // annotates. Read as "a line that is only 1, above the claim", a marker
+    // indented on its line or inline in front ("1 Claim needing support")
+    // passed. `(?!\.)` keeps the footnote body's own "1." from counting.
+    stillBroken: (r) => !/Claim needing support\s*(\[\^)?1\b(?!\.)/.test(r.text),
   },
   {
     id: "pdf-1.6",
@@ -274,8 +278,10 @@ const CHECKS: Check[] = [
     anchor: "Kickoff",
     severity: "BROKEN",
     finding: "Dates arrive as raw serial numbers",
-    // Any separator: the csv renderer writes a comma, a text renderer a tab.
-    stillBroken: (r) => /Kickoff\W+\d{5}\b/.test(r.text),
+    // The date itself, in any format and after any separator. Asking only
+    // "is there no serial number" passed a tab-separated serial once, and
+    // would pass a reader that dropped the date.
+    stillBroken: (r) => !/Kickoff\W+[^\n]*2026/.test(r.text),
   },
   {
     id: "rtf-4.2",
@@ -290,7 +296,9 @@ const CHECKS: Check[] = [
     id: "pptx-4.3",
     format: "pptx",
     fixture: "gen-pptx-deck.pptx",
-    anchor: "# Slide 1",
+    // The deck's own text, not our `# Slide n` marker, so another reader can be
+    // scored too.
+    anchor: "Extraction Quality",
     severity: "BROKEN",
     finding: "A bare slide number injected into every slide's body text",
     // A line that is nothing but digits. The deck's own `# Slide 99` text is
