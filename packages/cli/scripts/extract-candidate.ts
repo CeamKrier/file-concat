@@ -129,7 +129,35 @@ async function sevenZip(name: string, bytes: Uint8Array): Promise<[string, Uint8
   return out;
 }
 
+/**
+ * OCR candidates read page images (`render-pdf-pages.ts` draws them the way the
+ * product does). tesseract.js is the product's reader, English here because
+ * the benchmark is; PP-OCR runs through onnxruntime-node, the same models the
+ * browser build would load through onnxruntime-web.
+ */
+const tesseractWorker = once(async () => (await import("tesseract.js")).createWorker("eng"));
+function paddle(model: "V6_TINY_MODEL" | "V6_SMALL_MODEL" | "V6_MEDIUM_MODEL" | "V5_EN_MOBILE_MODEL"): Candidate {
+  const service = once(async () => {
+    const ocr = await import("ppu-paddle-ocr");
+    const instance = new ocr.PaddleOcrService({ model: ocr[model] });
+    await instance.initialize();
+    return instance;
+  });
+  return {
+    formats: ["png"],
+    extract: async (bytes) => (await (await service()).recognize(bytes.slice().buffer)).text,
+  };
+}
+
 const CANDIDATES: Record<string, Candidate> = {
+  tesseract: {
+    formats: ["png"],
+    extract: async (bytes) => (await (await tesseractWorker()).recognize(Buffer.from(bytes))).data.text,
+  },
+  "paddle-v6-tiny": paddle("V6_TINY_MODEL"),
+  "paddle-v6-small": paddle("V6_SMALL_MODEL"),
+  "paddle-v6-medium": paddle("V6_MEDIUM_MODEL"),
+  "paddle-v5-en": paddle("V5_EN_MOBILE_MODEL"),
   // The product's own node path, the same one measure-extraction scores:
   // the byte router, then the CLI's parser registry with core's visitors.
   fileconcat: {
@@ -447,6 +475,8 @@ async function main(): Promise<void> {
 if (process.argv[2] === "--child") {
   const candidate = CANDIDATES[process.argv[3]];
   process.on("message", async (file: string) => process.send!(await runOne(candidate, file)));
+  // A reader's own workers (tesseract's) would otherwise keep the child alive.
+  process.on("disconnect", () => process.exit(0));
 } else {
   main().catch((err: unknown) => {
     console.error(err);
