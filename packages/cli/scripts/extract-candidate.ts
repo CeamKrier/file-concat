@@ -149,7 +149,40 @@ function paddle(model: "V6_TINY_MODEL" | "V6_SMALL_MODEL" | "V6_MEDIUM_MODEL" | 
   };
 }
 
+/** A page as the browser would see it; jsdom stands in for DOMParser under Node. */
+async function htmlDocument(bytes: Uint8Array): Promise<Document> {
+  const { JSDOM } = await import("jsdom");
+  return new JSDOM(new TextDecoder().decode(bytes), { url: "https://example.com/" }).window.document;
+}
+
 const CANDIDATES: Record<string, Candidate> = {
+  // An .html file goes into the bundle verbatim today.
+  "fileconcat-html": { formats: ["html"], extract: async (bytes) => new TextDecoder().decode(bytes) },
+  // The Clipper's own pair: Readability picks the article, Turndown writes markdown.
+  readability: {
+    formats: ["html"],
+    extract: async (bytes) => {
+      const { Readability } = await import("@mozilla/readability");
+      const { default: TurndownService } = await import("turndown");
+      const article = new Readability(await htmlDocument(bytes)).parse();
+      return article?.content ? new TurndownService({ headingStyle: "atx" }).turndown(article.content) : "";
+    },
+  },
+  defuddle: {
+    formats: ["html"],
+    extract: async (bytes) => {
+      const { Defuddle } = await import("defuddle/node");
+      return (await Defuddle(await htmlDocument(bytes), "https://example.com/", { markdown: true })).content;
+    },
+  },
+  // The Node (NAPI) build of the same Rust converter a browser loads as wasm; `minimal` isolates the main content.
+  mdream: {
+    formats: ["html"],
+    extract: async (bytes) => {
+      const { htmlToMarkdown } = await import("mdream");
+      return htmlToMarkdown(new TextDecoder().decode(bytes), { minimal: true });
+    },
+  },
   tesseract: {
     formats: ["png"],
     extract: async (bytes) => (await (await tesseractWorker()).recognize(Buffer.from(bytes))).data.text,

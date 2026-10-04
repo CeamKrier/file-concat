@@ -114,13 +114,13 @@ function otsl(inner: string): string {
   return [line(rows[0]), line(Array(width).fill("---")), ...rows.slice(1).map(line)].join("\n");
 }
 
-function granite(dtype: string): Candidate {
+function granite(dtype: string, device = "webgpu"): Candidate {
   return {
     setup: `
       const t = await import(${JSON.stringify(TRANSFORMERS)});
       const id = "onnx-community/granite-docling-258M-ONNX";
       window.__processor = await t.AutoProcessor.from_pretrained(id);
-      window.__model = await t.AutoModelForVision2Seq.from_pretrained(id, { dtype: ${JSON.stringify(dtype)}, device: "webgpu" });
+      window.__model = await t.AutoModelForVision2Seq.from_pretrained(id, { dtype: ${JSON.stringify(dtype)}, device: ${JSON.stringify(device)} });
       window.__load = t.load_image;`,
     read: `
       const image = await window.__load(url);
@@ -161,6 +161,8 @@ const CANDIDATES: Record<string, Candidate> = {
   "granite-docling-fp16": granite("fp16"),
   "granite-docling-q4f16": granite("q4f16"),
   "granite-docling-fp32": granite("fp32"),
+  "granite-docling-q4": granite("q4"),
+  "granite-docling-fp32-cpu": granite("fp32", "wasm"),
 };
 
 const at = (p: string): string => path.resolve(process.env.INIT_CWD ?? process.cwd(), p);
