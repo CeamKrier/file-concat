@@ -27,15 +27,8 @@ const WASM_NOTICES: Record<string, string> = {
   "7zz": "licenses/7z-wasm.txt",
   anydoc_wasm_bg: "licenses/anydoc-wasm.txt",
   liteparse_wasm_bg: "licenses/liteparse-wasm.txt",
+  tiktoken_bg: "licenses/tiktoken-wasm.txt",
 };
-
-/**
- * Wasm assets whose inner libraries are not assembled yet. The tokenizer's
- * npm licence (MIT) is in the npm part; the Rust crates inside its wasm are
- * not. ponytail: known gap, assemble a notices file and move it to
- * WASM_NOTICES.
- */
-const PENDING = ["tiktoken_bg"];
 
 interface Dependency {
   name: string | null;
@@ -48,7 +41,7 @@ interface Dependency {
 }
 
 const prefixOf = (asset: string) =>
-  [...Object.keys(WASM_NOTICES), ...PENDING].find((prefix) => asset.startsWith(`${prefix}-`));
+  Object.keys(WASM_NOTICES).find((prefix) => asset.startsWith(`${prefix}-`));
 
 const wasmAssets = readdirSync(CLIENT_ASSETS).filter((name) => name.endsWith(".wasm"));
 const unmapped = wasmAssets.filter((asset) => !prefixOf(asset));
@@ -110,6 +103,5 @@ const text = [
 writeFileSync(OUT, text);
 console.log(
   `[notices] ${OUT}: ${wasmParts.length} wasm readers, ${npmParts.length} npm packages, ` +
-    `${(text.length / 1024).toFixed(0)} KiB` +
-    (PENDING.some((prefix) => shipped.has(prefix)) ? `; pending: ${PENDING.join(", ")}` : ""),
+    `${(text.length / 1024).toFixed(0)} KiB`,
 );
