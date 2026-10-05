@@ -38,32 +38,33 @@ const sheetjs: ParserLoader = async (bytes) => {
   return mod.extractWorkbook(bytes);
 };
 
-/** Formats whose first reader is SheetJS rather than officeparser (core `FALLBACK_READERS`). */
-const WORKBOOKS = new Set(["xlsx", "xlsm", "xlsb"]);
-
 const liteparse: ParserLoader = async (bytes) => {
   if (import.meta.env.SSR) return { text: "" };
   const mod = await import("./extract-liteparse-client");
   return mod.extractLiteparse(bytes);
 };
 
+const anydoc: ParserLoader = async (bytes) => {
+  if (import.meta.env.SSR) return { text: "" };
+  const mod = await import("./extract-anydoc-client");
+  return mod.extractAnydoc(bytes);
+};
+
 /** Tried after a format's first reader when it has nothing usable (core `FALLBACK_READERS`). */
-const fallbacks: Record<string, ParserLoader> = {
-  anydoc: async (bytes) => {
-    if (import.meta.env.SSR) return { text: "" };
-    const mod = await import("./extract-anydoc-client");
-    return mod.extractAnydoc(bytes);
-  },
-  officeparser: office,
+const fallbacks: Record<string, ParserLoader> = { anydoc, officeparser: office };
+
+/** Formats whose first reader is not officeparser; the rest come after it in core `FALLBACK_READERS`. */
+const FIRST_READER: Record<string, { id: string; read: ParserLoader }> = {
+  pdf: { id: "liteparse", read: liteparse },
+  xlsx: { id: "sheetjs", read: sheetjs },
+  xlsm: { id: "sheetjs", read: sheetjs },
+  xlsb: { id: "sheetjs", read: sheetjs },
+  rtf: { id: "anydoc", read: anydoc },
 };
 
 export const parsers: ParserRegistry = createParserRegistry({
   office: (bytes, format) =>
-    format === "pdf"
-      ? extractWithFallback({ id: "liteparse", read: liteparse }, fallbacks, bytes, format)
-      : WORKBOOKS.has(format ?? "")
-        ? extractWithFallback({ id: "sheetjs", read: sheetjs }, fallbacks, bytes, format)
-        : extractWithFallback({ id: "officeparser", read: office }, fallbacks, bytes, format),
+    extractWithFallback(FIRST_READER[format ?? ""] ?? { id: "officeparser", read: office }, fallbacks, bytes, format),
   // The same library reads an epub (its zip of XHTML chapters walks the OPF
   // spine), so the id costs no second download.
   epub: office,

@@ -20,6 +20,10 @@ import type { ExtractionResult, ParserLoader } from "./types";
  * 163 POI `.xlsx` against officeparser's 0.551, because it writes cells as
  * formatted (`8%`, a date) rather than stored (`0.08`, a serial), and it reads
  * `.xlsb`, which officeparser cannot (2026-10-05).
+ *
+ * And RTF: anydoc first, 0.719 against Tika on 120 LibreOffice-written files
+ * where officeparser 7.6 scored 0.625, because officeparser does not skip the
+ * fallback after a `\uN` escape and writes `çalışan` as `ççalı?ş?an` (P8).
  */
 export const FALLBACK_READERS: Readonly<Record<string, readonly string[]>> = {
   pdf: ["officeparser"],
@@ -28,7 +32,7 @@ export const FALLBACK_READERS: Readonly<Record<string, readonly string[]>> = {
   xlsx: ["officeparser", "anydoc"],
   xlsm: ["officeparser", "anydoc"],
   xlsb: ["anydoc"],
-  rtf: ["anydoc"],
+  rtf: ["officeparser"],
   cfb: ["anydoc"],
 };
 
