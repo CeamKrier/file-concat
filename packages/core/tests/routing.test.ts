@@ -81,6 +81,12 @@ describe("routeBytes", () => {
     });
   });
 
+  it("routes Kindle books, old MOBI and KF8 alike, by the PalmDB header", async () => {
+    // A PalmDB name, then `BOOKMOBI` as type and creator at byte 60.
+    const mobi = new Uint8Array([...Array(60).fill(0), ...strToU8("BOOKMOBI"), ...Array(32).fill(0)]);
+    expect(await routeBytes(mobi)).toEqual({ kind: "extract", parserId: "mobi", format: "mobi" });
+  });
+
   it("tells a plain zip apart from the documents that share its signature", async () => {
     expect(await routeBytes(plainZip())).toEqual({ kind: "expand", archive: "zip" });
   });

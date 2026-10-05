@@ -149,6 +149,9 @@ importers:
       fflate:
         specifier: ^0.8.3
         version: 0.8.3
+      foliate-js:
+        specifier: github:johnfactotum/foliate-js#78914aef4466eb960965702401634c2cb348e9b1
+        version: https://codeload.github.com/johnfactotum/foliate-js/tar.gz/78914aef4466eb960965702401634c2cb348e9b1
       lucide-react:
         specifier: ^0.468.0
         version: 0.468.0(react@18.3.1)

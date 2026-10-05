@@ -74,6 +74,11 @@ export const parsers: ParserRegistry = createParserRegistry({
     const mod = await import("./extract-email-client");
     return mod.extractEmail(bytes);
   },
+  mobi: async (bytes) => {
+    if (import.meta.env.SSR) return { text: "" };
+    const mod = await import("./extract-ebook-client");
+    return mod.extractMobi(bytes);
+  },
   // A page a browser saved, never HTML source (core `savedPageUrl`).
   html: async (bytes) => {
     if (import.meta.env.SSR) return { text: "" };
