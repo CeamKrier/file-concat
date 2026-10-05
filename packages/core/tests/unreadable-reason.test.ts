@@ -61,9 +61,9 @@ describe("unreadableReason", () => {
     expect(unreadableReason("clip.mov", { kind: "binary", format: "iso-bmff" }).label).toBe(
       "Video with no subtitle track",
     );
-    expect(unreadableReason("IMG_0001.heic", { kind: "binary", format: "iso-bmff" }).label).toBe(
-      "Video, or a HEIC photo",
-    );
+    expect(unreadableReason("IMG_0001.heic", { kind: "binary", format: "heif" }).label).toBe("HEIC or AVIF photo");
+    expect(unreadableReason("voice.m4a", { kind: "binary", format: "iso-bmff" }).label).toBe("Audio or video");
+    expect(unreadableReason("voice.mp3", { kind: "binary", format: "mp3" }).label).toBe("Audio or video");
   });
 
   it("stores label and remedy as one string and recovers the label from it", () => {

@@ -1,5 +1,6 @@
 import {
   Archive,
+  AudioLines,
   FileQuestion,
   FilterX,
   FolderX,
@@ -31,7 +32,7 @@ type ResultEmptyProps = {
   /** True while a recognition pass is running. Only ever set for `scanned`. */
   isReading?: boolean;
   /** Recognition progress, or null when idle. */
-  readProgress?: { done: number; total: number } | null;
+  readProgress?: { done: number; total: number; note?: string } | null;
   /** True when the last pass ended on a stop rather than on its own. */
   stoppedReading?: boolean;
   /** True while a stop is asked for and the pass has not ended yet. */
@@ -73,6 +74,14 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
     title: "These are images",
     body: "Text can be read off them, here in the browser. FileConcat won't do it on its own, because an icon and a photographed page look alike until the work is done: a few seconds an image, plus a one-time 5 MB language download.",
     cta: "Read them",
+  },
+  // Recordings, before anyone has listened. Offered like images, and for a
+  // stronger reason: the first pass downloads a speech model.
+  speech: {
+    icon: AudioLines,
+    title: "These are recordings",
+    body: "The speech in them can be written out, here in the browser. FileConcat won't start it on its own: the first time downloads a speech model (66 MB for English, 244 MB for other languages), and ten minutes of speech take under a minute to write out in English, about five in other languages.",
+    cta: "Transcribe them",
   },
   archive: {
     icon: Archive,
@@ -198,8 +207,8 @@ export function ResultEmpty({
   const primary =
     kind === "filtered"
       ? (adjust ?? startOver)
-      : kind === "recognisable" && onOfferRead
-        ? { label: cta, icon: ScanText, onClick: onOfferRead }
+      : (kind === "recognisable" || kind === "speech") && onOfferRead
+        ? { label: cta, icon: kind === "speech" ? AudioLines : ScanText, onClick: onOfferRead }
         : { label: cta, icon: null, onClick: onStartOver };
   // Every variant but `filtered` puts Start over in front, so Adjust underneath
   // is enough. `recognisable` is the exception: its front button is the offer,
@@ -207,7 +216,7 @@ export function ResultEmpty({
   const secondary =
     kind === "filtered"
       ? (adjust ? startOver : null)
-      : kind === "recognisable"
+      : kind === "recognisable" || kind === "speech"
         ? startOver
         : adjust;
   const extensions = kind === "pruned" && pruned ? prunedChips(pruned) : extensionHistogram(droppedFiles);
@@ -257,7 +266,7 @@ export function ResultEmpty({
           onStartOver={onStartOver}
           onAdjust={onAdjust}
         />
-      ) : kind === "recognisable" && isReading ? (
+      ) : (kind === "recognisable" || kind === "speech") && isReading ? (
         // A pass someone started from the dialog, seen from the screen behind
         // it. The dialog carries its own stop; this one is for the case where it
         // was closed mid-pass.
@@ -295,13 +304,13 @@ function ReadingProgress({
   stopping,
   onStop,
 }: {
-  progress: { done: number; total: number } | null;
+  progress: { done: number; total: number; note?: string } | null;
   stopping?: boolean;
   onStop?: () => void;
 }) {
   return (
     <div className="mt-7 flex flex-col items-center gap-3">
-      <div className="text-ink-secondary flex items-center gap-2.5 text-sm" aria-live="polite">
+      <div className="text-ink-secondary flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-sm" aria-live="polite">
         <LoaderCircle
           className="text-info h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
           strokeWidth={2}
@@ -313,6 +322,7 @@ function ReadingProgress({
           Reading
           {progress ? ` ${Math.min(progress.done + 1, progress.total)} of ${progress.total}` : ""}...
         </span>
+        {progress?.note && <span className="text-ink-muted">{progress.note}</span>}
       </div>
       {onStop && (
         <button
@@ -354,7 +364,7 @@ function ReadAction({
 }: {
   label: string;
   isReading: boolean;
-  progress: { done: number; total: number } | null;
+  progress: { done: number; total: number; note?: string } | null;
   stopped: boolean;
   stopping?: boolean;
   deferred?: boolean;

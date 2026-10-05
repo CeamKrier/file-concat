@@ -10,8 +10,8 @@ import {
 } from "~/components/ui/dialog";
 import { cn } from "~/lib/utils";
 
-/** One file recognition can read — a scanned document or an image — as the
- * reading dialog needs to talk about it. */
+/** One file recognition can read — a scanned document, an image, or a
+ * recording to transcribe — as the reading dialog needs to talk about it. */
 export type ReadingDocument = {
   path: string;
   /** Basename, which is all anyone reads in a list. */
@@ -22,6 +22,8 @@ export type ReadingDocument = {
   tried: boolean;
   /** The language this one was read in, named in English. Null when unread. */
   language: string | null;
+  /** Audio or video: heard by a speech model rather than read off pixels. */
+  speech: boolean;
 };
 
 type ReadingDialogProps = {
@@ -32,7 +34,7 @@ type ReadingDialogProps = {
   language: string | null;
   languageOptions: { locale: string; code: string; name: string }[];
   isReading: boolean;
-  progress: { done: number; total: number } | null;
+  progress: { done: number; total: number; note?: string } | null;
   /** Run recognition over these paths, in this language. */
   onRead: (paths: readonly string[], locale: string) => Promise<number>;
   onStop: () => void;
@@ -297,9 +299,11 @@ function ReadingPanel({
                   </p>
                 ) : (
                   <p className="text-ink-muted mt-1 text-[13px]">
-                    {document.tried
-                      ? "Nothing legible here. Encrypted, blank, or in a language this reading couldn't see."
-                      : "Not read yet."}
+                    {!document.tried
+                      ? "Not read yet."
+                      : document.speech
+                        ? "No speech came back. Silent, too long, or in a language this reading couldn't hear."
+                        : "Nothing legible here. Encrypted, blank, or in a language this reading couldn't see."}
                   </p>
                 )}
               </div>
@@ -340,6 +344,15 @@ function ReadingPanel({
               {allSelected ? "Clear selection" : "Select all"}
             </button>
           )}
+          {/* The price of the first transcription, said before it is paid. The
+              figures are the measured transfer of each model; after the first
+              pass it comes from the browser's cache. */}
+          {!isReading && !finished && paths.some((d) => d.speech) && (
+            <p className="text-ink-muted w-full text-[12px] leading-relaxed">
+              Speech is transcribed on this device by a model downloaded once:{" "}
+              {locale.toLowerCase().split("-")[0] === "en" ? "66 MB for English" : "244 MB for this language"}.
+            </p>
+          )}
         </div>
 
         {isReading ? (
@@ -355,6 +368,7 @@ function ReadingPanel({
               Reading
               {progress ? ` ${Math.min(progress.done + 1, progress.total)} of ${progress.total}` : ""}
               ...
+              {progress?.note && <span className="text-ink-muted">{progress.note}</span>}
             </span>
             <button
               type="button"

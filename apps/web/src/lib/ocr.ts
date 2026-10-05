@@ -70,3 +70,29 @@ export async function recogniseImageWithOcr(
   const reading = await mod.recogniseImage(file, language);
   return clearsRecognitionFloor(reading) ? reading : { ...reading, text: "" };
 }
+
+/**
+ * Formats offered for speech to text (extraction router, D5): audio, and the
+ * video containers, which reach the offer only when their subtitle track came
+ * back empty. AVI is left out because the browser's audio decoder cannot open it.
+ */
+export const SPEECH_FORMATS: ReadonlySet<string> = new Set(["mp3", "aac", "flac", "ogg", "wave", "iso-bmff", "matroska"]);
+
+/** A file is decoded whole, so this bounds what a pass can hold (a guess; the
+ * duration cap beside it is checked when the file is read). */
+export const MAX_SPEECH_BYTES = 1024 ** 3;
+
+/** A file over either cap; its message says which. */
+export class SpeechTooLongError extends Error {}
+
+/** The same facade for speech: transformers.js and its runtime stay behind it. */
+export async function transcribeSpeech(
+  file: File,
+  locale: string,
+  signal?: AbortSignal,
+  onNote?: (note: string) => void,
+): Promise<string> {
+  if (import.meta.env.SSR) return "";
+  const mod = await import("./extract-speech-client");
+  return mod.transcribe(file, locale, signal, onNote);
+}

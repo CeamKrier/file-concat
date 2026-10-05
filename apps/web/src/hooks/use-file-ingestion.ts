@@ -22,7 +22,15 @@ import { collectFromDataTransfer } from "~/lib/collect-from-drop";
 import { markerFor } from "~/lib/ecosystem-markers";
 import { addToTally, startRun, track, trackAmount, trackTally, type Tally } from "~/lib/metrics";
 import { tagDrop, tagSource } from "~/lib/clarity-tags";
-import { readPdfPagesWithOcr, readWithOcr, recogniseImageWithOcr } from "~/lib/ocr";
+import {
+  MAX_SPEECH_BYTES,
+  readPdfPagesWithOcr,
+  readWithOcr,
+  recogniseImageWithOcr,
+  SPEECH_FORMATS,
+  SpeechTooLongError,
+  transcribeSpeech,
+} from "~/lib/ocr";
 import { browserOcrLanguage, ocrLanguageFor, type OcrLanguage } from "~/lib/ocr-language";
 import { parsers, readSubtitleTrack, SUBTITLE_TRACK_FORMATS } from "~/lib/parsers";
 import { prepareBatch } from "~/lib/prepare-batch";
@@ -184,6 +192,16 @@ export function isRecognisableImage(format: string): boolean {
   return RECOGNISABLE_IMAGE_FORMATS.has(format);
 }
 
+/** Audio, or a video with no subtitle track: offered for speech to text (D5). */
+export function isSpeechMedia(format: string): boolean {
+  return SPEECH_FORMATS.has(format);
+}
+
+/** Offered, never read by itself (ADR-0017): an image, or speech. */
+function isOfferOnly(format: string): boolean {
+  return isRecognisableImage(format) || isSpeechMedia(format);
+}
+
 /** A mean confidence as a band of ten, the shape `ocr_conf` records. Averaged
  * over words already, so the last digit carries nothing worth a row. */
 function confidenceBand(confidence: number): string {
@@ -206,6 +224,8 @@ function confidenceBand(confidence: number): string {
  */
 export type AppendSource = "clipper" | "manual";
 export type IngestOptions = { append?: AppendSource };
+
+export type ReadProgress = { done: number; total: number; note?: string } | null;
 
 export type IngestPhase = "unpacking" | "reading" | "fetching" | "recognising";
 /**
@@ -247,8 +267,9 @@ export interface FileIngestion {
   unreadDocuments: ScannedDocument[];
   /** True while a recognition pass is running. */
   isReading: boolean;
-  /** Recognition progress, or null when idle. */
-  readProgress: { done: number; total: number } | null;
+  /** Recognition progress, or null when idle. `note` says where inside one
+   * long file the pass is (speech: the model download, the position reached). */
+  readProgress: ReadProgress;
   /**
    * How many documents recognition has rescued in this Run. Derived rather than
    * counted, so a re-read that loses a document is reflected without a second
@@ -336,7 +357,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   const [scannedDocuments, setScannedDocuments] = useState<ScannedDocument[]>([]);
   const [unreadDocuments, setUnreadDocuments] = useState<ScannedDocument[]>([]);
   const [isReading, setIsReading] = useState(false);
-  const [readProgress, setReadProgress] = useState<{ done: number; total: number } | null>(null);
+  const [readProgress, setReadProgress] = useState<ReadProgress>(null);
   const recoveredDocuments = scannedDocuments.length - unreadDocuments.length;
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -419,6 +440,8 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // and documents are never offered, so mixing them in would make the ratio
       // mean nothing (ADR-0017).
       const imagesRead: Tally = new Map();
+      // The same for speech, against `asr_offered`.
+      const mediaRead: Tally = new Map();
       const confidences: Tally = new Map();
       const readEntries: ContentEntry[] = [];
       const stillUnread: ScannedDocument[] = [];
@@ -441,7 +464,14 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           attempted.add(document.path);
           try {
             let text = "";
-            if (isRecognisableImage(document.format)) {
+            if (isSpeechMedia(document.format)) {
+              // Heard rather than seen. The note carries the model download and
+              // the position reached, as one file can be the whole pass.
+              addToTally(mediaRead, document.format, document.file.size);
+              text = await transcribeSpeech(document.file, language.locale, controller.signal, (note) =>
+                setReadProgress({ done: i, total: documents.length, note }),
+              );
+            } else if (isRecognisableImage(document.format)) {
               // An image: the whole file is the picture, so it goes to the
               // recogniser as it is. No bytes are read here — the `File` is a
               // reference and the recogniser decodes it itself.
@@ -491,7 +521,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                 // recognition; an image's was never extracted at all, and
                 // saying so would put a PNG under "text extracted from 1
                 // document". The bundle's recognition line covers both.
-                ...(isRecognisableImage(document.format) ? {} : { extracted: true }),
+                ...(isOfferOnly(document.format) ? {} : { extracted: true }),
               };
             } else if (!document.text) {
               // Recognition found nothing: an encrypted PDF, a page with no
@@ -502,9 +532,11 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
               stillUnread.push(document);
               readValidations[document.path] = {
                 included: false,
-                reason: isRecognisableImage(document.format)
-                  ? "Binary file"
-                  : "No extractable text",
+                reason: isSpeechMedia(document.format)
+                  ? "No speech found"
+                  : isRecognisableImage(document.format)
+                    ? "Binary file"
+                    : "No extractable text",
                 classification: "binary",
                 size: document.file.size,
                 type: document.file.type || "application/octet-stream",
@@ -531,7 +563,10 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
               stillUnread.push(document);
               readValidations[document.path] = {
                 included: false,
-                reason: "Couldn't be read",
+                reason:
+                  error instanceof SpeechTooLongError
+                    ? `Too long to transcribe here (${error.message})`
+                    : "Couldn't be read",
                 classification: "binary",
                 size: document.file.size,
                 type: document.file.type || "application/octet-stream",
@@ -584,6 +619,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         trackAmount("ocr_ms", { n: performance.now() - startedAt });
         trackTally("ocr_recovered", recovered);
         trackTally("ocr_read", imagesRead);
+        trackTally("asr_read", mediaRead);
         // Rejections included: they are what says whether the floor sits in the
         // right place, which is the only way those two guesses ever move.
         trackTally("ocr_conf", confidences);
@@ -657,6 +693,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       const extractReader: Tally = new Map();
       const nextUnread: ScannedDocument[] = [];
       const imagesOffered: Tally = new Map();
+      const mediaOffered: Tally = new Map();
       const archiveUnsupported: Tally = new Map();
       const markers = new Set<string>();
       let totalBytes = 0;
@@ -860,6 +897,17 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             nextUnread.push({ path, format: route.format, file: entry.file });
             addToTally(imagesOffered, route.format, fileBytes);
           }
+          // Speech, on the same terms. A file past the size cap is not offered,
+          // as decoding it whole would hold more memory than a laptop has.
+          if (
+            route.kind === "binary" &&
+            route.format &&
+            isSpeechMedia(route.format) &&
+            entry.file.size <= MAX_SPEECH_BYTES
+          ) {
+            nextUnread.push({ path, format: route.format, file: entry.file });
+            addToTally(mediaOffered, route.format, fileBytes);
+          }
           // Binary: no recoverable text. Keep it visible in the tree (locked,
           // ADR-0009) but never decode its bytes — a force-include must not be
           // able to leak mojibake into the bundle, and decoding it is wasted work.
@@ -964,6 +1012,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // is measured against, and the one number that says whether ADR-0017's bet
       // was right.
       trackTally("ocr_offered", imagesOffered);
+      trackTally("asr_offered", mediaOffered);
 
       // The same drop, said in Clarity's vocabulary so the recording can be
       // found later (ADR-0016). Classes only: which kinds of content we failed
@@ -985,7 +1034,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // pass by failing an honest attempt first, and an image offers no such
       // evidence (ADR-0017). A drop with one scan and twenty-six screenshots
       // reads the scan and offers the screenshots.
-      const autoRead = nextUnread.filter((d) => !isRecognisableImage(d.format));
+      const autoRead = nextUnread.filter((d) => !isOfferOnly(d.format));
       const autoReadBytes = autoRead.reduce((sum, d) => sum + d.file.size, 0);
       if (autoRead.length > 0) {
         if (autoRead.length <= AUTO_READ_MAX_DOCUMENTS && autoReadBytes <= AUTO_READ_MAX_BYTES) {
@@ -1195,7 +1244,13 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
 
 
   const readUnreadDocuments = useCallback(
-    () => readDocuments(unreadDocuments, readLanguage ?? browserOcrLanguage()),
+    // Speech is left out: its first pass downloads a model of up to 244 MB,
+    // which only the reading dialog names before it is spent.
+    () =>
+      readDocuments(
+        unreadDocuments.filter((d) => !isSpeechMedia(d.format)),
+        readLanguage ?? browserOcrLanguage(),
+      ),
     [readDocuments, unreadDocuments, readLanguage],
   );
 

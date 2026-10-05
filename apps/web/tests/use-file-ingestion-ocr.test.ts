@@ -13,7 +13,7 @@ import { DEFAULT_CONFIG } from "@fileconcat/core";
 /** Extension → the format the real router would report for an image's bytes. */
 const IMAGE_FORMATS: Record<string, string> = { png: "png", jpg: "jpeg", webp: "webp" };
 /** The same for videos, which carry a subtitle track or do not. */
-const VIDEO_FORMATS: Record<string, string> = { mp4: "iso-bmff", mkv: "matroska" };
+const VIDEO_FORMATS: Record<string, string> = { mp4: "iso-bmff", mkv: "matroska", mp3: "mp3" };
 
 vi.mock("~/lib/prepare-batch", () => ({
   prepareBatch: (incoming: { file: File; path?: string }[]) => ({
@@ -56,6 +56,14 @@ let attempts: { path: string; language: string }[] = [];
 let onDocumentRead: ((path: string) => void) | null = null;
 
 vi.mock("~/lib/ocr", () => ({
+  SPEECH_FORMATS: new Set(["mp3", "iso-bmff", "matroska"]),
+  MAX_SPEECH_BYTES: 1024 ** 3,
+  SpeechTooLongError: class extends Error {},
+  // Keyed on the name, with the locale the dialog passed.
+  transcribeSpeech: async (file: File, locale: string) => {
+    attempts.push({ path: file.name, language: locale });
+    return READINGS.get(file.name)?.[locale] ?? "";
+  },
   readWithOcr: async (bytes: Uint8Array, language: string, signal?: AbortSignal) => {
     const path = new TextDecoder().decode(bytes);
     attempts.push({ path, language });
@@ -312,6 +320,46 @@ describe("videos", () => {
     expect(result.current.validations["talk.mkv"].extracted).toBe(true);
     expect(result.current.validations["clip.mp4"].classification).toBe("binary");
     expect(TALLIES.get("extract_reader")?.get("mkv/subtitle-track")?.n).toBe(1);
+  });
+});
+
+describe("speech", () => {
+  it("offers audio and a video without a subtitle track, and transcribes only what is chosen", async () => {
+    READINGS.set("clip.mp4", { tr: "[0:00] Merhaba" });
+    READINGS.set("a.pdf", { eng: "Statement" });
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([image("clip.mp4"), image("memo.mp3"), scan("a.pdf")]);
+    });
+
+    // Never started for you, unlike the scan beside them.
+    expect(attempts).toEqual([{ path: "a.pdf", language: "eng" }]);
+    expect(result.current.unreadDocuments.map((d) => d.path)).toEqual(["clip.mp4", "memo.mp3"]);
+    expect(TALLIES.get("asr_offered")?.get("iso-bmff")?.n).toBe(1);
+    expect(TALLIES.get("asr_offered")?.get("mp3")?.n).toBe(1);
+
+    // "Read the rest" stays a recognition pass: the speech model is a download
+    // only the dialog names before it is spent.
+    attempts = [];
+    await act(async () => {
+      await result.current.readUnreadDocuments();
+    });
+    expect(attempts).toEqual([]);
+
+    await act(async () => {
+      await result.current.readSelected(["clip.mp4", "memo.mp3"], "tr");
+    });
+    expect(attempts).toEqual([
+      { path: "clip.mp4", language: "tr" },
+      { path: "memo.mp3", language: "tr" },
+    ]);
+    expect(result.current.entries.find((e) => e.path === "clip.mp4")?.content).toBe("[0:00] Merhaba");
+    // A transcript is not text extracted from a document.
+    expect(result.current.validations["clip.mp4"].extracted).toBeUndefined();
+    expect(result.current.validations["memo.mp3"].reason).toBe("No speech found");
+    expect(TALLIES.get("asr_read")?.get("iso-bmff")?.n).toBe(1);
+    expect(TALLIES.get("ocr_read")).toBeUndefined();
   });
 });
 

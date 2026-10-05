@@ -302,6 +302,20 @@ export const METRIC_EVENTS = [
    */
   "ocr_read",
   /**
+   * Audio, or a video with no subtitle track, that speech to text was
+   * **offered** over, by router format (`mp3`, `iso-bmff`, `matroska`, ...):
+   * `n` files totalling `b` bytes. Written once per Run at the end of ingest.
+   * A file over the 1 GB decode cap is not offered and not counted here.
+   * Extraction router D5; the denominator for `asr_read`.
+   */
+  "asr_offered",
+  /**
+   * A file a pass actually **opened** for speech to text, by format: `n` files
+   * totalling `b` bytes. A subset of `asr_offered`. Whether words came back is
+   * `ocr_recovered` under the same format; `ocr_ms` times the whole pass.
+   */
+  "asr_read",
+  /**
    * Scanned documents a drop declined to read on its own, by format: `n` files
    * totalling `b` bytes. Written once per Run, at the end of ingest, when the
    * queue is past the auto-read caps in `use-file-ingestion.ts`.

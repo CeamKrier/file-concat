@@ -60,13 +60,17 @@ const FAMILIES: ReadonlyArray<readonly [label: string, extensions: readonly stri
  */
 const SUBTITLE_CONTAINERS: ReadonlySet<string> = new Set(["mp4", "m4v", "mov", "mkv", "webm"]);
 
+/** Audio the web offers to transcribe (extraction router, D5). */
+const SPEECH_AUDIO: ReadonlySet<string> = new Set(["mp3", "wav", "flac", "ogg", "oga", "m4a", "aac"]);
+
 /**
  * Every extension the families above name: a file that never holds text, so
  * the web walk drops it before its first byte is read (`prunedAtWalk`). Images
- * are deliberately not here, since a dropped image gets the recognition offer.
+ * are deliberately not here, since a dropped image gets the recognition offer,
+ * and neither is audio or a video that can carry speech, for the same reason.
  */
 export const NEVER_TEXT_EXTENSIONS: ReadonlySet<string> = new Set(
-  FAMILIES.flatMap(([, extensions]) => extensions).filter((ext) => !SUBTITLE_CONTAINERS.has(ext)),
+  FAMILIES.flatMap(([, extensions]) => extensions).filter((ext) => !SUBTITLE_CONTAINERS.has(ext) && !SPEECH_AUDIO.has(ext)),
 );
 
 const NO_SUBTITLE_TRACK: UnreadableReason = {
@@ -141,12 +145,19 @@ export function unreadableReason(path: string, route?: FileRoute): UnreadableRea
         return { label: "Icon file" };
       case "psd":
         return { label: "Photoshop file", remedy: "Export it as a PDF or an image to have it read." };
+      case "heif":
+        return { label: "HEIC or AVIF photo", remedy: "A photo saved as JPEG or PNG can be read." };
       case "iso-bmff":
-        // The same box family holds a HEIC photo; the extension tells them apart.
         if (SUBTITLE_CONTAINERS.has(ext)) return NO_SUBTITLE_TRACK;
-        return { label: "Video, or a HEIC photo", remedy: "A photo saved as JPEG or PNG can be read." };
+        return { label: "Audio or video" };
       case "matroska":
         return NO_SUBTITLE_TRACK;
+      case "mp3":
+      case "aac":
+      case "flac":
+      case "ogg":
+      case "wave":
+        return { label: "Audio or video" };
       default:
         return { label: "Image" };
     }

@@ -27,6 +27,7 @@ const WASM_NOTICES: Record<string, string> = {
   "7zz": "licenses/7z-wasm.txt",
   anydoc_wasm_bg: "licenses/anydoc-wasm.txt",
   liteparse_wasm_bg: "licenses/liteparse-wasm.txt",
+  "ort-wasm-simd-threaded": "licenses/onnxruntime-web.txt",
   tiktoken_bg: "licenses/tiktoken-wasm.txt",
 };
 

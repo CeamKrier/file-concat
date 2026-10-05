@@ -41,6 +41,8 @@ function props(overrides: Partial<Parameters<typeof ResultView>[0]> = {}) {
     scannedDocumentCount: 0,
     imageCount: 0,
     recognisedImages: 0,
+    mediaCount: 0,
+    recognisedMedia: 0,
     isReading: false,
     readProgress: null,
     isStopping: false,

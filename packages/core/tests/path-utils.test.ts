@@ -155,9 +155,12 @@ describe("prunedAtWalk", () => {
     expect(prunedAtWalk("obj/Debug/app.o")).toBe(true);
     expect(prunedAtWalk("lib/native.DLL")).toBe(true);
     expect(prunedAtWalk("media/intro.avi")).toBe(true);
-    // Images get the recognition offer, so they are read in, and a video that
-    // can carry a subtitle track has it read as the transcript.
+    // Images get the recognition offer, so they are read in, a video that can
+    // carry a subtitle track has it read as the transcript, and audio gets the
+    // speech offer.
     expect(prunedAtWalk("media/intro.mp4")).toBe(false);
+    expect(prunedAtWalk("media/interview.mp3")).toBe(false);
+    expect(prunedAtWalk("media/song.mid")).toBe(true);
     expect(prunedAtWalk("assets/logo.png")).toBe(false);
     // A glob or a file name in the defaults runs at filter time, where it can
     // be turned back on: the walk leaves these in.

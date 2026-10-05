@@ -82,6 +82,10 @@ export default defineConfig({
     alias: {
       "~": path.resolve(__dirname, "./src"),
       "@fileconcat/core": path.resolve(__dirname, "../../packages/core/src"),
+      // transformers.js imports ONNX Runtime's WebGPU build, whose wasm is
+      // 26.9 MB: over Cloudflare's 25 MiB per static file, and it would ship
+      // beside the 14.3 MB CPU build speech actually runs on (device "wasm").
+      "onnxruntime-web/webgpu": "onnxruntime-web/wasm",
     },
   },
   optimizeDeps: {
@@ -102,6 +106,7 @@ export default defineConfig({
       "@firecrawl/anydoc-wasm",
       "7z-wasm",
       "@llamaindex/liteparse-wasm",
+      "@huggingface/transformers",
     ],
   },
   build: {

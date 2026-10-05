@@ -160,6 +160,20 @@ describe("routeBytes", () => {
     const route = await routeBytes(mp4);
     expect(route).toEqual({ kind: "binary", format: "iso-bmff" });
     expect(RECOGNISABLE_IMAGE_FORMATS.has("iso-bmff")).toBe(false);
+    // The brand splits a phone photo off, so it is never offered as a video.
+    const heic = new Uint8Array([0, 0, 0, 0x18, ...strToU8("ftypheic"), ...Array(32).fill(0)]);
+    expect(await routeBytes(heic)).toEqual({ kind: "binary", format: "heif" });
+  });
+
+  it("names audio by its own header, and not a UTF-16 text file that opens on FF FE", async () => {
+    const tagged = new Uint8Array([...strToU8("ID3"), 0x04, 0x00, ...Array(32).fill(0)]);
+    expect(await routeBytes(tagged)).toEqual({ kind: "binary", format: "mp3" });
+    expect(await routeBytes(new Uint8Array([0xff, 0xfb, 0x90, 0x64, ...Array(32).fill(0)]))).toEqual({ kind: "binary", format: "mp3" });
+    expect(await routeBytes(new Uint8Array([...strToU8("fLaC"), 0x00, ...Array(32).fill(0)]))).toEqual({ kind: "binary", format: "flac" });
+    expect(await routeBytes(new Uint8Array([...strToU8("OggS"), 0x00, 0x02, ...Array(32).fill(0)]))).toEqual({ kind: "binary", format: "ogg" });
+    const utf16 = new Uint8Array([0xff, 0xfe, ...new Uint8Array(new Uint16Array([...("plain text\n")].map((c) => c.charCodeAt(0))).buffer)]);
+    expect((await routeBytes(utf16)).kind).not.toBe("binary");
+    expect(await routeBytes(utf8("ID3 tags hold the title of a song.\n"))).toEqual({ kind: "unknown" });
   });
 
   it("names Matroska and WebM, which share the EBML header", async () => {
