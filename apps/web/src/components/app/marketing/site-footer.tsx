@@ -163,6 +163,13 @@ export function SiteFooter() {
             >
               Privacy
             </Link>{" "}
+            /{" "}
+            <Link
+              to="/licenses"
+              className="text-ink-muted hover:text-ink decoration-[oklch(var(--border-strong))] underline underline-offset-[3px] transition-colors duration-150"
+            >
+              Licenses
+            </Link>{" "}
             / built by{" "}
             <a
               href="https://twitter.com/CeamKrier"

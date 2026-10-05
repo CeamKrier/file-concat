@@ -13,6 +13,7 @@ import { remarkBlogSections } from "./scripts/remark-blog-sections.mjs";
 import wasm from "vite-plugin-wasm";
 import topLevelAwait from "vite-plugin-top-level-await";
 import { visualizer } from "rollup-plugin-visualizer";
+import license from "rollup-plugin-license";
 
 export default defineConfig({
   appType: "custom",
@@ -46,6 +47,29 @@ export default defineConfig({
       rehypePlugins: [rehypePrismPlus],
       providerImportSource: "@mdx-js/react",
     }),
+    // Third-party notices (extraction router, R4): the npm packages the client
+    // bundle ships, read from its module graph. scripts/build-notices.ts adds
+    // the libraries compiled into each .wasm, which no JS tool can see, and
+    // writes dist/client/third-party-notices.txt. The SSR worker is left out:
+    // it runs on Cloudflare and is never handed to a visitor.
+    {
+      ...license({
+        thirdParty: {
+          multipleVersions: true,
+          // GPL or AGPL in the client would put our code under its terms.
+          // LGPL (7-Zip) is fine as a separate, replaceable file.
+          allow: {
+            test: (dependency) => !/\bA?GPL\b/.test(dependency.license ?? ""),
+            failOnViolation: true,
+          },
+          output: {
+            file: path.resolve(__dirname, "dist/third-party-npm.json"),
+            template: (dependencies) => JSON.stringify(dependencies),
+          },
+        },
+      }),
+      applyToEnvironment: (environment) => environment.name === "client",
+    },
     // Bundle analyzer (dev only)
     visualizer({
       open: false,

@@ -61,6 +61,17 @@ still there**; an unreachable page only warns. On a DRIFT line: read the page,
 fix the number in the files under `used_by`, then move the quote and the
 `checked` date in the JSON. The script never writes a number itself.
 
+## Third-party notices are built on every build
+
+`postbuild` runs `apps/web/scripts/build-notices.ts` after the worker-size check.
+It merges the client bundle's npm licences (rollup-plugin-license, client
+environment only, in `vite.config.ts`) with the hand-assembled notices for each
+wasm reader under `apps/web/licenses/`, and writes
+`dist/client/third-party-notices.txt`, linked from `/licenses`. **The build fails
+when a `.wasm` asset has no notices file**: a new wasm reader needs one under
+`licenses/` and a line in the script's `WASM_NOTICES`. GPL/AGPL npm packages in
+the client also fail the build.
+
 ## Tooling conventions
 
 - Use `pnpm` for installs/scripts so the workspace protocol resolves.
