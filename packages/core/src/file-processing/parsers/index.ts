@@ -1,7 +1,12 @@
 export { createParserRegistry } from "./registry";
 export { extractWithFallback } from "./chain";
-export { extractOfficeDocument, isPasswordProtected, replacePages } from "./officeparser";
-export type { OcrOptions, OfficeParserOptions } from "./officeparser";
+export {
+  assemblePdfPages,
+  extractOfficeDocument,
+  isPasswordProtected,
+  replacePages,
+} from "./officeparser";
+export type { OcrOptions, OfficeParserOptions, PdfPage } from "./officeparser";
 export { formatEmail } from "./email";
 export type { MessageFields } from "./email";
 export { formatMsg } from "./msg";

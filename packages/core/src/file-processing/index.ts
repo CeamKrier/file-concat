@@ -11,6 +11,7 @@ export {
 } from "./archives";
 export type { ArchiveEntry, ArchiveKind } from "./archives";
 export {
+  assemblePdfPages,
   createParserRegistry,
   extractWithFallback,
   extractNotebook,
@@ -33,6 +34,7 @@ export type {
   ParserId,
   ParserLoader,
   ParserRegistry,
+  PdfPage,
 } from "./parsers";
 export { validateFile } from "./validation";
 export { classifyBytes, readFileAsText } from "./text-classification";

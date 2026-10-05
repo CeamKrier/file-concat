@@ -32,18 +32,27 @@ const cfb: ParserLoader = async (bytes) => {
   return mod.extractCfb(bytes);
 };
 
-/** Tried after `office` or `cfb` when either has nothing usable (core `FALLBACK_READERS`). */
+const liteparse: ParserLoader = async (bytes) => {
+  if (import.meta.env.SSR) return { text: "" };
+  const mod = await import("./extract-liteparse-client");
+  return mod.extractLiteparse(bytes);
+};
+
+/** Tried after a format's first reader when it has nothing usable (core `FALLBACK_READERS`). */
 const fallbacks: Record<string, ParserLoader> = {
   anydoc: async (bytes) => {
     if (import.meta.env.SSR) return { text: "" };
     const mod = await import("./extract-anydoc-client");
     return mod.extractAnydoc(bytes);
   },
+  officeparser: office,
 };
 
 export const parsers: ParserRegistry = createParserRegistry({
   office: (bytes, format) =>
-    extractWithFallback({ id: "officeparser", read: office }, fallbacks, bytes, format),
+    format === "pdf"
+      ? extractWithFallback({ id: "liteparse", read: liteparse }, fallbacks, bytes, format)
+      : extractWithFallback({ id: "officeparser", read: office }, fallbacks, bytes, format),
   // The same library reads an epub (its zip of XHTML chapters walks the OPF
   // spine), so the id costs no second download.
   epub: office,

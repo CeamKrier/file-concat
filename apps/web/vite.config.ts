@@ -66,9 +66,10 @@ export default defineConfig({
     // them from dev pre-bundling keeps them out of the eager graph, same as
     // tiktoken; the SSR guard keeps them out of the Cloudflare worker. xlsx
     // (SheetJS, the 97-2003 workbook reader) is the same shape behind
-    // lib/extract-cfb-client. anydoc, the Office fallback, and 7-Zip, the
-    // archive fallback, run in workers behind lib/extract-anydoc-client and
-    // lib/expand-sevenzip-client.
+    // lib/extract-cfb-client. anydoc, the Office fallback, 7-Zip, the archive
+    // fallback, and liteparse, the first PDF reader, run in workers behind
+    // lib/extract-anydoc-client, lib/expand-sevenzip-client and
+    // lib/extract-liteparse-client.
     exclude: [
       "@dqbd/tiktoken",
       "officeparser",
@@ -76,6 +77,7 @@ export default defineConfig({
       "xlsx",
       "@firecrawl/anydoc-wasm",
       "7z-wasm",
+      "@llamaindex/liteparse-wasm",
     ],
   },
   build: {

@@ -688,6 +688,59 @@ export function replacePages(text: string, replacements: ReadonlyMap<number, str
 }
 
 /**
+ * One page of a PDF that a platform's own reader read (the web's liteparse),
+ * numbered from 1 in file order. `scanned` is the reader's word that the page
+ * holds a picture, which is what tells a scanned page from a blank one: both
+ * carry no text.
+ */
+export interface PdfPage {
+  number: number;
+  text: string;
+  scanned?: boolean;
+}
+
+/**
+ * Give a PDF read page by page elsewhere the shape {@link extractOfficeDocument}
+ * gives one: a `# Page n` line over each page, unreadable lines left out under a
+ * `text-undecodable` note, and `""` when no page carries a letter or a digit (a
+ * scan, which recognition then reads whole).
+ *
+ * A page with a picture and nothing readable, in a document whose other pages
+ * read, is listed in a `pages-scanned` note so recognition re-reads it the way
+ * it re-reads an undecodable one. Kreuzberg OCRs a page with no letter or digit
+ * and Tika's AUTO one with ten characters or fewer; the picture is our addition,
+ * so a blank page in a text PDF never starts a recognition pass.
+ */
+export function assemblePdfPages(pages: readonly PdfPage[], skipped = 0): ExtractionResult {
+  const readable = (text: string) => /[\p{L}\p{N}]/u.test(text);
+  // liteparse writes an empty ```text fence for a page with no text.
+  const bodies = pages.map((page) => ({
+    ...page,
+    text: page.text.replace(/^```text\s*```$/gm, "").trim(),
+  }));
+  const notes: ExtractionNote[] = skipped > 0 ? [{ kind: "pages-skipped", count: skipped }] : [];
+  const empty = (text: string) => (notes.length > 0 ? { text, notes } : { text });
+  if (!bodies.some((page) => readable(page.text))) return empty("");
+
+  const marked = bodies
+    .map((page) => [`# Page ${page.number}`, page.text].filter(Boolean).join("\n"))
+    .join("\n\n");
+  const { text, lost, pages: lostPages } = dropUndecodableLines(marked);
+  if (lost > 0) {
+    notes.push({
+      kind: "text-undecodable",
+      count: lost,
+      ...(lostPages.length > 0 ? { pages: lostPages } : {}),
+    });
+  }
+  const scans = bodies
+    .filter((page) => page.scanned && !readable(page.text))
+    .map((page) => page.number);
+  if (scans.length > 0) notes.push({ kind: "pages-scanned", count: scans.length, pages: scans });
+  return empty(text);
+}
+
+/**
  * Extract the recoverable text from a document's bytes. Empty text means the
  * document carries none — a scanned image-only or encrypted PDF — and callers
  * surface that rather than silently dropping the file (ADR-0003).

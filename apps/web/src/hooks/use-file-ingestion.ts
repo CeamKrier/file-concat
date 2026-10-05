@@ -723,12 +723,14 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             // the format that fails on one document in ten.
             const kinds = notes?.map((note) => note.kind);
             for (const kind of kinds ?? []) addToTally(extractNotes, kind, size);
-            // Pages whose fonts carry no character map. Recognition can read
-            // them by drawing them, and the note says which ones — so this is a
-            // second reason to keep the file handle, beside a document that came
-            // back with nothing at all.
-            const undecodable = notes?.find((note) => note.kind === "text-undecodable");
-            const lostPages = undecodable?.pages ?? [];
+            // Pages whose fonts carry no character map, and scanned pages bound
+            // into a text PDF. Recognition can read them by drawing them, and the
+            // notes say which ones — so this is a second reason to keep the file
+            // handle, beside a document that came back with nothing at all.
+            const lostPages = (notes ?? [])
+              .filter((note) => note.kind === "text-undecodable" || note.kind === "pages-scanned")
+              .flatMap((note) => note.pages ?? [])
+              .sort((a, b) => a - b);
             if (text) {
               nextEntries.push({ path, content: text });
               // Which reader of the format's chain produced it, so a fallback's

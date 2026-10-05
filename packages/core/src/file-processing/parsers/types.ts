@@ -43,7 +43,13 @@ export type ExtractionNoteKind =
    * map extracts as glyph numbers read as if they were letters, which arrives
    * looking like text and is not. Measured on a real one 2026-08-16.
    */
-  | "text-undecodable";
+  | "text-undecodable"
+  /**
+   * Pages that are a picture with no text under it, in a document whose other
+   * pages read: scanned pages bound into a text PDF. `pages` names them so
+   * recognition can read just those.
+   */
+  | "pages-scanned";
 
 export interface ExtractionNote {
   kind: ExtractionNoteKind;

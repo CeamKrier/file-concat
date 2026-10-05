@@ -11,8 +11,13 @@ import type { ExtractionResult, ParserLoader } from "./types";
  * browser reader for a 97-2003 `.ppt`, which reaches it through `cfb`: the
  * compound-file reader answers `parser-unavailable` for a deck, and anydoc read
  * 105 of 145 POI decks that today produce nothing.
+ *
+ * A PDF runs the other way round (step R3): liteparse first, which scored 49.5
+ * against pdf.js's 26.3 on olmOCR-bench's text-layer pages (2026-10-03), and
+ * pdf.js behind it for a file liteparse throws on or reads as nothing.
  */
 export const FALLBACK_READERS: Readonly<Record<string, readonly string[]>> = {
+  pdf: ["officeparser"],
   docx: ["anydoc"],
   pptx: ["anydoc"],
   xlsx: ["anydoc"],

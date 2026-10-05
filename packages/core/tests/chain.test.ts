@@ -61,7 +61,7 @@ describe("extractWithFallback", () => {
   it("never runs a fallback for an unlisted format or a locked file", async () => {
     let ran = false;
     const spy: ParserLoader = async () => ((ran = true), { text: "x" });
-    await extractWithFallback({ id: "own", read: says("") }, { anydoc: spy }, bytes, "pdf");
+    await extractWithFallback({ id: "own", read: says("") }, { anydoc: spy }, bytes, "epub");
     await expect(
       extractWithFallback(
         { id: "own", read: throws("No password given") },
