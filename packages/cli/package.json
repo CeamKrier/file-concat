@@ -73,6 +73,7 @@
     "defuddle": "0.19.4",
     "docling.rs-wasm": "^1.89.0",
     "execa": "^9.6.1",
+    "foliate-js": "github:johnfactotum/foliate-js#78914aef4466eb960965702401634c2cb348e9b1",
     "jsdom": "^29.1.1",
     "libarchive-wasm": "^1.2.0",
     "mammoth": "^1.13.0",

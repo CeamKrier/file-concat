@@ -194,7 +194,7 @@ const CANDIDATES: Record<string, Candidate> = {
   // The product's own node path, the same one measure-extraction scores:
   // the byte router, then the CLI's parser registry with core's visitors.
   fileconcat: {
-    formats: ["pdf", "docx", "xlsx", "pptx", "odt", "ods", "odp", "rtf", "doc", "xls", "ppt", "docm", "dotx", "xlsm", "xlsb", "pptm"],
+    formats: ["pdf", "docx", "xlsx", "pptx", "odt", "ods", "odp", "rtf", "doc", "xls", "ppt", "docm", "dotx", "xlsm", "xlsb", "pptm", "eml", "msg", "epub"],
     extract: async (bytes) => {
       const route = await routeBytes(bytes.subarray(0, ROUTER_SNIFF_BYTES));
       if (route.kind !== "extract") throw new Error(`routed as ${route.kind}`);
@@ -277,8 +277,68 @@ const CANDIDATES: Record<string, Candidate> = {
   },
   "officeparser-8.1": officeparser8({}),
   "officeparser-8.1-flow": officeparser8({ ignorePageGeometry: true }),
+  // foliate-js (the Foliate reader's engine, browser-only) with jsdom's DOMParser
+  // standing in for the browser's. Every section in spine order, through
+  // Turndown like the HTML candidates.
+  "foliate-js": {
+    formats: ["epub", "mobi", "azw3"],
+    extract: async (bytes) => {
+      const { JSDOM } = await import("jsdom");
+      const g = globalThis as Record<string, unknown>;
+      const { window } = new JSDOM("");
+      g.DOMParser ??= window.DOMParser;
+      g.XMLSerializer ??= window.XMLSerializer;
+      g.document ??= window.document;
+      // jsdom has no CSS namespace; KF8 only asks it to escape selectors.
+      g.CSS ??= { escape: (v: string) => v.replace(/[^\w-]/g, (c) => `\\${c}`) };
+      const file = new File([bytes], currentName);
+      let book: { sections: { createDocument?: () => Promise<Document> }[] };
+      if (currentName.endsWith(".epub")) {
+        const { ZipReader, BlobReader, TextWriter, BlobWriter } = await import("@zip.js/zip.js");
+        const entries = await new ZipReader(new BlobReader(file), { useWebWorkers: false }).getEntries();
+        const map = new Map(entries.flatMap((entry) => (entry.directory ? [] : [[entry.filename, entry] as const])));
+        const loader = {
+          entries,
+          loadText: (name: string) => map.get(name)?.getData?.(new TextWriter()) ?? null,
+          loadBlob: (name: string, type?: string) => map.get(name)?.getData?.(new BlobWriter(type)) ?? null,
+          getSize: (name: string) => map.get(name)?.uncompressedSize ?? 0,
+        };
+        // @ts-expect-error untyped ESM
+        const { EPUB } = await import("foliate-js/epub.js");
+        book = await new EPUB(loader).init();
+      } else {
+        // @ts-expect-error untyped ESM
+        const { MOBI } = await import("foliate-js/mobi.js");
+        // The copy foliate-js vendors and its own viewer passes in.
+        // @ts-expect-error untyped ESM
+        const { unzlibSync } = await import("foliate-js/vendor/fflate.js");
+        book = await new MOBI({ unzlib: unzlibSync }).open(file);
+      }
+      const { default: TurndownService } = await import("turndown");
+      const turndown = new TurndownService({ headingStyle: "atx" });
+      const parts: string[] = [];
+      for (const section of book.sections) {
+        const doc = await section.createDocument?.();
+        if (doc?.body) parts.push(turndown.turndown(doc.body.innerHTML));
+      }
+      return parts.join("\n\n");
+    },
+  },
+  // The product's .xls rendering (SheetJS, a csv per sheet) over every workbook
+  // format, without the CFB stream-name gate in front of it.
+  sheetjs: {
+    formats: ["xls", "xlsx", "xlsm", "xlsb", "ods"],
+    extract: async (bytes) => {
+      const XLSX = createRequire(path.join(REPO_ROOT, "apps", "web", "package.json"))("xlsx") as typeof import("../../../apps/web/node_modules/xlsx");
+      const workbook = XLSX.read(bytes, { type: "array" });
+      return workbook.SheetNames.map((name) => ({ name, csv: XLSX.utils.sheet_to_csv(workbook.Sheets[name]).trim() }))
+        .filter((sheet) => sheet.csv)
+        .map((sheet) => `# Sheet: ${sheet.name}\n${sheet.csv}`)
+        .join("\n\n");
+    },
+  },
   anydoc: {
-    formats: ["pdf", "docx", "xlsx", "pptx", "odt", "ods", "odp", "rtf", "doc", "xls", "ppt", "docm", "dotx", "xlsm", "xlsb", "pptm"],
+    formats: ["pdf", "docx", "xlsx", "pptx", "odt", "ods", "odp", "rtf", "doc", "xls", "ppt", "docm", "dotx", "xlsm", "xlsb", "pptm", "epub"],
     extract: async (bytes) => (await anydocModule()).toMarkdownBytes(bytes),
   },
   "docling.rs": {
@@ -333,9 +393,15 @@ async function runOne(candidate: Candidate, file: string): Promise<Run> {
     text = await candidate.extract(bytes);
   } catch (err) {
     error = err instanceof Error ? err.message : String(err);
+    // A trap leaves a wasm-bindgen instance poisoned: every later call fails
+    // with the same "unreachable" (anydoc, 2026-10-05). The prefix tells the
+    // parent to start the next file in a fresh child.
+    if (err instanceof WebAssembly.RuntimeError) error = `${WASM_TRAP}${error}`;
   }
   return { text, error, ms: Math.round(performance.now() - start) };
 }
+
+const WASM_TRAP = "wasm trap: ";
 
 /** Longest one file may take before its reader is killed and the file failed. */
 const FILE_LIMIT_MS = 120_000;
@@ -366,7 +432,7 @@ async function runIsolated(name: string, files: string[], onRun: (file: string, 
         () => done({ text: "", error: `timeout after ${FILE_LIMIT_MS} ms`, ms: FILE_LIMIT_MS }, true),
         FILE_LIMIT_MS,
       );
-      w.on("message", (r: Run) => done(r, false));
+      w.on("message", (r: Run) => done(r, r.error?.startsWith(WASM_TRAP) ?? false));
       w.on("error", (err) => done({ text: "", error: `crashed: ${err.message}`, ms: 0 }, true));
       w.on("exit", (code) => done({ text: "", error: `worker exited ${code}`, ms: 0 }, true));
       w.send(file);
