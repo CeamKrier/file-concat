@@ -170,6 +170,23 @@ describe("routeBytes", () => {
     expect(await routeBytes(svg)).toEqual({ kind: "unknown" });
   });
 
+  it("routes a page a browser saved, and leaves HTML source alone", async () => {
+    const chrome = utf8(
+      '<!DOCTYPE html>\n<!-- saved from url=(0027)https://example.com/post/1 -->\n<html><head><title>Post</title></head><body><p>Text</p></body></html>',
+    );
+    expect(await routeBytes(chrome)).toEqual({ kind: "extract", parserId: "html", format: "html" });
+    const singleFile = utf8(
+      "<!DOCTYPE html> <html lang=en><!--\n Page saved with SingleFile \n url: https://example.com/a \n saved date: Mon Oct 05 2026\n--><head><title>A</title></head><body></body></html>",
+    );
+    expect(await routeBytes(singleFile)).toEqual({ kind: "extract", parserId: "html", format: "html" });
+
+    const source = utf8('<!doctype html>\n<html lang="en"><head><meta charset="utf-8"></head><body><div id="root"></div></body></html>');
+    expect(await routeBytes(source)).toEqual({ kind: "unknown" });
+    // The comment quoted in a page's text is not a saver's comment.
+    const quoted = utf8("<html><head></head><body><pre>&lt;!-- x --&gt; <!-- saved from url=(0019)https://example.com --></pre></body></html>");
+    expect(await routeBytes(quoted)).toEqual({ kind: "unknown" });
+  });
+
   it("ignores the filename entirely — the same bytes always route the same way", async () => {
     const docx = minimalDocx("renamed");
     // The historical bug: this file named `.zip` used to be unpacked into

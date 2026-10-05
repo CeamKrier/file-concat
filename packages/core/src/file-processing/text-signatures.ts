@@ -19,7 +19,7 @@
  */
 
 /** A text-shaped format the router can recognize. */
-export type TextualFormat = "ipynb" | "srt" | "vtt" | "eml";
+export type TextualFormat = "ipynb" | "srt" | "vtt" | "eml" | "html";
 
 /**
  * How much of the prefix is decoded. Every signature below sits at the very
@@ -85,6 +85,32 @@ function looksLikeEmail(head: string): boolean {
 }
 
 /**
+ * The comment a page saver writes, and the address of the page it saved.
+ * Chromium's "Webpage, Complete" puts `<!-- saved from url=(0040)https://... -->`
+ * before `<html>` (`frame_serializer.cc`); SingleFile puts "Page saved with
+ * SingleFile" and a `url:` line as the first child of `<html>`. Firefox writes
+ * nothing, so a page it saved is read as source, as every `.html` was before.
+ *
+ * Only a saved page is routed, never HTML as such: a template or a component
+ * in a repository is source, and its markup is the content. Measured
+ * 2026-10-05: 0 of 346 `.html` files under node_modules carry either comment.
+ */
+const SAVED_PAGE =
+  /<!--\s*(?:saved from url=\(\d{4}\)(https?:[^\s>]+)|(?:Page saved with|Archive processed by) SingleFile\s+url: (\S+))/i;
+
+/**
+ * The address a saved page came from, or `undefined` when the head carries no
+ * saver comment. Looked for before `<head` or `<body`, where both savers put
+ * it, so a page that merely quotes the comment in its text is not taken.
+ */
+export function savedPageUrl(head: string): string | undefined {
+  const scan = head.slice(0, SNIFF_BYTES);
+  const end = scan.search(/<(head|body)[\s>]/i);
+  const match = SAVED_PAGE.exec(end < 0 ? scan : scan.slice(0, end));
+  return match ? (match[1] ?? match[2]) : undefined;
+}
+
+/**
  * Decode the head of a file for signature matching, or `null` when it cannot be
  * one of these formats. A NUL byte early on is the cheap disqualifier: every
  * signature here is ASCII at offset zero, so a container that happens to carry
@@ -113,6 +139,7 @@ export function matchTextualSignature(prefix: Uint8Array): TextualFormat | null 
   if (SRT_CUE.test(head)) return "srt";
   if (NOTEBOOK_CELLS.test(head) && NOTEBOOK_EVIDENCE.test(head)) return "ipynb";
   if (looksLikeEmail(head)) return "eml";
+  if (savedPageUrl(head)) return "html";
 
   return null;
 }

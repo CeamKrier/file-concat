@@ -110,6 +110,7 @@ const TEXTUAL_PARSERS: Readonly<Record<TextualFormat, ParserId>> = {
   srt: "subtitles",
   vtt: "subtitles",
   eml: "email",
+  html: "html",
 };
 
 /**

@@ -2,6 +2,7 @@ export { BINARY_EXTENSIONS } from "./binary-extensions";
 export { RECOGNISABLE_IMAGE_FORMATS } from "./binary-signatures";
 export { routeBytes, routeFile, ROUTER_SNIFF_BYTES, EXTRACTED_FORMATS } from "./routing";
 export type { FileRoute } from "./routing";
+export { savedPageUrl } from "./text-signatures";
 export {
   canExpandArchive,
   expandArchive,
