@@ -62,15 +62,17 @@ export function LicensesPage() {
               its RAR decoder also carries the unRAR license restriction below.
             </p>
             <p>
-              The source code for the exact build we ship: 7-Zip 24.09 as{" "}
-              <Out href="https://github.com/ip7z/7zip/releases/download/24.09/7z2409-src.tar.xz">
+              The source code for the exact build we ship, served from this site:{" "}
+              <a href="/source/7zip/7z2409-src.tar.xz" className={linkClass}>
                 7z2409-src.tar.xz
-              </Out>{" "}
-              or{" "}
-              <Out href="https://github.com/ip7z/7zip/releases/download/24.09/7z2409-src.7z">
-                7z2409-src.7z
-              </Out>
-              , and the patch and build scripts that turn it into WebAssembly at{" "}
+              </a>{" "}
+              (7-Zip 24.09, sha256 49c05169...6133a) and{" "}
+              <a href="/source/7zip/7z-wasm-1.2.0-build.tar.gz" className={linkClass}>
+                7z-wasm-1.2.0-build.tar.gz
+              </a>
+              , the patch and build scripts that turn it into WebAssembly. The same files are
+              upstream at{" "}
+              <Out href="https://github.com/ip7z/7zip/releases/tag/24.09">ip7z/7zip 24.09</Out> and{" "}
               <Out href="https://github.com/use-strict/7z-wasm/tree/v1.2.0">
                 use-strict/7z-wasm v1.2.0
               </Out>
