@@ -86,3 +86,16 @@ export const parsers: ParserRegistry = createParserRegistry({
   notebook: async (bytes) => extractNotebook(bytes),
   subtitles: async (bytes) => extractSubtitles(bytes),
 });
+
+/** Video containers whose own subtitle track is read (extraction router, D4). */
+export const SUBTITLE_TRACK_FORMATS: ReadonlySet<string> = new Set(["iso-bmff", "matroska"]);
+
+/**
+ * Not a {@link ParserLoader}: it takes the file, not its bytes, because a video
+ * is never read whole. "" when the video has no text subtitle track.
+ */
+export async function readSubtitleTrack(file: Blob, format: string): Promise<string> {
+  if (import.meta.env.SSR) return "";
+  const mod = await import("./extract-video-track-client");
+  return mod.readSubtitleTrack(file, format);
+}

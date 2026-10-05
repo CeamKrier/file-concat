@@ -69,7 +69,7 @@ export function extractSubtitles(bytes: Uint8Array): ExtractionResult {
     .replace(/^\uFEFF/, "")
     .replace(/\r\n?/g, "\n");
 
-  const lines: string[] = [];
+  const cues: string[] = [];
   for (const block of source.split(/\n{2,}/)) {
     if (isMetadataBlock(block.trimStart())) continue;
 
@@ -86,13 +86,26 @@ export function extractSubtitles(bytes: Uint8Array): ExtractionResult {
     for (let index = 0; index < blockLines.length; index++) {
       const line = blockLines[index].trim();
       if (!line || line.includes("-->") || blockLines[index + 1]?.includes("-->")) continue;
+      cues.push(line);
+    }
+  }
 
+  return { text: transcriptFromCues(cues) };
+}
+
+/**
+ * The same transcript from cue payloads already taken out of their container,
+ * as a video's embedded subtitle track yields them.
+ */
+export function transcriptFromCues(cues: readonly string[]): string {
+  const lines: string[] = [];
+  for (const cue of cues) {
+    for (const line of cue.replace(/\r\n?/g, "\n").split("\n")) {
       const cleaned = cleanLine(line);
       // Rolling captions repeat the previous line in the next cue; a spoken
       // line that genuinely repeats back to back reads the same either way.
       if (cleaned && cleaned !== lines[lines.length - 1]) lines.push(cleaned);
     }
   }
-
-  return { text: lines.join("\n") };
+  return lines.join("\n");
 }

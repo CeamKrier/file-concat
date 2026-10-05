@@ -13,7 +13,7 @@ export { formatMsg } from "./msg";
 export { formatDoc } from "./doc";
 export type { CfbStreams } from "./msg";
 export { extractNotebook } from "./notebook";
-export { extractSubtitles } from "./subtitles";
+export { extractSubtitles, transcriptFromCues } from "./subtitles";
 export type {
   ExtractionNote,
   ExtractionNoteKind,

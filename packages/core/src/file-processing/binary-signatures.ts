@@ -29,8 +29,8 @@ interface Signature {
 const ascii = (s: string): number[] => [...s].map((c) => c.charCodeAt(0));
 
 /**
- * Media-container signatures. Kept to raster images and the ISO base-media
- * family (heic/avif/mp4/mov) plus Photoshop — the binaries whose leading
+ * Media-container signatures. Kept to raster images, the ISO base-media
+ * family (heic/avif/mp4/mov) and Matroska plus Photoshop — the binaries whose leading
  * metadata most plausibly masquerades as text. Formats with unambiguous
  * high-entropy headers are already caught by the suspicion classifier.
  */
@@ -47,6 +47,9 @@ const SIGNATURES: readonly Signature[] = [
   // heic, avif, mp4 and mov share this one and cannot be told apart without
   // reading the brand, so it stays a single unrecognisable format (ADR-0017).
   { offset: 4, magic: [...ascii("ftyp")], format: "iso-bmff" },
+  // The EBML header Matroska and WebM both open with. Named so a video's own
+  // subtitle track can be read; before, the byte classifier called it binary.
+  { offset: 0, magic: [0x1a, 0x45, 0xdf, 0xa3], format: "matroska" },
 ];
 
 /** RIFF containers ("RIFF" + 4-byte size + a form tag) that are binary media. */

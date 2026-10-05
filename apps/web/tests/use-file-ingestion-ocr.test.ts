@@ -12,6 +12,8 @@ import { DEFAULT_CONFIG } from "@fileconcat/core";
  */
 /** Extension → the format the real router would report for an image's bytes. */
 const IMAGE_FORMATS: Record<string, string> = { png: "png", jpg: "jpeg", webp: "webp" };
+/** The same for videos, which carry a subtitle track or do not. */
+const VIDEO_FORMATS: Record<string, string> = { mp4: "iso-bmff", mkv: "matroska" };
 
 vi.mock("~/lib/prepare-batch", () => ({
   prepareBatch: (incoming: { file: File; path?: string }[]) => ({
@@ -25,8 +27,8 @@ vi.mock("~/lib/prepare-batch", () => ({
         // name; this stub only has to hand the hook the same shape, and the
         // format is what decides whether a document could be a scan — or, for
         // an image, whether recognition can be offered over it at all.
-        route: IMAGE_FORMATS[extension]
-          ? { kind: "binary", format: IMAGE_FORMATS[extension] }
+        route: IMAGE_FORMATS[extension] || VIDEO_FORMATS[extension]
+          ? { kind: "binary", format: IMAGE_FORMATS[extension] || VIDEO_FORMATS[extension] }
           : { kind: "extract", parserId: "office", format: extension },
       };
     }),
@@ -37,8 +39,13 @@ vi.mock("~/lib/prepare-batch", () => ({
 }));
 
 // Every document opens with no text, which is what a scan does.
+/** file name -> the text of its subtitle track. Absent means it has none. */
+const SUBTITLES = new Map<string, string>();
+
 vi.mock("~/lib/parsers", () => ({
   parsers: { extract: async () => ({ text: "" }) },
+  SUBTITLE_TRACK_FORMATS: new Set(["iso-bmff", "matroska"]),
+  readSubtitleTrack: async (file: File) => SUBTITLES.get(file.name) ?? "",
 }));
 
 /** path → language code → what recognition reads. Absent means unreadable. */
@@ -111,6 +118,7 @@ const originalLanguages = Object.getOwnPropertyDescriptor(navigator, "languages"
 
 beforeEach(() => {
   READINGS.clear();
+  SUBTITLES.clear();
   TALLIES.clear();
   attempts = [];
   onDocumentRead = null;
@@ -284,6 +292,26 @@ describe("images", () => {
     expect(TALLIES.get("ocr_read")?.get("png")?.n).toBe(2);
     expect(TALLIES.get("ocr_conf")?.get("90")?.n).toBe(2);
     expect(TALLIES.get("ocr_recovered")?.get("png")?.n).toBe(1);
+  });
+});
+
+describe("videos", () => {
+  it("reads a subtitle track as the transcript, and leaves a video without one binary", async () => {
+    SUBTITLES.set("talk.mkv", "Welcome to the talk.");
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([image("talk.mkv"), image("clip.mp4")]);
+    });
+
+    // The video without a track stays in the tree, locked and empty, as before.
+    expect(result.current.entries).toEqual([
+      { path: "talk.mkv", content: "Welcome to the talk." },
+      { path: "clip.mp4", content: "" },
+    ]);
+    expect(result.current.validations["talk.mkv"].extracted).toBe(true);
+    expect(result.current.validations["clip.mp4"].classification).toBe("binary");
+    expect(TALLIES.get("extract_reader")?.get("mkv/subtitle-track")?.n).toBe(1);
   });
 });
 

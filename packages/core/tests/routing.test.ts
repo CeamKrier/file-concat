@@ -156,6 +156,11 @@ describe("routeBytes", () => {
     expect(RECOGNISABLE_IMAGE_FORMATS.has("iso-bmff")).toBe(false);
   });
 
+  it("names Matroska and WebM, which share the EBML header", async () => {
+    const mkv = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 0x9f, 0x42, 0x86, 0x81, 0x01, ...Array(32).fill(0)]);
+    expect(await routeBytes(mkv)).toEqual({ kind: "binary", format: "matroska" });
+  });
+
   it("abstains on plain source, leaving the byte classifier to decide", async () => {
     expect(await routeBytes(utf8(`import { a } from "./b";\n`))).toEqual({ kind: "unknown" });
     expect(await routeBytes(utf8("# Title\n\nSome prose.\n"))).toEqual({ kind: "unknown" });

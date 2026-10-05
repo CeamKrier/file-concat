@@ -54,11 +54,25 @@ const FAMILIES: ReadonlyArray<readonly [label: string, extensions: readonly stri
 ];
 
 /**
+ * Videos whose container can carry a subtitle track, which the web reads as
+ * the transcript (extraction router, D4). They pass the walk so their header
+ * can be looked at; one without a track costs that header and no more.
+ */
+const SUBTITLE_CONTAINERS: ReadonlySet<string> = new Set(["mp4", "m4v", "mov", "mkv", "webm"]);
+
+/**
  * Every extension the families above name: a file that never holds text, so
  * the web walk drops it before its first byte is read (`prunedAtWalk`). Images
  * are deliberately not here, since a dropped image gets the recognition offer.
  */
-export const NEVER_TEXT_EXTENSIONS: ReadonlySet<string> = new Set(FAMILIES.flatMap(([, extensions]) => extensions));
+export const NEVER_TEXT_EXTENSIONS: ReadonlySet<string> = new Set(
+  FAMILIES.flatMap(([, extensions]) => extensions).filter((ext) => !SUBTITLE_CONTAINERS.has(ext)),
+);
+
+const NO_SUBTITLE_TRACK: UnreadableReason = {
+  label: "Video with no subtitle track",
+  remedy: "Drop its .srt or .vtt file to have the words read.",
+};
 
 /** Formats the office parser reads, for the "saved under a new name" remedy. */
 const OOXML_SAVE_AS: Readonly<Record<string, string>> = {
@@ -128,7 +142,11 @@ export function unreadableReason(path: string, route?: FileRoute): UnreadableRea
       case "psd":
         return { label: "Photoshop file", remedy: "Export it as a PDF or an image to have it read." };
       case "iso-bmff":
+        // The same box family holds a HEIC photo; the extension tells them apart.
+        if (SUBTITLE_CONTAINERS.has(ext)) return NO_SUBTITLE_TRACK;
         return { label: "Video, or a HEIC photo", remedy: "A photo saved as JPEG or PNG can be read." };
+      case "matroska":
+        return NO_SUBTITLE_TRACK;
       default:
         return { label: "Image" };
     }

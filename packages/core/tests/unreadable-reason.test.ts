@@ -55,7 +55,13 @@ describe("unreadableReason", () => {
   it("labels a routed image as an image and the ones recognition cannot read by kind", () => {
     expect(unreadableReason("shot.png", { kind: "binary", format: "png" })).toEqual({ label: "Image" });
     expect(unreadableReason("favicon.ico", { kind: "binary", format: "ico" }).label).toBe("Icon file");
+    expect(unreadableReason("talk.mkv", { kind: "binary", format: "matroska" }).label).toBe(
+      "Video with no subtitle track",
+    );
     expect(unreadableReason("clip.mov", { kind: "binary", format: "iso-bmff" }).label).toBe(
+      "Video with no subtitle track",
+    );
+    expect(unreadableReason("IMG_0001.heic", { kind: "binary", format: "iso-bmff" }).label).toBe(
       "Video, or a HEIC photo",
     );
   });

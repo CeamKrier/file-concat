@@ -18,6 +18,7 @@ export {
   extractNotebook,
   extractOfficeDocument,
   extractSubtitles,
+  transcriptFromCues,
   formatDoc,
   formatEmail,
   formatMsg,

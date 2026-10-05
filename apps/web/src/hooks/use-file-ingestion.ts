@@ -24,7 +24,7 @@ import { addToTally, startRun, track, trackAmount, trackTally, type Tally } from
 import { tagDrop, tagSource } from "~/lib/clarity-tags";
 import { readPdfPagesWithOcr, readWithOcr, recogniseImageWithOcr } from "~/lib/ocr";
 import { browserOcrLanguage, ocrLanguageFor, type OcrLanguage } from "~/lib/ocr-language";
-import { parsers } from "~/lib/parsers";
+import { parsers, readSubtitleTrack, SUBTITLE_TRACK_FORMATS } from "~/lib/parsers";
 import { prepareBatch } from "~/lib/prepare-batch";
 import { extensionOf, mergePruned, NO_EXTENSION, pruneAtDoor, type PrunedAtDoor } from "~/lib/prune-at-door";
 
@@ -804,6 +804,29 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             };
           }
           if (!unreadableHere) {
+            tickProgress();
+            continue;
+          }
+        }
+
+        // A video's own subtitle track is its transcript (extraction router,
+        // D4), read from the file in place and never whole. A video without
+        // one carries on to the binary path below, as every video did before.
+        if (route.kind === "binary" && route.format && SUBTITLE_TRACK_FORMATS.has(route.format)) {
+          const text = await readSubtitleTrack(entry.file, route.format).catch((error: unknown) => {
+            console.error(`Failed to read the subtitle track of ${path}:`, error);
+            return "";
+          });
+          if (text) {
+            nextEntries.push({ path, content: text });
+            addToTally(extractReader, `${extensionOf(path) || NO_EXTENSION}/subtitle-track`, fileBytes);
+            nextValidations[path] = {
+              included: true,
+              classification: "text",
+              size: fileBytes,
+              type: entry.file.type || "application/octet-stream",
+              extracted: true,
+            };
             tickProgress();
             continue;
           }
