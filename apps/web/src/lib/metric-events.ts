@@ -192,6 +192,15 @@ export const METRIC_EVENTS = [
    * A single row is a defect, not a distribution.
    */
   "extract_note",
+  /**
+   * Which reader produced a document's text: value `<extension>/<reader>`
+   * (`docx/officeparser`, `ppt/anydoc`), `n` the documents. Written only for a
+   * document that came back with text, and only for the formats that run a
+   * reader chain (core `extractWithFallback`), so a fallback's share of what
+   * reaches the bundle is measured after it ships instead of assumed from the
+   * benchmark that put it there. Since 2026-10-05.
+   */
+  "extract_reader",
   /** An archive we cannot open, by extension. */
   "archive_unsupported",
 

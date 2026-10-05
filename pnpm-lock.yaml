@@ -80,6 +80,9 @@ importers:
       '@fileconcat/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@firecrawl/anydoc-wasm':
+        specifier: ^0.2.4
+        version: 0.2.4
       '@icons-pack/react-simple-icons':
         specifier: ^11.2.0
         version: 11.2.0(react@18.3.1)

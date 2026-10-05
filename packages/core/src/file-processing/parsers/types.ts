@@ -68,6 +68,8 @@ export interface ExtractionResult {
   /** The recovered text, trimmed. Empty when nothing could be recovered. */
   text: string;
   notes?: ExtractionNote[];
+  /** Which reader produced `text`, set by {@link ./chain} when a chain ran. */
+  reader?: string;
 }
 
 /**

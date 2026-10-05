@@ -1,4 +1,5 @@
 export { createParserRegistry } from "./registry";
+export { extractWithFallback } from "./chain";
 export { extractOfficeDocument, isPasswordProtected, replacePages } from "./officeparser";
 export type { OcrOptions, OfficeParserOptions } from "./officeparser";
 export { formatEmail } from "./email";

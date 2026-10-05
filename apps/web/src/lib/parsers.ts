@@ -2,6 +2,7 @@ import {
   createParserRegistry,
   extractNotebook,
   extractSubtitles,
+  extractWithFallback,
   type ParserLoader,
   type ParserRegistry,
 } from "@fileconcat/core";
@@ -25,16 +26,28 @@ const office: ParserLoader = async (bytes, format) => {
   return mod.extractOffice(bytes, format);
 };
 
+const cfb: ParserLoader = async (bytes) => {
+  if (import.meta.env.SSR) return { text: "" };
+  const mod = await import("./extract-cfb-client");
+  return mod.extractCfb(bytes);
+};
+
+/** Tried after `office` or `cfb` when either has nothing usable (core `FALLBACK_READERS`). */
+const fallbacks: Record<string, ParserLoader> = {
+  anydoc: async (bytes) => {
+    if (import.meta.env.SSR) return { text: "" };
+    const mod = await import("./extract-anydoc-client");
+    return mod.extractAnydoc(bytes);
+  },
+};
+
 export const parsers: ParserRegistry = createParserRegistry({
-  office,
+  office: (bytes, format) =>
+    extractWithFallback({ id: "officeparser", read: office }, fallbacks, bytes, format),
   // The same library reads an epub (its zip of XHTML chapters walks the OPF
   // spine), so the id costs no second download.
   epub: office,
-  cfb: async (bytes) => {
-    if (import.meta.env.SSR) return { text: "" };
-    const mod = await import("./extract-cfb-client");
-    return mod.extractCfb(bytes);
-  },
+  cfb: (bytes, format) => extractWithFallback({ id: "cfb", read: cfb }, fallbacks, bytes, format),
   email: async (bytes) => {
     if (import.meta.env.SSR) return { text: "" };
     const mod = await import("./extract-email-client");

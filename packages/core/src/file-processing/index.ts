@@ -6,6 +6,7 @@ export { canExpandArchive, expandArchive, isTarHeader, stripArchiveSuffix } from
 export type { ArchiveEntry, ArchiveKind } from "./archives";
 export {
   createParserRegistry,
+  extractWithFallback,
   extractNotebook,
   extractOfficeDocument,
   extractSubtitles,

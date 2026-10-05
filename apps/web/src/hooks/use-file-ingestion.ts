@@ -653,6 +653,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       const extractFailed: Tally = new Map();
       const extractError: Tally = new Map();
       const extractNotes: Tally = new Map();
+      const extractReader: Tally = new Map();
       const nextUnread: ScannedDocument[] = [];
       const imagesOffered: Tally = new Map();
       const archiveUnsupported: Tally = new Map();
@@ -712,7 +713,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           // a drop can take. Weight is reported after the fact instead.
           try {
             const bytes = new Uint8Array(await entry.file.arrayBuffer());
-            const { text, notes } = await parsers.extract(route.parserId, bytes, route.format);
+            const { text, notes, reader } = await parsers.extract(route.parserId, bytes, route.format);
             // What the reader gave up on, counted once per document rather than
             // once per lost page: the question these answer is "how many drops
             // hit this", and a fifty-page PDF failing wholesale must not swamp
@@ -727,6 +728,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             const lostPages = undecodable?.pages ?? [];
             if (text) {
               nextEntries.push({ path, content: text });
+              // Which reader of the format's chain produced it, so a fallback's
+              // share is measured after shipping (extraction router, R1).
+              if (reader) addToTally(extractReader, `${extensionOf(path) || NO_EXTENSION}/${reader}`, size);
               // Already in the bundle, and still incomplete: the rescue replaces
               // the lost pages inside this text rather than the whole document.
               if (lostPages.length > 0) {
@@ -925,6 +929,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       trackTally("extract_failed", extractFailed);
       trackTally("extract_error", extractError);
       trackTally("extract_note", extractNotes);
+      trackTally("extract_reader", extractReader);
       trackTally("archive_unsupported", archiveUnsupported);
       // The offer, whether or not it is ever taken — the denominator `ocr_read`
       // is measured against, and the one number that says whether ADR-0017's bet
