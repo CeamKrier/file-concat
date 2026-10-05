@@ -93,6 +93,10 @@ async function decode(file: File): Promise<Float32Array> {
   return mono;
 }
 
+/** A line of a transcript and the second it starts at, so speech and on-screen
+ * text can be merged in the order they happen. */
+export type TimedLine = { at: number; text: string };
+
 let worker: Worker | null = null;
 
 /**
@@ -106,7 +110,7 @@ export async function transcribe(
   locale: string,
   signal?: AbortSignal,
   onNote?: (note: string) => void,
-): Promise<string> {
+): Promise<TimedLine[]> {
   if (file.size > MAX_SPEECH_BYTES) throw new SpeechTooLongError("over 1 GB");
   const seconds = await mediaSeconds(file);
   if (seconds > MAX_SPEECH_SECONDS) throw new SpeechTooLongError("over 60 minutes");
@@ -156,7 +160,7 @@ export async function transcribe(
       current.postMessage(request);
     });
 
-  const lines: string[] = [];
+  const lines: TimedLine[] = [];
   let at = 0;
   for (const piece of pieces) {
     signal?.throwIfAborted();
@@ -164,8 +168,8 @@ export async function transcribe(
     // A copy, not the view: the decoded whole stays here, the piece is transferred.
     const audio = piece.slice();
     const text = await send({ model, audio, language });
-    if (text) lines.push(`${timestamp(at / RATE)} ${text}`);
+    if (text) lines.push({ at: at / RATE, text: `${timestamp(at / RATE)} ${text}` });
     at += piece.length;
   }
-  return lines.join("\n");
+  return lines;
 }

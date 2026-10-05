@@ -316,6 +316,13 @@ export const METRIC_EVENTS = [
    */
   "asr_read",
   /**
+   * A video from an `asr_read` pass whose frames gave on-screen text, by
+   * format: `n` files totalling `b` bytes. Extraction router D6. Against
+   * `asr_read` under the video formats it says how often a picture carried
+   * words; a video that kept none is not counted here.
+   */
+  "frames_read",
+  /**
    * Scanned documents a drop declined to read on its own, by format: `n` files
    * totalling `b` bytes. Written once per Run, at the end of ingest, when the
    * queue is past the auto-read caps in `use-file-ingestion.ts`.

@@ -25,11 +25,11 @@ import { tagDrop, tagSource } from "~/lib/clarity-tags";
 import {
   MAX_SPEECH_BYTES,
   readPdfPagesWithOcr,
+  readRecording,
   readWithOcr,
   recogniseImageWithOcr,
   SPEECH_FORMATS,
   SpeechTooLongError,
-  transcribeSpeech,
 } from "~/lib/ocr";
 import { browserOcrLanguage, ocrLanguageFor, type OcrLanguage } from "~/lib/ocr-language";
 import { parsers, readSubtitleTrack, SUBTITLE_TRACK_FORMATS } from "~/lib/parsers";
@@ -442,6 +442,8 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       const imagesRead: Tally = new Map();
       // The same for speech, against `asr_offered`.
       const mediaRead: Tally = new Map();
+      // The videos among them whose frames gave text, against `frames_read`.
+      const framesRead: Tally = new Map();
       const confidences: Tally = new Map();
       const readEntries: ContentEntry[] = [];
       const stillUnread: ScannedDocument[] = [];
@@ -465,12 +467,15 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           try {
             let text = "";
             if (isSpeechMedia(document.format)) {
-              // Heard rather than seen. The note carries the model download and
-              // the position reached, as one file can be the whole pass.
+              // Heard, and in a video also seen on screen. The note carries the
+              // model download and the position reached, as one file can be the
+              // whole pass.
               addToTally(mediaRead, document.format, document.file.size);
-              text = await transcribeSpeech(document.file, language.locale, controller.signal, (note) =>
+              const recording = await readRecording(document.file, document.format, language, controller.signal, (note) =>
                 setReadProgress({ done: i, total: documents.length, note }),
               );
+              if (recording.seen) addToTally(framesRead, document.format, document.file.size);
+              text = recording.text;
             } else if (isRecognisableImage(document.format)) {
               // An image: the whole file is the picture, so it goes to the
               // recogniser as it is. No bytes are read here — the `File` is a
@@ -620,6 +625,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         trackTally("ocr_recovered", recovered);
         trackTally("ocr_read", imagesRead);
         trackTally("asr_read", mediaRead);
+        trackTally("frames_read", framesRead);
         // Rejections included: they are what says whether the floor sits in the
         // right place, which is the only way those two guesses ever move.
         trackTally("ocr_conf", confidences);

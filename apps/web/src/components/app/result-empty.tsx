@@ -80,7 +80,7 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
   speech: {
     icon: AudioLines,
     title: "These are recordings",
-    body: "The speech in them can be written out, here in the browser. FileConcat won't start it on its own: the first time downloads a speech model (66 MB for English, 244 MB for other languages), and ten minutes of speech take under a minute to write out in English, about five in other languages.",
+    body: "The speech in them can be written out, and in a video the text shown on screen too, here in the browser. FileConcat won't start it on its own: the first time downloads a speech model (66 MB for English, 244 MB for other languages), and ten minutes of speech take under a minute to write out in English, about five in other languages.",
     cta: "Transcribe them",
   },
   archive: {

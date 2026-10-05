@@ -302,7 +302,7 @@ function ReadingPanel({
                     {!document.tried
                       ? "Not read yet."
                       : document.speech
-                        ? "No speech came back. Silent, too long, or in a language this reading couldn't hear."
+                        ? "No speech or text came back. Silent, too long, or in a language this reading couldn't follow."
                         : "Nothing legible here. Encrypted, blank, or in a language this reading couldn't see."}
                   </p>
                 )}

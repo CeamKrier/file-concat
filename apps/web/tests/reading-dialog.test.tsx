@@ -82,7 +82,7 @@ describe("the reading dialog", () => {
 
   it("says a recording came back with no speech, not that it was illegible", () => {
     open({ documents: [doc("talk.mp3", "", true), doc("a.pdf", "Merve", true)] });
-    expect(screen.getByText(/No speech came back/)).toBeInTheDocument();
+    expect(screen.getByText(/No speech or text came back/)).toBeInTheDocument();
     // Nothing to download for a pass that is over.
     expect(screen.queryByText(/downloaded once/)).not.toBeInTheDocument();
   });

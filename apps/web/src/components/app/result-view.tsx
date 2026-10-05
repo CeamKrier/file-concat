@@ -399,8 +399,8 @@ export function ResultView({
             key: "speech",
             kind: "note",
             icon: AudioLines,
-            title: `${mediaCount} ${noun(mediaCount)} with speech that can be written out.`,
-            body: "Transcribed here in the browser, never started for you: the first time downloads a speech model (66 MB for English, 244 MB for other languages).",
+            title: `${mediaCount} ${noun(mediaCount)} that can be written out.`,
+            body: "The speech, and in a video the text on screen, read here in the browser, never started for you: the first time downloads a speech model (66 MB for English, 244 MB for other languages).",
             action: { label: "Transcribe them", onClick: onCheckReading },
           }
         : {

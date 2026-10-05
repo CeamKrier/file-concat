@@ -1,4 +1,5 @@
 import type { ExtractionResult } from "@fileconcat/core";
+import type { OcrLanguage } from "./ocr-language";
 
 /**
  * Facade in front of the recognition path, same shape as `tokens.ts` and
@@ -85,14 +86,29 @@ export const MAX_SPEECH_BYTES = 1024 ** 3;
 /** A file over either cap; its message says which. */
 export class SpeechTooLongError extends Error {}
 
-/** The same facade for speech: transformers.js and its runtime stay behind it. */
-export async function transcribeSpeech(
+/** The containers that can carry a picture as well as sound. */
+const VIDEO_CONTAINERS: ReadonlySet<string> = new Set(["iso-bmff", "matroska"]);
+
+/**
+ * The same facade for a recording: what is said (D5) and, in a video, what is
+ * shown on screen (D6), merged in the order they happen. transformers.js,
+ * Mediabunny and their runtimes stay behind it.
+ */
+export async function readRecording(
   file: File,
-  locale: string,
+  format: string,
+  language: OcrLanguage,
   signal?: AbortSignal,
   onNote?: (note: string) => void,
-): Promise<string> {
-  if (import.meta.env.SSR) return "";
-  const mod = await import("./extract-speech-client");
-  return mod.transcribe(file, locale, signal, onNote);
+): Promise<{ text: string; seen: boolean }> {
+  if (import.meta.env.SSR) return { text: "", seen: false };
+  const [speech, frames] = await Promise.all([import("./extract-speech-client"), import("./extract-frames-client")]);
+  const tracks = VIDEO_CONTAINERS.has(format) ? await frames.mediaTracks(file) : { audio: true, video: false };
+  const heard = tracks.audio ? await speech.transcribe(file, language.locale, signal, onNote) : [];
+  const seen = tracks.video ? await frames.readFrames(file, language.code, signal, onNote) : [];
+  const text = [...heard, ...seen]
+    .sort((a, b) => a.at - b.at)
+    .map((line) => line.text)
+    .join("\n");
+  return { text, seen: seen.length > 0 };
 }

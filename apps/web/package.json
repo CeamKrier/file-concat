@@ -50,6 +50,7 @@
     "fflate": "^0.8.3",
     "foliate-js": "github:johnfactotum/foliate-js#78914aef4466eb960965702401634c2cb348e9b1",
     "lucide-react": "^0.468.0",
+    "mediabunny": "1.61.3",
     "minimatch": "^10.1.1",
     "mp4box": "2.4.1",
     "onnxruntime-web": "1.31.0-dev.20260914-8d85527a0",

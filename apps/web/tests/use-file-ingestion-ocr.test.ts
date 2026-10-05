@@ -60,9 +60,9 @@ vi.mock("~/lib/ocr", () => ({
   MAX_SPEECH_BYTES: 1024 ** 3,
   SpeechTooLongError: class extends Error {},
   // Keyed on the name, with the locale the dialog passed.
-  transcribeSpeech: async (file: File, locale: string) => {
-    attempts.push({ path: file.name, language: locale });
-    return READINGS.get(file.name)?.[locale] ?? "";
+  readRecording: async (file: File, _format: string, language: { locale: string }) => {
+    attempts.push({ path: file.name, language: language.locale });
+    return { text: READINGS.get(file.name)?.[language.locale] ?? "", seen: false };
   },
   readWithOcr: async (bytes: Uint8Array, language: string, signal?: AbortSignal) => {
     const path = new TextDecoder().decode(bytes);
