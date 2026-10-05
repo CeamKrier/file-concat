@@ -91,6 +91,8 @@ const ARCHIVE_KINDS: Readonly<Record<string, ArchiveKind>> = {
   // looking inside.
   gz: "gz",
   "tar.gz": "gz",
+  bz2: "bz2",
+  xz: "xz",
   rar: "rar",
   "7z": "7z",
 };

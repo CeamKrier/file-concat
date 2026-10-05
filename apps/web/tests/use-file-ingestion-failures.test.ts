@@ -25,6 +25,7 @@ vi.mock("~/lib/prepare-batch", () => ({
     }),
     expandedCount: 0,
     unsupported: [],
+    archiveReads: [],
   }),
 }));
 

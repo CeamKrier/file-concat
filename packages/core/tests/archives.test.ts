@@ -87,6 +87,22 @@ describe("expandArchive", () => {
     expect(text(entries[1].bytes)).toBe("two");
   });
 
+  it("names an entry from its pax path record and keeps empty files", () => {
+    const record = "path=docs/\u00fcbersicht.txt\n";
+    const line = `${record.length + 3} ${record}`; // the length counts itself
+    const entries = expandArchive(
+      makeTar([
+        ["PaxHeaders/x", line, "x"],
+        ["docs/?bersicht.txt", "hallo", "0"],
+        ["empty.txt", "", "0"],
+      ]),
+      "tar",
+      "d.tar",
+    );
+    expect(entries.map((e) => e.path)).toEqual(["d/docs/\u00fcbersicht.txt", "d/empty.txt"]);
+    expect(entries[1].bytes).toHaveLength(0);
+  });
+
   it("unpacks a gzipped tar by looking inside, not at the name", () => {
     const bytes = gzipSync(makeTar({ "a.txt": "one" }));
     // Named `.gz`, not `.tar.gz` — the old name-based check would have emitted

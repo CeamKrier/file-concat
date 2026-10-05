@@ -391,7 +391,7 @@ export function plainZip(): Uint8Array {
  * One 512-byte tar header with a valid checksum. `magic` is the `ustar` field;
  * pass an empty string to build a pre-POSIX v7 header, which carries none.
  */
-function tarHeader(name: string, size: number, magic: string): Uint8Array {
+function tarHeader(name: string, size: number, magic: string, type = "0"): Uint8Array {
   const block = new Uint8Array(512);
   const enc = new TextEncoder();
   const put = (offset: number, value: string) => block.set(enc.encode(value), offset);
@@ -403,7 +403,7 @@ function tarHeader(name: string, size: number, magic: string): Uint8Array {
   put(124, size.toString(8).padStart(11, "0") + "\0");
   put(136, "00000000000\0"); // mtime
   put(148, "        "); // checksum, summed as spaces
-  block[156] = 0x30; // typeflag '0' — regular file
+  block[156] = type.charCodeAt(0); // typeflag, '0' a regular file
   if (magic) put(257, magic);
 
   let sum = 0;
@@ -412,13 +412,20 @@ function tarHeader(name: string, size: number, magic: string): Uint8Array {
   return block;
 }
 
-/** Assemble a tar from `name -> content`, with the two trailing zero blocks. */
-export function makeTar(files: Record<string, string>, magic = "ustar\x0000"): Uint8Array {
+/**
+ * Assemble a tar from `name -> content`, with the two trailing zero blocks. A
+ * list of `[name, content, typeflag]` builds other header types (pax `x`).
+ */
+export function makeTar(
+  files: Record<string, string> | [string, string, string][],
+  magic = "ustar\x0000",
+): Uint8Array {
   const enc = new TextEncoder();
   const blocks: Uint8Array[] = [];
-  for (const [name, content] of Object.entries(files)) {
+  const rows = Array.isArray(files) ? files : Object.entries(files).map(([n, c]) => [n, c, "0"]);
+  for (const [name, content, type] of rows) {
     const data = enc.encode(content);
-    blocks.push(tarHeader(name, data.length, magic));
+    blocks.push(tarHeader(name, data.length, magic, type));
     const padded = new Uint8Array(Math.ceil(data.length / 512) * 512);
     padded.set(data);
     blocks.push(padded);

@@ -70,7 +70,8 @@ const OOXML_SAVE_AS: Readonly<Record<string, string>> = {
   pptm: ".pptx",
 };
 
-const ARCHIVE_REMEDY = "Unpack it first, or use .zip or .tar, which are opened here.";
+// Reached when no reader opened it: damaged, encrypted, or a method 7-Zip lacks.
+const ARCHIVE_REMEDY = "Unpack it on your computer and drop the folder instead.";
 
 const extensionOf = (path: string): string => {
   const name = path.split("/").pop() ?? path;

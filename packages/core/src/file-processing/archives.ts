@@ -11,7 +11,7 @@ import { gunzipSync, unzipSync } from "fflate";
  */
 
 /** Archive containers the router recognizes. Not all of them can be opened. */
-export type ArchiveKind = "zip" | "tar" | "gz" | "rar" | "7z";
+export type ArchiveKind = "zip" | "tar" | "gz" | "bz2" | "xz" | "rar" | "7z";
 
 /** One file recovered from an archive. `path` is relative to the archive root. */
 export interface ArchiveEntry {
@@ -20,9 +20,10 @@ export interface ArchiveEntry {
 }
 
 /**
- * What this build can actually unpack. `rar` and `7z` are routed but not
- * expandable: they need a wasm reader we do not ship yet, so they surface as
- * unsupported instead of being silently mistaken for opaque binaries.
+ * What core unpacks itself, with fflate. The rest (`bz2`, `xz`, `rar`, `7z`)
+ * needs a wasm reader, which is a platform's to load (the web ships 7-Zip); a
+ * platform without one reports them as unsupported instead of mistaking them
+ * for opaque binaries.
  */
 const EXPANDABLE: ReadonlySet<ArchiveKind> = new Set<ArchiveKind>(["zip", "tar", "gz"]);
 
@@ -41,7 +42,7 @@ function isCruft(name: string): boolean {
  * `logs/`, not `logs.tar/`.
  */
 export function stripArchiveSuffix(name: string): string {
-  return name.replace(/\.(tar\.gz|tgz|tar\.bz2|zip|tar|gz|rar|7z)$/i, "");
+  return name.replace(/\.(tar\.gz|tgz|tar\.bz2|tbz2?|tar\.xz|txz|zip|tar|gz|bz2|xz|rar|7z)$/i, "");
 }
 
 /**
@@ -74,10 +75,12 @@ export function isTarHeader(bytes: Uint8Array): boolean {
 }
 
 /**
- * Minimal ustar / GNU tar reader. Returns regular files only; directories,
- * symlinks, and pax/global headers are skipped. GNU long names (`L` typeflag)
- * are honored; base-256 large sizes are not (rare, and such entries would
- * exceed the size cap anyway).
+ * Minimal ustar / GNU / pax tar reader. Returns regular files only, empty ones
+ * included; directories and links are skipped. GNU long names (`L`) and pax
+ * `path` records (`x`) name the next entry, which is how a path past 100 bytes
+ * or outside ASCII is stored; global pax headers (`g`) are skipped. Base-256
+ * large sizes are not read (rare, and such entries would exceed the size cap
+ * anyway).
  */
 function untar(bytes: Uint8Array): ArchiveEntry[] {
   const out: ArchiveEntry[] = [];
@@ -113,10 +116,15 @@ function untar(bytes: Uint8Array): ArchiveEntry[] {
     if (typeFlag === "L") {
       // GNU long-name entry: its data is the name for the NEXT header.
       longName = decoder.decode(bytes.subarray(dataOffset, dataOffset + size)).replace(/\0+$/, "");
-    } else if (typeFlag === "0" || typeFlag === "\0") {
+    } else if (typeFlag === "x") {
+      // pax records, "<length> <key>=<value>\n" each; only `path` matters here.
+      const records = decoder.decode(bytes.subarray(dataOffset, dataOffset + size));
+      const path = /(?:^|\n)\d+ path=([^\n]*)\n/.exec(records);
+      if (path) longName = path[1];
+    } else if (typeFlag === "0" || typeFlag === "\0" || typeFlag === "7") {
       const fullName = longName ?? (prefix ? `${prefix}/${name}` : name);
       longName = null;
-      if (fullName && size > 0) {
+      if (fullName) {
         out.push({ path: fullName, bytes: bytes.subarray(dataOffset, dataOffset + size) });
       }
     } else {
@@ -140,6 +148,26 @@ function collect(base: string, entries: ArchiveEntry[]): ArchiveEntry[] {
     out.push({ path: base ? `${base}/${name}` : name, bytes: entry.bytes });
   }
   return out;
+}
+
+/**
+ * Root the files a platform's wasm reader unpacked (`path` relative to the
+ * archive) the way {@link expandArchive} roots its own. Such a reader opens one
+ * layer, so a `.tar.bz2` comes back as its tar, which core unpacks; a lone
+ * compressed file lands at the root, as a `.gz` one does.
+ */
+export function rootArchiveEntries(
+  entries: ArchiveEntry[],
+  kind: ArchiveKind,
+  name: string,
+): ArchiveEntry[] {
+  const base = stripArchiveSuffix(name);
+  const only = entries.length === 1 ? entries[0] : undefined;
+  if (only && isTarHeader(only.bytes)) return collect(base, untar(only.bytes));
+  if (only && (kind === "bz2" || kind === "xz")) {
+    return [{ path: only.path.split("/").pop() || only.path, bytes: only.bytes }];
+  }
+  return collect(base, entries);
 }
 
 /**

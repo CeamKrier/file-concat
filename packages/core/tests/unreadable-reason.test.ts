@@ -34,7 +34,7 @@ describe("unreadableReason", () => {
   it("explains an archive the browser cannot open, whether the router or the name says so", () => {
     expect(unreadableReason("dump.rar", { kind: "expand", archive: "rar" })).toEqual({
       label: "rar archive the browser can't open",
-      remedy: "Unpack it first, or use .zip or .tar, which are opened here.",
+      remedy: "Unpack it on your computer and drop the folder instead.",
     });
     expect(unreadableReason("dump.tar.xz", { kind: "unknown" }).label).toBe(
       ".xz archive the browser can't open",

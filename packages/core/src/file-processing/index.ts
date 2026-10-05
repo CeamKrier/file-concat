@@ -2,7 +2,13 @@ export { BINARY_EXTENSIONS } from "./binary-extensions";
 export { RECOGNISABLE_IMAGE_FORMATS } from "./binary-signatures";
 export { routeBytes, routeFile, ROUTER_SNIFF_BYTES, EXTRACTED_FORMATS } from "./routing";
 export type { FileRoute } from "./routing";
-export { canExpandArchive, expandArchive, isTarHeader, stripArchiveSuffix } from "./archives";
+export {
+  canExpandArchive,
+  expandArchive,
+  isTarHeader,
+  rootArchiveEntries,
+  stripArchiveSuffix,
+} from "./archives";
 export type { ArchiveEntry, ArchiveKind } from "./archives";
 export {
   createParserRegistry,

@@ -34,6 +34,7 @@ function props(overrides: Partial<Parameters<typeof ResultView>[0]> = {}) {
     onAddFiles: vi.fn(),
     previewText: "<codebase></codebase>",
     unsupported: [],
+    archiveReads: [],
     skippedByDefault: [],
     flaggedFiles: [],
     extractedFiles: [],

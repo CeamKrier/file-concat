@@ -66,9 +66,17 @@ export default defineConfig({
     // them from dev pre-bundling keeps them out of the eager graph, same as
     // tiktoken; the SSR guard keeps them out of the Cloudflare worker. xlsx
     // (SheetJS, the 97-2003 workbook reader) is the same shape behind
-    // lib/extract-cfb-client. anydoc, the Office fallback, runs in a worker
-    // behind lib/extract-anydoc-client.
-    exclude: ["@dqbd/tiktoken", "officeparser", "pdfjs-dist", "xlsx", "@firecrawl/anydoc-wasm"],
+    // lib/extract-cfb-client. anydoc, the Office fallback, and 7-Zip, the
+    // archive fallback, run in workers behind lib/extract-anydoc-client and
+    // lib/expand-sevenzip-client.
+    exclude: [
+      "@dqbd/tiktoken",
+      "officeparser",
+      "pdfjs-dist",
+      "xlsx",
+      "@firecrawl/anydoc-wasm",
+      "7z-wasm",
+    ],
   },
   build: {
     // Disable sourcemaps in production for smaller bundle size

@@ -27,8 +27,10 @@ export interface PreparedBatch {
   files: RoutedFile[];
   /** How many archives were successfully unpacked. */
   expandedCount: number;
-  /** Kinds of archive this build can't open (rar, 7z), one entry per archive found. */
+  /** Kinds of archive this build can't open, one entry per archive found. Empty since R2: 7-Zip opens every kind the router names. */
   unsupported: ArchiveKind[];
+  /** Which reader opened each archive, `<kind>/<reader>` (`7z/7zip`, `zip/fflate`, `rar/none`). */
+  archiveReads: string[];
   /**
    * What the door turned away inside the archives it opened, or null when
    * nothing was. The archive stands as the dropped root: its own name is
@@ -49,7 +51,9 @@ export async function prepareBatch(
   incoming: IncomingFile[],
   onProgress?: PrepareProgress,
 ): Promise<PreparedBatch> {
-  if (import.meta.env.SSR) return { files: [], expandedCount: 0, unsupported: [], pruned: null };
+  if (import.meta.env.SSR) {
+    return { files: [], expandedCount: 0, unsupported: [], archiveReads: [], pruned: null };
+  }
   const mod = await import("./prepare-batch-client");
   return mod.prepareBatch(incoming, onProgress);
 }

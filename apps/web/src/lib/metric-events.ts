@@ -201,8 +201,19 @@ export const METRIC_EVENTS = [
    * benchmark that put it there. Since 2026-10-05.
    */
   "extract_reader",
-  /** An archive we cannot open, by extension. */
+  /**
+   * An archive we cannot open, by kind. Silent since 2026-10-05 on the web,
+   * where 7-Zip opens every kind the router names; `archive_reader`'s `none`
+   * rows carry the failures instead.
+   */
   "archive_unsupported",
+  /**
+   * Which reader opened an archive: value `<kind>/<reader>` (`zip/fflate`,
+   * `7z/7zip`), or `<kind>/none` when neither did and the archive stayed
+   * packed (corrupt, encrypted, a method 7-Zip lacks). One row per archive.
+   * Since 2026-10-05 (extraction router, step R2).
+   */
+  "archive_reader",
 
   // --- per run, written later ---
 

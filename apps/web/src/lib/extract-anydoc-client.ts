@@ -1,5 +1,7 @@
 import type { ExtractionResult } from "@fileconcat/core";
 
+import { workerRunner } from "./worker-runner";
+
 /**
  * The fallback reader for Office files (extraction router, step R1): anydoc,
  * MIT, 2.79 MiB gzipped, fetched only when a product reader came back with
@@ -7,38 +9,12 @@ import type { ExtractionResult } from "@fileconcat/core";
  * the browser reads.
  */
 
-// ponytail: one fixed limit. A wasm loop that never returns would otherwise
-// stall the whole drop; per-size limits if a real deck needs longer.
-const TIMEOUT_MS = 60_000;
+// ponytail: one fixed limit; per-size limits if a real deck needs longer.
+const read = workerRunner<Uint8Array, string>(
+  () => new Worker(new URL("./anydoc.worker.ts", import.meta.url), { type: "module" }),
+  60_000,
+);
 
-let worker: Worker | null = null;
-let queue: Promise<unknown> = Promise.resolve();
-
-/** One file at a time: the worker answers whichever message it got last. */
-export function extractAnydoc(bytes: Uint8Array): Promise<ExtractionResult> {
-  const run = queue.then(() => readOnce(bytes));
-  queue = run.catch(() => undefined);
-  return run;
-}
-
-function readOnce(bytes: Uint8Array): Promise<ExtractionResult> {
-  worker ??= new Worker(new URL("./anydoc.worker.ts", import.meta.url), { type: "module" });
-  const current = worker;
-  return new Promise((resolve, reject) => {
-    // Any failure may have trapped the instance, so the worker goes with it.
-    const fail = (error: Error) => {
-      clearTimeout(timer);
-      current.terminate();
-      if (worker === current) worker = null;
-      reject(error);
-    };
-    const timer = setTimeout(() => fail(new Error("anydoc timed out")), TIMEOUT_MS);
-    current.onmessage = ({ data }: MessageEvent<{ text?: string; error?: string }>) => {
-      if (data.error !== undefined) return fail(new Error(data.error));
-      clearTimeout(timer);
-      resolve({ text: (data.text ?? "").trim() });
-    };
-    current.onerror = (event) => fail(new Error(event.message || "anydoc worker failed"));
-    current.postMessage(bytes);
-  });
+export async function extractAnydoc(bytes: Uint8Array): Promise<ExtractionResult> {
+  return { text: (await read(bytes)).trim() };
 }

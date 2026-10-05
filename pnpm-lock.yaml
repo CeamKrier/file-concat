@@ -74,6 +74,9 @@ importers:
 
   apps/web:
     dependencies:
+      7z-wasm:
+        specifier: ^1.2.0
+        version: 1.2.0
       '@dqbd/tiktoken':
         specifier: ^1.0.22
         version: 1.0.22

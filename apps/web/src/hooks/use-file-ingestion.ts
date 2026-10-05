@@ -628,6 +628,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         files: routed,
         expandedCount,
         unsupported,
+        archiveReads,
         pruned: prunedInArchives,
       } = await prepareBatch(incoming, (done, total) =>
         setProgress({ phase: "reading", done, total, note: STAGE.prepare, stages }),
@@ -665,6 +666,8 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       for (const extension of unsupported) {
         addToTally(archiveUnsupported, extension || NO_EXTENSION);
       }
+      const archiveReader: Tally = new Map();
+      for (const read of archiveReads) addToTally(archiveReader, read);
 
       const total = routed.length;
       // Cap re-renders at ~100 progress ticks regardless of how large the drop is.
@@ -931,6 +934,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       trackTally("extract_note", extractNotes);
       trackTally("extract_reader", extractReader);
       trackTally("archive_unsupported", archiveUnsupported);
+      trackTally("archive_reader", archiveReader);
       // The offer, whether or not it is ever taken — the denominator `ocr_read`
       // is measured against, and the one number that says whether ADR-0017's bet
       // was right.

@@ -22,6 +22,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "7z-wasm": "^1.2.0",
     "@dqbd/tiktoken": "^1.0.22",
     "@fileconcat/core": "workspace:*",
     "@firecrawl/anydoc-wasm": "^0.2.4",
