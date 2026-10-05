@@ -22,35 +22,35 @@ export const FALLBACK_READERS: Readonly<Record<string, readonly string[]>> = {
 };
 
 /**
- * Share of characters nobody can read: U+FFFD, C0 controls other than tab and
- * line breaks, and the private-use area. The definition the extraction eval's
- * robustness summary used, so the eval and the product measure one thing.
+ * Share of non-whitespace characters nobody can read: U+FFFD, C0 controls, and
+ * the private-use area. The character set of the extraction eval's robustness
+ * summary, and of Kreuzberg's `is_undecodable_char` (xberg `scoring.rs`).
  */
 export function garbageShare(text: string): number {
-  if (!text) return 0;
+  let seen = 0;
   let bad = 0;
   for (const char of text) {
+    if (/\s/.test(char)) continue;
+    seen += 1;
     const code = char.codePointAt(0)!;
-    if (
-      code === 0xfffd ||
-      (code < 0x20 && code !== 0x09 && code !== 0x0a && code !== 0x0d) ||
-      (code >= 0xe000 && code <= 0xf8ff) ||
-      code >= 0xf0000
-    ) {
+    if (code === 0xfffd || code < 0x20 || (code >= 0xe000 && code <= 0xf8ff) || code >= 0xf0000) {
       bad += 1;
     }
   }
-  return bad / text.length;
+  return seen === 0 ? 0 : bad / seen;
 }
 
-// ponytail: a guess. Every product reader measured 0.00% on POI and anydoc 0.04%
-// on ppt, so nothing real sits near it; move it once `extract_reader` shows a
-// fallback winning on garbage.
-const GARBAGE_LIMIT = 0.05;
-
-/** Text a person could use: something beyond whitespace, and not mostly garbage. */
+/**
+ * Text a person could use. Kreuzberg's document-level corruption rule (xberg
+ * `evaluate_native_text_for_ocr`, defaults in `config/ocr.rs`): no letter or
+ * digit at all, or at least half undecodable once there are 64 non-whitespace
+ * characters to judge. Its absolute "5 U+FFFD" rule is left out on purpose: it
+ * decides one PDF page there, and here it would swap the reader of a whole
+ * hundred-page document over five bad characters.
+ */
 export function isUsable(result: ExtractionResult): boolean {
-  return /\S/.test(result.text) && garbageShare(result.text) <= GARBAGE_LIMIT;
+  if (!/[\p{L}\p{N}]/u.test(result.text)) return false;
+  return result.text.replace(/\s/g, "").length < 64 || garbageShare(result.text) < 0.5;
 }
 
 /**

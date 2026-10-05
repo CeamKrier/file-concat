@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractWithFallback, garbageShare } from "../src/file-processing/parsers/chain";
+import { extractWithFallback, garbageShare, isUsable } from "../src/file-processing/parsers/chain";
 import type { ParserLoader } from "../src/file-processing/parsers/types";
 
 const bytes = new Uint8Array();
@@ -27,8 +27,9 @@ describe("extractWithFallback", () => {
     expect(result).toEqual({ text: "hello", reader: "own" });
   });
 
-  it("falls through on parser-unavailable, empty text, garbage and a throw", async () => {
-    for (const read of [unavailable, says("  "), says("\ufffd\ufffd\ufffdab"), throws("broken")]) {
+  it("falls through on parser-unavailable, blank, no letters, garbage and a throw", async () => {
+    const garbage = says("\ufffd".repeat(60) + "abcd".repeat(10));
+    for (const read of [unavailable, says("  "), says("- * -"), garbage, throws("broken")]) {
       const result = await extractWithFallback(
         { id: "cfb", read },
         { anydoc: says("deck text") },
@@ -77,5 +78,7 @@ describe("garbageShare", () => {
   it("counts U+FFFD, C0 and private use, not tabs or line breaks", () => {
     expect(garbageShare("a\tb\r\nc")).toBe(0);
     expect(garbageShare("ab\ufffd\u0001\ue000")).toBeCloseTo(3 / 5);
+    // Short text is not judged on its share: a stray symbol is not a broken layer.
+    expect(isUsable({ text: "ab\ufffd\ufffd\ufffd" })).toBe(true);
   });
 });
