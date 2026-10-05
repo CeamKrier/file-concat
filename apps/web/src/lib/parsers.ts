@@ -32,6 +32,15 @@ const cfb: ParserLoader = async (bytes) => {
   return mod.extractCfb(bytes);
 };
 
+const sheetjs: ParserLoader = async (bytes) => {
+  if (import.meta.env.SSR) return { text: "" };
+  const mod = await import("./extract-cfb-client");
+  return mod.extractWorkbook(bytes);
+};
+
+/** Formats whose first reader is SheetJS rather than officeparser (core `FALLBACK_READERS`). */
+const WORKBOOKS = new Set(["xlsx", "xlsm", "xlsb"]);
+
 const liteparse: ParserLoader = async (bytes) => {
   if (import.meta.env.SSR) return { text: "" };
   const mod = await import("./extract-liteparse-client");
@@ -52,7 +61,9 @@ export const parsers: ParserRegistry = createParserRegistry({
   office: (bytes, format) =>
     format === "pdf"
       ? extractWithFallback({ id: "liteparse", read: liteparse }, fallbacks, bytes, format)
-      : extractWithFallback({ id: "officeparser", read: office }, fallbacks, bytes, format),
+      : WORKBOOKS.has(format ?? "")
+        ? extractWithFallback({ id: "sheetjs", read: sheetjs }, fallbacks, bytes, format)
+        : extractWithFallback({ id: "officeparser", read: office }, fallbacks, bytes, format),
   // The same library reads an epub (its zip of XHTML chapters walks the OPF
   // spine), so the id costs no second download.
   epub: office,

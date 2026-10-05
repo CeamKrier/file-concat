@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gzipSync, strToU8 } from "fflate";
+import { gzipSync, strToU8, zipSync } from "fflate";
 import { RECOGNISABLE_IMAGE_FORMATS } from "../src/file-processing/binary-signatures";
 import { routeBytes } from "../src/file-processing/routing";
 import {
@@ -83,6 +83,29 @@ describe("routeBytes", () => {
 
   it("tells a plain zip apart from the documents that share its signature", async () => {
     expect(await routeBytes(plainZip())).toEqual({ kind: "expand", archive: "zip" });
+  });
+
+  it("names an Office package file-type calls a zip by its part names", async () => {
+    // A binary workbook's main content type has no `+xml`, so file-type answers
+    // "zip" for every .xlsb (10 of 10 POI test files, 2026-10-05).
+    const xlsb = zipSync({
+      "[Content_Types].xml": utf8('<Types><Override ContentType="application/vnd.ms-excel.sheet.binary.macroEnabled.main"/></Types>'),
+      "_rels/.rels": utf8("<Relationships/>"),
+      "xl/workbook.bin": new Uint8Array(16),
+    });
+    expect(await routeBytes(xlsb)).toEqual({ kind: "extract", parserId: "office", format: "xlsb" });
+    // Parts written before [Content_Types].xml, as a POI test workbook has them.
+    const partsFirst = zipSync({
+      "xl/workbook.xml": utf8("<workbook/>"),
+      "xl/worksheets/sheet1.xml": utf8("<worksheet/>"),
+      "[Content_Types].xml": utf8("<Types/>"),
+    });
+    expect(await routeBytes(partsFirst)).toEqual({ kind: "extract", parserId: "office", format: "xlsx" });
+  });
+
+  it("still unpacks a zip of a folder that happens to be called word", async () => {
+    const folder = zipSync({ "word/notes.txt": utf8("plain notes\n"), "word/todo.md": utf8("- one\n") });
+    expect(await routeBytes(folder)).toEqual({ kind: "expand", archive: "zip" });
   });
 
   it("routes a tar", async () => {

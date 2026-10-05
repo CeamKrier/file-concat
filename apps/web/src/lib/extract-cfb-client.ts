@@ -48,9 +48,16 @@ export function extractCfb(bytes: Uint8Array): ExtractionResult {
   if (!container.FullPaths.some((entry) => /(^|\/)(Workbook|Book)$/.test(entry))) {
     return { text: "", notes: [{ kind: "parser-unavailable" }] };
   }
+  return extractWorkbook(bytes);
+}
+
+/**
+ * Any workbook SheetJS reads: BIFF from the container above, and `.xlsx`,
+ * `.xlsm` and `.xlsb` first in their chain (extraction router, R5). A heading
+ * per sheet, then the rows as csv, with each cell as Excel formats it.
+ */
+export function extractWorkbook(bytes: Uint8Array): ExtractionResult {
   const workbook = XLSX.read(bytes, { type: "array" });
-  // The same shape the office reader renders an .xlsx to: a heading per sheet,
-  // then the rows as csv, so the two workbook formats read alike in a bundle.
   const sheets = workbook.SheetNames.map((name) => ({
     name,
     csv: XLSX.utils.sheet_to_csv(workbook.Sheets[name]).trim(),

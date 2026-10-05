@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
-import { extractCfb } from "~/lib/extract-cfb-client";
+import { extractCfb, extractWorkbook } from "~/lib/extract-cfb-client";
 import { wordStreams } from "../../../packages/core/tests/fixtures/word";
 
 /** A BIFF8 workbook, written by the same library that reads it. */
@@ -109,5 +109,27 @@ describe("extractCfb", () => {
 
   it("reports a workbook with no cells as empty, never as its sheet headings", () => {
     expect(extractCfb(biff8({ Blank: [] })).text).toBe("");
+  });
+});
+
+describe("extractWorkbook", () => {
+  /** One sheet with a percentage and a date, as Excel would store them. */
+  function formatted(bookType: "xlsx" | "xlsb"): Uint8Array {
+    const sheet = XLSX.utils.aoa_to_sheet([["Rate", "Due"], [0.08, 45567]]);
+    sheet.A2.z = "0%";
+    sheet.B2.z = "yyyy-mm-dd";
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet, "Plan");
+    return new Uint8Array(XLSX.write(workbook, { bookType, type: "array" }));
+  }
+
+  it("writes cells as Excel shows them, not as stored", () => {
+    // officeparser wrote 0.08 and 45567 here; that gap is most of the 0.551 to
+    // 0.753 agreement with Tika on POI workbooks (2026-10-05).
+    expect(extractWorkbook(formatted("xlsx")).text).toBe("# Sheet: Plan\nRate,Due\n8%,2024-10-02");
+  });
+
+  it("reads a binary workbook, which officeparser cannot", () => {
+    expect(extractWorkbook(formatted("xlsb")).text).toBe("# Sheet: Plan\nRate,Due\n8%,2024-10-02");
   });
 });

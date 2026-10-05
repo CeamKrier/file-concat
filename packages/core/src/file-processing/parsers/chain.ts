@@ -15,13 +15,19 @@ import type { ExtractionResult, ParserLoader } from "./types";
  * A PDF runs the other way round (step R3): liteparse first, which scored 49.5
  * against pdf.js's 26.3 on olmOCR-bench's text-layer pages (2026-10-03), and
  * pdf.js behind it for a file liteparse throws on or reads as nothing.
+ *
+ * Workbooks too (step R5): SheetJS first, which agreed with Tika at 0.753 on
+ * 163 POI `.xlsx` against officeparser's 0.551, because it writes cells as
+ * formatted (`8%`, a date) rather than stored (`0.08`, a serial), and it reads
+ * `.xlsb`, which officeparser cannot (2026-10-05).
  */
 export const FALLBACK_READERS: Readonly<Record<string, readonly string[]>> = {
   pdf: ["officeparser"],
   docx: ["anydoc"],
   pptx: ["anydoc"],
-  xlsx: ["anydoc"],
-  xlsm: ["anydoc"],
+  xlsx: ["officeparser", "anydoc"],
+  xlsm: ["officeparser", "anydoc"],
+  xlsb: ["anydoc"],
   rtf: ["anydoc"],
   cfb: ["anydoc"],
 };
