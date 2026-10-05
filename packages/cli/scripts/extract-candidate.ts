@@ -67,6 +67,71 @@ function once<T>(load: () => Promise<T>): () => Promise<T> {
   return () => (loaded ??= load());
 }
 
+/**
+ * Speech to text with transformers.js, the build a browser loads. Under Node it
+ * runs on onnxruntime-node, so quality carries over to the browser and time does
+ * not (native threads against single-threaded wasm). Audio is decoded to 16 kHz
+ * mono float by ffmpeg here, by `decodeAudioData` in a browser. The language is
+ * given from the corpus path, not detected: the upper bound for a reader that
+ * would ask the visitor. Long audio goes in 30 s windows with 5 s strides, the
+ * library's own long-form recipe.
+ */
+function asr(model: string, dtype: string | Record<string, string>, multilingual: boolean): Candidate {
+  const pipe = once(async () => {
+    const { pipeline } = await import("@huggingface/transformers");
+    // ASR_THREADS=1 approximates the product's page, which is not cross-origin
+    // isolated, so onnxruntime-web runs one wasm thread there.
+    const threads = Number(process.env.ASR_THREADS) || undefined;
+    const session_options = threads ? { intraOpNumThreads: threads, interOpNumThreads: 1 } : undefined;
+    return pipeline("automatic-speech-recognition", model, { dtype: dtype as "q8", device: "cpu", session_options });
+  });
+  return {
+    formats: ["flac", "wav", "mp3", "m4a", "ogg", "opus", "webm", "mp4", "mkv", "mov"],
+    extract: async (bytes) => {
+      const { spawnSync } = await import("node:child_process");
+      const pcm = spawnSync("ffmpeg", ["-v", "error", "-i", "pipe:0", "-f", "f32le", "-ac", "1", "-ar", "16000", "pipe:1"], {
+        input: bytes,
+        maxBuffer: 1 << 30,
+      });
+      if (pcm.status !== 0) throw new Error(`ffmpeg: ${pcm.stderr.toString().slice(0, 200)}`);
+      const audio = new Float32Array(pcm.stdout.buffer, pcm.stdout.byteOffset, pcm.stdout.byteLength / 4);
+      const language = /tr_tr|-tr\.\w+$/.test(currentFile) ? "turkish" : "english";
+      // ASR_AUTO_LANG=1 leaves the language to the model, as a page that does not ask would.
+      const given = multilingual ? (process.env.ASR_AUTO_LANG ? { task: "transcribe" } : { language, task: "transcribe" }) : {};
+      const options = { chunk_length_s: 30, stride_length_s: 5, ...given };
+      // The pipeline windows long audio for Whisper only; Moonshine takes it whole
+      // and runs out of memory on a 13-minute talk. Its own demos cut with a VAD;
+      // here each piece ends at the quietest 50 ms between 20 and 30 s.
+      const pieces = multilingual ? [audio] : quietCuts(audio);
+      const texts: string[] = [];
+      for (const piece of pieces) {
+        const out = (await (await pipe())(piece, options)) as { text: string } | { text: string }[];
+        texts.push((Array.isArray(out) ? out.map((o) => o.text).join(" ") : out.text).trim());
+      }
+      return texts.join(" ").trim();
+    },
+  };
+}
+
+/** 16 kHz audio cut into pieces of at most 30 s, each cut at the quietest 50 ms frame between 20 and 30 s. */
+function quietCuts(audio: Float32Array): Float32Array[] {
+  const RATE = 16000, FRAME = 800;
+  const pieces: Float32Array[] = [];
+  let start = 0;
+  while (audio.length - start > 30 * RATE) {
+    let best = start + 30 * RATE, quietest = Infinity;
+    for (let at = start + 20 * RATE; at + FRAME <= start + 30 * RATE; at += FRAME) {
+      let energy = 0;
+      for (let i = at; i < at + FRAME; i++) energy += audio[i] * audio[i];
+      if (energy < quietest) [quietest, best] = [energy, at + FRAME / 2];
+    }
+    pieces.push(audio.subarray(start, best));
+    start = best;
+  }
+  pieces.push(audio.subarray(start));
+  return pieces;
+}
+
 const anydocModule = once(async () => {
   const anydoc = await import("@firecrawl/anydoc-wasm");
   anydoc.initSync({ module: wasmFile("@firecrawl/anydoc-wasm/anydoc_wasm_bg.wasm") });
@@ -147,6 +212,190 @@ function paddle(model: "V6_TINY_MODEL" | "V6_SMALL_MODEL" | "V6_MEDIUM_MODEL" | 
     formats: ["png"],
     extract: async (bytes) => (await (await service()).recognize(bytes.slice().buffer)).text,
   };
+}
+
+/**
+ * A video's own subtitle track, read without decoding anything: mp4box.js for
+ * MP4/MOV (a tx3g sample is a 16-bit length and UTF-8 text), matroska-subtitles
+ * for MKV/WebM. LangChain's YoutubeLoader takes the caption track first too.
+ */
+async function subtitleTrack(bytes: Uint8Array): Promise<string> {
+  if (/\.(mkv|webm)$/i.test(currentName)) {
+    const tracks = matroskaTextBlocks(bytes);
+    if (!tracks.length) throw new Error("no subtitle track");
+    return tracks.map((cues) => cues.join("\n")).join("\n\n");
+  }
+  return mp4TextSamples(bytes);
+}
+
+/**
+ * Text blocks of a Matroska/WebM file's subtitle tracks (TrackType 0x11): the
+ * spec's EBML walk over Segment, Tracks and Clusters, nothing decoded. Written
+ * because matroska-subtitles takes `S_TEXT/*` codecs only, and WebM's own
+ * WebVTT is `D_WEBVTT/SUBTITLES` (2026-10-05, built corpus). A WebVTT block's
+ * payload is the cue text; SRT and ASS blocks are text too (ASS keeps its
+ * leading fields, ponytail: strip them if real files carry ASS).
+ */
+function matroskaTextBlocks(bytes: Uint8Array): string[][] {
+  const vint = (at: number, keepMarker: boolean): [number, number] => {
+    const first = bytes[at];
+    let length = 1;
+    while (length <= 8 && !(first & (0x80 >> (length - 1)))) length++;
+    let value = keepMarker ? first : first & (0xff >> length);
+    for (let i = 1; i < length; i++) value = value * 256 + bytes[at + i];
+    return [value, length];
+  };
+  const CONTAINERS = new Set([0x18538067, 0x1654ae6b, 0xae, 0x1f43b675, 0xa0]);
+  // Cues per track in file order, so a file with one track per language reads one language at a time.
+  const textTracks = new Map<number, string[]>();
+  let track = { number: 0, type: 0 };
+  const walk = (start: number, end: number) => {
+    for (let at = start; at < end; ) {
+      const [id, idLength] = vint(at, true);
+      const [size, sizeLength] = vint(at + idLength, false);
+      const body = at + idLength + sizeLength;
+      // An unknown size (all ones) runs to the parent's end, as live-written files do.
+      const bodyEnd = size >= 2 ** (7 * sizeLength) - 1 ? end : Math.min(end, body + size);
+      if (id === 0xae) track = { number: 0, type: 0 };
+      if (CONTAINERS.has(id)) walk(body, bodyEnd);
+      else if (id === 0xd7) track.number = bytes.subarray(body, bodyEnd).reduce((v, b) => v * 256 + b, 0);
+      else if (id === 0x83) track.type = bytes[body];
+      else if (id === 0xa3 || id === 0xa1) {
+        const [number, numberLength] = vint(body, false);
+        textTracks.get(number)?.push(new TextDecoder().decode(bytes.subarray(body + numberLength + 3, bodyEnd)).trim());
+      }
+      if (id === 0xae && track.type === 0x11) textTracks.set(track.number, []);
+      at = bodyEnd;
+    }
+  };
+  walk(0, bytes.length);
+  return [...textTracks.values()].map((cues) => cues.filter(Boolean)).filter((cues) => cues.length);
+}
+
+/** The npm reader for the same tracks, kept as a candidate to show what it misses. */
+async function matroskaSubtitles(bytes: Uint8Array): Promise<string> {
+  // @ts-expect-error untyped
+    const { SubtitleParser } = await import("matroska-subtitles");
+    const parser = new SubtitleParser();
+    const cues: string[] = [];
+    parser.on("subtitle", (subtitle: { text: string }) => cues.push(subtitle.text));
+    await new Promise<void>((resolve, reject) => {
+      parser.on("finish", resolve);
+      parser.on("error", reject);
+      parser.end(Buffer.from(bytes));
+    });
+  if (!cues.length) throw new Error("no subtitle track");
+  return cues.join("\n");
+}
+
+async function mp4TextSamples(bytes: Uint8Array): Promise<string> {
+  const { createFile } = await import("mp4box");
+  const file = createFile();
+  const cues: string[] = [];
+  file.onReady = (info) => {
+    const track = info.subtitleTracks[0] ?? info.tracks.find((t) => t.codec.startsWith("tx3g"));
+    if (!track) return;
+    file.setExtractionOptions(track.id, null, { nbSamples: 1_000_000 });
+    file.start();
+  };
+  file.onSamples = (_id, _user, samples) => {
+    for (const sample of samples) {
+      if (!sample.data || sample.data.byteLength < 2) continue;
+      const length = (sample.data[0] << 8) | sample.data[1];
+      if (length) cues.push(new TextDecoder().decode(sample.data.subarray(2, 2 + length)));
+    }
+  };
+  const buffer = bytes.slice().buffer as ArrayBuffer & { fileStart: number };
+  buffer.fileStart = 0;
+  file.appendBuffer(buffer);
+  file.flush();
+  if (!cues.length) throw new Error("no subtitle track");
+  return cues.join("\n");
+}
+
+/**
+ * On-screen text: frames picked by a sampler, each OCRed by tesseract.js (the
+ * product's reader), consecutive repeats dropped, each kept frame marked with
+ * its time as Docling marks segments. Frames come from ffmpeg here, from
+ * WebCodecs in a browser. Samplers, all from Docling's `video_frame_sampling.py`:
+ * `fixed` every 10 s (its default interval), `scene` its scene-change rule (1 fps
+ * 64x64 thumbnails, mean absolute difference, peaks with prominence
+ * max(0.012, median + 5 * MAD) at least 2 s apart, one frame mid-scene), and
+ * `all` every 1 s frame, the ceiling that OCRs everything.
+ */
+function framesOcr(sampler: "fixed" | "scene" | "all", floor = 0.012, lineDedupe = false): Candidate {
+  return {
+    formats: ["mp4", "mkv", "webm", "mov"],
+    extract: async () => {
+      const { spawnSync } = await import("node:child_process");
+      const ffmpeg = (args: string[]) => {
+        const out = spawnSync("ffmpeg", ["-v", "error", ...args], { maxBuffer: 1 << 30 });
+        if (out.status !== 0) throw new Error(`ffmpeg: ${out.stderr.toString().slice(0, 200)}`);
+        return out.stdout;
+      };
+      const SIZE = 64 * 64 * 3;
+      const thumbs = ffmpeg(["-i", currentFile, "-vf", "fps=1,scale=64:64", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"]);
+      const count = Math.floor(thumbs.length / SIZE);
+      let times: number[];
+      if (sampler === "all") times = Array.from({ length: count }, (_, i) => i);
+      else if (sampler === "fixed") times = Array.from({ length: Math.ceil(count / 10) }, (_, i) => i * 10);
+      else {
+        const diffs: number[] = [];
+        for (let i = 1; i < count; i++) {
+          let sum = 0;
+          for (let j = 0; j < SIZE; j++) sum += Math.abs(thumbs[i * SIZE + j] - thumbs[(i - 1) * SIZE + j]);
+          diffs.push(sum / SIZE / 255);
+        }
+        const boundaries = [0, ...scenePeaks(diffs, 2, floor).filter((p) => p >= 2)];
+        // ponytail: the scene's middle frame, not Docling's sharpest of five; add sharpness when real footage blurs.
+        times = boundaries.map((start, i) => (start + (boundaries[i + 1] ?? count - 1)) / 2);
+      }
+      const worker = await tesseractWorker();
+      const kept: string[] = [];
+      let previous = "";
+      let previousLines = new Set<string>();
+      for (const t of times.slice(0, 200)) {
+        const png = ffmpeg(["-ss", String(t), "-i", currentFile, "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "pipe:1"]);
+        let text = (await worker.recognize(png)).data.text.trim();
+        if (lineDedupe) {
+          // A burned-in subtitle changes under a slide that does not: keep only the lines the last frame lacked.
+          const lines = text.split("\n").filter((l) => l.trim());
+          const norm = (l: string) => l.replace(/\W+/g, " ").trim();
+          text = lines.filter((l) => !previousLines.has(norm(l))).join("\n");
+          previousLines = new Set(lines.map(norm));
+        }
+        const key = text.replace(/\W+/g, " ").trim();
+        if (!key || key === previous) continue;
+        previous = key;
+        kept.push(`[frame ${t}s]\n${text}`);
+      }
+      return kept.join("\n\n");
+    },
+  };
+}
+
+/**
+ * scipy.signal.find_peaks(x, prominence=auto, distance) as Docling calls it:
+ * strict local maxima, scipy's prominence (height over the higher of the two
+ * lowest points before a taller peak on either side), then the tallest peaks
+ * kept first with the others within `distance` dropped.
+ */
+function scenePeaks(x: number[], distance: number, floor: number): number[] {
+  const sorted = [...x].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)] ?? 0;
+  const deviations = x.map((v) => Math.abs(v - median)).sort((a, b) => a - b);
+  const threshold = Math.max(floor, median + 5 * 1.4826 * (deviations[Math.floor(deviations.length / 2)] ?? 0));
+  const peaks: number[] = [];
+  for (let i = 1; i < x.length - 1; i++) {
+    if (!(x[i] > x[i - 1] && x[i] > x[i + 1])) continue;
+    let left = x[i], right = x[i];
+    for (let j = i - 1; j >= 0 && x[j] <= x[i]; j--) left = Math.min(left, x[j]);
+    for (let j = i + 1; j < x.length && x[j] <= x[i]; j++) right = Math.min(right, x[j]);
+    if (x[i] - Math.max(left, right) >= threshold) peaks.push(i);
+  }
+  const kept: number[] = [];
+  for (const p of [...peaks].sort((a, b) => x[b] - x[a])) if (kept.every((k) => Math.abs(k - p) >= distance)) kept.push(p);
+  return kept.sort((a, b) => a - b);
 }
 
 /** A page as the browser would see it; jsdom stands in for DOMParser under Node. */
@@ -324,6 +573,26 @@ const CANDIDATES: Record<string, Candidate> = {
       return parts.join("\n\n");
     },
   },
+  "whisper-tiny": asr("onnx-community/whisper-tiny", "q8", true),
+  "whisper-tiny-fp32": asr("onnx-community/whisper-tiny", "fp32", true),
+  // tiny's encoder breaks at 8 bits (repetition loops, 2026-10-05), so it stays
+  // fp32; q8 decoder, as q4 keeps the embeddings in fp32 and comes out larger.
+  "whisper-tiny-encfp32": asr("onnx-community/whisper-tiny", { encoder_model: "fp32", decoder_model_merged: "q8" }, true),
+  "whisper-base": asr("onnx-community/whisper-base", "q8", true),
+  "whisper-small": asr("onnx-community/whisper-small", "q8", true),
+  "whisper-large-v3-turbo": asr("onnx-community/whisper-large-v3-turbo", "q8", true),
+  "moonshine-tiny": asr("onnx-community/moonshine-tiny-ONNX", "q8", false),
+  "moonshine-base": asr("onnx-community/moonshine-base-ONNX", "q8", false),
+  "subtitle-track": { formats: ["mp4", "mkv", "webm", "mov"], extract: subtitleTrack },
+  "matroska-subtitles": { formats: ["mkv", "webm"], extract: matroskaSubtitles },
+  "frames-fixed": framesOcr("fixed"),
+  "frames-scene": framesOcr("scene"),
+  "frames-all": framesOcr("all"),
+  // Docling's 0.012 floor misses text-only slide changes (0.0106-0.0116 on the
+  // built corpus); the floor binds only on static video, as busy footage lifts
+  // median + 5 MAD above it anyway.
+  "frames-scene-low": framesOcr("scene", 0.003),
+  "frames-scene-low-lines": framesOcr("scene", 0.003, true),
   // The product's .xls rendering (SheetJS, a csv per sheet) over every workbook
   // format, without the CFB stream-name gate in front of it.
   sheetjs: {
@@ -373,8 +642,9 @@ const CANDIDATES: Record<string, Candidate> = {
   },
 };
 
-/** The fixture being read, for the candidates that want a file name. */
+/** The fixture being read, for the candidates that want a file name or its path. */
 let currentName = "";
+let currentFile = "";
 
 interface Run {
   text: string;
@@ -386,6 +656,7 @@ interface Run {
 async function runOne(candidate: Candidate, file: string): Promise<Run> {
   const bytes = new Uint8Array(fs.readFileSync(file));
   currentName = path.basename(file);
+  currentFile = file;
   const start = performance.now();
   let text = "";
   let error: string | null = null;
@@ -403,8 +674,11 @@ async function runOne(candidate: Candidate, file: string): Promise<Run> {
 
 const WASM_TRAP = "wasm trap: ";
 
-/** Longest one file may take before its reader is killed and the file failed. */
-const FILE_LIMIT_MS = 120_000;
+/**
+ * Longest one file may take before its reader is killed and the file failed.
+ * `FILE_LIMIT_MS` raises it for long recordings, which take minutes per file.
+ */
+const FILE_LIMIT_MS = Number(process.env.FILE_LIMIT_MS) || 120_000;
 
 /**
  * Run a candidate over many files in a child process, the way Tika's
@@ -505,6 +779,8 @@ function printRobustness(results: (Run & { fixture: string })[]): void {
 function printArchiveScore(root: string, results: (Run & { fixture: string })[]): void {
   type Row = { path: string; sha256: string };
   const key = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "utf8")) as Record<string, Row[]>;
+  // Other corpora (speech, video) keep their own answer key under the same name.
+  if (!Array.isArray(Object.values(key)[0])) return;
   const tally: Record<string, number> = {};
   for (const r of results) {
     const want = key[r.fixture];
@@ -564,11 +840,10 @@ async function main(): Promise<void> {
     if (c === -1) console.log(`${fixture}: ${run.error ? `ERROR ${run.error}` : `${run.text.length} chars`} in ${run.ms} ms`);
   });
   if (c !== -1) printRobustness(results);
-  if (fs.existsSync(path.join(root, "manifest.json"))) printArchiveScore(root, results);
-
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify({ reader: name, corpus: root, results }, null, 2));
   console.log(`Wrote ${outPath}`);
+  if (fs.existsSync(path.join(root, "manifest.json"))) printArchiveScore(root, results);
 }
 
 if (process.argv[2] === "--child") {
