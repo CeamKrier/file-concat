@@ -20,6 +20,12 @@ export interface BlogFrontmatter {
    * and what the product reads today is linked instead of re-stated.
    */
   measured?: string;
+  /**
+   * The FileConcat version the figures were measured on, "2.1". The snapshot
+   * note names it, and says the product has changed only once the version in
+   * `apps/web/package.json` has moved past it.
+   */
+  version?: string;
 }
 
 /** One `##` section, numbered at compile time by `remark-blog-sections`. */
@@ -77,6 +83,7 @@ function toPost(filePath: string, mod: BlogModule): BlogPost {
       author: fm.author,
       kind: fm.kind,
       measured: fm.measured,
+      version: fm.version,
     },
   };
 }
