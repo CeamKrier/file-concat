@@ -47,7 +47,11 @@ const COLLECTED = [
   },
   {
     title: "Reading a scanned page, when you drop one.",
-    body: "A scanned PDF or Word file holds a picture of a page, not text, so there is nothing in the file to read. When you drop one, your browser downloads a text-recognition engine and one language file from jsDelivr, a public code CDN, and starts reading. What jsDelivr learns is what any file request tells a server: your IP address, and which file was asked for. Your document is not part of it. Recognition runs in this tab, on bytes already on your device, and the result goes nowhere but your screen. It happens only for documents that opened with no text in them, so a drop with no scan in it downloads nothing. You can stop a reading while it runs.",
+    body: "A scanned PDF or Word file holds a picture of a page, not text, so there is nothing in the file to read. When you drop one, your browser downloads a text-recognition engine and one language file from jsDelivr, a public code CDN, and starts reading (past three documents or 8 MB it asks first). What jsDelivr learns is what any file request tells a server: your IP address, and which file was asked for. Your document is not part of it. Recognition runs in this tab, on bytes already on your device, and the result goes nowhere but your screen. It happens only for pages that hold no text of their own, so a drop with no scan in it downloads nothing. You can stop a reading while it runs.",
+  },
+  {
+    title: "Transcribing a recording, when you ask.",
+    body: "Audio, and a video with no subtitle track, can be written out as text, but only when you press Transcribe. The first time, your browser downloads a speech model from Hugging Face, a public model host: 66 MB for English, 244 MB for other languages, kept in your browser's cache for the next time. What Hugging Face learns is what any file request tells a server: your IP address, and which model was asked for. Your recording is not part of it. The speech is written out in this tab, and the text shown on screen in a video is read by the recognition engine described above.",
   },
   {
     title: "Your settings.",

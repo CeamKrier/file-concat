@@ -15,7 +15,7 @@ export const CONSULTANTS_FAQ = [
   },
   {
     q: "Will the model see the charts and images in my slides?",
-    a: "FileConcat pulls the text from slides, so titles, bullet points, and speaker notes come through. A chart or diagram that exists only as an image is not described, since there is no OCR step yet.",
+    a: "FileConcat pulls the text from slides, so titles, bullet points, and speaker notes come through. Older 97-2003 .ppt decks are read too. A chart or diagram that exists only as an image inside a slide is not described: text recognition reads scanned pages and images you drop, not pictures inside a deck.",
   },
   {
     q: "Do I need to convert or export anything first?",

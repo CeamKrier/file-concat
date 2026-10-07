@@ -221,8 +221,9 @@ function Inputs() {
         <InfoCard tone="info" icon={Presentation} title="Slides come through as text, not visuals">
           <p>
             Titles, bullets, and speaker notes are pulled from each slide, so the argument survives.
-            A chart or diagram that is only an image is not described, since there is no OCR step
-            yet.
+            Older .ppt decks are read too. A chart or diagram that is only an image inside a slide
+            is not described: text recognition reads scanned pages and images you drop, not
+            pictures inside a deck.
           </p>
         </InfoCard>
       </div>

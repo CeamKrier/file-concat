@@ -148,7 +148,7 @@ function Pane({
  */
 const LEDGER = [
   { label: "extracted", count: 31, tone: "go", gap: false, note: "text pulled from pdf, docx, xlsx, pptx" },
-  { label: "partly read", count: 2, tone: "warn", gap: true, note: "dates as serial numbers; a footnote out of order" },
+  { label: "partly read", count: 2, tone: "warn", gap: true, note: "a chart image left unread; a footnote out of order" },
   { label: "held back", count: 1, tone: "warn", gap: true, note: "over the size cap, add it from the review list" },
   { label: "left out", count: 3, tone: "muted", gap: false, note: "two images and a lockfile" },
   { label: "flagged", count: 1, tone: "info", gap: false, note: "scanned page, recognised in the browser (en)" },
@@ -210,14 +210,14 @@ function Ledger() {
  * one extension per pill: a reader recognises a spreadsheet icon faster than
  * "ods", and seven chips wrap where sixteen pills did not.
  *
- * Only what `routing.ts` maps to a loader this build carries. ppt sat here
- * for a day with no reader behind it and is the one 97-2003 format still
- * unread. A chip is a promise, and the ledger says what would keep it.
+ * Only what `routing.ts` maps to a loader this build carries, and only what is
+ * read without asking: audio and video are transcribed on request, so they
+ * get no chip. A chip is a promise, and the ledger says what would keep it.
  */
 const FORMATS: { icon: LucideIcon; kind: string; ext: string[] }[] = [
   { icon: FileText, kind: "documents", ext: ["pdf", "doc", "docx", "odt", "rtf"] },
-  { icon: FileSpreadsheet, kind: "spreadsheets", ext: ["xls", "xlsx", "ods"] },
-  { icon: Presentation, kind: "slides", ext: ["pptx", "odp"] },
+  { icon: FileSpreadsheet, kind: "spreadsheets", ext: ["xls", "xlsx", "xlsb", "ods"] },
+  { icon: Presentation, kind: "slides", ext: ["ppt", "pptx", "odp"] },
   { icon: BookOpen, kind: "ebooks", ext: ["epub", "mobi", "azw3"] },
   { icon: Mail, kind: "email", ext: ["eml", "msg"] },
   { icon: NotebookPen, kind: "notebooks", ext: ["ipynb"] },

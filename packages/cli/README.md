@@ -116,7 +116,7 @@ file-concat ./case-folder -o ctx.xml
 ## Limitations
 
 - Reads from local directories only. Remote sources (GitHub, GitLab, Bitbucket, Gist, URL) are available on the web app and tracked as roadmap for the CLI.
-- Document extraction is text only. Embedded images, charts, and equations are not OCR'd. Neither are image files. The web app can read writing off a scanned page or an image, in the browser and on request; the CLI ships no recognition engine.
+- Document extraction is text only. Embedded images, charts, and equations are not OCR'd. Neither are image files. The web app reads writing off a scanned PDF page on its own and off an image on request, in the browser; the CLI ships no recognition engine.
 
 ## License
 

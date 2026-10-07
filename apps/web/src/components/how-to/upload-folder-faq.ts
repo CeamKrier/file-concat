@@ -25,7 +25,7 @@ export const UPLOAD_FOLDER_FAQ = [
   },
   {
     q: "Which archives does FileConcat open?",
-    a: "ZIP, TAR, TAR.GZ (or .tgz) and GZ, all unpacked in your browser. The documents inside, PDF, Word, Excel and PowerPoint included, are read as text the same way loose files are. 7z and RAR are not opened yet, so unpack those first and drop the folder.",
+    a: "ZIP, TAR, TAR.GZ (or .tgz), GZ, 7Z, RAR, BZ2 and XZ, all unpacked in your browser. The documents inside, PDF, Word, Excel and PowerPoint included, are read as text the same way loose files are. A password-protected or damaged archive won't open; unpack that one on your computer and drop the folder.",
   },
   {
     q: "Does the folder structure survive?",

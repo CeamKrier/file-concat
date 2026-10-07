@@ -9,7 +9,7 @@ draft: false
 <Tldr
   items={[
     "Drop the workbook on fileconcat.com: every sheet comes out under its own name with each row's cells kept apart, extracted in your browser.",
-    "Formulas arrive as their computed results, and dates arrive as serial numbers such as 45000. Add a TEXT() helper column if dates matter to the question.",
+    "Formulas arrive as their computed results. Since 2026-10-07 an Excel date arrives as the cell shows it, not as a serial number such as 45000.",
     "Charts, cell colours and conditional formatting are not text and do not come out. Say in the prompt what the highlighting meant.",
     "Nothing is uploaded to us.",
   ]}
@@ -20,7 +20,7 @@ become text first, and that is where most of the answer quietly goes missing. A 
 not a document that happens to hold numbers. It is a grid, and the grid is half the meaning.
 
 This guide covers converting a spreadsheet to text for an LLM prompt: what a flattened read
-destroys, what actually reaches the model, and the two things a workbook always loses on the
+destroys, what actually reaches the model, and what a workbook loses on the
 way out. There is a spot to try it on your own files partway down. Nothing is uploaded to us;
 the extraction runs in your browser.
 
@@ -63,7 +63,8 @@ belonged to, which is what any question about a spreadsheet turns on.
 
 <Steps>
   <Step title="Drop the workbook">
-    One file or a folder of them. Spreadsheets go in alongside PDFs, Word documents, slide decks,
+    One file or a folder of them: .xlsx, .xlsm, .xlsb, an Excel 97-2003 .xls, or an OpenDocument .ods.
+    Spreadsheets go in alongside PDFs, Word documents, slide decks,
     and any plain notes or markdown you drop with them.
   </Step>
   <Step title="Every sheet is read in your browser">
@@ -88,26 +89,29 @@ runs in your browser, there is no account, and nothing is uploaded to us.
 
 ## What a workbook loses on the way out
 
-Two things do not survive, and both are worth knowing before you trust an answer.
+One thing does not survive, and a second did not until recently. Both are worth knowing before you
+trust an answer.
 
 **Formulas become their results.** A cell holding `=SUM(B2:B14)` reaches the bundle as the
 number it computed, not as the formula. For almost every question this is what you want, since
 the model can read the figure and reason about it. If your question is about the calculation
 itself rather than its output, that is the one case where the text will not hold the answer.
 
-**Dates become numbers.** Excel stores a date as a count of days and shows you a formatted date
-on top of it. Extraction reads what is stored, so a due-date column can arrive as `45000` rather
-than the date you see in the cell.
+**Dates became numbers.** Excel stores a date as a count of days and shows you a formatted date
+on top of it. Extraction read what is stored, so a due-date column could arrive as `45000` rather
+than the date you see in the cell. Since 2026-10-07 the browser reads each cell the way Excel
+formats it, so a date, a percentage or a currency figure comes out as you see it.
 
-That second one is ours to fix rather than a property of the format, and we say so publicly. We
-re-test our extraction against a set of documents built to break it, and across four rounds it is
-the only open spreadsheet defect out of sixteen findings in total. The workaround below holds
-until it is closed; the method and the rest of the list are in
+That second one was ours to fix rather than a property of the format, and we said so publicly. We
+re-test our extraction against a set of documents built to break it, and across four rounds it was
+the only open spreadsheet defect out of sixteen findings in total. The fix shipped after the fourth
+round, so the next re-test is the one that confirms it; the method and the rest of the list are in
 [what gets lost converting documents to text](/blog/what-gets-lost-converting-documents-to-text).
 
 <Callout type="warn" title="Check a date column before you paste">
-  If dates matter to your question, add a helper column with `TEXT(A2,"yyyy-mm-dd")` and include
-  that instead, or format the column as text before you export. It costs a minute and it stops the
+  A cell Excel shows as a plain number still arrives as one. If a date column reads like `45000` in
+  the bundle, format it as a date, or add a helper column with `TEXT(A2,"yyyy-mm-dd")` and include
+  that instead. It costs a minute and it stops the
   model from reasoning about a number that looks like a quantity.
 </Callout>
 
