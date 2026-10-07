@@ -6,6 +6,8 @@ import { BlogMDXProviderWrapper } from "~/components/blog/blog-mdx-provider";
 import { formatPostDate, getPostBySlug } from "~/lib/blog";
 import { generateSEOMeta } from "~/lib/seo";
 
+import { version as currentVersion } from "../../../package.json";
+
 export const Route = createFileRoute("/blog/$slug")({
   component: BlogPostPage,
   loader: ({ params }) => {
@@ -35,7 +37,8 @@ function BlogPostPage() {
   const post = getPostBySlug(slug);
   if (!post) throw notFound();
 
-  const { title, date, author, kind, measured } = post.frontmatter;
+  const { title, date, author, kind, measured, version } = post.frontmatter;
+  const current = version !== undefined && currentVersion.split(".").slice(0, 2).join(".") === version;
   const Content = post.Content;
 
   return (
@@ -66,8 +69,11 @@ function BlogPostPage() {
           </div>
           {kind === "research" && (
             <p className="text-ink-muted mt-4 max-w-[62ch] text-[14px] leading-relaxed">
-              Measured on {formatPostDate(measured || date)} and kept as measured. FileConcat has
-              changed since; what it reads today is listed in{" "}
+              Measured on {formatPostDate(measured || date)}
+              {version ? ` with FileConcat ${version}` : ""}
+              {current
+                ? ", the current version. What it reads, format by format, is listed in "
+                : " and kept as measured. FileConcat has changed since; what it reads today is listed in "}
               <Link
                 to="/docs/$slug"
                 params={{ slug: "formats" }}
