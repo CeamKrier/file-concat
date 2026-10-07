@@ -214,6 +214,9 @@ function FileTypes() {
               </div>
             ))}
           </dl>
+          <p className="text-ink-secondary mt-5 text-[14px] leading-relaxed">
+            <ProseLink to="/docs/formats">Every format it reads</ProseLink>, with what comes through and what is left out.
+          </p>
         </div>
 
         <div className="min-w-0 self-center">

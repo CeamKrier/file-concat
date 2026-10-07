@@ -216,6 +216,9 @@ function Inputs() {
           </div>
         ))}
       </div>
+      <p className="text-ink-secondary mt-5 text-[14px] leading-relaxed">
+        <ProseLink to="/docs/formats">Every format it reads</ProseLink>, with what comes through and what is left out.
+      </p>
 
       <div className="mt-8 max-w-[720px]">
         <InfoCard tone="info" icon={Presentation} title="Slides come through as text, not visuals">
