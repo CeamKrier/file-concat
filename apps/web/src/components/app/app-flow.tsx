@@ -34,7 +34,7 @@ import {
 } from "~/lib/metrics";
 import { tagSurface } from "~/lib/clarity-tags";
 import { cn } from "~/lib/utils";
-import { ocrLanguageName, ocrLanguageOptions } from "~/lib/ocr-language";
+import { browserOcrLanguage, ocrLanguageName, ocrLanguageOptions } from "~/lib/ocr-language";
 import { flushTreeInteractions } from "~/components/file-tree/interaction-tally";
 
 import { MarketingSections, SiteFooter } from "./marketing";
@@ -567,8 +567,12 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // The tag a pass ran under is whatever the browser reported (`tr-TR`), while
   // the control offers one canonical tag per model (`tr`). Matching on the model
   // is what keeps the select from rendering blank on a tag it has no option for.
+  // Before any pass, the browser's language: a recording is never read on its
+  // own, so its first pass starts here, and English would hand a Turkish talk
+  // to the English-only speech model.
   const readLocale =
-    languageOptions.find((o) => o.code === ingestion.readLanguage?.code)?.locale ?? null;
+    languageOptions.find((o) => o.code === (ingestion.readLanguage ?? browserOcrLanguage()).code)
+      ?.locale ?? null;
   /**
    * What to call the reading on the summary card. A scoped re-read can leave
    * two documents read in two languages, and there is no honest single name for
