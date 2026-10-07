@@ -207,11 +207,11 @@ function Inputs() {
       </div>
 
       <div className="mt-8 max-w-[720px]">
-        <InfoCard tone="info" icon={ScanLine} title="Scanned and heavy two-column PDFs read poorly">
+        <InfoCard tone="info" icon={ScanLine} title="Scanned and heavy two-column PDFs read less well">
           <p>
-            Text is pulled from the PDF layer, not from the pixels. A scan with no text layer comes
-            through flagged as empty rather than dropped, and a dense two-column layout can arrive
-            out of order. There is no OCR step yet.
+            Text is pulled from the PDF layer first. A page with no text layer is read by text
+            recognition in your browser and marked as such in the bundle, a table on a scan comes
+            out as loose lines, and a dense two-column layout can still arrive out of order.
           </p>
         </InfoCard>
       </div>

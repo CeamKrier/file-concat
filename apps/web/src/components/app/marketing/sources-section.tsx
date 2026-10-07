@@ -25,7 +25,7 @@ import { BandIntro, BandLink, BandLinks, MarketingSection } from "./section";
 const SOURCES: { icon: LucideIcon; label: string }[] = [
   { icon: Folder, label: "folder" },
   { icon: Files, label: "files" },
-  { icon: FileArchive, label: "zip, tar" },
+  { icon: FileArchive, label: "zip, 7z, rar, tar" },
   { icon: Link, label: "GitHub, GitLab, Bitbucket, Gist" },
   { icon: Globe, label: "web page" },
   { icon: Scissors, label: "clipper" },
@@ -40,7 +40,7 @@ export function SourcesSection() {
         <div className="min-w-0">
           <BandIntro id="files-from-anywhere" title="Files from anywhere, and a terminal.">
             Folders, files, archives, a public repository or page URL, or a thread clipped from
-            the browser. The same engine is on npm.
+            the browser. A command-line version is on npm.
           </BandIntro>
           <div className="mt-[22px] flex flex-wrap gap-2">
             {SOURCES.map((s) => (

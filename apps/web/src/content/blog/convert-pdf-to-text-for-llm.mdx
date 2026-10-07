@@ -9,8 +9,8 @@ draft: false
 <Tldr
   items={[
     "Drop the PDFs, or the folder holding them, on fileconcat.com: the text comes out as one file, in reading order, extracted in your browser.",
-    "A scanned page holds no text to pull. A document that comes back empty gets a recognition pass in the browser, and the result names which files were read that way.",
-    "Two of our own PDF defects are still open and named below: a superscript footnote marker sorting above its line, and an image-only page dropped without a note.",
+    "A scanned page holds no text to pull. Since 2026-10-07 every such page, in a scanned or a partly scanned PDF, gets a recognition pass in the browser, started on its own for up to three documents and 8 MB per drop, and the result names which files were read that way.",
+    "Two of our own PDF defects were open at the last re-test and are named below: a superscript footnote marker sorting above its line, and an image-only page dropped without a note. The second is read by recognition since 2026-10-07.",
     "Nothing is uploaded to us.",
   ]}
 />
@@ -92,24 +92,26 @@ Extraction works on the text a document actually stores. A PDF exported from a w
 a Word file, a slide deck: those carry their text, and it comes out clean.
 
 A scanned page is different. If a PDF is really a photograph of a page, there is no text inside
-it to pull, only an image. Reading words off an image takes recognition, and when a document
-comes back with nothing FileConcat runs a recognition pass over it in your browser and tells
-you which files it recovered that way. Encrypted or password-locked PDFs are the other story:
+it to pull, only an image. Reading words off an image takes recognition, and for every page
+that comes back with nothing FileConcat runs a recognition pass in your browser and tells
+you which files it recovered that way. Up to three such documents and 8 MB per drop it starts
+on its own; past that it asks first. Encrypted or password-locked PDFs are the other story:
 locked bytes yield no text, and no amount of recognition changes that.
 
 None of that is taken on trust. We built a set of documents designed to break our own extraction
 and have re-tested against it four times: of the sixteen defects found so far, seven were in PDF
 handling, five of those are fixed, and two are still open. The two that remain are a superscript
 footnote marker sorting above its own line, and a page with no text layer being dropped without a
-note.
+note. Since 2026-10-07 such a page is listed and read by recognition; the next re-test will say
+how well.
 
 <Callout type="warn" title="A scan takes longer, and not every one comes back">
   Recognition reads pixels rather than characters, so it costs seconds per page and it is not
   perfect on a faint or crooked scan. A document it cannot read at all is flagged as having no
-  extractable text rather than dropped silently. A document that is only *partly* scanned is the gap:
-  its image-only pages are currently lost without a note, which we
+  extractable text rather than dropped silently. A document that is only *partly* scanned was the gap
+  until 2026-10-07: its image-only pages were lost without a note, which we
   [measured and published](/blog/what-gets-lost-converting-documents-to-text) along with the rest of
-  what survives conversion. Your file still never leaves the browser; the recognition engine itself is fetched from the
+  what survives conversion. Those pages are now read by recognition like a scanned document. Your file still never leaves the browser; the recognition engine itself is fetched from the
   library's CDN the first time it runs, which the [privacy page](/privacy) sets out in full.
 </Callout>
 

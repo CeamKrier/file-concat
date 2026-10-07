@@ -34,7 +34,7 @@ function LegalLanding(dropProps: DropZoneProps) {
 const TRUST = [
   "Nothing is uploaded",
   "PDFs and Word read as text",
-  "Scanned pages flagged, never dropped",
+  "Scanned pages read here, and marked",
 ];
 
 function Hero({ dropProps }: { dropProps: DropZoneProps }) {
@@ -217,11 +217,12 @@ function FileTypes() {
         </div>
 
         <div className="min-w-0 self-center">
-          <InfoCard tone="info" icon={ScanLine} title="Scanned pages need OCR, which is not here yet">
+          <InfoCard tone="info" icon={ScanLine} title="Scanned pages are read by text recognition">
             <p>
-              A filing that is a photo of paper, rather than a born-digital PDF, has no text to pull.
-              It comes through flagged as "no text found" so you can send it for OCR
-              first. It is never dropped without telling you.
+              A filing that is a photo of paper, rather than a born-digital PDF, has no text layer.
+              Its pages are read by text recognition in your browser, and the bundle names the files
+              that text came from, because recognition is a guess at the characters. A table on a
+              scan comes through as loose lines.
             </p>
           </InfoCard>
         </div>

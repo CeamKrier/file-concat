@@ -111,12 +111,11 @@ file-concat ./case-folder -o ctx.xml
 - PDF and Office documents are extracted to text by default (`--no-parse` to leave them out); other binary files are skipped.
 - Jupyter notebooks, SRT/VTT caption tracks and EML messages are rendered rather than inlined raw. A notebook becomes markdown (prose, fenced code, text output) with base64 images dropped and counted; a caption track becomes the transcript, without indices, timestamps, or the line a rolling caption repeats in the next cue; a message becomes From/To/Cc/Date/Subject plus the decoded body, with attachments named but not inlined. Outlook's `.msg` is not read yet.
 - Which files count as documents or archives is decided by their leading bytes, not their name: a renamed `.docx` is still extracted, an extensionless PDF is still read, a notebook saved as `.json` is still rendered, and a real `.zip` is never mistaken for the Office container that shares its signature.
-- The output schema matches the web app, so prompts that already work against [fileconcat.com](https://fileconcat.com) output keep working with CLI output.
 
 ## Limitations
 
 - Reads from local directories only. Remote sources (GitHub, GitLab, Bitbucket, Gist, URL) are available on the web app and tracked as roadmap for the CLI.
-- Document extraction is text only. Embedded images, charts, and equations are not OCR'd. Neither are image files. The web app can read writing off a scanned page or an image, in the browser and on request; the CLI ships no recognition engine.
+- Document extraction is text only. Embedded images, charts, and equations are not OCR'd. Neither are image files. The web app reads writing off a scanned PDF page on its own and off an image on request, in the browser; the CLI ships no recognition engine.
 
 ## License
 

@@ -9,6 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { FORMAT_CHIPS, type FormatChip } from "~/data/formats";
 import { cn } from "~/lib/utils";
 import {
   BandGrid,
@@ -40,6 +41,7 @@ export function DocumentsSection() {
       </BandGrid>
 
       <BandLinks className="mt-5">
+        <BandLink to="/docs/formats">Every format it reads</BandLink>
         <BandLink to="/blog/what-gets-lost-converting-documents-to-text">
           What gets lost converting documents to text
         </BandLink>
@@ -148,7 +150,7 @@ function Pane({
  */
 const LEDGER = [
   { label: "extracted", count: 31, tone: "go", gap: false, note: "text pulled from pdf, docx, xlsx, pptx" },
-  { label: "partly read", count: 2, tone: "warn", gap: true, note: "dates as serial numbers; a footnote out of order" },
+  { label: "partly read", count: 2, tone: "warn", gap: true, note: "a chart image left unread; a footnote out of order" },
   { label: "held back", count: 1, tone: "warn", gap: true, note: "over the size cap, add it from the review list" },
   { label: "left out", count: 3, tone: "muted", gap: false, note: "two images and a lockfile" },
   { label: "flagged", count: 1, tone: "info", gap: false, note: "scanned page, recognised in the browser (en)" },
@@ -205,39 +207,34 @@ function Ledger() {
   );
 }
 
-/**
- * The formats the tab reads, grouped by what the file is rather than listed
- * one extension per pill: a reader recognises a spreadsheet icon faster than
- * "ods", and seven chips wrap where sixteen pills did not.
- *
- * Only what `routing.ts` maps to a loader this build carries. ppt sat here
- * for a day with no reader behind it and is the one 97-2003 format still
- * unread. A chip is a promise, and the ledger says what would keep it.
- */
-const FORMATS: { icon: LucideIcon; kind: string; ext: string[] }[] = [
-  { icon: FileText, kind: "documents", ext: ["pdf", "doc", "docx", "odt", "rtf"] },
-  { icon: FileSpreadsheet, kind: "spreadsheets", ext: ["xls", "xlsx", "ods"] },
-  { icon: Presentation, kind: "slides", ext: ["pptx", "odp"] },
-  { icon: BookOpen, kind: "ebooks", ext: ["epub", "mobi", "azw3"] },
-  { icon: Mail, kind: "email", ext: ["eml", "msg"] },
-  { icon: NotebookPen, kind: "notebooks", ext: ["ipynb"] },
-  { icon: Captions, kind: "subtitles", ext: ["vtt", "srt"] },
-];
+/** The icon beside each chip in `FORMAT_CHIPS`, by its kind. */
+const CHIP_ICONS: Record<FormatChip["kind"], LucideIcon> = {
+  documents: FileText,
+  spreadsheets: FileSpreadsheet,
+  slides: Presentation,
+  ebooks: BookOpen,
+  email: Mail,
+  notebooks: NotebookPen,
+  subtitles: Captions,
+};
 
 function Formats() {
   return (
     <div className="mt-[18px] flex flex-wrap items-center gap-1.5">
       <span className="text-ink-faint mr-1.5 py-1 font-mono text-[11.5px]">read in the tab</span>
-      {FORMATS.map((f) => (
-        <span
-          key={f.kind}
-          className="border-border bg-surface text-code inline-flex items-center gap-1.5 rounded-[6px] border py-[3px] pl-1.5 pr-2 font-mono text-[11.5px]"
-        >
-          <f.icon className="text-ink-muted h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
-          <span className="sr-only">{f.kind}: </span>
-          {f.ext.join(" ")}
-        </span>
-      ))}
+      {FORMAT_CHIPS.map((f) => {
+        const Icon = CHIP_ICONS[f.kind];
+        return (
+          <span
+            key={f.kind}
+            className="border-border bg-surface text-code inline-flex items-center gap-1.5 rounded-[6px] border py-[3px] pl-1.5 pr-2 font-mono text-[11.5px]"
+          >
+            <Icon className="text-ink-muted h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
+            <span className="sr-only">{f.kind}: </span>
+            {f.ext.join(" ")}
+          </span>
+        );
+      })}
     </div>
   );
 }

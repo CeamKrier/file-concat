@@ -36,7 +36,7 @@ function UploadFolderLanding(dropProps: DropZoneProps) {
 }
 
 const TRUST = [
-  "Folders and .zip, .tar, .tar.gz opened here",
+  "Folders and .zip, .7z, .rar, .tar opened here",
   "PDFs and Office docs inside read too",
   "No sign-up, nothing uploaded to us",
 ];
@@ -232,7 +232,7 @@ function WhyOneFile() {
 const STEPS = [
   {
     title: "Drop the folder or the ZIP",
-    body: "Drag it in or pick it. Subfolders come along, and .zip, .tar and .tar.gz are unpacked here. Unpack .7z and .rar first.",
+    body: "Drag it in or pick it. Subfolders come along, and .zip, .7z, .rar, .tar and .tar.gz are unpacked here.",
   },
   {
     title: "It reads everything inside",

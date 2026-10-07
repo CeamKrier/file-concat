@@ -86,7 +86,7 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
   archive: {
     icon: Archive,
     title: "That archive can't be opened here",
-    body: "FileConcat unpacks .zip and .tar archives (including .tar.gz and .gz) right in the browser, but not .7z or .rar. Unzip it first, then drop the folder.",
+    body: "FileConcat unpacks .zip, .tar, .gz, .7z, .rar, .bz2 and .xz archives right in the browser, but this one would not open: it may be damaged, password-protected, or packed with a method the browser's reader lacks. Unzip it on your computer, then drop the folder.",
     cta: "Start over",
   },
   // The one variant that is not a dead end at all: the documents opened fine,

@@ -7,15 +7,15 @@
  * names it without reading it (a reader candidate, ranked by Runs), refuses it
  * at the door (never text), offers recognition (an image), or has never looked
  * at it. Those answers live in core (`EXTRACTED_FORMATS`, `unreadableReason`,
- * `NEVER_TEXT_EXTENSIONS`, `RECOGNISABLE_IMAGE_FORMATS`) and drift the moment
- * a copy of them is kept anywhere else, so the reading asks here instead of
- * keeping a list.
+ * `NEVER_TEXT_EXTENSIONS`, `RECOGNISABLE_IMAGE_FORMATS`) and in the web's list
+ * of what it reads (`apps/web/src/data/formats.ts`, held to the code by its
+ * test), and drift the moment a copy of them is kept anywhere else, so the
+ * reading asks here instead of keeping a list.
  *
  * Usage: pnpm exec tsx scripts/input-catalogue.ts ext,ext,ext
  * Prints one JSON object: { ext: { kind, label } }.
  */
 import {
-  canExpandArchive,
   EXTRACTED_FORMATS,
   NEVER_TEXT_EXTENSIONS,
   RECOGNISABLE_IMAGE_FORMATS,
@@ -23,20 +23,16 @@ import {
   type FileRoute,
 } from "@fileconcat/core";
 
+import { READ_FORMATS } from "../../../apps/web/src/data/formats";
+
 export type InputKind = "reader" | "image" | "never-text" | "named" | "unknown";
 
 /**
- * The compound-file family, decided by the container's stream directory in
- * `apps/web/src/lib/extract-cfb-client.ts`, not by extension. These are the
- * extensions that directory reads (workbook, Word document, Outlook message)
- * and the one it declines (PowerPoint); the router itself knows only `cfb`.
+ * The compound-file variants the formats list does not spell out: the router
+ * knows only `cfb`, and the web reads every one of these through it.
  */
-const CFB_READ = new Set(["xls", "xlt", "xla", "doc", "dot", "msg"]);
-const CFB_NAMED = new Set(["ppt", "pps", "pot"]);
+const CFB_READ = new Set(["xlt", "xla", "dot", "pps", "pot"]);
 const CFB_ROUTE: FileRoute = { kind: "extract", parserId: "cfb", format: "cfb" };
-
-/** Archive kinds the router names; `canExpandArchive` says which open. */
-const ARCHIVES = new Set(["zip", "tar", "gz", "tgz", "rar", "7z"]);
 
 /** Image extensions by their detector name, so the label matches the screen's. */
 const IMAGE_FORMAT: Record<string, string> = {
@@ -50,23 +46,17 @@ const IMAGE_FORMAT: Record<string, string> = {
   ico: "ico",
   cur: "cur",
   psd: "psd",
-  heic: "iso-bmff",
-  heif: "iso-bmff",
+  heic: "heif",
+  heif: "heif",
   bmp: "bmp",
-  avif: "avif",
+  avif: "heif",
 };
 
 export function catalogue(ext: string): { kind: InputKind; label: string } {
   const e = ext.toLowerCase();
-  if (ARCHIVES.has(e)) {
-    const kind = e === "tgz" ? "gz" : e;
-    const route: FileRoute = { kind: "expand", archive: kind as "zip" | "tar" | "gz" | "rar" | "7z" };
-    return canExpandArchive(route.archive)
-      ? { kind: "reader", label: `${kind} archive, opened here` }
-      : { kind: "named", label: unreadableReason(`f.${e}`, route).label };
-  }
+  const listed = READ_FORMATS.find((entry) => entry.extensions.includes(e));
+  if (listed) return { kind: listed.group === "Images" ? "image" : "reader", label: listed.name };
   if (CFB_READ.has(e)) return { kind: "reader", label: unreadableReason(`f.${e}`, CFB_ROUTE).label };
-  if (CFB_NAMED.has(e)) return { kind: "named", label: unreadableReason(`f.${e}`, CFB_ROUTE).label };
   if (EXTRACTED_FORMATS.has(e)) return { kind: "reader", label: `${e} document, read here` };
   if (IMAGE_FORMAT[e]) {
     const route: FileRoute = { kind: "binary", format: IMAGE_FORMAT[e] };

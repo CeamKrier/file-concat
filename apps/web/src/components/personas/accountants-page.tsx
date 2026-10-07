@@ -222,11 +222,12 @@ function FileTypes() {
         </div>
 
         <div className="min-w-0 self-center">
-          <InfoCard tone="info" icon={ScanLine} title="A scanned statement has no text to read">
+          <InfoCard tone="info" icon={ScanLine} title="A scanned statement is read by text recognition">
             <p>
               A statement that is a photo or a scan, rather than a born-digital PDF, holds no text
-              to pull. It comes through flagged as "no text found" so you can run it
-              through OCR first. It is never dropped without telling you.
+              layer. Its pages are read by text recognition here in your browser, and the bundle
+              names the files that text came from, because a misread digit is possible. Check the
+              figures that matter against the original.
             </p>
           </InfoCard>
         </div>

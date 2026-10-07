@@ -17,6 +17,10 @@ export const UPLOAD_BOOK_FAQ = [
     a: "EPUB is not among the file types OpenAI's help center names, which lists text files, spreadsheets, presentations and documents such as PDF, DOCX and TXT. A plain text file of the book sidesteps the question: FileConcat reads the EPUB in your browser and hands back one text file that ChatGPT reads like any other.",
   },
   {
+    q: "Can FileConcat read a Kindle book?",
+    a: "A Kindle .mobi or .azw3 file without DRM, yes: the text is read in your browser the same way an EPUB is. A book protected by DRM is not opened.",
+  },
+  {
     q: "How long a book can I upload to ChatGPT?",
     a: `OpenAI caps one file at 512 MB and 2M tokens, as of September 2026. Pride and Prejudice came to ${BOOK_TOKENS} tokens in our test, far under that. The result screen shows your book's count and what share of your model's context window it takes, so you know before you upload.`,
   },
@@ -38,6 +42,6 @@ export const UPLOAD_BOOK_FAQ = [
   },
   {
     q: "Is the book uploaded to a server?",
-    a: "Not to us. FileConcat reads the EPUB or PDF in your browser tab, and there is no account to create. The only upload is the one text file you choose to send to the assistant.",
+    a: "Not to us. FileConcat reads the EPUB, Kindle book or PDF in your browser tab, and there is no account to create. The only upload is the one text file you choose to send to the assistant.",
   },
 ];

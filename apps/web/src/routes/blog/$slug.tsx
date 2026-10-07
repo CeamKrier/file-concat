@@ -35,7 +35,7 @@ function BlogPostPage() {
   const post = getPostBySlug(slug);
   if (!post) throw notFound();
 
-  const { title, date, author } = post.frontmatter;
+  const { title, date, author, kind, measured } = post.frontmatter;
   const Content = post.Content;
 
   return (
@@ -64,6 +64,20 @@ function BlogPostPage() {
               </>
             )}
           </div>
+          {kind === "research" && (
+            <p className="text-ink-muted mt-4 max-w-[62ch] text-[14px] leading-relaxed">
+              Measured on {formatPostDate(measured || date)} and kept as measured. FileConcat has
+              changed since; what it reads today is listed in{" "}
+              <Link
+                to="/docs/$slug"
+                params={{ slug: "formats" }}
+                className="text-ink focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm underline decoration-1 underline-offset-[3px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+              >
+                the formats list
+              </Link>
+              .
+            </p>
+          )}
         </header>
 
         <BlogMDXProviderWrapper

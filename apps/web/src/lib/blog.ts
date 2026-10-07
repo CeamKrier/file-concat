@@ -14,6 +14,12 @@ export interface BlogFrontmatter {
    * the deploy that ships it and a how-to never does.
    */
   kind?: "research";
+  /**
+   * The day a research post's figures were measured, when it differs from
+   * `date`. The post shows it as a snapshot note: figures stay as measured,
+   * and what the product reads today is linked instead of re-stated.
+   */
+  measured?: string;
 }
 
 /** One `##` section, numbered at compile time by `remark-blog-sections`. */
@@ -70,6 +76,7 @@ function toPost(filePath: string, mod: BlogModule): BlogPost {
       draft: fm.draft ?? false,
       author: fm.author,
       kind: fm.kind,
+      measured: fm.measured,
     },
   };
 }

@@ -1,13 +1,16 @@
 ---
 title: "CLI usage - run FileConcat from the terminal"
-description: "Install the file-concat CLI, the flags it takes, its config file, and how documents, notebooks and archives are handled. Same core library as the web app, no browser required."
+description: "Install the file-concat CLI, the flags it takes, its config file, and how documents, notebooks and archives are handled. Shares the web app's core library, no browser required."
 ---
 
 # CLI usage
 
-The `file-concat` CLI runs the same `@fileconcat/core` library that
-powers the web app. Same filtering semantics, same output format,
-no browser required.
+The `file-concat` CLI is built on the `@fileconcat/core` library the
+web app uses, with the same filtering rules and no browser required.
+It reads fewer formats than the web app: no scanned pages, no
+97-2003 Office files, Kindle books, Outlook `.msg`, 7z or rar
+archives, and no transcription. The published version can lag behind
+the web app.
 
 ## Install
 

@@ -73,10 +73,14 @@ export const NEVER_TEXT_EXTENSIONS: ReadonlySet<string> = new Set(
   FAMILIES.flatMap(([, extensions]) => extensions).filter((ext) => !SUBTITLE_CONTAINERS.has(ext) && !SPEECH_AUDIO.has(ext)),
 );
 
+// Every routed audio and video format is offered for speech to text on the web
+// (`SPEECH_FORMATS` in apps/web/src/lib/ocr.ts), the one surface showing these.
 const NO_SUBTITLE_TRACK: UnreadableReason = {
   label: "Video with no subtitle track",
-  remedy: "Drop its .srt or .vtt file to have the words read.",
+  remedy: "Transcribe it here, or drop its .srt or .vtt file.",
 };
+
+const RECORDING: UnreadableReason = { label: "Audio or video", remedy: "Transcribe it here to have the words read." };
 
 /** Formats the office parser reads, for the "saved under a new name" remedy. */
 const OOXML_SAVE_AS: Readonly<Record<string, string>> = {
@@ -149,7 +153,7 @@ export function unreadableReason(path: string, route?: FileRoute): UnreadableRea
         return { label: "HEIC or AVIF photo", remedy: "A photo saved as JPEG or PNG can be read." };
       case "iso-bmff":
         if (SUBTITLE_CONTAINERS.has(ext)) return NO_SUBTITLE_TRACK;
-        return { label: "Audio or video" };
+        return RECORDING;
       case "matroska":
         return NO_SUBTITLE_TRACK;
       case "mp3":
@@ -157,7 +161,7 @@ export function unreadableReason(path: string, route?: FileRoute): UnreadableRea
       case "flac":
       case "ogg":
       case "wave":
-        return { label: "Audio or video" };
+        return RECORDING;
       default:
         return { label: "Image" };
     }
