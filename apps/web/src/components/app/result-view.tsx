@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import {
+  AudioLines,
   ChartPie,
   Check,
   ChevronDown,
@@ -88,10 +89,14 @@ type ResultViewProps = {
   imageCount: number;
   /** How many of those a pass has already read. */
   recognisedImages: number;
+  /** Audio, and video with no subtitle track, offered for speech to text. */
+  mediaCount: number;
+  /** How many of those a pass has written out. */
+  recognisedMedia: number;
   /** True while a recognition pass is running. */
   isReading: boolean;
   /** Recognition progress, or null when idle. */
-  readProgress: { done: number; total: number } | null;
+  readProgress: { done: number; total: number; note?: string } | null;
   /** True between the stop being asked for and the pass ending. */
   isStopping: boolean;
   /** End the pass now and release the export with whatever has been read. */
@@ -180,6 +185,8 @@ export function ResultView({
   scannedDocumentCount,
   imageCount,
   recognisedImages,
+  mediaCount,
+  recognisedMedia,
   isReading,
   readProgress,
   isStopping,
@@ -380,6 +387,36 @@ export function ResultView({
         action: { label: "Check the reading", onClick: onCheckReading },
       });
     }
+  }
+
+  // The same offer for speech (D5), its own row because its price is its own:
+  // a model download and minutes of listening, against seconds an image.
+  if (mediaCount > 0 && !isReading) {
+    const noun = (n: number) => (n === 1 ? "recording" : "recordings");
+    rows.push(
+      recognisedMedia === 0
+        ? {
+            key: "speech",
+            kind: "note",
+            icon: AudioLines,
+            title: `${mediaCount} ${noun(mediaCount)} that can be written out.`,
+            body: "The speech, and in a video the text on screen, read here in the browser, never started for you: the first time downloads a speech model (66 MB for English, 244 MB for other languages).",
+            action: { label: "Transcribe them", onClick: onCheckReading },
+          }
+        : {
+            key: "speech",
+            kind: "note",
+            icon: AudioLines,
+            title:
+              recognisedMedia < mediaCount
+                ? `Transcribed ${recognisedMedia} of ${mediaCount} ${noun(mediaCount)}.`
+                : mediaCount === 1
+                  ? "Transcribed the recording."
+                  : `Transcribed all ${mediaCount} recordings.`,
+            body: "A speech model hears words, not spelling, so names and terms can come out wrong. Worth a look before you trust them.",
+            action: { label: "Check the transcript", onClick: onCheckReading },
+          },
+    );
   }
 
   if (noiseSkipped > 0) {
@@ -1158,7 +1195,7 @@ function FileRows({ items }: { items: { name: string; why?: string }[] }) {
  * promise the pass cannot keep; elapsed time and a file count are both true at
  * every moment.
  */
-function ReadingProgress({ progress }: { progress: { done: number; total: number } | null }) {
+function ReadingProgress({ progress }: { progress: { done: number; total: number; note?: string } | null }) {
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     const started = Date.now();
@@ -1179,8 +1216,10 @@ function ReadingProgress({ progress }: { progress: { done: number; total: number
               {total > 0 ? `Reading ${at} of ${total} files.` : "Reading the pages as pictures."}
             </div>
             <div className="text-ink-muted mt-[3px] text-[13px] leading-[1.55]">
-              Recognising the page images, here in the browser. You can leave this tab open and come
-              back.
+              {/* Speech names where inside the file it is, as one recording can
+                  be the whole pass. */}
+              {progress?.note ? `${progress.note}.` : "Recognising the page images, here in the browser."} You
+              can leave this tab open and come back.
             </div>
           </div>
         </div>

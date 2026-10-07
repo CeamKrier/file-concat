@@ -11,7 +11,7 @@ import { gunzipSync, unzipSync } from "fflate";
  */
 
 /** Archive containers the router recognizes. Not all of them can be opened. */
-export type ArchiveKind = "zip" | "tar" | "gz" | "rar" | "7z";
+export type ArchiveKind = "zip" | "tar" | "gz" | "bz2" | "xz" | "rar" | "7z";
 
 /** One file recovered from an archive. `path` is relative to the archive root. */
 export interface ArchiveEntry {
@@ -20,9 +20,10 @@ export interface ArchiveEntry {
 }
 
 /**
- * What this build can actually unpack. `rar` and `7z` are routed but not
- * expandable: they need a wasm reader we do not ship yet, so they surface as
- * unsupported instead of being silently mistaken for opaque binaries.
+ * What core unpacks itself, with fflate. The rest (`bz2`, `xz`, `rar`, `7z`)
+ * needs a wasm reader, which is a platform's to load (the web ships 7-Zip); a
+ * platform without one reports them as unsupported instead of mistaking them
+ * for opaque binaries.
  */
 const EXPANDABLE: ReadonlySet<ArchiveKind> = new Set<ArchiveKind>(["zip", "tar", "gz"]);
 
@@ -41,7 +42,7 @@ function isCruft(name: string): boolean {
  * `logs/`, not `logs.tar/`.
  */
 export function stripArchiveSuffix(name: string): string {
-  return name.replace(/\.(tar\.gz|tgz|tar\.bz2|zip|tar|gz|rar|7z)$/i, "");
+  return name.replace(/\.(tar\.gz|tgz|tar\.bz2|tbz2?|tar\.xz|txz|zip|tar|gz|bz2|xz|rar|7z)$/i, "");
 }
 
 /**
@@ -74,10 +75,12 @@ export function isTarHeader(bytes: Uint8Array): boolean {
 }
 
 /**
- * Minimal ustar / GNU tar reader. Returns regular files only; directories,
- * symlinks, and pax/global headers are skipped. GNU long names (`L` typeflag)
- * are honored; base-256 large sizes are not (rare, and such entries would
- * exceed the size cap anyway).
+ * Minimal ustar / GNU / pax tar reader. Returns regular files only, empty ones
+ * included; directories and links are skipped. GNU long names (`L`) and pax
+ * `path` records (`x`) name the next entry, which is how a path past 100 bytes
+ * or outside ASCII is stored; global pax headers (`g`) are skipped. Base-256
+ * large sizes are not read (rare, and such entries would exceed the size cap
+ * anyway).
  */
 function untar(bytes: Uint8Array): ArchiveEntry[] {
   const out: ArchiveEntry[] = [];
@@ -113,10 +116,15 @@ function untar(bytes: Uint8Array): ArchiveEntry[] {
     if (typeFlag === "L") {
       // GNU long-name entry: its data is the name for the NEXT header.
       longName = decoder.decode(bytes.subarray(dataOffset, dataOffset + size)).replace(/\0+$/, "");
-    } else if (typeFlag === "0" || typeFlag === "\0") {
+    } else if (typeFlag === "x") {
+      // pax records, "<length> <key>=<value>\n" each; only `path` matters here.
+      const records = decoder.decode(bytes.subarray(dataOffset, dataOffset + size));
+      const path = /(?:^|\n)\d+ path=([^\n]*)\n/.exec(records);
+      if (path) longName = path[1];
+    } else if (typeFlag === "0" || typeFlag === "\0" || typeFlag === "7") {
       const fullName = longName ?? (prefix ? `${prefix}/${name}` : name);
       longName = null;
-      if (fullName && size > 0) {
+      if (fullName) {
         out.push({ path: fullName, bytes: bytes.subarray(dataOffset, dataOffset + size) });
       }
     } else {
@@ -143,6 +151,108 @@ function collect(base: string, entries: ArchiveEntry[]): ArchiveEntry[] {
 }
 
 /**
+ * Root the files a platform's wasm reader unpacked (`path` relative to the
+ * archive) the way {@link expandArchive} roots its own. Such a reader opens one
+ * layer, so a `.tar.bz2` comes back as its tar, which core unpacks; a lone
+ * compressed file lands at the root, as a `.gz` one does.
+ */
+export function rootArchiveEntries(
+  entries: ArchiveEntry[],
+  kind: ArchiveKind,
+  name: string,
+): ArchiveEntry[] {
+  const base = stripArchiveSuffix(name);
+  const only = entries.length === 1 ? entries[0] : undefined;
+  if (only && isTarHeader(only.bytes)) return collect(base, untar(only.bytes));
+  if (only && (kind === "bz2" || kind === "xz")) {
+    return [{ path: only.path.split("/").pop() || only.path, bytes: only.bytes }];
+  }
+  return collect(base, entries);
+}
+
+/** Bytes 0x80-0xFF of code page 437, the zip spec's encoding for a name without the UTF-8 flag. */
+const CP437_HIGH = "ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■\u00a0";
+
+const utf8 = new TextDecoder("utf-8", { fatal: true });
+
+function decodeUtf8(bytes: Uint8Array): string | undefined {
+  try {
+    return utf8.decode(bytes);
+  } catch {
+    return undefined;
+  }
+}
+
+function crc32(bytes: Uint8Array): number {
+  let crc = -1;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+  }
+  return (crc ^ -1) >>> 0;
+}
+
+/** An Info-ZIP Unicode Path field (0x7075), trusted only while its CRC still
+ * matches the stored name, so a tool that renamed the entry without knowing the
+ * field cannot resurrect the old name. */
+function unicodePath(extra: Uint8Array, name: Uint8Array): string | undefined {
+  const view = new DataView(extra.buffer, extra.byteOffset, extra.byteLength);
+  for (let at = 0; at + 4 <= extra.length; at += 4 + view.getUint16(at + 2, true)) {
+    const size = view.getUint16(at + 2, true);
+    if (view.getUint16(at, true) !== 0x7075 || size < 5 || at + 4 + size > extra.length) continue;
+    if (extra[at + 4] !== 1 || view.getUint32(at + 5, true) !== crc32(name)) continue;
+    return decodeUtf8(extra.subarray(at + 9, at + 4 + size));
+  }
+  return undefined;
+}
+
+/**
+ * The real names of the entries whose name is not flagged UTF-8, keyed by the
+ * Latin-1 reading fflate gives them. The spec says CP437, and macOS, Linux and
+ * most tools write UTF-8 without the flag, so the order is zip.js's and 7-Zip's:
+ * the Unicode Path field, then UTF-8 when every such name in the archive is valid
+ * UTF-8 (decided per archive, because a short CP866 name can pass alone), then
+ * CP437. fflate exposes neither the flag nor the extra fields, hence the walk
+ * over the central directory.
+ *
+ * ponytail: a Windows zip in a non-US OEM code page (CP857 Turkish, CP866
+ * Russian) still comes out as CP437 symbols; a locale-guessed code page if the
+ * counters show such zips.
+ */
+function zipNames(bytes: Uint8Array): Map<string, string> {
+  const names = new Map<string, string>();
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let end = bytes.length - 22;
+  const floor = Math.max(0, end - 0xffff);
+  while (end >= floor && view.getUint32(end, true) !== 0x06054b50) end--;
+  if (end < floor) return names;
+  let count = view.getUint16(end + 10, true);
+  let at = view.getUint32(end + 16, true);
+  // ponytail: a zip64 directory keeps fflate's Latin-1 names.
+  if (count === 0xffff || at === 0xffffffff) return names;
+
+  const unflagged: { name: Uint8Array; unicode?: string }[] = [];
+  for (; count > 0 && at + 46 <= bytes.length && view.getUint32(at, true) === 0x02014b50; count--) {
+    const nameEnd = at + 46 + view.getUint16(at + 28, true);
+    const extraEnd = nameEnd + view.getUint16(at + 30, true);
+    const name = bytes.subarray(at + 46, nameEnd);
+    if (!(view.getUint16(at + 8, true) & 0x800)) {
+      const unicode = unicodePath(bytes.subarray(nameEnd, extraEnd), name);
+      if (unicode !== undefined || name.some((byte) => byte > 0x7f)) unflagged.push({ name, unicode });
+    }
+    at = extraEnd + view.getUint16(at + 32, true);
+  }
+
+  const asUtf8 = unflagged.every((entry) => entry.unicode !== undefined || decodeUtf8(entry.name) !== undefined);
+  for (const { name, unicode } of unflagged) {
+    const latin1 = String.fromCharCode(...name);
+    const cp437 = () => Array.from(name, (byte) => (byte < 0x80 ? String.fromCharCode(byte) : CP437_HIGH[byte - 0x80])).join("");
+    names.set(latin1, unicode ?? (asUtf8 ? decodeUtf8(name)! : cp437()));
+  }
+  return names;
+}
+
+/**
  * Unpack an archive's bytes into its entries, each rooted at a folder named
  * after the archive. Returns an empty array for an archive that holds nothing
  * we'd keep, and for a kind this build cannot open — callers check
@@ -153,9 +263,13 @@ export function expandArchive(bytes: Uint8Array, kind: ArchiveKind, name: string
   const base = stripArchiveSuffix(name);
 
   if (kind === "zip") {
+    const names = zipNames(bytes);
     return collect(
       base,
-      Object.entries(unzipSync(bytes)).map(([path, data]) => ({ path, bytes: data })),
+      Object.entries(unzipSync(bytes)).map(([path, data]) => ({
+        path: (names.get(path) ?? path).normalize("NFC"),
+        bytes: data,
+      })),
     );
   }
 

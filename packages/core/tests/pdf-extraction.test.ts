@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { routeBytes } from "../src/file-processing/routing";
 import {
+  assemblePdfPages,
   extractOfficeDocument,
   isPasswordProtected,
   replacePages,
@@ -273,6 +274,55 @@ describe("replacePages", () => {
     const { notes } = await extractOfficeDocument(textLayerPdf(["Ordinary readable prose"]));
 
     expect(notes).toBeUndefined();
+  });
+});
+
+describe("assemblePdfPages", () => {
+  const fence = "```text\n\n```";
+
+  it("marks each page and names a scanned one for recognition", () => {
+    const { text, notes } = assemblePdfPages([
+      { number: 1, text: "Page one reads." },
+      { number: 2, text: fence, scanned: true },
+    ]);
+
+    expect(text).toBe("# Page 1\nPage one reads.\n\n# Page 2");
+    expect(notes).toEqual([{ kind: "pages-scanned", count: 1, pages: [2] }]);
+    expect(replacePages(text, new Map([[2, "what recognition read"]]))).toBe(
+      "# Page 1\nPage one reads.\n\n# Page 2\nwhat recognition read",
+    );
+  });
+
+  it("names every page of a document no page of which reads, picture or not", () => {
+    expect(assemblePdfPages([{ number: 1, text: fence, scanned: true }, { number: 2, text: "" }])).toEqual({
+      text: "",
+      notes: [{ kind: "pages-scanned", count: 2, pages: [1, 2] }],
+    });
+  });
+
+  it("leaves a blank page without a picture alone", () => {
+    const { notes } = assemblePdfPages([
+      { number: 1, text: "Prose." },
+      { number: 2, text: "" },
+    ]);
+
+    expect(notes).toBeUndefined();
+  });
+
+  it("drops undecodable lines and counts skipped pages", () => {
+    const { text, notes } = assemblePdfPages(
+      [
+        { number: 1, text: "Readable." },
+        { number: 2, text: "\u0003\u0004\u0005" },
+      ],
+      1,
+    );
+
+    expect(text).toBe("# Page 1\nReadable.\n\n# Page 2");
+    expect(notes).toEqual([
+      { kind: "pages-skipped", count: 1 },
+      { kind: "text-undecodable", count: 1, pages: [2] },
+    ]);
   });
 });
 

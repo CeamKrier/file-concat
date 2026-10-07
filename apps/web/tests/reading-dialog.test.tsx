@@ -16,7 +16,7 @@ function doc(
   tried = true,
   language: string | null = text ? "Turkish" : null,
 ): ReadingDocument {
-  return { path: `scans/${name}`, name, text, tried, language };
+  return { path: `scans/${name}`, name, text, tried, language, speech: /\.(mp3|mp4)$/.test(name) };
 }
 
 function open(props: Partial<React.ComponentProps<typeof ReadingDialog>> = {}) {
@@ -69,6 +69,22 @@ describe("the reading dialog", () => {
 
     expect(screen.getByText("Not read yet.")).toBeInTheDocument();
     expect(screen.getByText(/Nothing legible here/)).toBeInTheDocument();
+  });
+
+  it("names the speech model's download before the first transcription, by language", async () => {
+    open({ documents: [doc("talk.mp3", "", false)], language: "en" });
+    expect(screen.getByText(/66 MB for English/)).toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByRole("combobox"), "tr");
+    expect(screen.getByText(/244 MB for this language/)).toBeInTheDocument();
+    expect(screen.queryByText(/66 MB/)).not.toBeInTheDocument();
+  });
+
+  it("says a recording came back with no speech, not that it was illegible", () => {
+    open({ documents: [doc("talk.mp3", "", true), doc("a.pdf", "Merve", true)] });
+    expect(screen.getByText(/No speech or text came back/)).toBeInTheDocument();
+    // Nothing to download for a pass that is over.
+    expect(screen.queryByText(/downloaded once/)).not.toBeInTheDocument();
   });
 
   it("offers a way out, not a second pass, when everything has been read", async () => {

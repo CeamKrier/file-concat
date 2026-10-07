@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gzipSync, strToU8 } from "fflate";
+import { gzipSync, strToU8, zipSync } from "fflate";
 import { RECOGNISABLE_IMAGE_FORMATS } from "../src/file-processing/binary-signatures";
 import { routeBytes } from "../src/file-processing/routing";
 import {
@@ -81,8 +81,37 @@ describe("routeBytes", () => {
     });
   });
 
+  it("routes Kindle books, old MOBI and KF8 alike, by the PalmDB header", async () => {
+    // A PalmDB name, then `BOOKMOBI` as type and creator at byte 60.
+    const mobi = new Uint8Array([...Array(60).fill(0), ...strToU8("BOOKMOBI"), ...Array(32).fill(0)]);
+    expect(await routeBytes(mobi)).toEqual({ kind: "extract", parserId: "mobi", format: "mobi" });
+  });
+
   it("tells a plain zip apart from the documents that share its signature", async () => {
     expect(await routeBytes(plainZip())).toEqual({ kind: "expand", archive: "zip" });
+  });
+
+  it("names an Office package file-type calls a zip by its part names", async () => {
+    // A binary workbook's main content type has no `+xml`, so file-type answers
+    // "zip" for every .xlsb (10 of 10 POI test files, 2026-10-05).
+    const xlsb = zipSync({
+      "[Content_Types].xml": utf8('<Types><Override ContentType="application/vnd.ms-excel.sheet.binary.macroEnabled.main"/></Types>'),
+      "_rels/.rels": utf8("<Relationships/>"),
+      "xl/workbook.bin": new Uint8Array(16),
+    });
+    expect(await routeBytes(xlsb)).toEqual({ kind: "extract", parserId: "office", format: "xlsb" });
+    // Parts written before [Content_Types].xml, as a POI test workbook has them.
+    const partsFirst = zipSync({
+      "xl/workbook.xml": utf8("<workbook/>"),
+      "xl/worksheets/sheet1.xml": utf8("<worksheet/>"),
+      "[Content_Types].xml": utf8("<Types/>"),
+    });
+    expect(await routeBytes(partsFirst)).toEqual({ kind: "extract", parserId: "office", format: "xlsx" });
+  });
+
+  it("still unpacks a zip of a folder that happens to be called word", async () => {
+    const folder = zipSync({ "word/notes.txt": utf8("plain notes\n"), "word/todo.md": utf8("- one\n") });
+    expect(await routeBytes(folder)).toEqual({ kind: "expand", archive: "zip" });
   });
 
   it("routes a tar", async () => {
@@ -131,6 +160,25 @@ describe("routeBytes", () => {
     const route = await routeBytes(mp4);
     expect(route).toEqual({ kind: "binary", format: "iso-bmff" });
     expect(RECOGNISABLE_IMAGE_FORMATS.has("iso-bmff")).toBe(false);
+    // The brand splits a phone photo off, so it is never offered as a video.
+    const heic = new Uint8Array([0, 0, 0, 0x18, ...strToU8("ftypheic"), ...Array(32).fill(0)]);
+    expect(await routeBytes(heic)).toEqual({ kind: "binary", format: "heif" });
+  });
+
+  it("names audio by its own header, and not a UTF-16 text file that opens on FF FE", async () => {
+    const tagged = new Uint8Array([...strToU8("ID3"), 0x04, 0x00, ...Array(32).fill(0)]);
+    expect(await routeBytes(tagged)).toEqual({ kind: "binary", format: "mp3" });
+    expect(await routeBytes(new Uint8Array([0xff, 0xfb, 0x90, 0x64, ...Array(32).fill(0)]))).toEqual({ kind: "binary", format: "mp3" });
+    expect(await routeBytes(new Uint8Array([...strToU8("fLaC"), 0x00, ...Array(32).fill(0)]))).toEqual({ kind: "binary", format: "flac" });
+    expect(await routeBytes(new Uint8Array([...strToU8("OggS"), 0x00, 0x02, ...Array(32).fill(0)]))).toEqual({ kind: "binary", format: "ogg" });
+    const utf16 = new Uint8Array([0xff, 0xfe, ...new Uint8Array(new Uint16Array([...("plain text\n")].map((c) => c.charCodeAt(0))).buffer)]);
+    expect((await routeBytes(utf16)).kind).not.toBe("binary");
+    expect(await routeBytes(utf8("ID3 tags hold the title of a song.\n"))).toEqual({ kind: "unknown" });
+  });
+
+  it("names Matroska and WebM, which share the EBML header", async () => {
+    const mkv = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 0x9f, 0x42, 0x86, 0x81, 0x01, ...Array(32).fill(0)]);
+    expect(await routeBytes(mkv)).toEqual({ kind: "binary", format: "matroska" });
   });
 
   it("abstains on plain source, leaving the byte classifier to decide", async () => {
@@ -145,6 +193,23 @@ describe("routeBytes", () => {
 
     const svg = utf8(`<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>`);
     expect(await routeBytes(svg)).toEqual({ kind: "unknown" });
+  });
+
+  it("routes a page a browser saved, and leaves HTML source alone", async () => {
+    const chrome = utf8(
+      '<!DOCTYPE html>\n<!-- saved from url=(0027)https://example.com/post/1 -->\n<html><head><title>Post</title></head><body><p>Text</p></body></html>',
+    );
+    expect(await routeBytes(chrome)).toEqual({ kind: "extract", parserId: "html", format: "html" });
+    const singleFile = utf8(
+      "<!DOCTYPE html> <html lang=en><!--\n Page saved with SingleFile \n url: https://example.com/a \n saved date: Mon Oct 05 2026\n--><head><title>A</title></head><body></body></html>",
+    );
+    expect(await routeBytes(singleFile)).toEqual({ kind: "extract", parserId: "html", format: "html" });
+
+    const source = utf8('<!doctype html>\n<html lang="en"><head><meta charset="utf-8"></head><body><div id="root"></div></body></html>');
+    expect(await routeBytes(source)).toEqual({ kind: "unknown" });
+    // The comment quoted in a page's text is not a saver's comment.
+    const quoted = utf8("<html><head></head><body><pre>&lt;!-- x --&gt; <!-- saved from url=(0019)https://example.com --></pre></body></html>");
+    expect(await routeBytes(quoted)).toEqual({ kind: "unknown" });
   });
 
   it("ignores the filename entirely — the same bytes always route the same way", async () => {

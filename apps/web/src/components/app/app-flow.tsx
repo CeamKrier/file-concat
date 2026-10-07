@@ -51,6 +51,7 @@ import { ReadingDialog } from "./reading-dialog";
 import { emptyKindFor, emptyReasonSlug } from "./empty-kind";
 import {
   isRecognisableImage,
+  isSpeechMedia,
   STAGE,
   type ContentEntry,
   type IncomingFile,
@@ -425,12 +426,23 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
    */
   const recognition = useMemo(() => {
     const isImage = (d: { format: string }) => isRecognisableImage(d.format);
+    const isMedia = (d: { format: string }) => isSpeechMedia(d.format);
+    // Speech is an offer on the same terms as an image (D5), so it leaves the
+    // document counts the same way.
+    const isOffer = (d: { format: string }) => isImage(d) || isMedia(d);
     const images = ingestion.scannedDocuments.filter(isImage);
     const unreadImages = ingestion.unreadDocuments.filter(isImage);
+    const media = ingestion.scannedDocuments.filter(isMedia);
+    const unreadMedia = ingestion.unreadDocuments.filter(isMedia);
     return {
       imageCount: images.length,
       recognisedImages: images.length - unreadImages.length,
-      unreadDocumentCount: ingestion.unreadDocuments.length - unreadImages.length,
+      mediaCount: media.length,
+      recognisedMedia: media.length - unreadMedia.length,
+      offerableMediaCount: unreadMedia.filter(
+        (d) => ingestion.validations[d.path]?.recognitionTried !== true,
+      ).length,
+      unreadDocumentCount: ingestion.unreadDocuments.filter((d) => !isOffer(d)).length,
       // Only the ones no pass has been over yet. Once recognition has looked and
       // found nothing, the offer is spent and the empty screen says so instead.
       offerableImageCount: unreadImages.filter(
@@ -441,7 +453,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       // and "tried and got nothing" want opposite copy, and only the
       // per-document record can still tell them apart after an append.
       untriedDocumentCount: ingestion.unreadDocuments.filter(
-        (d) => !isImage(d) && ingestion.validations[d.path]?.recognitionTried !== true,
+        (d) => !isOffer(d) && ingestion.validations[d.path]?.recognitionTried !== true,
       ).length,
     };
   }, [ingestion.scannedDocuments, ingestion.unreadDocuments, ingestion.validations]);
@@ -458,6 +470,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         adjustableCount,
         recognition.offerableImageCount,
         ingestion.pruned?.count ?? 0,
+        recognition.offerableMediaCount,
       ),
     [droppedFiles, recognition, adjustableCount, ingestion.pruned],
   );
@@ -589,6 +602,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         text: text.length > SAMPLE_LIMIT ? `${text.slice(0, SAMPLE_LIMIT)}\n...` : text,
         tried: ingestion.validations[d.path]?.recognitionTried === true,
         language: language ? ocrLanguageName(language) : null,
+        speech: isSpeechMedia(d.format),
       };
     });
   }, [
@@ -893,16 +907,20 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               extractedFiles={extractedFiles}
               partialDocuments={partialDocuments}
               scannedDocumentCount={
-                ingestion.scannedDocuments.length - recognition.imageCount
+                ingestion.scannedDocuments.length - recognition.imageCount - recognition.mediaCount
               }
               imageCount={recognition.imageCount}
               recognisedImages={recognition.recognisedImages}
+              mediaCount={recognition.mediaCount}
+              recognisedMedia={recognition.recognisedMedia}
               isReading={ingestion.isReading}
               readProgress={ingestion.readProgress}
               isStopping={ingestion.isStopping}
               onStopReading={ingestion.stopReading}
               recoveredDocuments={
-                ingestion.recoveredDocuments - recognition.recognisedImages
+                ingestion.recoveredDocuments -
+                recognition.recognisedImages -
+                recognition.recognisedMedia
               }
               stoppedReading={ingestion.stoppedReading}
               readDeferred={readDeferred}

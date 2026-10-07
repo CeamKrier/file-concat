@@ -43,6 +43,18 @@ describe("routing messages", () => {
     });
   });
 
+  it("names a message whose header block runs past the sniffed prefix", async () => {
+    // A bounce: `From:` behind 6 KB of Received lines, the block cut mid-line.
+    const received = "Received: from relay.example.net by mx.example.org; Mon, 5 Oct 2026 10:00:00 +0000\r\n";
+    const head = received.repeat(70) + "From: Mail Delivery <mailer@example.org>\r\n" + received.repeat(50);
+    expect(head.length).toBeGreaterThan(8192);
+    expect(await routeBytes(utf8(head + "\r\nbody"))).toEqual({
+      kind: "extract",
+      parserId: "email",
+      format: "eml",
+    });
+  });
+
   it("leaves a config that happens to use `key: value` alone", async () => {
     // The reason the envelope headers are required: plenty of files open with
     // colon-separated pairs, and `From:` alone is not evidence of a message.

@@ -29,8 +29,8 @@ interface Signature {
 const ascii = (s: string): number[] => [...s].map((c) => c.charCodeAt(0));
 
 /**
- * Media-container signatures. Kept to raster images and the ISO base-media
- * family (heic/avif/mp4/mov) plus Photoshop — the binaries whose leading
+ * Media-container signatures. Kept to raster images, the ISO base-media
+ * family (heic/avif/mp4/mov) and Matroska plus Photoshop — the binaries whose leading
  * metadata most plausibly masquerades as text. Formats with unambiguous
  * high-entropy headers are already caught by the suspicion classifier.
  */
@@ -44,10 +44,36 @@ const SIGNATURES: readonly Signature[] = [
   { offset: 0, magic: [0x00, 0x00, 0x01, 0x00], format: "ico" },
   { offset: 0, magic: [0x00, 0x00, 0x02, 0x00], format: "cur" },
   { offset: 0, magic: [...ascii("8BPS")], format: "psd" },
-  // heic, avif, mp4 and mov share this one and cannot be told apart without
-  // reading the brand, so it stays a single unrecognisable format (ADR-0017).
+  // heic, avif, mp4, m4a and mov share this one; the brand after it splits
+  // the photos off as `heif` (see below). Neither is recognisable (ADR-0017).
   { offset: 4, magic: [...ascii("ftyp")], format: "iso-bmff" },
+  // The EBML header Matroska and WebM both open with. Named so a video's own
+  // subtitle track can be read; before, the byte classifier called it binary.
+  { offset: 0, magic: [0x1a, 0x45, 0xdf, 0xa3], format: "matroska" },
+  // Audio, named so speech in it can be offered for transcription. Each ASCII
+  // tag is held to the control byte that follows it in a real file: an ID3v2
+  // version and zero revision, FLAC's first metadata block type, Ogg's version.
+  { offset: 0, magic: [...ascii("ID3"), 0x02, 0x00], format: "mp3" },
+  { offset: 0, magic: [...ascii("ID3"), 0x03, 0x00], format: "mp3" },
+  { offset: 0, magic: [...ascii("ID3"), 0x04, 0x00], format: "mp3" },
+  // An untagged MP3 opens on a Layer III frame sync. Only those four, because
+  // the sync's other values include FF FE, the UTF-16 byte-order mark.
+  { offset: 0, magic: [0xff, 0xfb], format: "mp3" },
+  { offset: 0, magic: [0xff, 0xfa], format: "mp3" },
+  { offset: 0, magic: [0xff, 0xf3], format: "mp3" },
+  { offset: 0, magic: [0xff, 0xf2], format: "mp3" },
+  { offset: 0, magic: [0xff, 0xf1], format: "aac" }, // ADTS, MPEG-4
+  { offset: 0, magic: [0xff, 0xf9], format: "aac" }, // ADTS, MPEG-2
+  { offset: 0, magic: [...ascii("fLaC"), 0x00], format: "flac" },
+  { offset: 0, magic: [...ascii("fLaC"), 0x80], format: "flac" },
+  { offset: 0, magic: [...ascii("OggS"), 0x00], format: "ogg" },
 ];
+
+/**
+ * Major brands of a HEIF still image (ISO/IEC 23008-12, and AVIF's), so a phone
+ * photo is never offered for transcription as if it were a video.
+ */
+const HEIF_BRANDS: ReadonlySet<string> = new Set(["heic", "heix", "heim", "heis", "hevc", "hevx", "mif1", "msf1", "avif", "avis"]);
 
 /** RIFF containers ("RIFF" + 4-byte size + a form tag) that are binary media. */
 const RIFF = ascii("RIFF");
@@ -87,7 +113,9 @@ function matchesAt(bytes: Uint8Array, offset: number, magic: readonly number[]):
  */
 export function matchesBinarySignature(bytes: Uint8Array): string | null {
   for (const { offset, magic, format } of SIGNATURES) {
-    if (matchesAt(bytes, offset, magic)) return format;
+    if (!matchesAt(bytes, offset, magic)) continue;
+    if (format === "iso-bmff" && HEIF_BRANDS.has(String.fromCharCode(...bytes.subarray(8, 12)))) return "heif";
+    return format;
   }
   if (matchesAt(bytes, 0, RIFF)) {
     return RIFF_FORMS.find(({ tag }) => matchesAt(bytes, 8, tag))?.format ?? null;

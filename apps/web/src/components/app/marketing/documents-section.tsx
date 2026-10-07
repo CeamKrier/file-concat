@@ -218,7 +218,7 @@ const FORMATS: { icon: LucideIcon; kind: string; ext: string[] }[] = [
   { icon: FileText, kind: "documents", ext: ["pdf", "doc", "docx", "odt", "rtf"] },
   { icon: FileSpreadsheet, kind: "spreadsheets", ext: ["xls", "xlsx", "ods"] },
   { icon: Presentation, kind: "slides", ext: ["pptx", "odp"] },
-  { icon: BookOpen, kind: "ebooks", ext: ["epub"] },
+  { icon: BookOpen, kind: "ebooks", ext: ["epub", "mobi", "azw3"] },
   { icon: Mail, kind: "email", ext: ["eml", "msg"] },
   { icon: NotebookPen, kind: "notebooks", ext: ["ipynb"] },
   { icon: Captions, kind: "subtitles", ext: ["vtt", "srt"] },

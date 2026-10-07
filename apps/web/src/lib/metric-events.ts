@@ -177,8 +177,8 @@ export const METRIC_EVENTS = [
   /**
    * What a reader could not recover from a document it *did* open: value is one
    * of the ADR-0008 note kinds (`pages-skipped`, `attachments-skipped`,
-   * `ocr-failed`, `cdn-fallback`, `parser-unavailable`), `n` the documents
-   * carrying it.
+   * `ocr-failed`, `cdn-fallback`, `parser-unavailable`, `text-undecodable`,
+   * `pages-scanned`), `n` the documents carrying it.
    *
    * Orthogonal to `extract_failed`, not a subset of it: most of these are
    * written for a document that came back with text, and say which part of it
@@ -192,8 +192,28 @@ export const METRIC_EVENTS = [
    * A single row is a defect, not a distribution.
    */
   "extract_note",
-  /** An archive we cannot open, by extension. */
+  /**
+   * Which reader produced a document's text: value `<extension>/<reader>`
+   * (`docx/officeparser`, `ppt/anydoc`), `n` the documents. Written only for a
+   * document that came back with text, and only for the formats that run a
+   * reader chain (core `extractWithFallback`), so a fallback's share of what
+   * reaches the bundle is measured after it ships instead of assumed from the
+   * benchmark that put it there. Since 2026-10-05.
+   */
+  "extract_reader",
+  /**
+   * An archive we cannot open, by kind. Silent since 2026-10-05 on the web,
+   * where 7-Zip opens every kind the router names; `archive_reader`'s `none`
+   * rows carry the failures instead.
+   */
   "archive_unsupported",
+  /**
+   * Which reader opened an archive: value `<kind>/<reader>` (`zip/fflate`,
+   * `7z/7zip`), or `<kind>/none` when neither did and the archive stayed
+   * packed (corrupt, encrypted, a method 7-Zip lacks). One row per archive.
+   * Since 2026-10-05 (extraction router, step R2).
+   */
+  "archive_reader",
 
   // --- per run, written later ---
 
@@ -281,6 +301,27 @@ export const METRIC_EVENTS = [
    * `ocr_deferred` and then looks like an image from here on.
    */
   "ocr_read",
+  /**
+   * Audio, or a video with no subtitle track, that speech to text was
+   * **offered** over, by router format (`mp3`, `iso-bmff`, `matroska`, ...):
+   * `n` files totalling `b` bytes. Written once per Run at the end of ingest.
+   * A file over the 1 GB decode cap is not offered and not counted here.
+   * Extraction router D5; the denominator for `asr_read`.
+   */
+  "asr_offered",
+  /**
+   * A file a pass actually **opened** for speech to text, by format: `n` files
+   * totalling `b` bytes. A subset of `asr_offered`. Whether words came back is
+   * `ocr_recovered` under the same format; `ocr_ms` times the whole pass.
+   */
+  "asr_read",
+  /**
+   * A video from an `asr_read` pass whose frames gave on-screen text, by
+   * format: `n` files totalling `b` bytes. Extraction router D6. Against
+   * `asr_read` under the video formats it says how often a picture carried
+   * words; a video that kept none is not counted here.
+   */
+  "frames_read",
   /**
    * Scanned documents a drop declined to read on its own, by format: `n` files
    * totalling `b` bytes. Written once per Run, at the end of ingest, when the

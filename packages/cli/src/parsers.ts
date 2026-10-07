@@ -30,4 +30,7 @@ export const parsers: ParserRegistry = createParserRegistry({
   email: async (bytes) => formatEmail(await PostalMime.parse(bytes)),
   notebook: async (bytes) => extractNotebook(bytes),
   subtitles: async (bytes) => extractSubtitles(bytes),
+  // A saved web page stays the markup it was before the web build learned to
+  // read one: the article reader needs a DOM, which node does not have.
+  html: async (bytes) => ({ text: new TextDecoder().decode(bytes).trim() }),
 });

@@ -158,7 +158,7 @@ describe("useFileIngestion", () => {
     });
     const files = [
       pick("proj/src/index.ts", "export {};\n"),
-      pick("proj/media/clip.mp4", "not read"),
+      pick("proj/media/clip.avi", "not read"),
       pick("proj/build.zip", zip),
     ];
     const target = { files, value: "" } as unknown as HTMLInputElement;
@@ -172,17 +172,17 @@ describe("useFileIngestion", () => {
       "build/app.js",
       "proj/src/index.ts",
     ]);
-    // One record: the door's mp4 and the archive's font and vendor folder.
+    // One record: the door's avi and the archive's font and vendor folder.
     expect(result.current.pruned).toEqual({
       dirs: ["vendor"],
       exts: new Map([
-        ["mp4", { n: 1 }],
+        ["avi", { n: 1 }],
         ["woff2", { n: 1 }],
       ]),
       count: 3,
       roots: [],
     });
-    expect(TALLIES.pruned_ext).toEqual(["mp4", "woff2"]);
+    expect(TALLIES.pruned_ext).toEqual(["avi", "woff2"]);
   });
 
   it("reads a 97-2003 workbook and includes its sheets", async () => {
