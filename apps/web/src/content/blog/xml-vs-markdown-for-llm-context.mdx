@@ -92,9 +92,9 @@ This is a packed snapshot of a codebase, assembled by fileconcat.com.
 File count: 42.
 </summary>
 <files>
-<file path="src/index.ts" language="typescript">
+<file path="src/index.ts" language="typescript"><![CDATA[
 export const x = 1;
-</file>
+]]></file>
 </files>
 </codebase>
 ```
@@ -170,6 +170,12 @@ between codebases is larger than the difference between formats.
 
 Per file, the wrapper costs 20 to 33 tokens in Markdown, 21 to 30 in plain, and 26 to 44 in XML.
 On a 50-file bundle that is a few hundred tokens against fifty thousand.
+
+Since 2026-10-07 the XML style puts each file's content in a CDATA section, so the bundle also
+opens in an XML reader. That costs about 3 more tokens per file (`cl100k_base`, measured the same
+day on the five folders as they stand now): 0.14% to 0.28% of a bundle. The widest gap between the three styles,
+in the 4-file CLI package, moves from 0.97% to 1.21% on today's files. The tables above are the
+2026-08-31 build.
 
 <Callout type="note" title="Why the token argument does not transfer">
   Published format comparisons show HTML costing roughly three times what CSV costs for the same
@@ -315,7 +321,8 @@ put your question at the very end.
 **XML if you are pasting into Claude, or if the bundle is large.** Closing tags are explicit, so
 nothing is ambiguous about whether a line still belongs to the previous file, and that holds up
 better the longer the context gets. Contents stay verbatim: angle brackets inside a file are
-never escaped, so `Record<T>` arrives as you wrote it.
+never escaped, so `Record<T>` arrives as you wrote it. Each file sits in a CDATA section, so the
+bundle also opens in any XML reader.
 
 **Markdown if you want to read the bundle yourself too.** It is the lightest wrapper, the fence
 carries the language id, and it renders in every editor and chat box. A bundled file can carry

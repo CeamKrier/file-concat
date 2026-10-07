@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SaxesParser } from "saxes";
 import { assembleOutput } from "../src/file-processing/output";
 import { generateFileTree } from "../src/path-utils/file-tree";
 
@@ -41,7 +42,7 @@ describe("assembleOutput xml", () => {
     expect(output).not.toContain("```");
   });
 
-  it("emits file content verbatim while escaping only attributes", () => {
+  it("emits file content verbatim in a CDATA section while escaping attributes", () => {
     const output = assembleOutput({
       projectName: "a&b",
       files: [{ path: "x<y>.ts", content: "const a = 1 < 2 && 3 > 1;\n" }],
@@ -53,7 +54,43 @@ describe("assembleOutput xml", () => {
     expect(output).toContain(`project="a&amp;b"`);
     expect(output).toContain(`path="x&lt;y&gt;.ts"`);
     // Content is verbatim: the code the user pastes must not be entity-corrupted.
-    expect(output).toContain("const a = 1 < 2 && 3 > 1;");
+    expect(output).toContain("<![CDATA[\nconst a = 1 < 2 && 3 > 1;\n\n]]></file>");
+  });
+
+  it("parses in a strict XML parser and gives every file back", () => {
+    const tricky = [
+      { path: "R&D/notes.md", content: 'Example: <file path="foo">bar</file> & <summary>' },
+      { path: "a.ts", content: "if (a[b[0]]> 1) {}\n" },
+      { path: "old.c", content: "int a;\f\nint b;\u0000" },
+    ];
+    const output = assembleOutput({
+      projectName: "p&q",
+      files: tricky,
+      tree: generateFileTree(tricky.map((f) => f.path)),
+      source: "https://example.com/x?a=1&b=2",
+      style: "xml",
+    });
+
+    const parser = new SaxesParser();
+    const got = new Map<string, string>();
+    let path: string | null = null;
+    let text = "";
+    parser.on("opentag", (tag) => {
+      if (tag.name === "file") [path, text] = [String(tag.attributes.path), ""];
+    });
+    parser.on("cdata", (chunk) => (text += chunk));
+    parser.on("text", (chunk) => path !== null && (text += chunk));
+    parser.on("closetag", (tag) => {
+      if (tag.name === "file" && path !== null) got.set(path, text);
+      if (tag.name === "file") path = null;
+    });
+    parser.write(output).close();
+
+    expect(got.get("R&D/notes.md")).toBe('\nExample: <file path="foo">bar</file> & <summary>\n');
+    // `]]>` is split across two sections, which a parser joins back.
+    expect(got.get("a.ts")).toBe("\nif (a[b[0]]> 1) {}\n\n");
+    // XML cannot carry a form feed or NUL in any form; they are marked, not dropped.
+    expect(got.get("old.c")).toBe("\nint a;�\nint b;�\n");
   });
 
   it("keeps angle brackets, ampersands, and arrows intact in content", () => {
@@ -68,7 +105,7 @@ describe("assembleOutput xml", () => {
     expect(output).not.toContain("=&gt;");
   });
 
-  it("emits literal tag-like sequences in content verbatim (delimiter, not strict XML)", () => {
+  it("emits literal tag-like sequences in content verbatim", () => {
     const output = assembleOutput({
       projectName: "demo",
       files: [{ path: "doc.md", content: 'Example: <file path="foo">bar</file>' }],
