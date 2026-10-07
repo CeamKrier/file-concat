@@ -1,6 +1,7 @@
 import {
   canExpandArchive,
   classifyBytes,
+  type ArchiveEntry,
   expandArchive,
   routeBytes,
   ROUTER_SNIFF_BYTES,
@@ -33,6 +34,7 @@ export async function prepareBatch(
 ): Promise<PreparedBatch> {
   const files: RoutedFile[] = [];
   const unsupported: ArchiveKind[] = [];
+  const archiveReads: string[] = [];
   let expandedCount = 0;
   let pruned: PrunedAtDoor | null = null;
   // Routing reads the leading bytes of every file, one round-trip each, which
@@ -68,17 +70,10 @@ export async function prepareBatch(
       continue;
     }
 
-    if (!canExpandArchive(route.archive)) {
-      unsupported.push(route.archive);
-      // Kept, so it still surfaces as a skipped non-text file rather than
-      // disappearing from the tree without explanation.
-      files.push({ item, path, route });
-      continue;
-    }
-
     try {
       const bytes = new Uint8Array(await item.file.arrayBuffer());
-      const entries = expandArchive(bytes, route.archive, item.file.name);
+      const { entries, reader } = await unpack(bytes, route.archive, item.file.name);
+      archiveReads.push(`${route.archive}/${reader}`);
       // An empty or unreadable archive keeps its original entry and falls
       // through to the usual skip handling.
       if (entries.length === 0) {
@@ -119,11 +114,34 @@ export async function prepareBatch(
         });
       }
     } catch {
+      archiveReads.push(`${route.archive}/none`);
       files.push({ item, path, route });
     }
   }
 
-  return { files, expandedCount, unsupported, pruned };
+  return { files, expandedCount, unsupported, archiveReads, pruned };
+}
+
+/**
+ * Core's fflate first (zip, tar, gz); 7-Zip in a worker for what it cannot
+ * open or throws on (7z, rar, bz2, xz, a zip with bzip2 or LZMA entries).
+ * Extraction router, step R2. Throws when neither opens it, which callers
+ * treat as "leave the original alone".
+ */
+async function unpack(
+  bytes: Uint8Array,
+  kind: ArchiveKind,
+  name: string,
+): Promise<{ entries: ArchiveEntry[]; reader: string }> {
+  if (canExpandArchive(kind)) {
+    try {
+      return { entries: expandArchive(bytes, kind, name), reader: "fflate" };
+    } catch {
+      // An entry method fflate lacks; 7-Zip reads every one it does.
+    }
+  }
+  const { expandWithSevenZip } = await import("./expand-sevenzip-client");
+  return { entries: await expandWithSevenZip(bytes, kind, name), reader: "7zip" };
 }
 
 /**

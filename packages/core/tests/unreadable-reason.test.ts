@@ -34,7 +34,7 @@ describe("unreadableReason", () => {
   it("explains an archive the browser cannot open, whether the router or the name says so", () => {
     expect(unreadableReason("dump.rar", { kind: "expand", archive: "rar" })).toEqual({
       label: "rar archive the browser can't open",
-      remedy: "Unpack it first, or use .zip or .tar, which are opened here.",
+      remedy: "Unpack it on your computer and drop the folder instead.",
     });
     expect(unreadableReason("dump.tar.xz", { kind: "unknown" }).label).toBe(
       ".xz archive the browser can't open",
@@ -55,9 +55,15 @@ describe("unreadableReason", () => {
   it("labels a routed image as an image and the ones recognition cannot read by kind", () => {
     expect(unreadableReason("shot.png", { kind: "binary", format: "png" })).toEqual({ label: "Image" });
     expect(unreadableReason("favicon.ico", { kind: "binary", format: "ico" }).label).toBe("Icon file");
-    expect(unreadableReason("clip.mov", { kind: "binary", format: "iso-bmff" }).label).toBe(
-      "Video, or a HEIC photo",
+    expect(unreadableReason("talk.mkv", { kind: "binary", format: "matroska" }).label).toBe(
+      "Video with no subtitle track",
     );
+    expect(unreadableReason("clip.mov", { kind: "binary", format: "iso-bmff" }).label).toBe(
+      "Video with no subtitle track",
+    );
+    expect(unreadableReason("IMG_0001.heic", { kind: "binary", format: "heif" }).label).toBe("HEIC or AVIF photo");
+    expect(unreadableReason("voice.m4a", { kind: "binary", format: "iso-bmff" }).label).toBe("Audio or video");
+    expect(unreadableReason("voice.mp3", { kind: "binary", format: "mp3" }).label).toBe("Audio or video");
   });
 
   it("stores label and remedy as one string and recovers the label from it", () => {

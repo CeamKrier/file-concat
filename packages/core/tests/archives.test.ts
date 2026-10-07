@@ -1,3 +1,4 @@
+import zlib from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { gzipSync, strToU8, zipSync } from "fflate";
 import {
@@ -87,6 +88,22 @@ describe("expandArchive", () => {
     expect(text(entries[1].bytes)).toBe("two");
   });
 
+  it("names an entry from its pax path record and keeps empty files", () => {
+    const record = "path=docs/\u00fcbersicht.txt\n";
+    const line = `${record.length + 3} ${record}`; // the length counts itself
+    const entries = expandArchive(
+      makeTar([
+        ["PaxHeaders/x", line, "x"],
+        ["docs/?bersicht.txt", "hallo", "0"],
+        ["empty.txt", "", "0"],
+      ]),
+      "tar",
+      "d.tar",
+    );
+    expect(entries.map((e) => e.path)).toEqual(["d/docs/\u00fcbersicht.txt", "d/empty.txt"]);
+    expect(entries[1].bytes).toHaveLength(0);
+  });
+
   it("unpacks a gzipped tar by looking inside, not at the name", () => {
     const bytes = gzipSync(makeTar({ "a.txt": "one" }));
     // Named `.gz`, not `.tar.gz` — the old name-based check would have emitted
@@ -112,5 +129,57 @@ describe("expandArchive", () => {
 
   it("throws on corrupt input, so callers can keep the original file", () => {
     expect(() => expandArchive(strToU8("PK\x03\x04 not really"), "zip", "x.zip")).toThrow();
+  });
+});
+
+/** A zip whose names are these raw bytes with no UTF-8 flag, as macOS and
+ * Windows write them: fflate writes ASCII stand-ins, then the bytes go over them. */
+function rawNameZip(names: number[][], extra?: Record<number, Uint8Array>): Uint8Array {
+  const standIns = names.map((name, i) => String.fromCharCode(97 + i).repeat(name.length));
+  const zip = zipSync(Object.fromEntries(standIns.map((s) => [s, [strToU8("x"), { extra }]])));
+  standIns.forEach((s, i) => {
+    for (let at = 0; at + s.length <= zip.length; at++) {
+      if ([...s].every((c, k) => zip[at + k] === c.charCodeAt(0))) zip.set(names[i], at);
+    }
+  });
+  return zip;
+}
+
+const bytesOf = (s: string) => [...Buffer.from(s, "utf8")];
+// "çalışma.txt" in CP857, the Turkish OEM code page Windows Explorer writes.
+const CP857_CALISMA = [0x87, 0x61, 0x6c, 0x8d, 0x9f, 0x6d, 0x61, 0x2e, 0x74, 0x78, 0x74];
+
+describe("zip entry names without the UTF-8 flag", () => {
+  const paths = (zip: Uint8Array) => expandArchive(zip, "zip", "a.zip").map((e) => e.path);
+
+  it("reads a macOS zip's unflagged UTF-8, composed", () => {
+    expect(paths(rawNameZip([bytesOf("übersicht.txt"), bytesOf("日本語.txt")]))).toEqual([
+      "a/übersicht.txt",
+      "a/日本語.txt",
+    ]);
+  });
+
+  it("falls back to CP437 for the whole archive when one name is not UTF-8", () => {
+    // E0 A0 A4 is CP866 "рад" and also valid UTF-8 on its own.
+    expect(paths(rawNameZip([[0x9a, 0x62, 0x65, 0x72], [0xe0, 0xa0, 0xa4]]))).toEqual([
+      "a/Über",
+      "a/αáñ",
+    ]);
+  });
+
+  it("trusts a Unicode Path field only while its CRC matches the name", () => {
+    const field = (crc: number) => {
+      const name = strToU8("çalışma.txt");
+      const out = new Uint8Array(5 + name.length);
+      out[0] = 1;
+      new DataView(out.buffer).setUint32(1, crc, true);
+      out.set(name, 5);
+      return out;
+    };
+    const crc = zlib.crc32(Uint8Array.from(CP857_CALISMA));
+    expect(paths(rawNameZip([CP857_CALISMA], { 0x7075: field(crc) }))).toEqual(["a/çalışma.txt"]);
+    expect(paths(rawNameZip([CP857_CALISMA], { 0x7075: field(crc ^ 1) }))).toEqual([
+      "a/çalìƒma.txt",
+    ]);
   });
 });

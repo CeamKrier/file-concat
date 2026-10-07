@@ -1,5 +1,7 @@
 import { extractOfficeDocument, type ExtractionResult } from "@fileconcat/core";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import jbig2Url from "pdfjs-dist/wasm/jbig2.wasm?url";
+import jpxUrl from "pdfjs-dist/wasm/openjpeg.wasm?url";
 
 /**
  * Client-only document extraction. Imports the heavy officeparser path and the
@@ -115,6 +117,23 @@ async function flattenImage(file: File): Promise<Blob> {
 const RENDER_SCALE = 2;
 
 /**
+ * The decoders a scanned page is usually drawn with: JPEG 2000 (`openjpeg`),
+ * and JBIG2 and CCITT fax (`jbig2`). pdf.js 6 loads them from `wasmUrl`, a
+ * directory, which our hashed asset names cannot be; without them those images
+ * draw blank and recognition reads nothing (38 of 181 olmOCR-bench scan pages,
+ * 2026-10-03). pdf.js's public `BinaryDataFactory` hands it the bytes instead,
+ * fetched here on the first image that needs one. The ICC colour module stays
+ * off, which shifts colours and does not change what recognition reads.
+ */
+class BinaryData {
+  async fetch({ kind, filename }: { kind: string; filename: string }): Promise<Uint8Array> {
+    const url = kind === "wasmUrl" ? { "jbig2.wasm": jbig2Url, "openjpeg.wasm": jpxUrl }[filename] : undefined;
+    if (!url) throw new Error(`No ${kind} ${filename} here`);
+    return new Uint8Array(await (await fetch(url)).arrayBuffer());
+  }
+}
+
+/**
  * Read named pages of a PDF by drawing them and recognising the picture.
  *
  * This is the rescue for a page whose fonts carry no character map: the text is
@@ -143,7 +162,7 @@ export async function readPdfPages(
   pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
   const { createWorker } = await import("tesseract.js");
 
-  const loading = pdfjs.getDocument({ data: bytes });
+  const loading = pdfjs.getDocument({ data: bytes, BinaryDataFactory: BinaryData });
   const pdf = await loading.promise;
   const worker = await createWorker(language);
   const canvas = document.createElement("canvas");

@@ -25,6 +25,7 @@ vi.mock("~/lib/prepare-batch", () => ({
     }),
     expandedCount: 0,
     unsupported: [],
+    archiveReads: [],
   }),
 }));
 
@@ -47,7 +48,12 @@ vi.mock("~/lib/parsers", () => ({
   },
 }));
 
-vi.mock("~/lib/ocr", () => ({ readWithOcr: async () => ({ text: "" }) }));
+vi.mock("~/lib/ocr", () => ({
+  readWithOcr: async () => ({ text: "" }),
+  SPEECH_FORMATS: new Set(),
+  MAX_SPEECH_BYTES: 0,
+  SpeechTooLongError: class extends Error {},
+}));
 
 /** counter name → the values it was written with. */
 let tallies: Record<string, string[]>;

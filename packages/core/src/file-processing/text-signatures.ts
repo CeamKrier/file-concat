@@ -19,14 +19,15 @@
  */
 
 /** A text-shaped format the router can recognize. */
-export type TextualFormat = "ipynb" | "srt" | "vtt" | "eml";
+export type TextualFormat = "ipynb" | "srt" | "vtt" | "eml" | "html";
 
 /**
- * How much of the prefix is decoded. Every signature below sits at the very
- * start; the slack is for a notebook's `"cells"` key, which trails whatever
- * leading whitespace the writer used.
+ * How much of the prefix is decoded: all the router reads. Every signature
+ * below sits at the very start, but an email's header block does not end
+ * there: behind a long Received/ARC chain `From:` sits 4 to 6 KB in (a bounce
+ * and a calendar invite in the 2026-10-05 mail sample).
  */
-const SNIFF_BYTES = 4096;
+const SNIFF_BYTES = 8192;
 
 /**
  * `"cells": [` followed by evidence that this is a notebook and not some other
@@ -70,7 +71,11 @@ function looksLikeEmail(head: string): boolean {
   let hasFrom = false;
   let hasEnvelope = false;
 
-  for (const raw of head.split("\n")) {
+  const lines = head.split("\n");
+  // The prefix can end inside the header block, mid-line; that cut line is not
+  // judged, so the decision rests on the fields that arrived whole.
+  lines.pop();
+  for (const raw of lines) {
     const line = raw.replace(/\r$/, "");
     if (line === "") break; // end of the header block
     if (/^[ \t]/.test(line)) continue; // folded continuation
@@ -82,6 +87,32 @@ function looksLikeEmail(head: string): boolean {
   }
 
   return hasFrom && hasEnvelope;
+}
+
+/**
+ * The comment a page saver writes, and the address of the page it saved.
+ * Chromium's "Webpage, Complete" puts `<!-- saved from url=(0040)https://... -->`
+ * before `<html>` (`frame_serializer.cc`); SingleFile puts "Page saved with
+ * SingleFile" and a `url:` line as the first child of `<html>`. Firefox writes
+ * nothing, so a page it saved is read as source, as every `.html` was before.
+ *
+ * Only a saved page is routed, never HTML as such: a template or a component
+ * in a repository is source, and its markup is the content. Measured
+ * 2026-10-05: 0 of 346 `.html` files under node_modules carry either comment.
+ */
+const SAVED_PAGE =
+  /<!--\s*(?:saved from url=\(\d{4}\)(https?:[^\s>]+)|(?:Page saved with|Archive processed by) SingleFile\s+url: (\S+))/i;
+
+/**
+ * The address a saved page came from, or `undefined` when the head carries no
+ * saver comment. Looked for before `<head` or `<body`, where both savers put
+ * it, so a page that merely quotes the comment in its text is not taken.
+ */
+export function savedPageUrl(head: string): string | undefined {
+  const scan = head.slice(0, SNIFF_BYTES);
+  const end = scan.search(/<(head|body)[\s>]/i);
+  const match = SAVED_PAGE.exec(end < 0 ? scan : scan.slice(0, end));
+  return match ? (match[1] ?? match[2]) : undefined;
 }
 
 /**
@@ -113,6 +144,7 @@ export function matchTextualSignature(prefix: Uint8Array): TextualFormat | null 
   if (SRT_CUE.test(head)) return "srt";
   if (NOTEBOOK_CELLS.test(head) && NOTEBOOK_EVIDENCE.test(head)) return "ipynb";
   if (looksLikeEmail(head)) return "eml";
+  if (savedPageUrl(head)) return "html";
 
   return null;
 }

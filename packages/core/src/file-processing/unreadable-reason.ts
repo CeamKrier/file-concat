@@ -54,11 +54,29 @@ const FAMILIES: ReadonlyArray<readonly [label: string, extensions: readonly stri
 ];
 
 /**
+ * Videos whose container can carry a subtitle track, which the web reads as
+ * the transcript (extraction router, D4). They pass the walk so their header
+ * can be looked at; one without a track costs that header and no more.
+ */
+const SUBTITLE_CONTAINERS: ReadonlySet<string> = new Set(["mp4", "m4v", "mov", "mkv", "webm"]);
+
+/** Audio the web offers to transcribe (extraction router, D5). */
+const SPEECH_AUDIO: ReadonlySet<string> = new Set(["mp3", "wav", "flac", "ogg", "oga", "m4a", "aac"]);
+
+/**
  * Every extension the families above name: a file that never holds text, so
  * the web walk drops it before its first byte is read (`prunedAtWalk`). Images
- * are deliberately not here, since a dropped image gets the recognition offer.
+ * are deliberately not here, since a dropped image gets the recognition offer,
+ * and neither is audio or a video that can carry speech, for the same reason.
  */
-export const NEVER_TEXT_EXTENSIONS: ReadonlySet<string> = new Set(FAMILIES.flatMap(([, extensions]) => extensions));
+export const NEVER_TEXT_EXTENSIONS: ReadonlySet<string> = new Set(
+  FAMILIES.flatMap(([, extensions]) => extensions).filter((ext) => !SUBTITLE_CONTAINERS.has(ext) && !SPEECH_AUDIO.has(ext)),
+);
+
+const NO_SUBTITLE_TRACK: UnreadableReason = {
+  label: "Video with no subtitle track",
+  remedy: "Drop its .srt or .vtt file to have the words read.",
+};
 
 /** Formats the office parser reads, for the "saved under a new name" remedy. */
 const OOXML_SAVE_AS: Readonly<Record<string, string>> = {
@@ -70,7 +88,8 @@ const OOXML_SAVE_AS: Readonly<Record<string, string>> = {
   pptm: ".pptx",
 };
 
-const ARCHIVE_REMEDY = "Unpack it first, or use .zip or .tar, which are opened here.";
+// Reached when no reader opened it: damaged, encrypted, or a method 7-Zip lacks.
+const ARCHIVE_REMEDY = "Unpack it on your computer and drop the folder instead.";
 
 const extensionOf = (path: string): string => {
   const name = path.split("/").pop() ?? path;
@@ -126,8 +145,19 @@ export function unreadableReason(path: string, route?: FileRoute): UnreadableRea
         return { label: "Icon file" };
       case "psd":
         return { label: "Photoshop file", remedy: "Export it as a PDF or an image to have it read." };
+      case "heif":
+        return { label: "HEIC or AVIF photo", remedy: "A photo saved as JPEG or PNG can be read." };
       case "iso-bmff":
-        return { label: "Video, or a HEIC photo", remedy: "A photo saved as JPEG or PNG can be read." };
+        if (SUBTITLE_CONTAINERS.has(ext)) return NO_SUBTITLE_TRACK;
+        return { label: "Audio or video" };
+      case "matroska":
+        return NO_SUBTITLE_TRACK;
+      case "mp3":
+      case "aac":
+      case "flac":
+      case "ogg":
+      case "wave":
+        return { label: "Audio or video" };
       default:
         return { label: "Image" };
     }

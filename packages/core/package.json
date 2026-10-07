@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "fast-check": "^4.8.0",
-    "postal-mime": "^2.7.5",
+    "postal-mime": "^4.0.2",
     "vitest": "^2.1.8"
   }
 }

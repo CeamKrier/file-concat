@@ -52,8 +52,9 @@
  *   --dump <name>   print one fixture's extracted text and exit
  *   --pypdf <file>  the independent reader's output (default
  *                   docs/measurements/extraction-pypdf.json, written by
- *                   extract-pdf-with-pypdf.py). Absent means the comparison
- *                   column reports "not run" rather than assuming anything.
+ *                   extract-pdf-with-pypdf.py). Absent means no pypdf column.
+ *   --reader <file> another reader's output, repeatable; one column each.
+ *                   Written by extract-candidate.ts for JS candidates.
  */
 
 import * as fs from "node:fs";
@@ -95,15 +96,14 @@ interface Check {
    */
   anchor?: string;
   /**
-   * Run this check against the independent reader too. Only for checks whose
-   * predicate reads the text: one that reads `error` or `notes` is asking about
-   * our own contract, which another library has no opinion on.
+   * The predicate reads `error` or `notes`, which is our own contract, so other
+   * readers are not scored on it. Every other check runs against every reader.
    *
    * The comparison is what turns a defect into an attribution. A structure
-   * pypdf loses as well is inherent to the format and no library swap fixes it;
-   * one it recovers is our reader's choice and therefore ours.
+   * every reader loses is inherent to the format and no library swap fixes it;
+   * one another reader recovers is our reader's choice and therefore ours.
    */
-  compareReader?: boolean;
+  contract?: boolean;
   /** Set where the defect may be an artifact of a generated file. */
   generatedOnly?: boolean;
   /**
@@ -123,7 +123,6 @@ const count = (r: Result, needle: string): number => r.text.split(needle).length
 const CHECKS: Check[] = [
   {
     id: "pdf-1.1",
-    compareReader: true,
     format: "pdf",
     fixture: "gen-pdf-two-column.pdf",
     anchor: "Section 1.",
@@ -136,7 +135,6 @@ const CHECKS: Check[] = [
   },
   {
     id: "pdf-1.1b",
-    compareReader: true,
     format: "pdf",
     fixture: "gen-pdf-two-column-interleaved.pdf",
     anchor: "Right column line",
@@ -172,7 +170,6 @@ const CHECKS: Check[] = [
   },
   {
     id: "pdf-1.3",
-    compareReader: true,
     format: "pdf",
     fixture: "gen-pdf-prose.pdf",
     anchor: "router reads the leading bytes",
@@ -184,16 +181,20 @@ const CHECKS: Check[] = [
   },
   {
     id: "pdf-1.5",
-    compareReader: true,
     format: "pdf",
     fixture: "gen-pdf-typography.pdf",
     anchor: "Claim needing support",
     severity: "DEGRADED",
     finding: "A superscript footnote marker sorts above the line it annotates",
-    stillBroken: (r) => /^1$/m.test(r.text) && r.text.indexOf("\n1\n") < r.text.indexOf("Claim needing support"),
+    // The fix, not the defect's old shape: the marker follows the claim it
+    // annotates. Read as "a line that is only 1, above the claim", a marker
+    // indented on its line or inline in front ("1 Claim needing support")
+    // passed. `(?!\.)` keeps the footnote body's own "1." from counting.
+    stillBroken: (r) => !/Claim needing support\s*(\[\^)?1\b(?!\.)/.test(r.text),
   },
   {
     id: "pdf-1.6",
+    contract: true,
     format: "pdf",
     fixture: "gen-pdf-encrypted.pdf",
     severity: "DEGRADED",
@@ -205,6 +206,7 @@ const CHECKS: Check[] = [
   },
   {
     id: "pdf-1.7",
+    contract: true,
     format: "pdf",
     fixture: "gen-pdf-mixed-scan.pdf",
     severity: "BROKEN",
@@ -276,7 +278,10 @@ const CHECKS: Check[] = [
     anchor: "Kickoff",
     severity: "BROKEN",
     finding: "Dates arrive as raw serial numbers",
-    stillBroken: (r) => /Kickoff,\s*\d{5}\b/.test(r.text),
+    // The date itself, in any format and after any separator. Asking only
+    // "is there no serial number" passed a tab-separated serial once, and
+    // would pass a reader that dropped the date.
+    stillBroken: (r) => !/Kickoff\W+[^\n]*2026/.test(r.text),
   },
   {
     id: "rtf-4.2",
@@ -291,7 +296,9 @@ const CHECKS: Check[] = [
     id: "pptx-4.3",
     format: "pptx",
     fixture: "gen-pptx-deck.pptx",
-    anchor: "# Slide 1",
+    // The deck's own text, not our `# Slide n` marker, so another reader can be
+    // scored too.
+    anchor: "Extraction Quality",
     severity: "BROKEN",
     finding: "A bare slide number injected into every slide's body text",
     // A line that is nothing but digits. The deck's own `# Slide 99` text is
@@ -322,17 +329,21 @@ interface Result {
   text: string;
 }
 
-function args(): { out?: string; force: boolean; dump?: string; pypdf?: string } {
+function args(): { out?: string; force: boolean; dump?: string; pypdf?: string; readers: string[] } {
   const argv = process.argv.slice(2);
+  // pnpm runs the script inside packages/cli, so a relative path is resolved
+  // against the directory the command was typed in, not the package's.
+  const at = (p: string): string => path.resolve(process.env.INIT_CWD ?? process.cwd(), p);
   const flag = (name: string): string | undefined => {
     const i = argv.indexOf(name);
     return i === -1 ? undefined : argv[i + 1];
   };
   return {
-    out: flag("--out"),
+    out: flag("--out") && at(flag("--out")!),
     force: argv.includes("--force"),
     dump: flag("--dump"),
-    pypdf: flag("--pypdf"),
+    pypdf: flag("--pypdf") && at(flag("--pypdf")!),
+    readers: argv.flatMap((a, i) => (a === "--reader" && argv[i + 1] ? [at(argv[i + 1])] : [])),
   };
 }
 
@@ -342,13 +353,12 @@ interface Reader {
 }
 
 /**
- * What `extract-pdf-with-pypdf.py` wrote, if it was run. Absent is not an
- * error: the comparison column simply says so, because a missing second reader
- * is a gap in the evidence and never a verdict.
+ * What another reader wrote: `extract-pdf-with-pypdf.py`, or a candidate run
+ * by `extract-candidate.ts`. The default pypdf file may be absent, and then
+ * its column is simply missing, because a reader that was not run is a gap in
+ * the evidence and never a verdict. A file named with `--reader` must exist.
  */
-function loadReader(file: string | undefined): Reader | undefined {
-  const p = file ?? path.join(REPO_ROOT, "docs", "measurements", "extraction-pypdf.json");
-  if (!fs.existsSync(p)) return undefined;
+function loadReader(p: string): Reader {
   const raw = JSON.parse(fs.readFileSync(p, "utf8")) as {
     reader: string;
     results: { fixture: string; text: string; error: string | null }[];
@@ -360,15 +370,13 @@ function loadReader(file: string | undefined): Reader | undefined {
 }
 
 /**
- * Run one check's predicate against the independent reader's text, so a defect
- * can be attributed. "loses it too" means both readers lose the structure, and
- * on the same bytes that points at the format rather than at either library.
- * "recovers it" means the bytes carried enough to do better, so whichever
- * reader lost it made a choice.
+ * Run one check's predicate against another reader's text, so a defect can be
+ * attributed. BROKEN in every column means every reader loses the structure,
+ * and on the same bytes that points at the format rather than at any library.
+ * ok somewhere means the bytes carried enough to do better.
  */
-function readerVerdict(c: Check, reader: Reader | undefined): string {
-  if (!c.compareReader) return "not compared";
-  if (!reader) return "not run";
+function readerVerdict(c: Check, reader: Reader): string {
+  if (c.contract) return "-";
   const row = reader.byFixture.get(c.fixture);
   if (!row) return "no row";
   if (row.error) return `failed: ${row.error}`;
@@ -383,7 +391,7 @@ function readerVerdict(c: Check, reader: Reader | undefined): string {
     notes: [],
     text: row.text,
   };
-  return c.stillBroken(asResult) ? "loses it too" : "recovers it";
+  return c.stillBroken(asResult) ? "BROKEN" : "ok";
 }
 
 async function extractOne(file: string): Promise<Result> {
@@ -422,7 +430,7 @@ async function extractOne(file: string): Promise<Result> {
 }
 
 async function main(): Promise<void> {
-  const { out, force, dump, pypdf } = args();
+  const { out, force, dump, pypdf, readers: readerFiles } = args();
 
   if (!fs.existsSync(CORPUS)) {
     console.error(`No corpus at ${CORPUS}. Run \`node generate.mjs\` there first.`);
@@ -457,15 +465,18 @@ async function main(): Promise<void> {
     console.log(`| ${r.fixture} | ${route} | ${r.chars} | ${r.lines} | ${r.notes.join(", ") || "-"} |`);
   }
 
+  const checks: { id: string; status: string; readers: Record<string, string> }[] = [];
   if (CHECKS.length > 0) {
     let broken = 0;
     let fixed = 0;
     let missing = 0;
     let absent = 0;
-    const reader = loadReader(pypdf);
-    console.log(`\nFindings from 2026-08-15, re-tested. Independent reader: ${reader?.name ?? "not run"}\n`);
-    console.log("| id | format | severity | finding | status | independent reader |");
-    console.log("| --- | --- | --- | --- | --- | --- |");
+    const pypdfFile = pypdf ?? path.join(REPO_ROOT, "docs", "measurements", "extraction-pypdf.json");
+    const readers = [...(fs.existsSync(pypdfFile) ? [pypdfFile] : []), ...readerFiles].map(loadReader);
+    const names = readers.map((r) => r.name);
+    console.log(`\nFindings from 2026-08-15, re-tested. Other readers: ${names.join(", ") || "none"}\n`);
+    console.log(`| id | format | severity | finding | status |${names.map((n) => ` ${n} |`).join("")}`);
+    console.log(`| --- | --- | --- | --- | --- |${names.map(() => " --- |").join("")}`);
     for (const c of CHECKS) {
       const r = results.find((x) => x.fixture === c.fixture);
       let status: string;
@@ -485,9 +496,10 @@ async function main(): Promise<void> {
         fixed++;
       }
       const note = c.generatedOnly ? " [generated-only]" : "";
-      const other = readerVerdict(c, reader);
+      const others = readers.map((reader) => readerVerdict(c, reader));
+      checks.push({ id: c.id, status, readers: Object.fromEntries(names.map((n, i) => [n, others[i]])) });
       console.log(
-        `| ${c.id} | ${c.format} | ${c.severity} | ${c.finding}${note} | ${status} | ${other} |`,
+        `| ${c.id} | ${c.format} | ${c.severity} | ${c.finding}${note} | ${status} |${others.map((o) => ` ${o} |`).join("")}`,
       );
     }
     const guards = CHECKS.filter((c) => c.guard).length;
@@ -496,6 +508,10 @@ async function main(): Promise<void> {
         `${absent} signal absent, ${missing} missing fixture. ` +
         `${guards} standing guard(s) passing, counted separately because they were never broken.`,
     );
+    for (const n of names) {
+      const verdicts = checks.map((c) => c.readers[n]).filter((v) => v === "ok" || v === "BROKEN");
+      console.log(`${n}: ${verdicts.filter((v) => v === "ok").length} of ${verdicts.length} scored checks ok`);
+    }
   }
 
   const date = new Date().toISOString().slice(0, 10);
@@ -505,7 +521,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  fs.writeFileSync(outPath, JSON.stringify({ date, corpus: CORPUS, results }, null, 2));
+  fs.writeFileSync(outPath, JSON.stringify({ date, corpus: CORPUS, results, checks }, null, 2));
   console.log(`\nWrote ${outPath}`);
 }
 

@@ -2,13 +2,23 @@ export { BINARY_EXTENSIONS } from "./binary-extensions";
 export { RECOGNISABLE_IMAGE_FORMATS } from "./binary-signatures";
 export { routeBytes, routeFile, ROUTER_SNIFF_BYTES, EXTRACTED_FORMATS } from "./routing";
 export type { FileRoute } from "./routing";
-export { canExpandArchive, expandArchive, isTarHeader, stripArchiveSuffix } from "./archives";
+export { savedPageUrl } from "./text-signatures";
+export {
+  canExpandArchive,
+  expandArchive,
+  isTarHeader,
+  rootArchiveEntries,
+  stripArchiveSuffix,
+} from "./archives";
 export type { ArchiveEntry, ArchiveKind } from "./archives";
 export {
+  assemblePdfPages,
   createParserRegistry,
+  extractWithFallback,
   extractNotebook,
   extractOfficeDocument,
   extractSubtitles,
+  transcriptFromCues,
   formatDoc,
   formatEmail,
   formatMsg,
@@ -26,6 +36,7 @@ export type {
   ParserId,
   ParserLoader,
   ParserRegistry,
+  PdfPage,
 } from "./parsers";
 export { validateFile } from "./validation";
 export { classifyBytes, readFileAsText } from "./text-classification";

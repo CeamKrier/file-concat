@@ -57,6 +57,9 @@ const DOCUMENT_PARSERS: Readonly<Record<string, ParserId>> = {
   xlsm: "office",
   xltx: "office",
   xltm: "office",
+  // Binary workbook. `file-type` calls it a zip (its content type has no
+  // `+xml`), so {@link ooxmlFromEntryNames} names it.
+  xlsb: "office",
   pptx: "office",
   pptm: "office",
   potx: "office",
@@ -68,6 +71,8 @@ const DOCUMENT_PARSERS: Readonly<Record<string, ParserId>> = {
   odp: "office",
   rtf: "office",
   epub: "epub",
+  // Kindle: old MOBI and KF8 (.azw3) share the PalmDB `BOOKMOBI` header.
+  mobi: "mobi",
   // The OLE2 compound file behind Excel/Word/PowerPoint 97-2003, Outlook
   // `.msg` and every password-protected OOXML document. The signature is the
   // same for all of them and only the stream directory inside says which, so
@@ -91,6 +96,8 @@ const ARCHIVE_KINDS: Readonly<Record<string, ArchiveKind>> = {
   // looking inside.
   gz: "gz",
   "tar.gz": "gz",
+  bz2: "bz2",
+  xz: "xz",
   rar: "rar",
   "7z": "7z",
 };
@@ -105,6 +112,7 @@ const TEXTUAL_PARSERS: Readonly<Record<TextualFormat, ParserId>> = {
   srt: "subtitles",
   vtt: "subtitles",
   eml: "email",
+  html: "html",
 };
 
 /**
@@ -150,6 +158,9 @@ export async function routeBytes(prefix: Uint8Array): Promise<FileRoute> {
   const detected = await fileTypeFromBuffer(prefix);
 
   if (detected) {
+    const ooxml = detected.ext === "zip" ? ooxmlFromEntryNames(prefix) : undefined;
+    if (ooxml) return { kind: "extract", parserId: "office", format: ooxml };
+
     const parserId = DOCUMENT_PARSERS[detected.ext];
     if (parserId) return { kind: "extract", parserId, format: detected.ext };
 
@@ -174,6 +185,40 @@ export async function routeBytes(prefix: Uint8Array): Promise<FileRoute> {
   // being declared binary here — it already handles them, and it will not
   // mistake an `.xml` or `.svg`, which `file-type` also recognizes, for one.
   return { kind: "unknown" };
+}
+
+/**
+ * An Office package `file-type` reported as a plain zip. It names OOXML from
+ * `[Content_Types].xml` when that entry comes first and its main content type
+ * ends in `+xml`; a binary workbook's does not, and some writers put the parts
+ * before it. On the POI test files that sent 10 of 10 `.xlsb` and 6 `.xlsx` to
+ * be unpacked as archives on their prefix (2026-10-05). The web's batch step
+ * re-routes the whole file when an unpacked zip holds `[Content_Types].xml`,
+ * which already rescued the `.xlsx`; a `.xlsb` stayed a zip even then.
+ *
+ * The rule is `file-type`'s own fallback (`getOpenXmlFileTypeFromDirectoryNames`:
+ * `word/`, then `ppt/`, then `xl/`), applied to the local headers in the bytes
+ * given, which its fallback skips when a sniffed prefix ends mid-entry. A part
+ * suffix is required as well, so a zip of a folder named `word` still unpacks.
+ */
+function ooxmlFromEntryNames(prefix: Uint8Array): string | undefined {
+  const view = new DataView(prefix.buffer, prefix.byteOffset, prefix.byteLength);
+  const decoder = new TextDecoder();
+  const seen = new Set<string>();
+  for (let at = 0; at + 30 <= prefix.length && view.getUint32(at, true) === 0x04034b50; ) {
+    const nameLength = view.getUint16(at + 26, true);
+    const name = decoder.decode(prefix.subarray(at + 30, at + 30 + nameLength));
+    const part = /^(word|ppt|xl)\/.*\.(xml|rels|bin)$/.exec(name);
+    if (part) seen.add(name === "xl/workbook.bin" ? "xlsb" : part[1]);
+    // A writer that streams (flag bit 3) leaves the size at 0 here, so the walk
+    // lands on the entry's data, the signature check fails and the loop ends.
+    at += 30 + nameLength + view.getUint16(at + 28, true) + view.getUint32(at + 18, true);
+  }
+  if (seen.has("word")) return "docx";
+  if (seen.has("ppt")) return "pptx";
+  if (seen.has("xlsb")) return "xlsb";
+  if (seen.has("xl")) return "xlsx";
+  return undefined;
 }
 
 /** {@link routeBytes} over a `File`, reading only the prefix it needs. */
