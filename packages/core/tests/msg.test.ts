@@ -84,6 +84,16 @@ describe("formatMsg", () => {
     expect(formatMsg(streams).text).toContain("Subject: R\u00e9sum\u00e9");
   });
 
+  it("falls back to the internet code page when the message names none", () => {
+    const streams = message({
+      "__properties_version1.0": properties([[0x3fde, 0x0003, 950]]),
+    });
+    streams.delete("__substg1.0_0037001F");
+    // "中文" (Chinese) in Big5.
+    streams.set("__substg1.0_0037001E", Uint8Array.from([0xa4, 0xa4, 0xa4, 0xe5]));
+    expect(formatMsg(streams).text).toContain("Subject: 中文");
+  });
+
   it("flattens an HTML-only body, as the new Outlook writes them", () => {
     const streams = message();
     streams.delete("__substg1.0_1000001F");

@@ -47,22 +47,35 @@ const INTERNET_CODEPAGE = 0x3fde;
 const PT_LONG = 0x0003;
 const PT_SYSTIME = 0x0040;
 
-/** Windows code page numbers to the labels `TextDecoder` knows. */
+/** Windows code page numbers to the labels `TextDecoder` knows; 874 and
+ * 1250-1258 go by `windows-<n>` and 28591-28606 by `iso-8859-<n>`. */
 const CODEPAGE_LABELS: Readonly<Record<number, string>> = {
+  866: "ibm866",
   932: "shift_jis",
   936: "gbk",
   949: "euc-kr",
   950: "big5",
   1200: "utf-16le",
+  1201: "utf-16be",
+  10000: "macintosh",
+  10007: "x-mac-cyrillic",
   20127: "windows-1252",
-  28591: "iso-8859-1",
-  28592: "iso-8859-2",
-  28599: "iso-8859-9",
+  20866: "koi8-r",
+  20932: "euc-jp",
+  20936: "gbk",
+  21866: "koi8-u",
+  50220: "iso-2022-jp",
+  50221: "iso-2022-jp",
+  50222: "iso-2022-jp",
+  51932: "euc-jp",
+  51949: "euc-kr",
+  54936: "gb18030",
   65001: "utf-8",
 };
 
 function decode(bytes: Uint8Array, codepage: number | undefined): string {
-  const label = codepage === undefined ? "windows-1252" : (CODEPAGE_LABELS[codepage] ?? `windows-${codepage}`);
+  const iso = codepage !== undefined && codepage >= 28591 && codepage <= 28606 ? `iso-8859-${codepage - 28590}` : undefined;
+  const label = codepage === undefined ? "windows-1252" : (CODEPAGE_LABELS[codepage] ?? iso ?? `windows-${codepage}`);
   try {
     return new TextDecoder(label).decode(bytes);
   } catch {
@@ -119,7 +132,12 @@ function displayNames(value: string): MessageFields["to"] {
  */
 export function formatMsg(streams: CfbStreams): ExtractionResult {
   const properties = fixedProperties(streams.get("__properties_version1.0"), 32);
-  const codepage = longProperty(properties, MESSAGE_CODEPAGE);
+  // Without the message's code page, the body's internet code page, as POI
+  // reads a body (MAPIMessage.guess7BitEncoding), unless it is UTF-8: an older
+  // client's 8-bit strings never are. A Big5 message from Taiwanese Outlook
+  // carries only that one (Tika's testMSG_chinese).
+  const internet = longProperty(properties, INTERNET_CODEPAGE);
+  const codepage = longProperty(properties, MESSAGE_CODEPAGE) ?? (internet === 65001 ? undefined : internet);
   const text = (id: string) => stringProperty(streams, "", id, codepage);
 
   const senderName = text(SENDER_NAME);
@@ -130,7 +148,7 @@ export function formatMsg(streams: CfbStreams): ExtractionResult {
   const body = text(BODY).replace(/\r\n/g, "\n");
   // The new Outlook writes only an HTML body, in the internet code page.
   const html = streams.get(`__substg1.0_${HTML_BODY}0102`);
-  const htmlBody = !body && html ? decode(html, longProperty(properties, INTERNET_CODEPAGE)) : "";
+  const htmlBody = !body && html ? decode(html, internet ?? codepage) : "";
 
   // Attachment storages are numbered from zero; an attached message carries no
   // filename, only the subject and display name of what it wraps.
