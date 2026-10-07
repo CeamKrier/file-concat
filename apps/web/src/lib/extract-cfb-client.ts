@@ -44,8 +44,10 @@ export function extractCfb(bytes: Uint8Array): ExtractionResult {
   if (container.FullPaths.some((entry) => rootless(entry) === "WordDocument")) {
     return formatDoc(streams());
   }
-  // `Workbook` is BIFF8 (Excel 97-2003), `Book` is BIFF5 (Excel 5/95).
-  if (!container.FullPaths.some((entry) => /(^|\/)(Workbook|Book)$/.test(entry))) {
+  // `Workbook` is BIFF8 (Excel 97-2003), `Book` is BIFF5 (Excel 5/95), in any
+  // case: stream names compare case-insensitively (MS-CFB 2.6.4), and some
+  // writers store `WORKBOOK`.
+  if (!container.FullPaths.some((entry) => /(^|\/)(Workbook|Book)$/i.test(entry))) {
     return { text: "", notes: [{ kind: "parser-unavailable" }] };
   }
   return extractWorkbook(bytes);

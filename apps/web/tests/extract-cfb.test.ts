@@ -107,6 +107,15 @@ describe("extractCfb", () => {
     });
   });
 
+  it("finds a workbook stream however its writer capitalised it", () => {
+    // Stream names compare case-insensitively (MS-CFB 2.6.4); two POI files
+    // name it WORKBOOK and BOOK and came back empty with no error (P11).
+    const container = XLSX.CFB.read(biff8({ Plan: [["Rate"], ["8%"]] }), { type: "array" });
+    XLSX.CFB.utils.cfb_mov(container, "/Workbook", "/WORKBOOK");
+    const upper = new Uint8Array(XLSX.CFB.write(container, { type: "array" }));
+    expect(extractCfb(upper).text).toBe("# Sheet: Plan\nRate\n8%");
+  });
+
   it("reports a workbook with no cells as empty, never as its sheet headings", () => {
     expect(extractCfb(biff8({ Blank: [] })).text).toBe("");
   });
