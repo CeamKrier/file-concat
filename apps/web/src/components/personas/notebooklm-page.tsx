@@ -466,7 +466,7 @@ function ClosingCta() {
       <FurtherReading>
         Every source becomes text before a notebook reads it, and text is lossy. We measured it across 27 documents:{" "}
         <ProseLink to="/blog/what-gets-lost-converting-documents-to-text">what gets lost converting documents to text</ProseLink>
-        .
+        . What each format keeps and leaves out is on <ProseLink to="/docs/formats">the formats list</ProseLink>.
       </FurtherReading>
     </MarketingSection>
   );

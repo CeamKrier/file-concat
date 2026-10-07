@@ -350,7 +350,7 @@ function ClosingCta() {
       <FurtherReading>
         The longer version of this job, with the three ways compared side by side, is{" "}
         <ProseLink to="/blog/combine-files-for-llm">how to combine multiple files into one</ProseLink>
-        .
+        . What each format keeps and leaves out is on <ProseLink to="/docs/formats">the formats list</ProseLink>.
       </FurtherReading>
     </MarketingSection>
   );

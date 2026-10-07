@@ -386,7 +386,7 @@ function ClosingCta() {
       <FurtherReading>
         Filling a Project rather than a chat? See{" "}
         <ProseLink to="/for/chatgpt-projects">the ChatGPT Projects source limit</ProseLink>, which
-        caps how many files a Project holds.
+        caps how many files a Project holds. What each format keeps and leaves out is on <ProseLink to="/docs/formats">the formats list</ProseLink>.
       </FurtherReading>
     </MarketingSection>
   );
