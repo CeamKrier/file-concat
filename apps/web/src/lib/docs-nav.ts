@@ -14,6 +14,7 @@ export const DOCS_NAVIGATION: DocSection[] = [
     links: [
       { title: "Introduction", href: "/docs" },
       { title: "Quick start", href: "/docs/quick-start" },
+      { title: "What it reads", href: "/docs/formats" },
     ],
   },
   {

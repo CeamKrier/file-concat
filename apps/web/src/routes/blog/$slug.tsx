@@ -70,10 +70,10 @@ function BlogPostPage() {
               changed since; what it reads today is listed in{" "}
               <Link
                 to="/docs/$slug"
-                params={{ slug: "introduction" }}
+                params={{ slug: "formats" }}
                 className="text-ink focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm underline decoration-1 underline-offset-[3px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
               >
-                the docs
+                the formats list
               </Link>
               .
             </p>

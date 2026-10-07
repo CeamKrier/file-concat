@@ -210,6 +210,12 @@ const pages: SitemapEntry[] = [
     priority: 0.6,
   },
   {
+    url: "/docs/formats",
+    sourceFile: ["apps/web/src/content/docs/formats.mdx", "apps/web/src/data/formats.ts"],
+    changefreq: "monthly",
+    priority: 0.7,
+  },
+  {
     url: "/docs/github-import",
     sourceFile: "apps/web/src/content/docs/github-import.mdx",
     changefreq: "monthly",

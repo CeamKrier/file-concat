@@ -1,0 +1,22 @@
+---
+title: "What FileConcat reads: every file format, and what each one loses"
+description: "Every file format FileConcat reads in your browser, from PDF and scanned pages to Excel, Kindle, Outlook, archives and recordings, with what comes through and what is left out."
+---
+
+# What FileConcat reads
+
+Anything that is already text, such as source code, markdown, CSV, JSON or logs, goes into the
+bundle as it is. The formats below hold their text inside a container, and FileConcat reads it out
+in your browser. Nothing is uploaded to us.
+
+A file is recognised by its first bytes, not its name, so a renamed or extensionless document is
+still read. Most formats are read as soon as you drop them. Images and recordings wait until you
+ask, because recognition and transcription take seconds to minutes. A recording also needs a
+speech model downloaded once, which the [privacy page](/privacy) describes.
+
+Each entry also says what is left out, so you know what the model will not see before you paste.
+
+<FormatsTable />
+
+The [command-line version](/docs/cli-usage) reads fewer of these. This page describes the browser
+tool.
