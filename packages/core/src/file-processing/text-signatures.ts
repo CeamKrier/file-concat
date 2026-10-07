@@ -22,11 +22,12 @@
 export type TextualFormat = "ipynb" | "srt" | "vtt" | "eml" | "html";
 
 /**
- * How much of the prefix is decoded. Every signature below sits at the very
- * start; the slack is for a notebook's `"cells"` key, which trails whatever
- * leading whitespace the writer used.
+ * How much of the prefix is decoded: all the router reads. Every signature
+ * below sits at the very start, but an email's header block does not end
+ * there: behind a long Received/ARC chain `From:` sits 4 to 6 KB in (a bounce
+ * and a calendar invite in the 2026-10-05 mail sample).
  */
-const SNIFF_BYTES = 4096;
+const SNIFF_BYTES = 8192;
 
 /**
  * `"cells": [` followed by evidence that this is a notebook and not some other
@@ -70,7 +71,11 @@ function looksLikeEmail(head: string): boolean {
   let hasFrom = false;
   let hasEnvelope = false;
 
-  for (const raw of head.split("\n")) {
+  const lines = head.split("\n");
+  // The prefix can end inside the header block, mid-line; that cut line is not
+  // judged, so the decision rests on the fields that arrived whole.
+  lines.pop();
+  for (const raw of lines) {
     const line = raw.replace(/\r$/, "");
     if (line === "") break; // end of the header block
     if (/^[ \t]/.test(line)) continue; // folded continuation
