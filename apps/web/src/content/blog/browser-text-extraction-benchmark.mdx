@@ -1,0 +1,413 @@
+---
+title: "Text Extraction in the Browser: 9 File Types Benchmarked"
+description: "How well can a browser tab extract text from PDFs, Office files, saved web pages, ebooks, archives and video, with no upload and no GPU? Measured on public benchmarks against the best server tools."
+date: "2026-10-07"
+author: "CeamKrier"
+draft: true
+kind: "research"
+---
+
+import extraction from "~/data/browser-extraction-2026-10-07.json";
+
+<KeyFindings
+  items={[
+    {
+      figure: "About half",
+      text: "Of the best GPU reader's score on 1,403 benchmark PDF pages, and level with the readers that need no GPU at all. Math pages score zero in every one of them.",
+    },
+    {
+      figure: "Within 1 point",
+      text: "Of Mozilla Readability on 181 saved news and blog pages, and 3 points under the best server extractor. Only pages saved from Chrome are recognised as web pages.",
+    },
+    {
+      figure: "25 of 26",
+      text: "Test archives whose text came back exact, across zip, tar, gz and 7z variants. Ebooks matched their source text at 99%, and video subtitle tracks word for word.",
+    },
+  ]}
+  snapshot="2026-10-07 / 9 file types, 5 public test sets, production build"
+  citation="Measured on 2026-10-07 in FileConcat's production build, with no upload and no GPU: 40.0 on olmOCR-bench (1,403 PDF pages; best published GPU reader 83.1, LiteParse run alone 38.9), 0.937 article F1 on Zyte's 181-page extraction benchmark (Mozilla Readability 0.947), the exact text of 25 of 26 test archives, and 0% word error on video subtitle tracks (FileConcat, fileconcat.com)."
+/>
+
+FileConcat reads every document in the browser tab it was dropped into. Nothing is uploaded and
+no GPU is used. We ran public extraction benchmarks through that tab to see what the trade costs.
+
+<Contents />
+
+## How good is text extraction in the browser?
+
+Well enough for most of what people drop, and measurably short on two things: scanned PDFs and
+speech that is not English.
+
+| File type | How it reads in the tab | What falls short |
+| --- | --- | --- |
+| PDF with a text layer | level with the best readers that need no GPU | tables, tiny print, math |
+| Scanned PDF | readable, well behind GPU readers | math, old typewritten pages |
+| Saved web page | close to the best server tools | pages saved by Firefox |
+| Word, Excel, PowerPoint, RTF | agrees with Apache Tika as much as two good readers do | pptx, and workbooks with macros |
+| Ebook (epub, mobi, azw3) | near word for word | DRM-locked store books |
+| Archive (zip, tar, gz, 7z) | files come back exact | an archive inside an archive |
+| Video with a subtitle track | word for word, instantly | nothing measured |
+| Video speech, English | about 1 word in 8 wrong | names and rare words |
+| Video speech, Turkish | about 1 word in 3 wrong | everything, it is the weakest row |
+
+The pattern under the table is simple. Where the file stores its own text, as a text layer, a
+subtitle track or an archive member, the browser reads it as well as anything on a server. Where
+the text has to be recognised from pixels or sound, the size of the model decides it, and the
+models that fit in a tab are small.
+
+<Stopper value="40.0 vs 83.1" source="olmOCR-bench, 1,403 pages / production build / 2026-10-07">
+  The tab against the best GPU reader on the hardest public PDF benchmark. Much of the gap is
+  math, which no reader without a vision model writes at all.
+</Stopper>
+
+## Where the browser still loses
+
+Three losses are big enough to plan around.
+
+1. **Scanned pages and math.** A page with no text layer is read by an OCR model small enough to run
+   on a laptop without a graphics card. The GPU readers at the top of the PDF benchmark are vision
+   models a hundred times larger. For a stack of scans you need exact, they are the better tool.
+2. **Web pages saved by Firefox.** Chrome marks a saved page with the address it came from, and
+   that mark is how the tool knows the file is a page to read rather than HTML source to keep. A
+   page saved by Firefox carries no mark and is bundled as source code, markup and all.
+3. **Speech in languages other than English.** English is heard by a model built for it. Every other
+   language goes through Whisper small, which is a quarter of a gigabyte to download and got about
+   a third of the Turkish words wrong.
+
+Measuring this found one bug in our tool, now fixed: the first transcription in a session ignored
+the browser's language and listened for English.
+
+## What to do with your own files
+
+Drop them. If a file is a scan, a recording or a page from Firefox, open the result and read the
+first lines before you paste the bundle, because those are the three places the text is a guess.
+
+- For a scan you need exact, run it through a GPU reader first and drop the text it returns.
+- For a Firefox page, save it again from Chrome, or paste the article into a text file.
+- For a recording with subtitles, keep the subtitle track in the file: it is read exactly and
+  costs nothing.
+
+Every format the tab reads, and how, is listed on [the formats page](/docs/formats).
+
+<TryIt
+  title="Try it on your own files"
+  hint="Drop a scan, an Office file or a video and read the first lines of the result."
+/>
+
+{/* evidence */}
+
+## What nobody had measured yet
+
+Every published extraction benchmark we found runs its readers natively, on a server or a
+workstation, and most are written by the vendor of the tool that wins them. We looked for a
+measurement of extraction inside a browser tab, for any format, and found none. The closest are
+browser ports of a reader published with a demo and no numbers.
+
+So the question here is one: how close does extraction inside a browser tab, with no GPU and
+nothing uploaded, come to the best published readers, format by format?
+
+<StudyTable
+  rows={[
+    {
+      source: "olmOCR-bench",
+      href: "https://github.com/allenai/olmocr",
+      venue: "Allen Institute for AI, 2025",
+      sample: "1,403 PDF pages, 7,000+ pass/fail unit tests",
+      compared: "GPU vision models, OCR APIs and pipeline tools",
+      headline: "Chandra 0.1.0 83.1, olmOCR 2 82.4, PaddleOCR-VL 80.0, Marker 1.10.1 76.1, Mistral OCR API 72.0",
+    },
+    {
+      source: "LiteParse README",
+      href: "https://github.com/run-llama/liteparse",
+      venue: "LlamaIndex, v2.14.4",
+      kind: "vendor",
+      sample: "olmOCR-bench, CPU",
+      compared: "CPU text-layer readers",
+      headline: "LiteParse no OCR 39.6, pdf-inspector 33.7, opendataloader 32.5, markitdown 28.7",
+    },
+    {
+      source: "Marker README",
+      href: "https://github.com/datalab-to/marker",
+      venue: "Datalab, 2026-10-02",
+      kind: "vendor",
+      sample: "olmOCR-bench",
+      compared: "Marker against other pipelines",
+      headline: "Marker fast no-OCR (CPU) 43.6, LiteParse no OCR 20.4",
+    },
+    {
+      source: "Article extraction benchmark",
+      href: "https://github.com/scrapinghub/article-extraction-benchmark",
+      venue: "Zyte, commit 4a3bc97",
+      sample: "181 news and blog pages",
+      compared: "40+ open-source and commercial article extractors",
+      headline: "rs_trafilatura and AutoExtract 0.970, trafilatura 2.0.0 0.958, readability.js 0.947",
+    },
+    {
+      source: "anydoc README",
+      href: "https://github.com/firecrawl/anydoc",
+      venue: "Firecrawl, 2026-08",
+      kind: "vendor",
+      sample: "14 Office, ebook and ODF formats, LLM judge",
+      compared: "anydoc, markitdown, docling, unstructured, pandoc",
+      headline: "DOCX anydoc 88, markitdown 71, docling 71. Run natively, not in a browser",
+    },
+    {
+      source: "Moonshine paper",
+      href: "https://arxiv.org/abs/2410.15608",
+      venue: "Useful Sensors, 2024",
+      sample: "LibriSpeech test-clean / test-other",
+      compared: "Moonshine against Whisper of similar size",
+      headline: "moonshine-base 3.23 / 8.18 WER, whisper-base.en 4.25 / 10.35",
+    },
+  ]}
+  label="what it measured, what it found"
+/>
+
+The sources contradict each other in the place that matters most here. LiteParse, the PDF reader
+FileConcat now uses, scores 39.6 on olmOCR-bench in its own README and 20.4 in Marker's, on the
+same benchmark with OCR off in both. Three of the multi-format benchmarks rank their own vendor's
+tool first. We ran every reader on our side under the same scorer, so the gap between two rows of
+our tables is not a gap between two harnesses.
+
+## How we ran it
+
+Every file was dropped into the web app's production build in headless Chromium, the way a
+visitor drops it, and the text was taken from the downloaded Plain bundle. Nothing reached a
+server. The scorers are each benchmark's own.
+
+<Method
+  dataset="olmOCR-bench (PDF), Zyte's article extraction benchmark (HTML), LibreOffice-converted and Apache POI Office files scored against Apache Tika 3.3.2, Project Gutenberg books, archives and videos built with a known answer key"
+  sample="1,403 PDF pages, 181 web pages, 1,993 Office files (1,056 long enough to score), 44 ebooks, 26 keyed archives plus 155 rar and 7z test files, 60 videos"
+  measured="2026-10-07"
+  build="Web app production build at commit 164f089; video speech on the same build plus the language fix described below"
+  tokenizer="None. These are text-quality scores, not token counts"
+  script="packages/cli/scripts/measure-live-build.mjs, then score-against-reference.py, score-video.py, olmOCR-bench's and the article benchmark's own scorers"
+  excludes="Firefox and Safari, laptop timing, layout and reading order beyond what each benchmark tests, camera footage, real-world subtitle files"
+/>
+
+The browser was Chromium with an English or Turkish language setting, matching each video's
+speech, since that setting is what picks the speech and OCR model. Documents were dropped in
+batches of up to 20 from one folder. A PDF that came back without text was dropped again on its
+own, because the tool reads at most three scans per drop by itself. Archives and videos went one
+per drop.
+
+## PDF: 1,403 pages of olmOCR-bench
+
+olmOCR-bench is 1,403 single PDF pages with 8,413 pass or fail tests: a sentence that must appear,
+a running header that must not, two sentences that must come in order, a table cell that must sit
+under the right heading, an equation that must render. The score is the mean over its eight parts.
+
+<Bars
+  title={extraction.pdf.title}
+  rows={extraction.pdf.rows}
+  unit="percent"
+  note="olmOCR-bench overall score, share of tests passed. GPU and API rows: allenai's published table (Chandra self-reported). Marker, CPU: its own README, self-reported. LiteParse and anydoc: run by us in Node under scorer f7cfe4c, 2026-10-03. FileConcat: in the browser, same scorer, 2026-10-07"
+>
+  The tab scores just above LiteParse, the reader it runs on text-layer pages, and about half of
+  what the GPU readers reach. The only reader without a GPU above it is a self-reported figure.
+</Bars>
+
+| Part of the score | Tests | FileConcat, in the tab | LiteParse, Node | FileConcat, 2026-10-03 | olmOCR 2, GPU |
+| --- | --- | --- | --- | --- | --- |
+| arXiv math | 2,927 | 0.0 | 0.0 | 0.0 | 83.0 |
+| old scans with math | 458 | 0.0 | 0.0 | 0.0 | 82.3 |
+| tables | 1,022 | 53.0 | 53.1 | 31.5 | 84.9 |
+| old scans | 526 | 17.3 | 13.3 | 13.3 | 47.7 |
+| headers and footers | 760 | 55.0 | 55.5 | 39.2 | 96.1 |
+| multiple columns | 884 | 64.0 | 65.5 | 20.5 | 83.7 |
+| long tiny text | 442 | 30.3 | 23.8 | 14.0 | 81.9 |
+| baseline | 1,394 | 100.0 | 99.9 | 87.2 | 99.7 |
+| **overall** | 8,413 | **40.0** | **38.9** | **25.7** | **82.4** |
+
+Two parts ask for equations written as LaTeX. A text layer holds the glyphs of an equation, not
+its structure, so every reader without a vision model scores zero on them, and they are a quarter
+of the score before a page is read. On the other six parts the tab sits between 0.1 and 6.5
+points of LiteParse, ahead on tiny print and on scans.
+
+Scans are the weak row. A reader that returns nothing for a scanned page passes 13.3% of the
+old-scan tests, because the tests that check something is absent pass on an empty page. The tab's
+OCR lifts that to 17.3%: it reads the page, but rarely exactly enough to match the benchmark's
+test sentences. The FileConcat 2026-10-03 column is the reader the product used before it
+switched to LiteParse on 2026-10-05.
+
+## Saved web pages: 181 articles
+
+A page saved from Chrome is read the way Firefox's reader view reads it: Mozilla Readability picks
+the article, and the tool turns it into Markdown. The benchmark scores the article text only, so
+we score three versions of the same output.
+
+<Bars
+  title={extraction.html.title}
+  rows={extraction.html.rows}
+  unit="percent"
+  note="Word 4-gram F1 x 100 against the benchmark's article bodies, its own evaluate.py at commit 4a3bc97. Other rows are the published outputs in the benchmark repository. FileConcat row: article body, links as their text"
+>
+  The tab lands one point under Mozilla Readability, the engine it runs, and three under the
+  best server extractor. A reader that keeps every word on the page scores 66.5.
+</Bars>
+
+| FileConcat output | F1 | Precision | Recall |
+| --- | --- | --- | --- |
+| article body, links as their text | 0.937 | 0.901 | 0.977 |
+| as written, title and source lines kept, links as Markdown | 0.851 | 0.762 | 0.963 |
+| title and source lines kept, links as their text | 0.908 | 0.848 | 0.977 |
+| the same pages without Chrome's "saved from" mark | 0.088 | 0.047 | 0.873 |
+
+The as-written row is lower for reasons a model does not mind: the bundle adds the page title and
+the address it was saved from, and keeps each link's target, which the benchmark counts as words
+that are not article. The last row is the real loss. Without the mark, the file is treated as
+HTML source and bundled verbatim.
+
+## Office files against Apache Tika
+
+Office formats have no public answer key, so a mature reader stands in for one: Apache Tika 3.3.2,
+built on Apache POI. The score is agreement with Tika, word 4-gram F1, and between two good
+readers it tops out around 0.7 to 0.8, because Tika also reads headers, comments and embedded
+files that other readers leave out.
+
+Two sets were used. The first is 587 modern Office files converted to the old formats by
+LibreOffice, scored against Tika on the original, with Tika on the converted copy as the ceiling.
+The second is Apache POI's own test files, the files POI is debugged against.
+
+| Format | Converted set | Ceiling | POI test files |
+| --- | --- | --- | --- |
+| doc | 0.750 (63) | 0.804 | 0.745 (99) |
+| xls | 0.668 (164) | 0.719 | 0.748 (241) |
+| ppt | 0.634 (52) | 0.731 | 0.786 (71) |
+| rtf | 0.719 (63) | 0.760 | |
+| docx | | | 0.665 (64) |
+| xlsx | | | 0.741 (163) |
+| pptx | | | 0.559 (55) |
+| xlsb | | | 0.661 (6) |
+| xlsm | | | 0.525 (7) |
+
+Files with at least 20 reference words, count in brackets. On the converted set the tab is within
+about 0.05 to 0.1 of the ceiling on every format. Seven of the nine figures that have a Node run
+from a few days earlier match it to the third decimal, and the other two are within 0.012: the
+browser build reads what the library reads.
+
+## Ebooks, archives and video
+
+**Ebooks.** 15 Project Gutenberg books in five languages, each as epub, mobi and azw3, scored
+against Gutenberg's own plain text: epub 0.988, mobi 0.996, azw3 0.996, no failures.
+
+**Archives.** 26 archives built from known files, one variant per case readers get wrong: zip
+compression methods past deflate, zip64, non-ASCII names with and without the UTF-8 flag, four tar
+dialects, gz, bz2 and xz, and 7z across its methods.
+
+| Reader | Archives with every text file exact |
+| --- | --- |
+| FileConcat, in the tab, 2026-10-07 | 25 of 26 |
+| 7-Zip wasm, Node, 2026-10-03 | 24 of 26 |
+| libarchive wasm, Node, 2026-10-03 | 21 of 26 |
+| FileConcat before 2026-10-05 | 8 of 26 |
+
+The one miss is a zip inside a zip: the inner archive is not opened. On libarchive's own rar and
+7z test files, which include damaged and encrypted ones, all 155 finished without a crash or a
+hang, and 59 gave back text.
+
+**Video.** 12 videos in five variants: three with a subtitle track (mp4, mkv, webm), one with
+neither track nor captions, one with captions burned into the picture. Speech is LibriSpeech and
+FLEURS recordings with known transcripts, over slides of known text.
+
+| What was read | English (10 videos) | Turkish (2 videos) |
+| --- | --- | --- |
+| subtitle track, all three containers | 0% word error | 0% word error |
+| speech, no track | 12.7% word error | 32.4% word error |
+| on-screen text, F1 | 0.827 | 0.818 |
+| on-screen text with burned-in captions, F1 | 0.739 | 0.779 |
+
+English speech runs on Moonshine base, a 66 MB model. Its published error on LibriSpeech is about
+3% on clean speech and 8% on noisy speech, read in short clips. Ours is a minute or two
+of audio pulled from a compressed video on one CPU thread. Turkish runs on Whisper small, 244 MB.
+
+<Stopper value="1 bug" source="found by this run / fixed before the Turkish rerun / 2026-10-07">
+  The first transcription in a session ignored the browser's language and used the English model.
+  Turkish speech came back empty until it was fixed.
+</Stopper>
+
+## What we fixed while measuring
+
+The reading dialog that starts a transcription took its language from the last reading, and fell
+back to English when there was none. A recording is never read on its own, so its first reading
+always started there, and a Turkish talk went to the English-only model, which returned nothing.
+It now falls back to the browser's language. The Turkish rows above are from the fixed build. The
+English rows did not change, and were not rerun.
+
+## Limitations
+
+- **One browser.** Chromium only. Firefox and Safari decode audio and video differently and were
+  not run.
+- **Not a laptop.** Timing was taken on a desktop, so no timing figure is published here. Speed
+  on a typical laptop is slower.
+- **Small speech samples.** Turkish is two videos. Its 32.4% is a direction, not a figure to
+  compare against a published leaderboard.
+- **Agreement is not truth.** The Office scores measure agreement with Tika, which keeps headers,
+  footers and comments some readers drop on purpose. One producer, LibreOffice, wrote every
+  converted file.
+- **Archives favour 7-Zip.** The 7z variants were written by 7-Zip, which the tab reads them with.
+  rar has no keyed set at all, since only WinRAR writes it.
+- **Weak and small:** a Word 6 file scored 0, since only Word 97 and later is read, and two dotx
+  templates scored 0.009.
+- **Not measured:** layout beyond the benchmarks' own tests, email, encrypted files.
+
+## Reproduce it
+
+Build the web app and serve it, then drop a corpus through it.
+
+```bash
+pnpm build
+cd apps/web && pnpm vite preview --port 4719 --strictPort
+node packages/cli/scripts/measure-live-build.mjs http://localhost:4719/ <corpus dir> out.json
+node packages/cli/scripts/measure-live-build.mjs http://localhost:4719/ <pdfs dir> out.json --olmocr <candidate dir>
+node packages/cli/scripts/measure-live-build.mjs http://localhost:4719/ <video dir> out.json --transcribe
+```
+
+Score with `packages/cli/scripts/score-against-reference.py` (Office, ebooks),
+`score-video.py` (video), olmOCR-bench's `python -m olmocr.bench.benchmark` at commit f7cfe4c
+(PDF) and the article benchmark's `evaluate.py` (web pages). The archive and video test sets are
+written by `build-archive-corpus.py` and `build-video-corpus.py` in the same folder, with a fixed
+seed.
+
+## Frequently asked questions
+
+**Can a browser extract text from a PDF without uploading it?**
+Yes. FileConcat reads the text layer in the tab and runs OCR on pages that have none. On 1,403
+benchmark pages it scored 40.0, against 38.9 for LiteParse run alone and 82.4 for olmOCR 2 on a
+GPU.
+
+**How accurate is in-browser OCR?**
+Good enough to search and summarise a scan, not good enough for math or degraded typewritten
+pages. The GPU readers that lead the benchmark are far larger than anything a tab can load.
+
+**Can I get text out of a saved web page?**
+Yes, if it was saved from Chrome. On 181 benchmark pages the article text matched at 0.937 F1,
+one point under Mozilla Readability. A page saved by Firefox is bundled as HTML source.
+
+**Does it read old Word, Excel and PowerPoint files?**
+doc, xls and ppt from Word 97 onward, plus rtf. Agreement with Apache Tika was 0.63 to 0.79, about
+what two good readers reach. Word 6 and older is not read.
+
+**Can it transcribe a video?**
+On request. A subtitle track is read exactly and at once. Without one, speech is transcribed in
+the tab after a one-time model download: 66 MB for English, 244 MB for any other language.
+
+## References
+
+- Poznanski, J. et al. "olmOCR 2: Unit Test Rewards for Document OCR." Allen Institute for AI,
+  2025. [arXiv:2510.19817](https://arxiv.org/abs/2510.19817)
+- Zyte. Article extraction benchmark.
+  [github.com/scrapinghub/article-extraction-benchmark](https://github.com/scrapinghub/article-extraction-benchmark)
+- Jeffries, N. et al. "Moonshine: Speech Recognition for Live Transcription and Voice Commands."
+  2024. [arXiv:2410.15608](https://arxiv.org/abs/2410.15608)
+- Hugging Face. Open ASR Leaderboard.
+  [huggingface.co](https://huggingface.co/spaces/hf-audio/open_asr_leaderboard)
+- LlamaIndex. LiteParse.
+  [github.com/run-llama/liteparse](https://github.com/run-llama/liteparse)
+- Datalab. Marker. [github.com/datalab-to/marker](https://github.com/datalab-to/marker)
+- Apache Tika. [tika.apache.org](https://tika.apache.org/)
+
+<Callout type="tip">
+  What gets lost inside a document when it becomes text, table by table and footnote by footnote,
+  is its own study: [what gets lost converting documents to text](/blog/what-gets-lost-converting-documents-to-text).
+</Callout>

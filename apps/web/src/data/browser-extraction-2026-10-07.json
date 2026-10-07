@@ -1,0 +1,26 @@
+{
+  "measured": "2026-10-07",
+  "pdf": {
+    "title": "PDF, olmOCR-bench score (1,403 pages)",
+    "rows": [
+      { "label": "Chandra, GPU", "value": 83.1 },
+      { "label": "olmOCR 2, GPU", "value": 82.4 },
+      { "label": "Mistral, API", "value": 72.0 },
+      { "label": "Marker, CPU", "value": 43.6 },
+      { "label": "FileConcat", "value": 40.0 },
+      { "label": "LiteParse", "value": 38.9 },
+      { "label": "anydoc", "value": 30.9 }
+    ]
+  },
+  "html": {
+    "title": "Saved web pages, article text F1 (181 pages)",
+    "rows": [
+      { "label": "rs-trafilatura", "value": 97.0 },
+      { "label": "AutoExtract", "value": 97.0 },
+      { "label": "Trafilatura", "value": 95.8 },
+      { "label": "Readability", "value": 94.7 },
+      { "label": "FileConcat", "value": 93.7 },
+      { "label": "all page text", "value": 66.5 }
+    ]
+  }
+}
