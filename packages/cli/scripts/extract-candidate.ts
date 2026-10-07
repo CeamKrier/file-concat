@@ -748,7 +748,8 @@ async function olmocrBench(name: string, benchData: string): Promise<void> {
  * controls other than tab and newlines, and the private use area a font
  * without a usable map decodes into.
  */
-const GARBAGE = /[\uFFFD\u0000-\u0008\u000B\u000C\u000E-\u001F\uE000-\uF8FF]/g;
+// eslint-disable-next-line no-control-regex -- matching control characters is the point
+const GARBAGE =/[\uFFFD\u0000-\u0008\u000B\u000C\u000E-\u001F\uE000-\uF8FF]/g;
 
 /** Per extension: files, failed, empty, garbage share, median and p95 time. */
 function printRobustness(results: (Run & { fixture: string })[]): void {
