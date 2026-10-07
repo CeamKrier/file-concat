@@ -105,7 +105,7 @@ export function generateWebApplicationSchema() {
       "Public GitHub, GitLab, and Bitbucket repository import",
       "XML and Markdown output formats",
       "Multi-file output chunking by size",
-      "Companion npm CLI @fileconcat/cli with the same engine",
+      "Companion npm CLI @fileconcat/cli for local folders",
     ],
     softwareHelp: {
       "@type": "CreativeWork",

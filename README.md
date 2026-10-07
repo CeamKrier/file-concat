@@ -1,8 +1,8 @@
 ![FileConcat Banner Image](https://fileconcat.com/github-banner.png)
 
-Privacy-first tool that turns a folder of files into one LLM-ready bundle. The browser at [fileconcat.com](https://fileconcat.com) and the [`@fileconcat/cli`](https://www.npmjs.com/package/@fileconcat/cli) npm CLI run the same engine, and your files are never uploaded on either surface.
+Privacy-first tool that turns a folder of files into one LLM-ready bundle. The product is the browser tool at [fileconcat.com](https://fileconcat.com); the [`@fileconcat/cli`](https://www.npmjs.com/package/@fileconcat/cli) npm CLI shares its core for local folders but reads fewer formats and is not kept in step. Your files are never uploaded on either.
 
-## Two surfaces, same engine
+## Browser and CLI
 
 ### Browser
 
@@ -34,7 +34,7 @@ Full flag reference: [`packages/cli/README.md`](packages/cli/README.md) and [the
 
 Project tree at the top so the model sees the structure before any file body. Then every file in its own `<file path="..." language="...">` block (or a fenced Markdown block under `--style markdown`). Binary files, lock files, and build output are dropped by default; the rest is shaped by include / ignore globs.
 
-PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, RTF and EPUB are extracted to plain text by default on both surfaces (`--no-parse` turns it off in the CLI); the web app also reads Word, Excel and PowerPoint 97-2003 (DOC, XLS, PPT), XLSB and XLSM workbooks, Kindle books (MOBI, AZW3), Outlook messages (MSG), pages saved from a browser, scanned PDF pages (by text recognition), 7Z, RAR, BZ2 and XZ archives, and a video's own subtitle track, and it transcribes audio and video on request. Jupyter notebooks, `.srt` / `.vtt` caption tracks and saved `.eml` messages go the same way — a notebook arrives as markdown instead of JSON around base64 plots, a caption track as the transcript instead of a timestamp every two seconds, a message as the correspondence instead of MIME boundaries and base64 attachments. Which files qualify is decided by their leading bytes, not their name, so a renamed or extensionless document still gets read. Failed parses count as skipped and the run continues.
+PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, RTF and EPUB are extracted to plain text by default (`--no-parse` turns it off in the CLI); the web app also reads Word, Excel and PowerPoint 97-2003 (DOC, XLS, PPT), XLSB and XLSM workbooks, Kindle books (MOBI, AZW3), Outlook messages (MSG), pages saved from a browser, scanned PDF pages (by text recognition), 7Z, RAR, BZ2 and XZ archives, and a video's own subtitle track, and it transcribes audio and video on request. Jupyter notebooks, `.srt` / `.vtt` caption tracks and saved `.eml` messages go the same way — a notebook arrives as markdown instead of JSON around base64 plots, a caption track as the transcript instead of a timestamp every two seconds, a message as the correspondence instead of MIME boundaries and base64 attachments. Which files qualify is decided by their leading bytes, not their name, so a renamed or extensionless document still gets read. Failed parses count as skipped and the run continues.
 
 ## Workspace layout
 
@@ -76,7 +76,7 @@ cd packages/cli && pnpm dev -- ./your-folder
 
 Long-form docs at [fileconcat.com/docs](https://fileconcat.com/docs). Topics: getting started, the four-layer filter pipeline, GitHub / GitLab / Bitbucket import, token estimation and costs, configuration, and the CLI reference.
 
-The browser tool and the CLI share the same filter pipeline and output shape, so the docs apply to both.
+The docs describe the browser tool. The CLI shares its filter pipeline; the published CLI may lag behind it.
 
 ## License
 
