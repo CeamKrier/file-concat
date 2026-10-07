@@ -293,8 +293,11 @@ describe("assemblePdfPages", () => {
     );
   });
 
-  it("answers nothing for a document no page of which reads", () => {
-    expect(assemblePdfPages([{ number: 1, text: fence, scanned: true }])).toEqual({ text: "" });
+  it("names every page of a document no page of which reads, picture or not", () => {
+    expect(assemblePdfPages([{ number: 1, text: fence, scanned: true }, { number: 2, text: "" }])).toEqual({
+      text: "",
+      notes: [{ kind: "pages-scanned", count: 2, pages: [1, 2] }],
+    });
   });
 
   it("leaves a blank page without a picture alone", () => {

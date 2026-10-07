@@ -702,14 +702,19 @@ export interface PdfPage {
 /**
  * Give a PDF read page by page elsewhere the shape {@link extractOfficeDocument}
  * gives one: a `# Page n` line over each page, unreadable lines left out under a
- * `text-undecodable` note, and `""` when no page carries a letter or a digit (a
- * scan, which recognition then reads whole).
+ * `text-undecodable` note, and `""` when no page carries a letter or a digit.
  *
  * A page with a picture and nothing readable, in a document whose other pages
  * read, is listed in a `pages-scanned` note so recognition re-reads it the way
  * it re-reads an undecodable one. Kreuzberg OCRs a page with no letter or digit
  * and Tika's AUTO one with ten characters or fewer; the picture is our addition,
  * so a blank page in a text PDF never starts a recognition pass.
+ *
+ * In a document no page of which reads, every page is listed, picture or not:
+ * the whole document goes to recognition either way, and drawing the page is
+ * the route that reads it. officeparser's own recognition, the other one,
+ * decodes no JBIG2 or JPEG 2000 picture (38 of 181 olmOCR-bench scan pages read
+ * nothing there), and liteparse's picture reasons missed 1 of those 181.
  */
 export function assemblePdfPages(pages: readonly PdfPage[], skipped = 0): ExtractionResult {
   const readable = (text: string) => /[\p{L}\p{N}]/u.test(text);
@@ -720,7 +725,17 @@ export function assemblePdfPages(pages: readonly PdfPage[], skipped = 0): Extrac
   }));
   const notes: ExtractionNote[] = skipped > 0 ? [{ kind: "pages-skipped", count: skipped }] : [];
   const empty = (text: string) => (notes.length > 0 ? { text, notes } : { text });
-  if (!bodies.some((page) => readable(page.text))) return empty("");
+  const anyReadable = bodies.some((page) => readable(page.text));
+  const scans = bodies
+    .filter((page) => !anyReadable || (page.scanned && !readable(page.text)))
+    .map((page) => page.number);
+  const scanned = () => {
+    if (scans.length > 0) notes.push({ kind: "pages-scanned", count: scans.length, pages: scans });
+  };
+  if (!anyReadable) {
+    scanned();
+    return empty("");
+  }
 
   const marked = bodies
     .map((page) => [`# Page ${page.number}`, page.text].filter(Boolean).join("\n"))
@@ -733,10 +748,7 @@ export function assemblePdfPages(pages: readonly PdfPage[], skipped = 0): Extrac
       ...(lostPages.length > 0 ? { pages: lostPages } : {}),
     });
   }
-  const scans = bodies
-    .filter((page) => page.scanned && !readable(page.text))
-    .map((page) => page.number);
-  if (scans.length > 0) notes.push({ kind: "pages-scanned", count: scans.length, pages: scans });
+  scanned();
   return empty(text);
 }
 
