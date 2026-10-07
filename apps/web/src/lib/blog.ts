@@ -81,9 +81,16 @@ function toPost(filePath: string, mod: BlogModule): BlogPost {
   };
 }
 
+// Newest first, ties by slug descending (the order the server already showed).
+// A comparator that never returns 0 leaves same-date posts in an engine-defined
+// order, so the worker (V8) and Firefox disagreed and hydration failed.
 const allPosts: BlogPost[] = Object.entries(modules)
   .map(([filePath, mod]) => toPost(filePath, mod))
-  .sort((a, b) => (a.frontmatter.date < b.frontmatter.date ? 1 : -1));
+  .sort((a, b) => cmpDesc(a.frontmatter.date, b.frontmatter.date) || cmpDesc(a.slug, b.slug));
+
+function cmpDesc(a: string, b: string): number {
+  return a < b ? 1 : a > b ? -1 : 0;
+}
 
 /** Posts that ship on the public listing: drafts hidden outside dev, newest first. */
 export function getVisiblePosts(): BlogPost[] {
