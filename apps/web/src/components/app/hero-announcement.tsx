@@ -16,8 +16,8 @@ import { ChevronRight } from "lucide-react";
  */
 const ANNOUNCEMENT = {
   label: "New",
-  body: "Repomix, gitingest, code2prompt and FileConcat, measured over 60 repositories",
-  to: "/blog/repomix-vs-gitingest-vs-code2prompt",
+  body: "FileConcat 2.1 benchmarked on 9 file types, against 2.0 and the best server tools",
+  to: "/blog/browser-text-extraction-benchmark",
 } satisfies { label: string; body: string; to: string } | null;
 
 export function HeroAnnouncement() {

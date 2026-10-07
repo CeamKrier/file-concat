@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+import { Children, isValidElement, type ComponentProps, type ReactNode } from "react";
 
 import { cn } from "~/lib/utils";
 
@@ -7,6 +7,15 @@ import { cn } from "~/lib/utils";
  * both MDXProviderWrapper (docs) and BlogMDXProviderWrapper (blog) can import it
  * without tripping react-refresh's "only export components" rule.
  */
+/** A cell's visible text, so a short value can be kept on one line. */
+const textOf = (node: ReactNode): string =>
+  Children.toArray(node)
+    .map((c) => (typeof c === "string" || typeof c === "number" ? String(c) : isValidElement<{ children?: ReactNode }>(c) ? textOf(c.props.children) : ""))
+    .join("");
+
+// ponytail: a length cut, not a measured fit; past it a cell wraps as before.
+const SHORT_CELL = 14;
+
 export const baseMdxComponents = {
   h1: (props: ComponentProps<"h1">) => (
     <h1
@@ -100,13 +109,16 @@ export const baseMdxComponents = {
   ),
   th: (props: ComponentProps<"th">) => (
     <th
-      className="border-hairline bg-surface-alt text-ink font-display border-b px-4 py-2.5 text-left text-[12.5px] font-semibold uppercase tracking-[0.05em]"
+      className="border-hairline bg-surface-alt text-ink font-display whitespace-nowrap border-b px-4 py-2.5 text-left text-[12.5px] font-semibold uppercase tracking-[0.05em]"
       {...props}
     />
   ),
   td: (props: ComponentProps<"td">) => (
     <td
-      className="border-hairline text-ink-secondary border-b px-4 py-2.5 last:border-b-0"
+      className={cn(
+        "border-hairline text-ink-secondary border-b px-4 py-2.5 tabular-nums [tr:last-child>&]:border-b-0",
+        textOf(props.children).length <= SHORT_CELL && "whitespace-nowrap",
+      )}
       {...props}
     />
   ),

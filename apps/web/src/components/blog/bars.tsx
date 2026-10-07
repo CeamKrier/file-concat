@@ -23,15 +23,24 @@ export type BarsProps = {
   children?: ReactNode;
   /** The mono line under the caption: what the figure is, in its own terms. */
   note?: ReactNode;
+  /** The row drawn in the primary colour, when a figure carries two versions of ours. */
+  ours?: string;
   className?: string;
 };
-
-const OURS = "FileConcat";
 
 const format = (value: number, unit: BarsProps["unit"]) =>
   unit === "percent" ? `${value.toFixed(1)}%` : value.toLocaleString("en-US");
 
-export function Bars({ title, rows, unit = "tokens", markMin, children, note, className }: BarsProps) {
+export function Bars({
+  title,
+  rows,
+  unit = "tokens",
+  markMin,
+  children,
+  note,
+  ours: oursLabel = "FileConcat",
+  className,
+}: BarsProps) {
   const max = Math.max(...rows.map((r) => r.value));
   const min = Math.min(...rows.map((r) => r.value));
   const pct = (v: number) => `${((v / max) * 100).toFixed(2)}%`;
@@ -43,7 +52,7 @@ export function Bars({ title, rows, unit = "tokens", markMin, children, note, cl
       </div>
       <div className="grid gap-2.5">
         {rows.map((r) => {
-          const ours = r.label === OURS;
+          const ours = r.label === oursLabel;
           return (
             <div
               key={r.label}
