@@ -1,0 +1,15 @@
+{
+  "packageFiles": [{ "filename": "apps/web/package.json", "type": "json" }],
+  "bumpFiles": [
+    { "filename": "apps/web/package.json", "type": "json" },
+    { "filename": "package.json", "type": "json" }
+  ],
+  "path": [".", ":(exclude)apps/extension", ":(exclude)packages/cli"],
+  "header": "# Changelog\n",
+  "types": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "perf", "section": "Performance Improvements" },
+    { "type": "revert", "section": "Reverts" }
+  ]
+}
