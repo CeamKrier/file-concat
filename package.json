@@ -1,7 +1,7 @@
 {
   "name": "@fileconcat/root",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.2.0",
   "description": "Free file concatenation tool for AI assistants. Combine multiple files for ChatGPT, Claude, Gemini & other LLMs with 100% offline processing.",
   "keywords": [
     "file-concatenation",
@@ -52,7 +52,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "check": "nx run-many -t check",
-    "test": "nx run-many -t test"
+    "test": "nx run-many -t test",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

@@ -59,6 +59,15 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # The local commit-msg hook again, for what skipped it: `--no-verify` and
+      # edits made on github.com. The messages arrive through env, never inline
+      # in the shell line, because they are free text.
+      - name: Commit messages
+        if: ${{ !cancelled() }}
+        env:
+          COMMITS: ${{ toJSON(github.event.commits) }}
+        run: node scripts/verify-commit.mjs
+
       # `nx run-many` over three projects. Core carries its own `check` target,
       # so this covers every package rather than the two it used to.
       - name: Typecheck

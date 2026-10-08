@@ -1,0 +1,2 @@
+#!/bin/sh
+exec node scripts/verify-commit.mjs "$1"
