@@ -1,51 +1,90 @@
 # Versions and release notes, from the conventional commits on `development`.
 #
-# Two runs, because `master` only advances by merging `development`:
+# - Cut: run this workflow on `development` when you want a release (Actions >
+#   Release > Run workflow, or `gh workflow run release.yml --ref development`).
+#   commit-and-tag-version reads the commits since the newest v* tag, bumps
+#   `apps/web/package.json` (the version the site reads) and the root
+#   package.json, prepends CHANGELOG.md, commits that to `development` and tags
+#   it. Commits touching only `apps/extension` or `packages/cli` do not count
+#   (`.versionrc.json`). A run with nothing user-facing since the last tag stops
+#   before pushing.
+# - Publish: a push to `master` writes the GitHub Release for the newest v* tag
+#   it contains, from that version's CHANGELOG section, once. Cloudflare deploys
+#   from `master`, so the notes go public when the code does.
 #
-# - A push to `development` opens or updates the release PR into `development`.
-#   It bumps `apps/web/package.json` (the version the site reads) and
-#   `CHANGELOG.md`. Merging it is the review step.
-# - A push to `master` tags `v<version>` on that PR's merge commit and writes the
-#   GitHub Release. Cloudflare deploys from `master`, so the notes go public only
-#   once the code is live, and the tag sits on a commit `development` also has.
-#
-# Nothing here writes to `master`. Pushes made with GITHUB_TOKEN start no other
-# workflow, so the release PR shows no CI checks; CI runs on `development` after
-# it merges.
-#
-# Public repository: no `run:` step, no event text interpolated anywhere, write
-# permissions on this job only, and the action pinned by commit SHA because a
-# moved tag would run with a write token.
+# Public repository: write permission on each job only, actions pinned by commit
+# SHA, the token kept away from installed packages (no persisted credentials,
+# `--ignore-scripts`, passed to the push step alone), and no event text inside a
+# shell line.
 
 name: Release
 
 on:
   push:
-    branches: [development, master]
+    branches: [master]
   workflow_dispatch:
 
 # Never cancel a run halfway through tagging; queue the next one instead.
 concurrency:
-  group: release-${{ github.ref }}
+  group: release
   cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
-  release-please:
-    if: github.ref_name == 'development' || github.ref_name == 'master'
+  cut:
+    if: github.event_name == 'workflow_dispatch' && github.ref_name == 'development'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: write
-      pull-requests: write
-      issues: write
     steps:
-      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          target-branch: development
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
-          skip-github-release: ${{ github.ref_name == 'development' }}
-          skip-github-pull-request: ${{ github.ref_name == 'master' }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Bump, changelog, commit, tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          pnpm exec commit-and-tag-version
+          node scripts/release-notes.mjs "$(git describe --tags --abbrev=0)" > /dev/null
+
+      # Atomic, so a development that moved meanwhile rejects the tag as well.
+      - name: Push
+        env:
+          TOKEN: ${{ github.token }}
+        run: git push --atomic --follow-tags "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:development
+
+  publish:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: GitHub Release for the newest tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(git tag --merged HEAD --list 'v*' --sort=-v:refname | head -n 1)
+          if gh release view "$tag" > /dev/null 2>&1; then echo "$tag is already released"; exit 0; fi
+          node scripts/release-notes.mjs "$tag" > "$RUNNER_TEMP/notes.md"
+          gh release create "$tag" --verify-tag --title "$tag" --notes-file "$RUNNER_TEMP/notes.md"
