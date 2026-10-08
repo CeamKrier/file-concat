@@ -1,0 +1,51 @@
+# Versions and release notes, from the conventional commits on `development`.
+#
+# Two runs, because `master` only advances by merging `development`:
+#
+# - A push to `development` opens or updates the release PR into `development`.
+#   It bumps `apps/web/package.json` (the version the site reads) and
+#   `CHANGELOG.md`. Merging it is the review step.
+# - A push to `master` tags `v<version>` on that PR's merge commit and writes the
+#   GitHub Release. Cloudflare deploys from `master`, so the notes go public only
+#   once the code is live, and the tag sits on a commit `development` also has.
+#
+# Nothing here writes to `master`. Pushes made with GITHUB_TOKEN start no other
+# workflow, so the release PR shows no CI checks; CI runs on `development` after
+# it merges.
+#
+# Public repository: no `run:` step, no event text interpolated anywhere, write
+# permissions on this job only, and the action pinned by commit SHA because a
+# moved tag would run with a write token.
+
+name: Release
+
+on:
+  push:
+    branches: [development, master]
+  workflow_dispatch:
+
+# Never cancel a run halfway through tagging; queue the next one instead.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release-please:
+    if: github.ref_name == 'development' || github.ref_name == 'master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          target-branch: development
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          skip-github-release: ${{ github.ref_name == 'development' }}
+          skip-github-pull-request: ${{ github.ref_name == 'master' }}
