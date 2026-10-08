@@ -52,7 +52,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "check": "nx run-many -t check",
-    "test": "nx run-many -t test"
+    "test": "nx run-many -t test",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
