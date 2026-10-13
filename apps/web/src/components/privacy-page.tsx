@@ -14,8 +14,8 @@ const STAYS = [
     body: "The documents you drop are read, filtered, and combined in this browser tab. The file bytes are never uploaded to us, or to anyone, to be processed.",
   },
   {
-    title: "No third-party reads them.",
-    body: "PDF, Word, Excel, and the rest are extracted in your browser. There is no server API and no upload step, so nothing outside this tab ever sees a document you dropped.",
+    title: "No server reads them.",
+    body: "PDF, Word, Excel, and the rest are extracted in your browser. There is no server API and no upload step, so no server receives a document you dropped in order to read it. The anonymous analytics below are the exception, and say what they can see.",
   },
   {
     title: "No account, no storage.",

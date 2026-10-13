@@ -108,10 +108,6 @@ function Confidentiality() {
           server first. FileConcat does the reading in this browser tab, so the files are never
           uploaded to be read, and there is no account to create.
         </p>
-        <p className="text-go-fg mt-5 inline-flex items-center gap-2 font-mono text-[12.5px]">
-          <Lock className="text-primary h-4 w-4 shrink-0" strokeWidth={2} />
-          Suitable for employee records and other personal data
-        </p>
       </div>
 
       <div className="min-w-0">

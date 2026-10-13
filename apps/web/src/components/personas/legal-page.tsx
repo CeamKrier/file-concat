@@ -48,13 +48,13 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
-            Bring a case file to ChatGPT or Claude. Privately.
+            Bring a case file to ChatGPT or Claude, prepared on your computer.
           </h1>
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
             Drop the folder of contracts, filings, and rulings. FileConcat reads the PDFs and Word
             files right here in your browser and gives back one clean document to paste into your
-            assistant. Nothing is uploaded, so privilege and client confidence stay intact.
+            assistant. Preparing it uploads nothing. What you then paste into an assistant is between you and that assistant.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -103,10 +103,6 @@ function Confidentiality() {
           Most tools that read a document upload it to a server first. FileConcat does the reading in
           this browser tab, so your file is never uploaded to be read, and there is no account to
           create.
-        </p>
-        <p className="text-go-fg mt-5 inline-flex items-center gap-2 font-mono text-[12.5px]">
-          <Lock className="text-primary h-4 w-4 shrink-0" strokeWidth={2} />
-          Suitable for privileged and client-confidential material
         </p>
       </div>
 
