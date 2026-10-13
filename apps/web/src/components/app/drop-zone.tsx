@@ -11,7 +11,7 @@ export type DropZoneProps = {
   onDrop: (e: React.DragEvent) => void;
   onFileInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
   /** Headline inside the target. Defaults to the generic home copy; persona
-   * pages pass their own ("Drag your case folder here"). */
+   * pages pass their own ("Drop your case folder here"). */
   title?: string;
   /** The line under the headline. Defaults to the generic home copy. */
   hint?: string;
@@ -38,7 +38,7 @@ export function DropZone({
   onDragLeave,
   onDrop,
   onFileInput,
-  title = "Drag a folder or files here",
+  title = "Drop a folder or files here",
   hint = "...and your file is ready a second later.",
   variant = "hero",
 }: DropZoneProps) {

@@ -78,7 +78,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <DropZone
             {...dropProps}
-            title="Drag your EPUB or PDF here"
+            title="Drop your EPUB or PDF here"
             hint="One book or several, read in your browser."
           />
         </div>

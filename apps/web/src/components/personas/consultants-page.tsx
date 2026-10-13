@@ -80,7 +80,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <DropZone
             {...dropProps}
-            title="Drag your engagement folder here"
+            title="Drop your engagement folder here"
             hint="Decks, reports, and data. Read in a second."
           />
         </div>

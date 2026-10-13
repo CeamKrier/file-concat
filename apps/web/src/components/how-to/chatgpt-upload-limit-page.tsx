@@ -89,7 +89,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <DropZone
             {...dropProps}
-            title="Drag your folder here"
+            title="Drop your folder here"
             hint="Everything you meant to upload, read in a second."
           />
         </div>

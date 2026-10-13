@@ -53,7 +53,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
             Drop the folder of contracts, filings, and rulings. FileConcat reads the PDFs and Word
-            files right here in your browser and gives back one clean document to paste into your
+            files right here in your browser and gives back one file to paste into your
             assistant. Preparing it uploads nothing. What you then paste into an assistant is between you and that assistant.
           </p>
 
@@ -77,7 +77,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <DropZone
             {...dropProps}
-            title="Drag your case folder here"
+            title="Drop your case folder here"
             hint="Contracts, filings, and rulings. Read in a second."
           />
         </div>

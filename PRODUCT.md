@@ -53,7 +53,7 @@ On NN/g's four tone dimensions we sit at: casual-leaning (not formal), serious, 
 | Use | Not |
 | --- | --- |
 | FileConcat | the tab, the tool (as a name), the app |
-| bundle (the output) | blob, prompt, document, digest |
+| bundle (the output), or "one file" in plain copy | blob, prompt, document, digest |
 | drop (files, a folder into FileConcat) | drag; "upload" only for what the reader does at the assistant |
 | in your browser | locally, on-device (when the browser is meant) |
 | plain words for analyst terms | p90, signal density, neff, predicate |

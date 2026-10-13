@@ -27,7 +27,7 @@ function BlogIndexPage() {
           Blog
         </h1>
         <p className="text-ink-muted mt-4 text-[15.5px] leading-[1.7]">
-          Notes on turning a folder, a codebase, or a stack of documents into one clean prompt for
+          Notes on turning a folder, a codebase, or a stack of documents into one file for
           ChatGPT, Claude, or Gemini, and on the token budgets that decide what fits.
         </p>
       </header>

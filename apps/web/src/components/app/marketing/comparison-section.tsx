@@ -34,7 +34,7 @@ export function ComparisonSection() {
 
       <BandGrid className="mt-10">
         <Bars
-          title="Signal density, source tokens over bundle tokens"
+          title="How much of the bundle is your own code"
           unit="percent"
           rows={DENSITY}
           note="median of the per-repository share"
@@ -61,7 +61,7 @@ export function ComparisonSection() {
           </p>
           <MonoNote className="mt-3">
             tests are 47.3% of what Repomix carries and we do not, vendored code 42.7%; hidden
-            source is 0.1% of a checkout's source at p90
+            source is at most 0.1% of a checkout's source in 9 of 10 repositories
           </MonoNote>
         </div>
       </BandGrid>

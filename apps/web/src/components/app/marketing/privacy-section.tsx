@@ -25,7 +25,7 @@ export function PrivacySection() {
       <StageRail />
       <div className="min-w-0">
         <BandIntro id="private-by-design" title="We don't upload your files.">
-          Read, filtered and combined in the tab. No upload, no account. Anonymous usage
+          Read, filtered and combined in your browser. No upload, no account. Anonymous usage
           analytics run; the privacy page says what they see.
         </BandIntro>
         <BandLinks className="mt-6">
