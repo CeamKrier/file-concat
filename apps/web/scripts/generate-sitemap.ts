@@ -168,6 +168,15 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    url: "/how-to/upload-zip-to-chatgpt",
+    sourceFile: [
+      "apps/web/src/routes/how-to/upload-zip-to-chatgpt.tsx",
+      "apps/web/src/components/how-to/upload-zip-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
     url: "/how-to/upload-book-to-chatgpt",
     sourceFile: [
       "apps/web/src/routes/how-to/upload-book-to-chatgpt.tsx",

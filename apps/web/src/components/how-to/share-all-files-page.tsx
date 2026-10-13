@@ -103,10 +103,16 @@ const LIMITS = [
     href: "/how-to/chatgpt-conversation-too-long",
   },
   {
-    where: "ChatGPT folders and ZIPs",
+    where: "ChatGPT folders",
     caps: "What it opens",
-    limit: "No folder upload; archives are not a listed file type",
+    limit: "No folder upload; each file inside is its own upload",
     href: "/how-to/upload-folder-to-chatgpt",
+  },
+  {
+    where: "ZIP files",
+    caps: "What gets read",
+    limit: "ChatGPT may not unpack one; Gemini reads up to 10 files inside",
+    href: "/how-to/upload-zip-to-chatgpt",
   },
   {
     where: "A book or textbook",

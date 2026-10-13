@@ -52,7 +52,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
-            Upload a whole folder or ZIP to ChatGPT.
+            Upload a whole folder to ChatGPT.
           </h1>
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
@@ -384,6 +384,7 @@ function ClosingCta() {
         </button>
       </div>
       <FurtherReading>
+        Already zipped? See <ProseLink to="/how-to/upload-zip-to-chatgpt">whether ChatGPT can read a ZIP</ProseLink>.
         Filling a Project rather than a chat? See{" "}
         <ProseLink to="/for/chatgpt-projects">the ChatGPT Projects source limit</ProseLink>, which
         caps how many files a Project holds. What each format keeps and leaves out is on <ProseLink to="/docs/formats">the formats list</ProseLink>.
