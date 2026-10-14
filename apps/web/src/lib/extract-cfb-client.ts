@@ -1,4 +1,5 @@
 import { formatDoc, formatMsg, type CfbStreams, type ExtractionResult } from "@fileconcat/core";
+import { strFromU8, unzipSync } from "fflate";
 import * as XLSX from "xlsx";
 
 /**
@@ -65,12 +66,54 @@ export function extractCfb(bytes: Uint8Array): ExtractionResult {
  */
 export function extractWorkbook(bytes: Uint8Array): ExtractionResult {
   const workbook = XLSX.read(bytes, { type: "array" });
-  const sheets = workbook.SheetNames.map((name) => ({
-    name,
-    csv: XLSX.utils
-      .sheet_to_csv(workbook.Sheets[name], { strip: true })
-      .replace(/\n{3,}/g, "\n\n")
-      .trim(),
-  })).filter((sheet) => sheet.csv);
-  return { text: sheets.map((sheet) => `# Sheet: ${sheet.name}\n${sheet.csv}`).join("\n\n") };
+  const sheets = workbook.SheetNames.flatMap((name) => {
+    const sheet = workbook.Sheets[name] as (XLSX.WorkSheet & { "!type"?: string; "!drawel"?: { Target?: string } }) | undefined;
+    // SheetJS lists a sheet it failed to parse and leaves its entry out.
+    if (!sheet) return [];
+    // A chartsheet holds no cells, so its csv is empty and the filter below
+    // used to drop it, name and all. Tika, docling and openpyxl all keep every
+    // sheet a workbook lists; this keeps the name and the chart's title.
+    if (sheet["!type"] === "chart") {
+      const title = chartTitle(bytes, sheet["!drawel"]?.Target);
+      return [`# Sheet: ${name} (chart)${title ? `\nChart: ${title}` : ""}`];
+    }
+    const csv = XLSX.utils.sheet_to_csv(sheet, { strip: true }).replace(/\n{3,}/g, "\n\n").trim();
+    return csv ? [`# Sheet: ${name}\n${csv}`] : [];
+  });
+  return { text: sheets.join("\n\n") };
+}
+
+/**
+ * The title of the chart a chartsheet's drawing holds, read from the package:
+ * SheetJS keeps the drawing's path and nothing of the chart. Only the text
+ * before the plot area is the chart's own title; an axis title sits inside it.
+ * A BIFF workbook is no zip, and any part missing means no title.
+ */
+function chartTitle(bytes: Uint8Array, drawing: string | undefined): string | undefined {
+  if (!drawing) return undefined;
+  const resolve = (from: string, target: string) => new URL(target, `file:///${from}`).pathname.slice(1);
+  const drawingPath = resolve("xl/chartsheets/sheet.xml", drawing);
+  const relsPath = drawingPath.replace(/([^/]+)$/, "_rels/$1.rels");
+  let parts: Record<string, Uint8Array>;
+  try {
+    parts = unzipSync(bytes, { filter: (file) => file.name === relsPath || file.name.startsWith("xl/charts/") });
+  } catch {
+    return undefined;
+  }
+  const rels = parts[relsPath] ? strFromU8(parts[relsPath]) : "";
+  const target = /Type="[^"]*\/chart"[^>]*Target="([^"]+)"|Target="([^"]+)"[^>]*Type="[^"]*\/chart"/.exec(rels);
+  const chart = target && parts[resolve(drawingPath, target[1] ?? target[2])];
+  if (!chart) return undefined;
+  const head = strFromU8(chart).split("<c:plotArea")[0];
+  const title = /<c:title>([\s\S]*?)<\/c:title>/.exec(head)?.[1] ?? "";
+  const text = [...title.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((run) => run[1]).join("");
+  return decodeXml(text).trim() || undefined;
+}
+
+function decodeXml(text: string): string {
+  return text.replace(/&(?:#x([\da-f]+)|#(\d+)|(amp|lt|gt|quot|apos));/gi, (entity, hex, dec, name: string) => {
+    if (name) return { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" }[name.toLowerCase()]!;
+    const code = parseInt(hex ?? dec, hex ? 16 : 10);
+    return code <= 0x10ffff ? String.fromCodePoint(code) : entity;
+  });
 }

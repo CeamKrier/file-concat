@@ -1,3 +1,4 @@
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
 import { extractCfb, extractWorkbook } from "~/lib/extract-cfb-client";
@@ -149,5 +150,57 @@ describe("extractWorkbook", () => {
     XLSX.utils.book_append_sheet(workbook, sheet, "Sales");
     const bytes = new Uint8Array(XLSX.write(workbook, { bookType: "xlsx", type: "array" }));
     expect(extractWorkbook(bytes).text).toBe("# Sheet: Sales\nTitle\nRegion,Q1,Q2\nEMEA,1,2\n\nNotes");
+  });
+
+  /**
+   * A workbook of one data sheet and one chartsheet. SheetJS writes no charts,
+   * so the chartsheet, its drawing and the chart are added to the package by hand.
+   */
+  function withChartsheet(chartTitle: string | null): Uint8Array {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([["Month", "Revenue"], ["Jan", 10]]), "Data");
+    const parts = unzipSync(new Uint8Array(XLSX.write(workbook, { bookType: "xlsx", type: "array" })));
+    const edit = (name: string, change: (xml: string) => string) => {
+      parts[name] = strToU8(change(strFromU8(parts[name])));
+    };
+    const rel = (id: string, type: string, target: string) =>
+      `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${type}" Target="${target}"/>`;
+    const rels = (...items: string[]) =>
+      `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${items.join("")}</Relationships>`;
+    edit("xl/workbook.xml", (xml) => xml.replace("</sheets>", '<sheet name="Trend" sheetId="2" r:id="rIdChart"/></sheets>'));
+    edit("xl/_rels/workbook.xml.rels", (xml) => xml.replace("</Relationships>", `${rel("rIdChart", "chartsheet", "chartsheets/sheet1.xml")}</Relationships>`));
+    edit("[Content_Types].xml", (xml) =>
+      xml.replace(
+        "</Types>",
+        '<Override PartName="/xl/chartsheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.chartsheet+xml"/>' +
+          '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>' +
+          '<Override PartName="/xl/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/></Types>',
+      ),
+    );
+    parts["xl/chartsheets/sheet1.xml"] = strToU8(
+      '<?xml version="1.0"?><chartsheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetViews><sheetView workbookViewId="0"/></sheetViews><drawing r:id="rId1"/></chartsheet>',
+    );
+    parts["xl/chartsheets/_rels/sheet1.xml.rels"] = strToU8(rels(rel("rId1", "drawing", "../drawings/drawing1.xml")));
+    parts["xl/drawings/drawing1.xml"] = strToU8(
+      // SheetJS drops a chartsheet whose drawing anchors nothing, so this one
+      // anchors the chart the way Excel writes it.
+      '<?xml version="1.0"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><xdr:absoluteAnchor><xdr:pos x="0" y="0"/><xdr:ext cx="8670000" cy="6300000"/><xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="2" name="Chart 1"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr><xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId1"/></a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:absoluteAnchor></xdr:wsDr>',
+    );
+    parts["xl/drawings/_rels/drawing1.xml.rels"] = strToU8(rels(rel("rId1", "chart", "../charts/chart1.xml")));
+    const title = chartTitle === null ? "" : `<c:title><c:tx><c:rich><a:p><a:r><a:t>${chartTitle}</a:t></a:r></a:p></c:rich></c:tx></c:title>`;
+    parts["xl/charts/chart1.xml"] = strToU8(
+      `<?xml version="1.0"?><c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><c:chart>${title}<c:plotArea><c:valAx><c:title><c:tx><c:rich><a:p><a:r><a:t>Axis</a:t></a:r></a:p></c:rich></c:tx></c:title></c:valAx></c:plotArea></c:chart></c:chartSpace>`,
+    );
+    return zipSync(parts);
+  }
+
+  it("keeps a chartsheet under its name, with its chart's title", () => {
+    expect(extractWorkbook(withChartsheet("Revenue &amp; cost")).text).toBe(
+      "# Sheet: Data\nMonth,Revenue\nJan,10\n\n# Sheet: Trend (chart)\nChart: Revenue & cost",
+    );
+  });
+
+  it("keeps a chartsheet with no title under its name alone, never its axis title", () => {
+    expect(extractWorkbook(withChartsheet(null)).text).toBe("# Sheet: Data\nMonth,Revenue\nJan,10\n\n# Sheet: Trend (chart)");
   });
 });
