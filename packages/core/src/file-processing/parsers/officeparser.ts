@@ -446,6 +446,74 @@ function markHeadingLevels(): (node: OfficeContentNode) => void {
 }
 
 /**
+ * Review comments written into the text where they belong (Q24 O1), as
+ * `[Comment, author: text]`, and `[Reply, ...]` for an answer in a thread.
+ * officeparser keeps them on `node.comments` and its text and csv renderers
+ * drop them, as pandoc, docling's markdown and markitdown do by default; Tika,
+ * the one reader that keeps them, writes each after the paragraph it is on,
+ * after the slide, and with the cell in a sheet. So here: at the end of the
+ * paragraph its anchor is in, at the end of a slide, and in a sheet a row of
+ * its own after the sheet's last, naming the cell.
+ *
+ * Seen comments are remembered: a comment over several runs is on each of
+ * them, and the renderer visits a node more than once.
+ */
+function showComments(): { visit: (node: OfficeContentNode) => void; count: () => number } {
+  const seen = new Set<OfficeContentNode>();
+  const ids = new Set<string>();
+  let shown = 0;
+  const take = (comments: readonly OfficeContentNode[] | undefined, where = "") =>
+    (comments ?? []).flatMap((comment) => {
+      // By id too, so a copy of one comment on each run of its range counts once.
+      const id = (comment.metadata as { commentId?: string } | undefined)?.commentId;
+      if (seen.has(comment) || (id !== undefined && ids.has(id))) return [];
+      seen.add(comment);
+      if (id !== undefined) ids.add(id);
+      // A comment's paragraphs, one after another on its line.
+      const body = (comment.children?.length ? comment.children.map(plainText).join(" ") : (comment.text ?? ""))
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!body) return [];
+      const meta = comment.metadata as { author?: string; parentId?: string } | undefined;
+      // Folded like a link destination: an author name is the file's to choose,
+      // and a line break in it would forge structure in the bundle.
+      const author = meta?.author?.replace(/\s+/g, " ").trim();
+      const label = [meta?.parentId ? "Reply" : "Comment", where, author].filter(Boolean).join(", ");
+      shown++;
+      return [`[${label}: ${body}]`];
+    });
+  const below = (node: OfficeContentNode): OfficeContentNode[] =>
+    (node.children ?? []).flatMap((child) => [child, ...below(child)]);
+  const line = (text: string): OfficeContentNode => ({ type: "paragraph", text, children: [{ type: "text", text }] });
+
+  const visit = (node: OfficeContentNode) => {
+    if (node.type === "paragraph" || node.type === "heading") {
+      const labels = [node, ...below(node)].flatMap((part) => take(part.comments));
+      if (labels.length) node.children = [...(node.children ?? []), { type: "text", text: ` ${labels.join(" ")}` }];
+    } else if (node.type === "sheet") {
+      const labels = below(node).flatMap((cell) => {
+        const at = cell.metadata as { row?: number; col?: number } | undefined;
+        const address = typeof at?.row === "number" && typeof at.col === "number" ? cellName(at.row, at.col) : "";
+        return take(cell.comments, address);
+      });
+      const rows = labels.map((text): OfficeContentNode => ({ type: "row", children: [{ type: "cell", text, children: [line(text)] }] }));
+      if (rows.length) node.children = [...(node.children ?? []), ...rows];
+    } else if (node.comments?.length) {
+      const labels = take(node.comments);
+      if (labels.length) node.children = [...(node.children ?? []), ...labels.map(line)];
+    }
+  };
+  return { visit, count: () => shown };
+}
+
+/** `B3` for row 2, column 1, both counted from 0. */
+function cellName(row: number, col: number): string {
+  let name = "";
+  for (let n = col + 1; n > 0; n = Math.floor((n - 1) / 26)) name = String.fromCharCode(65 + ((n - 1) % 26)) + name;
+  return `${name}${row + 1}`;
+}
+
+/**
  * A table inside a table cell, read as one line of that cell's text: rows
  * apart by `; `, cells by ` / `. The text renderer otherwise writes the inner
  * cells into the outer row as columns of their own, and every cell after them
@@ -1063,6 +1131,8 @@ export async function extractOfficeDocument(
   // node types they act on.
   const chrome = ast.content.some((node) => node.type === "slide") ? slideChrome(bytes) : new Map<number, SlideChrome>();
   const hidden = new Set([...hiddenSlides, ...[...chrome].flatMap(([number, slide]) => (slide.hidden ? [number] : []))]);
+  const comments = showComments();
+  const sheetVisitors = [expandMergedCells(), comments.visit];
   const visitors = [
     dropSlideChrome(chrome),
     markSectionStarts(anyPageHasText, hidden),
@@ -1073,6 +1143,7 @@ export async function extractOfficeDocument(
     showLinkDestinations,
     flattenNestedTables,
     expandMergedCells(),
+    comments.visit,
   ];
   // The parse's own warnings (a page that failed, the CDN fallback) live on the
   // AST, and `.to(…)` hands back only the renderer's; taken before rendering,
@@ -1080,7 +1151,11 @@ export async function extractOfficeDocument(
   // renderer's too.
   const parsed = [...(ast.warnings ?? [])];
   const { value, messages } = asWorkbook
-    ? await ast.to("csv", { onNode: expandMergedCells() })
+    ? await ast.to("csv", {
+        onNode: (node) => {
+          for (const visit of sheetVisitors) visit(node);
+        },
+      })
     : await ast.to("text", {
         onNode: (node) => {
           for (const visit of visitors) visit(node);
@@ -1096,6 +1171,7 @@ export async function extractOfficeDocument(
     notes.push({ kind: "text-undecodable", count: lost, ...(pages.length > 0 ? { pages } : {}) });
   }
   if (hiddenRuns > 0) notes.push({ kind: "hidden-left-out", count: hiddenRuns });
+  if (comments.count() > 0) notes.push({ kind: "comments-included", count: comments.count() });
   const result = notes.length > 0 ? { text, notes } : { text };
   // Only a PDF has pages here.
   return ast.content.some((node) => node.type === "page") ? noteLayersOff(result, bytes) : result;

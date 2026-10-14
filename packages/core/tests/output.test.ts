@@ -391,6 +391,24 @@ describe("assembleOutput exclusions note", () => {
     expect(output).not.toContain("Not included");
   });
 
+  it("says which files bring their review comments, outside the not-included note", () => {
+    const output = assembleOutput({
+      projectName: "demo",
+      files,
+      tree,
+      style: "plain",
+      excluded: {
+        partial: [
+          { path: "draft.docx", notes: [{ kind: "comments-included", count: 3 }] },
+          { path: "plain.docx", notes: [{ kind: "attachments-skipped", count: 1 }] },
+        ],
+      },
+    });
+    expect(output).toContain("- review comments are included as [Comment, author: text]: draft.docx");
+    expect(output).not.toContain("plain.docx");
+    expect(output).not.toContain("Not included");
+  });
+
   it("lists paths per category with a count on the binary line", () => {
     const output = assembleOutput({
       projectName: "demo",

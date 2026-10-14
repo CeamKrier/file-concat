@@ -1,4 +1,4 @@
-import { strToU8, zipSync } from "fflate";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 
 /** Build a minimal but valid .docx (OOXML zip) carrying a single line of text. */
 export function minimalDocx(text: string): Uint8Array {
@@ -391,6 +391,58 @@ export function deckPptx(
  * and stored uncompressed — that is exactly what tells an `.odt` apart from a
  * plain zip, so storing it any other way would defeat the fixture.
  */
+/**
+ * A `.docx` whose second paragraph carries a review comment, wired the way
+ * Word writes one: a range and a reference in the body, the comment's text in
+ * `word/comments.xml`, found through the document's relationships.
+ */
+export function commentedDocx(): Uint8Array {
+  const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+  const parts = unzipSync(
+    docxWithBody(
+      "<w:p><w:r><w:t>Plain line.</w:t></w:r></w:p>" +
+        '<w:p><w:commentRangeStart w:id="0"/><w:r><w:t xml:space="preserve">Reviewed </w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t>line.</w:t></w:r><w:commentRangeEnd w:id="0"/>' +
+        '<w:r><w:commentReference w:id="0"/></w:r></w:p>',
+    ),
+  );
+  parts["[Content_Types].xml"] = strToU8(
+    strFromU8(parts["[Content_Types].xml"]).replace(
+      "</Types>",
+      '<Override PartName="/word/comments.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml"/></Types>',
+    ),
+  );
+  parts["word/_rels/document.xml.rels"] = strToU8(
+    XML_DECL +
+      `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+      `<Relationship Id="rId9" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" Target="comments.xml"/>` +
+      `</Relationships>`,
+  );
+  parts["word/comments.xml"] = strToU8(
+    XML_DECL +
+      `<w:comments ${W}><w:comment w:id="0" w:author="Ada\nYilmaz" w:initials="AY">` +
+      "<w:p><w:r><w:t>Check this</w:t></w:r></w:p><w:p><w:r><w:t>figure.</w:t></w:r></w:p></w:comment></w:comments>",
+  );
+  return zipSync(parts);
+}
+
+/** An OpenDocument file of `kind` (text, spreadsheet) holding `body`. */
+export function odfDocument(kind: string, body: string): Uint8Array {
+  const ns =
+    'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" ' +
+    'xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" ' +
+    'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" ' +
+    'xmlns:dc="http://purl.org/dc/elements/1.1/"';
+  return zipSync(
+    {
+      mimetype: strToU8(`application/vnd.oasis.opendocument.${kind}`),
+      "content.xml": strToU8(
+        `<?xml version="1.0" encoding="UTF-8"?><office:document-content ${ns}><office:body><office:${kind}>${body}</office:${kind}></office:body></office:document-content>`,
+      ),
+    },
+    { level: 0 },
+  );
+}
+
 /**
  * An OpenDocument spreadsheet whose first row spans two columns: `B1` is a
  * covered cell, so `QZAFTER` belongs in column C.

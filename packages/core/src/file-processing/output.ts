@@ -76,6 +76,7 @@ function buildSummaryLines(options: AssembleOutputOptions, meta: KindMeta): stri
     source ? `Source: ${source}` : null,
     `File count: ${files.length}.`,
     ...renderRecognised(files),
+    ...renderComments(excluded),
     ...renderExclusions(excluded),
   ].filter((line): line is string => line !== null);
 }
@@ -92,6 +93,16 @@ function renderRecognised(files: OutputFile[]): string[] {
   return [
     `- text below was read by recognition, a guess at the characters rather than the file's own: ${listPaths(paths)}`,
   ];
+}
+
+/**
+ * Names the files whose review comments are in the text (Q24 O1). Comments are
+ * the part of a file its sender most often forgets is there, so the bundle
+ * says they came along and what they look like.
+ */
+function renderComments(excluded: ExcludedSummary | undefined): string[] {
+  const paths = (excluded?.partial ?? []).filter(({ notes }) => notes.some((n) => n.kind === "comments-included")).map(({ path }) => path);
+  return paths.length ? [`- review comments are included as [Comment, author: text]: ${listPaths(paths)}`] : [];
 }
 
 /** Format one category's path list, capping at {@link MAX_LISTED}. */

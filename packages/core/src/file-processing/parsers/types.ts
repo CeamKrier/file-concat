@@ -61,7 +61,13 @@ export type ExtractionNoteKind =
    * A PDF that opens with a layer switched off (Q18 O1). Its text is in the
    * reading, which a viewer would not show, and a line over the text says so.
    */
-  | "layers-off";
+  | "layers-off"
+  /**
+   * Review comments the reader wrote into the text as labelled lines (Q24
+   * O1), `count` of them. Not a gap: what the file holds is all there, and the
+   * bundle says so because comments are easy to forget when sharing a file.
+   */
+  | "comments-included";
 
 export interface ExtractionNote {
   kind: ExtractionNoteKind;

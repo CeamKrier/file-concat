@@ -10,7 +10,9 @@ import {
   referencesDocx,
   tableDocx,
   SHEET_MACRO_ENABLED,
+  commentedDocx,
   docxWithBody,
+  odfDocument,
   spannedOds,
   twoSheetXlsx,
   twoSlidePptx,
@@ -128,6 +130,36 @@ describe("extractOfficeDocument — structure survives extraction", () => {
     );
     const row = text.split("\n").find((line) => line.includes("Outer")) ?? "";
     expect(row.replace(/ +/g, " ")).toBe("| Outer In1 / In2; In3 / In 4 | Mid | Last |");
+  });
+
+  it("writes a review comment after the paragraph it is on, author named, and counts it", async () => {
+    const { text, notes } = await extractOfficeDocument(commentedDocx());
+    expect(text).toContain("Plain line.\n");
+    expect(text).toContain("Reviewed line. [Comment, Ada Yilmaz: Check this figure.]");
+    // On both runs of its range, written once.
+    expect(text.match(/\[Comment/g)).toHaveLength(1);
+    expect(notes).toContainEqual({ kind: "comments-included", count: 1 });
+  });
+
+  it("writes an OpenDocument annotation inline and a sheet's cell comment as a row naming the cell", async () => {
+    const note = (author: string, body: string) =>
+      `<office:annotation><dc:creator>${author}</dc:creator><text:p>${body}</text:p></office:annotation>`;
+    const odt = await extractOfficeDocument(odfDocument("text", `<text:p>Anchor${note("Bo", "Why?")} text.</text:p>`), { format: "odt" });
+    expect(odt.text).toContain("Anchor text. [Comment, Bo: Why?]");
+    const cell = (inner: string) => `<table:table-cell office:value-type="string">${inner}</table:table-cell>`;
+    const ods = await extractOfficeDocument(
+      odfDocument(
+        "spreadsheet",
+        '<table:table table:name="S">' +
+          `<table:table-row>${cell("<text:p>A1</text:p>")}${cell("<text:p>B1</text:p>")}</table:table-row>` +
+          `<table:table-row>${cell("<text:p>A2</text:p>")}${cell(note("Cy", "Too high") + "<text:p>B2</text:p>")}</table:table-row>` +
+          "</table:table>",
+      ),
+      { format: "ods" },
+    );
+    expect(ods.text).toContain("A2,B2");
+    expect(ods.text).toContain('"[Comment, B2, Cy: Too high]"');
+    expect(ods.text.indexOf("[Comment")).toBeGreaterThan(ods.text.indexOf("A2,B2"));
   });
 
   it("keeps a cell after a merged range in its own column", async () => {
