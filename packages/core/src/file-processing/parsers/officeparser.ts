@@ -1,6 +1,6 @@
 import { strFromU8, unzipSync } from "fflate";
 import type { OfficeContentNode } from "officeparser";
-import { withoutHiddenWordText } from "./office-hidden";
+import { withoutHiddenText } from "./office-hidden";
 import type { ExtractionNote, ExtractionNoteKind, ExtractionResult } from "./types";
 
 /**
@@ -923,7 +923,7 @@ export async function extractOfficeDocument(
   options: OfficeParserOptions = {},
 ): Promise<ExtractionResult> {
   const { parseOffice } = await import("officeparser");
-  const { bytes: readable, hidden: hiddenRuns } = withoutHiddenWordText(bytes);
+  const { bytes: readable, hidden: hiddenRuns, slides: hiddenSlides } = withoutHiddenText(bytes);
   const ast = await parseOffice(readable, toLibraryConfig(options));
   // Recognised image text reaches us as `[Image: …]` placeholders in the
   // rendered string, and csv has nowhere to write them. A workbook that carries
@@ -949,7 +949,7 @@ export async function extractOfficeDocument(
   // rather than merged because they are independent of one another and of the
   // node types they act on.
   const chrome = ast.content.some((node) => node.type === "slide") ? slideChrome(bytes) : new Map<number, SlideChrome>();
-  const hidden = new Set([...chrome].flatMap(([number, slide]) => (slide.hidden ? [number] : [])));
+  const hidden = new Set([...hiddenSlides, ...[...chrome].flatMap(([number, slide]) => (slide.hidden ? [number] : []))]);
   const visitors = [
     dropSlideChrome(chrome),
     markSectionStarts(anyPageHasText, hidden),

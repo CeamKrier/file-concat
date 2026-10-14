@@ -110,33 +110,184 @@ const MAX_REWRITE = 256 * 1024 * 1024;
 /** The parts of a docx that hold runs: the body, headers, footers, notes and comments. */
 const WORD_PART = /^word\/(?:document|header\d*|footer\d*|footnotes|endnotes|comments)\.xml$/;
 
+/** What an OpenDocument style hides: text, a sheet, or a slide. */
+interface OdfHiddenStyles {
+  text: Set<string>;
+  table: Set<string>;
+  page: Set<string>;
+}
+
+const STYLE_NAME = /\sstyle:name="([^"]*)"/;
+const ELEMENT_STYLE = /\s(?:text|table|draw):style-name="([^"]*)"/;
+const SHEET_NAME = /\stable:name="([^"]*)"/;
+
 /**
- * A docx with its hidden text taken out, and how many hidden runs held text.
- * Anything else, or a docx with nothing hidden, comes back as the same bytes.
+ * The styles in an OpenDocument part that hide what uses them: a text style
+ * with `text:display="none"` (Format > Character > Hidden), a table style with
+ * `table:display="false"` (a hidden sheet), a drawing-page style with
+ * `presentation:visibility="hidden"` (a hidden slide).
  */
-export function withoutHiddenWordText(bytes: Uint8Array): { bytes: Uint8Array; hidden: number } {
+function collectHiddenStyles(xml: string, into: OdfHiddenStyles): void {
+  for (let at = xml.indexOf("<style:style "); at >= 0; ) {
+    const open = xml.indexOf(">", at);
+    if (open < 0) return;
+    const name = STYLE_NAME.exec(xml.slice(at, open + 1))?.[1];
+    const end = xml[open - 1] === "/" ? open : xml.indexOf("</style:style>", open);
+    if (end < 0) return;
+    // Each property tag taken by index, never by a pattern over the body, so a
+    // crafted style cannot make the scan quadratic.
+    for (let tag = xml.indexOf("<", open); name && tag >= 0 && tag < end; ) {
+      const close = xml.indexOf(">", tag);
+      if (close < 0) break;
+      const properties = xml.slice(tag, close + 1);
+      if (properties.startsWith("<style:text-properties") && /\stext:display="none"/.test(properties)) into.text.add(name);
+      if (properties.startsWith("<style:table-properties") && /\stable:display="false"/.test(properties)) into.table.add(name);
+      if (properties.startsWith("<style:drawing-page-properties") && /\spresentation:visibility="hidden"/.test(properties)) {
+        into.page.add(name);
+      }
+      tag = xml.indexOf("<", close + 1);
+    }
+    at = xml.indexOf("<style:style ", end);
+  }
+}
+
+/** Whether `xml` between `from` and `to` holds a character outside a tag that is not white space. */
+function hasText(xml: string, from: number, to: number): boolean {
+  let inTag = false;
+  for (let at = from; at < to; at++) {
+    const char = xml[at];
+    if (char === "<") inTag = true;
+    else if (char === ">") inTag = false;
+    else if (!inTag && char.trim()) return true;
+  }
+  return false;
+}
+
+/**
+ * An OpenDocument `content.xml` with what its author hid taken out (Q18 O1):
+ * a section with `text:display="none"`, a paragraph a hidden-paragraph field
+ * hides (`text:is-hidden="true"`, the state LibreOffice last computed), and a
+ * paragraph or span in a hidden text style. A hidden sheet is named so
+ * instead, `(hidden)` after its name as a workbook's is, and a hidden slide's
+ * position is returned for its marker, since both are still the author's.
+ * Returns how many dropped elements held text.
+ *
+ * ponytail: a section or field hidden by a condition LibreOffice has not
+ * evaluated into `is-hidden` stays, as do hidden rows and columns.
+ */
+export function withoutHiddenOdf(
+  xml: string,
+  styles: OdfHiddenStyles,
+): { xml: string; hidden: number; slides: Set<number> } {
+  const open: { name: string; start: number; drop: boolean }[] = [];
+  // Where in `open` each paragraph or heading still open sits, innermost last.
+  const paragraphs: number[] = [];
+  const cuts: [number, number][] = [];
+  const renames: [number, number, string][] = [];
+  const slides = new Set<number>();
+  let pages = 0;
+  for (let at = xml.indexOf("<"); at >= 0; ) {
+    const end = xml.indexOf(">", at);
+    if (end < 0) break;
+    const tag = xml.slice(at, end + 1);
+    const next = xml.indexOf("<", end + 1);
+    if (tag[1] === "?" || tag[1] === "!") {
+      at = next;
+      continue;
+    }
+    const closing = tag[1] === "/";
+    const name = tag.slice(closing ? 2 : 1).match(/^[^\s/>]+/)?.[0] ?? "";
+    if (closing) {
+      if (open[open.length - 1]?.name === name) {
+        const element = open.pop()!;
+        if (paragraphs[paragraphs.length - 1] === open.length) paragraphs.pop();
+        if (element.drop) {
+          // Whatever was cut inside it goes with it.
+          while (cuts.length && cuts[cuts.length - 1][0] >= element.start) cuts.pop();
+          cuts.push([element.start, end + 1]);
+        }
+      }
+    } else {
+      const style = ELEMENT_STYLE.exec(tag)?.[1];
+      if (name === "text:hidden-paragraph" && /\stext:is-hidden="true"/.test(tag)) {
+        if (paragraphs.length) open[paragraphs[paragraphs.length - 1]].drop = true;
+      } else if (name === "table:table" && style && styles.table.has(style)) {
+        const sheet = SHEET_NAME.exec(tag);
+        if (sheet) renames.push([at + sheet.index, at + sheet.index + sheet[0].length, ` table:name="${sheet[1]} (hidden)"`]);
+      } else if (name === "draw:page") {
+        pages++;
+        if (style && styles.page.has(style)) slides.add(pages);
+      }
+      if (!tag.endsWith("/>")) {
+        const drop =
+          (name === "text:section" && /\stext:display="none"/.test(tag)) ||
+          ((name === "text:p" || name === "text:h" || name === "text:span") && !!style && styles.text.has(style));
+        if (name === "text:p" || name === "text:h") paragraphs.push(open.length);
+        open.push({ name, start: at, drop });
+      }
+    }
+    at = next;
+  }
+  if (cuts.length === 0 && renames.length === 0) return { xml, hidden: 0, slides };
+  // Both lists ascend: a cut is pushed when its element closes, after
+  // everything inside it, and cuts inside it were taken back.
+  const edits = [...cuts.map(([from, to]) => ({ from, to, text: "" })), ...renames.map(([from, to, text]) => ({ from, to, text }))];
+  edits.sort((a, b) => a.from - b.from);
+  const out: string[] = [];
+  let kept = 0;
+  for (const edit of edits) {
+    // A sheet inside a dropped section is gone with it.
+    if (edit.from < kept) continue;
+    out.push(xml.slice(kept, edit.from), edit.text);
+    kept = edit.to;
+  }
+  out.push(xml.slice(kept));
+  return { xml: out.join(""), hidden: cuts.filter(([from, to]) => hasText(xml, from, to)).length, slides };
+}
+
+/**
+ * A docx or an OpenDocument file with its hidden text taken out, how many
+ * hidden runs or elements held text, and which slides are hidden. Anything
+ * else, or a file with nothing hidden, comes back as the same bytes.
+ */
+export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidden: number; slides: Set<number> } {
+  const none = { bytes, hidden: 0, slides: new Set<number>() };
   let parts: Record<string, Uint8Array>;
   let unpacked = 0;
   try {
     parts = unzipSync(bytes, {
       filter: (file) => {
         unpacked += file.originalSize;
-        return WORD_PART.test(file.name);
+        return WORD_PART.test(file.name) || file.name === "content.xml" || file.name === "styles.xml";
       },
     });
   } catch {
-    return { bytes, hidden: 0 };
+    return none;
   }
+  if (unpacked > MAX_REWRITE) return none;
   const changed: Record<string, Uint8Array> = {};
   let hidden = 0;
-  for (const [name, data] of Object.entries(parts)) {
-    const before = strFromU8(data);
-    const after = withoutHiddenRuns(before);
-    if (after.xml === before) continue;
-    changed[name] = strToU8(after.xml);
-    hidden += after.hidden;
+  let slides = new Set<number>();
+  if (parts["content.xml"]) {
+    const content = strFromU8(parts["content.xml"]);
+    const styles: OdfHiddenStyles = { text: new Set(), table: new Set(), page: new Set() };
+    collectHiddenStyles(content, styles);
+    if (parts["styles.xml"]) collectHiddenStyles(strFromU8(parts["styles.xml"]), styles);
+    const after = withoutHiddenOdf(content, styles);
+    if (after.xml !== content) changed["content.xml"] = strToU8(after.xml);
+    hidden = after.hidden;
+    slides = after.slides;
+  } else {
+    for (const [name, data] of Object.entries(parts)) {
+      if (!WORD_PART.test(name)) continue;
+      const before = strFromU8(data);
+      const after = withoutHiddenRuns(before);
+      if (after.xml === before) continue;
+      changed[name] = strToU8(after.xml);
+      hidden += after.hidden;
+    }
   }
-  if (Object.keys(changed).length === 0 || unpacked > MAX_REWRITE) return { bytes, hidden: 0 };
+  if (Object.keys(changed).length === 0) return { ...none, slides };
   // Stored, not deflated: the zip is only read back by the next step.
-  return { bytes: zipSync({ ...unzipSync(bytes), ...changed }, { level: 0 }), hidden };
+  return { bytes: zipSync({ ...unzipSync(bytes), ...changed }, { level: 0 }), hidden, slides };
 }
