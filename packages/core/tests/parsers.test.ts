@@ -11,6 +11,7 @@ import {
   tableDocx,
   SHEET_MACRO_ENABLED,
   commentedDocx,
+  commentedXlsx,
   docxWithBody,
   odfDocument,
   spannedOds,
@@ -139,6 +140,21 @@ describe("extractOfficeDocument — structure survives extraction", () => {
     // On both runs of its range, written once.
     expect(text.match(/\[Comment/g)).toHaveLength(1);
     expect(notes).toContainEqual({ kind: "comments-included", count: 1 });
+  });
+
+  it("drops the author Excel puts before a note and splits a threaded comment's fallback text", async () => {
+    const { text, notes } = await extractOfficeDocument(commentedXlsx(), { format: "xlsx" });
+    expect(text).toContain("[Comment, A1, Ada: Check the region.]");
+    expect(text).toContain("[Comment, B2: Is this final?]");
+    expect(text).toContain("[Reply, B2: Yes.]");
+    expect(text).not.toMatch(/tc=|Your version of Excel/);
+    expect(notes).toContainEqual({ kind: "comments-included", count: 3 });
+  });
+
+  it("splits a long threaded fallback text in linear time", async () => {
+    const start = performance.now();
+    await extractOfficeDocument(commentedXlsx(`[Threaded comment]${"\n ".repeat(150000)}x`), { format: "xlsx" });
+    expect(performance.now() - start).toBeLessThan(2000);
   });
 
   it("writes an OpenDocument annotation inline and a sheet's cell comment as a row naming the cell", async () => {

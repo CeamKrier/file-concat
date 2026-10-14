@@ -425,6 +425,38 @@ export function commentedDocx(): Uint8Array {
   return zipSync(parts);
 }
 
+/**
+ * `twoSheetXlsx` with two notes on its first sheet, as Excel saves them: a
+ * legacy note whose text opens with its author's name, and a threaded comment
+ * that the legacy part holds only as Excel's fallback text, under the thread id.
+ */
+export function commentedXlsx(
+  thread = "[Threaded comment]\n\nYour version of Excel allows you to read this threaded comment; however, any edits to it will get removed if the file is opened in a newer version of Excel. Learn more: https://go.microsoft.com/fwlink/?linkid=870924\n\n" +
+    "Comment:\n    Is this final?\nReply:\n    Yes.",
+): Uint8Array {
+  const parts = unzipSync(twoSheetXlsx());
+  parts["[Content_Types].xml"] = strToU8(
+    strFromU8(parts["[Content_Types].xml"]).replace(
+      "</Types>",
+      '<Override PartName="/xl/comments1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.comments+xml"/></Types>',
+    ),
+  );
+  parts["xl/worksheets/_rels/sheet1.xml.rels"] = strToU8(
+    XML_DECL +
+      `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+      `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" Target="../comments1.xml"/>` +
+      `</Relationships>`,
+  );
+  parts["xl/comments1.xml"] = strToU8(
+    XML_DECL +
+      `<comments xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><authors><author>Ada</author><author>tc={6D2B3A10-0000-0000-0000-000000000000}</author></authors><commentList>` +
+      `<comment ref="A1" authorId="0"><text><r><t xml:space="preserve">Ada:\nCheck the region.</t></r></text></comment>` +
+      `<comment ref="B2" authorId="1"><text><t xml:space="preserve">${thread}</t></text></comment>` +
+      `</commentList></comments>`,
+  );
+  return zipSync(parts);
+}
+
 /** An OpenDocument file of `kind` (text, spreadsheet) holding `body`. */
 export function odfDocument(kind: string, body: string): Uint8Array {
   const ns =

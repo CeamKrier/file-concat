@@ -469,18 +469,23 @@ function showComments(): { visit: (node: OfficeContentNode) => void; count: () =
       if (seen.has(comment) || (id !== undefined && ids.has(id))) return [];
       seen.add(comment);
       if (id !== undefined) ids.add(id);
-      // A comment's paragraphs, one after another on its line.
-      const body = (comment.children?.length ? comment.children.map(plainText).join(" ") : (comment.text ?? ""))
-        .replace(/\s+/g, " ")
-        .trim();
-      if (!body) return [];
       const meta = comment.metadata as { author?: string; parentId?: string } | undefined;
       // Folded like a link destination: an author name is the file's to choose,
       // and a line break in it would forge structure in the bundle.
-      const author = meta?.author?.replace(/\s+/g, " ").trim();
-      const label = [meta?.parentId ? "Reply" : "Comment", where, author].filter(Boolean).join(", ");
-      shown++;
-      return [`[${label}: ${body}]`];
+      const fold = (text: string) => text.replace(/\s+/g, " ").trim();
+      const author = fold(meta?.author ?? "");
+      const raw = comment.children?.length ? comment.children.map(plainText).join("\n") : (comment.text ?? "");
+      // Excel opens a note's own text with its author's name and a colon.
+      const own = author && raw.startsWith(`${author}:`) ? raw.slice(author.length + 1) : raw;
+      const entries = raw.startsWith("[Threaded comment]")
+        ? threadEntries(raw)
+        : [{ kind: meta?.parentId ? "Reply" : "Comment", author, text: own }];
+      return entries.flatMap(({ kind, author, text }) => {
+        const body = fold(text);
+        if (!body) return [];
+        shown++;
+        return [`[${[kind, where, author].filter(Boolean).join(", ")}: ${body}]`];
+      });
     });
   const below = (node: OfficeContentNode): OfficeContentNode[] =>
     (node.children ?? []).flatMap((child) => [child, ...below(child)]);
@@ -504,6 +509,16 @@ function showComments(): { visit: (node: OfficeContentNode) => void; count: () =
     }
   };
   return { visit, count: () => shown };
+}
+
+// A threaded comment reaches the legacy note part only as Excel's fallback
+// text: a boilerplate paragraph, then each message after a "Comment:" or
+// "Reply:" line. The note's author there is the thread id, never a person.
+function threadEntries(raw: string): { kind: string; author: string; text: string }[] {
+  const parts = raw.split(/\n[ \t]*(Comment|Reply):[ \t]*\r?\n/);
+  const entries: { kind: string; author: string; text: string }[] = [];
+  for (let i = 1; i + 1 < parts.length; i += 2) entries.push({ kind: parts[i], author: "", text: parts[i + 1] });
+  return entries;
 }
 
 /** `B3` for row 2, column 1, both counted from 0. */
