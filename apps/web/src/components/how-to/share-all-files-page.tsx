@@ -35,7 +35,7 @@ function ShareLanding(dropProps: DropZoneProps) {
 
 const TRUST = [
   "No sign-up, no install",
-  "Nothing uploaded to us, not even PDFs",
+  "Files not uploaded to us, not even PDFs",
   "One file back in about a second",
 ];
 
@@ -46,7 +46,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <Lock className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs in your browser. Nothing uploaded to us.
+            Runs in your browser. Files not uploaded to us.
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
@@ -73,7 +73,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <DropZone
             {...dropProps}
-            title="Drag your folder here"
+            title="Drop your folder here"
             hint="Files, PDFs, docs, a whole folder. Read in a second."
           />
         </div>
@@ -254,7 +254,7 @@ const STEPS = [
   },
   {
     title: "It reads everything here",
-    body: "PDFs, Word, Excel, code, and notes are turned into text right in this tab. Nothing is uploaded to us.",
+    body: "PDFs, Word, Excel, code, and notes are turned into text right in this tab. Your files are not uploaded to us.",
   },
   {
     title: "Paste the one file in",

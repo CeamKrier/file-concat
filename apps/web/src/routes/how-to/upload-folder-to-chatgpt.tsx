@@ -26,7 +26,7 @@ export const Route = createFileRoute("/how-to/upload-folder-to-chatgpt")({
         // question first and promises the way through second.
         title: "Upload a folder to ChatGPT as one file",
         description:
-          "OpenAI describes no way to upload a folder. Drop it here for one text file ChatGPT reads in full, the folder tree at the top. Nothing is uploaded to us.",
+          "OpenAI describes no way to upload a folder. Drop it here for one text file ChatGPT reads in full, the folder tree at the top. Not uploaded to us.",
         url: "https://fileconcat.com/how-to/upload-folder-to-chatgpt",
       }),
       {

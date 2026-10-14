@@ -24,7 +24,7 @@ export const Route = createFileRoute("/how-to/upload-zip-to-chatgpt")({
         // the description answers both halves before it promises the way through.
         title: "Can you upload a ZIP file to ChatGPT?",
         description:
-          "Yes, but ChatGPT must unpack it first, and OpenAI says that can fail. Drop the ZIP here for one text file it reads in full. Nothing is uploaded to us.",
+          "Yes, but ChatGPT must unpack it first, and OpenAI says that can fail. Drop the ZIP here for one text file it reads in full. Not uploaded to us.",
         url: "https://fileconcat.com/how-to/upload-zip-to-chatgpt",
       }),
       {
