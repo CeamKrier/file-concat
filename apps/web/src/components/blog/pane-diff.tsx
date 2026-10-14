@@ -27,6 +27,8 @@ export type DiffPane = {
   text: string;
   /** What the pane amounts to. Sits under the lines, mono and faint. */
   footer: string;
+  /** This pane's own line count, where it differs from the figure's `total`. */
+  total?: number;
 };
 
 export type PaneDiffProps = {
@@ -115,7 +117,7 @@ export function PaneDiff({ file, mark, legend, panes, total, children }: PaneDif
           one keeps its own header and footer. */}
       <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
         {panes.map((pane) => (
-          <Pane key={pane.reader} pane={pane} mark={mark} total={total} />
+          <Pane key={pane.reader} pane={pane} mark={mark} total={pane.total ?? total} />
         ))}
       </div>
 

@@ -82,7 +82,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           <DropZone
             {...dropProps}
             title="Drop your client folder here"
-            hint="Statements, invoices, and ledgers. Read in a second."
+            hint="Statements, invoices, and ledgers. Read in your browser."
           />
         </div>
       </div>
@@ -104,8 +104,7 @@ function Confidentiality() {
           We don't upload your client's books.
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
-          Most tools that read a document upload it to a server first. FileConcat does the reading
-          in your browser, so the documents are never uploaded to be read, and there is no
+          FileConcat does the reading in your browser, so the documents are never uploaded to be read, and there is no
           account to create.
         </p>
       </div>
@@ -157,7 +156,7 @@ function Workflow() {
         id="acct-workflow"
         className="font-display text-ink max-w-[24ch] text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
       >
-        From a client folder to a prompt in three steps.
+        From a client folder to one file in three steps.
       </h2>
 
       <ol className="mt-9 grid gap-x-8 gap-y-8 sm:grid-cols-3">
@@ -337,7 +336,7 @@ function ClosingCta() {
         id="acct-cta"
         className="font-display text-ink mx-auto max-w-[20ch] text-balance text-[clamp(1.7rem,4vw,2.2rem)] font-bold leading-[1.08] tracking-[-0.025em]"
       >
-        Read the whole client file without giving it away.
+        Prepare the whole client file in your browser.
       </h2>
       <div className="mt-8">
         <button

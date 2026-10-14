@@ -131,7 +131,7 @@ function DocsHeader({
             to="/"
             className="bg-primary text-primary-foreground rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
           >
-            Open the tool
+            Open FileConcat
             <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2.5} />
           </Link>
           <a

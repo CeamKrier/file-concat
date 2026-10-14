@@ -86,7 +86,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           <DropZone
             {...dropProps}
             title="Drop your folder here"
-            hint="Everything for your Project, read in a second."
+            hint="Everything for your Project, read in your browser."
           />
         </div>
       </div>
@@ -110,8 +110,8 @@ function Capacity() {
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
           Project knowledge shares Claude's context window, so a project is full when the total size
-          runs out, not when you reach some number of files. That makes the real question how many
-          tokens your documents come to. FileConcat answers it before you add anything.
+          runs out, not when you reach some number of files. So what you need to know is how many
+          tokens your documents come to. FileConcat counts them before you add anything.
         </p>
         <p className="text-go-fg mt-5 inline-flex items-center gap-2 font-mono text-[12.5px]">
           <Hash className="text-primary h-4 w-4 shrink-0" strokeWidth={2} />

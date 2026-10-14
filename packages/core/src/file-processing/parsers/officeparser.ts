@@ -440,45 +440,56 @@ function edgesOf(page: OfficeContentNode): { first?: OfficeContentNode; last?: O
  */
 function dropRunningFurniture(content: readonly OfficeContentNode[]): void {
   const pages = content.filter((node) => node.type === "page");
-  if (pages.length < 3) return;
+  const doomed = runningFurniture(
+    pages.map((page, index) => ({ number: page.metadata?.pageNumber ?? index + 1, ...edgesOf(page) })),
+    (node) => node.text!,
+  );
+  if (doomed.size === 0) return;
+  for (const page of pages) {
+    page.children = (page.children ?? []).filter((child) => !doomed.has(child));
+  }
+}
 
-  const doomed = new Set<OfficeContentNode>();
+/**
+ * The edge lines {@link dropRunningFurniture}'s two rules remove, for any
+ * reader that can say which line opens and which closes each page. Shared so a
+ * PDF read by liteparse is thinned the same way as one read by officeparser.
+ */
+function runningFurniture<T>(
+  pages: readonly { number: number; first?: T; last?: T }[],
+  text: (line: T) => string,
+): Set<T> {
+  const doomed = new Set<T>();
+  if (pages.length < 3) return doomed;
 
   for (const edge of ["first", "last"] as const) {
-    const lines = pages
-      .map((page, index) => ({
-        page,
-        node: edgesOf(page)[edge],
-        number: page.metadata?.pageNumber ?? index + 1,
-      }))
-      .filter((line) => line.node !== undefined);
+    const lines = pages.flatMap((page) => {
+      const line = page[edge];
+      return line === undefined ? [] : [{ line, text: text(line), number: page.number }];
+    });
 
     // Its own page number, as a whole number rather than as digits inside a
     // longer one: page 1 must not match the `1` in `2015`.
     const numbered = lines.filter(
       (line) =>
-        line.node!.text!.trim().length <= FURNITURE_LINE_LIMIT &&
-        new RegExp(`(?:^|\\D)${line.number}(?:\\D|$)`).test(line.node!.text!),
+        line.text.trim().length <= FURNITURE_LINE_LIMIT &&
+        new RegExp(`(?:^|\\D)${line.number}(?:\\D|$)`).test(line.text),
     );
     if (numbered.length >= 3 && numbered.length >= pages.length - 1) {
-      for (const line of numbered) doomed.add(line.node!);
+      for (const { line } of numbered) doomed.add(line);
       continue;
     }
 
-    const byText = new Map<string, OfficeContentNode[]>();
-    for (const line of lines) {
-      const key = line.node!.text!.trim().replace(/\s+/g, " ");
-      byText.set(key, [...(byText.get(key) ?? []), line.node!]);
+    const byText = new Map<string, T[]>();
+    for (const { line, text } of lines) {
+      const key = text.trim().replace(/\s+/g, " ");
+      byText.set(key, [...(byText.get(key) ?? []), line]);
     }
     for (const repeats of byText.values()) {
-      if (repeats.length >= 3) for (const node of repeats.slice(1)) doomed.add(node);
+      if (repeats.length >= 3) for (const line of repeats.slice(1)) doomed.add(line);
     }
   }
-
-  if (doomed.size === 0) return;
-  for (const page of pages) {
-    page.children = (page.children ?? []).filter((child) => !doomed.has(child));
-  }
+  return doomed;
 }
 
 /**
@@ -719,10 +730,23 @@ export interface PdfPage {
 export function assemblePdfPages(pages: readonly PdfPage[], skipped = 0): ExtractionResult {
   const readable = (text: string) => /[\p{L}\p{N}]/u.test(text);
   // liteparse writes an empty ```text fence for a page with no text.
-  const bodies = pages.map((page) => ({
+  const trimmed = pages.map((page) => ({
     ...page,
-    text: page.text.replace(/^```text\s*```$/gm, "").trim(),
+    lines: page.text.replace(/^```text\s*```$/gm, "").trim().split("\n"),
   }));
+  // Running headers and footers, under the rules officeparser's PDFs get. The
+  // reader keeps them (`keepHeadersFooters`), because its own stripping drops
+  // every copy and with it a title or marking printed only there.
+  const edges = trimmed.map((page) => {
+    const filled = page.lines.map((text, at) => ({ text, at })).filter((line) => line.text.trim());
+    return { number: page.number, first: filled[0], last: filled[filled.length - 1] };
+  });
+  const furniture = runningFurniture(edges, (line) => line.text);
+  const bodies = trimmed.map((page, index) => {
+    const { first, last } = edges[index];
+    const drop = new Set([first, last].flatMap((line) => (line && furniture.has(line) ? [line.at] : [])));
+    return { ...page, text: page.lines.filter((_, at) => !drop.has(at)).join("\n").trim() };
+  });
   const notes: ExtractionNote[] = skipped > 0 ? [{ kind: "pages-skipped", count: skipped }] : [];
   const empty = (text: string) => (notes.length > 0 ? { text, notes } : { text });
   const anyReadable = bodies.some((page) => readable(page.text));

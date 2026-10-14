@@ -9,17 +9,32 @@ Assets are in `assets/`. They are generated, not hand-drawn. Rebuild the
 extension, then run `node apps/extension/store/generate-assets.mjs` to
 reproduce all five from a real browser.
 
-Matches manifest version `0.3.1`.
+Matches manifest version `0.3.2`.
 
 The version lives in `apps/extension/package.json` and WXT copies it into the
 manifest. Bump it by hand, once per submission rather than once per change:
 Chrome only accepts an upload numbered above the published one, a number that
 never reaches the store means nothing to anyone, and a review takes days, so
 there is no release cadence to automate against. Update this line in the same
-commit. `0.2.0` is what is live; `0.3.0` was the batch built since, ChatGPT, Claude and Gemini
+commit. `0.3.1` is what is live (store page, updated 2026-09-17). `0.3.0` was the batch built after `0.2.0`, ChatGPT, Claude and Gemini
 conversations included, and was rejected on 2026-09-15 for its six-brand
 summary (see "Rejected once" below); `0.3.1` is the same package with the
 summary and description cut to five brands.
+
+## Dashboard edits for 0.3.2
+
+The package is `fileconcatextension-0.3.2-chrome.zip`, built the same way as
+0.3.1 below. It is a copy release: the panel names FileConcat where it used to
+say "the tab" ("9 sent. FileConcat added them to the bundle.", "FileConcat
+replaced them in place.", "FileConcat refused the batch."), which reaches the
+store by the upload itself. Two pasted fields change against 0.3.1:
+
+| Field                       | Where | What changes                                                         |
+| --------------------------- | ----- | -------------------------------------------------------------------- |
+| Description                 | paste | "What is hard to get out of a browser", without "actually"           |
+| `storage` justification     | paste | last sentence is "None of it is uploaded to us."                     |
+
+Everything else stays as 0.3.1 left it, the five screenshots included.
 
 ## Dashboard edits for 0.3.1
 
@@ -133,7 +148,7 @@ to an open fileconcat.com tab, where they join a bundle you can copy or download
 in one piece. It is for anyone who assembles reading material for an LLM and is
 tired of pasting pages in one at a time.
 
-Copying a page into Markdown is the easy half. What is actually hard to get out
+Copying a page into Markdown is the easy half. What is hard to get out
 of a browser is a discussion, and that is what this is built around.
 
 WHAT IT CLIPS
@@ -252,7 +267,8 @@ All five are in `assets/`, taken 2026-08-21 in one session.
 `screenshot-5-bundle.png` is the only shot with fileconcat.com in it, so it can
 only be taken against production, and it had to wait for the page guard that
 used to refuse a file name carrying an ellipsis to deploy. That send is now in
-the picture: nine clippings, 47,868 tokens, "9 sent. The tab took them."
+the picture: nine clippings, 47,868 tokens, "9 sent. The tab took them." That string is
+"9 sent. FileConcat added them to the bundle." from 0.3.2 on, so the reshoot fixes this shot too.
 
 **Small promo tile** — `assets/promo-tile-440x280.png`. Optional, and only used
 in placements the store chooses. Skip the 1400x560 marquee until an editorial
@@ -299,7 +315,7 @@ the delivery. The extension has no other function and no other destination.
 
 | Permission         | Justification to paste                                                                                                                                                                                                                                                                                                                                                                                 |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `storage`          | A clipping has to survive between the moment it is made and the moment the user sends it, and the extension's background worker can be shut down by Chrome at any point in between. The tray is therefore kept in `chrome.storage.local` rather than in memory. The same storage holds the user's per-site on/off preferences and the last status line shown in the panel. Nothing in it leaves the device. |
+| `storage`          | A clipping has to survive between the moment it is made and the moment the user sends it, and the extension's background worker can be shut down by Chrome at any point in between. The tray is therefore kept in `chrome.storage.local` rather than in memory. The same storage holds the user's per-site on/off preferences and the last status line shown in the panel. None of it is uploaded to us. |
 | `unlimitedStorage` | Clippings are large. A single Hacker News thread measured 264,851 characters and a long article measured 39,509, and the tray holds up to 50 of them, which is well past the 5 MB the default quota allows. Without this permission a normal session of clipping fills the quota and the tray starts failing to save work the user has already done.                                                   |
 | `sidePanel`        | The entire user interface is a side panel. There is no popup and no options page. The panel is what lists what the current page offers, shows the tray, and carries the send button. A panel rather than a popup because clipping continues while the user keeps browsing, and a popup is dismissed the moment attention moves.                                                                        |
 
@@ -342,7 +358,7 @@ same browser. "Website content" is ticked anyway because that destination is our
 own site and its analytics can record file names and the on-screen preview, so
 the content the user clipped is disclosed rather than argued about. "Web
 history" stays unticked because the tray records only the pages the user chose
-to clip, and it never leaves the device. "Personal communications" stays
+to clip, and that record is not uploaded to us. "Personal communications" stays
 unticked at the 0.3.0 submission. The form's own example for that box is
 "emails, texts, or chat messages", meaning messages between people; a
 ChatGPT, Claude or Gemini clip is the user's own exchange with a product,

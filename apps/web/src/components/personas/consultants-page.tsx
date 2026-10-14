@@ -81,7 +81,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           <DropZone
             {...dropProps}
             title="Drop your engagement folder here"
-            hint="Decks, reports, and data. Read in a second."
+            hint="Decks, reports, and data. Read in your browser."
           />
         </div>
       </div>
@@ -160,7 +160,7 @@ function Workflow() {
           id="cons-workflow"
           className="font-display text-ink max-w-[18ch] text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          From a full engagement to a prompt.
+          From a full engagement to one file.
         </h2>
 
         <ol className="space-y-6">

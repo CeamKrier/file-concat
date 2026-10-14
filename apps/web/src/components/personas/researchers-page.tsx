@@ -74,7 +74,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           <DropZone
             {...dropProps}
             title="Drop your reading folder here"
-            hint="Papers, notes, and data. Read in a second."
+            hint="Papers, notes, and data. Read in your browser."
           />
         </div>
       </div>
@@ -102,7 +102,7 @@ function ContextWindow() {
         </p>
         <p className="text-go-fg mt-5 inline-flex items-center gap-2 font-mono text-[12.5px]">
           <Hash className="text-primary h-4 w-4 shrink-0" strokeWidth={2} />
-          Counted in your browser, with the same tokenizer the models use
+          Counted in your browser, with the same kind of tokenizer the models use
         </p>
       </div>
 
@@ -150,7 +150,7 @@ function Workflow() {
           id="research-workflow"
           className="font-display text-ink max-w-[18ch] text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          From a reading pile to a prompt.
+          From a reading pile to one file.
         </h2>
 
         <ol className="space-y-6">
@@ -302,7 +302,7 @@ function ClosingCta() {
         id="research-cta"
         className="font-display text-ink mx-auto max-w-[20ch] text-balance text-[clamp(1.7rem,4vw,2.2rem)] font-bold leading-[1.08] tracking-[-0.025em]"
       >
-        Fit the whole literature in one prompt.
+        Fit the whole literature in one file.
       </h2>
       <div className="mt-8">
         <button

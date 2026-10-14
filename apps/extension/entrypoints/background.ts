@@ -352,7 +352,7 @@ async function sendOnce() {
   // would drop it without ever having sent it.
   const pushed = new Set(rows.map((item) => item.id));
   await write((await read()).filter((item) => !pushed.has(item.id)));
-  await say(`${answer.count} sent. The tab took them.`, "done");
+  await say(`${answer.count} sent. FileConcat added them to the bundle.`, "done");
 }
 
 /** Sent rows, pushed again. Nothing moves: they are already where they belong. */
@@ -362,7 +362,7 @@ async function resendOnce(ids: string[]) {
   await say("Sending…", "working");
   const answer = await push(files);
   await say(
-    "error" in answer ? answer.error : `${answer.count} sent again. The tab replaced them in place.`,
+    "error" in answer ? answer.error : `${answer.count} sent again. FileConcat replaced them in place.`,
     "error" in answer ? "error" : "done",
   );
 }

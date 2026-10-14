@@ -37,6 +37,20 @@ export const FALLBACK_READERS: Readonly<Record<string, readonly string[]>> = {
 };
 
 /**
+ * Detected format -> the web's first reader, where it is not officeparser. Data
+ * for the same reasons as above, and shared so the extraction measurement runs
+ * the chain the browser runs rather than a copy of it.
+ */
+export type FirstReaderId = "liteparse" | "sheetjs" | "anydoc";
+export const FIRST_READERS: Readonly<Record<string, FirstReaderId>> = {
+  pdf: "liteparse",
+  xlsx: "sheetjs",
+  xlsm: "sheetjs",
+  xlsb: "sheetjs",
+  rtf: "anydoc",
+};
+
+/**
  * Share of non-whitespace characters nobody can read: U+FFFD, C0 controls, and
  * the private-use area. The character set of the extraction eval's robustness
  * summary, and of Kreuzberg's `is_undecodable_char` (xberg `scoring.rs`).

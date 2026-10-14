@@ -15,6 +15,8 @@ export {
   assemblePdfPages,
   createParserRegistry,
   extractWithFallback,
+  FIRST_READERS,
+  type FirstReaderId,
   extractNotebook,
   extractOfficeDocument,
   extractSubtitles,

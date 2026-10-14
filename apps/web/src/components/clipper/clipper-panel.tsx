@@ -16,8 +16,8 @@ import { CART, THREAD, VIDEO, weigh } from "./clipper-content";
  * and which is why this page needs no video.
  *
  * Everything in it is illustrative content in the product's real shapes: real
- * strings where the product has fixed ones ("Cart is empty.", "5 sent. The tab
- * took them."), plausible stand-ins where a live page would supply the words.
+ * strings where the product has fixed ones ("Cart is empty.", "5 sent. FileConcat
+ * added them to the bundle."), plausible stand-ins where a live page would supply the words.
  * The measured figures stay in the prose beside it, where they can be sourced.
  */
 export type PanelState =
@@ -547,7 +547,7 @@ function Toast({ open }: { open: boolean }) {
       )}
     >
       <span className="bg-primary h-1.5 w-1.5 shrink-0 rounded-full" />
-      <span className="text-ink text-[12.5px]">{CART.length} sent. The tab took them.</span>
+      <span className="text-ink text-[12.5px]">{CART.length} sent. FileConcat added them to the bundle.</span>
     </div>
   );
 }
