@@ -1,3 +1,4 @@
+import { flattenHtml } from "./html-text";
 import type { ExtractionNote, ExtractionResult } from "./types";
 
 /**
@@ -9,14 +10,16 @@ import type { ExtractionNote, ExtractionResult } from "./types";
  * to a model and routinely outweigh the code by an order of magnitude.
  *
  * What comes out here is markdown: prose cells verbatim, code cells fenced in
- * the notebook's own language, text outputs and tracebacks kept. Images and
- * other binary outputs are dropped and *counted*, never silently (ADR-0008).
+ * the notebook's own language, text outputs and tracebacks kept, stderr fenced
+ * apart. Images and other binary outputs are dropped and *counted*, never
+ * silently (ADR-0008).
  *
  * No dependency: the format is JSON and the rendering is ours.
  */
 
 interface NotebookOutput {
   output_type?: string;
+  name?: string;
   text?: string | string[];
   data?: Record<string, unknown>;
   ename?: string;
@@ -66,8 +69,9 @@ function languageOf(notebook: Notebook): string {
 
 /**
  * The text a single output carries, or `null` when it carries none — an image,
- * a widget, an HTML-only view. `text/plain` is preferred over every richer
- * representation because it is the one already meant to be read.
+ * a widget, a chart drawn by a script. `text/plain` comes first, against
+ * nbconvert's display order, because it is the one already meant to be read and
+ * the compact form of a dataframe; markdown next, then HTML flattened to text.
  */
 function outputText(output: NotebookOutput): string | null {
   if (output.output_type === "stream") {
@@ -83,9 +87,14 @@ function outputText(output: NotebookOutput): string | null {
   }
 
   if (output.output_type === "execute_result" || output.output_type === "display_data") {
-    const plain = output.data?.["text/plain"];
-    const text = joinSource(plain as string | string[] | undefined);
-    return text.trim() ? text : null;
+    const data = (mime: string) => joinSource(output.data?.[mime] as string | string[] | undefined);
+    const html = flattenHtml(data("text/html").replace(/<\/t[dh]\s*>/gi, " | "))
+      .split("\n")
+      .map((line) => line.replace(/\s*\|\s*$/, "").trim())
+      .filter(Boolean)
+      .join("\n");
+    const text = [data("text/plain"), data("text/markdown"), html].find((form) => form.trim());
+    return text ?? null;
   }
 
   return null;
@@ -101,15 +110,26 @@ function renderCell(cell: NotebookCell, language: string, parts: string[]): numb
     // Images pasted into a markdown cell live here too, base64 and all.
     dropped += Object.keys(cell.attachments ?? {}).length;
 
-    const rendered: string[] = [];
+    // Outputs stay in the order they were written; a new fence opens where
+    // stderr starts or stops, so a warning never reads as the program's result.
+    let label = "";
+    let run: string[] = [];
+    const flush = () => {
+      if (run.length > 0) parts.push(`${label}\n\`\`\`\n${run.join("\n")}\n\`\`\``);
+      run = [];
+    };
     for (const output of cell.outputs ?? []) {
       const text = outputText(output);
-      if (text === null) dropped++;
-      else rendered.push(text.replace(/\s+$/, ""));
+      if (text === null) {
+        dropped++;
+        continue;
+      }
+      const next = output.output_type === "stream" && output.name === "stderr" ? "Stderr:" : "Output:";
+      if (next !== label) flush();
+      label = next;
+      run.push(text.replace(/\s+$/, ""));
     }
-    if (rendered.length > 0) {
-      parts.push(`Output:\n\`\`\`\n${rendered.join("\n")}\n\`\`\``);
-    }
+    flush();
     return dropped;
   }
 

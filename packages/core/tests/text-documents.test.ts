@@ -149,6 +149,48 @@ describe("extractNotebook", () => {
     expect(text).not.toContain("\u001B");
   });
 
+  const outputs = (...items: Record<string, unknown>[]) =>
+    utf8(JSON.stringify({ cells: [{ cell_type: "code", source: "show()", outputs: items }], nbformat: 4 }));
+
+  it("reads an output that has only markdown or only HTML, as text", () => {
+    const { text, notes } = extractNotebook(
+      outputs(
+        { output_type: "display_data", data: { "text/markdown": ["**Total**: 42"] } },
+        {
+          output_type: "display_data",
+          data: {
+            "text/html": [
+              "<style>td { color: red }</style><table><tr><th>city</th><th>n</th></tr>",
+              "<tr><td>Paris &amp; Lyon</td><td>3</td></tr></table>",
+            ],
+          },
+        },
+      ),
+    );
+    expect(text).toContain("Output:\n```\n**Total**: 42\ncity | n\nParis & Lyon | 3\n```");
+    expect(text).not.toContain("color");
+    expect(notes).toBeUndefined();
+  });
+
+  it("counts an HTML output with no text in it, a script-drawn chart, as dropped", () => {
+    const { text, notes } = extractNotebook(
+      outputs({ output_type: "display_data", data: { "text/html": ['<div id="plot"></div><script>Plotly.newPlot("plot")</script>'] } }),
+    );
+    expect(text).not.toContain("Plotly");
+    expect(notes).toEqual([{ kind: "attachments-skipped", count: 1 }]);
+  });
+
+  it("fences stderr apart from stdout, in the order they were written", () => {
+    const { text } = extractNotebook(
+      outputs(
+        { output_type: "stream", name: "stdout", text: "QZOUT\n" },
+        { output_type: "stream", name: "stderr", text: "QZERR\n" },
+        { output_type: "stream", name: "stdout", text: "QZMORE\n" },
+      ),
+    );
+    expect(text).toContain("Output:\n```\nQZOUT\n```\n\nStderr:\n```\nQZERR\n```\n\nOutput:\n```\nQZMORE\n```");
+  });
+
   it("answers 'couldn't extract' for JSON that is not a notebook", () => {
     expect(extractNotebook(utf8(`{"cells": "not an array"}`))).toEqual({ text: "" });
     expect(extractNotebook(utf8("not json at all"))).toEqual({ text: "" });

@@ -1,4 +1,5 @@
 import type { Email } from "postal-mime";
+import { flattenHtml } from "./html-text";
 import type { ExtractionNote, ExtractionResult } from "./types";
 
 /**
@@ -51,19 +52,6 @@ function formatAddresses(addresses: Email["to"]): string {
     .join(", ");
 }
 
-/** Block-level tags whose boundaries are the only structure HTML mail carries. */
-const HTML_BREAKS = /<\/?(p|div|br|tr|li|h[1-6]|blockquote|table)\b[^>]*>/gi;
-
-const HTML_ENTITIES: Readonly<Record<string, string>> = {
-  "&amp;": "&",
-  "&lt;": "<",
-  "&gt;": ">",
-  "&quot;": '"',
-  "&#39;": "'",
-  "&apos;": "'",
-  "&nbsp;": " ",
-};
-
 /**
  * The readable text of an HTML-only message. Deliberately crude: the goal is
  * the words in reading order, not a faithful rendering, and a message that has
@@ -83,15 +71,9 @@ function htmlToText(html: string): string {
   const outlook = header < 0 ? -1 : clean.lastIndexOf("<", header);
   const flat = (outlook < 0 ? clean : `${clean.slice(0, outlook)}\n${QUOTE_OPEN}${clean.slice(outlook)}${QUOTE_CLOSE}\n`)
     .replace(/<blockquote\b[^>]*>/gi, `\n${QUOTE_OPEN}`)
-    .replace(/<\/blockquote\s*>/gi, `${QUOTE_CLOSE}\n`)
-    .replace(HTML_BREAKS, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
-    .replace(/&[a-z#0-9]+;/gi, (entity) => HTML_ENTITIES[entity.toLowerCase()] ?? entity)
-    .replace(/[ \t]+/g, " ")
-    .replace(/ ?\n ?/g, "\n");
+    .replace(/<\/blockquote\s*>/gi, `${QUOTE_CLOSE}\n`);
   let depth = 0;
-  return flat
+  return flattenHtml(flat)
     .split("\n")
     .map((line) => {
       const level = depth + line.split(QUOTE_OPEN).length - 1;
