@@ -192,6 +192,48 @@ describe("formatMsg", () => {
     expect(text).not.toContain("Normal");
   });
 
+  it("reads recipient storages for addresses and the Bcc a sent copy keeps", () => {
+    // A recipient storage's property stream has an 8-byte header, not 32.
+    const recipient = (index: number, type: number, name: string, smtp: string) => ({
+      [`__recip_version1.0_#0000000${index}/__properties_version1.0`]: properties([[0x0c15, 0x0003, type]]).subarray(24),
+      [`__recip_version1.0_#0000000${index}/__substg1.0_3001001F`]: utf16(name),
+      [`__recip_version1.0_#0000000${index}/__substg1.0_39FE001F`]: utf16(smtp),
+    });
+    const { text } = formatMsg(
+      message({
+        ...recipient(0, 1, "Bob", "bob@example.net"),
+        ...recipient(1, 2, "Dave", "dave@example.net"),
+        ...recipient(2, 3, "Erin", "erin@example.net"),
+      }),
+    );
+    expect(text).toContain("To: Bob <bob@example.net>\nCc: Dave <dave@example.net>\nBcc: Erin <erin@example.net>\nDate:");
+  });
+
+  it("says when and where a calendar item is, from its named properties", () => {
+    // Name-id entries: PidLidLocation (0x8208) is property 0x8000, the start
+    // (0x820D) 0x8001, both in the first GUID of the GUID stream (index 3).
+    const entries = new Uint8Array(16);
+    const view = new DataView(entries.buffer);
+    view.setUint32(0, 0x8208, true);
+    view.setUint32(4, (0 << 16) | (3 << 1), true);
+    view.setUint32(8, 0x820d, true);
+    view.setUint32(12, (1 << 16) | (3 << 1), true);
+    const streams = message({
+      "__substg1.0_001A001F": utf16("IPM.Appointment"),
+      "__substg1.0_8000001F": utf16("Room 4"),
+      "__nameid_version1.0/__substg1.0_00020102": hex("02 20 06 00 00 00 00 00 c0 00 00 00 00 00 00 46"),
+      "__nameid_version1.0/__substg1.0_00030102": entries,
+      "__properties_version1.0": properties([
+        [0x0e06, 0x0040, filetime(SENT)],
+        [0x8001, 0x0040, filetime("2026-10-20T09:00:00.000Z")],
+      ]),
+    });
+    expect(formatMsg(streams).text).toContain("\n\nStarts: 2026-10-20 09:00 UTC\nLocation: Room 4\n\nAttachments");
+    // A mail that happens to carry the same properties is not a meeting.
+    streams.set("__substg1.0_001A001F", utf16("IPM.Note"));
+    expect(formatMsg(streams).text).not.toContain("Starts:");
+  });
+
   it("names an attached message by its subject when it has no filename", () => {
     const streams = message();
     streams.delete("__attach_version1.0_#00000000/__substg1.0_3707001F");

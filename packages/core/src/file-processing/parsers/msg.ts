@@ -37,6 +37,13 @@ const SENDER_ADDRESS = "0C1F";
 const SENDER_SMTP = "5D01";
 const DISPLAY_TO = "0E04";
 const DISPLAY_CC = "0E03";
+const DISPLAY_BCC = "0E02";
+const MESSAGE_CLASS = "001A";
+/** Inside a recipient storage: name, SMTP address, then the address of any type. */
+const RECIPIENT_NAME = "3001";
+const RECIPIENT_SMTP = "39FE";
+const RECIPIENT_ADDRESS = "3003";
+const RECIPIENT_TYPE = 0x0c15;
 const ATTACH_LONG_FILENAME = "3707";
 const ATTACH_FILENAME = "3704";
 const ATTACH_DISPLAY_NAME = "3001";
@@ -118,6 +125,58 @@ function stringProperty(streams: CfbStreams, prefix: string, id: string, codepag
   return "";
 }
 
+/**
+ * The fixed property id a named property was given in this file (MS-OXMSG
+ * 2.2.3.1): its entry in the name-id mapping, numeric and in the property set
+ * at `guid`, is the `index`-th, and the id is `0x8000 + index`.
+ */
+function namedProperty(streams: CfbStreams, guid: Uint8Array, lid: number): number | undefined {
+  const guids = streams.get("__nameid_version1.0/__substg1.0_00020102");
+  const entries = streams.get("__nameid_version1.0/__substg1.0_00030102");
+  if (!guids || !entries) return undefined;
+  const view = new DataView(entries.buffer, entries.byteOffset, entries.byteLength);
+  for (let at = 0; at + 8 <= entries.byteLength; at += 8) {
+    const info = view.getUint32(at + 4, true);
+    // Bit 0 is the kind (0 numeric), bits 1-15 the GUID index, of which 3 and
+    // up point into the GUID stream; the high half is the property index.
+    const guidIndex = (info >>> 1) & 0x7fff;
+    if (info & 1 || view.getUint32(at, true) !== lid || guidIndex < 3) continue;
+    const start = (guidIndex - 3) * 16;
+    if (start + 16 <= guids.length && guids.subarray(start, start + 16).every((byte, i) => byte === guid[i])) {
+      return 0x8000 + (info >>> 16);
+    }
+  }
+  return undefined;
+}
+
+/** PSETID_Appointment {00062002-0000-0000-C000-000000000046}, as stored. */
+const PSETID_APPOINTMENT = Uint8Array.of(0x02, 0x20, 0x06, 0, 0, 0, 0, 0, 0xc0, 0, 0, 0, 0, 0, 0, 0x46);
+const LID_LOCATION = 0x8208;
+const LID_START = 0x820d;
+const LID_END = 0x820e;
+
+/**
+ * When and where a meeting is, which Outlook keeps in named properties: a
+ * calendar item or meeting request would otherwise read as a mail sent at its
+ * save time. Written the way a mail's invite part is (`calendar.ts`).
+ */
+function appointment(streams: CfbStreams, properties: ReadonlyMap<number, DataView>, codepage: number | undefined): string[] {
+  if (!/^IPM\.(Appointment|Schedule\.Meeting)/i.test(stringProperty(streams, "", MESSAGE_CLASS, codepage))) return [];
+  const id = (lid: number) => namedProperty(streams, PSETID_APPOINTMENT, lid);
+  const time = (lid: number) => {
+    const named = id(lid);
+    const date = named === undefined ? undefined : timeProperty(properties, named);
+    return date && `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+  };
+  const location = id(LID_LOCATION);
+  const lines = [
+    ["Starts", time(LID_START)],
+    ["Ends", time(LID_END)],
+    ["Location", location === undefined ? "" : stringProperty(streams, "", location.toString(16).toUpperCase(), codepage)],
+  ].filter(([, value]) => value);
+  return lines.length > 0 ? [lines.map(([label, value]) => `${label}: ${value}`).join("\n")] : [];
+}
+
 /** Outlook separates display names with a semicolon. */
 function displayNames(value: string): MessageFields["to"] {
   return value
@@ -161,12 +220,30 @@ export function formatMsg(streams: CfbStreams): ExtractionResult {
     else body = read.text.trim();
   }
 
+  const storages = new Set([...streams.keys()].map((key) => key.slice(0, key.indexOf("/") + 1)));
+  const storage = (kind: string, index: number) => `__${kind}_version1.0_#${index.toString(16).toUpperCase().padStart(8, "0")}/`;
+
+  // A recipient storage holds the address the display lists leave out, and
+  // the only Bcc record a sent copy has. Type 1 is To, 2 Cc, 3 Bcc; a message
+  // has at most 2048 (MS-OXMSG 2.2.1).
+  const recipients: Record<number, NonNullable<MessageFields["to"]>> = { 1: [], 2: [], 3: [] };
+  for (let index = 0; index < 2048 && storages.has(storage("recip", index)); index++) {
+    const prefix = storage("recip", index);
+    const type = (longProperty(fixedProperties(streams.get(`${prefix}__properties_version1.0`), 8), RECIPIENT_TYPE) ?? 1) & 0xf;
+    const name = stringProperty(streams, prefix, RECIPIENT_NAME, codepage);
+    const address = [RECIPIENT_SMTP, RECIPIENT_ADDRESS]
+      .map((id) => stringProperty(streams, prefix, id, codepage))
+      .find((value) => value.includes("@")) ?? "";
+    if (name || address) recipients[type]?.push({ name: name || address, address });
+  }
+  const listed = storages.has(storage("recip", 0));
+
   // Attachment storages are numbered from zero; an attached message carries no
   // filename, only the subject and display name of what it wraps.
   const attachments: { filename: string | null }[] = [];
   for (let index = 0; ; index++) {
-    const prefix = `__attach_version1.0_#${index.toString(16).toUpperCase().padStart(8, "0")}/`;
-    if (![...streams.keys()].some((key) => key.startsWith(prefix))) break;
+    const prefix = storage("attach", index);
+    if (!storages.has(prefix)) break;
     const name = [ATTACH_LONG_FILENAME, ATTACH_FILENAME, ATTACH_DISPLAY_NAME, SUBJECT]
       .map((id) => stringProperty(streams, prefix, id, codepage))
       .find(Boolean);
@@ -175,12 +252,14 @@ export function formatMsg(streams: CfbStreams): ExtractionResult {
 
   return formatEmail({
     from,
-    to: displayNames(text(DISPLAY_TO)),
-    cc: displayNames(text(DISPLAY_CC)),
+    to: listed ? recipients[1] : displayNames(text(DISPLAY_TO)),
+    cc: listed ? recipients[2] : displayNames(text(DISPLAY_CC)),
+    bcc: listed ? recipients[3] : displayNames(text(DISPLAY_BCC)),
     date: date?.toUTCString(),
     subject: text(SUBJECT),
     text: body,
     html: htmlBody,
+    events: appointment(streams, properties, codepage),
     attachments,
   });
 }

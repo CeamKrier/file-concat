@@ -12,10 +12,13 @@ export interface MessageFields {
   from?: Email["from"];
   to?: Email["to"];
   cc?: Email["cc"];
+  bcc?: Email["bcc"];
   date?: string;
   subject?: string;
   html?: string;
   text?: string;
+  /** Meetings already rendered as `Label: value` blocks, read as body. */
+  events?: readonly string[];
   attachments?: ReadonlyArray<{ filename: string | null; mimeType?: string; content?: ArrayBuffer | Uint8Array | string }>;
 }
 
@@ -34,7 +37,7 @@ export interface MessageFields {
  */
 
 /** Headers worth carrying. Everything else is routing exhaust. */
-const KEPT_HEADERS = ["From", "To", "Cc", "Date", "Subject"] as const;
+const KEPT_HEADERS = ["From", "To", "Cc", "Bcc", "Date", "Subject"] as const;
 
 function formatAddress(address: Email["from"]): string {
   if (!address) return "";
@@ -101,6 +104,8 @@ export function formatEmail(email: MessageFields): ExtractionResult {
     From: formatAddress(email.from),
     To: formatAddresses(email.to),
     Cc: formatAddresses(email.cc),
+    // Only a sent copy carries Bcc; there it is the one record of who else got it.
+    Bcc: formatAddresses(email.bcc),
     Date: email.date ?? "",
     Subject: email.subject ?? "",
   };
@@ -120,7 +125,7 @@ export function formatEmail(email: MessageFields): ExtractionResult {
   // A meeting invite's content is its calendar part, often with no body
   // beside it. The events are read as body; Gmail sends each one twice
   // (inline and as invite.ics), so a block already written is not repeated.
-  const events = new Set<string>();
+  const events = new Set<string>(email.events);
   const attachments = (email.attachments ?? []).filter((attachment) => {
     if (!/^(text\/calendar|application\/ics)$/i.test(attachment.mimeType ?? "") || attachment.content === undefined) return true;
     const ics = typeof attachment.content === "string" ? attachment.content : new TextDecoder().decode(attachment.content);
