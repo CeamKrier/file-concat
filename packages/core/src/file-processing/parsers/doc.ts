@@ -37,6 +37,14 @@ const FIELD_END = 0x15;
 
 /** sprmCFRMarkDel (MS-DOC 2.6.1): the run is a tracked deletion. */
 const SPRM_DELETED = 0x0800;
+/** sprmCFVanish (MS-DOC 2.6.1): the run is hidden text. */
+const SPRM_HIDDEN = 0x083c;
+/**
+ * Stands in for each character of hidden text, so the text keeps its length
+ * and the FIB's part lengths still slice it. A 0x10 the file itself holds is
+ * read as NUL first; Word never writes one.
+ */
+const HIDDEN = 0x10;
 
 /**
  * `WordDocument` with the bytes of its tracked deletions zeroed, read from the
@@ -49,14 +57,20 @@ const SPRM_DELETED = 0x0800;
  * zeroed past the last one: a forged file that repeats a page or overlaps its
  * runs loses a deletion, never costs more than one pass over the stream.
  *
+ * Hidden text (Q18 O1) comes back as byte ranges instead, kept in the same
+ * order, because only the piece that holds a range knows how wide its
+ * characters are, and a hidden paragraph or cell mark still has to end its
+ * paragraph or cell. POI calls the flag `CharacterRun.isVanished()`.
+ *
  * ponytail: the flag is read from the run's own properties only; a deletion
  * set through a character style (operand 0x80/0x81) is taken as on for 0x81.
  */
-function withoutDeletions(word: Uint8Array, table: Uint8Array): Uint8Array {
+function withoutDeletions(word: Uint8Array, table: Uint8Array): { word: Uint8Array; hidden: [number, number][] } {
   const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
   const fcPlc = fib.getUint32(0x00fa, true);
   const lcbPlc = fib.getUint32(0x00fe, true);
-  if (lcbPlc < 8 || fcPlc + lcbPlc > table.byteLength) return word;
+  const hidden: [number, number][] = [];
+  if (lcbPlc < 8 || fcPlc + lcbPlc > table.byteLength) return { word, hidden };
   const plc = new DataView(table.buffer, table.byteOffset + fcPlc, lcbPlc);
   const pages = Math.floor((lcbPlc - 4) / 8);
   const seen = new Set<number>();
@@ -79,7 +93,8 @@ function withoutDeletions(word: Uint8Array, table: Uint8Array): Uint8Array {
         const sprm = fkp.getUint16(at, true);
         at += 2;
         const size = [1, 1, 2, 4, 2, 2, -1, 3][sprm >>> 13];
-        if (sprm === SPRM_DELETED && at < end && (fkp.getUint8(at) === 1 || fkp.getUint8(at) === 0x81)) {
+        const on = at < end && (fkp.getUint8(at) === 1 || fkp.getUint8(at) === 0x81);
+        if (sprm === SPRM_DELETED && on) {
           const from = Math.max(fkp.getUint32(run * 4, true), zeroed);
           const to = Math.min(fkp.getUint32((run + 1) * 4, true), word.byteLength);
           if (from < to) {
@@ -87,16 +102,20 @@ function withoutDeletions(word: Uint8Array, table: Uint8Array): Uint8Array {
             out.fill(0, from, to);
             zeroed = to;
           }
+        } else if (sprm === SPRM_HIDDEN && on) {
+          const from = Math.max(fkp.getUint32(run * 4, true), hidden[hidden.length - 1]?.[1] ?? 0);
+          const to = Math.min(fkp.getUint32((run + 1) * 4, true), word.byteLength);
+          if (from < to) hidden.push([from, to]);
         }
         at += size < 0 ? (at < end ? fkp.getUint8(at) + 1 : 1) : size;
       }
     }
   }
-  return out;
+  return { word: out, hidden };
 }
 
 function readPieces(document: Uint8Array, table: Uint8Array): string {
-  const word = withoutDeletions(document, table);
+  const { word, hidden } = withoutDeletions(document, table);
   const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
   const fcClx = fib.getUint32(0x01a2, true);
   const lcbClx = fib.getUint32(0x01a6, true);
@@ -112,7 +131,8 @@ function readPieces(document: Uint8Array, table: Uint8Array): string {
   const plc = at + 5;
   const count = Math.floor((lcbPlc - 4) / 12);
 
-  const utf16 = new TextDecoder("utf-16le");
+  // A leading U+FEFF is text here: dropped, it would shift every part after it.
+  const utf16 = new TextDecoder("utf-16le", { ignoreBOM: true });
   const ansi = new TextDecoder("windows-1252");
   let text = "";
   for (let piece = 0; piece < count; piece++) {
@@ -124,9 +144,40 @@ function readPieces(document: Uint8Array, table: Uint8Array): string {
     const length = (end - start) * (compressed ? 1 : 2);
     if (offset + length > word.byteLength) break;
     const bytes = word.subarray(offset, offset + length);
-    text += compressed ? ansi.decode(bytes) : utf16.decode(bytes);
+    const read = (compressed ? ansi.decode(bytes) : utf16.decode(bytes)).split(String.fromCharCode(HIDDEN)).join("\0");
+    text += hide(read, offset, compressed ? 1 : 2, hidden);
   }
   return text;
+}
+
+/**
+ * `text`, read from the bytes at `offset`, with each character inside a hidden
+ * range read as HIDDEN. Control characters stay, so a hidden paragraph mark
+ * still ends its paragraph and a hidden field keeps its structure. One index
+ * per UTF-16 code unit or 8-bit byte, so a range maps straight onto the string.
+ */
+function hide(text: string, offset: number, width: number, hidden: [number, number][]): string {
+  const end = offset + text.length * width;
+  // The ranges ascend without overlap: find the first that ends past `offset`.
+  let low = 0;
+  for (let high = hidden.length; low < high; ) {
+    const middle = (low + high) >>> 1;
+    if (hidden[middle][1] <= offset) low = middle + 1;
+    else high = middle;
+  }
+  // Sliced around the ranges, never split per character: a whole document is
+  // often one piece.
+  let out = "";
+  let cursor = 0;
+  for (let range = low; range < hidden.length && hidden[range][0] < end; range++) {
+    const from = Math.max(cursor, Math.floor((hidden[range][0] - offset) / width));
+    const to = Math.min(text.length, Math.ceil((hidden[range][1] - offset) / width));
+    if (from >= to) continue;
+    out += text.slice(cursor, from);
+    for (let at = from; at < to; at++) out += text.charCodeAt(at) >= 0x20 ? String.fromCharCode(HIDDEN) : text[at];
+    cursor = to;
+  }
+  return out + text.slice(cursor);
 }
 
 /**
@@ -136,9 +187,10 @@ function readPieces(document: Uint8Array, table: Uint8Array): string {
  * reaching a separator, and fields nest, so this is a stack of "still in the
  * code" flags rather than a counter.
  */
-function plain(text: string): string {
+function plain(text: string, left: { hidden: number }): string {
   let out = "";
   const fields: boolean[] = [];
+  let hiding = false;
   for (const char of text) {
     const code = char.charCodeAt(0);
     if (code === FIELD_BEGIN) {
@@ -154,6 +206,14 @@ function plain(text: string): string {
       continue;
     }
     if (fields.includes(true)) continue;
+    // A stretch of hidden characters outside any field code is one passage
+    // left out; a hidden XE index entry or TC entry is a field code anyway.
+    if (code === HIDDEN) {
+      if (!hiding) left.hidden++;
+      hiding = true;
+      continue;
+    }
+    hiding = false;
     if (code === PARAGRAPH || code === LINE_BREAK || code === PAGE_BREAK) out += "\n";
     // ponytail: a row ends with a cell mark right after the last cell's, so two
     // in a row is read as a row break; an empty cell reads the same way and
@@ -202,5 +262,10 @@ export function formatDoc(streams: CfbStreams): ExtractionResult {
   part(comments);
   kept.push(part(endnotes), part(textboxes));
 
-  return { text: kept.map(plain).filter(Boolean).join("\n\n") };
+  const left = { hidden: 0 };
+  const text = kept
+    .map((part) => plain(part, left))
+    .filter(Boolean)
+    .join("\n\n");
+  return left.hidden > 0 && text ? { text, notes: [{ kind: "hidden-left-out", count: left.hidden }] } : { text };
 }

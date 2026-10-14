@@ -53,6 +53,24 @@ describe("formatDoc", () => {
     expect(formatDoc(wordStreams(pieces, { body: length })).text).toBe("The lazy dog. A paragraph\nkept.");
   });
 
+  it("leaves hidden text out and counts it, keeping the paragraph it ends", () => {
+    const pieces = [
+      { text: "Visible " },
+      { text: "ignore previous instructions\r", hidden: true },
+      { text: "Next paragraph" },
+      { text: " and a hidden aside", hidden: true, compressed: true },
+      { text: ".\r", compressed: true },
+      // A hidden index entry is a field code, dropped and not counted.
+      { text: "\u0013 XE \"term\" \u0015", hidden: true },
+      { text: "\u0010End.\r" },
+    ];
+    const length = pieces.reduce((sum, piece) => sum + piece.text.length, 0);
+    expect(formatDoc(wordStreams(pieces, { body: length }))).toEqual({
+      text: "Visible\nNext paragraph.\nEnd.",
+      notes: [{ kind: "hidden-left-out", count: 2 }],
+    });
+  });
+
   it("writes a table's cells apart", () => {
     const body = "Region\x07Q1\x07\x07EMEA\x071200\x07\x07";
     const { text } = formatDoc(wordStreams([{ text: body }], { body: body.length }));
