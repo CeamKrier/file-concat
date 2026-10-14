@@ -1,14 +1,23 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
  * Holds the shipped copy to PRODUCT.md, section Voice: the privacy ladder, the
  * word list and the cut-on-sight words. It catches words, not tone; tone is
- * still a read against that section.
+ * still a read against that section. The extension's panel and the CLI's npm
+ * page are shipped copy too.
  */
 
-const SRC = join(__dirname, "..", "src");
+const REPO = join(__dirname, "..", "..", "..");
+const SHIPPED = [
+  "apps/web/src/components",
+  "apps/web/src/content",
+  "apps/web/src/routes",
+  "apps/extension/src",
+  "apps/extension/entrypoints",
+  "packages/cli/README.md",
+];
 
 const RULES: { name: string; pattern: RegExp; only?: RegExp }[] = [
   // Privacy ladder: scope every claim to the files, never past the paste.
@@ -54,14 +63,15 @@ const RULES: { name: string; pattern: RegExp; only?: RegExp }[] = [
     pattern:
       /\b(as an AI|as of my last|I hope this helps|happy to help|great question|feel free to|don't hesitate|reach(ing)? out|finds you well|earliest convenience|let me break (this|it) down)\b|\b(oaicite|contentReference|turn0search|citeturn)/i,
   },
-  { name: "word: no analyst terms", pattern: /\b(p90|p10|signal density|n_?eff)\b/i, only: /^(components|routes)\// },
+  { name: "word: no analyst terms", pattern: /\b(p90|p10|signal density|n_?eff)\b/i, only: /^apps\/web\/src\/(components|routes)\// },
 ];
 
-function files(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
-    const p = join(dir, e.name);
+function files(path: string): string[] {
+  if (!statSync(path).isDirectory()) return [path];
+  return readdirSync(path, { withFileTypes: true }).flatMap((e) => {
+    const p = join(path, e.name);
     if (e.isDirectory()) return files(p);
-    return /\.(tsx?|mdx)$/.test(e.name) && !/\.test\./.test(e.name) && !e.name.endsWith(".gen.ts") ? [p] : [];
+    return /\.(tsx?|mdx|html)$/.test(e.name) && !/\.test\./.test(e.name) && !e.name.endsWith(".gen.ts") ? [p] : [];
   });
 }
 
@@ -82,8 +92,8 @@ function prose(text: string): string {
 describe("shipped copy follows PRODUCT.md, section Voice", () => {
   it("has no banned phrase", () => {
     const hits: string[] = [];
-    for (const path of ["components", "content", "routes"].flatMap((d) => files(join(SRC, d)))) {
-      const rel = relative(SRC, path).replace(/\\/g, "/");
+    for (const path of SHIPPED.flatMap((p) => files(join(REPO, p)))) {
+      const rel = relative(REPO, path).replace(/\\/g, "/");
       const text = prose(readFileSync(path, "utf8").replace(/\r/g, ""));
       // A wrapped MDX line splits a phrase; join single line breaks, same length so offsets hold.
       const joined = text.replace(/(?<!\n)\n(?!\n)/g, " ");

@@ -1,6 +1,6 @@
 # @fileconcat/cli
 
-Privacy-first CLI that concatenates a directory into a single LLM-ready blob. Bundles plain text files and, by default, extracts text from PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, RTF, Jupyter notebooks, SRT/VTT caption tracks and EML messages. Everything runs locally; nothing is uploaded.
+Privacy-first CLI that concatenates a directory into one bundle an LLM can read. Bundles plain text files and, by default, extracts text from PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, RTF, Jupyter notebooks, SRT/VTT caption tracks and EML messages. Everything runs locally; your files are not uploaded anywhere.
 
 The browser version of the same tool lives at [fileconcat.com](https://fileconcat.com).
 
