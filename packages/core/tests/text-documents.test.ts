@@ -258,8 +258,9 @@ describe("extractSubtitles", () => {
 
   it("reads crafted markup in one pass", () => {
     for (const line of ["<i ".repeat(40_000), "{\\".repeat(40_000), `<v${".a".repeat(40)}`, `<x>${"{\\".repeat(40_000)}`]) {
+      const vtt = utf8(`1\n00:00:01,000 --> 00:00:02,000\n${line}\n`);
       const started = performance.now();
-      extractSubtitles(utf8(`1\n00:00:01,000 --> 00:00:02,000\n${line}\n`));
+      extractSubtitles(vtt);
       expect(performance.now() - started).toBeLessThan(1000);
     }
   });

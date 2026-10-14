@@ -14,9 +14,10 @@ describe("flattenHtml", () => {
 
   it("flattens crafted markup in one pass", () => {
     for (const unit of ["<a ", "<!--", "<script ", "<script>", "<p ", "<blockquote ", "</script"]) {
+      const html = unit.repeat(40_000);
       const started = performance.now();
-      flattenHtml(unit.repeat(40_000));
-      formatEmail({ attachments: [], html: unit.repeat(40_000) });
+      flattenHtml(html);
+      formatEmail({ attachments: [], html });
       expect(performance.now() - started, unit).toBeLessThan(1000);
     }
   });

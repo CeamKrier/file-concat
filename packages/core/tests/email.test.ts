@@ -160,9 +160,9 @@ describe("formatEmail", () => {
   });
 
   it("drops an unclosed hidden element in one pass, however many tags follow it", () => {
-    const html = `<div style="display:none">${"<b>x".repeat(200_000)}`;
+    const html = `<p>Kept</p><div style="display:none">${"<b>x".repeat(200_000)}`;
     const started = performance.now();
-    expect(formatEmail({ attachments: [], html: `<p>Kept</p>${html}` }).text).toBe("Kept");
+    expect(formatEmail({ attachments: [], html }).text).toBe("Kept");
     expect(performance.now() - started).toBeLessThan(2000);
   });
 

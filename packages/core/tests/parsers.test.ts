@@ -152,8 +152,9 @@ describe("extractOfficeDocument — structure survives extraction", () => {
   });
 
   it("splits a long threaded fallback text in linear time", async () => {
+    const xlsx = commentedXlsx(`[Threaded comment]${"\n ".repeat(150000)}x`);
     const start = performance.now();
-    await extractOfficeDocument(commentedXlsx(`[Threaded comment]${"\n ".repeat(150000)}x`), { format: "xlsx" });
+    await extractOfficeDocument(xlsx, { format: "xlsx" });
     expect(performance.now() - start).toBeLessThan(2000);
   });
 
@@ -203,8 +204,9 @@ describe("extractOfficeDocument — structure survives extraction", () => {
     parts["content.xml"] = strToU8(
       strFromU8(parts["content.xml"]).replace('number-columns-spanned="2"', 'number-columns-spanned="100000000"'),
     );
+    const ods = zipSync(parts);
     const started = performance.now();
-    const { text } = await extractOfficeDocument(zipSync(parts), { format: "ods" });
+    const { text } = await extractOfficeDocument(ods, { format: "ods" });
     expect(performance.now() - started).toBeLessThan(2000);
     expect(text).toContain("QZAFTER");
     const wide = docxWithBody(

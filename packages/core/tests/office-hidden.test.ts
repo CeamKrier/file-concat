@@ -122,10 +122,9 @@ describe("withoutHiddenText on OpenDocument", () => {
   it("drops deeply nested hidden spans in one pass", () => {
     const depth = 50_000;
     const body = `<text:p>${'<text:span text:style-name="T1">x'.repeat(depth)}${"</text:span>".repeat(depth)}Kept</text:p>`;
+    const doc = odf("text", '<style:style style:name="T1" style:family="text"><style:text-properties text:display="none"/></style:style>', body);
     const started = performance.now();
-    const { bytes, hidden } = withoutHiddenText(
-      odf("text", '<style:style style:name="T1" style:family="text"><style:text-properties text:display="none"/></style:style>', body),
-    );
+    const { bytes, hidden } = withoutHiddenText(doc);
     expect(performance.now() - started).toBeLessThan(2000);
     expect(content(bytes)).toContain("<text:p>Kept</text:p>");
     expect(hidden).toBe(1);

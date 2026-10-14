@@ -60,8 +60,9 @@ describe("formatDoc", () => {
     const note = `\x05${"y".repeat(200_000)}\r`;
     // Every other range runs back over the whole part.
     const many = Array.from({ length: 20_000 }, (_, i) => ({ ref: i, start: i % 2 ? note.length : 0, author: "N".repeat(300) }));
+    const streams = wordStreams([{ text: body + note }], { body: body.length, comments: note.length }, 0x0200, many);
     const started = performance.now();
-    const { text, notes } = formatDoc(wordStreams([{ text: body + note }], { body: body.length, comments: note.length }, 0x0200, many));
+    const { text, notes } = formatDoc(streams);
     expect(notes).toContainEqual({ kind: "comments-included", count: 1 });
     expect(text).toContain(`[Comment, ${"N".repeat(255)}: y`);
     expect(performance.now() - started).toBeLessThan(2000);
