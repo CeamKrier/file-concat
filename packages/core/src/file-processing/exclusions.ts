@@ -1,3 +1,4 @@
+import type { ExtractionNote } from "./parsers/types";
 import { isGenericUnreadableLabel, unreadableLabel } from "./unreadable-reason";
 
 /**
@@ -23,6 +24,12 @@ export interface ExcludedSummary {
   unsupported?: { label: string; paths: string[] }[];
   /** Couldn't be read at all (rare; e.g. a CLI read error). */
   unreadable?: string[];
+  /**
+   * Files in the bundle that a reader could not get all of (Q7 O1), with the
+   * reader's own notes: the note writes the sentence from their kinds, so a
+   * model asked about page 5 knows it was a scan nobody read.
+   */
+  partial?: { path: string; notes: readonly ExtractionNote[] }[];
 }
 
 /** A file-status-shaped record: the path, why it was excluded, and whether it

@@ -193,6 +193,7 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
     readError: [] as string[],
     parseFailed: [] as string[],
   };
+  const partial: NonNullable<ExcludedSummary["partial"]> = [];
   let parsedCount = 0;
   let totalSize = 0;
   let routeFailureReported = false;
@@ -252,6 +253,8 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
           continue;
         }
         processedFiles.push({ path: file, content: text, language: "text" });
+        // What the reader could not get from it, named in the bundle (Q7 O1).
+        if (notes?.length) partial.push({ path: file, notes });
         parsedCount++;
         totalSize += source.size;
       } catch (err) {
@@ -335,6 +338,7 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
   if (skipped.parseFailed.length) excluded.unextractable = skipped.parseFailed;
   if (skipped.binary.length) excluded.binary = skipped.binary;
   if (skipped.readError.length) excluded.unreadable = skipped.readError;
+  if (partial.length) excluded.partial = partial;
 
   const skippedBreakdown = {
     oversize: skipped.oversize.length,

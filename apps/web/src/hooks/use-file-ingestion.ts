@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   DownloadProgress,
-  ExtractionNoteKind,
+  ExtractionNote,
   ProcessingConfig,
   SourceType,
   TextClassification,
@@ -105,7 +105,7 @@ export type ValidationRecord = {
    * can carry both `extracted: true` and a note: the text arrived, part of the
    * document did not.
    */
-  notes?: ExtractionNoteKind[];
+  notes?: ExtractionNote[];
 };
 
 export type IncomingFile = {
@@ -448,6 +448,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       const readEntries: ContentEntry[] = [];
       const stillUnread: ScannedDocument[] = [];
       const readValidations: Record<string, ValidationRecord> = {};
+      // Pages of a document already in the bundle that this pass drew and got
+      // nothing from, so the bundle's note keeps naming them.
+      const unreadPages = new Map<string, number[]>();
       // The documents this pass actually opened. Everything else it was given
       // is left exactly as it was — see the merge below for why that matters.
       const attempted = new Set<string>();
@@ -505,6 +508,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                     }),
                   controller.signal,
                 );
+                unreadPages.set(document.path, document.pages.filter((page) => !read.has(page)));
                 if (read.size > 0) {
                   text = document.text
                     ? replacePages(document.text, read)
@@ -599,7 +603,14 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           const present = new Set(kept.map((e) => e.path));
           return [...kept, ...readEntries.filter((e) => !present.has(e.path))];
         });
-        setValidations((prev) => ({ ...prev, ...readValidations }));
+        setValidations((prev) => {
+          const next = { ...prev, ...readValidations };
+          for (const path of Object.keys(readValidations)) {
+            const notes = afterRecognition(prev[path]?.notes, unreadPages.get(path) ?? []);
+            if (readValidations[path].included && notes.length) next[path] = { ...next[path], notes };
+          }
+          return next;
+        });
         // Which language each document ended up read in, so a scoped pass never
         // relabels the ones it did not touch. Documents this pass lost drop out.
         setReadLanguages((prev) => {
@@ -796,7 +807,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                 size,
                 type,
                 extracted: true,
-                ...(kinds?.length ? { notes: kinds } : {}),
+                ...(notes?.length ? { notes } : {}),
               };
             } else if (kinds?.includes("parser-unavailable")) {
               unreadableHere = true;
@@ -1392,4 +1403,18 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     handleDrop,
     reset,
   };
+}
+
+/**
+ * A document's notes once recognition has read some of its lost pages: a loss
+ * placed on pages keeps only the pages still unread and goes when none are.
+ * What recognition cannot touch (a page that failed to load, hidden text, a
+ * loss with no page) stays as it was.
+ */
+function afterRecognition(notes: readonly ExtractionNote[] | undefined, unread: readonly number[]): ExtractionNote[] {
+  return (notes ?? []).flatMap((note) => {
+    if ((note.kind !== "pages-scanned" && note.kind !== "text-undecodable") || !note.pages) return [note];
+    const pages = note.pages.filter((page) => unread.includes(page));
+    return pages.length ? [{ kind: note.kind, pages }] : [];
+  });
 }

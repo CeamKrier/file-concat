@@ -42,8 +42,13 @@ vi.mock("~/lib/prepare-batch", () => ({
 /** file name -> the text of its subtitle track. Absent means it has none. */
 const SUBTITLES = new Map<string, string>();
 
+/** path -> what its reader gives, for a document that is not a whole scan. */
+const EXTRACTS = new Map<string, { text: string; notes?: unknown[] }>();
+/** path -> page number -> what drawing and reading that page gives. */
+const PAGE_READS = new Map<string, Map<number, string>>();
+
 vi.mock("~/lib/parsers", () => ({
-  parsers: { extract: async () => ({ text: "" }) },
+  parsers: { extract: async (_id: string, bytes: Uint8Array) => EXTRACTS.get(new TextDecoder().decode(bytes)) ?? { text: "" } },
   SUBTITLE_TRACK_FORMATS: new Set(["iso-bmff", "matroska"]),
   readSubtitleTrack: async (file: File) => SUBTITLES.get(file.name) ?? "",
 }));
@@ -74,6 +79,7 @@ vi.mock("~/lib/ocr", () => ({
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
     return { text: READINGS.get(path)?.[language] ?? "" };
   },
+  readPdfPagesWithOcr: async (bytes: Uint8Array) => PAGE_READS.get(new TextDecoder().decode(bytes)) ?? new Map(),
   // An image's bytes are a real PNG header, so this one keys on the name.
   recogniseImageWithOcr: async (file: File, language: string) => {
     attempts.push({ path: file.name, language });
@@ -126,6 +132,8 @@ const originalLanguages = Object.getOwnPropertyDescriptor(navigator, "languages"
 
 beforeEach(() => {
   READINGS.clear();
+  EXTRACTS.clear();
+  PAGE_READS.clear();
   SUBTITLES.clear();
   TALLIES.clear();
   attempts = [];
@@ -171,6 +179,29 @@ describe("recognition over a drop", () => {
 
     expect(result.current.validations["a.pdf"].recognitionTried).toBe(true);
     expect(result.current.unreadDocuments.map((d) => d.path)).toEqual(["a.pdf"]);
+  });
+});
+
+describe("a document read in part", () => {
+  it("keeps naming the scanned pages recognition could not read, and what it cannot touch", async () => {
+    EXTRACTS.set("p.pdf", {
+      text: "# Page 1\nhello\n\n# Page 2\n\n# Page 3",
+      notes: [
+        { kind: "pages-scanned", count: 2, pages: [2, 3] },
+        { kind: "hidden-left-out", count: 1 },
+      ],
+    });
+    PAGE_READS.set("p.pdf", new Map([[2, "two"]]));
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([scan("p.pdf")]);
+    });
+
+    expect(result.current.validations["p.pdf"].notes).toEqual([
+      { kind: "pages-scanned", pages: [3] },
+      { kind: "hidden-left-out", count: 1 },
+    ]);
   });
 });
 
