@@ -53,6 +53,19 @@ function outlookMessage(): Uint8Array {
   return new Uint8Array(XLSX.CFB.write(container, { type: "array" }));
 }
 
+describe("extractWorkbook comments", () => {
+  it("writes a cell's comments after the sheet's rows, naming the cell, without Excel's author prefix", () => {
+    const sheet = XLSX.utils.aoa_to_sheet([["Item", "Cost"], ["Rent", 900]]);
+    sheet.B2.c = [{ a: "Cy", t: 'Cy:\nToo "high"' }];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet, "Budget");
+    const bytes = new Uint8Array(XLSX.write(workbook, { bookType: "xlsx", type: "array" }));
+    const { text, notes } = extractWorkbook(bytes);
+    expect(text).toBe('# Sheet: Budget\nItem,Cost\nRent,900\n"[Comment, B2, Cy: Too ""high""]"');
+    expect(notes).toEqual([{ kind: "comments-included", count: 1 }]);
+  });
+});
+
 describe("extractCfb", () => {
   it("reads an Outlook message as the correspondence it is", () => {
     // Measured 2026-09-15 against ten real Outlook files as well (record in

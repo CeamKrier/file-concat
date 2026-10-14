@@ -70,6 +70,7 @@ export function extractCfb(bytes: Uint8Array): ExtractionResult {
  */
 export function extractWorkbook(bytes: Uint8Array): ExtractionResult {
   const workbook = XLSX.read(bytes, { type: "array" });
+  let comments = 0;
   const sheets = workbook.SheetNames.flatMap((name, index) => {
     const sheet = workbook.Sheets[name] as (XLSX.WorkSheet & { "!type"?: string; "!drawel"?: { Target?: string } }) | undefined;
     // SheetJS lists a sheet it failed to parse and leaves its entry out.
@@ -86,9 +87,36 @@ export function extractWorkbook(bytes: Uint8Array): ExtractionResult {
       return [`# Sheet: ${name} (chart)${state}${title ? `\nChart: ${title}` : ""}`];
     }
     const csv = XLSX.utils.sheet_to_csv(sheet, { strip: true }).replace(/\n{3,}/g, "\n\n").trim();
-    return csv ? [`# Sheet: ${name}${state}\n${csv}`] : [];
+    const notes = cellComments(sheet);
+    comments += notes.length;
+    const body = [csv, ...notes].filter(Boolean).join("\n");
+    return body ? [`# Sheet: ${name}${state}\n${body}`] : [];
   });
-  return { text: sheets.join("\n\n") };
+  return { text: sheets.join("\n\n"), ...(comments ? { notes: [{ kind: "comments-included" as const, count: comments }] } : {}) };
+}
+
+/**
+ * A sheet's cell comments as csv rows after its cells, `[Comment, B2, author:
+ * text]` (Q24 O1), the shape the office reader gives every other format's. A
+ * thread's later entries are its replies.
+ */
+function cellComments(sheet: XLSX.WorkSheet): string[] {
+  return Object.keys(sheet)
+    .filter((key) => !key.startsWith("!"))
+    .map((key) => ({ key, at: XLSX.utils.decode_cell(key), thread: (sheet[key] as XLSX.CellObject).c ?? [] }))
+    .sort((a, b) => a.at.r - b.at.r || a.at.c - b.at.c)
+    .flatMap(({ key, thread }) =>
+      thread.flatMap((comment, index) => {
+        const fold = (text: string | undefined) => (text ?? "").replace(/\s+/g, " ").trim();
+        const author = fold(comment.a);
+        // Excel opens a note's own text with its author's name and a colon.
+        const body = fold(author && comment.t?.startsWith(`${author}:`) ? comment.t.slice(author.length + 1) : comment.t);
+        if (!body) return [];
+        const label = [comment.T && index > 0 ? "Reply" : "Comment", key, author].filter(Boolean).join(", ");
+        const cell = `[${label}: ${body}]`;
+        return [`"${cell.replace(/"/g, '""')}"`];
+      }),
+    );
 }
 
 /**
