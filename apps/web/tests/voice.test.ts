@@ -34,6 +34,26 @@ const RULES: { name: string; pattern: RegExp; only?: RegExp }[] = [
     pattern:
       /\balign(s|ed)? with\b|\bdeep dive\b|\bdive into\b|\bin the heart of\b|\bevolving landscape\b|\bvaluable insights?\b|\b(serves|stands) as an?\b|\bplays? an? (\w+ )?role\b|\bimportant to (note|remember)\b|\bworth noting\b|(^|[.!?]\s+)(Additionally|Moreover|Furthermore|In summary|In conclusion),|\bnot (just|only)\b[^.;:]{1,80}?,? but( also)?\b/im,
   },
+  // Also from two cliche corpora read 2026-10-14: clements23/ai-slop-library (MIT, aac5727) and
+  // AIStoryHub/AIStoryHub_LLM_Cliche_Corpus (4d90cf4). Left out on purpose: the fiction wing and
+  // persona names; plain words with a literal sense here (navigate, harness, unpack, explore,
+  // essential, significantly, ultimately); and the ", not X" tail, which is the "this, not that"
+  // voice PRODUCT.md itself writes in.
+  {
+    name: "slop: corpus vocabulary",
+    pattern:
+      /\b(synerg(y|ies)|game-?changing|revolutionar(y|ize)|leverag(e|es|ed|ing)|transformative|utiliz(e|es|ed|ing)|endeavou?rs?|paradigm|unprecedented|world-class|best-in-class|industry-leading|unlock(s|ed|ing)?|stakeholders?|journey|nurtur(e|es|ed|ing)|cultivat(e|es|ed|ing)|facilitat(e|es|ed|ing)|state-of-the-art|user-friendly|cost-effective|nuanced?|innovation|streamlin(e|es|ed|ing)|resonat(e|es|ed|ing)|embark(s|ed|ing)?|indelible|unwavering|thought leaders?|best practices|nowadays)\b/i,
+  },
+  {
+    name: "slop: corpus phrasing",
+    pattern:
+      /\b(in today's|in a world where|imagine a world|welcome to the world of|in the world of|when it comes to|at its core|through the lens of|at the forefront|a gateway to|paving the way|paves the way|sheds? light on|new avenues|stark reminder|bring to the table|move the needle|next level|low-hanging fruit|moving forward|at the end of the day|when all is said and done|in a nutshell|food for thought|speaks volumes|only time will tell|possibilities are endless|matter of time|elephant in the room|it goes without saying|needless to say|without further ado|it should be noted|one might argue|here's the thing|let me be clear|let's be honest|to be honest|the truth is|the reality is|the fact is|the real question|believe it or not|it's no secret|no denying|more than just|whether you're an?|key takeaways?|let's unpack|that being said|having said that|all things considered|on the flip side|last but not least|first and foremost|as (previously|we) mentioned|as mentioned (earlier|above)|to put it simply|experts agree|studies (show|suggest)|research suggests|widely believed|have you ever wondered|what if I told you|picture this|let that sink in|read that again|hot take|unpopular opinion|plot twist|as we all know|rapidly evolving|has emerged as|growing body of|circle back|touch base|created equal|not (uncommon|insignificant|unlike|without merit)|far from trivial)\b|\bthat's where\b[^.]{1,40}\bcomes? in\b|\bit's not (just |merely |simply )?[^.!?]{3,60}[.,] it's\b|(^|[.!?]\s+)(To sum up|To summarize|To conclude),|(^|[.!?]\s+)No \w+\. No \w+\./im,
+  },
+  {
+    name: "slop: assistant boilerplate",
+    pattern:
+      /\b(as an AI|as of my last|I hope this helps|happy to help|great question|feel free to|don't hesitate|reach(ing)? out|finds you well|earliest convenience|let me break (this|it) down)\b|\b(oaicite|contentReference|turn0search|citeturn)/i,
+  },
   { name: "word: no analyst terms", pattern: /\b(p90|p10|signal density|n_?eff)\b/i, only: /^(components|routes)\// },
 ];
 
