@@ -92,6 +92,17 @@ export const parsers: ParserRegistry = createParserRegistry({
   subtitles: async (bytes) => extractSubtitles(bytes),
 });
 
+/**
+ * A live page the url import fetched, read like a saved one: the article as
+ * Markdown, or the whole body when no article is found. Not a {@link ParserLoader}:
+ * it takes text `fetch` already decoded, and the address it came from.
+ */
+export async function readFetchedPage(html: string, url: string): Promise<string> {
+  if (import.meta.env.SSR) return html;
+  const mod = await import("./extract-html-client");
+  return mod.readHtml(html, url).text || html;
+}
+
 /** Video containers whose own subtitle track is read (extraction router, D4). */
 export const SUBTITLE_TRACK_FORMATS: ReadonlySet<string> = new Set(["iso-bmff", "matroska"]);
 

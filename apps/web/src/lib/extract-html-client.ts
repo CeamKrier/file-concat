@@ -36,9 +36,17 @@ function decode(bytes: Uint8Array): string {
 }
 
 export function extractHtml(bytes: Uint8Array): ExtractionResult {
-  const html = decode(bytes);
+  return readHtml(decode(bytes));
+}
+
+/**
+ * The same reading on markup that is already text: a live page the url import
+ * fetched, which `fetch` decoded by the charset its server sent. `fetchedFrom`
+ * is that page's address, for links and the source line.
+ */
+export function readHtml(html: string, fetchedFrom?: string): ExtractionResult {
   const saved = savedPageUrl(html);
-  const url = saved ?? "https://localhost/";
+  const url = saved ?? fetchedFrom ?? "https://localhost/";
   const doc = new DOMParser().parseFromString(html, "text/html");
   // Readability resolves relative links against the document's base, which
   // for a parsed string is this site, not the page that was saved.
@@ -61,7 +69,13 @@ export function extractHtml(bytes: Uint8Array): ExtractionResult {
 
   const heading = (article?.title?.trim() || title).replace(/\s+/g, " ");
   return {
-    text: [heading && `# ${heading}`, saved && `Saved from ${saved}`, body].filter(Boolean).join("\n\n"),
+    text: [
+      heading && `# ${heading}`,
+      saved ? `Saved from ${saved}` : fetchedFrom && `Fetched from ${fetchedFrom}`,
+      body,
+    ]
+      .filter(Boolean)
+      .join("\n\n"),
     reader,
   };
 }

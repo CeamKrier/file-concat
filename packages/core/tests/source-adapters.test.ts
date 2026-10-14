@@ -557,7 +557,7 @@ describe("adapter fetch flows", () => {
     const result = await urlAdapter.fetchFiles("https://example.com/file.ts");
 
     expect(result.files).toHaveLength(0);
-    expect(result.error).toContain("CORS");
+    expect(result.error).toContain("Clipper");
   });
 });
 

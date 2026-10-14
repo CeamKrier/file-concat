@@ -32,7 +32,7 @@ import {
   SpeechTooLongError,
 } from "~/lib/ocr";
 import { browserOcrLanguage, ocrLanguageFor, type OcrLanguage } from "~/lib/ocr-language";
-import { parsers, readSubtitleTrack, SUBTITLE_TRACK_FORMATS } from "~/lib/parsers";
+import { parsers, readFetchedPage, readSubtitleTrack, SUBTITLE_TRACK_FORMATS } from "~/lib/parsers";
 import { prepareBatch } from "~/lib/prepare-batch";
 import { extensionOf, mergePruned, NO_EXTENSION, pruneAtDoor, type PrunedAtDoor } from "~/lib/prune-at-door";
 
@@ -1109,9 +1109,17 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         const incoming: IncomingFile[] = [];
         for (const remote of files) {
           if (signal.aborted) throw new Error("Operation aborted");
-          const blob = new Blob([remote.content || ""], { type: remote.type });
-          const fileObj = new File([blob], remote.name, { type: remote.type });
-          incoming.push({ file: fileObj, path: remote.path, content: remote.content || "" });
+          let { name, path, type, content = "" } = remote;
+          // A web page arrives as its markup; the caption promises readable text.
+          if (sourceType === "url" && type.includes("text/html")) {
+            content = await readFetchedPage(content, url);
+            const { pathname, hostname } = new URL(url);
+            const slug = pathname.split("/").filter(Boolean).pop()?.replace(/\.html?$/i, "");
+            name = path = `${slug || hostname}.md`;
+            type = "text/markdown";
+          }
+          const fileObj = new File([new Blob([content], { type })], name, { type });
+          incoming.push({ file: fileObj, path, content });
         }
         await ingestBatch(incoming, undefined, REMOTE_STAGES);
         // ingestBatch replaces failedFiles with its own read failures, so append

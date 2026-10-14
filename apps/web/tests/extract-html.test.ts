@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractHtml } from "~/lib/extract-html-client";
+import { extractHtml, readHtml } from "~/lib/extract-html-client";
 
 const prose = "Saved pages carry the article and everything around it. ".repeat(12);
 const page = (body: string, head = "") =>
@@ -37,5 +37,17 @@ describe("extractHtml", () => {
     // "ş" and "ğ" in windows-1254.
     const bytes = Uint8Array.from([...ascii].flatMap((b, i, all) => (b === 0x5f && all[i + 1] === 0x5f ? [0xfe] : b === 0x5f ? [0xf0] : [b])));
     expect(extractHtml(bytes).text).toContain("şğ");
+  });
+
+  it("reads a fetched live page against the address it came from", () => {
+    const { text, reader } = readHtml(
+      `<html><head><title>Live</title></head><body><nav>Menu</nav><article><p>${prose}</p>
+       <p><a href="/next">Next</a> and <a href="https://mozilla.org/x">Mozilla</a>.</p></article></body></html>`,
+      "https://example.com/blog/live",
+    );
+    expect(reader).toBe("readability");
+    expect(text.startsWith("# Live\n\nFetched from https://example.com/blog/live\n\n")).toBe(true);
+    expect(text).toContain("Next and [Mozilla](https://mozilla.org/x).");
+    expect(text).not.toContain("Menu");
   });
 });
