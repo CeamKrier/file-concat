@@ -775,8 +775,10 @@ export function ResultView({
         </div>
         {/* A fixed window, not a max height: the page's geometry is the point of
             the rework, and a preview that sets its own height moves everything
-            under it by however long the first file happens to be. */}
-        <pre className="border-border bg-surface-inset text-code rounded-card h-[210px] overflow-auto border p-4 font-mono text-[11.5px] leading-[1.65]">
+            under it by however long the first file happens to be.
+            Masked in Clarity recordings: this is the one place the files'
+            text is on screen, and the attribute overrides the site setting. */}
+        <pre data-clarity-mask="True" className="border-border bg-surface-inset text-code rounded-card h-[210px] overflow-auto border p-4 font-mono text-[11.5px] leading-[1.65]">
           {preview}
         </pre>
       </div>

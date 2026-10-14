@@ -27,7 +27,7 @@ const STAYS = [
 const COLLECTED = [
   {
     title: "Anonymous product analytics.",
-    body: "We use Microsoft Clarity to see how the tool is used and fix what is confusing. Because it records on-screen activity, a session recording can include your file names, folder structure, and the on-screen preview of the combined output. We also attach a few short labels to the recording so we can find it again later: which page you opened the tool on, whether the files came from your device or a repository link, a rough size band, whether anything failed to read, and whether the result was copied, downloaded, or left behind. Those labels carry no file names and no identifier. It is not tied to an account or an identity.",
+    body: "We use Microsoft Clarity to see how the tool is used and fix what is confusing. Because it records on-screen activity, a session recording can include your file names and folder structure, and the short sample of text shown while a scan or a recording is being read. The preview of the combined output is masked, so recordings do not show it. We also attach a few short labels to the recording so we can find it again later: which page you opened the tool on, whether the files came from your device or a repository link, a rough size band, whether anything failed to read, and whether the result was copied, downloaded, or left behind. Those labels carry no file names and no identifier. It is not tied to an account or an identity.",
   },
   {
     title: "Anonymous counts, kept by us.",
@@ -76,7 +76,7 @@ const CLIPPER = [
   },
   {
     title: "Once they arrive, they are files like any other.",
-    body: "A clipping that reaches the tool is treated exactly like a document you dropped, so everything above applies to it. That includes the session recording, which can show a clipping's file name and the on-screen preview of the combined output.",
+    body: "A clipping that reaches the tool is treated exactly like a document you dropped, so everything above applies to it. That includes the session recording, which can show a clipping's file name. The preview of the combined output is masked there too.",
   },
   {
     title: "Requests go to the site you are already on, never to us.",
