@@ -7,6 +7,7 @@ export {
   replacePages,
 } from "./officeparser";
 export type { OcrOptions, OfficeParserOptions, PdfPage } from "./officeparser";
+export { noteLayersOff } from "./pdf-layers";
 export { formatEmail } from "./email";
 export type { MessageFields } from "./email";
 export { formatMsg } from "./msg";

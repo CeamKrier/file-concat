@@ -1,6 +1,7 @@
 import { strFromU8, unzipSync } from "fflate";
 import type { OfficeContentNode } from "officeparser";
 import { withoutHiddenText } from "./office-hidden";
+import { noteLayersOff } from "./pdf-layers";
 import type { ExtractionNote, ExtractionNoteKind, ExtractionResult } from "./types";
 
 /**
@@ -979,5 +980,7 @@ export async function extractOfficeDocument(
     notes.push({ kind: "text-undecodable", count: lost, ...(pages.length > 0 ? { pages } : {}) });
   }
   if (hiddenRuns > 0) notes.push({ kind: "hidden-left-out", count: hiddenRuns });
-  return notes.length > 0 ? { text, notes } : { text };
+  const result = notes.length > 0 ? { text, notes } : { text };
+  // Only a PDF has pages here.
+  return ast.content.some((node) => node.type === "page") ? noteLayersOff(result, bytes) : result;
 }

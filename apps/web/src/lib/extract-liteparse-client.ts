@@ -1,4 +1,4 @@
-import { assemblePdfPages, type ExtractionResult, type PdfPage } from "@fileconcat/core";
+import { assemblePdfPages, noteLayersOff, type ExtractionResult, type PdfPage } from "@fileconcat/core";
 
 import { workerRunner } from "./worker-runner";
 
@@ -22,5 +22,5 @@ export async function extractLiteparse(bytes: Uint8Array): Promise<ExtractionRes
   // A copy is handed over, so the caller's bytes stay usable for the fallback.
   const copy = bytes.slice();
   const { pages, skipped } = await read(copy, [copy.buffer]);
-  return assemblePdfPages(pages, skipped);
+  return noteLayersOff(assemblePdfPages(pages, skipped), bytes);
 }

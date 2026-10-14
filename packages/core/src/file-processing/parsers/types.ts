@@ -56,7 +56,12 @@ export type ExtractionNoteKind =
    * labelled hidden sheets or slides are not counted: nothing of the author's
    * is missing for them.
    */
-  | "hidden-left-out";
+  | "hidden-left-out"
+  /**
+   * A PDF that opens with a layer switched off (Q18 O1). Its text is in the
+   * reading, which a viewer would not show, and a line over the text says so.
+   */
+  | "layers-off";
 
 export interface ExtractionNote {
   kind: ExtractionNoteKind;

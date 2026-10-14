@@ -13,6 +13,7 @@ export {
 export type { ArchiveEntry, ArchiveKind } from "./archives";
 export {
   assemblePdfPages,
+  noteLayersOff,
   createParserRegistry,
   extractWithFallback,
   FIRST_READERS,
