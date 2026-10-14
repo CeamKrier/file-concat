@@ -1,17 +1,21 @@
 /**
  * What survives PDF, DOCX and XLSX conversion?
  *
- * Runs every fixture in the extraction corpus through the exact path the
+ * Runs every fixture in the extraction corpus through the exact paths the
  * product uses -- `routeBytes` decides what the file is from its leading bytes
- * (ADR-0011), then the CLI's own parser registry pulls the text -- and records
- * what came out. It replaces the by-hand reading of 2026-08-15, which produced
+ * (ADR-0011), then the web's reader chain and the CLI's own parser registry
+ * each pull the text -- and records what came out. Until 2026-10-14 only the
+ * CLI's path ran, so after the web moved PDF, workbooks and RTF to other
+ * readers (2026-10-05) the record kept reporting defects no browser user had. It replaces the by-hand reading of 2026-08-15, which produced
  * numbers nobody can reproduce.
  *
  * Four rules this script exists to obey:
  *
  *  1. **Every decision comes from the product.** The router is core's, the
- *     parsers are the registry `packages/cli/src/parsers.ts` builds, and the
- *     bytes are read whole. There is no second extraction implementation here.
+ *     chains are core's `FIRST_READERS` and `extractWithFallback` over the web's
+ *     own reader modules (see `webExtract`) and the registry
+ *     `packages/cli/src/parsers.ts` builds, and the bytes are read whole. There
+ *     is no second extraction implementation here.
  *  2. **The corpus is not publishable, the findings are.** The fixtures live in
  *     `packages/core/tests/fixtures/real/`, which is gitignored because a real
  *     document dropped there is somebody's. Only this script, the generator
@@ -27,15 +31,12 @@
  *
  * Two caveats an article that drops them gets wrong:
  *
- *  - **This is the node path, and the web has one more layer.** The browser
- *    renders pages a reader could not decode and runs the OCR the app already
- *    ships, so a scanned PDF that extracts empty here is recovered there. Every
- *    scan result below is the floor, not what a user of the web app sees.
- *    Which half of a finding is platform-specific has to be said: `pdf-1.7`
- *    is two claims, and only one of them moves. The missing note is core's
- *    (`toNotes` raises `pages-skipped` for a page that failed to load, never
- *    for one that loaded carrying no text), so silence is what both platforms
- *    do. The recovery is the web's, and only when the reader accepts OCR.
+ *  - **Recognition does not run here.** The browser renders pages a reader
+ *    could not decode and runs the OCR the app already ships, so a scanned PDF
+ *    that extracts empty here is recovered there. Every scan result below is
+ *    the floor, not what a user of the web app reads. On the web chain a page
+ *    with no text layer raises `pages-scanned`, which is what sends it to OCR;
+ *    on the CLI's chain it is still dropped with no note.
  *  - **Every fixture is generated** (`gen-*`), written with `docx`, `exceljs`,
  *    `pptxgenjs`, `pdfkit` and PIL because no real corpus was available. That is
  *    much closer to a real file than hand-written XML and it is still not a real
@@ -49,7 +50,8 @@
  * Flags:
  *   --out <file>    output JSON (default docs/measurements/extraction-quality-<date>.json)
  *   --force         replace an existing output file instead of refusing
- *   --dump <name>   print one fixture's extracted text and exit
+ *   --dump <name>   print one fixture's extracted text and exit (the CLI's)
+ *   --web           with --dump, the web chain's text instead
  *   --pypdf <file>  the independent reader's output (default
  *                   docs/measurements/extraction-pypdf.json, written by
  *                   extract-pdf-with-pypdf.py). Absent means no pypdf column.
@@ -58,11 +60,25 @@
  */
 
 import * as fs from "node:fs";
+import { createRequire } from "node:module";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { ROUTER_SNIFF_BYTES, isPasswordProtected, routeBytes } from "@fileconcat/core";
+import {
+  FIRST_READERS,
+  ROUTER_SNIFF_BYTES,
+  assemblePdfPages,
+  extractWithFallback,
+  isPasswordProtected,
+  routeBytes,
+  type ExtractionResult,
+  type FirstReaderId,
+  type ParserId,
+  type ParserLoader,
+} from "@fileconcat/core";
 
+import { extractCfb, extractWorkbook } from "../../../apps/web/src/lib/extract-cfb-client.js";
+import { LITEPARSE_OPTIONS, toPdfPages } from "../../../apps/web/src/lib/liteparse-pages.js";
 import { parsers } from "../src/parsers.js";
 
 const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -112,6 +128,12 @@ interface Check {
    * inflate the headline by one. Reported on its own line instead.
    */
   guard?: boolean;
+  /**
+   * The date a later reading found the defect, for one the 2026-08-15 reading
+   * did not have. Counted on its own line, so the August tally keeps meaning
+   * what it meant.
+   */
+  since?: string;
 }
 
 /** Lines of `text`, trimmed of the trailing empty one. */
@@ -166,6 +188,7 @@ const CHECKS: Check[] = [
     // comparison would score output shape rather than whether the cell's
     // position survived. Attributing this one needs a renderer-agnostic
     // predicate, and it does not have one.
+    contract: true,
     stillBroken: (r) => !/\|\s*APAC\s*\|\s*980\s*\|\s*\|\s*980\s*\|/.test(r.text),
   },
   {
@@ -212,6 +235,30 @@ const CHECKS: Check[] = [
     severity: "BROKEN",
     finding: "A page with no text layer is dropped with no note, so a partly-scanned document looks whole",
     stillBroken: (r) => r.notes.length === 0,
+  },
+  {
+    // Found 2026-10-14: liteparse strips repeated page-band lines, so pdf-1.3
+    // passes on the web chain by losing the header altogether. Its
+    // `keepHeadersFooters` brings back every copy, which is pdf-1.3 again.
+    id: "pdf-1.8",
+    since: "2026-10-14",
+    format: "pdf",
+    fixture: "gen-pdf-prose.pdf",
+    anchor: "router reads the leading bytes",
+    severity: "DEGRADED",
+    finding: "A running header is dropped entirely, so a title or marking printed on every page never reaches the bundle",
+    stillBroken: (r) => count(r, "FileConcat Technical Note") === 0,
+  },
+  {
+    // Found 2026-10-14 on the web chain, in every liteparse output format.
+    id: "pdf-1.9",
+    since: "2026-10-14",
+    format: "pdf",
+    fixture: "gen-pdf-typography.pdf",
+    anchor: "Curly quotes",
+    severity: "DEGRADED",
+    finding: "Curly quotes and the en dash are flattened to their ASCII forms",
+    stillBroken: (r) => !/[\u201c\u201d]/.test(r.text) || !r.text.includes("\u2013"),
   },
   {
     id: "docx-3.2",
@@ -316,6 +363,65 @@ const CHECKS: Check[] = [
   },
 ];
 
+/**
+ * The browser's reader chain, run under node: core's `FIRST_READERS` picks the
+ * first reader and core's `extractWithFallback` walks the rest, as
+ * `apps/web/src/lib/parsers.ts` does. liteparse and anydoc are the same wasm
+ * the web workers load, called with the web's own options; SheetJS and the
+ * compound-file reader are the web's own modules. officeparser and the parsers
+ * with no browser-only reader (email, notebook, subtitles) are the CLI's
+ * registry, which is the same core code over the node build of each library.
+ * Recognition is not run: a page the web would send to OCR shows here as its
+ * `pages-scanned` note, so a scan result is still the floor.
+ */
+const require = createRequire(import.meta.url);
+function once<T>(load: () => Promise<T>): () => Promise<T> {
+  let loaded: Promise<T> | undefined;
+  return () => (loaded ??= load());
+}
+const liteparseModule = once(async () => {
+  const lite = await import("@llamaindex/liteparse-wasm");
+  lite.initSync({ module: fs.readFileSync(require.resolve("@llamaindex/liteparse-wasm/liteparse_wasm_bg.wasm")) });
+  return lite;
+});
+const anydocModule = once(async () => {
+  const anydoc = await import("@firecrawl/anydoc-wasm");
+  anydoc.initSync({ module: fs.readFileSync(require.resolve("@firecrawl/anydoc-wasm/anydoc_wasm_bg.wasm")) });
+  return anydoc;
+});
+
+const officeparser: ParserLoader = (bytes, format) => parsers.extract("office", bytes, format);
+const anydoc: ParserLoader = async (bytes) => ({ text: (await anydocModule()).toMarkdownBytes(bytes).trim() });
+const webReaders: Record<FirstReaderId, ParserLoader> = {
+  liteparse: async (bytes) => {
+    const parser = new (await liteparseModule()).LiteParse(LITEPARSE_OPTIONS);
+    try {
+      const result = await parser.parse(bytes.slice());
+      return assemblePdfPages(toPdfPages(result.pages), result.pageErrors.length);
+    } finally {
+      parser.free();
+    }
+  },
+  sheetjs: async (bytes) => extractWorkbook(bytes),
+  anydoc,
+};
+const webFallbacks: Record<string, ParserLoader> = { anydoc, officeparser };
+
+function webExtract(parserId: ParserId, bytes: Uint8Array, format?: string): Promise<ExtractionResult> {
+  if (parserId === "office") {
+    const id = FIRST_READERS[format ?? ""];
+    const first = id ? { id, read: webReaders[id] } : { id: "officeparser", read: officeparser };
+    return extractWithFallback(first, webFallbacks, bytes, format);
+  }
+  if (parserId === "cfb") {
+    return extractWithFallback({ id: "cfb", read: async (b) => extractCfb(b) }, webFallbacks, bytes, format);
+  }
+  return parsers.extract(parserId, bytes, format);
+}
+
+type Extract = (parserId: ParserId, bytes: Uint8Array, format?: string) => Promise<ExtractionResult>;
+const cliExtract: Extract = (parserId, bytes, format) => parsers.extract(parserId, bytes, format);
+
 interface Result {
   fixture: string;
   ext: string;
@@ -329,7 +435,7 @@ interface Result {
   text: string;
 }
 
-function args(): { out?: string; force: boolean; dump?: string; pypdf?: string; readers: string[] } {
+function args(): { out?: string; force: boolean; dump?: string; pypdf?: string; web: boolean; readers: string[] } {
   const argv = process.argv.slice(2);
   // pnpm runs the script inside packages/cli, so a relative path is resolved
   // against the directory the command was typed in, not the package's.
@@ -341,6 +447,7 @@ function args(): { out?: string; force: boolean; dump?: string; pypdf?: string; 
   return {
     out: flag("--out") && at(flag("--out")!),
     force: argv.includes("--force"),
+    web: argv.includes("--web"),
     dump: flag("--dump"),
     pypdf: flag("--pypdf") && at(flag("--pypdf")!),
     readers: argv.flatMap((a, i) => (a === "--reader" && argv[i + 1] ? [at(argv[i + 1])] : [])),
@@ -394,7 +501,7 @@ function readerVerdict(c: Check, reader: Reader): string {
   return c.stillBroken(asResult) ? "BROKEN" : "ok";
 }
 
-async function extractOne(file: string): Promise<Result> {
+async function extractOne(file: string, extract: Extract = cliExtract): Promise<Result> {
   const full = path.join(CORPUS, file);
   const bytes = new Uint8Array(fs.readFileSync(full));
   const base: Result = {
@@ -414,7 +521,8 @@ async function extractOne(file: string): Promise<Result> {
   base.parserId = route.parserId;
 
   try {
-    const { text, notes } = await parsers.extract(route.parserId, bytes);
+    const { text, notes, reader } = await extract(route.parserId, bytes, route.format);
+    if (reader) base.parserId = `${route.parserId}:${reader}`;
     base.text = text;
     base.chars = text.length;
     base.lines = text ? text.split("\n").length : 0;
@@ -430,7 +538,7 @@ async function extractOne(file: string): Promise<Result> {
 }
 
 async function main(): Promise<void> {
-  const { out, force, dump, pypdf, readers: readerFiles } = args();
+  const { out, force, dump, pypdf, web, readers: readerFiles } = args();
 
   if (!fs.existsSync(CORPUS)) {
     console.error(`No corpus at ${CORPUS}. Run \`node generate.mjs\` there first.`);
@@ -448,66 +556,82 @@ async function main(): Promise<void> {
       console.error(`No fixture matching "${dump}". Have: ${fixtures.join(", ")}`);
       process.exit(1);
     }
-    const r = await extractOne(match);
+    const r = await extractOne(match, web ? webExtract : cliExtract);
     console.log(`--- ${r.fixture} | ${r.route}${r.parserId ? `/${r.parserId}` : ""} | ${r.chars} chars | notes: ${r.notes.join(", ") || "-"}${r.error ? ` | ERROR: ${r.error}` : ""}`);
     console.log(r.text);
     return;
   }
 
   const results: Result[] = [];
-  for (const f of fixtures) results.push(await extractOne(f));
-
-  console.log(`\nExtraction over ${results.length} fixtures\n`);
-  console.log("| fixture | route | chars | lines | notes |");
-  console.log("| --- | --- | --- | --- | --- |");
-  for (const r of results) {
-    const route = r.error ? `ERROR: ${r.error}` : r.parserId ? `${r.route}/${r.parserId}` : r.route;
-    console.log(`| ${r.fixture} | ${route} | ${r.chars} | ${r.lines} | ${r.notes.join(", ") || "-"} |`);
+  const webResults: Result[] = [];
+  for (const f of fixtures) {
+    results.push(await extractOne(f));
+    webResults.push(await extractOne(f, webExtract));
   }
 
-  const checks: { id: string; status: string; readers: Record<string, string> }[] = [];
+  console.log(`\nExtraction over ${results.length} fixtures\n`);
+  console.log("| fixture | surface | route | chars | lines | notes |");
+  console.log("| --- | --- | --- | --- | --- | --- |");
+  for (const [surface, rows] of [["web", webResults], ["cli", results]] as const) {
+    for (const r of rows) {
+      const route = r.error ? `ERROR: ${r.error}` : r.parserId ? `${r.route}/${r.parserId}` : r.route;
+      console.log(`| ${r.fixture} | ${surface} | ${route} | ${r.chars} | ${r.lines} | ${r.notes.join(", ") || "-"} |`);
+    }
+  }
+
+  const checks: { id: string; web: string; status: string; readers: Record<string, string> }[] = [];
   if (CHECKS.length > 0) {
-    let broken = 0;
-    let fixed = 0;
-    let missing = 0;
-    let absent = 0;
+    const tally = { web: { broken: 0, fixed: 0, missing: 0, absent: 0 }, cli: { broken: 0, fixed: 0, missing: 0, absent: 0 } };
     const pypdfFile = pypdf ?? path.join(REPO_ROOT, "docs", "measurements", "extraction-pypdf.json");
     const readers = [...(fs.existsSync(pypdfFile) ? [pypdfFile] : []), ...readerFiles].map(loadReader);
     const names = readers.map((r) => r.name);
     console.log(`\nFindings from 2026-08-15, re-tested. Other readers: ${names.join(", ") || "none"}\n`);
-    console.log(`| id | format | severity | finding | status |${names.map((n) => ` ${n} |`).join("")}`);
-    console.log(`| --- | --- | --- | --- | --- |${names.map(() => " --- |").join("")}`);
-    for (const c of CHECKS) {
-      const r = results.find((x) => x.fixture === c.fixture);
-      let status: string;
+    // The web is what a user gets, so it is the headline; the CLI column is
+    // the node product, kept because the 2026-09-07 article was measured on it.
+    console.log(`| id | format | severity | finding | web | cli |${names.map((n) => ` ${n} |`).join("")}`);
+    console.log(`| --- | --- | --- | --- | --- | --- |${names.map(() => " --- |").join("")}`);
+    const verdict = (c: Check, rows: Result[], t: (typeof tally)["web"]): string => {
+      const r = rows.find((x) => x.fixture === c.fixture);
       if (!r) {
-        status = "MISSING FIXTURE";
-        missing++;
-      } else if (c.anchor !== undefined && !r.text.includes(c.anchor)) {
+        t.missing++;
+        return "MISSING FIXTURE";
+      }
+      if (c.anchor !== undefined && !r.text.includes(c.anchor)) {
         // The structure the check reads is not in the output at all, so the
         // check proves nothing. Never a pass.
-        status = "SIGNAL ABSENT";
-        absent++;
-      } else if (c.stillBroken(r)) {
-        status = "STILL BROKEN";
-        broken++;
-      } else {
-        status = "FIXED";
-        fixed++;
+        t.absent++;
+        return "SIGNAL ABSENT";
       }
+      if (c.stillBroken(r)) {
+        t.broken++;
+        return "STILL BROKEN";
+      }
+      t.fixed++;
+      return "FIXED";
+    };
+    // A later finding gets its own line below, never the August tally.
+    const untallied = () => ({ broken: 0, fixed: 0, missing: 0, absent: 0 });
+    for (const c of CHECKS) {
+      const web = verdict(c, webResults, c.since ? untallied() : tally.web);
+      const status = verdict(c, results, c.since ? untallied() : tally.cli);
       const note = c.generatedOnly ? " [generated-only]" : "";
       const others = readers.map((reader) => readerVerdict(c, reader));
-      checks.push({ id: c.id, status, readers: Object.fromEntries(names.map((n, i) => [n, others[i]])) });
+      checks.push({ id: c.id, web, status, readers: Object.fromEntries(names.map((n, i) => [n, others[i]])) });
       console.log(
-        `| ${c.id} | ${c.format} | ${c.severity} | ${c.finding}${note} | ${status} |${others.map((o) => ` ${o} |`).join("")}`,
+        `| ${c.id} | ${c.format} | ${c.severity} | ${c.finding}${note} | ${web} | ${status} |${others.map((o) => ` ${o} |`).join("")}`,
       );
     }
     const guards = CHECKS.filter((c) => c.guard).length;
-    console.log(
-      `\n${fixed - guards} of ${CHECKS.length - guards} defects closed, ${broken} still broken, ` +
-        `${absent} signal absent, ${missing} missing fixture. ` +
-        `${guards} standing guard(s) passing, counted separately because they were never broken.`,
-    );
+    const august = CHECKS.filter((c) => !c.since).length;
+    const later = checks.filter((row) => CHECKS.find((c) => c.id === row.id)?.since);
+    for (const [surface, t] of Object.entries(tally)) {
+      console.log(
+        `\n${surface}: ${t.fixed - guards} of ${august - guards} defects from 2026-08-15 closed, ${t.broken} still broken, ` +
+          `${t.absent} signal absent, ${t.missing} missing fixture. ` +
+          `${guards} standing guard(s) passing, counted separately because they were never broken.`,
+      );
+    }
+    for (const row of later) console.log(`found later, ${row.id}: web ${row.web}, cli ${row.status}`);
     for (const n of names) {
       const verdicts = checks.map((c) => c.readers[n]).filter((v) => v === "ok" || v === "BROKEN");
       console.log(`${n}: ${verdicts.filter((v) => v === "ok").length} of ${verdicts.length} scored checks ok`);
@@ -521,7 +645,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  fs.writeFileSync(outPath, JSON.stringify({ date, corpus: CORPUS, results, checks }, null, 2));
+  fs.writeFileSync(outPath, JSON.stringify({ date, corpus: CORPUS, results, webResults, checks }, null, 2));
   console.log(`\nWrote ${outPath}`);
 }
 

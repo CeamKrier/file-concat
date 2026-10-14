@@ -1,5 +1,5 @@
 export { createParserRegistry } from "./registry";
-export { extractWithFallback } from "./chain";
+export { FIRST_READERS, extractWithFallback, type FirstReaderId } from "./chain";
 export {
   assemblePdfPages,
   extractOfficeDocument,

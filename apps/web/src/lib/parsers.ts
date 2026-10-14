@@ -3,6 +3,8 @@ import {
   extractNotebook,
   extractSubtitles,
   extractWithFallback,
+  FIRST_READERS,
+  type FirstReaderId,
   type ParserLoader,
   type ParserRegistry,
 } from "@fileconcat/core";
@@ -53,18 +55,16 @@ const anydoc: ParserLoader = async (bytes) => {
 /** Tried after a format's first reader when it has nothing usable (core `FALLBACK_READERS`). */
 const fallbacks: Record<string, ParserLoader> = { anydoc, officeparser: office };
 
-/** Formats whose first reader is not officeparser; the rest come after it in core `FALLBACK_READERS`. */
-const FIRST_READER: Record<string, { id: string; read: ParserLoader }> = {
-  pdf: { id: "liteparse", read: liteparse },
-  xlsx: { id: "sheetjs", read: sheetjs },
-  xlsm: { id: "sheetjs", read: sheetjs },
-  xlsb: { id: "sheetjs", read: sheetjs },
-  rtf: { id: "anydoc", read: anydoc },
+/** The readers core `FIRST_READERS` names for formats that do not start with officeparser. */
+const firstReaders: Record<FirstReaderId, ParserLoader> = { liteparse, sheetjs, anydoc };
+const firstReader = (format?: string) => {
+  const id = FIRST_READERS[format ?? ""];
+  return id ? { id, read: firstReaders[id] } : { id: "officeparser", read: office };
 };
 
 export const parsers: ParserRegistry = createParserRegistry({
   office: (bytes, format) =>
-    extractWithFallback(FIRST_READER[format ?? ""] ?? { id: "officeparser", read: office }, fallbacks, bytes, format),
+    extractWithFallback(firstReader(format), fallbacks, bytes, format),
   // The same library reads an epub (its zip of XHTML chapters walks the OPF
   // spine), so the id costs no second download.
   epub: office,
