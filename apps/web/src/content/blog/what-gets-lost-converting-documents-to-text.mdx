@@ -15,7 +15,7 @@ kind: "research"
     },
     {
       figure: "2 new",
-      text: "Losses the newer PDF reader brought with it: a running header printed on every page is dropped entirely, and curly quotes and the en dash arrive as their plain forms.",
+      text: "Losses the newer PDF reader brought with it. A running header it dropped entirely now arrives once; curly quotes and the en dash still arrive as their plain forms.",
     },
     {
       figure: "18 of 18",
@@ -23,7 +23,7 @@ kind: "research"
     },
   ]}
   snapshot="FileConcat 2.2 / 27 test documents in 12 formats"
-  citation="Across 27 documents each isolating one structure, measured on 2026-10-14, FileConcat 2.2's browser reader chain closed 16 of 16 extraction defects found in August (FileConcat 2.0: 13 of 16) and brought two new losses, a running header dropped entirely and curly quotes flattened to ASCII; on identical PDF bytes it kept column order where an independent reader (pypdf 6.14.2) interleaved the columns (FileConcat, fileconcat.com)."
+  citation="Across 27 documents each isolating one structure, measured on 2026-10-14, FileConcat 2.2's browser reader chain closed 16 of 16 extraction defects found in August (FileConcat 2.0: 13 of 16) and brought two new losses, a running header dropped entirely (fixed the same day, kept once) and curly quotes flattened to ASCII (open); on identical PDF bytes it kept column order where an independent reader (pypdf 6.14.2) interleaved the columns (FileConcat, fileconcat.com)."
 />
 
 A PDF is not text. Neither is a Word file or a spreadsheet. Something has to walk the container and
@@ -81,8 +81,8 @@ Other losses are a reader's choice. We ran every PDF through an independent read
 code with ours. Both read an ordinary
 two-column page correctly. On one whose internal order runs across the gutter, the other reader
 alternated one line from each column, where ours kept the columns apart. On pages with a running
-header and footer, it poured every copy into the prose. Ours kept none of them, which spares the prose
-and loses the one copy of the header worth keeping.
+header and footer, it poured every copy into the prose. Ours keeps the header once and drops the page
+numbers, because the page breaks are already marked.
 
 That is why swapping libraries on the strength of a published ranking is a gamble. The rankings score
 whole pages and average them, and the largest one leaves headers and footers out of the score. Test
@@ -91,10 +91,10 @@ the page you care about.
 ## Try it on your own files
 
 Drop a document and read what comes out before you paste it. Every loss we found in August is closed
-in the browser now, and the PDF reader that closed them brought two of its own. A running header
-printed on every page is dropped entirely, so a title or a marking that lives only there never reaches
-the bundle. Curly quotes and the en dash arrive as their plain forms. A scanned page is no longer
-dropped in silence: FileConcat names it and reads it with OCR on your machine.
+in the browser now, and the PDF reader that closed them brought two of its own. One is fixed: a running
+header printed on every page arrives once instead of not at all. The other is open: curly quotes and
+the en dash arrive as their plain forms. A scanned page is no longer dropped in silence: FileConcat
+names it and reads it with OCR on your machine.
 
 <TryIt
   title="Drop your own documents"
@@ -200,7 +200,7 @@ Every file goes through the path the product uses. Nothing here reimplements ext
   dataset="27 generated documents across 12 formats, each isolating one document structure"
   sample="22,826 characters extracted by the browser chain and 22,789 by the CLI chain, 27 of 27 routed correctly, 19 checks evaluated on each"
   measured="2026-10-14"
-  build="FileConcat 2.2 at 620e77c, readers unchanged since 2.1, both reader chains run under Node"
+  build="FileConcat 2.2 at db45f92 (header fix included), first readers unchanged since 2.1, both reader chains run under Node"
   tokenizer="Not applicable. Recovered text, not tokens."
   script="packages/cli/scripts/measure-extraction-quality.ts and extract-pdf-with-pypdf.py"
   excludes="Real-world documents, non-PDF attribution, model accuracy, and any judgment about whether recovered structure helps an answer."
@@ -280,7 +280,7 @@ run adds two losses found on the browser chain itself. Re-run against FileConcat
         { id: "pdf-1.5", severity: "degraded", status: "fixed", structure: "A superscript footnote marker sorts above its own line" },
         { id: "pdf-1.6", severity: "degraded", status: "fixed", structure: "An encrypted file fails under the same wording as any parse error" },
         { id: "pdf-1.7", severity: "broken", status: "fixed", structure: "A page with no text layer is dropped with no note" },
-        { id: "pdf-1.8", severity: "degraded", status: "open", structure: "A running header is dropped entirely, title or marking included" },
+        { id: "pdf-1.8", severity: "degraded", status: "fixed", structure: "A running header is dropped entirely, title or marking included" },
         { id: "pdf-1.9", severity: "degraded", status: "open", structure: "Curly quotes and the en dash flattened to their ASCII forms" },
       ],
     },
@@ -319,8 +319,7 @@ run adds two losses found on the browser chain itself. Re-run against FileConcat
 library emits. That one is worth re-checking against a file Word wrote.
 
 The CLI reads the same files with one library and scores 13 of 16 on the August list, as FileConcat 2.0
-did on both. It keeps the header once and the curly quotes, so the two new losses are the browser's
-alone.
+did on both. It keeps the curly quotes, so the one open loss is the browser's alone.
 
 `docx-3.1` is listed apart from the rest on purpose. It is a standing guard, not a defect that got
 fixed, and folding it into the headline would inflate the count by one. A tracked deletion has never
@@ -349,9 +348,9 @@ identical bytes. This is the part no benchmark reports.
     },
     {
       structure: "Running headers on every page",
-      a: { text: "drops all 3, plus 3 footers", kind: "lost" },
+      a: { text: "keeps 1, drops the footers", kind: "recovered" },
       b: { text: "repeats all 3, plus 3 footers", kind: "lost" },
-      verdict: "Both wrong in opposite directions. One copy is right, and the CLI's reader keeps one.",
+      verdict: "A reader's choice, not a limit of the format.",
     },
     {
       structure: "Superscript footnote marker",
@@ -368,12 +367,18 @@ identical bytes. This is the part no benchmark reports.
   ]}
 />
 
-The third row is the practical one, and neither reader wins it. The test file is three pages of prose
-with a running header and a `Page n of 3` footer. pypdf pours the header into the text three times and
-the footer three times. The browser's reader drops all six. On a 40-page report that is the difference
-between 80 lines of headers and footers spliced through your sentences and none, but a title or a
-confidentiality marking that lives only in the header is gone too. FileConcat 2.0's reader kept the
-header once and no footers, which is still what the CLI does.
+The third row is the practical one. The test file is three pages of prose with a running header and a
+`Page n of 3` footer. pypdf pours the header into the text three times and the footer three times.
+FileConcat emits the header once and no footers, and marks the page boundaries instead. On a 40-page
+report that is the difference between 80 lines of headers and footers spliced through your sentences
+and one line.
+
+This row read differently on the first run of this measurement. The browser's PDF reader, liteparse,
+strips every copy of a repeated line by default, title or confidentiality marking included. We now
+keep its copies and remove the repeats ourselves. None of the five readers we checked keeps exactly
+one copy: docling, marker and liteparse drop all of them, unstructured and pymupdf4llm keep all. A
+single page keeps liteparse's stripping, because there it can only remove page numbers, URLs and
+copyright lines.
 
 ### The experiment that separates a column model from luck
 
@@ -445,11 +450,6 @@ the difference between "we fixed it" and "we cannot see it from here".
 
 ### What is still broken, and where
 
-**A running header is dropped entirely, in the browser.** The PDF reader strips text that repeats at
-the top and foot of every page. On the test file that removes three header lines and three footers.
-The cost is not the length: when the title or a confidentiality marking lives only in
-the header, the bundle never says it. Check for it before you paste.
-
 **Curly quotes and the en dash arrive as their plain forms, in the browser.** The reader writes `"` for
 both curly quotes and `-` for the en dash in every output it has. The words are intact, so this one
 matters only where the exact characters do.
@@ -474,6 +474,9 @@ that way.
   rendering, which no other library emits.
 - **Both chains run under Node.** The browser chain is the same code, but OCR does not run here, so a
   scanned page counts as named, not as read. Scan results here are floors.
+- **The header fix is checked on one file here.** On olmOCR-bench's 753 header and footer tests, whose
+  pages are all single pages, the score is 57.4% before and after it. A long document whose header
+  changes wording from page to page keeps every copy.
 - **The fallback path is not measured.** A PDF the browser's own reader cannot open goes to the CLI's
   library, where the superscript marker and the silent scanned page still hold. How often that happens
   has not been counted.

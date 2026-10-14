@@ -10,7 +10,7 @@ draft: false
   items={[
     "Drop the PDFs, or the folder holding them, on fileconcat.com: the text comes out as one file, in reading order, extracted in your browser.",
     "A scanned page holds no text to pull. Since 2026-10-07 every such page, in a scanned or a partly scanned PDF, gets a recognition pass in the browser, started on its own for up to three documents and 8 MB per drop, and the result names which files were read that way.",
-    "Every PDF defect our own re-test found in August is closed. The reader that closed them brought two losses, named below: a running header printed on every page is dropped, and curly quotes arrive as straight ones. Check for a title or marking that lives only in the header.",
+    "Every PDF defect our own re-test found in August is closed. The reader that closed them brought two losses: a running header it dropped now arrives once, and curly quotes still arrive as straight ones.",
     "Your files are not uploaded to us.",
   ]}
 />
@@ -103,9 +103,9 @@ locked bytes yield no text, and no amount of recognition changes that.
 None of that is taken on trust. We built a set of documents designed to break our own extraction
 and re-tested against it again on FileConcat 2.2: of the sixteen defects found in August, seven were
 in PDF handling, and all seven are closed. The newer PDF reader that closed them brought two of its
-own. A running header printed on every page is dropped entirely, so a title or a confidentiality
-marking that lives only there never reaches the bundle. Curly quotes and the en dash arrive as their
-plain forms. A page with no text layer is now named and read by recognition.
+own. It dropped a running header entirely; that is fixed, and the header now arrives once. Curly quotes
+and the en dash still arrive as their plain forms. A page with no text layer is now named and read by
+recognition.
 
 <Callout type="warn" title="A scan takes longer, and not every one comes back">
   Recognition reads pixels rather than characters, so it costs seconds per page and it is not
