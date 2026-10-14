@@ -350,7 +350,7 @@ function ClosingCta() {
       </div>
       <FurtherReading>
         A workbook loses more on the way into a prompt than any other format. What survives it, and what does not, is in{" "}
-        <ProseLink to="/blog/convert-excel-to-text-for-llm">converting a spreadsheet to text for an LLM</ProseLink>
+        <ProseLink to="/convert/excel-to-text">converting a spreadsheet to text for an LLM</ProseLink>
         .
       </FurtherReading>
     </MarketingSection>

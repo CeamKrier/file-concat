@@ -350,7 +350,7 @@ function ClosingCta() {
       </div>
       <FurtherReading>
         Most of what arrives in a client folder is a PDF.{" "}
-        <ProseLink to="/blog/convert-pdf-to-text-for-llm">Converting a PDF to text for a prompt</ProseLink>
+        <ProseLink to="/convert/pdf-to-text">Converting a PDF to text for a prompt</ProseLink>
         {" "}covers what extraction pulls out and what it flattens.
       </FurtherReading>
     </MarketingSection>

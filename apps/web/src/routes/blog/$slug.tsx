@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 
 import { BlogShell } from "~/components/blog/blog-shell";
@@ -8,8 +8,22 @@ import { generateSEOMeta } from "~/lib/seo";
 
 import { version as currentVersion } from "../../../package.json";
 
+// Guides merged into the page that owns their query (2026-10-14): the
+// /convert pages do the same job as these posts did, so one URL per intent.
+// 301, not the router's default 307, so the old URL leaves the index.
+// A Map, not an object literal: `/blog/constructor` must not find Object's.
+const MOVED_TO = new Map([
+  ["convert-pdf-to-text-for-llm", "pdf-to-text"],
+  ["convert-docx-to-text-for-llm", "docx-to-text"],
+  ["convert-excel-to-text-for-llm", "excel-to-text"],
+]);
+
 export const Route = createFileRoute("/blog/$slug")({
   component: BlogPostPage,
+  beforeLoad: ({ params }) => {
+    const to = MOVED_TO.get(params.slug);
+    if (to) throw redirect({ to: "/convert/$slug", params: { slug: to }, statusCode: 301 });
+  },
   loader: ({ params }) => {
     if (!getPostBySlug(params.slug)) throw notFound();
     return { slug: params.slug };

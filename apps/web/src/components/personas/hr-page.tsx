@@ -335,7 +335,7 @@ function ClosingCta() {
       </div>
       <FurtherReading>
         Most of what an HR folder holds is a Word document.{" "}
-        <ProseLink to="/blog/convert-docx-to-text-for-llm">Converting a Word document to text</ProseLink>
+        <ProseLink to="/convert/docx-to-text">Converting a Word document to text</ProseLink>
         {" "}covers the tables and the reading order, which are the parts that break. What each format keeps and leaves out is on <ProseLink to="/docs/formats">the formats list</ProseLink>.
       </FurtherReading>
     </MarketingSection>
