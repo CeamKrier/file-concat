@@ -31,9 +31,11 @@ describe("pdfLayersOff", () => {
   });
 
   it("scans a file of unclosed arrays and bombs in bounded time", () => {
-    const started = performance.now();
-    expect(pdfLayersOff(pdf(`/OCProperties ${"/OFF [".repeat(200_000)}`))).toBe(false);
+    // Built before the clock starts: deflating the bomb costs more than scanning it.
+    const unclosed = pdf(`/OCProperties ${"/OFF [".repeat(200_000)}`);
     const bomb = inObjectStream(`/X (${"A".repeat(50_000_000)})`);
+    const started = performance.now();
+    expect(pdfLayersOff(unclosed)).toBe(false);
     expect(pdfLayersOff(bomb)).toBe(false);
     expect(performance.now() - started).toBeLessThan(2000);
   });
