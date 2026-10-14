@@ -2,6 +2,7 @@ import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
 import { extractCfb, extractWorkbook } from "~/lib/extract-cfb-client";
+import { deckStreams, shape, text } from "../../../packages/core/tests/fixtures/ppt";
 import { wordStreams } from "../../../packages/core/tests/fixtures/word";
 
 /** A BIFF8 workbook, written by the same library that reads it. */
@@ -22,11 +23,10 @@ function wordContainer(): Uint8Array {
   return new Uint8Array(XLSX.CFB.write(container, { type: "array" }));
 }
 
-/** A compound file whose streams say PowerPoint, which nothing here reads. */
-function deckContainer(): Uint8Array {
+/** Streams into a compound file, the way PowerPoint and Word store them. */
+function compound(streams: Map<string, Uint8Array>): Uint8Array {
   const container = XLSX.CFB.utils.cfb_new();
-  XLSX.CFB.utils.cfb_add(container, "/PowerPoint Document", new Uint8Array(64));
-  XLSX.CFB.utils.cfb_add(container, "/Current User", new Uint8Array(16));
+  for (const [name, bytes] of streams) XLSX.CFB.utils.cfb_add(container, `/${name}`, bytes);
   return new Uint8Array(XLSX.CFB.write(container, { type: "array" }));
 }
 
@@ -99,10 +99,19 @@ describe("extractCfb", () => {
     expect(extractCfb(wordContainer())).toEqual({ text: "Minutes of the meeting." });
   });
 
+  it("reads a PowerPoint 97-2003 deck slide by slide", () => {
+    const deck = deckStreams({ slides: [{ shapes: [shape({ text: text("Quarterly review") })] }] });
+    expect(extractCfb(compound(deck))).toEqual({ text: "# Slide 1\nQuarterly review" });
+  });
+
   it("answers a compound file nothing here reads with parser-unavailable, not a throw", () => {
-    // A .ppt shares the signature; the ledger names it from there, under its
-    // own extension, exactly as a build with no reader would.
-    expect(extractCfb(deckContainer())).toEqual({
+    // A PowerPoint 95 deck shares the signature; the chain then tries anydoc,
+    // and the ledger names it from there, under its own extension.
+    const old = new Map([
+      ["PowerPoint Document", new Uint8Array(64)],
+      ["Current User", new Uint8Array(16)],
+    ]);
+    expect(extractCfb(compound(old))).toEqual({
       text: "",
       notes: [{ kind: "parser-unavailable" }],
     });

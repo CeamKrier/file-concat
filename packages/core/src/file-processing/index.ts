@@ -24,6 +24,7 @@ export {
   formatDoc,
   formatEmail,
   formatMsg,
+  formatPpt,
   isPasswordProtected,
   replacePages,
 } from "./parsers";

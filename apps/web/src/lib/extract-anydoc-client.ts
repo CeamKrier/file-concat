@@ -5,8 +5,8 @@ import { workerRunner } from "./worker-runner";
 /**
  * The fallback reader for Office files (extraction router, step R1): anydoc,
  * MIT, 2.79 MiB gzipped, fetched only when a product reader came back with
- * nothing usable. Today that is mainly a 97-2003 `.ppt`, which nothing else in
- * the browser reads.
+ * nothing usable, such as a 97-2003 `.ppt` core's own deck reader declined
+ * (PowerPoint 95, a broken edit chain).
  */
 
 // ponytail: one fixed limit; per-size limits if a real deck needs longer.

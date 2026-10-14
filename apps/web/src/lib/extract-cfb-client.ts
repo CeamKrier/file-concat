@@ -1,4 +1,4 @@
-import { formatDoc, formatMsg, type CfbStreams, type ExtractionResult } from "@fileconcat/core";
+import { formatDoc, formatMsg, formatPpt, type CfbStreams, type ExtractionResult } from "@fileconcat/core";
 import { strFromU8, unzipSync } from "fflate";
 import * as XLSX from "xlsx";
 
@@ -9,11 +9,12 @@ import * as XLSX from "xlsx";
  * the router cannot tell them apart on a prefix and hands every one here.
  *
  * SheetJS reads the workbook ones (BIFF), and opens the container of an
- * Outlook message or a Word document for core's own readers. For the rest
- * (PowerPoint, a locked OOXML file) this answers `parser-unavailable`: the
- * ingest loop then treats the file exactly as any other it cannot read, and
- * the ledger names it from the extension ("PowerPoint 97-2003 file. Save it
- * as .pptx and it will be read.").
+ * Outlook message, a Word document or a PowerPoint deck for core's own
+ * readers. For the rest (a locked OOXML file) this answers
+ * `parser-unavailable`, as core's deck reader does for a PowerPoint 95 file:
+ * the chain then tries its fallback (anydoc), and failing that the ingest loop
+ * treats the file exactly as any other it cannot read, and the ledger names
+ * it from the extension.
  *
  * Reached only through the dynamic import in ./parsers, so the library never
  * lands in the SSR worker. The package is the maintained build from SheetJS's
@@ -44,6 +45,9 @@ export function extractCfb(bytes: Uint8Array): ExtractionResult {
   }
   if (container.FullPaths.some((entry) => rootless(entry) === "WordDocument")) {
     return formatDoc(streams());
+  }
+  if (container.FullPaths.some((entry) => rootless(entry) === "PowerPoint Document")) {
+    return formatPpt(streams());
   }
   // `Workbook` is BIFF8 (Excel 97-2003), `Book` is BIFF5 (Excel 5/95), in any
   // case: stream names compare case-insensitively (MS-CFB 2.6.4), and some

@@ -11,6 +11,7 @@ export { formatEmail } from "./email";
 export type { MessageFields } from "./email";
 export { formatMsg } from "./msg";
 export { formatDoc } from "./doc";
+export { formatPpt } from "./ppt";
 export type { CfbStreams } from "./msg";
 export { extractNotebook } from "./notebook";
 export { extractSubtitles, transcriptFromCues } from "./subtitles";
