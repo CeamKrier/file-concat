@@ -174,7 +174,7 @@ function hasText(xml: string, from: number, to: number): boolean {
 
 /**
  * An OpenDocument `content.xml` with what its author hid taken out (Q18 O1):
- * a section with `text:display="none"`, a paragraph a hidden-paragraph field
+ * a section or field with `text:display="none"`, a paragraph a hidden-paragraph field
  * hides (`text:is-hidden="true"`, the state LibreOffice last computed), and a
  * paragraph or span in a hidden text style. A hidden sheet is named so
  * instead, `(hidden)` after its name as a workbook's is, and a hidden slide's
@@ -229,7 +229,8 @@ export function withoutHiddenOdf(
       }
       if (!tag.endsWith("/>")) {
         const drop =
-          (name === "text:section" && /\stext:display="none"/.test(tag)) ||
+          // A section, or a variable or user field, set not to display.
+          (name.startsWith("text:") && /\stext:display="none"/.test(tag)) ||
           ((name === "text:p" || name === "text:h" || name === "text:span") && !!style && styles.text.has(style));
         if (name === "text:p" || name === "text:h") paragraphs.push(open.length);
         open.push({ name, start: at, drop });

@@ -283,8 +283,8 @@ export function twoSheetXlsx(
  *
  * Slide one carries a speaker note shaped the way PowerPoint writes one: a
  * sentence, plus a line holding nothing but the slide's number, which the notes
- * master's slide-number placeholder puts there. Notes are found by path
- * (`ppt/notesSlides/notesSlideN.xml`) and need no relationship entry.
+ * master's slide-number placeholder puts there. The slide names its notes
+ * through a relationship, which is how officeparser 8 finds them.
  */
 export function twoSlidePptx(): Uint8Array {
   return deckPptx(
@@ -371,6 +371,17 @@ export function deckPptx(
     ),
     ...Object.fromEntries(
       Object.entries(notes).map(([n, lines]) => [`ppt/notesSlides/notesSlide${n}.xml`, strToU8(slideXml([{ lines }]))]),
+    ),
+    ...Object.fromEntries(
+      Object.keys(notes).map((n) => [
+        `ppt/slides/_rels/slide${n}.xml.rels`,
+        strToU8(
+          XML_DECL +
+            `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+            `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide" Target="../notesSlides/notesSlide${n}.xml"/>` +
+            `</Relationships>`,
+        ),
+      ]),
     ),
   });
 }

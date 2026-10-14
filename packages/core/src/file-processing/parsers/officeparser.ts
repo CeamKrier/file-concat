@@ -110,13 +110,22 @@ const NOTE_BY_CODE: Readonly<Record<string, ExtractionNoteKind>> = {
 };
 
 /** Tally the library's per-document warnings into counted notes, in first-seen order. */
-function toNotes(messages: ReadonlyArray<{ code: string }>): ExtractionNote[] {
+function toNotes(messages: ReadonlyArray<{ code: string; details?: unknown }>): ExtractionNote[] {
   const counts = new Map<ExtractionNoteKind, number>();
   for (const message of messages) {
     const kind = NOTE_BY_CODE[message.code];
     if (kind) counts.set(kind, (counts.get(kind) ?? 0) + 1);
   }
-  return [...counts].map(([kind, count]) => ({ kind, count }));
+  const notes: ExtractionNote[] = [...counts].map(([kind, count]) => ({ kind, count }));
+  // pdf.js past its text or time budget (officeparser 8) leaves the rest of the
+  // PDF unread, which is a hole of unknown size: a note with no count. Past the
+  // operator budget only images and colours stop, and the text is all there.
+  const cut = messages.some(
+    ({ code, details }) =>
+      code === "PDF_CONTENT_LIMIT_EXCEEDED" && (details as { limit?: string } | undefined)?.limit !== "maxOperators",
+  );
+  if (cut) notes.push({ kind: "pages-skipped" });
+  return notes;
 }
 
 /**
@@ -287,14 +296,18 @@ interface SlideChrome {
  * paragraphs fill a footer, date or slide-number placeholder, and which slides
  * are hidden (`show="0"`). officeparser reads `p:ph` only to find a title, so
  * those three placeholders reach the text as body lines, and it ignores `show`.
- * Keyed by the slide part's number, which is the number officeparser gives a
- * slide. Anything that is not a readable zip of slides gives an empty map.
+ * Keyed by the slide's position in the deck (`p:sldIdLst`), which is the
+ * number officeparser 8 gives a slide; a part's own number is only its file
+ * name, and a reordered deck no longer matches it. Anything that is not a
+ * readable zip of slides gives an empty map.
  */
 function slideChrome(bytes: Uint8Array): Map<number, SlideChrome> {
   const slides = new Map<number, SlideChrome>();
   let parts: Record<string, Uint8Array>;
   try {
-    parts = unzipSync(bytes, { filter: (file) => /^ppt\/slides\/slide\d+\.xml$/.test(file.name) });
+    parts = unzipSync(bytes, {
+      filter: (file) => /^ppt\/(?:slides\/slide\d+\.xml|presentation\.xml|_rels\/presentation\.xml\.rels)$/.test(file.name),
+    });
   } catch {
     return slides;
   }
@@ -308,7 +321,9 @@ function slideChrome(bytes: Uint8Array): Map<number, SlideChrome> {
   // The opening tag that starts at `from`, found by index rather than by a
   // pattern, so a crafted part cannot make the scan quadratic.
   const tagAt = (xml: string, from: number) => (from < 0 ? "" : xml.slice(from, xml.indexOf(">", from) + 1));
+  const position = deckOrder(parts, tagAt);
   for (const [name, data] of Object.entries(parts)) {
+    if (!name.startsWith("ppt/slides/")) continue;
     const xml = strFromU8(data);
     const chrome: SlideChrome = {
       hidden: /\sshow="(?:0|false)"/.test(tagAt(xml, xml.indexOf("<p:sld"))),
@@ -325,9 +340,44 @@ function slideChrome(bytes: Uint8Array): Map<number, SlideChrome> {
         if (text) (type === "sldNum" ? chrome.number : chrome.repeated).add(text);
       }
     }
-    slides.set(Number(name.match(/(\d+)\.xml$/)![1]), chrome);
+    slides.set(position.get(name) ?? Number(name.match(/(\d+)\.xml$/)![1]), chrome);
   }
   return slides;
+}
+
+/**
+ * Each slide part's position in the deck: `p:sldIdLst` in order, each entry's
+ * `r:id` resolved through the presentation's relationships. Empty when either
+ * part is missing, and the caller falls back to the part's own number.
+ */
+function deckOrder(parts: Record<string, Uint8Array>, tagAt: (xml: string, from: number) => string): Map<string, number> {
+  const order = new Map<string, number>();
+  const rels = parts["ppt/_rels/presentation.xml.rels"];
+  const presentation = parts["ppt/presentation.xml"];
+  if (!rels || !presentation) return order;
+  const targets = new Map<string, string>();
+  // Each scan resumes past the tag it read, so a part of opening tags that
+  // never close is still read once.
+  const tags = (xml: string, open: string) => {
+    const found: string[] = [];
+    for (let at = xml.indexOf(open); at >= 0; ) {
+      const tag = tagAt(xml, at);
+      if (!tag) break;
+      found.push(tag);
+      at = xml.indexOf(open, at + tag.length);
+    }
+    return found;
+  };
+  for (const tag of tags(strFromU8(rels), "<Relationship ")) {
+    const id = /\sId="([^"]*)"/.exec(tag)?.[1];
+    const target = /\sTarget="([^"]*)"/.exec(tag)?.[1];
+    if (id && target) targets.set(id, target.startsWith("/") ? target.slice(1) : `ppt/${target}`);
+  }
+  for (const tag of tags(strFromU8(presentation), "<p:sldId ")) {
+    const part = targets.get(/\sr:id="([^"]*)"/.exec(tag)?.[1] ?? "");
+    if (part && !order.has(part)) order.set(part, order.size + 1);
+  }
+  return order;
 }
 
 /**
@@ -657,7 +707,14 @@ function numberFootnotes(): (node: OfficeContentNode) => void {
       const key = keys.get(node);
       if (!key) return;
       keys.delete(node);
-      node.children = [{ type: "text", text: `[^${key}] ` }, ...(node.children ?? [])];
+      // Inside the note's first paragraph, where officeparser 8 puts its text,
+      // so the label opens the line instead of standing on one of its own.
+      const first = node.children?.[0];
+      // Word opens a note's text with a space of its own.
+      const spaced = /^\s/.test(first?.children?.[0]?.text ?? first?.text ?? "");
+      const label: OfficeContentNode = { type: "text", text: spaced ? `[^${key}]` : `[^${key}] ` };
+      if (first && first.type !== "text" && first.children) first.children = [label, ...first.children];
+      else node.children = [label, ...(node.children ?? [])];
       return;
     }
 
@@ -679,7 +736,10 @@ function numberFootnotes(): (node: OfficeContentNode) => void {
 }
 
 function toLibraryConfig(options: OfficeParserOptions): Record<string, unknown> {
-  const config: Record<string, unknown> = {};
+  // A PDF is read as a flow of pages, not laid out from its geometry (8.x's
+  // default): that layout drops the page nodes our passes key on, and the
+  // flow reader orders columns and recovers positioned tables on its own.
+  const config: Record<string, unknown> = { ignorePageGeometry: true };
   if (options.pdfWorkerSrc) config.pdfWorkerSrc = options.pdfWorkerSrc;
   // Only the variants need translating; a base format sniffs the same either
   // way, and leaving it to the library keeps that path exactly as it was.
@@ -742,7 +802,8 @@ function undecodable(line: string): boolean {
 }
 
 /**
- * Leave out the lines that came back as characters nobody can read.
+ * Leave out the stretches of text that came back as characters nobody can
+ * read, keeping the readable words around them on the same line.
  *
  * A PDF stores a character as a number and leaves it to the font to say which
  * letter that number is. When the font carries no such map — no `/ToUnicode`,
@@ -765,35 +826,35 @@ function undecodable(line: string): boolean {
  * ASCII a document's identifiers are written in.
  */
 function dropUndecodableLines(text: string): { text: string; lost: number; pages: number[] } {
-  const lines = text.split("\n");
-  const kept = lines.filter((line) => !undecodable(line));
-  const lost = lines.length - kept.length;
-  if (lost === 0) return { text, lost, pages: [] };
+  if (!undecodable(text)) return { text, lost: 0, pages: [] };
   // Which pages the loss landed on, so a caller that can read a page another way
   // re-reads those and leaves every other page at the exact text this extraction
-  // already produced. A page counts as past reading when its lost lines outnumber
-  // its surviving ones: below that the page still reads, and re-reading it would
-  // trade the document's own characters for a recogniser's near-miss.
+  // already produced. A page counts as past reading when it lost more characters
+  // than it kept: below that the page still reads, and re-reading it would trade
+  // the document's own characters for a recogniser's near-miss. Characters, not
+  // lines, since officeparser 8 hands a PDF back a paragraph to a line.
   // ponytail: a majority is the whole threshold. `extract_note` counts these per
   // document, so it can be moved once there is more than one broken document to
   // move it against.
   const tally = new Map<number, { kept: number; lost: number }>();
+  const kept: string[] = [];
+  let lost = 0;
   let page = 0;
-  for (const line of lines) {
+  for (const line of text.split("\n")) {
     const marker = /^# Page (\d+)$/.exec(line);
-    if (marker) {
-      page = Number(marker[1]);
-      continue;
-    }
+    if (marker) page = Number(marker[1]);
+    const part = undecodable(line) ? decodedPart(line) : { kept: line, lost: 0 };
+    if (part.lost > 0) lost++;
+    if (part.lost === 0 || part.kept) kept.push(part.kept);
     // Blank lines and our own markers are neither evidence of reading nor of
     // loss, and a heading-only page must not read as a page that survived.
-    if (!line.trim() || line.startsWith("#")) continue;
+    // Page 0 is whatever preceded the first marker, which belongs to no page.
+    if (marker || !line.trim() || line.startsWith("#")) continue;
     const counts = tally.get(page) ?? { kept: 0, lost: 0 };
-    if (undecodable(line)) counts.lost += 1;
-    else counts.kept += 1;
+    counts.kept += part.kept.length;
+    counts.lost += part.lost;
     tally.set(page, counts);
   }
-  // Page 0 is whatever preceded the first marker, which belongs to no page.
   const pages = [...tally]
     .filter(([number, counts]) => number > 0 && counts.lost > counts.kept)
     .map(([number]) => number);
@@ -803,6 +864,28 @@ function dropUndecodableLines(text: string): { text: string; lost: number; pages
   // to prevent, so this is the empty case instead.
   const survives = kept.some((line) => line.trim() && !line.startsWith("#"));
   return { text: survives ? kept.join("\n").trim() : "", lost, pages };
+}
+
+/**
+ * A line less its undecodable stretch: from the first word holding a control
+ * character to the last, so a decoded identifier beside it survives. A broken
+ * run's own spaces are control characters, so the stretch is one piece.
+ */
+function decodedPart(line: string): { kept: string; lost: number } {
+  let first = -1;
+  let last = -1;
+  for (let index = 0; index < line.length; index++) {
+    if (undecodable(line[index])) {
+      if (first < 0) first = index;
+      last = index;
+    }
+  }
+  const space = (char: string | undefined) => char === " " || char === "\t";
+  while (first > 0 && !space(line[first - 1])) first--;
+  while (last + 1 < line.length && !space(line[last + 1])) last++;
+  const before = line.slice(0, first).trimEnd();
+  const after = line.slice(last + 1).trimStart();
+  return { kept: before && after ? `${before} ${after}` : before || after, lost: last + 1 - first };
 }
 
 /**
@@ -961,8 +1044,11 @@ export async function extractOfficeDocument(
     showLinkDestinations,
     expandMergedCells(),
   ];
-  // `.to(…)` replaces the deprecated `.toText()`, and hands back the
-  // per-document warnings that become our notes.
+  // The parse's own warnings (a page that failed, the CDN fallback) live on the
+  // AST, and `.to(…)` hands back only the renderer's; taken before rendering,
+  // as officeparser's own converter does, since the AST then collects the
+  // renderer's too.
+  const parsed = [...(ast.warnings ?? [])];
   const { value, messages } = asWorkbook
     ? await ast.to("csv")
     : await ast.to("text", {
@@ -975,7 +1061,7 @@ export async function extractOfficeDocument(
   const rendered = typeof value === "string" ? value : new TextDecoder().decode(value);
   const resolved = resolveImagePlaceholders(rendered, ast.attachments ?? []).trim();
   const { text, lost, pages } = dropUndecodableLines(resolved);
-  const notes = toNotes(messages);
+  const notes = toNotes([...parsed, ...messages]);
   if (lost > 0) {
     notes.push({ kind: "text-undecodable", count: lost, ...(pages.length > 0 ? { pages } : {}) });
   }

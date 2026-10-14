@@ -154,7 +154,8 @@ function describeGaps(notes: readonly ExtractionNote[]): string | undefined {
       case "text-undecodable":
         return [`${count ? `${count} ` : ""}unreadable line${count === 1 ? "" : "s"} left out${on}`];
       case "pages-skipped":
-        return [count ? `${count} page${count === 1 ? "" : "s"} failed to load` : "pages failed to load"];
+        // No count: a reader stopped at its budget and the rest was not read.
+        return [count ? `${count} page${count === 1 ? "" : "s"} failed to load` : "the rest past a reading limit not read"];
       case "hidden-left-out":
         return ["text its author hid left out"];
       default:

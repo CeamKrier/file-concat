@@ -343,3 +343,28 @@ export function imageOnlyPdf(size = 8): Uint8Array {
     ),
   ]);
 }
+
+/**
+ * A few KB that ask pdf.js for 30,000 text items: a form drawing one letter,
+ * each form above it drawing the one below ten times, the page drawing the top
+ * one three times. officeparser 8 stops reading past its text budget (20,000
+ * items plus one per byte), so the second page, `QZAFTER`, is never read.
+ */
+export function nestedFormsPdf(): Uint8Array {
+  const form = (resources: string, body: string) =>
+    stream(`/Type /XObject /Subtype /Form /BBox [0 0 612 792] /Resources << ${resources} >>`, ascii(body));
+  const font = "/Font << /F1 3 0 R >>";
+  const draws = (n: number) => Array.from({ length: n }, () => "/X Do").join("\n");
+  const forms = [8, 9, 10, 11, 12];
+  return assemblePdf([
+    ascii("<< /Type /Catalog /Pages 2 0 R >>"),
+    ascii("<< /Type /Pages /Kids [4 0 R 6 0 R] /Count 2 >>"),
+    ascii("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"),
+    ascii(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << ${font} /XObject << /X 12 0 R >> >> /Contents 5 0 R >>`),
+    stream("", ascii(`BT /F1 18 Tf 72 720 Td (QZBEFORE) Tj ET\n${draws(3)}`)),
+    ascii(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << ${font} >> /Contents 7 0 R >>`),
+    stream("", ascii("BT /F1 18 Tf 72 720 Td (QZAFTER) Tj ET")),
+    form(font, "BT /F1 12 Tf 72 600 Td (Q) Tj ET"),
+    ...forms.slice(1).map((_, i) => form(`${font} /XObject << /X ${forms[i]} 0 R >>`, draws(10))),
+  ]);
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { strToU8 } from "fflate";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { createParserRegistry } from "../src/file-processing/parsers/registry";
 import { extractOfficeDocument } from "../src/file-processing/parsers/officeparser";
 import {
@@ -262,6 +262,28 @@ describe("extractOfficeDocument — structure survives extraction", () => {
 
     expect(text).toContain("# Slide 1\n");
     expect(text).toMatch(/# Slide 2 \(hidden\)\s+Parked/);
+  });
+
+  it("reads a slide's chrome and hidden state by its place in the deck, not its file name", async () => {
+    // Moved in PowerPoint: slide2.xml now opens the deck. officeparser numbers
+    // slides by deck position, so the chrome has to be keyed the same way.
+    const parts = unzipSync(
+      deckPptx([
+        { shapes: [{ lines: ["Second"] }, { ph: "sldNum", lines: ["2"] }], hidden: true },
+        { shapes: [{ lines: ["First"] }, { ph: "sldNum", lines: ["1"] }] },
+      ]),
+    );
+    const presentation = strFromU8(parts["ppt/presentation.xml"]);
+    parts["ppt/presentation.xml"] = strToU8(
+      presentation.replace(/(<p:sldId [^>]*r:id="rId1"\/>)(<p:sldId [^>]*r:id="rId2"\/>)/, "$2$1"),
+    );
+    const { text } = await extractOfficeDocument(zipSync(parts));
+    const lines = text.split("\n").map((line) => line.trim());
+
+    expect(text.indexOf("First")).toBeLessThan(text.indexOf("Second"));
+    expect(lines).not.toContain("1");
+    expect(lines).not.toContain("2");
+    expect(text).toMatch(/# Slide 2 \(hidden\)\s+Second/);
   });
 
   it("leaves a document that has no slides unmarked", async () => {

@@ -8,7 +8,7 @@
     "file-concat": "./dist/index.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22.13"
   },
   "files": [
     "dist"
@@ -55,7 +55,7 @@
     "commander": "^12.0.0",
     "file-type": "^22.0.1",
     "glob": "^11.0.0",
-    "officeparser": "^7.6.1",
+    "officeparser": "^8.1.1",
     "postal-mime": "^4.0.2"
   },
   "devDependencies": {

@@ -9,6 +9,7 @@ import {
 } from "../src/file-processing/parsers/officeparser";
 import {
   imageOnlyPdf,
+  nestedFormsPdf,
   positionedTablePdf,
   tableWithEmptyCellPdf,
   textLayerPdf,
@@ -111,13 +112,10 @@ describe("extractOfficeDocument — PDFs with a text layer", () => {
 });
 
 /**
- * These guard `patches/officeparser@7.6.1.patch`, which is the only thing
- * making them pass: the library orders a page's glyphs by vertical position
- * alone, which merges the columns of a multi-column page line by line. The
- * patch is re-applied by pnpm on install and will stop applying the moment
- * officeparser changes those files, so these tests are the tripwire that says
- * the fix is gone. If they fail after a dependency bump, the patch needs
- * re-deriving, not deleting.
+ * Column order on a multi-column page. officeparser 7 ordered a page's glyphs
+ * by vertical position alone, which merged the columns line by line, and a
+ * local patch fixed it; since 8.0 the library orders columns itself (an XY-cut
+ * over the page). These are the tripwire if that ever regresses.
  *
  * Measured 2026-08-15: officeparser 7.2.1 and 7.6.1 both merge these columns,
  * while `pypdf` on the identical bytes reads them correctly, so the ordering
@@ -143,7 +141,8 @@ describe("extractOfficeDocument — multi-column PDFs", () => {
   });
 
   it("leaves a table drawn as positioned text reading across its rows", async () => {
-    const { text } = await extractOfficeDocument(positionedTablePdf());
+    // officeparser 8 pads each column to its widest cell; the padding is layout.
+    const text = (await extractOfficeDocument(positionedTablePdf())).text.replace(/ +/g, " ");
 
     // Reordered as columns this would read "Region EMEA APAC …", which is the
     // failure the width and fill guards exist to prevent.
@@ -154,27 +153,23 @@ describe("extractOfficeDocument — multi-column PDFs", () => {
 });
 
 /**
- * The second half of the same patch. A PDF has no cells, only glyphs at
- * positions, so a table arrives as lines whose values are separated by nothing
- * but a wider gap — and an empty cell is separated by nothing at all.
+ * A PDF has no cells, only glyphs at positions, so a table arrives as runs
+ * separated by nothing but a wider gap, and an empty cell by nothing at all.
+ * officeparser 8 recovers such a table as a table.
  *
- * Measured 2026-08-15: `pypdf` collapses these rows the same way on the same
- * bytes, so unlike the column ordering above there is no reader to swap to.
- * The geometry is all there is, and it is only still available inside the
- * parser, which is why this lives in the patch rather than in our own code.
+ * ponytail: an empty cell's slot is lost, so the cells after it shift left
+ * ("| APAC | 980 | 980 |"). The 7.6.1 patch kept it; 8.0 rewrote the layout
+ * code it patched, and the upgrade accepted the loss (Q12, 2026-10-15). On the
+ * web this reader is only the fallback behind liteparse.
  */
 describe("extractOfficeDocument — tables drawn as positioned text", () => {
-  it("keeps the slot an empty cell left behind", async () => {
-    const { text } = await extractOfficeDocument(tableWithEmptyCellPdf());
+  it("reads a table with an empty cell as a table, every row present", async () => {
+    const text = (await extractOfficeDocument(tableWithEmptyCellPdf())).text.replace(/ +/g, " ");
 
-    // The defect this fixes: "APAC 980 980", where the total has moved into the
-    // Q2 column and reads as a plausible figure for it.
-    expect(text).toContain("| APAC | 980 | | 980 |");
-    expect(text).not.toContain("APAC 980 980");
-    // The rows either side are untouched, so the empty cell is the only thing
-    // the pass reacted to.
     expect(text).toContain("| EMEA | 1200 | 1350 | 2550 |");
     expect(text).toContain("| AMER | 1440 | 1510 | 2950 |");
+    // The known limit above: the empty slot is gone and the total shifts left.
+    expect(text).toContain("| APAC | 980 | 980 |");
   });
 
   it("leaves prose alone", async () => {
@@ -377,6 +372,15 @@ describe("assemblePdfPages", () => {
       { kind: "text-undecodable", count: 1, pages: [2] },
     ]);
   });
+});
+
+describe("extractOfficeDocument — a PDF past the reader's budget", () => {
+  it("says the rest was not read when pdf.js stops at its text budget", async () => {
+    const { text, notes } = await extractOfficeDocument(nestedFormsPdf());
+    expect(text).toContain("QZBEFORE");
+    expect(text).not.toContain("QZAFTER");
+    expect(notes).toContainEqual({ kind: "pages-skipped" });
+  }, 30_000);
 });
 
 describe("extractOfficeDocument — scanned PDFs", () => {

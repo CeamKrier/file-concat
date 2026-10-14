@@ -70,7 +70,7 @@ const odf = (kind: string, styles: string, body: string) =>
 const content = (bytes: Uint8Array) => strFromU8(unzipSync(bytes)["content.xml"]);
 
 describe("withoutHiddenText on OpenDocument", () => {
-  it("drops a hidden section, a paragraph a field hides and text in a hidden style, and counts them", () => {
+  it("drops a hidden section and field, a paragraph a field hides and text in a hidden style, and counts them", () => {
     const { bytes, hidden } = withoutHiddenText(
       odf(
         "text",
@@ -79,14 +79,16 @@ describe("withoutHiddenText on OpenDocument", () => {
           '<text:section text:name="S" text:display="none"><text:p>QZSECTION <text:span text:style-name="T1">QZINNER</text:span></text:p></text:section>' +
           '<text:p><text:hidden-paragraph text:condition="ooow:1==1" text:is-hidden="true"/>QZPARA</text:p>' +
           '<text:p><text:hidden-paragraph text:condition="ooow:1==0" text:is-hidden="false"/>QZSHOWN</text:p>' +
-          '<text:section text:name="V"><text:p>QZVISIBLE</text:p></text:section>',
+          '<text:section text:name="V"><text:p>QZVISIBLE</text:p></text:section>' +
+          '<text:p>Set <text:variable-set text:name="v" text:display="none" office:value-type="string">QZVARNONE</text:variable-set>' +
+          '<text:variable-get text:name="v">QZVARGET</text:variable-get></text:p>',
       ),
     );
     const xml = content(bytes);
-    for (const word of ["QZSPAN", "QZSECTION", "QZINNER", "QZPARA"]) expect(xml).not.toContain(word);
-    for (const word of ["Seen too.", "QZSHOWN", "QZVISIBLE"]) expect(xml).toContain(word);
+    for (const word of ["QZSPAN", "QZSECTION", "QZINNER", "QZPARA", "QZVARNONE"]) expect(xml).not.toContain(word);
+    for (const word of ["Seen too.", "QZSHOWN", "QZVISIBLE", "QZVARGET"]) expect(xml).toContain(word);
     // The span inside the dropped section is not counted twice.
-    expect(hidden).toBe(3);
+    expect(hidden).toBe(4);
     // The mimetype stays first, as OpenDocument requires.
     expect(Object.keys(unzipSync(bytes))[0]).toBe("mimetype");
   });
