@@ -10,20 +10,20 @@ kind: "research"
 <KeyFindings
   items={[
     {
-      figure: "13 of 16",
-      text: "Structure losses we found in our own document reader in August and have fixed since, from merged table cells to footnotes and links.",
+      figure: "16 of 16",
+      text: "Structure losses we found in our own document reader in August, all closed in the browser since FileConcat 2.1, from merged table cells to spreadsheet dates and scanned pages. FileConcat 2.0 had closed 13.",
     },
     {
-      figure: "2 of 4",
-      text: "PDF structures where our reader keeps what an independent reader loses from the same file: column order, and running headers repeated at every page break.",
+      figure: "2 new",
+      text: "Losses the newer PDF reader brought with it: a running header printed on every page is dropped entirely, and curly quotes and the en dash arrive as their plain forms.",
     },
     {
-      figure: "3 still open",
-      text: "Losses we have not fixed: spreadsheet dates arriving as raw numbers, a footnote marker sorting above its line, and a scanned page dropped without a note.",
+      figure: "18 of 18",
+      text: "Left-column lines FileConcat reads before the right column starts, on a page written across the gutter, where an independent reader alternates one line from each.",
     },
   ]}
-  snapshot="2026-09-07 / 27 test documents in 12 formats"
-  citation="Across 27 documents each isolating one structure, measured on 2026-09-07, 13 of 16 known extraction defects were closed and 3 remain; on identical PDF bytes our reader recovered column order and deduplicated running headers where an independent reader (pypdf 6.14.2) did neither (FileConcat, fileconcat.com)."
+  snapshot="FileConcat 2.2 / 27 test documents in 12 formats"
+  citation="Across 27 documents each isolating one structure, measured on 2026-10-14, FileConcat 2.2's browser reader chain closed 16 of 16 extraction defects found in August (FileConcat 2.0: 13 of 16) and brought two new losses, a running header dropped entirely and curly quotes flattened to ASCII; on identical PDF bytes it kept column order where an independent reader (pypdf 6.14.2) interleaved the columns (FileConcat, fileconcat.com)."
 />
 
 A PDF is not text. Neither is a Word file or a spreadsheet. Something has to walk the container and
@@ -56,8 +56,8 @@ and each one is faster than reading the document again.
       why: "Every defect we ranked broken produces output that still looks plausible",
     },
     {
-      check: "Look for your running header repeated inside sentences",
-      why: "A 40-page report can splice 80 lines of headers and footers through its own prose",
+      check: "Look for your running header, repeated inside sentences or missing entirely",
+      why: "A 40-page report can splice 80 lines of headers and footers through its prose, and a reader that strips them can drop a title or a marking with them",
     },
     {
       check: "Open a date column",
@@ -81,8 +81,8 @@ Other losses are a reader's choice. We ran every PDF through an independent read
 code with ours. Both read an ordinary
 two-column page correctly. On one whose internal order runs across the gutter, the other reader
 alternated one line from each column, where ours kept the columns apart. On pages with a running
-header and footer, it poured every copy into the prose. Ours kept the header once and marked the page
-breaks instead.
+header and footer, it poured every copy into the prose. Ours kept none of them, which spares the prose
+and loses the one copy of the header worth keeping.
 
 That is why swapping libraries on the strength of a published ranking is a gamble. The rankings score
 whole pages and average them, and the largest one leaves headers and footers out of the score. Test
@@ -90,10 +90,11 @@ the page you care about.
 
 ## Try it on your own files
 
-Drop a document and read what comes out before you paste it. Three losses are still open in ours.
-Spreadsheet dates arrive as raw serial numbers. A superscript footnote marker lands on its own line
-above the claim. A scanned page inside an otherwise text document is dropped without a note. In
-your browser, the OCR FileConcat offers can bring that page back if you accept it.
+Drop a document and read what comes out before you paste it. Every loss we found in August is closed
+in the browser now, and the PDF reader that closed them brought two of its own. A running header
+printed on every page is dropped entirely, so a title or a marking that lives only there never reaches
+the bundle. Curly quotes and the en dash arrive as their plain forms. A scanned page is no longer
+dropped in silence: FileConcat names it and reads it with OCR on your machine.
 
 <TryIt
   title="Drop your own documents"
@@ -197,9 +198,9 @@ Every file goes through the path the product uses. Nothing here reimplements ext
 
 <Method
   dataset="27 generated documents across 12 formats, each isolating one document structure"
-  sample="22,789 characters extracted, 27 of 27 routed correctly, 17 checks evaluated"
-  measured="2026-09-07"
-  build="@fileconcat/core 2.0.0 at 3b73d78, Node path"
+  sample="22,826 characters extracted by the browser chain and 22,789 by the CLI chain, 27 of 27 routed correctly, 19 checks evaluated on each"
+  measured="2026-10-14"
+  build="FileConcat 2.2 at 620e77c, readers unchanged since 2.1, both reader chains run under Node"
   tokenizer="Not applicable. Recovered text, not tokens."
   script="packages/cli/scripts/measure-extraction-quality.ts and extract-pdf-with-pypdf.py"
   excludes="Real-world documents, non-PDF attribution, model accuracy, and any judgment about whether recovered structure helps an answer."
@@ -211,9 +212,11 @@ Every file goes through the path the product uses. Nothing here reimplements ext
     extracted, an extensionless PDF is still read, and a plain zip is told apart from the OOXML
     container that shares its signature. The file extension is never consulted.
   </Step>
-  <Step title="Extract through the shipped parser registry">
-    The router names a parser and the registry runs it. This is the same registry the CLI uses, so the
-    text measured here is the text a bundle would carry.
+  <Step title="Extract through both reader chains">
+    The browser starts a PDF with liteparse, a workbook with SheetJS and an RTF with anydoc, and moves
+    to a second reader when the first returns nothing usable. The CLI reads all of them with
+    officeparser. Both chains run from the code the product ships, so the text measured here is the
+    text a bundle would carry. Up to FileConcat 2.0 the two were one chain.
   </Step>
   <Step title="Score each structure as a check">
     Every defect from the earlier reading is written as a test over the extracted text. A rerun reports
@@ -245,26 +248,27 @@ Twenty-seven of 27 files routed correctly from their leading bytes. No file was 
 
 Two produced no text, and both are correct behaviour rather than failure. The encrypted PDF is named as
 password protected, which is something a person can act on, instead of disappearing under a generic
-parse error. The fully scanned PDF has no text layer at all, so on this path it yields nothing.
+parse error. The fully scanned PDF has no text layer at all, so it yields nothing, and the browser chain names its
+page as a scan.
 
 <Callout type="note" title="The scan result here is a floor">
-  This measurement runs under Node. In the browser, FileConcat renders pages it could not decode and
-  runs the OCR it already ships. So a scanned PDF that yields nothing here is recovered there. That
-  recovery is offered, never automatic.
+  This measurement runs under Node, where no OCR runs. In the browser, the page named as a scan is
+  rendered and read with the OCR FileConcat ships, on its own for a small drop and on request past
+  that. So a scanned PDF that yields nothing here is recovered there.
 </Callout>
 
 ### Re-testing our own extraction
 
-<Stopper value="3 of 16 still open" tone="warn" source="re-test round 4 / 27 documents across 12 formats / 2026-09-07">
-  Defects we found in our own extraction and have not fixed yet. All three are named below, with what
-  each one does to your text and what to check instead.
+<Stopper value="16 of 16" source="browser chain, FileConcat 2.2 / 27 documents across 12 formats / 2026-10-14">
+  Defects we found in our own extraction in August, all closed in the browser. FileConcat 2.0 had
+  closed 13, and the CLI, which still reads with one library, is where the other three remain.
 </Stopper>
 
-The earlier reading found 16 defects and checked one correctness property that has never broken. Re-run
-against the current build:
+The earlier reading found 16 defects and checked one correctness property that has never broken. This
+run adds two losses found on the browser chain itself. Re-run against FileConcat 2.2:
 
 <StatusGrid
-  label="re-test round 4 / 27 documents across 12 formats"
+  label="browser chain, FileConcat 2.2 / 27 documents across 12 formats"
   groups={[
     {
       format: "pdf",
@@ -273,9 +277,11 @@ against the current build:
         { id: "pdf-1.1b", severity: "broken", status: "fixed", structure: "Column order ignores the content stream" },
         { id: "pdf-1.2", severity: "broken", status: "fixed", structure: "A table's empty cell shifts every later value one column left" },
         { id: "pdf-1.3", severity: "degraded", status: "fixed", structure: "Running headers and footers repeated into the prose" },
-        { id: "pdf-1.5", severity: "degraded", status: "open", structure: "A superscript footnote marker sorts above its own line" },
+        { id: "pdf-1.5", severity: "degraded", status: "fixed", structure: "A superscript footnote marker sorts above its own line" },
         { id: "pdf-1.6", severity: "degraded", status: "fixed", structure: "An encrypted file fails under the same wording as any parse error" },
-        { id: "pdf-1.7", severity: "broken", status: "open", structure: "A page with no text layer is dropped with no note" },
+        { id: "pdf-1.7", severity: "broken", status: "fixed", structure: "A page with no text layer is dropped with no note" },
+        { id: "pdf-1.8", severity: "degraded", status: "open", structure: "A running header is dropped entirely, title or marking included" },
+        { id: "pdf-1.9", severity: "degraded", status: "open", structure: "Curly quotes and the en dash flattened to their ASCII forms" },
       ],
     },
     {
@@ -291,7 +297,7 @@ against the current build:
     {
       format: "xlsx",
       items: [
-        { id: "xlsx-4.1", severity: "broken", status: "open", structure: "Dates arrive as raw serial numbers" },
+        { id: "xlsx-4.1", severity: "broken", status: "fixed", structure: "Dates arrive as raw serial numbers" },
       ],
     },
     {
@@ -305,12 +311,16 @@ against the current build:
   ]}
   guard={{
     id: "docx-3.1",
-    structure: "A tracked deletion reaching the bundle as current text. Never once, across four rounds.",
+    structure: "A tracked deletion reaching the bundle as current text. Never once, in any round.",
   }}
 />
 
 `docx-3.2` carries the generated-file caveat: Word's merge XML differs slightly from what the `docx`
 library emits. That one is worth re-checking against a file Word wrote.
+
+The CLI reads the same files with one library and scores 13 of 16 on the August list, as FileConcat 2.0
+did on both. It keeps the header once and the curly quotes, so the two new losses are the browser's
+alone.
 
 `docx-3.1` is listed apart from the rest on purpose. It is a standing guard, not a defect that got
 fixed, and folding it into the headline would inflate the count by one. A tracked deletion has never
@@ -318,11 +328,11 @@ reached a bundle, and the check exists so that stays true.
 
 ### Where the loss belongs
 
-Four PDF findings have checks that read only the text, so they can be run against both readers on
+Five PDF findings have checks that read only the text, so they can be run against both readers on
 identical bytes. This is the part no benchmark reports.
 
 <ReaderDuel
-  label="Four PDF structures, two readers, identical bytes"
+  label="Five PDF structures, two readers, identical bytes"
   readers={["FileConcat", "pypdf 6.14.2"]}
   rows={[
     {
@@ -339,23 +349,31 @@ identical bytes. This is the part no benchmark reports.
     },
     {
       structure: "Running headers on every page",
-      a: { text: "deduplicates", kind: "recovered" },
+      a: { text: "drops all 3, plus 3 footers", kind: "lost" },
       b: { text: "repeats all 3, plus 3 footers", kind: "lost" },
-      verdict: "A reader's choice, not a limit of the format.",
+      verdict: "Both wrong in opposite directions. One copy is right, and the CLI's reader keeps one.",
     },
     {
       structure: "Superscript footnote marker",
-      a: { text: "loses", kind: "lost" },
+      a: { text: "recovers", kind: "recovered" },
       b: { text: "not attributable", kind: "absent", note: "its own output was corrupt" },
-      verdict: "Neither reader can be credited here, so the measurement scores nothing rather than a false pass.",
+      verdict: "Ours is credited on its own text. pypdf cannot be scored, so it gets nothing rather than a false pass.",
+    },
+    {
+      structure: "Curly quotes and the en dash",
+      a: { text: "flattens to ASCII", kind: "lost" },
+      b: { text: "keeps them", kind: "recovered" },
+      verdict: "A reader's choice. The bytes carry the characters.",
     },
   ]}
 />
 
-The third row is the practical one. The test file is three pages of prose with a running header and a
-`Page n of 3` footer. pypdf pours the header into the text three times and the footer three times. Ours
-emits the header once and no footers, and marks the page boundaries instead. On a 40-page report that is
-the difference between 80 lines of headers and footers spliced through your sentences and none.
+The third row is the practical one, and neither reader wins it. The test file is three pages of prose
+with a running header and a `Page n of 3` footer. pypdf pours the header into the text three times and
+the footer three times. The browser's reader drops all six. On a 40-page report that is the difference
+between 80 lines of headers and footers spliced through your sentences and none, but a title or a
+confidentiality marking that lives only in the header is gone too. FileConcat 2.0's reader kept the
+header once and no footers, which is still what the CLI does.
 
 ### The experiment that separates a column model from luck
 
@@ -370,30 +388,21 @@ stream would produce if it had no column model.
 <PaneDiff
   file="two-column-adversarial.pdf"
   mark="Right column"
-  total={36}
   legend={["line from the left column", "line from the right column"]}
   panes={[
     {
       reader: "FileConcat",
       verdict: "columns kept",
-      footer: "left column intact, then right",
-      text: `Left column line 1 of eighteen.
-Left column line 2 of eighteen.
-Left column line 3 of eighteen.
-Left column line 4 of eighteen.
-Left column line 5 of eighteen.
-Left column line 6 of eighteen.
-Right column line 1 of eighteen.
-Right column line 2 of eighteen.
-Right column line 3 of eighteen.
-Right column line 4 of eighteen.
-Right column line 5 of eighteen.
-Right column line 6 of eighteen.`,
+      footer: "each column one paragraph, left then right",
+      text: `Left column line 1 of eighteen. Left column line 2 of eighteen. Left column line 3 of eighteen. Left column line 4 of eighteen. Left column line 5 of eighteen. Left column line 6 of eighteen. Left column line 7 of eighteen. Left column line 8 of eighteen. Left column line 9 of eighteen. Left column line 10 of eighteen. Left column line 11 of eighteen. Left column line 12 of eighteen. Left column line 13 of eighteen. Left column line 14 of eighteen. Left column line 15 of eighteen. Left column line 16 of eighteen. Left column line 17 of eighteen. Left column line 18 of eighteen.
+
+Right column line 1 of eighteen. Right column line 2 of eighteen. Right column line 3 of eighteen. Right column line 4 of eighteen. Right column line 5 of eighteen. Right column line 6 of eighteen. Right column line 7 of eighteen. Right column line 8 of eighteen. Right column line 9 of eighteen. Right column line 10 of eighteen. Right column line 11 of eighteen. Right column line 12 of eighteen. Right column line 13 of eighteen. Right column line 14 of eighteen. Right column line 15 of eighteen. Right column line 16 of eighteen. Right column line 17 of eighteen. Right column line 18 of eighteen.`,
     },
     {
       reader: "pypdf 6.14.2",
       verdict: "columns interleaved",
       footer: "one line from each column, alternating",
+      total: 36,
       text: `Left column line 1 of eighteen.
 Right column line 1 of eighteen.
 Left column line 2 of eighteen.
@@ -409,13 +418,13 @@ Right column line 6 of eighteen.`,
     },
   ]}
 >
-  Both panes are the same lines of text. Colour is the only difference marked. On the left the blue
+  Both panes hold the same sentences. Colour is the only difference marked. On the left the blue
   block starts once and runs to the end. On the right, blue appears on every other line. Reading order
   is the finding.
 </PaneDiff>
 
-Ours finishes the left column through line 18 before the right column starts. pypdf interleaves every
-line. Both readers handle the naturally ordered file, so a test using only that file would have scored
+Ours finishes the left column through line 18 before the right column starts, and writes each column
+as one paragraph. pypdf interleaves every line. Both readers handle the naturally ordered file, so a test using only that file would have scored
 them equal and told you nothing.
 
 This is the whole argument for structure-isolating fixtures in one place. The manipulation is free,
@@ -425,32 +434,31 @@ it takes one extra file, and it converts a pass into evidence.
 
 The footnote-marker row reports SIGNAL ABSENT rather than a verdict, and the reason is itself a result.
 On the typography fixture, pypdf's character mapping breaks against the embedded font: its own output
-reads `Claim needin' support`, with letters substituted for punctuation throughout. Our reader recovers
-that page's ligatures, curly quotes, en dash and accented characters intact.
+reads `Claim needin' support`, with letters substituted for punctuation throughout. The browser's reader
+recovers that page's ligatures and puts the footnote marker after its claim, but writes the curly quotes
+and the en dash as plain ASCII. An o with an umlaut comes out as `o"` from all three readers, which points
+at how the generator embedded it rather than at any of them.
 
 A comparison against a reference whose own text is corrupted proves nothing, so the measurement says so
 instead of scoring a false pass. Most extraction comparisons do not make that distinction, and it is
 the difference between "we fixed it" and "we cannot see it from here".
 
-### The three that are still broken
+### What is still broken, and where
 
-**Spreadsheet dates arrive as serial numbers.** A schedule whose due dates read `46037` and `46203` is
-not wrong-looking enough for a model to reject and not right enough to use. This is the oldest open
-defect here.
+**A running header is dropped entirely, in the browser.** The PDF reader strips text that repeats at
+the top and foot of every page. On the test file that removes three header lines and three footers.
+The cost is not the length: when the title or a confidentiality marking lives only in
+the header, the bundle never says it. Check for it before you paste.
 
-**A superscript footnote marker sorts above the line it annotates.** Lines are ordered by vertical
-position and a superscript sits a few points higher, so the marker lands on its own line before the
-claim. It is minor next to the others, and has the same root cause the column work addressed.
+**Curly quotes and the en dash arrive as their plain forms, in the browser.** The reader writes `"` for
+both curly quotes and `-` for the en dash in every output it has. The words are intact, so this one
+matters only where the exact characters do.
 
-**A page with no text layer disappears without a note.** Take a document whose page one carries real text
-and whose page two is a raster image. It extracts page one, marks the page boundary, and says nothing
-about the rest. The document is not empty, so it never reaches the "no extractable text" path.
-
-That last one is worth being precise about, because it is the only finding here where our own layers
-disagree. The silence is in the shared engine: a note is raised for a page that failed to **load**,
-never for one that loaded carrying no text. The browser's OCR can recover the missing page, and only if
-the reader accepts it. We are not promising a fix date. Emitting the note needs page-level text
-accounting the underlying library does not currently expose.
+**Three August defects remain in the CLI.** It reads every PDF and workbook with the one library that
+had them: spreadsheet dates arrive as serial numbers like `46037`, a superscript footnote marker sorts
+above its line, and a page with no text layer disappears without a note. The browser falls back to that
+library for a PDF its own reader cannot open, so those two PDF defects can still reach a browser bundle
+that way.
 
 ## Limitations
 
@@ -464,8 +472,11 @@ accounting the underlying library does not currently expose.
   know which, and say so rather than guessing.
 - **One comparison is unattributable even within PDF.** The table finding's check reads our own pipe
   rendering, which no other library emits.
-- **This is the Node path.** The browser adds an OCR layer that recovers scanned pages when the reader
-  accepts it. Scan results here are floors.
+- **Both chains run under Node.** The browser chain is the same code, but OCR does not run here, so a
+  scanned page counts as named, not as read. Scan results here are floors.
+- **The fallback path is not measured.** A PDF the browser's own reader cannot open goes to the CLI's
+  library, where the superscript marker and the silent scanned page still hold. How often that happens
+  has not been counted.
 - **The severity labels are ours.** BROKEN means the bundle says something false or loses data
   invisibly, DEGRADED means it is poorer than it should be but not misleading. That is a judgment, it is
   published so it can be argued with, and a different reasonable line would move rows between them.
@@ -482,18 +493,18 @@ cd packages/core/tests/fixtures/real && node generate.mjs
 pip install pypdf
 python3 packages/cli/scripts/extract-pdf-with-pypdf.py
 
-# Every structure, every predicate, both readers.
+# Every structure, every predicate, both reader chains and pypdf.
 pnpm --filter @fileconcat/cli measure-extraction
 ```
 
-The last command prints both tables on this page: the per-file extraction and the findings with their
-attribution column. Run it without the pypdf step and the comparison column reports "not run" rather
+The last command prints both tables on this page: the per-file extraction for each chain and the
+findings with a column per chain and the attribution column. Run it without the pypdf step and the comparison column reports "not run" rather
 than assuming anything. How the same extraction behaves in day-to-day use, including what a parse
 failure does to a run, is in the [CLI usage docs](/docs/cli-usage).
 
-One number here cannot be reproduced from the current build, and it is named where it appears. The
-defect states as they stood in August describe builds that no longer exist. What the command reproduces
-is the right-hand column, which is the claim this page makes.
+One number here cannot be reproduced from the current build: FileConcat 2.0's 13 of 16, measured on
+2026-09-07 on a browser chain that no longer exists. The CLI column still reads 13 of 16 because its
+chain has not changed.
 
 ## Frequently asked questions
 
@@ -522,14 +533,15 @@ cheaper and lets you see exactly what the model will see, which is the point of 
 ### Why do my spreadsheet dates come out as numbers?
 
 Because a date in a spreadsheet is stored as a number of days and its date-ness lives in the cell's
-format, not its value. Our reader currently passes the raw serial through, which is the one BROKEN defect
-in this measurement that has been open longest.
+format, not its value. A reader that ignores the format passes the raw serial through. FileConcat's
+browser reader writes each cell as the spreadsheet shows it, so a date arrives as a date. FileConcat 2.0
+and the CLI pass the serial through.
 
 ### Does a scanned PDF work?
 
-In the browser, yes: pages with no text layer are rendered and read with OCR that runs on your machine,
-offered rather than automatic. In the CLI, no. A document that is only partly scanned currently loses
-its image-only pages with no note in either. That is one of the three open defects above.
+In the browser, yes: a page with no text layer is named as a scan and read with OCR that runs on your
+machine, on its own for a small drop and on request past that. A partly scanned document says which page
+was the scan. In the CLI, no, and there an image-only page still disappears without a note.
 
 ### How do I check whether my document survived extraction?
 

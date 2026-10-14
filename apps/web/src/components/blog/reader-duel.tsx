@@ -42,8 +42,9 @@ export type ReaderDuelProps = {
   rows: DuelRow[];
 };
 
-const agrees = (row: DuelRow) =>
-  row.a.kind === row.b.kind && row.a.kind !== "absent" && row.b.kind !== "absent";
+// Only a shared recovery is quiet. Two readers losing a structure in different
+// ways is a finding, not agreement, and gets the panel.
+const agrees = (row: DuelRow) => row.a.kind === "recovered" && row.b.kind === "recovered";
 const scorable = (row: DuelRow) => row.a.kind !== "absent" && row.b.kind !== "absent";
 
 function Cell({ outcome, reader }: { outcome: DuelOutcome; reader: string }) {
@@ -77,7 +78,7 @@ function Cell({ outcome, reader }: { outcome: DuelOutcome; reader: string }) {
 }
 
 export function ReaderDuel({ label, readers, rows }: ReaderDuelProps) {
-  const differ = rows.filter((r) => scorable(r) && !agrees(r)).length;
+  const differ = rows.filter((r) => scorable(r) && (r.a.kind !== r.b.kind || r.a.text !== r.b.text)).length;
   const unscored = rows.filter((r) => !scorable(r)).length;
   const summary = [
     `${differ} of ${rows.length} disagree`,
