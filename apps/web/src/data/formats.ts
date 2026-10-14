@@ -45,7 +45,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["pdf"],
     formats: ["pdf"],
     how: "auto",
-    gives: "The text, page by page under a page heading.",
+    gives: "The text, page by page under a page heading. Text on a layer a viewer hides comes through, with a line saying so.",
     loses: "Pictures and charts are not described. A password-protected PDF is not opened.",
   },
   {
@@ -64,7 +64,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["docx", "docm", "dotx", "dotm", "doc"],
     formats: ["docx", "docm", "dotx", "dotm", "cfb"],
     how: "auto",
-    gives: "Text with headings, tables, footnotes and link addresses. Tracked deletions are left out.",
+    gives: "Text with headings, tables, footnotes and link addresses. Tracked deletions and hidden text are left out.",
     loses: "Pictures and charts are not described.",
   },
   {
@@ -73,7 +73,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["odt", "rtf"],
     formats: ["odt", "rtf"],
     how: "auto",
-    gives: "The text.",
+    gives: "The text. Hidden text is left out.",
     loses: "Pictures and charts are not described.",
   },
   {
@@ -82,7 +82,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["xlsx", "xlsm", "xlsb", "xltx", "xltm", "xls"],
     formats: ["xlsx", "xlsm", "xlsb", "xltx", "xltm", "cfb"],
     how: "auto",
-    gives: "Every sheet under its name, rows as comma-separated cells, each cell as Excel shows it.",
+    gives: "Every sheet under its name, rows as comma-separated cells, each cell as Excel shows it. A hidden sheet is read and marked (hidden).",
     loses: "Formulas (their results come through), charts, cell colours and conditional formatting.",
   },
   {
@@ -91,7 +91,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["ods"],
     formats: ["ods"],
     how: "auto",
-    gives: "Every sheet's cells as text.",
+    gives: "Every sheet's cells as text. A hidden sheet is read and marked (hidden).",
     loses: "Formulas (their results come through), charts and cell colours.",
   },
   {
@@ -100,8 +100,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["pptx", "pptm", "potx", "potm", "ppsx", "ppsm", "ppt"],
     formats: ["pptx", "pptm", "potx", "potm", "ppsx", "ppsm", "cfb"],
     how: "auto",
-    gives: "The text of each slide, slide by slide.",
-    loses: "A chart or diagram that exists only as a picture is not described.",
+    gives: "The text of each slide, slide by slide. A hidden slide is read and marked (hidden).",
+    loses: "The text inside a chart or SmartArt diagram, and a chart or diagram that exists only as a picture.",
   },
   {
     group: "Slides",
@@ -109,8 +109,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["odp"],
     formats: ["odp"],
     how: "auto",
-    gives: "The text of each slide.",
-    loses: "A chart or diagram that exists only as a picture is not described.",
+    gives: "The text of each slide. A hidden slide is read and marked (hidden).",
+    loses: "The text inside a chart, and a chart or diagram that exists only as a picture.",
   },
   {
     group: "Books",
@@ -136,7 +136,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["eml", "msg"],
     formats: ["eml", "cfb"],
     how: "auto",
-    gives: "From, To, Cc, Date and Subject, then the decoded body.",
+    gives: "From, To, Cc, Date and Subject, then the decoded body, without text the message hides.",
     loses: "Attachments are named, not read.",
   },
   {
@@ -173,7 +173,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     formats: ["html"],
     how: "auto",
     gives: "The article as markdown.",
-    loses: "Menus, ads and everything else outside the article. HTML source code stays code.",
+    loses: "Menus, ads, text the page hides and everything else outside the article. HTML source code stays code.",
   },
   {
     group: "Archives",
