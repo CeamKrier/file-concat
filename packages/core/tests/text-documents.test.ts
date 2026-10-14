@@ -250,6 +250,20 @@ describe("extractSubtitles", () => {
     );
   });
 
+  it("keeps an unclosed tag as text and still strips what follows it", () => {
+    const cue = (line: string) => extractSubtitles(utf8(`1\n00:00:01,000 --> 00:00:02,000\n${line}\n`)).text;
+    expect(cue("{\\an8}Top <i>line</i> a < b {\\b1}c")).toBe("Top line a < b c");
+    expect(cue("<v>Nobody named</v> here")).toBe("Nobody named here");
+  });
+
+  it("reads crafted markup in one pass", () => {
+    for (const line of ["<i ".repeat(40_000), "{\\".repeat(40_000), `<v${".a".repeat(40)}`, `<x>${"{\\".repeat(40_000)}`]) {
+      const started = performance.now();
+      extractSubtitles(utf8(`1\n00:00:01,000 --> 00:00:02,000\n${line}\n`));
+      expect(performance.now() - started).toBeLessThan(1000);
+    }
+  });
+
   it("answers 'couldn't extract' for a track with cues but no words", () => {
     const silent = "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n\n";
     expect(extractSubtitles(utf8(silent))).toEqual({ text: "" });

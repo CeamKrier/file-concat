@@ -18,9 +18,6 @@ import type { ExtractionResult } from "./types";
  * No dependency: both formats are line-oriented text.
  */
 
-/** Cue payload markup: WebVTT tags and timings, plus SSA/ASS override blocks. */
-const INLINE_MARKUP = /<[^>]*>|\{\\[^}]*\}/g;
-
 /** The named references WebVTT defines. Nothing else is a valid entity there. */
 const ENTITIES: Readonly<Record<string, string>> = {
   "&amp;": "&",
@@ -32,7 +29,10 @@ const ENTITIES: Readonly<Record<string, string>> = {
 };
 
 /**
- * A WebVTT voice span says who is speaking (`<v Roger Bingham>`), and it is the
+ * The speaker a WebVTT voice tag names (`v Roger Bingham`, the tag less its
+ * brackets), or undefined for any other tag.
+ *
+ * A voice span says who is speaking, and it is the
  * only place a caption track says it. Stripped along with the rest of the
  * markup, a two-person interview arrives as one undifferentiated monologue and
  * every attribution in it is unrecoverable — the same loss as a hyperlink whose
@@ -42,17 +42,50 @@ const ENTITIES: Readonly<Record<string, string>> = {
  * Kept as the label it already is. The optional classes (`<v.loud Roger>`) are
  * styling and go.
  */
-const VOICE_SPAN = /<v(?:\.[^\s>]+)*\s+([^>]+)>/g;
+function voice(tag: string): string | undefined {
+  const space = tag.search(/\s/);
+  const head = space < 0 ? tag : tag.slice(0, space);
+  if (space < 0 || (head !== "v" && !head.startsWith("v."))) return undefined;
+  return tag.slice(space).trim() || undefined;
+}
 
 /** Blocks that carry no speech: the WebVTT header and its metadata siblings. */
 function isMetadataBlock(block: string): boolean {
   return /^(WEBVTT|NOTE|STYLE|REGION)\b/.test(block);
 }
 
+/**
+ * A cue line less its markup: WebVTT tags and timings, and SSA/ASS override
+ * blocks (`{\an8}`), with a voice tag kept as its speaker's label. Read by
+ * index, not by pattern: `<[^>]*>` rescans the rest of the line from every
+ * unclosed `<`, and the voice pattern this replaced backtracked exponentially
+ * on `<v.a.a.a...` (2026-10-15). An unclosed tag or block stays as text.
+ */
 function cleanLine(line: string): string {
-  return line
-    .replace(VOICE_SPAN, "$1: ")
-    .replace(INLINE_MARKUP, "")
+  let out = "";
+  let at = 0;
+  // The next `<` and `{\` past `at`, -1 once none can close.
+  let tag = line.indexOf("<");
+  let block = line.indexOf("{\\");
+  for (;;) {
+    if (tag >= 0 && tag < at) tag = line.indexOf("<", at);
+    if (block >= 0 && block < at) block = line.indexOf("{\\", at);
+    const start = tag < 0 ? block : block < 0 ? tag : Math.min(tag, block);
+    if (start < 0) break;
+    const end = line.indexOf(start === tag ? ">" : "}", start);
+    if (end < 0) {
+      if (start === tag) tag = -1;
+      else block = -1;
+      continue;
+    }
+    out += line.slice(at, start);
+    if (start === tag) {
+      const speaker = voice(line.slice(start + 1, end));
+      if (speaker) out += `${speaker}: `;
+    }
+    at = end + 1;
+  }
+  return (out + line.slice(at))
     .replace(/&(amp|lt|gt|nbsp|lrm|rlm);/g, (match) => ENTITIES[match] ?? match)
     .replace(/\s+/g, " ")
     .trim();
