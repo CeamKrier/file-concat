@@ -1,6 +1,6 @@
 import type { Email } from "postal-mime";
 import { formatCalendar } from "./calendar";
-import { flattenHtml } from "./html-text";
+import { flattenHtml, withoutHiddenHtml } from "./html-text";
 import type { ExtractionNote, ExtractionResult } from "./types";
 
 /**
@@ -69,15 +69,19 @@ function formatAddresses(addresses: Email["to"]): string {
  * the end, since Outlook writes the history as that block's siblings. A
  * forward carries neither and stays unmarked, as talon also leaves it.
  */
-function htmlToText(html: string): string {
-  const clean = html.replace(/[\uE000\uE001]/g, "").replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+function htmlToText(html: string): { text: string; hidden: number } {
+  const { html: clean, hidden } = withoutHiddenHtml(
+    html
+      .replace(/[\uE000\uE001]/g, "")
+      .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, ""),
+  );
   const header = clean.search(/\bid=["']?divRplyFwdMsg\b/i);
   const outlook = header < 0 ? -1 : clean.lastIndexOf("<", header);
   const flat = (outlook < 0 ? clean : `${clean.slice(0, outlook)}\n${QUOTE_OPEN}${clean.slice(outlook)}${QUOTE_CLOSE}\n`)
     .replace(/<blockquote\b[^>]*>/gi, `\n${QUOTE_OPEN}`)
     .replace(/<\/blockquote\s*>/gi, `${QUOTE_CLOSE}\n`);
   let depth = 0;
-  return flattenHtml(flat)
+  const text = flattenHtml(flat)
     .split("\n")
     .map((line) => {
       const level = depth + line.split(QUOTE_OPEN).length - 1;
@@ -88,6 +92,7 @@ function htmlToText(html: string): string {
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+  return { text, hidden };
 }
 
 /** Where a quote opens and closes, between reading the markup and writing lines. */
@@ -119,7 +124,9 @@ export function formatEmail(email: MessageFields): ExtractionResult {
   // `text` is the plain part when the message has one. HTML-only mail is
   // flattened rather than dropped, because that is most marketing and most
   // notification mail, and its words are the point.
-  const body = email.text?.trim() || (email.html ? htmlToText(email.html) : "");
+  const plain = email.text?.trim();
+  const flat = plain || !email.html ? undefined : htmlToText(email.html);
+  const body = plain || flat?.text;
   if (body) parts.push(body);
 
   // A meeting invite's content is its calendar part, often with no body
@@ -136,6 +143,7 @@ export function formatEmail(email: MessageFields): ExtractionResult {
   parts.push(...events);
 
   const notes: ExtractionNote[] = [];
+  if (flat?.hidden) notes.push({ kind: "hidden-left-out", count: flat.hidden });
   if (attachments.length > 0) {
     // Named in the text as well as counted in the notes: a message whose whole
     // content is "see attached" is unreadable without knowing what was attached.

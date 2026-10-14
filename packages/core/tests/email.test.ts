@@ -135,6 +135,37 @@ describe("formatEmail", () => {
     expect(text).not.toMatch(/^\|/m);
   });
 
+  it("leaves out what an HTML-only message hid, by tag and nesting, and counts it", () => {
+    const { text, notes } = formatEmail({
+      attachments: [],
+      html: [
+        // A preheader, the shape the hidden-prompt write-ups use.
+        '<div style="display:none;max-height:0">QZPREHEADER<div>QZINNER</div></div>',
+        '<p>Hello <span hidden>QZATTR</span><span style=visibility:hidden>QZUNQUOTED</span>Ada.</p>',
+        // A class or aria-hidden is not the attribute; until-found is shown.
+        '<p class="hidden">QZCLASS</p><p aria-hidden="true">QZARIA</p><p hidden="until-found">QZFOUND</p>',
+        // An unclosed paragraph ends where the next begins.
+        '<p style="display: none">QZUNCLOSED<p>QZAFTER</p>',
+        // A hidden cell ends at its own close, not at the inner table's cells.
+        '<table><tr><td style="display:none"><table><tr><td>QZNESTED</td></tr></table></td><td>QZCELL</td></tr></table>',
+        '<!-- <div style="display:none"> --><p>QZCOMMENTED</p>',
+        '<span style="display:none"></span><img hidden src="x.png">',
+      ].join(""),
+    });
+    for (const word of ["QZPREHEADER", "QZINNER", "QZATTR", "QZUNQUOTED", "QZUNCLOSED", "QZNESTED"]) expect(text).not.toContain(word);
+    for (const word of ["Hello Ada.", "QZCLASS", "QZARIA", "QZFOUND", "QZAFTER", "QZCELL", "QZCOMMENTED"]) expect(text).toContain(word);
+    expect(notes).toEqual([{ kind: "hidden-left-out", count: 5 }]);
+    // The plain part wins when there is one, and has nothing to hide.
+    expect(formatEmail({ attachments: [], text: "Plain", html: '<p hidden>x</p>' }).notes).toBeUndefined();
+  });
+
+  it("drops an unclosed hidden element in one pass, however many tags follow it", () => {
+    const html = `<div style="display:none">${"<b>x".repeat(200_000)}`;
+    const started = performance.now();
+    expect(formatEmail({ attachments: [], html: `<p>Kept</p>${html}` }).text).toBe("Kept");
+    expect(performance.now() - started).toBeLessThan(2000);
+  });
+
   it("quotes only what sits inside the blockquote when text runs around it", () => {
     const { text } = formatEmail({ attachments: [], html: "Yes<blockquote>Ready?</blockquote>Ship it" });
     expect(text).toBe("Yes\n> Ready?\nShip it");

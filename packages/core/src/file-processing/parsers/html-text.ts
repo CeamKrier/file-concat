@@ -39,6 +39,115 @@ function trimCells(line: string): string {
   return line.slice(0, end).trimEnd();
 }
 
+/** Elements that hold nothing, so a hidden one leaves nothing to drop. */
+const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
+
+const BLOCKS = ["p", "div", "table", "ul", "ol", "dl", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "hr"];
+/**
+ * Elements whose end tag may be left out (HTML 13.1.2.4), with the tags that
+ * end them when it is: one that opens, or one that closes the element around.
+ */
+const IMPLIED: Readonly<Record<string, { opens: readonly string[]; closes: readonly string[] }>> = {
+  p: { opens: BLOCKS, closes: ["div", "td", "th", "li", "body", "blockquote"] },
+  li: { opens: ["li"], closes: ["ul", "ol", "body"] },
+  td: { opens: ["td", "th", "tr", "tbody", "thead", "tfoot"], closes: ["tr", "table", "tbody", "thead", "tfoot"] },
+  th: { opens: ["td", "th", "tr", "tbody", "thead", "tfoot"], closes: ["tr", "table", "tbody", "thead", "tfoot"] },
+  tr: { opens: ["tr", "tbody", "thead", "tfoot"], closes: ["table", "tbody", "thead", "tfoot"] },
+  dt: { opens: ["dt", "dd"], closes: ["dl"] },
+  dd: { opens: ["dt", "dd"], closes: ["dl"] },
+  option: { opens: ["option", "optgroup"], closes: ["select", "optgroup"] },
+};
+/** Tags that open a scope of their own, inside which those rules do not reach. */
+const SCOPES = new Set(["table", "ul", "ol", "dl", "select"]);
+
+/**
+ * Whether an opening tag hides its element: the `hidden` attribute (not
+ * `until-found`, which a find on the page reveals), or an inline
+ * `display: none` or `visibility: hidden`. The set Readability and docling
+ * drop; `aria-hidden` text is on screen and stays.
+ */
+function hides(tag: string): boolean {
+  // Attribute values blanked first, so a class named "hidden" is not the attribute.
+  const names = tag.replace(/"[^"]*"|'[^']*'/g, '""');
+  if (/\shidden(?=[\s=/>])/i.test(names) && !/\shidden\s*=\s*["']?until-found/i.test(tag)) return true;
+  const style = /\sstyle\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(tag);
+  const css = (style?.[1] ?? style?.[2] ?? style?.[3] ?? "").replace(/\s+/g, "").toLowerCase();
+  return /(?:^|;)display:none/.test(css) || /(?:^|;)visibility:(?:hidden|collapse)/.test(css);
+}
+
+/** Where the element whose opening tag ends at `from` ends, by tag name and nesting. */
+function endOf(html: string, from: number, name: string): number {
+  const implied = IMPLIED[name];
+  let depth = 1;
+  let scopes = 0;
+  for (let at = html.indexOf("<", from); at >= 0; at = html.indexOf("<", at + 1)) {
+    if (html.startsWith("<!--", at)) {
+      at = html.indexOf("-->", at + 4);
+      if (at < 0) break;
+      continue;
+    }
+    const tag = /^<(\/?)([a-z][^\s/>]*)/i.exec(html.slice(at, at + 32));
+    if (!tag) continue;
+    const other = tag[2].toLowerCase();
+    if (tag[1]) {
+      if (other === name && --depth === 0) return (html.indexOf(">", at) + 1 || html.length);
+      if (implied && scopes === 0 && implied.closes.includes(other)) return at;
+      if (SCOPES.has(other)) scopes = Math.max(0, scopes - 1);
+    } else {
+      if (implied && scopes === 0 && implied.opens.includes(other)) return at;
+      if (other === name) depth++;
+      if (SCOPES.has(other)) scopes++;
+    }
+  }
+  return html.length;
+}
+
+/** Whether `html` between `from` and `to` has a character outside a tag that is not white space. */
+function hasText(html: string, from: number, to: number): boolean {
+  let inTag = false;
+  for (let at = from; at < to; at++) {
+    const char = html[at];
+    if (char === "<") inTag = true;
+    else if (char === ">") inTag = false;
+    else if (!inTag && char.trim()) return true;
+  }
+  return false;
+}
+
+/**
+ * `html` without the elements its author hid (Q18 O1), found by tag name and
+ * nesting with no DOM, the way a streaming parser such as htmlparser2 tracks
+ * them, and how many of those held text. A comment is passed over whole, as
+ * one may hold a tag. Each tag is read once, so a crafted body costs one pass.
+ *
+ * ponytail: inline styles only; a `<style>` rule that hides a class, and an
+ * unclosed `<span>` the browser would close at its parent's end, are not
+ * resolved.
+ */
+export function withoutHiddenHtml(html: string): { html: string; hidden: number } {
+  const out: string[] = [];
+  let hidden = 0;
+  let kept = 0;
+  for (let at = html.indexOf("<"); at >= 0; ) {
+    const close = html.indexOf(html.startsWith("<!--", at) ? "-->" : ">", at);
+    if (close < 0) break;
+    const name = /^<([a-z][^\s/>]*)/i.exec(html.slice(at, at + 32))?.[1]?.toLowerCase();
+    const tag = name && !VOID.has(name) ? html.slice(at, close + 1) : "";
+    if (!name || !tag || tag.endsWith("/>") || !hides(tag)) {
+      at = html.indexOf("<", close + 1);
+      continue;
+    }
+    const end = endOf(html, close + 1, name);
+    out.push(html.slice(kept, at));
+    if (hasText(html, close + 1, end)) hidden++;
+    kept = end;
+    at = html.indexOf("<", end);
+  }
+  if (out.length === 0) return { html, hidden: 0 };
+  out.push(html.slice(kept));
+  return { html: out.join(""), hidden };
+}
+
 /**
  * The words of an HTML fragment in reading order, with no DOM: comments,
  * scripts and styles go (Word hides its settings in a comment, `<!--[if gte
