@@ -13,6 +13,8 @@ const ansi = (s: string): Uint8Array => Uint8Array.from(s, (c) => c.charCodeAt(0
 export interface Piece {
   text: string;
   compressed?: boolean;
+  /** A tracked deletion: one character-property page marks the piece's bytes. */
+  deleted?: boolean;
 }
 
 /**
@@ -34,7 +36,10 @@ export function wordStreams(
     fc += bytes.length;
     return { ...piece, bytes, at };
   });
-  const word = new Uint8Array(fc);
+  // One ChpxFkp page after the text when any piece is deleted (MS-DOC 2.9.44):
+  // a run per piece, the deleted ones pointing at a CHPX holding sprmCFRMarkDel.
+  const fkpAt = pieces.some((piece) => piece.deleted) ? Math.ceil(fc / 512) * 512 : -1;
+  const word = new Uint8Array(fkpAt < 0 ? fc : fkpAt + 512);
   const fib = new DataView(word.buffer);
   fib.setUint16(0, 0xa5ec, true);
   fib.setUint16(2, 0x00c1, true);
@@ -46,6 +51,16 @@ export function wordStreams(
   fib.setInt32(0x60, parts.endnotes ?? 0, true);
   fib.setInt32(0x64, parts.textboxes ?? 0, true);
   for (const piece of encoded) word.set(piece.bytes, piece.at);
+  if (fkpAt >= 0) {
+    const page = new DataView(word.buffer, fkpAt, 512);
+    encoded.forEach((piece, run) => {
+      page.setUint32(run * 4, piece.at, true);
+      page.setUint8((encoded.length + 1) * 4 + run, piece.deleted ? 240 : 0);
+    });
+    page.setUint32(encoded.length * 4, fc, true);
+    word.set([3, 0x00, 0x08, 0x01], fkpAt + 480);
+    page.setUint8(511, encoded.length);
+  }
 
   // CLX: one property modifier (to prove it is skipped), then the piece table.
   const plcLength = 4 + (encoded.length + 1) * 4 + encoded.length * 8;
@@ -63,10 +78,19 @@ export function wordStreams(
     view.setUint32(pcd + 2, piece.compressed ? (piece.at * 2) | 0x40000000 : piece.at, true);
   });
   view.setUint32(10 + encoded.length * 4, cp, true);
-  const table = new Uint8Array(64 + clx.length);
+  const table = new Uint8Array(64 + clx.length + 12);
   table.set(clx, 64);
   fib.setUint32(0x01a2, 64, true);
   fib.setUint32(0x01a6, clx.length, true);
+  if (fkpAt >= 0) {
+    // PlcBteChpx: the page's first and last byte, then its page number.
+    const plc = new DataView(table.buffer, 64 + clx.length, 12);
+    plc.setUint32(0, fibLength, true);
+    plc.setUint32(4, fc, true);
+    plc.setUint32(8, fkpAt / 512, true);
+    fib.setUint32(0x00fa, 64 + clx.length, true);
+    fib.setUint32(0x00fe, 12, true);
+  }
   return new Map([
     ["WordDocument", word],
     [flags & 0x0200 ? "1Table" : "0Table", table],

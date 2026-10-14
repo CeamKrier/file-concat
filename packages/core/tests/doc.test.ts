@@ -41,6 +41,18 @@ describe("formatDoc", () => {
     expect(text).toBe("Body paragraph.\n\nA footnote.\n\nAn endnote.\n\nBox text");
   });
 
+  it("leaves tracked deletions out, in either kind of piece", () => {
+    const pieces = [
+      { text: "The lazy dog" },
+      { text: "frog", deleted: true },
+      { text: ". A paragraph\r" },
+      { text: "Deleted paragraph\r", deleted: true, compressed: true },
+      { text: "kept.\r", compressed: true },
+    ];
+    const length = pieces.reduce((sum, piece) => sum + piece.text.length, 0);
+    expect(formatDoc(wordStreams(pieces, { body: length })).text).toBe("The lazy dog. A paragraph\nkept.");
+  });
+
   it("writes a table's cells apart", () => {
     const body = "Region\x07Q1\x07\x07EMEA\x071200\x07\x07";
     const { text } = formatDoc(wordStreams([{ text: body }], { body: body.length }));

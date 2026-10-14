@@ -35,7 +35,68 @@ const FIELD_BEGIN = 0x13;
 const FIELD_SEPARATOR = 0x14;
 const FIELD_END = 0x15;
 
-function readPieces(word: Uint8Array, table: Uint8Array): string {
+/** sprmCFRMarkDel (MS-DOC 2.6.1): the run is a tracked deletion. */
+const SPRM_DELETED = 0x0800;
+
+/**
+ * `WordDocument` with the bytes of its tracked deletions zeroed, read from the
+ * character property pages (PlcBteChpx, then each ChpxFkp). POI exposes the
+ * same flag as `CharacterRun.isMarkedDeleted()`, and Tika leaves those runs
+ * out unless asked for deleted content. A zeroed character reads as NUL, which
+ * `plain` drops, so the FIB's part lengths still slice the text.
+ *
+ * Pages and runs are in ascending order in a sound file, so a range is only
+ * zeroed past the last one: a forged file that repeats a page or overlaps its
+ * runs loses a deletion, never costs more than one pass over the stream.
+ *
+ * ponytail: the flag is read from the run's own properties only; a deletion
+ * set through a character style (operand 0x80/0x81) is taken as on for 0x81.
+ */
+function withoutDeletions(word: Uint8Array, table: Uint8Array): Uint8Array {
+  const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
+  const fcPlc = fib.getUint32(0x00fa, true);
+  const lcbPlc = fib.getUint32(0x00fe, true);
+  if (lcbPlc < 8 || fcPlc + lcbPlc > table.byteLength) return word;
+  const plc = new DataView(table.buffer, table.byteOffset + fcPlc, lcbPlc);
+  const pages = Math.floor((lcbPlc - 4) / 8);
+  const seen = new Set<number>();
+  let out = word;
+  let zeroed = 0;
+  for (let page = 0; page < pages; page++) {
+    const base = (plc.getUint32((pages + 1) * 4 + page * 4, true) & 0x3fffff) * 512;
+    if (base + 512 > word.byteLength || seen.has(base)) continue;
+    seen.add(base);
+    const fkp = new DataView(word.buffer, word.byteOffset + base, 512);
+    const runs = fkp.getUint8(511);
+    if (runs * 5 + 4 > 511) continue;
+    for (let run = 0; run < runs; run++) {
+      const chpx = fkp.getUint8((runs + 1) * 4 + run) * 2;
+      if (chpx === 0 || chpx >= 511) continue;
+      const end = Math.min(511, chpx + 1 + fkp.getUint8(chpx));
+      // A grpprl is a run of sprms: a 2-byte code whose top three bits say
+      // how long the operand is (MS-DOC 2.2.5.1).
+      for (let at = chpx + 1; at + 2 <= end; ) {
+        const sprm = fkp.getUint16(at, true);
+        at += 2;
+        const size = [1, 1, 2, 4, 2, 2, -1, 3][sprm >>> 13];
+        if (sprm === SPRM_DELETED && at < end && (fkp.getUint8(at) === 1 || fkp.getUint8(at) === 0x81)) {
+          const from = Math.max(fkp.getUint32(run * 4, true), zeroed);
+          const to = Math.min(fkp.getUint32((run + 1) * 4, true), word.byteLength);
+          if (from < to) {
+            if (out === word) out = word.slice();
+            out.fill(0, from, to);
+            zeroed = to;
+          }
+        }
+        at += size < 0 ? (at < end ? fkp.getUint8(at) + 1 : 1) : size;
+      }
+    }
+  }
+  return out;
+}
+
+function readPieces(document: Uint8Array, table: Uint8Array): string {
+  const word = withoutDeletions(document, table);
   const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
   const fcClx = fib.getUint32(0x01a2, true);
   const lcbClx = fib.getUint32(0x01a6, true);
