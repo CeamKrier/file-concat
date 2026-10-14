@@ -1,5 +1,4 @@
-import { formatDoc, formatMsg, formatPpt, type CfbStreams, type ExtractionResult } from "@fileconcat/core";
-import { strFromU8, unzipSync } from "fflate";
+import { formatDoc, formatMsg, formatPpt, workbookSheets, type CfbStreams, type ExtractionResult } from "@fileconcat/core";
 import * as XLSX from "xlsx";
 
 /**
@@ -70,26 +69,28 @@ export function extractCfb(bytes: Uint8Array): ExtractionResult {
  */
 export function extractWorkbook(bytes: Uint8Array): ExtractionResult {
   const workbook = XLSX.read(bytes, { type: "array" });
+  // SheetJS keeps nothing of a chart or a text box; core reads them from the
+  // package (C6). A BIFF workbook is no zip, and has none here.
+  const drawn = new Map(workbookSheets(bytes).sheets.map((sheet) => [sheet.name, sheet.blocks]));
   let comments = 0;
   const sheets = workbook.SheetNames.flatMap((name, index) => {
-    const sheet = workbook.Sheets[name] as (XLSX.WorkSheet & { "!type"?: string; "!drawel"?: { Target?: string } }) | undefined;
+    const sheet = workbook.Sheets[name] as (XLSX.WorkSheet & { "!type"?: string }) | undefined;
     // SheetJS lists a sheet it failed to parse and leaves its entry out.
     if (!sheet) return [];
     // A hidden sheet is still the author's data, often the lookup a formula
     // reads, so it stays and says so (Q18 O1, as docling files it apart). Only
     // a macro can show a very hidden one, so that is named apart.
     const state = ["", " (hidden)", " (very hidden)"][workbook.Workbook?.Sheets?.[index]?.Hidden ?? 0] ?? "";
+    const drawing = (drawn.get(name) ?? []).flatMap((block) => [[block.label], ...block.rows]).map(csvRow);
     // A chartsheet holds no cells, so its csv is empty and the filter below
     // used to drop it, name and all. Tika, docling and openpyxl all keep every
-    // sheet a workbook lists; this keeps the name and the chart's title.
-    if (sheet["!type"] === "chart") {
-      const title = chartTitle(bytes, sheet["!drawel"]?.Target);
-      return [`# Sheet: ${name} (chart)${state}${title ? `\nChart: ${title}` : ""}`];
-    }
+    // sheet a workbook lists; this keeps the name and the chart.
+    if (sheet["!type"] === "chart") return [[`# Sheet: ${name} (chart)${state}`, ...drawing].join("\n")];
     const csv = XLSX.utils.sheet_to_csv(sheet, { strip: true }).replace(/\n{3,}/g, "\n\n").trim();
     const notes = cellComments(sheet);
     comments += notes.length;
-    const body = [csv, ...notes].filter(Boolean).join("\n");
+    // In the office reader's order: cells, what is drawn on the sheet, comments.
+    const body = [csv, ...drawing, ...notes].filter(Boolean).join("\n");
     return body ? [`# Sheet: ${name}${state}\n${body}`] : [];
   });
   return { text: sheets.join("\n\n"), ...(comments ? { notes: [{ kind: "comments-included" as const, count: comments }] } : {}) };
@@ -119,37 +120,7 @@ function cellComments(sheet: XLSX.WorkSheet): string[] {
     );
 }
 
-/**
- * The title of the chart a chartsheet's drawing holds, read from the package:
- * SheetJS keeps the drawing's path and nothing of the chart. Only the text
- * before the plot area is the chart's own title; an axis title sits inside it.
- * A BIFF workbook is no zip, and any part missing means no title.
- */
-function chartTitle(bytes: Uint8Array, drawing: string | undefined): string | undefined {
-  if (!drawing) return undefined;
-  const resolve = (from: string, target: string) => new URL(target, `file:///${from}`).pathname.slice(1);
-  const drawingPath = resolve("xl/chartsheets/sheet.xml", drawing);
-  const relsPath = drawingPath.replace(/([^/]+)$/, "_rels/$1.rels");
-  let parts: Record<string, Uint8Array>;
-  try {
-    parts = unzipSync(bytes, { filter: (file) => file.name === relsPath || file.name.startsWith("xl/charts/") });
-  } catch {
-    return undefined;
-  }
-  const rels = parts[relsPath] ? strFromU8(parts[relsPath]) : "";
-  const target = /Type="[^"]*\/chart"[^>]*Target="([^"]+)"|Target="([^"]+)"[^>]*Type="[^"]*\/chart"/.exec(rels);
-  const chart = target && parts[resolve(drawingPath, target[1] ?? target[2])];
-  if (!chart) return undefined;
-  const head = strFromU8(chart).split("<c:plotArea")[0];
-  const title = /<c:title>([\s\S]*?)<\/c:title>/.exec(head)?.[1] ?? "";
-  const text = [...title.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((run) => run[1]).join("");
-  return decodeXml(text).trim() || undefined;
-}
-
-function decodeXml(text: string): string {
-  return text.replace(/&(?:#x([\da-f]+)|#(\d+)|(amp|lt|gt|quot|apos));/gi, (entity, hex, dec, name: string) => {
-    if (name) return { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" }[name.toLowerCase()]!;
-    const code = parseInt(hex ?? dec, hex ? 16 : 10);
-    return code <= 0x10ffff ? String.fromCodePoint(code) : entity;
-  });
+/** A csv row, quoting a cell as SheetJS does. */
+function csvRow(cells: readonly string[]): string {
+  return cells.map((cell) => (/[",\r\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell)).join(",");
 }

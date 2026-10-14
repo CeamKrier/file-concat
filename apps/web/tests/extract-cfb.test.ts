@@ -228,13 +228,13 @@ describe("extractWorkbook", () => {
     return zipSync(parts);
   }
 
-  it("keeps a chartsheet under its name, with its chart's title", () => {
+  it("keeps a chartsheet under its name, with its chart's title and axis title", () => {
     expect(extractWorkbook(withChartsheet("Revenue &amp; cost")).text).toBe(
-      "# Sheet: Data\nMonth,Revenue\nJan,10\n\n# Sheet: Trend (chart)\nChart: Revenue & cost",
+      "# Sheet: Data\nMonth,Revenue\nJan,10\n\n# Sheet: Trend (chart)\n[Chart: Revenue & cost; values: Axis]",
     );
   });
 
-  it("keeps a chartsheet with no title under its name alone, never its axis title", () => {
-    expect(extractWorkbook(withChartsheet(null)).text).toBe("# Sheet: Data\nMonth,Revenue\nJan,10\n\n# Sheet: Trend (chart)");
+  it("never takes a chart's axis title for its title", () => {
+    expect(extractWorkbook(withChartsheet(null)).text).toBe("# Sheet: Data\nMonth,Revenue\nJan,10\n\n# Sheet: Trend (chart)\n[Chart; values: Axis]");
   });
 });
