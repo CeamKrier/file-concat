@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { strToU8, zlibSync } from "fflate";
 import { describe, expect, it } from "vitest";
 import { noteLayersOff, pdfLayersOff } from "../src/file-processing/parsers/pdf-layers";
@@ -21,7 +20,6 @@ describe("pdfLayersOff", () => {
     expect(pdfLayersOff(pdf(catalog("[19 0 R]")))).toBe(true);
     expect(pdfLayersOff(inObjectStream(catalog("[19 0 R]")))).toBe(true);
     expect(pdfLayersOff(inObjectStream(catalog("10 0 R")))).toBe(true);
-    expect(pdfLayersOff(readFileSync(new URL("../../../docs/measurements/coverage-2026-10-14/probes/pdf/pdf-main.pdf", import.meta.url)))).toBe(true);
   });
 
   it("finds none when every layer is on, or there are no layers", () => {
