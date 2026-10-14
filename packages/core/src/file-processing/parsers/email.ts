@@ -1,6 +1,6 @@
 import type { Email } from "postal-mime";
 import { formatCalendar } from "./calendar";
-import { flattenHtml, withoutHiddenHtml } from "./html-text";
+import { flattenHtml, mapTags, withoutHiddenHtml } from "./html-text";
 import type { ExtractionNote, ExtractionResult } from "./types";
 
 /**
@@ -70,16 +70,13 @@ function formatAddresses(addresses: Email["to"]): string {
  * forward carries neither and stays unmarked, as talon also leaves it.
  */
 function htmlToText(html: string): { text: string; hidden: number } {
-  const { html: clean, hidden } = withoutHiddenHtml(
-    html
-      .replace(/[\uE000\uE001]/g, "")
-      .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, ""),
-  );
+  const { html: clean, hidden } = withoutHiddenHtml(mapTags(html.replace(/[\uE000\uE001]/g, ""), () => undefined, true));
   const header = clean.search(/\bid=["']?divRplyFwdMsg\b/i);
   const outlook = header < 0 ? -1 : clean.lastIndexOf("<", header);
-  const flat = (outlook < 0 ? clean : `${clean.slice(0, outlook)}\n${QUOTE_OPEN}${clean.slice(outlook)}${QUOTE_CLOSE}\n`)
-    .replace(/<blockquote\b[^>]*>/gi, `\n${QUOTE_OPEN}`)
-    .replace(/<\/blockquote\s*>/gi, `${QUOTE_CLOSE}\n`);
+  const flat = mapTags(
+    outlook < 0 ? clean : `${clean.slice(0, outlook)}\n${QUOTE_OPEN}${clean.slice(outlook)}${QUOTE_CLOSE}\n`,
+    (name, closing) => (name !== "blockquote" ? undefined : closing ? `${QUOTE_CLOSE}\n` : `\n${QUOTE_OPEN}`),
+  );
   let depth = 0;
   const text = flattenHtml(flat)
     .split("\n")

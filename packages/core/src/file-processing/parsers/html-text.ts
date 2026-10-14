@@ -1,5 +1,5 @@
 /** Block-level tags whose boundaries are the only structure flattened HTML keeps. */
-const HTML_BREAKS = /<\/?(p|div|br|tr|li|h[1-6]|blockquote|table)\b[^>]*>/gi;
+const HTML_BREAKS = new Set(["p", "div", "br", "tr", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "table"]);
 
 const HTML_ENTITIES: Readonly<Record<string, string>> = {
   "&amp;": "&",
@@ -149,6 +149,65 @@ export function withoutHiddenHtml(html: string): { html: string; hidden: number 
 }
 
 /**
+ * `html` with each tag replaced by what `visit` returns for it, or kept when it
+ * returns nothing. With `strip`, comments, declarations and the bodies of
+ * `script` and `style` go too, an unclosed one to the end as a browser reads
+ * it. One pass over the tags in the way of a streaming tokenizer, such as
+ * htmlparser2: the patterns this replaced (`<[^>]+>`, `<!--[\s\S]*?-->`) rescan
+ * the rest of the body from every unclosed `<`, and 40,000 of them held a tab
+ * for seconds (2026-10-15). A `<` that opens no tag, as in `a < b`, is text.
+ */
+export function mapTags(html: string, visit: (name: string, closing: boolean) => string | undefined, strip = false): string {
+  const out: string[] = [];
+  let kept = 0;
+  const replace = (from: number, to: number, text: string) => {
+    out.push(html.slice(kept, from), text);
+    kept = to;
+  };
+  for (let at = html.indexOf("<"); at >= 0; ) {
+    const comment = html.startsWith("<!--", at);
+    if (comment || html[at + 1] === "!" || html[at + 1] === "?") {
+      const close = comment ? html.indexOf("-->", at + 4) : html.indexOf(">", at);
+      const end = close < 0 ? html.length : close + (comment ? 3 : 1);
+      if (strip) replace(at, end, "");
+      at = html.indexOf("<", end);
+      continue;
+    }
+    const tag = /^<(\/?)([a-z][^\s/>]*)/i.exec(html.slice(at, at + 64));
+    const close = tag ? html.indexOf(">", at) : at;
+    if (close < 0) break;
+    if (!tag) {
+      at = html.indexOf("<", at + 1);
+      continue;
+    }
+    const name = tag[2].toLowerCase();
+    const closing = tag[1] === "/";
+    let end = close + 1;
+    let text = visit(name, closing);
+    if (strip && !closing && (name === "script" || name === "style")) {
+      end = rawTextEnd(html, end, name);
+      text = "";
+    }
+    if (text !== undefined) replace(at, end, text);
+    at = html.indexOf("<", end);
+  }
+  if (out.length === 0) return html;
+  out.push(html.slice(kept));
+  return out.join("");
+}
+
+/** Past the end tag of a `script` or `style` body that starts at `from`, or the end of `html`. */
+function rawTextEnd(html: string, from: number, name: string): number {
+  for (let at = html.indexOf("</", from); at >= 0; at = html.indexOf("</", at + 2)) {
+    const after = html[at + 2 + name.length];
+    if (html.slice(at + 2, at + 2 + name.length).toLowerCase() !== name || (after && !/[\s/>]/.test(after))) continue;
+    const close = html.indexOf(">", at);
+    return close < 0 ? html.length : close + 1;
+  }
+  return html.length;
+}
+
+/**
  * The words of an HTML fragment in reading order, with no DOM: comments,
  * scripts and styles go (Word hides its settings in a comment, `<!--[if gte
  * mso 9]><xml>`), a block boundary becomes a line break, a table cell ends
@@ -157,12 +216,8 @@ export function withoutHiddenHtml(html: string): { html: string; hidden: number 
  * HTML-only mail body, a notebook output with no plain-text form.
  */
 export function flattenHtml(html: string): string {
-  return html
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "")
-    .replace(/<\/t[dh]\s*>/gi, " | ")
-    .replace(HTML_BREAKS, "\n")
-    .replace(/<[^>]+>/g, "")
+  const cell = (name: string, closing: boolean) => closing && (name === "td" || name === "th");
+  return mapTags(html, (name, closing) => (cell(name, closing) ? " | " : HTML_BREAKS.has(name) ? "\n" : ""), true)
     .replace(/&#(?:x([\da-f]+)|(\d+));/gi, (entity, hex: string | undefined, dec: string) => {
       const code = hex ? parseInt(hex, 16) : Number(dec);
       return code <= 0x10ffff ? String.fromCodePoint(code) : entity;
