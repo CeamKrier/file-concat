@@ -70,19 +70,23 @@ export function extractCfb(bytes: Uint8Array): ExtractionResult {
  */
 export function extractWorkbook(bytes: Uint8Array): ExtractionResult {
   const workbook = XLSX.read(bytes, { type: "array" });
-  const sheets = workbook.SheetNames.flatMap((name) => {
+  const sheets = workbook.SheetNames.flatMap((name, index) => {
     const sheet = workbook.Sheets[name] as (XLSX.WorkSheet & { "!type"?: string; "!drawel"?: { Target?: string } }) | undefined;
     // SheetJS lists a sheet it failed to parse and leaves its entry out.
     if (!sheet) return [];
+    // A hidden sheet is still the author's data, often the lookup a formula
+    // reads, so it stays and says so (Q18 O1, as docling files it apart). Only
+    // a macro can show a very hidden one, so that is named apart.
+    const state = ["", " (hidden)", " (very hidden)"][workbook.Workbook?.Sheets?.[index]?.Hidden ?? 0] ?? "";
     // A chartsheet holds no cells, so its csv is empty and the filter below
     // used to drop it, name and all. Tika, docling and openpyxl all keep every
     // sheet a workbook lists; this keeps the name and the chart's title.
     if (sheet["!type"] === "chart") {
       const title = chartTitle(bytes, sheet["!drawel"]?.Target);
-      return [`# Sheet: ${name} (chart)${title ? `\nChart: ${title}` : ""}`];
+      return [`# Sheet: ${name} (chart)${state}${title ? `\nChart: ${title}` : ""}`];
     }
     const csv = XLSX.utils.sheet_to_csv(sheet, { strip: true }).replace(/\n{3,}/g, "\n\n").trim();
-    return csv ? [`# Sheet: ${name}\n${csv}`] : [];
+    return csv ? [`# Sheet: ${name}${state}\n${csv}`] : [];
   });
   return { text: sheets.join("\n\n") };
 }

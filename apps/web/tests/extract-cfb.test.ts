@@ -152,6 +152,18 @@ describe("extractWorkbook", () => {
     expect(extractWorkbook(formatted("xlsb")).text).toBe("# Sheet: Plan\nRate,Due\n8%,2024-10-02");
   });
 
+  it("labels a hidden and a very hidden sheet and keeps their cells", () => {
+    const workbook = XLSX.utils.book_new();
+    for (const name of ["Shown", "Lookup", "Macro"]) XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([[name]]), name);
+    workbook.Workbook = { Sheets: [{ Hidden: 0 }, { Hidden: 1 }, { Hidden: 2 }] };
+    for (const bookType of ["xlsx", "biff8"] as const) {
+      const bytes = new Uint8Array(XLSX.write(workbook, { bookType, type: "array" }));
+      expect(extractWorkbook(bytes).text).toBe(
+        "# Sheet: Shown\nShown\n\n# Sheet: Lookup (hidden)\nLookup\n\n# Sheet: Macro (very hidden)\nMacro",
+      );
+    }
+  });
+
   it("drops the padding out to the sheet's range and keeps one blank line between tables", () => {
     const sheet = XLSX.utils.aoa_to_sheet([["Title"], ["Region", "Q1", "Q2"], ["EMEA", 1, 2], [], [], ["Notes"]]);
     sheet["!ref"] = "A1:F9";
