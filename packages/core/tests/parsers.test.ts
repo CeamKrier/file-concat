@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { createParserRegistry } from "../src/file-processing/parsers/registry";
 import { extractOfficeDocument } from "../src/file-processing/parsers/officeparser";
+import { drawingChart, odfChart } from "../src/file-processing/parsers/office-charts";
 import {
   deckPptx,
   furnitureDocx,
@@ -12,6 +13,11 @@ import {
   SHEET_MACRO_ENABLED,
   commentedDocx,
   commentedXlsx,
+  chartedDocx,
+  chartedPptx,
+  chartedXlsx,
+  chartedOdf,
+  BAR_CHART,
   docxWithBody,
   odfDocument,
   spannedOds,
@@ -433,5 +439,91 @@ describe("extractOfficeDocument — references survive extraction", () => {
     // slide, so a marker beside one would point at nothing.
     const { text } = await extractOfficeDocument(twoSlidePptx());
     expect(text).not.toContain("[^");
+  });
+});
+
+describe("charts", () => {
+  const table = [
+    "| Quarter | North     | South | ",
+    "| Q1      | 10        | 30    | ",
+    "| Q2      | 20 (peak) | 40    | ",
+  ].join("\n");
+
+  it("writes a deck's chart where it sits, as its label and a table of its data", async () => {
+    expect((await extractOfficeDocument(chartedPptx())).text).toBe(`# Slide 1\nResults\n[Chart, bar: Sales R&D; values: USD]\n\n${table.trimEnd()}`);
+  });
+
+  it("writes a docx chart after its paragraph, with its alt text", async () => {
+    expect((await extractOfficeDocument(chartedDocx())).text).toBe(`Before\n[Chart, bar: Sales R&D; Bars by quarter; values: USD]\n\n${table}\n\nAfter`);
+  });
+
+  it("writes a chart part once however many relationships name it", async () => {
+    const parts = unzipSync(chartedDocx());
+    const doc = strFromU8(parts["word/document.xml"]);
+    const held = /<w:p><w:r><w:drawing>.*?<\/w:p>/.exec(doc)?.[0] ?? "";
+    expect(held).toContain('r:id="rIdC"');
+    parts["word/document.xml"] = strToU8(doc.replace(held, held + held.replace('r:id="rIdC"', 'r:id="rIdD"')));
+    const rels = strFromU8(parts["word/_rels/document.xml.rels"]);
+    parts["word/_rels/document.xml.rels"] = strToU8(rels.replace("</Relationships>", rels.replace(/^[\s\S]*?(<Relationship )/, "$1").replace('Id="rIdC"', 'Id="rIdD"')));
+    expect((await extractOfficeDocument(zipSync(parts))).text.split("[Chart").length).toBe(2);
+  });
+
+  it("names each sheet by its own part, labels a hidden one, and writes what is drawn on it", async () => {
+    expect((await extractOfficeDocument(chartedXlsx())).text).toBe(
+      "# Sheet: Revenue\nRegion,Q1,Q2\nEMEA,1200,1350\nAPAC,980,1105\n[Text box: Read me first],,\n" +
+        '"[Chart, bar: Sales R&D; values: USD]",,\nQuarter,North,South\nQ1,10,30\nQ2,20 (peak),40\n\n' +
+        "# Sheet: Headcount (hidden)\nTeam,People,\nEng,42,\n\n" +
+        '# Sheet: Trend (chart)\n"[Chart, line: Trend]",,',
+    );
+  });
+
+  it("writes an OpenDocument chart in its paragraph, and a sheet's after the sheet's rows", async () => {
+    const frame = (alt = "") =>
+      `<draw:frame xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0">` +
+      `<draw:object xlink:href="./Object 1"/>${alt ? `<svg:desc>${alt}</svg:desc>` : ""}</draw:frame>`;
+    const grid = "| Month | Site | \n| Jan   | 99.5 | ";
+    expect((await extractOfficeDocument(chartedOdf("text", `<text:p>Before</text:p><text:p>${frame("Monthly")}</text:p><text:p>After</text:p>`))).text).toBe(
+      `Before\n[Chart, bar: Uptime; Monthly]\n\n${grid}\n\nAfter`,
+    );
+    const sheet = `<table:table table:name="S"><table:table-row><table:table-cell><text:p>A1</text:p>${frame()}</table:table-cell></table:table-row></table:table>`;
+    expect((await extractOfficeDocument(chartedOdf("spreadsheet", sheet))).text).toBe('A1,\n"[Chart, bar: Uptime]",\nMonth,Site\nJan,99.5');
+  });
+
+  it("reads a scatter chart along its first axis and skips what is no data", () => {
+    const xml = BAR_CHART.replace(/barChart/g, "scatterChart").replace(/<c:cat>/g, "<c:xVal>").replace(/<\/c:cat>/g, "</c:xVal>").replace(/catAx/g, "valAx");
+    expect(drawingChart(xml)).toEqual({
+      label: "[Chart, scatter: Sales R&D; values: USD]",
+      rows: [["Quarter", "North", "South"], ["Q1", "10", "30"], ["Q2", "20 (peak)", "40"]],
+    });
+    expect(drawingChart("<c:chartSpace><c:chart><c:plotArea><c:lineChart/></c:plotArea></c:chart></c:chartSpace>")).toEqual({ label: "[Chart, line]", rows: [] });
+    expect(drawingChart("<w:document/>")).toBeUndefined();
+  });
+
+  it("reads an OpenDocument chart's own table, titles and axis titles", () => {
+    const cell = (text: string, repeat = "") => `<table:table-cell${repeat}><text:p>${text}</text:p></table:table-cell>`;
+    const xml =
+      `<office:chart><chart:chart chart:class="chart:line"><chart:title><text:p>Load<text:s/>&amp; time</text:p></chart:title>` +
+      `<chart:plot-area><chart:axis chart:dimension="x"><chart:title><text:p>Hour</text:p></chart:title></chart:axis>` +
+      `<chart:axis chart:dimension="y"><chart:title><text:p>Users</text:p></chart:title></chart:axis></chart:plot-area>` +
+      `<table:table><table:table-header-rows><table:table-row><table:table-cell/>${cell("Web")}${cell("App")}</table:table-row></table:table-header-rows>` +
+      `<table:table-rows><table:table-row>${cell("9")}<table:table-cell table:number-columns-repeated="1000"/></table:table-row>` +
+      `<table:table-row>${cell("10")}${cell("5")}${cell("7")}</table:table-row></table:table-rows></table:table></chart:chart></office:chart>`;
+    expect(odfChart(`<chart:chart>${xml}`, "Alt")).toEqual({
+      label: "[Chart, line: Load & time; Alt; values: Users]",
+      rows: [["Hour", "Web", "App"], ["9"], ["10", "5", "7"]],
+    });
+  });
+
+  it("caps a chart whose series number their points apart, and reads a crafted part in linear time", () => {
+    const series = (from: number) =>
+      `<c:ser><c:val><c:numCache>${Array.from({ length: 2000 }, (_, i) => `<c:pt idx="${from + i}"><c:v>1</c:v></c:pt>`).join("")}</c:numCache></c:val></c:ser>`;
+    const wide = `<c:chartSpace><c:chart><c:plotArea><c:barChart>${Array.from({ length: 200 }, (_, i) => series(i * 2000)).join("")}</c:barChart></c:plotArea></c:chart></c:chartSpace>`;
+    const started = performance.now();
+    const rows = drawingChart(wide)!.rows;
+    expect(rows.length * rows[0].length).toBeLessThan(110_000);
+    expect(rows[rows.length - 1]).toEqual([`(${400_000 - rows.length + 2} more points left out)`]);
+    expect(drawingChart(`<c:chartSpace>${"<a>".repeat(200_000)}${"<c:v>x</c:v><".repeat(100_000)}`)).toBeDefined();
+    expect(odfChart(`<chart:chart>${"<table:table-row>".repeat(50_000)}${'<table:table-cell table:number-columns-repeated="99999"/>'.repeat(50_000)}`)!.rows.length).toBe(0);
+    expect(performance.now() - started).toBeLessThan(2000);
   });
 });

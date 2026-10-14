@@ -1,5 +1,6 @@
 import { strFromU8, unzipSync } from "fflate";
 import type { OfficeContentNode } from "officeparser";
+import { chartParts, withChartTables, workbookSheets, type ChartBlock } from "./office-charts";
 import { withoutHiddenText } from "./office-hidden";
 import { noteLayersOff } from "./pdf-layers";
 import type { ExtractionNote, ExtractionNoteKind, ExtractionResult } from "./types";
@@ -489,8 +490,6 @@ function showComments(): { visit: (node: OfficeContentNode) => void; count: () =
     });
   const below = (node: OfficeContentNode): OfficeContentNode[] =>
     (node.children ?? []).flatMap((child) => [child, ...below(child)]);
-  const line = (text: string): OfficeContentNode => ({ type: "paragraph", text, children: [{ type: "text", text }] });
-
   const visit = (node: OfficeContentNode) => {
     if (node.type === "paragraph" || node.type === "heading") {
       const labels = [node, ...below(node)].flatMap((part) => take(part.comments));
@@ -509,6 +508,88 @@ function showComments(): { visit: (node: OfficeContentNode) => void; count: () =
     }
   };
   return { visit, count: () => shown };
+}
+
+const line = (text: string): OfficeContentNode => ({ type: "paragraph", text, children: [{ type: "text", text }] });
+const row = (cells: readonly string[]): OfficeContentNode => ({
+  type: "row",
+  children: cells.map((text) => ({ type: "cell", text, children: [line(text)] })),
+});
+
+/**
+ * Put each chart where its node is, as its label line and a table of its data
+ * (C6). A deck's chart node names its part and is otherwise empty; an
+ * OpenDocument chart is an image or chart node naming its object. A sheet's
+ * cell holds an OpenDocument chart where the csv renderer writes no node, so
+ * a sheet's charts become rows after its last, as comments do.
+ *
+ * In an OOXML workbook the sheet pass below writes the charts, so a chart node
+ * there (only made when images are extracted) is emptied rather than written
+ * twice.
+ */
+function showCharts(bytes: Uint8Array, workbook: boolean): (node: OfficeContentNode) => void {
+  const chart = chartParts(bytes);
+  const taken = new WeakSet<OfficeContentNode>();
+  const blockOf = (node: OfficeContentNode) => {
+    const meta = node.metadata as { attachmentName?: string; altText?: string } | undefined;
+    if ((node.type !== "chart" && node.type !== "image") || !meta?.attachmentName || taken.has(node)) return undefined;
+    return chart(meta.attachmentName, meta.altText);
+  };
+  const empty = (node: OfficeContentNode) => {
+    taken.add(node);
+    Object.assign(node, { type: "drawing", text: "", children: [] });
+  };
+  const within = (node: OfficeContentNode): OfficeContentNode[] =>
+    (node.children ?? []).flatMap((child) => [child, ...within(child)]);
+  return (node) => {
+    if (node.type === "sheet") {
+      const rows = within(node).flatMap((inner) => {
+        const block = blockOf(inner);
+        if (!block) return [];
+        empty(inner);
+        return [row([block.label]), ...block.rows.map(row)];
+      });
+      if (rows.length) node.children = [...(node.children ?? []), ...rows];
+      return;
+    }
+    if (node.type === "chart" && workbook && !taken.has(node)) return empty(node);
+    const block = blockOf(node);
+    if (!block) return;
+    const table: OfficeContentNode[] = block.rows.length ? [{ type: "table", children: block.rows.map(row) }] : [];
+    Object.assign(node, { type: "drawing", text: "", children: [line(block.label), ...table] });
+  };
+}
+
+/**
+ * Each sheet's own name and state, and what is drawn on it as rows after its
+ * last (C6); a chartsheet, which officeparser gives no node, as a sheet of its
+ * own after the rest.
+ *
+ * officeparser names a sheet by its part's file name alone, so the
+ * chartsheet's `sheet1.xml` renamed the first worksheet. It reads worksheets
+ * in the package's order; a node whose name is not the one it would give
+ * that part is left as it is.
+ */
+function showWorkbookSheets(content: OfficeContentNode[], bytes: Uint8Array): void {
+  const { sheets, order } = workbookSheets(bytes);
+  const base = (part: string) => part.slice(part.lastIndexOf("/") + 1);
+  const given = new Map(sheets.map((sheet) => [base(sheet.part), sheet.name]));
+  const byPart = new Map(sheets.map((sheet) => [sheet.part, sheet]));
+  const state = (sheet: { state: number }) => ["", " (hidden)", " (very hidden)"][sheet.state] ?? "";
+  const rows = (blocks: readonly ChartBlock[]) => blocks.flatMap((block) => [row([block.label]), ...block.rows.map(row)]);
+  content
+    .filter((node) => node.type === "sheet")
+    .forEach((node, at) => {
+      const part = order[at] ?? "";
+      const sheet = byPart.get(part);
+      const meta = node.metadata as { sheetName?: string } | undefined;
+      if (!sheet || meta?.sheetName !== (given.get(base(part)) ?? base(part))) return;
+      node.metadata = { ...meta, sheetName: `${sheet.name}${state(sheet)}` };
+      node.children = [...(node.children ?? []), ...rows(sheet.blocks)];
+    });
+  for (const sheet of sheets) {
+    if (sheet.chartsheet) content.push({ type: "sheet", metadata: { sheetName: `${sheet.name} (chart)${state(sheet)}` }, children: rows(sheet.blocks) });
+  }
 }
 
 // A threaded comment reaches the legacy note part only as Excel's fallback
@@ -1120,7 +1201,7 @@ export async function extractOfficeDocument(
 ): Promise<ExtractionResult> {
   const { parseOffice } = await import("officeparser");
   const { bytes: readable, hidden: hiddenRuns, slides: hiddenSlides } = withoutHiddenText(bytes);
-  const ast = await parseOffice(readable, toLibraryConfig(options));
+  const ast = await parseOffice(withChartTables(readable).bytes, toLibraryConfig(options));
   // Recognised image text reaches us as `[Image: …]` placeholders in the
   // rendered string, and csv has nowhere to write them. A workbook that carries
   // any is therefore rendered as text: its cells run together, exactly as they
@@ -1141,13 +1222,15 @@ export async function extractOfficeDocument(
     dropRunningFurniture(ast.content);
     includePageFurniture(ast.content, ast.auxiliary);
   }
+  if (isWorkbook(ast.content)) showWorkbookSheets(ast.content, bytes);
   // Each visitor restores one thing the text renderer drops. They are composed
   // rather than merged because they are independent of one another and of the
   // node types they act on.
   const chrome = ast.content.some((node) => node.type === "slide") ? slideChrome(bytes) : new Map<number, SlideChrome>();
   const hidden = new Set([...hiddenSlides, ...[...chrome].flatMap(([number, slide]) => (slide.hidden ? [number] : []))]);
   const comments = showComments();
-  const sheetVisitors = [expandMergedCells(), comments.visit];
+  const charts = showCharts(bytes, isWorkbook(ast.content));
+  const sheetVisitors = [expandMergedCells(), charts, comments.visit];
   const visitors = [
     dropSlideChrome(chrome),
     markSectionStarts(anyPageHasText, hidden),
@@ -1158,6 +1241,7 @@ export async function extractOfficeDocument(
     showLinkDestinations,
     flattenNestedTables,
     expandMergedCells(),
+    charts,
     comments.visit,
   ];
   // The parse's own warnings (a page that failed, the CDN fallback) live on the
