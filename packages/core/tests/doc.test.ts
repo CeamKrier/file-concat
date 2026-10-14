@@ -20,7 +20,7 @@ describe("formatDoc", () => {
     expect(text).toBe("Chapter 7 of the book.");
   });
 
-  it("keeps the body, notes and text boxes, and leaves headers and comments out", () => {
+  it("keeps the body, notes and text boxes, and leaves headers and unanchored comments out", () => {
     const body = "Body paragraph.\r";
     const footnotes = "A footnote.\r";
     const headers = "Running header\r";
@@ -39,6 +39,32 @@ describe("formatDoc", () => {
       }),
     );
     expect(text).toBe("Body paragraph.\n\nA footnote.\n\nAn endnote.\n\nBox text");
+  });
+
+  it("writes each comment at the end of its paragraph, author named, and counts it", () => {
+    const body = "First \x05line.\rCell\x05\x07Last.\r";
+    const comments = "\x05Check\rthis.\r\x05By\x13 PAGE \x141\x15 initials.\r\x05\r\r";
+    const { text, notes } = formatDoc(
+      wordStreams([{ text: body + comments }], { body: body.length, comments: comments.length }, 0x0200, [
+        { ref: 6, start: 0, author: "Ada\rYilmaz" },
+        { ref: 16, start: 13, author: "BO", initials: true },
+        { ref: 1000, start: 37, author: "Out of range" },
+      ]),
+    );
+    expect(text).toBe("First line. [Comment, Ada Yilmaz: Check this.]\nCell [Comment, BO: By1 initials.]\tLast.");
+    expect(notes).toContainEqual({ kind: "comments-included", count: 2 });
+  });
+
+  it("reads a crafted comment table in linear time, each range once and a long name cut", () => {
+    const body = `${"x".repeat(200_000)}\r`;
+    const note = `\x05${"y".repeat(200_000)}\r`;
+    // Every other range runs back over the whole part.
+    const many = Array.from({ length: 20_000 }, (_, i) => ({ ref: i, start: i % 2 ? note.length : 0, author: "N".repeat(300) }));
+    const started = performance.now();
+    const { text, notes } = formatDoc(wordStreams([{ text: body + note }], { body: body.length, comments: note.length }, 0x0200, many));
+    expect(notes).toContainEqual({ kind: "comments-included", count: 1 });
+    expect(text).toContain(`[Comment, ${"N".repeat(255)}: y`);
+    expect(performance.now() - started).toBeLessThan(2000);
   });
 
   it("leaves tracked deletions out, in either kind of piece", () => {

@@ -1,5 +1,5 @@
 import type { CfbStreams } from "./msg";
-import type { ExtractionResult } from "./types";
+import type { ExtractionNote, ExtractionResult } from "./types";
 
 /**
  * Word 97-2003 documents (`.doc`, MS-DOC), the text only.
@@ -13,8 +13,9 @@ import type { ExtractionResult } from "./types";
  *
  * The character stream is the main body, then footnotes, headers, comments,
  * endnotes and text boxes, each of a length the FIB gives. The body, the
- * notes and the text boxes are kept; headers and comments are not, for the
- * reason the office reader drops running furniture from a PDF.
+ * notes and the text boxes are kept; headers are not, for the reason the
+ * office reader drops running furniture from a PDF. Comments are written into
+ * the body at the end of their paragraph (Q24 O1).
  *
  * Only the reading lives here, over streams already lifted out of the
  * container (ADR-0012); the browser opens it with the library that reads a
@@ -228,6 +229,87 @@ function plain(text: string, left: { hidden: number }): string {
     .trim();
 }
 
+/** FibRgFcLcb97 (MS-DOC 2.5.6): the comment tables and the authors' names. */
+const FC_PLCF_AND_REF = 0x00ba;
+const FC_PLCF_AND_TXT = 0x00c2;
+const FC_GRP_XST_ATN_OWNERS = 0x01ba;
+
+/**
+ * Each comment (MS-DOC 2.3.4) as `[Comment, author: text]` with the position
+ * of its reference mark in the body. PlcfandRef lists the marks, each with an
+ * ATRDPre10 naming its author by index into GrpXstAtnOwners (else by
+ * initials); PlcfandTxt splits the comment part into one range per comment.
+ * POI reads the same three (`HWPFDocument.getCommentsRange`, `ATRD`).
+ */
+function commentLabels(
+  word: Uint8Array,
+  table: Uint8Array,
+  comments: string,
+  left: { hidden: number },
+): { at: number; label: string }[] {
+  const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
+  const listed = (offset: number): DataView | undefined => {
+    if (offset + 8 > word.byteLength) return undefined;
+    const fc = fib.getUint32(offset, true);
+    const lcb = fib.getUint32(offset + 4, true);
+    return lcb > 0 && fc + lcb <= table.byteLength ? new DataView(table.buffer, table.byteOffset + fc, lcb) : undefined;
+  };
+  const refs = listed(FC_PLCF_AND_REF);
+  const txt = listed(FC_PLCF_AND_TXT);
+  if (!refs || !txt) return [];
+  const utf16 = new TextDecoder("utf-16le");
+  const name = (view: DataView, at: number, length: number) =>
+    utf16.decode(new Uint8Array(view.buffer, view.byteOffset + at, Math.min(length * 2, view.byteLength - at)));
+  const owners: string[] = [];
+  const grp = listed(FC_GRP_XST_ATN_OWNERS);
+  for (let at = 0; grp && at + 2 <= grp.byteLength; ) {
+    const length = grp.getUint16(at, true);
+    owners.push(name(grp, at + 2, length));
+    at += 2 + length * 2;
+  }
+  const count = Math.min(Math.floor((refs.byteLength - 4) / 34), Math.floor(txt.byteLength / 4));
+  const labels: { at: number; label: string }[] = [];
+  // Ranges are read forward only, so a forged table whose ranges overlap
+  // cannot read the part more than once.
+  let read = 0;
+  for (let i = 0; i < count; i++) {
+    const from = Math.max(read, txt.getUint32(i * 4, true));
+    const to = Math.max(from, Math.min(comments.length, i + 1 < txt.byteLength / 4 ? txt.getUint32((i + 1) * 4, true) : comments.length));
+    read = to;
+    const body = plain(comments.slice(from, to), left).replace(/\s+/g, " ");
+    if (!body) continue;
+    const atrd = (count + 1) * 4 + i * 30;
+    const author = owners[refs.getUint16(atrd + 20, true)] ?? name(refs, atrd + 2, Math.min(9, refs.getUint16(atrd, true)));
+    // A name is the file's to choose: control characters would act on the
+    // body, and one long name named by every comment would multiply the text.
+    // Word caps an author's name at 255 characters.
+    const by = Array.from(author.slice(0, 255), (c) => (c < " " ? " " : c)).join("").replace(/\s+/g, " ").trim();
+    labels.push({ at: refs.getUint32(i * 4, true), label: `[Comment${by ? `, ${by}` : ""}: ${body}]` });
+  }
+  return labels;
+}
+
+/**
+ * `body` with each label written before the first paragraph or cell mark at
+ * or after its position, in order. Positions are character positions, which
+ * the text's indices are, one per CP.
+ */
+function atParagraphEnds(body: string, labels: { at: number; label: string }[]): string {
+  let out = "";
+  let cursor = 0;
+  let end = -1;
+  for (const { at, label } of [...labels].sort((a, b) => a.at - b.at)) {
+    if (at >= body.length) continue;
+    if (end < at) {
+      end = at;
+      while (end < body.length && body.charCodeAt(end) !== PARAGRAPH && body.charCodeAt(end) !== CELL_MARK) end++;
+    }
+    out += `${body.slice(cursor, end)} ${label}`;
+    cursor = end;
+  }
+  return out + body.slice(cursor);
+}
+
 const NOT_THIS_READER: ExtractionResult = { text: "", notes: [{ kind: "parser-unavailable" }] };
 
 /**
@@ -259,13 +341,18 @@ export function formatDoc(streams: CfbStreams): ExtractionResult {
   const kept = [part(body), part(footnotes)];
   part(headers);
   part(macros);
-  part(comments);
+  const left = { hidden: 0 };
+  const labels = commentLabels(word, table, part(comments), left).filter(({ at }) => at < kept[0].length);
+  kept[0] = atParagraphEnds(kept[0], labels);
   kept.push(part(endnotes), part(textboxes));
 
-  const left = { hidden: 0 };
   const text = kept
     .map((part) => plain(part, left))
     .filter(Boolean)
     .join("\n\n");
-  return left.hidden > 0 && text ? { text, notes: [{ kind: "hidden-left-out", count: left.hidden }] } : { text };
+  if (!text) return { text };
+  const notes: ExtractionNote[] = [];
+  if (left.hidden > 0) notes.push({ kind: "hidden-left-out", count: left.hidden });
+  if (labels.length > 0) notes.push({ kind: "comments-included", count: labels.length });
+  return notes.length ? { text, notes } : { text };
 }
