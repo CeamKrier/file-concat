@@ -517,7 +517,7 @@ function Faq({ format }: { format: ConvertFormat }) {
 
 function Closing({ format, dropProps }: { format: ConvertFormat; dropProps: DropZoneProps }) {
   const reading = [
-    ...(format.post ? [{ to: `/blog/${format.post.slug}`, label: format.post.label }] : []),
+    ...(format.more ? [format.more] : []),
     { to: "/docs/formats", label: "Every format it reads" },
     { to: "/blog/what-gets-lost-converting-documents-to-text", label: "What gets lost converting documents to text" },
   ];

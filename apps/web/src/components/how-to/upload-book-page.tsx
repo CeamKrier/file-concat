@@ -378,7 +378,7 @@ function ClosingCta() {
       </div>
       <FurtherReading>
         Text out of a PDF, and what gets lost on the way:{" "}
-        <ProseLink to="/blog/convert-pdf-to-text-for-llm">converting a PDF to text for an LLM</ProseLink>
+        <ProseLink to="/convert/pdf-to-text">converting a PDF to text for an LLM</ProseLink>
         . What each format keeps and leaves out is on <ProseLink to="/docs/formats">the formats list</ProseLink>.
       </FurtherReading>
     </MarketingSection>

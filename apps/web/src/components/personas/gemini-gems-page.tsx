@@ -381,7 +381,7 @@ function ClosingCta() {
       </div>
       <FurtherReading>
         Feeding a Gem documents rather than notes?{" "}
-        <ProseLink to="/blog/convert-pdf-to-text-for-llm">Converting a PDF to text for a prompt</ProseLink>
+        <ProseLink to="/convert/pdf-to-text">Converting a PDF to text for a prompt</ProseLink>
         {" "}covers what survives the conversion. What each format keeps and leaves out is on <ProseLink to="/docs/formats">the formats list</ProseLink>.
       </FurtherReading>
     </MarketingSection>

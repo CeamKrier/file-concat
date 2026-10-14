@@ -22,6 +22,33 @@ import { turndown } from "./turndown-client";
 const MIN_CHARS = 400;
 
 /**
+ * Page chrome by tag and role: what Readability's own candidate filter skips,
+ * and what trafilatura drops outright. A `header` inside `article` or `main` is
+ * the content's own heading and stays.
+ */
+const CHROME =
+  "nav, aside, footer, [role=navigation], [role=banner], [role=contentinfo], [role=complementary], [role=dialog], [role=alertdialog], [aria-modal=true]";
+
+/**
+ * The body without its chrome, for when no article was found and the whole
+ * body is written. A cookie banner is matched as trafilatura matches it: on
+ * the first of `id` and `class` the element carries, because a page about
+ * cookies carries the word on its content too.
+ */
+function withoutChrome(body: HTMLElement): HTMLElement {
+  const copy = body.cloneNode(true) as HTMLElement;
+  for (const element of copy.querySelectorAll(CHROME)) element.remove();
+  for (const element of copy.querySelectorAll("header")) {
+    if (!element.parentElement?.closest("article, main")) element.remove();
+  }
+  for (const element of copy.querySelectorAll("[id], [class]")) {
+    const first = [...element.attributes].find((attribute) => attribute.name === "id" || attribute.name === "class");
+    if (/cookie/i.test(first?.value ?? "") || /consent/i.test(element.getAttribute("class") ?? "")) element.remove();
+  }
+  return copy;
+}
+
+/**
  * A saved page keeps the encoding it was served in and says so in a `<meta>`;
  * a Turkish news site saved as windows-1254 reads as mojibake through UTF-8.
  */
@@ -36,9 +63,17 @@ function decode(bytes: Uint8Array): string {
 }
 
 export function extractHtml(bytes: Uint8Array): ExtractionResult {
-  const html = decode(bytes);
+  return readHtml(decode(bytes));
+}
+
+/**
+ * The same reading on markup that is already text: a live page the url import
+ * fetched, which `fetch` decoded by the charset its server sent. `fetchedFrom`
+ * is that page's address, for links and the source line.
+ */
+export function readHtml(html: string, fetchedFrom?: string): ExtractionResult {
   const saved = savedPageUrl(html);
-  const url = saved ?? "https://localhost/";
+  const url = saved ?? fetchedFrom ?? "https://localhost/";
   const doc = new DOMParser().parseFromString(html, "text/html");
   // Readability resolves relative links against the document's base, which
   // for a parsed string is this site, not the page that was saved.
@@ -54,14 +89,21 @@ export function extractHtml(bytes: Uint8Array): ExtractionResult {
   let body = article?.content ? service.turndown(article.content).trim() : "";
   let reader = "readability";
   if (body.length < MIN_CHARS) {
-    body = doc.body ? service.turndown(doc.body).trim() : "";
+    // A page that is all chrome by these rules still has its text read.
+    body = doc.body ? service.turndown(withoutChrome(doc.body)).trim() || service.turndown(doc.body).trim() : "";
     reader = "turndown";
   }
   if (!body) return { text: "" };
 
   const heading = (article?.title?.trim() || title).replace(/\s+/g, " ");
   return {
-    text: [heading && `# ${heading}`, saved && `Saved from ${saved}`, body].filter(Boolean).join("\n\n"),
+    text: [
+      heading && `# ${heading}`,
+      saved ? `Saved from ${saved}` : fetchedFrom && `Fetched from ${fetchedFrom}`,
+      body,
+    ]
+      .filter(Boolean)
+      .join("\n\n"),
     reader,
   };
 }

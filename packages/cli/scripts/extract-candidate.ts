@@ -600,7 +600,10 @@ const CANDIDATES: Record<string, Candidate> = {
     extract: async (bytes) => {
       const XLSX = createRequire(path.join(REPO_ROOT, "apps", "web", "package.json"))("xlsx") as typeof import("../../../apps/web/node_modules/xlsx");
       const workbook = XLSX.read(bytes, { type: "array" });
-      return workbook.SheetNames.map((name) => ({ name, csv: XLSX.utils.sheet_to_csv(workbook.Sheets[name]).trim() }))
+      return workbook.SheetNames.map((name) => ({
+        name,
+        csv: XLSX.utils.sheet_to_csv(workbook.Sheets[name], { strip: true }).replace(/\n{3,}/g, "\n\n").trim(),
+      }))
         .filter((sheet) => sheet.csv)
         .map((sheet) => `# Sheet: ${sheet.name}\n${sheet.csv}`)
         .join("\n\n");

@@ -39,8 +39,9 @@ export interface ConvertFormat {
   listing: string;
   moreHeading: string;
   closeHeading: string;
-  /** The long post on the same format, when there is one. */
-  post?: { slug: string; label: string };
+  /** One more page for the closing list. The long blog guides on the same
+   * format were merged into these pages on 2026-10-14 and 301 here. */
+  more?: { to: string; label: string };
   faq: FaqItem[];
 }
 
@@ -95,12 +96,12 @@ export const CONVERT_FORMATS: ConvertFormat[] = [
     listing: "contracts/\n  lease-2024.pdf\n  lease-2025.pdf\n  renewal-letter.pdf\n  terms.pdf",
     moreHeading: "It reads more than PDFs",
     closeHeading: "Drop your PDF and copy the text",
-    post: { slug: "convert-pdf-to-text-for-llm", label: "Convert PDF to text for an LLM, the long version" },
+    more: { to: "/docs/context-window-costs", label: "What it costs to fill a context window" },
     faq: [
       uploaded("PDF"),
       {
         q: "Does it read scanned PDFs?",
-        a: "Yes. Pages with no text of their own are read by text recognition in your browser and marked as recognised in the bundle. Up to three such documents and 8 MB per drop start on their own; past that it asks first.",
+        a: "Yes. Pages with no text of their own are read by text recognition in your browser and marked as recognised in the bundle, in a fully scanned PDF and in one where only some pages are scans. Up to three such documents and 8 MB per drop start on their own; past that it asks first. The first time, your browser downloads the recognition engine and one language file from a public CDN; your PDF is not part of that request.",
       },
       charts,
       plain,
@@ -131,12 +132,16 @@ export const CONVERT_FORMATS: ConvertFormat[] = [
     listing: "contracts/\n  lease-2024.docx\n  lease-2025.docx\n  renewal-letter.docx\n  terms.doc",
     moreHeading: "It reads more than Word files",
     closeHeading: "Drop your Word file and copy the text",
-    post: { slug: "convert-docx-to-text-for-llm", label: "Convert a Word document to text for an LLM, the long version" },
+    more: { to: "/docs/context-window-costs", label: "What it costs to fill a context window" },
     faq: [
       uploaded("Word document"),
       {
         q: "Does it read old .doc files?",
         a: "Yes. The older .doc is read as well as .docx and .docm. OpenDocument .odt and RTF files are read too, as their text.",
+      },
+      {
+        q: "What happens to tracked changes?",
+        a: "Tracked deletions are left out, so wording that was struck with track changes on does not read as current text. Accept or reject the changes first if you want the model to see a specific version.",
       },
       charts,
       plain,
@@ -167,7 +172,7 @@ export const CONVERT_FORMATS: ConvertFormat[] = [
     listing: "finance/\n  budget-2025.xlsx\n  budget-2026.xlsx\n  forecast.xlsx\n  headcount.xls",
     moreHeading: "It reads more than spreadsheets",
     closeHeading: "Drop your spreadsheet and copy the text",
-    post: { slug: "convert-excel-to-text-for-llm", label: "Convert a spreadsheet to text for an LLM, the long version" },
+    more: { to: "/docs/context-window-costs", label: "What it costs to fill a context window" },
     faq: [
       uploaded("spreadsheet"),
       {
@@ -177,6 +182,10 @@ export const CONVERT_FORMATS: ConvertFormat[] = [
       {
         q: "Do formulas come through?",
         a: "Their results do, as Excel shows them: the sample's total reads 6,360, not =SUM(C2:C3). The formula itself is not in the text, and neither are charts, cell colours or conditional formatting.",
+      },
+      {
+        q: "Do dates come through as dates?",
+        a: "Yes. Each cell is read the way Excel formats it, so a date, a percentage or a currency figure comes out as you see it, not as a stored number such as 45000. A cell Excel shows as a plain number still arrives as one, so format a date column as a date before you drop the file.",
       },
       plain,
       atOnce("workbook", "spreadsheets"),

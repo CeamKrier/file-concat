@@ -109,6 +109,46 @@ describe("formatEmail", () => {
     expect(text).not.toContain("<p>");
   });
 
+  it("marks a quoted reply in HTML-only mail, as a plain-text client would", () => {
+    const { text } = formatEmail({
+      attachments: [],
+      html:
+        '<div dir="ltr">Fine by me.</div><div class="gmail_quote"><div class="gmail_attr">On Mon, Ada wrote:</div>' +
+        '<blockquote class="gmail_quote"><div>Shall we ship Friday?</div><blockquote><div>Is it ready?</div></blockquote></blockquote></div>',
+    });
+    // Flattened, the question reads as the sender's own words.
+    expect(text).toContain("Fine by me.\n\nOn Mon, Ada wrote:");
+    expect(text).toContain("> Shall we ship Friday?");
+    expect(text).toContain(">> Is it ready?");
+    expect(text).not.toMatch(/^> Fine by me/m);
+  });
+
+  it("quotes only what sits inside the blockquote when text runs around it", () => {
+    const { text } = formatEmail({ attachments: [], html: "Yes<blockquote>Ready?</blockquote>Ship it" });
+    expect(text).toBe("Yes\n> Ready?\nShip it");
+  });
+
+  it("marks Outlook's reply history, which follows its header block to the end", () => {
+    const { text } = formatEmail({
+      attachments: [],
+      html:
+        "<div>Approved.</div><hr><div id=\"divRplyFwdMsg\"><b>From:</b> Ada<br><b>Sent:</b> Monday</div>" +
+        "<div>Please approve the budget.</div>",
+    });
+    expect(text).toMatch(/^Approved\.$/m);
+    expect(text).toContain("> From: Ada");
+    expect(text).toContain("> Please approve the budget.");
+  });
+
+  it("leaves a forwarded message unmarked, since it is the content", () => {
+    const { text } = formatEmail({
+      attachments: [],
+      html: '<div class="gmail_quote">---------- Forwarded message ---------<br>From: Ada<br><div>The report is attached.</div></div>',
+    });
+    expect(text).not.toContain(">");
+    expect(text).toContain("The report is attached.");
+  });
+
   it("answers 'couldn't extract' for a message with nothing in it", async () => {
     expect(formatEmail({ attachments: [] })).toEqual({ text: "" });
   });

@@ -208,12 +208,14 @@ async function fetchUrlFiles(url: string, options?: FetchOptions): Promise<Repos
       throw new Error("AbortError");
     }
 
-    // Enhance error message for CORS
-    if (error instanceof TypeError && error.message.includes("fetch")) {
+    // A browser reports a CORS refusal as a bare TypeError ("Failed to fetch",
+    // "Load failed", "NetworkError ..."), and most sites refuse: 8 of 10 popular
+    // pages sent no Access-Control-Allow-Origin on 2026-10-14.
+    if (error instanceof TypeError) {
       return {
         files: [],
         error:
-          "Failed to fetch URL. This might be due to CORS restrictions. Try using a raw content URL from GitHub, GitLab, or a CDN.",
+          "This site does not let other pages read it. For an article, the FileConcat Clipper extension reads any page; for a file, use a raw link from GitHub, GitLab or a CDN.",
       };
     }
 

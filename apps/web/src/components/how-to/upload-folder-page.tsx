@@ -10,12 +10,13 @@ import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketin
 import { UPLOAD_FOLDER_FAQ } from "./upload-folder-faq";
 
 /**
- * /how-to/upload-folder-to-chatgpt: a folder on disk, or a ZIP of one, into
- * ChatGPT. The searcher types "upload folder to chatgpt" or "can chatgpt read
- * zip files", never the remedy, so the page answers the question they asked
- * first (no local folder upload, archives not a supported type) and then does
- * the job in place. Sources are in upload-folder-faq.ts. Hosts the real app
- * flow via AppFlow's renderLanding slot.
+ * /how-to/upload-folder-to-chatgpt: a folder on disk into ChatGPT. The
+ * searcher types "upload folder to chatgpt", never the remedy, so the page
+ * answers the question they asked first (no local folder upload) and then does
+ * the job in place. ZIP queries belong to /how-to/upload-zip-to-chatgpt since
+ * 2026-10-13; this page links there once and does not compete for them.
+ * Sources are in upload-folder-faq.ts. Hosts the real app flow via AppFlow's
+ * renderLanding slot.
  */
 export function UploadFolderPage() {
   return <AppFlow renderLanding={(dropProps) => <UploadFolderLanding {...dropProps} />} />;
@@ -36,7 +37,7 @@ function UploadFolderLanding(dropProps: DropZoneProps) {
 }
 
 const TRUST = [
-  "Folders and .zip, .7z, .rar, .tar opened here",
+  "Whole folders, subfolders included",
   "PDFs and Office docs inside read too",
   "No sign-up, files not uploaded to us",
 ];
@@ -56,10 +57,10 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           </h1>
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
-            OpenAI's help pages describe no way to upload a folder from your computer, and archives
-            are not on its list of supported file types. Drop the folder or the ZIP here instead.
-            Everything inside, even the PDFs, is read in your browser and comes back as one text
-            file with the folder tree at the top, which ChatGPT reads in full.
+            OpenAI's help pages describe no way to upload a folder from your computer. Drop the
+            folder here instead. Everything inside, even the PDFs, is read in your browser and
+            comes back as one text file with the folder tree at the top, which ChatGPT reads in
+            full.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -82,7 +83,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <DropZone
             {...dropProps}
-            title="Drop your folder or ZIP here"
+            title="Drop your folder here"
             hint="Every file inside, read in your browser."
           />
         </div>
@@ -101,12 +102,6 @@ const ROUTES = [
     here: "Drop the folder, upload one file",
   },
   {
-    what: "A ZIP of that folder",
-    chatgpt:
-      "Archives are not a supported file type, and forum reports of unread ZIPs run from 2024 to September 2026.",
-    here: "Drop the ZIP, it is unpacked in your browser",
-  },
-  {
     what: "A Google Drive folder",
     chatgpt:
       "A Drive folder link can be a Project source. In our test ChatGPT read it live and skipped the archives inside.",
@@ -122,10 +117,10 @@ function WhatChatGptDoes() {
           id="folder-routes"
           className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          What ChatGPT does with a folder or a ZIP.
+          What ChatGPT does with a folder.
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[50ch] text-[15px] leading-relaxed">
-          Three ways a folder can reach ChatGPT, and only the one through a connected drive is
+          Two ways a folder can reach ChatGPT, and only the one through a connected drive is
           something OpenAI documents.
         </p>
       </div>
@@ -166,11 +161,7 @@ function WhatChatGptDoes() {
         <SourceLink href="https://help.openai.com/en/articles/10169521-using-projects-in-chatgpt">
           Projects
         </SourceLink>
-        , and the{" "}
-        <SourceLink href="https://community.openai.com/t/bug-multi-file-uploads-failing-and-zip-archives-not-parsing-sandbox-timeout-100-limits-remaining/1393884">
-          community forum
-        </SourceLink>{" "}
-        for the ZIP reports. Each file you upload also counts toward{" "}
+        . Each file you upload also counts toward{" "}
         <Link
           to="/how-to/chatgpt-file-upload-limit"
           className="hover:text-ink-secondary underline decoration-[oklch(var(--border-strong))] underline-offset-2 transition-colors duration-150"
@@ -207,13 +198,12 @@ function WhyOneFile() {
           id="folder-why"
           className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          Why one text file beats a ZIP.
+          Why one text file beats the files one by one.
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
-          A ZIP asks ChatGPT to unpack it before it can read anything, and that is the step the
-          forum reports say fails. A text file skips it: the folder is already open, the documents
-          are already text, and the paths are written out, so nothing depends on how ChatGPT handles
-          archives that day.
+          Attached one by one, every file in the folder is its own upload, and the folders they
+          sat in are gone by the time ChatGPT sees them. One text file is a single upload: the
+          documents are already text, and every path is written out above its content.
         </p>
       </div>
 
@@ -231,8 +221,8 @@ function WhyOneFile() {
 
 const STEPS = [
   {
-    title: "Drop the folder or the ZIP",
-    body: "Drop it in or pick it. Subfolders come along, and .zip, .7z, .rar, .tar and .tar.gz are unpacked here.",
+    title: "Drop the folder",
+    body: "Drop it in or pick it. Subfolders come along, and so does every path.",
   },
   {
     title: "It reads everything inside",
@@ -240,7 +230,7 @@ const STEPS = [
   },
   {
     title: "Upload the one file",
-    body: "Set Format to Plain, download the .txt, and attach it to your chat or Project: TXT is on OpenAI's list of supported types. ChatGPT reads it as text, with no archive to open.",
+    body: "Set Format to Plain, download the .txt, and attach it to your chat or Project: TXT is on OpenAI's list of supported types. ChatGPT reads it as text, every path included.",
   },
 ];
 
@@ -281,16 +271,16 @@ function WorkedExample() {
           id="folder-example"
           className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          A client handover ZIP, opened.
+          A client handover folder, opened.
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[46ch] text-[15px] leading-relaxed">
-          The archive goes in. One text file comes out, the tree first and every document under its
+          The folder goes in. One text file comes out, the tree first and every document under its
           path, labeled as documents so ChatGPT reads it as one set.
         </p>
       </div>
 
       <div className="mt-10 grid items-center gap-4 lg:grid-cols-[1fr_auto_1fr] lg:gap-6">
-        <MockWindow label="client-handover.zip">
+        <MockWindow label="client-handover/">
           <pre className="text-code overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.7]">
             <code>
               {`client-handover/\n`}
