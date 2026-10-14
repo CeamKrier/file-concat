@@ -70,7 +70,9 @@ import {
   assemblePdfPages,
   extractWithFallback,
   isPasswordProtected,
+  noteLayersOff,
   routeBytes,
+  withoutHiddenText,
   type ExtractionResult,
   type FirstReaderId,
   type ParserId,
@@ -82,7 +84,7 @@ import { parsePdfPages } from "../../../apps/web/src/lib/liteparse-pages.js";
 import { parsers } from "../src/parsers.js";
 
 const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-const CORPUS = path.join(REPO_ROOT, "packages", "core", "tests", "fixtures", "real");
+const CORPUS = process.env.EXTRACTION_CORPUS ?? path.join(REPO_ROOT, "packages", "core", "tests", "fixtures", "real");
 
 /** Tracked companions of the corpus, and the generator's own dependencies. */
 const NOT_A_FIXTURE = new Set(["README.md", "generate.mjs", "manifest.json", "node_modules"]);
@@ -391,11 +393,16 @@ const anydocModule = once(async () => {
 });
 
 const officeparser: ParserLoader = (bytes, format) => parsers.extract("office", bytes, format);
-const anydoc: ParserLoader = async (bytes) => ({ text: (await anydocModule()).toMarkdownBytes(bytes).trim() });
+// As `extract-anydoc-client.ts` reads: hidden text out first, then the note.
+const anydoc: ParserLoader = async (bytes) => {
+  const { bytes: readable, hidden } = withoutHiddenText(bytes);
+  const text = (await anydocModule()).toMarkdownBytes(readable).trim();
+  return hidden > 0 && text ? { text, notes: [{ kind: "hidden-left-out", count: hidden }] } : { text };
+};
 const webReaders: Record<FirstReaderId, ParserLoader> = {
   liteparse: async (bytes) => {
     const { pages, skipped } = await parsePdfPages((await liteparseModule()).LiteParse, bytes);
-    return assemblePdfPages(pages, skipped);
+    return noteLayersOff(assemblePdfPages(pages, skipped), bytes);
   },
   sheetjs: async (bytes) => extractWorkbook(bytes),
   anydoc,
