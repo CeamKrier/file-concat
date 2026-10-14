@@ -2,6 +2,11 @@ import { strToU8, zipSync } from "fflate";
 
 /** Build a minimal but valid .docx (OOXML zip) carrying a single line of text. */
 export function minimalDocx(text: string): Uint8Array {
+  return docxWithBody(`<w:p><w:r><w:t>${text}</w:t></w:r></w:p>`);
+}
+
+/** The same .docx with the given `w:body` markup. */
+export function docxWithBody(body: string): Uint8Array {
   return zipSync({
     "[Content_Types].xml": strToU8(
       `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
@@ -20,7 +25,7 @@ export function minimalDocx(text: string): Uint8Array {
     "word/document.xml": strToU8(
       `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
         `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">` +
-        `<w:body><w:p><w:r><w:t>${text}</w:t></w:r></w:p></w:body>` +
+        `<w:body>${body}</w:body>` +
         `</w:document>`,
     ),
   });

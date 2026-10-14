@@ -331,7 +331,10 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // until now nobody read it, so a PDF missing three pages reached the bundle
   // looking exactly like one missing none.
   //
-  // Only this one kind, out of five. `ocr-failed` is what the scanned documents
+  // Hidden text the reader left out on purpose (Q18 O1) is listed the same
+  // way: what is in the bundle is real, and something the file holds is not.
+  //
+  // Only these two kinds, out of the rest. `ocr-failed` is what the scanned documents
   // card is already about, and `parser-unavailable` / `cdn-fallback` describe a
   // file that produced no text at all, which is not in the bundle to caveat.
   // `attachments-skipped` is the one deliberately left out: it is honest, but a
@@ -343,8 +346,11 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   const partialDocuments = useMemo(() => {
     const included = new Set(filter.fileStatuses.filter((s) => s.included).map((s) => s.path));
     return Object.entries(ingestion.validations)
-      .filter(([path, v]) => included.has(path) && v.notes?.includes("pages-skipped"))
-      .map(([path]) => ({ name: path.split("/").pop() ?? path, why: "pages missing" }));
+      .filter(([path, v]) => included.has(path) && (v.notes?.includes("pages-skipped") || v.notes?.includes("hidden-left-out")))
+      .map(([path, v]) => ({
+        name: path.split("/").pop() ?? path,
+        why: v.notes?.includes("pages-skipped") ? "pages missing" : "hidden text left out",
+      }));
   }, [ingestion.validations, filter.fileStatuses]);
   const bigBundle = SPLIT_OUTPUT_ENABLED && tokens > MULTI_OUTPUT_LIMIT;
   // What the removed 32 MB per-file cap used to decide silently, reported

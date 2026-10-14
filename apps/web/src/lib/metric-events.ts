@@ -178,7 +178,7 @@ export const METRIC_EVENTS = [
    * What a reader could not recover from a document it *did* open: value is one
    * of the ADR-0008 note kinds (`pages-skipped`, `attachments-skipped`,
    * `ocr-failed`, `cdn-fallback`, `parser-unavailable`, `text-undecodable`,
-   * `pages-scanned`), `n` the documents carrying it.
+   * `pages-scanned`, `hidden-left-out`), `n` the documents carrying it.
    *
    * Orthogonal to `extract_failed`, not a subset of it: most of these are
    * written for a document that came back with text, and say which part of it

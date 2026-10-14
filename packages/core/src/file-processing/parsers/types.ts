@@ -49,7 +49,14 @@ export type ExtractionNoteKind =
    * pages read: scanned pages bound into a text PDF. `pages` names them so
    * recognition can read just those.
    */
-  | "pages-scanned";
+  | "pages-scanned"
+  /**
+   * Text the author hid was left out (Q18 O1): hidden runs, hidden sections,
+   * hidden HTML. `count` is how many pieces held text. Placeholder prompts and
+   * labelled hidden sheets or slides are not counted: nothing of the author's
+   * is missing for them.
+   */
+  | "hidden-left-out";
 
 export interface ExtractionNote {
   kind: ExtractionNoteKind;

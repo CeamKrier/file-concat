@@ -1,5 +1,6 @@
 import { strFromU8, unzipSync } from "fflate";
 import type { OfficeContentNode } from "officeparser";
+import { withoutHiddenWordText } from "./office-hidden";
 import type { ExtractionNote, ExtractionNoteKind, ExtractionResult } from "./types";
 
 /**
@@ -922,7 +923,8 @@ export async function extractOfficeDocument(
   options: OfficeParserOptions = {},
 ): Promise<ExtractionResult> {
   const { parseOffice } = await import("officeparser");
-  const ast = await parseOffice(bytes, toLibraryConfig(options));
+  const { bytes: readable, hidden: hiddenRuns } = withoutHiddenWordText(bytes);
+  const ast = await parseOffice(readable, toLibraryConfig(options));
   // Recognised image text reaches us as `[Image: …]` placeholders in the
   // rendered string, and csv has nowhere to write them. A workbook that carries
   // any is therefore rendered as text: its cells run together, exactly as they
@@ -976,5 +978,6 @@ export async function extractOfficeDocument(
   if (lost > 0) {
     notes.push({ kind: "text-undecodable", count: lost, ...(pages.length > 0 ? { pages } : {}) });
   }
+  if (hiddenRuns > 0) notes.push({ kind: "hidden-left-out", count: hiddenRuns });
   return notes.length > 0 ? { text, notes } : { text };
 }
