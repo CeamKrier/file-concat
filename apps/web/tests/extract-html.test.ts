@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { extractHtml, readHtml } from "~/lib/extract-html-client";
+import { dropHidden } from "~/lib/turndown-client";
 
 const prose = "Saved pages carry the article and everything around it. ".repeat(12);
 const page = (body: string, head = "") =>
@@ -75,5 +76,29 @@ describe("extractHtml", () => {
     expect(text.startsWith("# Live\n\nFetched from https://example.com/blog/live\n\n")).toBe(true);
     expect(text).toContain("Next and [Mozilla](https://mozilla.org/x).");
     expect(text).not.toContain("Menu");
+  });
+
+  it("leaves out what the author hid from the whole body and says how much", () => {
+    const hidden = `<p hidden>QZATTR</p><span style="display:none">QZNONE</span>
+       <div style="visibility: hidden"><p>QZVIS</p><p style="display:none">QZNESTED</p></div><span style="display:none"></span>`;
+    // A carousel caption waiting to fade in, and the inline-block gap fix.
+    const shown = `<span aria-hidden="true">QZARIA</span><p hidden="until-found">QZFOUND</p>
+       <figcaption style="opacity: 0">QZFADE</figcaption><div style="font-size:0"><span style="font-size:14px">QZGAP</span></div>`;
+    const { text, notes, reader } = readHtml(`<html><body><ul><li>Milk</li></ul>${hidden}${shown}</body></html>`);
+    expect(reader).toBe("turndown");
+    for (const word of ["QZATTR", "QZNONE", "QZVIS", "QZNESTED"]) expect(text).not.toContain(word);
+    for (const word of ["QZARIA", "QZFOUND", "QZFADE", "QZGAP"]) expect(text).toContain(word);
+    // The nested one went with its parent, the empty one held nothing.
+    expect(notes).toEqual([{ kind: "hidden-left-out", count: 3 }]);
+    // An article Readability picked never held them, so nothing is noted.
+    const article = readHtml(`<html><body><article><p>${prose}</p>${hidden}</article></body></html>`);
+    expect(article.text).not.toContain("QZNONE");
+    expect(article.notes).toBeUndefined();
+  });
+
+  it("drops hidden elements from any root it is handed, as the ebook reader does", () => {
+    const doc = new DOMParser().parseFromString(`<body><p>Kept</p><p style="display: None">Gone</p></body>`, "text/html");
+    expect(dropHidden(doc.body)).toBe(1);
+    expect(doc.body.textContent).toBe("Kept");
   });
 });

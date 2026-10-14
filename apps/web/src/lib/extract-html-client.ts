@@ -1,6 +1,6 @@
 import { Readability } from "@mozilla/readability";
 import { savedPageUrl, type ExtractionResult } from "@fileconcat/core";
-import { turndown } from "./turndown-client";
+import { dropHidden, turndown } from "./turndown-client";
 
 /**
  * Client-only reading of a page a browser saved (extraction router, step R5).
@@ -88,12 +88,16 @@ export function readHtml(html: string, fetchedFrom?: string): ExtractionResult {
   const article = new Readability(doc.cloneNode(true) as Document).parse();
   let body = article?.content ? service.turndown(article.content).trim() : "";
   let reader = "readability";
+  let hidden = 0;
   if (body.length < MIN_CHARS) {
+    // Readability skips hidden elements itself; the whole body kept them.
+    hidden = doc.body ? dropHidden(doc.body) : 0;
     // A page that is all chrome by these rules still has its text read.
     body = doc.body ? service.turndown(withoutChrome(doc.body)).trim() || service.turndown(doc.body).trim() : "";
     reader = "turndown";
   }
   if (!body) return { text: "" };
+  const notes = hidden > 0 ? { notes: [{ kind: "hidden-left-out" as const, count: hidden }] } : {};
 
   const heading = (article?.title?.trim() || title).replace(/\s+/g, " ");
   return {
@@ -105,5 +109,6 @@ export function readHtml(html: string, fetchedFrom?: string): ExtractionResult {
       .filter(Boolean)
       .join("\n\n"),
     reader,
+    ...notes,
   };
 }

@@ -1,7 +1,7 @@
 import { unzlibSync } from "fflate";
 import { MOBI } from "foliate-js/mobi.js";
 import type { ExtractionResult } from "@fileconcat/core";
-import { turndown } from "./turndown-client";
+import { dropHidden, turndown } from "./turndown-client";
 
 /**
  * Kindle books, old MOBI and KF8 (`.azw3`), read by foliate-js, the Foliate
@@ -29,8 +29,10 @@ export async function extractMobi(bytes: Uint8Array): Promise<ExtractionResult> 
     replacement: (_content, node) => (node as HTMLElement).getAttribute("alt")?.trim() ?? "",
   });
   const parts: string[] = [];
+  let hidden = 0;
   for (const section of book.sections) {
     const doc = await section.createDocument?.();
+    if (doc?.body) hidden += dropHidden(doc.body);
     // As a string: a KF8 section is XHTML, whose lowercase node names Turndown's
     // rules do not match, and its markup reparses as HTML.
     const text = doc?.body ? service.turndown(doc.body.innerHTML).trim() : "";
@@ -38,5 +40,9 @@ export async function extractMobi(bytes: Uint8Array): Promise<ExtractionResult> 
   }
   if (parts.length === 0) return { text: "" };
   const title = typeof book.metadata?.title === "string" ? book.metadata.title.trim() : "";
-  return { text: [title && `# ${title}`, ...parts].filter(Boolean).join("\n\n"), reader: "foliate" };
+  return {
+    text: [title && `# ${title}`, ...parts].filter(Boolean).join("\n\n"),
+    reader: "foliate",
+    ...(hidden > 0 ? { notes: [{ kind: "hidden-left-out" as const, count: hidden }] } : {}),
+  };
 }
