@@ -64,8 +64,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["docx", "docm", "dotx", "dotm", "doc"],
     formats: ["docx", "docm", "dotx", "dotm", "cfb"],
     how: "auto",
-    gives: "Text with headings, tables, footnotes and link addresses. Tracked deletions and hidden text are left out.",
-    loses: "Pictures and charts are not described.",
+    gives: "Text with headings, tables, footnotes and link addresses. A chart comes through as a table of its data. Tracked deletions and hidden text are left out.",
+    loses: "Pictures are not described. A chart in a Word 97-2003 file, or in a header or footer, is not read.",
   },
   {
     group: "Documents",
@@ -73,8 +73,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["odt", "rtf"],
     formats: ["odt", "rtf"],
     how: "auto",
-    gives: "The text. Hidden text is left out.",
-    loses: "Pictures and charts are not described.",
+    gives: "The text. An OpenDocument chart comes through as a table of its data. Hidden text is left out.",
+    loses: "Pictures and the charts in an RTF file are not described.",
   },
   {
     group: "Spreadsheets",
@@ -82,8 +82,9 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["xlsx", "xlsm", "xlsb", "xltx", "xltm", "xls"],
     formats: ["xlsx", "xlsm", "xlsb", "xltx", "xltm", "cfb"],
     how: "auto",
-    gives: "Every sheet under its name, rows as comma-separated cells, each cell as Excel shows it. A hidden sheet is read and marked (hidden).",
-    loses: "Formulas (their results come through), charts, cell colours and conditional formatting.",
+    gives:
+      "Every sheet under its name, rows as comma-separated cells, each cell as Excel shows it. Charts and text boxes on a sheet follow its rows, a chart as a table of its data. A hidden sheet is read and marked (hidden).",
+    loses: "Formulas (their results come through), cell colours and conditional formatting. The charts in an .xls or .xlsb file.",
   },
   {
     group: "Spreadsheets",
@@ -91,8 +92,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["ods"],
     formats: ["ods"],
     how: "auto",
-    gives: "Every sheet's cells as text. A hidden sheet is read and marked (hidden).",
-    loses: "Formulas (their results come through), charts and cell colours.",
+    gives: "Every sheet's cells as text, and its charts after them as tables of their data. A hidden sheet is read and marked (hidden).",
+    loses: "Formulas (their results come through) and cell colours.",
   },
   {
     group: "Slides",
@@ -100,8 +101,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["pptx", "pptm", "potx", "potm", "ppsx", "ppsm", "ppt"],
     formats: ["pptx", "pptm", "potx", "potm", "ppsx", "ppsm", "cfb"],
     how: "auto",
-    gives: "The text of each slide, slide by slide. A hidden slide is read and marked (hidden).",
-    loses: "The text inside a chart or SmartArt diagram, and a chart or diagram that exists only as a picture.",
+    gives: "The text of each slide, slide by slide, and a chart as a table of its data. A hidden slide is read and marked (hidden).",
+    loses: "A chart or diagram that exists only as a picture, and the charts in a PowerPoint 97-2003 file.",
   },
   {
     group: "Slides",
@@ -109,8 +110,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["odp"],
     formats: ["odp"],
     how: "auto",
-    gives: "The text of each slide. A hidden slide is read and marked (hidden).",
-    loses: "The text inside a chart, and a chart or diagram that exists only as a picture.",
+    gives: "The text of each slide, and a chart as a table of its data. A hidden slide is read and marked (hidden).",
+    loses: "A chart or diagram that exists only as a picture.",
   },
   {
     group: "Books",
