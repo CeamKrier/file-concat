@@ -30,7 +30,11 @@ interface Control {
 /** A boolean property is on unless its `w:val` says 0, false or off (ECMA-376 17.17.4). */
 const on = (tag: string) => !/\sw:val="(?:0|false|off)"/.test(tag);
 
-/** One Word XML part with hidden runs and showing placeholders emptied, and how many hidden runs held text. */
+/**
+ * One Word XML part with hidden runs, showing placeholders and the source of a
+ * tracked move (`w:moveFrom`, a deletion the reader would print beside the
+ * `w:moveTo` copy) emptied, and how many hidden runs held text.
+ */
 export function withoutHiddenRuns(xml: string): { xml: string; hidden: number } {
   const open: string[] = [];
   const runs: Run[] = [];
@@ -39,6 +43,8 @@ export function withoutHiddenRuns(xml: string): { xml: string; hidden: number } 
   let hidden = 0;
   // Content controls open around this point that are showing their prompt.
   let prompts = 0;
+  // Tracked moves open around this point, whose text sits at the destination.
+  let moves = 0;
   let kept = 0;
   let dropping = false;
   // Tags found by index, never by a pattern over the whole part, so a crafted
@@ -61,6 +67,7 @@ export function withoutHiddenRuns(xml: string): { xml: string; hidden: number } 
         dropping = false;
       }
       if (name === "w:r" && runs.pop()?.text) hidden++;
+      if (name === "w:moveFrom" && moves > 0) moves--;
       if (name === "w:sdt") {
         const control = controls.pop();
         if (control?.placeholder && control.content) prompts--;
@@ -78,7 +85,7 @@ export function withoutHiddenRuns(xml: string): { xml: string; hidden: number } 
         if (control.placeholder) prompts++;
       } else if (name === "w:t" && !empty) {
         const run = runs[runs.length - 1];
-        const prompt = prompts > 0;
+        const prompt = prompts > 0 || moves > 0;
         if (run?.hidden || prompt) {
           out.push(xml.slice(kept, end + 1));
           dropping = true;
@@ -89,6 +96,7 @@ export function withoutHiddenRuns(xml: string): { xml: string; hidden: number } 
         open.push(name);
         if (name === "w:r") runs.push({ hidden: false, text: false });
         if (name === "w:sdt") controls.push({ placeholder: false, content: false });
+        if (name === "w:moveFrom") moves++;
       }
     }
     at = end + 1;

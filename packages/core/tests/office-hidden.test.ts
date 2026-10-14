@@ -33,6 +33,18 @@ describe("withoutHiddenRuns", () => {
   });
 });
 
+describe("withoutHiddenRuns and tracked moves", () => {
+  it("empties the source of a move and keeps its destination, uncounted", () => {
+    const xml =
+      `<w:p><w:moveFrom w:id="1">${run("QZFROM")}</w:moveFrom></w:p><w:p>${run("Between")}</w:p>` +
+      `<w:p><w:pPr><w:rPr><w:moveFrom w:id="2"/></w:rPr></w:pPr><w:moveTo w:id="3">${run("QZTO")}</w:moveTo></w:p>`;
+    const { xml: out, hidden } = withoutHiddenRuns(xml);
+    expect(out).not.toContain("QZFROM");
+    for (const word of ["Between", "QZTO"]) expect(out).toContain(word);
+    expect(hidden).toBe(0);
+  });
+});
+
 describe("extractOfficeDocument and hidden text", () => {
   it("leaves a docx's hidden run out and says how many it left", async () => {
     const docx = docxWithBody(`<w:p>${run("Quarterly plan. ")}${run("SECRET NOTE", "<w:vanish/>")}</w:p>`);
