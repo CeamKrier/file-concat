@@ -128,7 +128,7 @@ function HowBig() {
         <p className="text-ink-muted mt-5 text-[13px] leading-relaxed">
           Method and every repository:{" "}
           <ProseLink to="/blog/how-many-tokens-is-a-codebase">
-            how many tokens a codebase actually is
+            how many tokens a codebase is
           </ProseLink>
           .
         </p>

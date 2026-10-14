@@ -84,7 +84,7 @@ const CLIPPER = [
   },
   {
     title: "It asks for access to all sites.",
-    body: "Because any page can be an article, and the reader that finds an article's body works everywhere rather than on a list of sites we picked in advance. That permission is what makes the clip button possible on the page you are actually on. It is not what decides whether a page gets read, which is still only ever your button press.",
+    body: "Because any page can be an article, and the reader that finds an article's body works everywhere rather than on a list of sites we picked in advance. That permission is what makes the clip button possible on whatever page you are on. It is not what decides whether a page gets read, which is still only ever your button press.",
   },
 ];
 

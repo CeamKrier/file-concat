@@ -121,7 +121,7 @@ type BeatCopy = { heading: string; body: string; aside?: string };
 const BEATS: BeatCopy[] = [
   {
     heading: "A thread comes out as a thread",
-    body: "Copying a page into Markdown is the easy half, and every bookmarklet does it. What is actually hard to get out of a browser is a discussion. Every author, score and level of nesting is kept, so a reply still reads as a reply to the thing above it rather than as one more paragraph.",
+    body: "Copying a page into Markdown is the easy half, and every bookmarklet does it. The hard part to get out of a browser is a discussion. Every author, score and level of nesting is kept, so a reply still reads as a reply to the thing above it rather than as one more paragraph.",
     aside: "On Hacker News the whole comment tree arrives in one request, however deep it runs. Measured on a 638-comment thread: 264,851 characters, nested eight levels down, none of which was on screen when the button was pressed.",
   },
   {
@@ -293,7 +293,7 @@ function useSteps() {
 const CASES = [
   {
     heading: "A discussion you were not in",
-    body: "Six hundred replies, thirty of them on screen. The whole tree comes out with its nesting intact, so you can ask what the disagreement actually was instead of scrolling for the comment everybody is quoting.",
+    body: "Six hundred replies, thirty of them on screen. The whole tree comes out with its nesting intact, so you can ask what the disagreement was instead of scrolling for the comment everybody is quoting.",
     Art: ThreadClipping,
     flip: false,
   },

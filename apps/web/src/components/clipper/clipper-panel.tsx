@@ -90,7 +90,7 @@ const CHANNEL_ROWS: Row[] = [
   { title: VIDEO, meta: "18:42" },
   { title: "The B-tree, one node at a time", meta: "24:05" },
   { title: "Write-ahead logs and why they exist", meta: "15:31" },
-  { title: "What a query planner is actually doing", meta: "31:18" },
+  { title: "What a query planner does, step by step", meta: "31:18" },
   { title: "Vacuum, bloat and the cost of MVCC", meta: "27:44" },
   { title: "Indexes that do not help", meta: "20:16" },
   { title: "Isolation levels, demonstrated", meta: "38:09" },

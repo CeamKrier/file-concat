@@ -196,7 +196,7 @@ function FileTypes() {
             id="legal-filetypes"
             className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
           >
-            The formats a matter actually arrives in.
+            The formats a matter arrives in.
           </h2>
           <p className="text-ink-secondary mt-4 max-w-[46ch] text-[15px] leading-relaxed">
             You do not have to convert anything first. Born-digital documents are read straight

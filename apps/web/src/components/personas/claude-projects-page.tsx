@@ -417,7 +417,7 @@ function ClosingCta() {
       </div>
       <FurtherReading>
         Not sure a repository fits at all? We bundled 60 public ones and counted:{" "}
-        <ProseLink to="/blog/how-many-tokens-is-a-codebase">how many tokens a codebase actually is</ProseLink>
+        <ProseLink to="/blog/how-many-tokens-is-a-codebase">how many tokens a codebase is</ProseLink>
         .
       </FurtherReading>
     </MarketingSection>

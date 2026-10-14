@@ -260,7 +260,7 @@ export function ResultView({
         kind: "note",
         icon: ScanText,
         title: `Read ${recoveredDocuments} ${noun(recoveredDocuments)}${asLanguage}.`,
-        body: "Recognition guesses at characters, and a reading in the wrong language comes back looking like a success. Worth a look before you trust it.",
+        body: "Recognition guesses at characters, and a reading in the wrong language comes back looking like a success. Check it before you trust it.",
         action: { label: "Check the reading", onClick: onCheckReading },
       });
     } else if (recoveredDocuments > 0) {
@@ -338,7 +338,7 @@ export function ResultView({
       // Floored, not rounded: a 99.9% share alongside two other files must not
       // print as "100% of it".
       title: `One file is ${Math.floor(weight.dominant.share * 100)}% of the bundle.`,
-      body: "Worth checking that you meant to send it.",
+      body: "Check that you meant to send it.",
       panel: {
         label: "Which file",
         content: (
@@ -382,7 +382,7 @@ export function ResultView({
               : `Read all ${imageCount} images.`,
         body:
           recognisedImages === imageCount
-            ? "Recognition guesses at characters, so the words in the bundle are close rather than exact. Worth a look before you trust them."
+            ? "Recognition guesses at characters, so the words in the bundle are close rather than exact. Check them before you trust them."
             : `Nothing legible came back from the other ${imageCount - recognisedImages}. That is the ordinary answer for a picture with no writing in it.`,
         action: { label: "Check the reading", onClick: onCheckReading },
       });
@@ -413,7 +413,7 @@ export function ResultView({
                 : mediaCount === 1
                   ? "Transcribed the recording."
                   : `Transcribed all ${mediaCount} recordings.`,
-            body: "A speech model hears words, not spelling, so names and terms can come out wrong. Worth a look before you trust them.",
+            body: "A speech model hears words, not spelling, so names and terms can come out wrong. Check them before you trust them.",
             action: { label: "Check the transcript", onClick: onCheckReading },
           },
     );
