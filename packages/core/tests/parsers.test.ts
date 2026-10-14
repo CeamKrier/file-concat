@@ -3,6 +3,7 @@ import { strToU8 } from "fflate";
 import { createParserRegistry } from "../src/file-processing/parsers/registry";
 import { extractOfficeDocument } from "../src/file-processing/parsers/officeparser";
 import {
+  deckPptx,
   furnitureDocx,
   minimalDocx,
   minimalEpub,
@@ -220,6 +221,47 @@ describe("extractOfficeDocument — structure survives extraction", () => {
     expect(text).toContain("Open with the counters");
     const lines = text.split("\n").map((line) => line.trim());
     expect(lines).not.toContain("1");
+  });
+
+  it("labels a slide's speaker notes so they do not read as slide text", async () => {
+    const { text } = await extractOfficeDocument(twoSlidePptx());
+
+    expect(text.indexOf("Measure quality")).toBeLessThan(text.indexOf("--- Speaker notes ---"));
+    expect(text.indexOf("--- Speaker notes ---")).toBeLessThan(text.indexOf("Open with the counters"));
+    expect(text.match(/--- Speaker notes ---/g)).toHaveLength(1);
+  });
+
+  it("drops the slide number on a slide and keeps one copy of its footer and date", async () => {
+    const chrome = (n: number) => [
+      { ph: "ftr", lines: ["Acme Confidential"] },
+      { ph: "dt", lines: ["14 October 2026"] },
+      { ph: "sldNum", lines: [String(n)] },
+    ];
+    const { text } = await extractOfficeDocument(
+      deckPptx([1, 2, 3].map((n) => ({ shapes: [{ lines: [`Point ${"ABC"[n - 1]}`] }, ...chrome(n)] }))),
+    );
+    const lines = text.split("\n").map((line) => line.trim());
+
+    for (const n of ["1", "2", "3"]) expect(lines).not.toContain(n);
+    expect(lines.filter((line) => line === "Acme Confidential")).toHaveLength(1);
+    expect(lines.filter((line) => line === "14 October 2026")).toHaveLength(1);
+    for (const point of ["Point A", "Point B", "Point C"]) expect(text).toContain(point);
+  });
+
+  it("reads a footer holding an entity no character has", async () => {
+    const { text } = await extractOfficeDocument(
+      deckPptx([1, 2, 3].map(() => ({ shapes: [{ lines: ["Body"] }, { ph: "ftr", lines: ["A &#99999999; B"] }] }))),
+    );
+    expect(text).toContain("Body");
+  });
+
+  it("says which slides are hidden rather than dropping them", async () => {
+    const { text } = await extractOfficeDocument(
+      deckPptx([{ shapes: [{ lines: ["Shown"] }] }, { shapes: [{ lines: ["Parked"] }], hidden: true }]),
+    );
+
+    expect(text).toContain("# Slide 1\n");
+    expect(text).toMatch(/# Slide 2 \(hidden\)\s+Parked/);
   });
 
   it("leaves a document that has no slides unmarked", async () => {

@@ -1,3 +1,4 @@
+import { strFromU8, unzipSync } from "fflate";
 import type { OfficeContentNode } from "officeparser";
 import type { ExtractionNote, ExtractionNoteKind, ExtractionResult } from "./types";
 
@@ -207,7 +208,10 @@ function isWorkbook(content: ReadonlyArray<{ type: string }> | undefined): boole
  * successful extraction to every caller — the exact silent-success failure that
  * an empty string exists to prevent (ADR-0003).
  */
-function markSectionStarts(markPages: boolean): (node: OfficeContentNode) => void {
+function markSectionStarts(
+  markPages: boolean,
+  hidden: ReadonlySet<number> = new Set(),
+): (node: OfficeContentNode) => void {
   const seen = { slide: 0, page: 0 };
 
   return (node) => {
@@ -216,7 +220,9 @@ function markSectionStarts(markPages: boolean): (node: OfficeContentNode) => voi
     let label;
     if (node.type === "slide") {
       seen.slide += 1;
-      label = `# Slide ${node.metadata?.slideNumber ?? seen.slide}`;
+      const number = node.metadata?.slideNumber ?? seen.slide;
+      // A hidden slide is still the author's text, so it stays, and says so.
+      label = `# Slide ${number}${hidden.has(number) ? " (hidden)" : ""}`;
     } else if (node.type === "page" && markPages) {
       seen.page += 1;
       label = `# Page ${node.metadata?.pageNumber ?? seen.page}`;
@@ -250,6 +256,98 @@ function dropSlideNumberFromNotes(node: OfficeContentNode): void {
   if (node.type !== "note" || node.metadata?.slideNumber === undefined) return;
   const number = String(node.metadata.slideNumber);
   node.children = (node.children ?? []).filter((child) => child.text?.trim() !== number);
+}
+
+/**
+ * Label a slide's speaker notes. The renderer writes them straight under the
+ * slide body, where "Open with the counters" reads as one more bullet on the
+ * slide. Shaped like the `--- Notes ---` label footnotes get; MarkItDown heads
+ * them `### Notes:` for the same reason. Footnotes carry a `noteType` and are
+ * left to {@link numberFootnotes}.
+ */
+function labelSpeakerNotes(node: OfficeContentNode): void {
+  if (node.type !== "note" || node.metadata?.noteType || !node.children?.some((child) => child.text?.trim())) return;
+  const label = "--- Speaker notes ---";
+  node.children = [{ type: "paragraph", text: label, children: [{ type: "text", text: label }] }, ...node.children];
+}
+
+/** What {@link slideChrome} found on one slide. */
+interface SlideChrome {
+  hidden: boolean;
+  /** Paragraphs of its slide-number placeholder. */
+  number: Set<string>;
+  /** Paragraphs of its footer and date placeholders. */
+  repeated: Set<string>;
+}
+
+/**
+ * Read what a deck's slide XML says and officeparser's tree does not: which
+ * paragraphs fill a footer, date or slide-number placeholder, and which slides
+ * are hidden (`show="0"`). officeparser reads `p:ph` only to find a title, so
+ * those three placeholders reach the text as body lines, and it ignores `show`.
+ * Keyed by the slide part's number, which is the number officeparser gives a
+ * slide. Anything that is not a readable zip of slides gives an empty map.
+ */
+function slideChrome(bytes: Uint8Array): Map<number, SlideChrome> {
+  const slides = new Map<number, SlideChrome>();
+  let parts: Record<string, Uint8Array>;
+  try {
+    parts = unzipSync(bytes, { filter: (file) => /^ppt\/slides\/slide\d+\.xml$/.test(file.name) });
+  } catch {
+    return slides;
+  }
+  const decode = (text: string) =>
+    text.replace(/&(?:#x([\da-f]+)|#(\d+)|(amp|lt|gt|quot|apos));/gi, (entity, hex, dec, name: string) => {
+      if (name) return { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" }[name.toLowerCase()]!;
+      const code = parseInt(hex ?? dec, hex ? 16 : 10);
+      // Past U+10FFFF fromCodePoint throws, and one bad entity must not fail the deck.
+      return code <= 0x10ffff ? String.fromCodePoint(code) : entity;
+    });
+  // The opening tag that starts at `from`, found by index rather than by a
+  // pattern, so a crafted part cannot make the scan quadratic.
+  const tagAt = (xml: string, from: number) => (from < 0 ? "" : xml.slice(from, xml.indexOf(">", from) + 1));
+  for (const [name, data] of Object.entries(parts)) {
+    const xml = strFromU8(data);
+    const chrome: SlideChrome = {
+      hidden: /\sshow="(?:0|false)"/.test(tagAt(xml, xml.indexOf("<p:sld"))),
+      number: new Set(),
+      repeated: new Set(),
+    };
+    // Shapes do not nest, so each piece before a `</p:sp>` holds one shape's
+    // markup, and each piece of that before an `</a:p>` one paragraph's.
+    for (const shape of xml.split("</p:sp>")) {
+      const type = tagAt(shape, shape.indexOf("<p:ph")).match(/\stype="(sldNum|ftr|dt)"/)?.[1];
+      if (!type) continue;
+      for (const paragraph of shape.split("</a:p>")) {
+        const text = decode([...paragraph.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((t) => t[1]).join("")).trim();
+        if (text) (type === "sldNum" ? chrome.number : chrome.repeated).add(text);
+      }
+    }
+    slides.set(Number(name.match(/(\d+)\.xml$/)![1]), chrome);
+  }
+  return slides;
+}
+
+/**
+ * Drop a slide's printed number and keep the first copy of its footer and
+ * date, the placeholders Docling files as furniture. The number is what
+ * `# Slide n` already says; a footer repeated on forty slides is one line of
+ * content written forty times, and the first copy keeps it.
+ */
+function dropSlideChrome(chrome: ReadonlyMap<number, SlideChrome>): (node: OfficeContentNode) => void {
+  const seen = new Set<string>();
+  return (node) => {
+    const own = node.type === "slide" ? chrome.get(node.metadata?.slideNumber ?? -1) : undefined;
+    if (!own) return;
+    node.children = (node.children ?? []).filter((child) => {
+      const text = child.text?.trim() ?? "";
+      if (own.number.has(text)) return false;
+      if (!own.repeated.has(text)) return true;
+      if (seen.has(text)) return false;
+      seen.add(text);
+      return true;
+    });
+  };
 }
 
 /**
@@ -848,9 +946,13 @@ export async function extractOfficeDocument(
   // Each visitor restores one thing the text renderer drops. They are composed
   // rather than merged because they are independent of one another and of the
   // node types they act on.
+  const chrome = ast.content.some((node) => node.type === "slide") ? slideChrome(bytes) : new Map<number, SlideChrome>();
+  const hidden = new Set([...chrome].flatMap(([number, slide]) => (slide.hidden ? [number] : [])));
   const visitors = [
-    markSectionStarts(anyPageHasText),
+    dropSlideChrome(chrome),
+    markSectionStarts(anyPageHasText, hidden),
     dropSlideNumberFromNotes,
+    labelSpeakerNotes,
     markHeadingLevels(),
     numberFootnotes(),
     showLinkDestinations,
