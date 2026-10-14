@@ -14,6 +14,7 @@ export type { ArchiveEntry, ArchiveKind } from "./archives";
 export {
   assemblePdfPages,
   noteLayersOff,
+  withoutHiddenText,
   createParserRegistry,
   extractWithFallback,
   FIRST_READERS,

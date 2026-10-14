@@ -1,4 +1,5 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import { withoutHiddenRtf } from "./rtf-hidden";
 
 /**
  * Text the author hid, taken out before the document is read (Q18 O1): a
@@ -246,12 +247,13 @@ export function withoutHiddenOdf(
 }
 
 /**
- * A docx or an OpenDocument file with its hidden text taken out, how many
+ * A docx, OpenDocument or RTF file with its hidden text taken out, how many
  * hidden runs or elements held text, and which slides are hidden. Anything
  * else, or a file with nothing hidden, comes back as the same bytes.
  */
 export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidden: number; slides: Set<number> } {
   const none = { bytes, hidden: 0, slides: new Set<number>() };
+  if (strFromU8(bytes.subarray(0, 5), true) === "{\\rtf") return { ...withoutHiddenRtf(bytes), slides: none.slides };
   let parts: Record<string, Uint8Array>;
   let unpacked = 0;
   try {

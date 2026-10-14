@@ -1,4 +1,4 @@
-import type { ExtractionResult } from "@fileconcat/core";
+import { withoutHiddenText, type ExtractionResult } from "@fileconcat/core";
 
 import { workerRunner } from "./worker-runner";
 
@@ -16,5 +16,8 @@ const read = workerRunner<Uint8Array, string>(
 );
 
 export async function extractAnydoc(bytes: Uint8Array): Promise<ExtractionResult> {
-  return { text: (await read(bytes)).trim() };
+  // The same hidden text officeparser's path leaves out (Q18 O1).
+  const { bytes: readable, hidden } = withoutHiddenText(bytes);
+  const text = (await read(readable)).trim();
+  return hidden > 0 && text ? { text, notes: [{ kind: "hidden-left-out", count: hidden }] } : { text };
 }

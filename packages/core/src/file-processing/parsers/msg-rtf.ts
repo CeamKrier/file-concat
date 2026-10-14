@@ -70,7 +70,7 @@ export function decompressRtf(stream: Uint8Array): Uint8Array | undefined {
 }
 
 /** Destinations that hold no body text when they open a group. */
-const SKIPPED = new Set([
+export const SKIPPED = new Set([
   "fonttbl", "colortbl", "stylesheet", "info", "pict", "object", "header", "footer", "headerl", "headerr",
   "footerl", "footerr", "listtable", "listoverridetable", "rsidtbl", "generator", "themedata",
   "colorschememapping", "latentstyles", "datastore", "xmlnstbl", "mmathPr", "pgdsctbl",
