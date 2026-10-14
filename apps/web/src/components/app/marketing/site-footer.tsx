@@ -116,6 +116,22 @@ export function SiteFooter() {
             <Link to="/for/researchers" className={linkClass}>
               For researchers
             </Link>
+            <h2 className={`${headingClass} mt-6`}>Convert to text</h2>
+            <Link to="/convert/$slug" params={{ slug: "pdf-to-text" }} className={linkClass}>
+              PDF to text
+            </Link>
+            <Link to="/convert/$slug" params={{ slug: "docx-to-text" }} className={linkClass}>
+              Word to text
+            </Link>
+            <Link to="/convert/$slug" params={{ slug: "excel-to-text" }} className={linkClass}>
+              Excel to text
+            </Link>
+            <Link to="/convert/$slug" params={{ slug: "pptx-to-text" }} className={linkClass}>
+              PowerPoint to text
+            </Link>
+            <Link to="/convert/$slug" params={{ slug: "image-to-text" }} className={linkClass}>
+              Image to text
+            </Link>
           </div>
 
           <div className={columnClass}>

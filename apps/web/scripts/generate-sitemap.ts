@@ -177,6 +177,56 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    url: "/convert/pdf-to-text",
+    sourceFile: [
+      "apps/web/src/routes/convert/$slug.tsx",
+      "apps/web/src/components/convert/convert-page.tsx",
+      "apps/web/src/components/convert/convert-formats.ts",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/convert/docx-to-text",
+    sourceFile: [
+      "apps/web/src/routes/convert/$slug.tsx",
+      "apps/web/src/components/convert/convert-page.tsx",
+      "apps/web/src/components/convert/convert-formats.ts",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/convert/excel-to-text",
+    sourceFile: [
+      "apps/web/src/routes/convert/$slug.tsx",
+      "apps/web/src/components/convert/convert-page.tsx",
+      "apps/web/src/components/convert/convert-formats.ts",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/convert/pptx-to-text",
+    sourceFile: [
+      "apps/web/src/routes/convert/$slug.tsx",
+      "apps/web/src/components/convert/convert-page.tsx",
+      "apps/web/src/components/convert/convert-formats.ts",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/convert/image-to-text",
+    sourceFile: [
+      "apps/web/src/routes/convert/$slug.tsx",
+      "apps/web/src/components/convert/convert-page.tsx",
+      "apps/web/src/components/convert/convert-formats.ts",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
     url: "/how-to/upload-book-to-chatgpt",
     sourceFile: [
       "apps/web/src/routes/how-to/upload-book-to-chatgpt.tsx",

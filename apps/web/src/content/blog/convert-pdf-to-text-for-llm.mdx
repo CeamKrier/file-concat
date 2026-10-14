@@ -19,10 +19,10 @@ Research and casework rarely arrive as one clean file. You have a handful of PDF
 document of notes, maybe a spreadsheet of figures, and you want to ask a model about all of
 them together. The chat box only takes text, and a PDF is not text yet.
 
-This guide covers how to convert PDFs to text for an LLM prompt: why the file you drag in is
+This guide covers how to convert PDFs to text for an LLM prompt: why the file you drop in is
 not the text the model reads, how to turn a whole folder of documents into one file, and
-where the limits are. There is a spot to try it on your own documents partway down. Nothing
-is uploaded to us; the extraction runs in your browser.
+where the limits are. There is a spot to try it on your own documents partway down. Your
+files are not uploaded to us. The extraction runs in your browser.
 
 ## A PDF is not text yet
 
@@ -35,7 +35,7 @@ folds the recovered text into one bundle alongside any plain notes or markdown y
 Several formats go in; one clean text file comes out.
 
 <BeforeAfter>
-  <Before label="what you dragged in">{`case-notes/
+  <Before label="what you dropped in">{`case-notes/
   motion.pdf
   exhibits.docx
   timeline.xlsx
@@ -85,6 +85,8 @@ copy here is ready to paste when you want to feed multiple PDFs to ChatGPT at on
   title="Bundle your own documents"
   hint="Drop a few PDFs or a folder of mixed documents. It runs here in your browser, your files are not uploaded to us."
 />
+
+Converting a single PDF? [PDF to text](/convert/pdf-to-text) shows what a sample comes back as.
 
 ## What extraction can and cannot pull
 
