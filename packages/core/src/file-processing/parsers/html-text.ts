@@ -9,20 +9,38 @@ const HTML_ENTITIES: Readonly<Record<string, string>> = {
   "&#39;": "'",
   "&apos;": "'",
   "&nbsp;": " ",
+  "&copy;": "\u00a9",
+  "&reg;": "\u00ae",
+  "&trade;": "\u2122",
+  "&hellip;": "\u2026",
+  "&mdash;": "\u2014",
+  "&ndash;": "\u2013",
+  "&lsquo;": "\u2018",
+  "&rsquo;": "\u2019",
+  "&ldquo;": "\u201c",
+  "&rdquo;": "\u201d",
+  "&bull;": "\u2022",
+  "&middot;": "\u00b7",
+  "&euro;": "\u20ac",
 };
 
 /**
- * The words of an HTML fragment in reading order, with no DOM: scripts and
- * styles go, a block boundary becomes a line break, every other tag goes, and
- * entities are decoded. Deliberately crude, for markup nobody will render: an
+ * The words of an HTML fragment in reading order, with no DOM: comments,
+ * scripts and styles go (Word hides its settings in a comment, `<!--[if gte
+ * mso 9]><xml>`), a block boundary becomes a line break, every other tag goes,
+ * and entities are decoded. Deliberately crude, for markup nobody will render: an
  * HTML-only mail body, a notebook output with no plain-text form.
  */
 export function flattenHtml(html: string): string {
   return html
+    .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "")
     .replace(HTML_BREAKS, "\n")
     .replace(/<[^>]+>/g, "")
-    .replace(/&#(\d+);/g, (entity, code: string) => (Number(code) <= 0x10ffff ? String.fromCodePoint(Number(code)) : entity))
+    .replace(/&#(?:x([\da-f]+)|(\d+));/gi, (entity, hex: string | undefined, dec: string) => {
+      const code = hex ? parseInt(hex, 16) : Number(dec);
+      return code <= 0x10ffff ? String.fromCodePoint(code) : entity;
+    })
     .replace(/&[a-z#0-9]+;/gi, (entity) => HTML_ENTITIES[entity.toLowerCase()] ?? entity)
     .replace(/[ \t]+/g, " ")
     .replace(/ ?\n ?/g, "\n");

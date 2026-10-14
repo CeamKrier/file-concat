@@ -1,4 +1,5 @@
 import { formatEmail, type MessageFields } from "./email";
+import { decompressRtf, rtfBody } from "./msg-rtf";
 import type { ExtractionResult } from "./types";
 
 /**
@@ -30,6 +31,7 @@ export type CfbStreams = ReadonlyMap<string, Uint8Array>;
 const SUBJECT = "0037";
 const BODY = "1000";
 const HTML_BODY = "1013";
+const RTF_COMPRESSED = "1009";
 const SENDER_NAME = "0C1A";
 const SENDER_ADDRESS = "0C1F";
 const SENDER_SMTP = "5D01";
@@ -145,10 +147,19 @@ export function formatMsg(streams: CfbStreams): ExtractionResult {
   const from = senderName || senderAddress ? { name: senderName, address: senderAddress } : undefined;
   const date = timeProperty(properties, DELIVERY_TIME) ?? timeProperty(properties, SUBMIT_TIME);
 
-  const body = text(BODY).replace(/\r\n/g, "\n");
-  // The new Outlook writes only an HTML body, in the internet code page.
+  // Plain text first, as the .eml path reads it. The new Outlook writes only
+  // an HTML body, in the internet code page as binary, or as a string. Outlook's
+  // own rich-text mail, and HTML it wrapped in RTF, are only in the compressed RTF.
+  let body = text(BODY).replace(/\r\n/g, "\n");
   const html = streams.get(`__substg1.0_${HTML_BODY}0102`);
-  const htmlBody = !body && html ? decode(html, internet ?? codepage) : "";
+  let htmlBody = body ? "" : html ? decode(html, internet ?? codepage) : text(HTML_BODY);
+  const compressed = body || htmlBody ? undefined : streams.get(`__substg1.0_${RTF_COMPRESSED}0102`);
+  const rtf = compressed && decompressRtf(compressed);
+  if (rtf) {
+    const read = rtfBody(rtf, decode);
+    if (read.html) htmlBody = read.text;
+    else body = read.text.trim();
+  }
 
   // Attachment storages are numbered from zero; an attached message carries no
   // filename, only the subject and display name of what it wraps.
