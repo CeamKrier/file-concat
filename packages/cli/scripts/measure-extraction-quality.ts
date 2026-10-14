@@ -73,6 +73,8 @@ import {
   noteLayersOff,
   routeBytes,
   withoutHiddenText,
+  withRtfComments,
+  type ExtractionNote,
   type ExtractionResult,
   type FirstReaderId,
   type ParserId,
@@ -393,11 +395,18 @@ const anydocModule = once(async () => {
 });
 
 const officeparser: ParserLoader = (bytes, format) => parsers.extract("office", bytes, format);
-// As `extract-anydoc-client.ts` reads: hidden text out first, then the note.
+// As `extract-anydoc-client.ts` reads: hidden text out and comments in first, then the notes.
 const anydoc: ParserLoader = async (bytes) => {
-  const { bytes: readable, hidden } = withoutHiddenText(bytes);
+  // officeparser reads an RTF comment itself; anydoc skips it, so it is
+  // written into the text first, where hidden text inside it goes too.
+  const { bytes: commented, comments } = withRtfComments(bytes);
+  const { bytes: readable, hidden } = withoutHiddenText(commented);
   const text = (await anydocModule()).toMarkdownBytes(readable).trim();
-  return hidden > 0 && text ? { text, notes: [{ kind: "hidden-left-out", count: hidden }] } : { text };
+  if (!text) return { text };
+  const notes: ExtractionNote[] = [];
+  if (hidden > 0) notes.push({ kind: "hidden-left-out", count: hidden });
+  if (comments > 0) notes.push({ kind: "comments-included", count: comments });
+  return notes.length ? { text, notes } : { text };
 };
 const webReaders: Record<FirstReaderId, ParserLoader> = {
   liteparse: async (bytes) => {

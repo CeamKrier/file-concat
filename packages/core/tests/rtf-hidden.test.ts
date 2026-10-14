@@ -1,5 +1,7 @@
 import { strFromU8, strToU8 } from "fflate";
 import { describe, expect, it } from "vitest";
+import { rtfBody } from "../src/file-processing/parsers/msg-rtf";
+import { withRtfComments } from "../src/file-processing/parsers/rtf-comments";
 import { withoutHiddenRtf } from "../src/file-processing/parsers/rtf-hidden";
 
 const rtf = (body: string) => strToU8(`{\\rtf1\\ansi{\\fonttbl{\\f0 Arial;}}{\\stylesheet{\\s1\\v Hidden style;}}${body}}`);
@@ -30,6 +32,37 @@ describe("withoutHiddenRtf", () => {
   it("scans a long hidden run in linear time", () => {
     const started = performance.now();
     expect(withoutHiddenRtf(rtf(`\\v ${"word \\'e9 ".repeat(500_000)}`)).hidden).toBe(1);
+    expect(performance.now() - started).toBeLessThan(2000);
+  });
+});
+
+describe("withRtfComments", () => {
+  // Read back the way a reader would: destinations skipped, 8-bit text as Latin-1.
+  const read = (body: string) => {
+    const { bytes, comments } = withRtfComments(rtf(body));
+    return { text: rtfBody(withoutHiddenRtf(bytes).bytes, (b) => strFromU8(b, true)).text.trim(), comments };
+  };
+  const note = (author: string, body: string) =>
+    `{\\*\\atnid AY}{\\*\\atnauthor ${author}}\\chatn{\\*\\annotation{\\*\\atndate 1}\\pard\\plain ${body}}`;
+
+  it("writes a comment at the end of its paragraph, author named, and counts it", () => {
+    expect(read(`\\pard Anchor${note("Ada Y\\'fclmaz", "Check\\par this.")} after.\\par Next.\\par`)).toEqual({
+      text: "Anchor after. [Comment, Ada Y\u00fclmaz: Check this.]\nNext.",
+      comments: 1,
+    });
+  });
+
+  it("labels a reply, falls back to the initials, drops hidden text and skips an empty comment", () => {
+    const reply = `{\\*\\atnid QA}\\chatn{\\*\\annotation{\\*\\atnparent 1}\\pard Yes{\\v QZHIDDEN}.}`;
+    const empty = `{\\*\\atnauthor Bo}\\chatn{\\*\\annotation{\\*\\atndate 2} }`;
+    expect(read(`\\pard One${reply}${empty} two`)).toEqual({ text: "One two [Reply, QA: Yes.]", comments: 1 });
+  });
+
+  it("hands back the same bytes when there is no comment, and reads a long one in linear time", () => {
+    const plain = rtf("\\pard Plain {\\b bold}\\par");
+    expect(withRtfComments(plain).bytes).toBe(plain);
+    const started = performance.now();
+    expect(withRtfComments(rtf(`\\pard A${note("Ada", "word \\par ".repeat(200_000))}\\par`)).comments).toBe(1);
     expect(performance.now() - started).toBeLessThan(2000);
   });
 });

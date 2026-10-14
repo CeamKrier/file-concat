@@ -15,6 +15,7 @@ export {
   assemblePdfPages,
   noteLayersOff,
   withoutHiddenText,
+  withRtfComments,
   createParserRegistry,
   extractWithFallback,
   FIRST_READERS,

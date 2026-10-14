@@ -9,6 +9,7 @@ export {
 export type { OcrOptions, OfficeParserOptions, PdfPage } from "./officeparser";
 export { noteLayersOff } from "./pdf-layers";
 export { withoutHiddenText } from "./office-hidden";
+export { withRtfComments } from "./rtf-comments";
 export { formatEmail } from "./email";
 export type { MessageFields } from "./email";
 export { formatMsg } from "./msg";

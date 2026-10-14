@@ -1,4 +1,4 @@
-import { withoutHiddenText, type ExtractionResult } from "@fileconcat/core";
+import { withoutHiddenText, withRtfComments, type ExtractionNote, type ExtractionResult } from "@fileconcat/core";
 
 import { workerRunner } from "./worker-runner";
 
@@ -17,7 +17,14 @@ const read = workerRunner<Uint8Array, string>(
 
 export async function extractAnydoc(bytes: Uint8Array): Promise<ExtractionResult> {
   // The same hidden text officeparser's path leaves out (Q18 O1).
-  const { bytes: readable, hidden } = withoutHiddenText(bytes);
+  // officeparser reads an RTF comment itself; anydoc skips it, so it is
+  // written into the text first, where hidden text inside it goes too.
+  const { bytes: commented, comments } = withRtfComments(bytes);
+  const { bytes: readable, hidden } = withoutHiddenText(commented);
   const text = (await read(readable)).trim();
-  return hidden > 0 && text ? { text, notes: [{ kind: "hidden-left-out", count: hidden }] } : { text };
+  if (!text) return { text };
+  const notes: ExtractionNote[] = [];
+  if (hidden > 0) notes.push({ kind: "hidden-left-out", count: hidden });
+  if (comments > 0) notes.push({ kind: "comments-included", count: comments });
+  return notes.length ? { text, notes } : { text };
 }
