@@ -10,6 +10,8 @@ import {
   referencesDocx,
   tableDocx,
   SHEET_MACRO_ENABLED,
+  docxWithBody,
+  spannedOds,
   twoSheetXlsx,
   twoSlidePptx,
 } from "./fixtures/containers";
@@ -112,6 +114,58 @@ describe("extractOfficeDocument — structure survives extraction", () => {
     expect(text).not.toMatch(/12001350/);
     expect(text).toMatch(/EMEA\D+1200\D+1350/);
     expect(text).toMatch(/APAC\D+980\D+1105/);
+  });
+
+  it("reads a table nested in a cell as that cell's text, keeping the outer columns", async () => {
+    const p = (text: string) => `<w:p><w:r><w:t>${text}</w:t></w:r></w:p>`;
+    const tc = (body: string) => `<w:tc>${body}</w:tc>`;
+    const inner = `<w:tbl><w:tr>${tc(p("In1"))}${tc(p("In2"))}</w:tr><w:tr>${tc(p("In3"))}${tc('<w:p><w:r><w:t xml:space="preserve">In </w:t></w:r><w:r><w:t>4</w:t></w:r></w:p>')}</w:tr></w:tbl>`;
+    const { text } = await extractOfficeDocument(
+      docxWithBody(
+        `<w:tbl><w:tr>${tc(p("H1"))}${tc(p("H2"))}${tc(p("H3"))}</w:tr>` +
+          `<w:tr>${tc(p("Outer") + inner + p(""))}${tc(p("Mid"))}${tc(p("Last"))}</w:tr></w:tbl>`,
+      ),
+    );
+    const row = text.split("\n").find((line) => line.includes("Outer")) ?? "";
+    expect(row.replace(/ +/g, " ")).toBe("| Outer In1 / In2; In3 / In 4 | Mid | Last |");
+  });
+
+  it("keeps a cell after a merged range in its own column", async () => {
+    const { text } = await extractOfficeDocument(spannedOds(), { format: "ods" });
+    expect(text).toContain("QZMERGED,,QZAFTER");
+    expect(text).toContain("A2,B2,C2");
+  });
+
+  it("keeps a merged workbook range one column wide per column, with or without the covered cell", async () => {
+    for (const covered of ["", '<c r="B1" s="1"/>']) {
+      const parts = unzipSync(twoSheetXlsx());
+      parts["xl/worksheets/sheet1.xml"] = strToU8(
+        strFromU8(parts["xl/worksheets/sheet1.xml"])
+          .replace(/<c r="B1"[^]*?<\/c>/, covered)
+          .replace("</sheetData>", '</sheetData><mergeCells count="1"><mergeCell ref="A1:B1"/></mergeCells>'),
+      );
+      const { text } = await extractOfficeDocument(zipSync(parts));
+      expect(text).toContain("Region,,Q2");
+      expect(text).toContain("EMEA,1200,1350");
+    }
+  });
+
+  it("does not pad a crafted span out to its claimed width", async () => {
+    const parts = unzipSync(spannedOds());
+    parts["content.xml"] = strToU8(
+      strFromU8(parts["content.xml"]).replace('number-columns-spanned="2"', 'number-columns-spanned="100000000"'),
+    );
+    const started = performance.now();
+    const { text } = await extractOfficeDocument(zipSync(parts), { format: "ods" });
+    expect(performance.now() - started).toBeLessThan(2000);
+    expect(text).toContain("QZAFTER");
+    const wide = docxWithBody(
+      '<w:tbl><w:tr><w:tc><w:tcPr><w:gridSpan w:val="100000000"/></w:tcPr><w:p><w:r><w:t>Wide</w:t></w:r></w:p></w:tc>' +
+        "<w:tc><w:p><w:r><w:t>QZNEXT</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
+    );
+    const again = performance.now();
+    expect((await extractOfficeDocument(wide)).text).toContain("QZNEXT");
+    expect(performance.now() - again).toBeLessThan(2000);
   });
 
   it("reads a macro-enabled workbook when told its base format", async () => {

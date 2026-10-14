@@ -446,6 +446,35 @@ function markHeadingLevels(): (node: OfficeContentNode) => void {
 }
 
 /**
+ * A table inside a table cell, read as one line of that cell's text: rows
+ * apart by `; `, cells by ` / `. The text renderer otherwise writes the inner
+ * cells into the outer row as columns of their own, and every cell after them
+ * lands under the wrong header. Docling flattens a nested table into its
+ * cell's text the same way; a pipe table has no syntax for one inside another.
+ */
+function flattenNestedTables(node: OfficeContentNode): void {
+  if (node.type !== "cell" || !node.children?.some((child) => child.type === "table")) return;
+  node.children = node.children.map((child) => {
+    if (child.type !== "table") return child;
+    const text = plainText(child).trim();
+    return { type: "paragraph", text, children: [{ type: "text", text }] };
+  });
+}
+
+const PLAIN_SEPARATOR: Readonly<Record<string, string>> = { table: "; ", row: " / ", cell: " " };
+
+/** A node's text with a table's rows and cells kept apart, empty ones left out. */
+function plainText(node: OfficeContentNode): string {
+  if (!node.children?.length) return node.text ?? "";
+  const separator = PLAIN_SEPARATOR[node.type];
+  if (separator === undefined) return node.children.map(plainText).join("");
+  return node.children
+    .map((child) => plainText(child).trim())
+    .filter(Boolean)
+    .join(separator);
+}
+
+/**
  * Give a horizontally merged cell the columns it actually covers.
  *
  * A cell spanning three columns is a single child of its row, and the renderer
@@ -1042,6 +1071,7 @@ export async function extractOfficeDocument(
     markHeadingLevels(),
     numberFootnotes(),
     showLinkDestinations,
+    flattenNestedTables,
     expandMergedCells(),
   ];
   // The parse's own warnings (a page that failed, the CDN fallback) live on the
@@ -1050,7 +1080,7 @@ export async function extractOfficeDocument(
   // renderer's too.
   const parsed = [...(ast.warnings ?? [])];
   const { value, messages } = asWorkbook
-    ? await ast.to("csv")
+    ? await ast.to("csv", { onNode: expandMergedCells() })
     : await ast.to("text", {
         onNode: (node) => {
           for (const visit of visitors) visit(node);

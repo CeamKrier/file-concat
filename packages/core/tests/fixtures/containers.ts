@@ -391,6 +391,31 @@ export function deckPptx(
  * and stored uncompressed — that is exactly what tells an `.odt` apart from a
  * plain zip, so storing it any other way would defeat the fixture.
  */
+/**
+ * An OpenDocument spreadsheet whose first row spans two columns: `B1` is a
+ * covered cell, so `QZAFTER` belongs in column C.
+ */
+export function spannedOds(): Uint8Array {
+  const ns =
+    'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" ' +
+    'xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" ' +
+    'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"';
+  const cell = (text: string, attrs = "") => `<table:table-cell office:value-type="string"${attrs}><text:p>${text}</text:p></table:table-cell>`;
+  return zipSync(
+    {
+      mimetype: strToU8("application/vnd.oasis.opendocument.spreadsheet"),
+      "content.xml": strToU8(
+        `<?xml version="1.0" encoding="UTF-8"?><office:document-content ${ns}><office:body><office:spreadsheet>` +
+          '<table:table table:name="Sheet1">' +
+          `<table:table-row>${cell("QZMERGED", ' table:number-columns-spanned="2" table:number-rows-spanned="1"')}<table:covered-table-cell/>${cell("QZAFTER")}</table:table-row>` +
+          `<table:table-row>${cell("A2")}${cell("B2")}${cell("C2")}</table:table-row>` +
+          "</table:table></office:spreadsheet></office:body></office:document-content>",
+      ),
+    },
+    { level: 0 },
+  );
+}
+
 export function minimalOdt(): Uint8Array {
   return zipSync(
     {
