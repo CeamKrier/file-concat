@@ -75,6 +75,93 @@ export function turndown(base: string): TurndownService {
       return resolved.origin === new URL(base).origin ? content : `[${content}](${resolved.href})`;
     },
   });
+  addTableRules(service);
   service.remove(["script", "style", "noscript", "iframe", "form", "button", "template"]);
   return service;
 }
+
+/**
+ * A table as a Markdown pipe table, so its rows and columns survive (C4);
+ * Turndown alone writes each cell as its own paragraph. The shape is the one
+ * Joplin's maintained fork of turndown-plugin-gfm writes, against markdownify
+ * and pandoc: every table, not only one with a heading row; an empty heading
+ * row when the table has none, since a pipe table needs one; `|` escaped; a
+ * cell's line breaks as spaces; a `colspan` as that many cells. A table that
+ * holds a table, the layout kind, and a one-cell table stay as text, as
+ * Joplin and docling flatten them. Rows that are all empty, a layout
+ * table's spacers, go.
+ *
+ * ponytail: `rowspan` is not filled in, so a spanned column shifts left in the
+ * rows below it; pad from the row above if a real table needs it.
+ */
+function addTableRules(service: TurndownService): void {
+  const tables = new WeakMap<Node, { pipe: boolean; columns: number; first?: HTMLTableRowElement }>();
+  const shape = (table: Node | null) => {
+    if (!table) return undefined;
+    let known = tables.get(table);
+    if (!known) {
+      const element = table as HTMLTableElement;
+      const rows = [...element.rows];
+      const columns = rows.reduce((widest, row) => Math.max(widest, [...row.cells].reduce((sum, cell) => sum + span(cell), 0)), 0);
+      const cells = rows.reduce((sum, row) => sum + row.cells.length, 0);
+      known = { pipe: cells > 1 && columns <= MAX_COLUMNS && !element.querySelector("table"), columns, first: rows.find(filled) };
+      tables.set(table, known);
+    }
+    return known;
+  };
+  const tableOf = (node: Node) => (node as Element).closest("table");
+  const inPipe = (node: Node) => !!shape(tableOf(node))?.pipe;
+
+  service.addRule("tableCell", {
+    filter: (node) => (node.nodeName === "TD" || node.nodeName === "TH") && inPipe(node),
+    replacement: (content, node) => {
+      const text = content.replace(/\s+/g, " ").trim().split("|").join("\\|");
+      return ` ${text} |${" |".repeat(span(node as HTMLTableCellElement) - 1)}`;
+    },
+  });
+  service.addRule("tableRow", {
+    filter: (node) => node.nodeName === "TR" && inPipe(node),
+    replacement: (content, node) => {
+      const row = node as HTMLTableRowElement;
+      if (!filled(row)) return "";
+      const { columns, first } = shape(tableOf(row)) ?? { columns: 0 };
+      const line = `|${content}${" |".repeat(Math.max(0, columns - [...row.cells].reduce((sum, cell) => sum + span(cell), 0)))}\n`;
+      const rule = `|${" --- |".repeat(columns)}\n`;
+      if (first !== row) return line;
+      const heading = row.parentElement?.nodeName === "THEAD" || [...row.cells].every((cell) => cell.nodeName === "TH");
+      return heading ? line + rule : `|${"  |".repeat(columns)}\n${rule}${line}`;
+    },
+  });
+  // A browser draws a tfoot below the body wherever the source puts it.
+  const feet = new WeakMap<Node, string>();
+  service.addRule("tableSection", {
+    filter: (node) => ["THEAD", "TBODY", "TFOOT"].includes(node.nodeName) && inPipe(node),
+    replacement: (content, node) => {
+      if (node.nodeName !== "TFOOT") return content;
+      const table = tableOf(node) as Node;
+      feet.set(table, (feet.get(table) ?? "") + content);
+      return "";
+    },
+  });
+  service.addRule("tableCaption", {
+    filter: (node) => node.nodeName === "CAPTION" && inPipe(node),
+    replacement: (content) => (content.trim() ? `${content.trim()}\n\n` : ""),
+  });
+  service.addRule("table", {
+    filter: (node) => node.nodeName === "TABLE" && !!shape(node)?.pipe,
+    replacement: (content, node) => `\n\n${(content + (feet.get(node) ?? "")).trim()}\n\n`,
+  });
+}
+
+const span = (cell: HTMLTableCellElement) => Math.min(Math.max(cell.colSpan || 1, 1), 1000);
+
+/**
+ * Past this many columns a table stays as text. Every row is padded to the
+ * widest, so one row of `colspan=1000` cells would otherwise turn a few
+ * kilobytes of HTML into gigabytes. The widest of 149 tables on 318 real
+ * pages had 12 (2026-10-15).
+ */
+const MAX_COLUMNS = 100;
+
+/** Whether a row holds any text; the first one carries the heading rule. */
+const filled = (row: HTMLTableRowElement) => [...row.cells].some((cell) => cell.textContent?.trim());
