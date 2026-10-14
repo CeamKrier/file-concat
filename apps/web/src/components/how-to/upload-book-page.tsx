@@ -37,7 +37,7 @@ function UploadBookLanding(dropProps: DropZoneProps) {
 const TRUST = [
   "EPUB, Kindle and PDF read in your browser",
   "Token count shown before you upload",
-  "No sign-up, nothing uploaded to us",
+  "No sign-up, files not uploaded to us",
 ];
 
 function Hero({ dropProps }: { dropProps: DropZoneProps }) {
@@ -278,7 +278,7 @@ const STEPS = [
   },
   {
     title: "It reads the text here",
-    body: "EPUB chapters, a Kindle .mobi or .azw3 without DRM, and the PDF's text layer become plain text in this tab. Nothing is uploaded to us.",
+    body: "EPUB chapters, a Kindle .mobi or .azw3 without DRM, and the PDF's text layer become plain text in this tab. Your files are not uploaded to us.",
   },
   {
     title: "Check the count against your model",

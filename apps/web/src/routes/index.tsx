@@ -10,7 +10,7 @@ export const Route = createFileRoute("/")({
       ...generateSEOMeta({
         title: "Combine files for ChatGPT, Claude & Gemini",
         description:
-          "Hit the file limit on ChatGPT, Claude, or Gemini? Combine all your files, even PDFs and Office docs, into one. It all runs in your browser, nothing uploaded.",
+          "Hit the file limit on ChatGPT, Claude, or Gemini? Combine all your files, even PDFs and Office docs, into one. It all runs in your browser, not uploaded to us.",
         url: "https://fileconcat.com",
       }),
       {

@@ -36,7 +36,7 @@ function AccountantsLanding(dropProps: DropZoneProps) {
 }
 
 const TRUST = [
-  "Nothing is uploaded",
+  "Files not uploaded to us",
   "Statements and spreadsheets read as text",
   "Client data stays on your computer",
 ];
@@ -48,7 +48,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <Lock className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs on your computer. Nothing uploaded.
+            Runs on your computer. Files not uploaded to us.
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
@@ -58,7 +58,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
             Drop the folder of statements, invoices, and ledgers. FileConcat reads the PDFs and
             spreadsheets right here in your browser and gives back one file for ChatGPT, Claude, or
-            Gemini. Nothing is uploaded, so client data stays on your machine.
+            Gemini. Preparing it uploads nothing. What you then paste into an assistant is your own choice.
           </p>
 
           <ul className="mt-6 space-y-2">

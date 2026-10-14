@@ -46,7 +46,7 @@ function GithubRepoLanding({ dropProps, linkImport }: LandingProps) {
 const TRUST = [
   "Fetched by your browser, straight from GitHub",
   "Token count shown before you paste",
-  "No sign-up, nothing uploaded to us",
+  "No sign-up, files not uploaded to us",
 ];
 
 function Hero({ dropProps, linkImport }: LandingProps) {

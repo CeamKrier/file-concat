@@ -44,7 +44,7 @@ export const Route = createFileRoute("/for/claude-projects")({
         // leaving things out, with the count in view.
         title: 'Fix "Project knowledge exceeds maximum" in Claude',
         description:
-          "Project knowledge exceeds maximum? See which files fill your Claude project, leave out what it doesn't need, add the rest as one file. Nothing uploaded to us.",
+          "Project knowledge exceeds maximum? See which files fill your Claude project, leave out what it doesn't need, add the rest as one file. Not uploaded to us.",
         url: "https://fileconcat.com/for/claude-projects",
       }),
       {

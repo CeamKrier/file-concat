@@ -24,7 +24,7 @@ export const Route = createFileRoute("/how-to/upload-book-to-chatgpt")({
         // and promises the file; the caps stay on the page next to their date.
         title: "Upload a book or textbook to ChatGPT (EPUB, PDF)",
         description:
-          "ChatGPT won't take your EPUB, or the textbook is too long? Drop the EPUB or PDF here for one text file with its token count. Nothing uploaded to us.",
+          "ChatGPT won't take your EPUB, or the textbook is too long? Drop the EPUB or PDF here for one text file with its token count. Not uploaded to us.",
         url: "https://fileconcat.com/how-to/upload-book-to-chatgpt",
       }),
       {

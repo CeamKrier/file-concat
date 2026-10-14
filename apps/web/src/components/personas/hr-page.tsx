@@ -35,7 +35,7 @@ function HrLanding(dropProps: DropZoneProps) {
 }
 
 const TRUST = [
-  "Nothing is uploaded",
+  "Files not uploaded to us",
   "PDFs and Word files read as text",
   "Employee data stays on your computer",
 ];
@@ -47,7 +47,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <Lock className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs on your computer. Nothing uploaded.
+            Runs on your computer. Files not uploaded to us.
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
@@ -57,7 +57,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
             Drop the folder of policies, handbooks, and records, or a batch of CVs. FileConcat reads
             the PDFs and Word files right here in your browser and returns one file for ChatGPT,
-            Claude, or Gemini. Nothing is uploaded, so employee data stays on your machine.
+            Claude, or Gemini. Preparing it uploads nothing. What you then paste into an assistant is your own choice.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -183,7 +183,7 @@ const STEPS = [
   },
   {
     title: "It reads everything here",
-    body: "PDFs and Word files are turned into text in this tab, with a file tree at the top. Nothing is uploaded.",
+    body: "PDFs and Word files are turned into text in this tab, with a file tree at the top. Your files are not uploaded to us.",
   },
   {
     title: "Paste into your assistant",

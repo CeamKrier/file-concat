@@ -11,7 +11,7 @@ export const CONSULTANTS_FAQ = [
   },
   {
     q: "Is client material kept private?",
-    a: "The combining runs entirely in your browser and nothing is uploaded to FileConcat, so the engagement files stay on your computer while you prepare them.",
+    a: "The combining runs entirely in your browser and the files are not uploaded to FileConcat, so the engagement files stay on your computer while you prepare them.",
   },
   {
     q: "Will the model see the charts and images in my slides?",

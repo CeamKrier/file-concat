@@ -26,7 +26,7 @@ export const Route = createFileRoute("/how-to/share-all-files-with-ai")({
         // same call as the limit pages: the dated table carries them.
         title: "AI file upload limits: ChatGPT, Claude, Gemini, NotebookLM",
         description:
-          "Every file upload limit in ChatGPT, Claude, Gemini and NotebookLM in one dated, sourced table, and a way past each one. Nothing uploaded to us.",
+          "Every file upload limit in ChatGPT, Claude, Gemini and NotebookLM in one dated, sourced table, and a way past each one. Not uploaded to us.",
         url: "https://fileconcat.com/how-to/share-all-files-with-ai",
       }),
       {

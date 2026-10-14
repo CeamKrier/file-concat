@@ -25,7 +25,7 @@ export const Route = createFileRoute("/how-to/gitingest-repomix-alternative")({
         // document is read, and holds our claim to "nothing uploaded to us".
         title: "A gitingest and Repomix alternative, in your browser",
         description:
-          "A gitingest and Repomix alternative that reads your folder or GitHub repo in the browser, PDFs and Word files included, into one file. Nothing uploaded to us.",
+          "A gitingest and Repomix alternative that reads your folder or GitHub repo in the browser, PDFs and Word files included, into one file. Not uploaded to us.",
         url: "https://fileconcat.com/how-to/gitingest-repomix-alternative",
       }),
       {

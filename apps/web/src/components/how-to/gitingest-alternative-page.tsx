@@ -47,7 +47,7 @@ function Landing({ dropProps, linkImport }: LandingProps) {
 const TRUST = [
   "A folder or ZIP read in your browser",
   "A GitHub repo fetched straight from GitHub",
-  "No install, no sign-up, nothing uploaded to us",
+  "No install, no sign-up, files not uploaded to us",
 ];
 
 function Hero({ dropProps, linkImport }: LandingProps) {
@@ -93,7 +93,7 @@ const RUNS = [
     tool: "FileConcat",
     where:
       "In your browser tab. A folder or ZIP is read from your disk, and a public GitHub repository is fetched by your browser straight from GitHub.",
-    quote: "Nothing uploaded to us",
+    quote: "Files not uploaded to us",
     href: "/privacy",
   },
   {

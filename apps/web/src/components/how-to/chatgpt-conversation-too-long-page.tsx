@@ -57,7 +57,7 @@ const WONT_OPEN_THREAD =
 const TRUST = [
   "Every turn, not only the few on screen",
   "No Plus plan needed, and it works in Claude or Gemini",
-  "Free, and nothing is uploaded to us",
+  "Free, and the chat is not uploaded to us",
 ];
 
 const linkClass =
@@ -255,7 +255,7 @@ const STEPS = [
   },
   {
     title: "Clip and send",
-    body: "The panel asks ChatGPT for the whole conversation, so nothing depends on scrolling. Send hands it to a fileconcat.com tab with its token count. Nothing is uploaded to us.",
+    body: "The panel asks ChatGPT for the whole conversation, so nothing depends on scrolling. Send hands it to a fileconcat.com tab with its token count. None of it is uploaded to us.",
   },
   {
     title: "Start the new chat with it",

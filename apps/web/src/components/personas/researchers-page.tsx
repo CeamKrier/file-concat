@@ -31,7 +31,7 @@ function ResearchersLanding(dropProps: DropZoneProps) {
   );
 }
 
-const TRUST = ["Nothing is uploaded", "Token count shown before you paste", "PDFs, notes, and data"];
+const TRUST = ["Files not uploaded to us", "Token count shown before you paste", "PDFs, notes, and data"];
 
 function Hero({ dropProps }: { dropProps: DropZoneProps }) {
   return (

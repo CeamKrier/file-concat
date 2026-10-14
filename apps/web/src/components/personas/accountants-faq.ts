@@ -19,6 +19,6 @@ export const ACCOUNTANTS_FAQ = [
   },
   {
     q: "Does anything get uploaded to a server?",
-    a: "No. Everything, including the PDFs, is read in your browser tab. Nothing is uploaded, and there is no account to create.",
+    a: "No. Everything, including the PDFs, is read in your browser tab. Your files are not uploaded to us, and there is no account to create.",
   },
 ];

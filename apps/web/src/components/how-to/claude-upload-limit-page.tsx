@@ -58,7 +58,7 @@ const CHAT_FILE_CAP = 20;
 const TRUST = [
   "Hundreds of files become one attachment",
   "PDFs and Office docs read in your browser",
-  "No sign-up, nothing uploaded to us",
+  "No sign-up, files not uploaded to us",
 ];
 
 function Hero({ dropProps, linkImport }: LandingProps) {
@@ -251,7 +251,7 @@ const STEPS = [
   },
   {
     title: "It reads and counts",
-    body: "PDFs, Word, Excel and notes become text in this tab, and the token count shows whether the one file fits the chat. Nothing is uploaded to us.",
+    body: "PDFs, Word, Excel and notes become text in this tab, and the token count shows whether the one file fits the chat. Your files are not uploaded to us.",
   },
   {
     title: "Attach the one file",

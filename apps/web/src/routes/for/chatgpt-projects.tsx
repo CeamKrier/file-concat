@@ -52,7 +52,7 @@ export const Route = createFileRoute("/for/chatgpt-projects")({
         // has already hit the cap. The description now speaks to that person.
         title: "Get past the ChatGPT Projects source limit",
         description:
-          "Hit the source limit in a ChatGPT Project? A whole folder, PDFs included, becomes one file that takes one slot. Read in your browser, nothing uploaded.",
+          "Hit the source limit in a ChatGPT Project? A whole folder, PDFs included, becomes one file that takes one slot. Read in your browser, not uploaded to us.",
         url: "https://fileconcat.com/for/chatgpt-projects",
       }),
       {

@@ -41,7 +41,7 @@ function ClaudeProjectsLanding(dropProps: DropZoneProps) {
 const TRUST = [
   "See the token count before you add it",
   "PDFs and Office docs read in-browser",
-  "No sign-up, nothing uploaded to us",
+  "No sign-up, files not uploaded to us",
 ];
 
 function Hero({ dropProps }: { dropProps: DropZoneProps }) {
@@ -253,7 +253,7 @@ function WhereItStops() {
 const STEPS = [
   {
     title: "Drop the whole folder",
-    body: "Drag in every document the project might need. PDFs, Word, Excel, and notes become text in this tab. Nothing is uploaded to us.",
+    body: "Drag in every document the project might need. PDFs, Word, Excel, and notes become text in this tab. Your files are not uploaded to us.",
   },
   {
     title: "Leave out what it does not need",

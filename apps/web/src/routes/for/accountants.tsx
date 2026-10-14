@@ -21,7 +21,7 @@ export const Route = createFileRoute("/for/accountants")({
       ...generateSEOMeta({
         title: "Combine a client file for AI, privately",
         description:
-          "Drop a folder of statements, ledgers, and invoices. The PDFs and spreadsheets are read in your browser and packed into one file. Nothing is uploaded.",
+          "Drop a folder of statements, ledgers, and invoices. The PDFs and spreadsheets are read in your browser and packed into one file. Not uploaded to us.",
         url: "https://fileconcat.com/for/accountants",
       }),
       {

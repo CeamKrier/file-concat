@@ -57,7 +57,7 @@ function NotebookLmLanding({ dropProps, linkImport }: LandingProps) {
 const TRUST = [
   "A whole pile becomes one source",
   "PDFs and Office docs read in-browser",
-  "No sign-up, nothing uploaded to us",
+  "No sign-up, files not uploaded to us",
 ];
 
 function Hero({ dropProps, linkImport }: LandingProps) {
@@ -67,7 +67,7 @@ function Hero({ dropProps, linkImport }: LandingProps) {
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <Lock className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs in your browser, nothing uploaded to us
+            Runs in your browser, files not uploaded to us
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
@@ -255,7 +255,7 @@ const STEPS = [
   },
   {
     title: "It reads everything here",
-    body: "PDFs, Word, and notes are turned into text in this tab, with a file tree at the top. Nothing is uploaded to us.",
+    body: "PDFs, Word, and notes are turned into text in this tab, with a file tree at the top. Your files are not uploaded to us.",
   },
   {
     title: "Add the one file as a source",

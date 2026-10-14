@@ -49,7 +49,7 @@ export type TryItProps = {
  */
 export default function TryIt({
   title = "Try it with your own files",
-  hint = "Drop a folder or a few files. It runs here in your browser, nothing is uploaded.",
+  hint = "Drop a folder or a few files. It runs here in your browser, your files are not uploaded to us.",
   distribution,
 }: TryItProps) {
   const ingestion = useFileIngestion(DEFAULT_CONFIG);

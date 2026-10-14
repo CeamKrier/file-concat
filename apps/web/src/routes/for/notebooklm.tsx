@@ -32,7 +32,7 @@ export const Route = createFileRoute("/for/notebooklm")({
         // click; GitHub repo into NotebookLM has a section and a keyword.
         title: "NotebookLM source limit reached? Add more as one source",
         description:
-          "Notebook reached the source limit? Combine your documents, or a GitHub repo, into one text file NotebookLM adds as a single source. Nothing uploaded to us.",
+          "Notebook reached the source limit? Combine your documents, or a GitHub repo, into one text file NotebookLM adds as a single source. Not uploaded to us.",
         url: "https://fileconcat.com/for/notebooklm",
       }),
       {
