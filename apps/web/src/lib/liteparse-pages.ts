@@ -23,6 +23,37 @@ interface LiteparsePage {
   pageNum: number;
   markdown: string;
   complexity?: { reasons?: string[] };
+  textItems?: { rotation: number; text: string }[];
+}
+
+/**
+ * The pages whose text mostly lies at a quarter turn, with the turn that sets
+ * them upright.
+ *
+ * liteparse reads a sideways page's text, then its markdown writer drops every
+ * line more than 5 degrees off horizontal (it means to drop margin banners and
+ * watermarks), so a page with `/Rotate 90`, or a landscape table drawn turned,
+ * comes out empty with no note. Poppler's `pdftotext` lays each page out along
+ * the quarter turn carrying the most characters (`primaryRot`); this is that
+ * vote, and liteparse's own `pageOrientationCorrections` turns the page back.
+ *
+ * Diagonal text votes for nothing, so a watermark cannot turn a page, and a page
+ * turns only when its sideways text outweighs its upright text: turning an
+ * upright page empties it.
+ */
+function sidewaysPages(pages: readonly LiteparsePage[]): { page: number; angle: number }[] {
+  return pages.flatMap((page) => {
+    const votes = new Map<number, number>();
+    for (const item of page.textItems ?? []) {
+      const turn = Math.round(item.rotation / 90) * 90;
+      if (Math.abs(item.rotation - turn) > 2) continue;
+      const angle = ((turn % 360) + 360) % 360;
+      votes.set(angle, (votes.get(angle) ?? 0) + item.text.replace(/\s/g, "").length);
+    }
+    const upright = votes.get(0) ?? 0;
+    const [angle, count] = [...votes].filter(([turn]) => turn !== 0).sort((a, b) => b[1] - a[1])[0] ?? [0, 0];
+    return count > upright ? [{ page: page.pageNum, angle }] : [];
+  });
 }
 
 /** Each page's markdown and whether it holds a picture, which core needs to tell a scanned page from a blank one. */
@@ -56,8 +87,8 @@ export async function parsePdfPages(
   Parser: typeof LiteParse,
   bytes: Uint8Array,
 ): Promise<{ pages: PdfPage[]; skipped: number }> {
-  const read = async (keepHeadersFooters: boolean) => {
-    const parser = new Parser({ ...LITEPARSE_OPTIONS, keepHeadersFooters });
+  const read = async (keepHeadersFooters: boolean, pageOrientationCorrections?: { page: number; angle: number }[]) => {
+    const parser = new Parser({ ...LITEPARSE_OPTIONS, keepHeadersFooters, pageOrientationCorrections });
     try {
       return await parser.parse(bytes);
     } finally {
@@ -65,6 +96,9 @@ export async function parsePdfPages(
     }
   };
   let result = await read(true);
-  if (result.pages.length < 2) result = await read(false);
+  const keep = result.pages.length >= 2;
+  const corrections = sidewaysPages(result.pages);
+  // One more read covers both: pages left uncorrected come back as they were.
+  if (!keep || corrections.length > 0) result = await read(keep, corrections.length > 0 ? corrections : undefined);
   return { pages: toPdfPages(result.pages), skipped: result.pageErrors.length };
 }
