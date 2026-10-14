@@ -56,7 +56,7 @@ export default defineContentScript({
       if (event.data.type === "rejected")
         finish({
           ok: false,
-          error: String(event.data.reason ?? "The tab refused the batch."),
+          error: String(event.data.reason ?? "FileConcat refused the batch."),
           final: true,
         });
     });

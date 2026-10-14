@@ -107,7 +107,7 @@ finished row into an open fileconcat.com tab, opening one if there is none.
 Closing the panel does not stop a batch: the clipping runs in the service
 worker, and the panel reads the result whenever you open it again.
 
-A push **extends** the tab's bundle rather than replacing it, de-duplicating by
+A push **extends** the bundle in the open FileConcat page rather than replacing it, de-duplicating by
 path, so a repo and the discussion about it can sit in one bundle in either
 order and re-sending the same clipping does not double it. The tray keeps the
 last 50 clippings, so sending the set again is always safe. **Start over** in
