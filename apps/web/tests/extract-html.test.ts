@@ -31,6 +31,32 @@ describe("extractHtml", () => {
     expect(text).not.toContain("x()");
   });
 
+  it("leaves the page chrome out of the whole body too", () => {
+    const { text, reader } = extractHtml(
+      page(
+        `<header><a href="/">Example</a></header><nav>Home About</nav>
+         <div class="cookie-banner">We use cookies. Accept all</div>
+         <div role="dialog">Subscribe now</div>
+         <main><header><h1>Opening hours</h1></header><p>Monday to Friday, 9 to 5.</p>
+         <p id="policy" class="cookie-policy">Our cookie policy changed in May.</p></main>
+         <aside>Related posts</aside><footer>Copyright Example</footer>`,
+      ),
+    );
+    expect(reader).toBe("turndown");
+    expect(text).toContain("Opening hours");
+    expect(text).toContain("Monday to Friday, 9 to 5.");
+    // A page about cookies carries the word on its content; only an element
+    // whose first id or class names it is a banner (trafilatura's rule).
+    expect(text).toContain("Our cookie policy changed in May.");
+    for (const chrome of ["Home About", "Accept all", "Subscribe now", "Related posts", "Copyright Example"]) {
+      expect(text).not.toContain(chrome);
+    }
+  });
+
+  it("keeps a page that is nothing but chrome", () => {
+    expect(extractHtml(page("<footer>Contact: 555 0100</footer>")).text).toContain("Contact: 555 0100");
+  });
+
   it("decodes the page in the charset it declares", () => {
     const head = '<meta charset="windows-1254">';
     const ascii = page("<p>__</p>", head);
