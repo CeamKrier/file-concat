@@ -83,7 +83,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           <DropZone
             {...dropProps}
             title="Drop your folder or ZIP here"
-            hint="Every file inside, read in a second."
+            hint="Every file inside, read in your browser."
           />
         </div>
       </div>

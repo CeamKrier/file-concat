@@ -60,6 +60,8 @@ On NN/g's four tone dimensions we sit at: casual-leaning (not formal), serious, 
 
 Cut on sight: "actually", "worth" as a sentence opener, "simply", "just" (as a minimiser), "powerful", "seamless", "effortless", "leverage", "unlock".
 
+Slop words, also cut on sight. These are the words and phrases that studies found language models overuse, taken from Wikipedia's "Signs of AI writing" (read 2026-10-14). The list keeps only those with no literal use in our domain. "key", "landscape" and "highlight" stay allowed, because an API key, a landscape page and syntax highlighting are real things here. The list: delve, tapestry, testament, pivotal, crucial, meticulous, intricate, interplay, vibrant, bolster, garner, underscore (as a verb), showcase, boasts, foster, enduring, robust, multifaceted, groundbreaking, renowned, nestled, quietly, realm, holistic, game-changer, cutting-edge, unleash, supercharge, elevate, empower, "align with", "deep dive", "dive into", "in the heart of", "evolving landscape", "valuable insights", "treasure trove", "serves as", "stands as", "plays a ... role", "it is important to note", "worth noting", "rest assured", and "Additionally", "Moreover", "Furthermore", "In summary", "In conclusion" as openers. Negative parallelism ("not just X, but also Y") counts too. `apps/web/tests/voice.test.ts` fails the build on any of them.
+
 **Privacy, the ladder.** Strongest true claim first, nothing above it:
 
 1. "Your files are not uploaded to us. The whole thing runs in your browser."

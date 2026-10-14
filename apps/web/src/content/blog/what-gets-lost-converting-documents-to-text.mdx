@@ -27,11 +27,11 @@ kind: "research"
 />
 
 A PDF is not text. Neither is a Word file or a spreadsheet. Something has to walk the container and
-decide what the words were. That step is where a document quietly stops meaning what it meant.
+decide what the words were. That step is where a document can stop meaning what it meant.
 
 <Contents />
 
-## What gets lost converting documents to text
+## What gets lost when a document becomes text?
 
 Structure, mostly. The words usually survive, and what they belonged to often does not.
 
@@ -90,9 +90,9 @@ the page you care about.
 
 ## Try it on your own files
 
-Drop a document and read what comes out before you paste it. Three losses are still open in ours:
-spreadsheet dates arrive as raw serial numbers, a superscript footnote marker lands on its own line
-above the claim, and a scanned page inside an otherwise text document is dropped without a note. In
+Drop a document and read what comes out before you paste it. Three losses are still open in ours.
+Spreadsheet dates arrive as raw serial numbers. A superscript footnote marker lands on its own line
+above the claim. A scanned page inside an otherwise text document is dropped without a note. In
 your browser, the OCR FileConcat offers can bring that page back if you accept it.
 
 <TryIt
@@ -511,7 +511,7 @@ read a naturally ordered two-column page correctly. Only ours read a page whose 
 written across the gutter. That is a library difference. A table's cell boundaries, by contrast, do not
 exist anywhere in a PDF, so no reader can recover them reliably.
 
-### Should I just upload the PDF to the model instead?
+### Should I upload the PDF to the model instead?
 
 Sometimes. Anthropic's documentation says each page is converted to an image and its text extracted, and
 both are sent. That is why charts and diagrams can be asked about. It costs more: their Bedrock

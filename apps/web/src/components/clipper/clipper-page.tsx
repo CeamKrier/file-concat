@@ -567,7 +567,7 @@ function Close() {
         Put it next to what you are reading.
       </h2>
       <p className="text-ink-secondary mx-auto mt-4 max-w-[52ch] text-[15px] leading-relaxed">
-        Free, open source, and it works with the tool you already use. Clippings land in the same
+        Free, open source, and it sends to the FileConcat page you already use. Clippings land in the same
         bundle as the files you drop in yourself.
       </p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -584,7 +584,7 @@ function Close() {
           to="/"
           className="border-border text-ink-secondary hover:text-ink rounded-card focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center border px-4 py-2.5 text-[14px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
         >
-          Open the bundler
+          Open FileConcat
         </Link>
       </div>
     </MarketingSection>

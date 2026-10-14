@@ -60,11 +60,14 @@ time instead, and those can be. The test is `prunedAtWalk` in
 
 ## Layer 2: validation cache
 
-When a file is ingested, FileConcat checks two things and records the
+When a file is ingested, FileConcat checks its content and records the
 result in a sticky `validations` map:
 
-- Is the content binary? Genuine binaries (images, archives) are
-  excluded permanently. **Extractable documents** (PDF, Word, Excel,
+- Is the content binary? A file with no text to recover (an executable,
+  a font, an archive FileConcat cannot open) is left out for good and
+  shows locked in the tree. Images and recordings are offered for text
+  recognition or transcription, which runs only when you ask.
+  **Extractable documents** (PDF, Word, Excel,
   PowerPoint and the rest of [the formats list](/docs/formats)) are the
   exception. Their text is pulled out
   and included as text, in your browser, instead of the file being
@@ -77,8 +80,9 @@ result in a sticky `validations` map:
   its own for up to three such documents and 8 MB per drop, and is
   offered past that. A document that still yields no text (an encrypted
   PDF, say) is surfaced as excluded rather than silently left out.
-- Does the file exceed the configured max size (default 32 MB)? Oversize
-  files are excluded permanently.
+
+There is no size check. A large file is read like any other, and the
+result screen reports how much of the context window the bundle fills.
 
 This check runs once per file. Pattern edits do not retrigger it, which
 is why pattern changes feel instantaneous even on large drops.

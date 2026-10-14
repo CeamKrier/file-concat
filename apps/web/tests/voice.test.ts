@@ -22,6 +22,18 @@ const RULES: { name: string; pattern: RegExp; only?: RegExp }[] = [
   { name: "word: bundle, not blob or prompt", pattern: /\b(one|a|single|project) (clean |LLM-ready |prompt-ready )?blob\b|\bclean prompt\b/i },
   { name: "word: in your browser, not the tab", pattern: /\bin (the|this)( browser)? tab\b/i },
   { name: "word: drop, not drag", pattern: /title="Drag |\b[Dd]rag(ged)? (it |them |everything |every \w+ )?in\b|\bdrag[- ]and[- ]drop\b/ },
+  // Slop: words and phrases models overuse (Wikipedia, "Signs of AI writing"), only those with
+  // no literal sense here. key, landscape and highlight are real things in this product.
+  {
+    name: "slop: AI vocabulary",
+    pattern:
+      /\b(delv(e|es|ed|ing)|tapestr(y|ies)|testament|pivotal|crucial(ly)?|meticulous(ly)?|intricate|intricacies|interplay|vibrant|bolster(s|ed|ing)?|garner(s|ed|ing)?|showcas(e|es|ed|ing)|boasts|foster(s|ed|ing)?|enduring|robust(ly|ness)?|multifaceted|groundbreaking|renowned|nestled|quietly|realm|holistic|game-?changer|cutting-edge|unleash(es|ed|ing)?|supercharg(e|es|ed|ing)|elevat(e|es|ed|ing) your|empower(s|ed|ing)?|treasure trove|rest assured)\b|\bunderscor(e|es|ed|ing) (the|its|how|that|a|our|this|why)\b/i,
+  },
+  {
+    name: "slop: AI phrasing",
+    pattern:
+      /\balign(s|ed)? with\b|\bdeep dive\b|\bdive into\b|\bin the heart of\b|\bevolving landscape\b|\bvaluable insights?\b|\b(serves|stands) as an?\b|\bplays? an? (\w+ )?role\b|\bimportant to (note|remember)\b|\bworth noting\b|(^|[.!?]\s+)(Additionally|Moreover|Furthermore|In summary|In conclusion),|\bnot (just|only)\b[^.;:]{1,80}?,? but( also)?\b/im,
+  },
   { name: "word: no analyst terms", pattern: /\b(p90|p10|signal density|n_?eff)\b/i, only: /^(components|routes)\// },
 ];
 

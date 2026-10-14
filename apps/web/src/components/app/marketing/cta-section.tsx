@@ -36,7 +36,7 @@ export function CtaSection() {
           onClick={toTop}
           className="bg-primary text-primary-foreground rounded-chip focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center justify-center gap-2 px-6 py-3.5 text-[15px] font-bold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
         >
-          Open the tool
+          Open FileConcat
           <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
         </button>
         <Link

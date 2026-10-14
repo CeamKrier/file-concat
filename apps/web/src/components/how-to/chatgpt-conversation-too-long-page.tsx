@@ -170,7 +170,7 @@ function WhyItForgets() {
           </blockquote>
           <p>
             The new chat does not start with the old one&apos;s messages. Copying them across by
-            hand fails quietly. The page holds only the few messages near where you are looking,
+            hand fails without an error. The page holds only the few messages near where you are looking,
             and swaps the rest in as you scroll. Select all and copy, and most of the
             conversation is not there to copy.
           </p>

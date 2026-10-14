@@ -78,7 +78,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           <DropZone
             {...dropProps}
             title="Drop your case folder here"
-            hint="Contracts, filings, and rulings. Read in a second."
+            hint="Contracts, filings, and rulings. Read in your browser."
           />
         </div>
       </div>
@@ -100,8 +100,7 @@ function Confidentiality() {
           We don't upload your case file.
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
-          Most tools that read a document upload it to a server first. FileConcat does the reading in
-          your browser, so your file is never uploaded to be read, and there is no account to
+          FileConcat does the reading in your browser, so your file is never uploaded to be read, and there is no account to
           create.
         </p>
       </div>
@@ -153,7 +152,7 @@ function Workflow() {
         id="legal-workflow"
         className="font-display text-ink max-w-[24ch] text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
       >
-        From a folder to a prompt in three steps.
+        From a folder to one file in three steps.
       </h2>
 
       <ol className="mt-9 grid gap-x-8 gap-y-8 sm:grid-cols-3">
@@ -238,7 +237,7 @@ function WorkedExample() {
           id="legal-example"
           className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          One matter, one document.
+          One matter, one file.
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[46ch] text-[15px] leading-relaxed">
           A folder of five documents goes in. A single file comes out, labeled as documents so the
@@ -310,7 +309,7 @@ function ClosingCta() {
         id="legal-cta"
         className="font-display text-ink mx-auto max-w-[18ch] text-balance text-[clamp(1.7rem,4vw,2.2rem)] font-bold leading-[1.08] tracking-[-0.025em]"
       >
-        Read the whole file without giving it away.
+        Prepare the whole file in your browser.
       </h2>
       <div className="mt-8">
         <button

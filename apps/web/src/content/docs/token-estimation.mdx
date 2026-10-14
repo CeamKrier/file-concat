@@ -12,9 +12,9 @@ files come and go.
 ## How the count is produced
 
 Token counting runs against `@dqbd/tiktoken`, a WebAssembly build of
-OpenAI's tokenizer. The default encoding is the one used by
-`o1-preview-2024-09-12`, which most modern LLM models match closely
-enough to be useful as a unified estimate.
+OpenAI's tokenizer. The encoding is `o200k_base`, the one
+`o1-preview-2024-09-12` uses, and it is fixed. Claude and Gemini
+tokenize differently, so for them the count is an approximation.
 
 What gets counted is the **whole assembled output**, the same string the
 preview shows and the copy button copies: the XML root or Markdown

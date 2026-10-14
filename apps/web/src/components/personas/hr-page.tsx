@@ -51,7 +51,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
-            Bring HR documents to AI without exposing your people.
+            Bring HR documents to AI, prepared in your browser.
           </h1>
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
@@ -81,7 +81,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           <DropZone
             {...dropProps}
             title="Drop your HR folder here"
-            hint="Policies, handbooks, or a batch of CVs. Read in a second."
+            hint="Policies, handbooks, or a batch of CVs. Read in your browser."
           />
         </div>
       </div>
@@ -104,8 +104,7 @@ function Confidentiality() {
           Your people's data isn't uploaded to us.
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
-          HR files are full of personal data, and most tools that read a document upload it to a
-          server first. FileConcat does the reading in your browser, so the files are never
+          HR files are full of personal data. FileConcat does the reading in your browser, so the files are never
           uploaded to be read, and there is no account to create.
         </p>
       </div>
@@ -199,7 +198,7 @@ function Workflow() {
           id="hr-workflow"
           className="font-display text-ink max-w-[18ch] text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          From an HR folder to a prompt.
+          From an HR folder to one file.
         </h2>
 
         <ol className="space-y-6">

@@ -39,7 +39,7 @@ export function DropZone({
   onDrop,
   onFileInput,
   title = "Drop a folder or files here",
-  hint = "...and your file is ready a second later.",
+  hint = "One file comes back, usually in under a second.",
   variant = "hero",
 }: DropZoneProps) {
   const filesInput = useRef<HTMLInputElement>(null);

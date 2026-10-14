@@ -43,7 +43,7 @@ const COLLECTED = [
   },
   {
     title: "Repository imports you ask for.",
-    body: "If you paste a GitHub, GitLab, or Bitbucket link, your browser fetches it directly from that host. That request goes to them, not to us.",
+    body: "If you paste a GitHub, GitLab, Bitbucket or Gist link, or the address of a page, your browser fetches it directly from that host. That request goes to them, not to us.",
   },
   {
     title: "Reading a scanned page, when you drop one.",
@@ -100,8 +100,7 @@ export function PrivacyPage() {
             What leaves your device, and what doesn't.
           </h1>
           <p className="text-ink-secondary mt-5 text-[16px] leading-relaxed">
-            Most tools that read a document upload it to a server first. FileConcat does that work in
-            your browser instead, so your files are never uploaded to be processed. To keep the tool
+            FileConcat does the reading in your browser, so your files are never uploaded to be processed. To keep the tool
             honest, here is the full account of what stays with you, what we collect, and how to
             check it for yourself.
           </p>
@@ -205,9 +204,10 @@ export function PrivacyPage() {
           </h2>
           <p className="text-ink-secondary mt-4 text-[15px] leading-relaxed">
             Open your browser's network panel and drop a folder. Your documents are never
-            uploaded. The requests you will see are the analytics beacon, the repository fetch if you
-            imported one, the recognition download if a scanned page was in the drop, and your
-            feedback note if you send one. Never your files. Any content blocker stops the analytics, and FileConcat is open source, so you
+            uploaded. The requests you will see are the analytics beacon, the model price list for the
+            cost estimate, the link fetch if you imported one, the recognition download if a scanned
+            page was in the drop, the speech model if you transcribed a recording, and your feedback
+            note if you send one. Never your files. Any content blocker stops the analytics, and FileConcat is open source, so you
             can read exactly what it does.
           </p>
           <a
