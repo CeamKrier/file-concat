@@ -57,12 +57,20 @@ export function extractCfb(bytes: Uint8Array): ExtractionResult {
  * Any workbook SheetJS reads: BIFF from the container above, and `.xlsx`,
  * `.xlsm` and `.xlsb` first in their chain (extraction router, R5). A heading
  * per sheet, then the rows as csv, with each cell as Excel formats it.
+ *
+ * By default every row is padded with commas out to the sheet's declared range
+ * and an empty row is a line of commas. `strip` drops the padding, and a run of
+ * empty rows becomes one blank line: the gap between two tables on a sheet,
+ * which Docling and Unstructured also split on.
  */
 export function extractWorkbook(bytes: Uint8Array): ExtractionResult {
   const workbook = XLSX.read(bytes, { type: "array" });
   const sheets = workbook.SheetNames.map((name) => ({
     name,
-    csv: XLSX.utils.sheet_to_csv(workbook.Sheets[name]).trim(),
+    csv: XLSX.utils
+      .sheet_to_csv(workbook.Sheets[name], { strip: true })
+      .replace(/\n{3,}/g, "\n\n")
+      .trim(),
   })).filter((sheet) => sheet.csv);
   return { text: sheets.map((sheet) => `# Sheet: ${sheet.name}\n${sheet.csv}`).join("\n\n") };
 }

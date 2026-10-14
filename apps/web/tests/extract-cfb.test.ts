@@ -141,4 +141,13 @@ describe("extractWorkbook", () => {
   it("reads a binary workbook, which officeparser cannot", () => {
     expect(extractWorkbook(formatted("xlsb")).text).toBe("# Sheet: Plan\nRate,Due\n8%,2024-10-02");
   });
+
+  it("drops the padding out to the sheet's range and keeps one blank line between tables", () => {
+    const sheet = XLSX.utils.aoa_to_sheet([["Title"], ["Region", "Q1", "Q2"], ["EMEA", 1, 2], [], [], ["Notes"]]);
+    sheet["!ref"] = "A1:F9";
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet, "Sales");
+    const bytes = new Uint8Array(XLSX.write(workbook, { bookType: "xlsx", type: "array" }));
+    expect(extractWorkbook(bytes).text).toBe("# Sheet: Sales\nTitle\nRegion,Q1,Q2\nEMEA,1,2\n\nNotes");
+  });
 });
