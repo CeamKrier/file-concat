@@ -1,4 +1,5 @@
 import type { Email } from "postal-mime";
+import { formatCalendar } from "./calendar";
 import { flattenHtml } from "./html-text";
 import type { ExtractionNote, ExtractionResult } from "./types";
 
@@ -15,7 +16,7 @@ export interface MessageFields {
   subject?: string;
   html?: string;
   text?: string;
-  attachments?: ReadonlyArray<{ filename: string | null }>;
+  attachments?: ReadonlyArray<{ filename: string | null; mimeType?: string; content?: ArrayBuffer | Uint8Array | string }>;
 }
 
 /**
@@ -116,8 +117,20 @@ export function formatEmail(email: MessageFields): ExtractionResult {
   const body = email.text?.trim() || (email.html ? htmlToText(email.html) : "");
   if (body) parts.push(body);
 
+  // A meeting invite's content is its calendar part, often with no body
+  // beside it. The events are read as body; Gmail sends each one twice
+  // (inline and as invite.ics), so a block already written is not repeated.
+  const events = new Set<string>();
+  const attachments = (email.attachments ?? []).filter((attachment) => {
+    if (!/^(text\/calendar|application\/ics)$/i.test(attachment.mimeType ?? "") || attachment.content === undefined) return true;
+    const ics = typeof attachment.content === "string" ? attachment.content : new TextDecoder().decode(attachment.content);
+    const blocks = formatCalendar(ics);
+    for (const block of blocks) events.add(block);
+    return blocks.length === 0;
+  });
+  parts.push(...events);
+
   const notes: ExtractionNote[] = [];
-  const attachments = email.attachments ?? [];
   if (attachments.length > 0) {
     // Named in the text as well as counted in the notes: a message whose whole
     // content is "see attached" is unreadable without knowing what was attached.

@@ -149,6 +149,69 @@ describe("formatEmail", () => {
     expect(text).toContain("The report is attached.");
   });
 
+  /** A message whose parts are the given `[content-type, body]` pairs, in a multipart/mixed. */
+  const multipart = (...parts: [string, string][]) =>
+    [
+      "From: org@example.com",
+      "Subject: Planning",
+      "MIME-Version: 1.0",
+      'Content-Type: multipart/mixed; boundary="B"',
+      "",
+      ...parts.flatMap(([type, body]) => ["--B", `Content-Type: ${type}`, "", body]),
+      "--B--",
+      "",
+    ].join("\r\n");
+
+  const INVITE = [
+    "BEGIN:VCALENDAR",
+    "METHOD:REQUEST",
+    "BEGIN:VEVENT",
+    "SUMMARY:Quarterly plan",
+    " ning review",
+    "DTSTART:20261020T090000Z",
+    "DTEND;TZID=Europe/Istanbul:20261020T130000",
+    "LOCATION:Room 4\\, second floor",
+    "ORGANIZER;CN=Org Person:mailto:org@example.com",
+    'ATTENDEE;CN="Doe, Jane";ROLE=REQ-PARTICIPANT:mailto:jane@example.com',
+    "ATTENDEE:mailto:bob@example.com",
+    "DESCRIPTION:line one\\nline two\\, with comma",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+
+  it("reads a meeting invite's calendar part as the body instead of listing it", async () => {
+    const { text, notes } = formatEmail(await PostalMime.parse(multipart(["text/calendar; method=REQUEST", INVITE])));
+    expect(text).toContain(
+      [
+        "Event: Quarterly planning review",
+        "Starts: 2026-10-20 09:00 UTC",
+        "Ends: 2026-10-20 13:00 Europe/Istanbul",
+        "Location: Room 4, second floor",
+        "Organizer: Org Person <org@example.com>",
+        "Attendees: Doe, Jane <jane@example.com>, bob@example.com",
+        "Description: line one\nline two, with comma",
+      ].join("\n"),
+    );
+    expect(text).not.toContain("Attachments");
+    expect(notes).toBeUndefined();
+  });
+
+  it("writes an invite sent twice once, and says when it is a cancellation", async () => {
+    const cancel = INVITE.replace("METHOD:REQUEST", "METHOD:CANCEL");
+    const { text } = formatEmail(
+      await PostalMime.parse(multipart(["text/plain", "Called off."], ["text/calendar", cancel], ["application/ics", cancel])),
+    );
+    expect(text).toContain("Called off.\n\nMethod: CANCEL\nEvent: Quarterly planning review");
+    expect(text.match(/Event:/g)).toHaveLength(1);
+  });
+
+  it("keeps a calendar part with no event in it listed as an attachment", async () => {
+    const todo = "BEGIN:VCALENDAR\r\nBEGIN:VTODO\r\nSUMMARY:File taxes\r\nEND:VTODO\r\nEND:VCALENDAR";
+    const { text, notes } = formatEmail(await PostalMime.parse(multipart(["text/plain", "See the task."], ["text/calendar", todo])));
+    expect(text).toContain("Attachments (1, not included): unnamed-1");
+    expect(notes).toEqual([{ kind: "attachments-skipped", count: 1 }]);
+  });
+
   it("answers 'couldn't extract' for a message with nothing in it", async () => {
     expect(formatEmail({ attachments: [] })).toEqual({ text: "" });
   });
