@@ -25,7 +25,7 @@ import {
 
 import { READ_FORMATS } from "../../../apps/web/src/data/formats";
 
-export type InputKind = "reader" | "image" | "never-text" | "named" | "unknown";
+export type InputKind = "reader" | "image" | "speech" | "never-text" | "named" | "unknown";
 
 /**
  * The compound-file variants the formats list does not spell out: the router
@@ -54,8 +54,13 @@ const IMAGE_FORMAT: Record<string, string> = {
 
 export function catalogue(ext: string): { kind: InputKind; label: string } {
   const e = ext.toLowerCase();
-  const listed = READ_FORMATS.find((entry) => entry.extensions.includes(e));
-  if (listed) return { kind: listed.group === "Images" ? "image" : "reader", label: listed.name };
+  // An on-request format lands in `unreadable_ext` by design until someone asks
+  // (the offer is counted beside it), so it wins over an automatic entry for the
+  // same extension: an mp4 with no subtitle track is a recording, not a refusal.
+  const listed = READ_FORMATS.filter((entry) => entry.extensions.includes(e));
+  const asked = listed.find((entry) => entry.how === "on-request");
+  if (asked) return { kind: asked.group === "Images" ? "image" : "speech", label: asked.name };
+  if (listed.length) return { kind: "reader", label: listed[0].name };
   if (CFB_READ.has(e)) return { kind: "reader", label: unreadableReason(`f.${e}`, CFB_ROUTE).label };
   if (EXTRACTED_FORMATS.has(e)) return { kind: "reader", label: `${e} document, read here` };
   if (IMAGE_FORMAT[e]) {

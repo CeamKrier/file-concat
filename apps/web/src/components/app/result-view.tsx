@@ -260,7 +260,7 @@ export function ResultView({
         kind: "note",
         icon: ScanText,
         title: `Read ${recoveredDocuments} ${noun(recoveredDocuments)}${asLanguage}.`,
-        body: "Recognition guesses at characters, and a reading in the wrong language comes back looking like a success. Worth a look before you trust it.",
+        body: "Recognition guesses at characters, and a reading in the wrong language comes back looking like a success. Check it before you trust it.",
         action: { label: "Check the reading", onClick: onCheckReading },
       });
     } else if (recoveredDocuments > 0) {
@@ -338,7 +338,7 @@ export function ResultView({
       // Floored, not rounded: a 99.9% share alongside two other files must not
       // print as "100% of it".
       title: `One file is ${Math.floor(weight.dominant.share * 100)}% of the bundle.`,
-      body: "Worth checking that you meant to send it.",
+      body: "Check that you meant to send it.",
       panel: {
         label: "Which file",
         content: (
@@ -366,7 +366,7 @@ export function ResultView({
         kind: "note",
         icon: ImageIcon,
         title: `${imageCount} ${noun(imageCount)} might be holding text.`,
-        body: "Recognition can read writing off a picture, here in the browser. It is never started for you: a few seconds an image, and only you know whether these are pages or decoration.",
+        body: "Recognition can read writing off a picture, here in your browser. It is never started for you: a few seconds an image, and only you know whether these are pages or decoration.",
         action: { label: "Read them", onClick: onCheckReading },
       });
     } else {
@@ -382,7 +382,7 @@ export function ResultView({
               : `Read all ${imageCount} images.`,
         body:
           recognisedImages === imageCount
-            ? "Recognition guesses at characters, so the words in the bundle are close rather than exact. Worth a look before you trust them."
+            ? "Recognition guesses at characters, so the words in the bundle are close rather than exact. Check them before you trust them."
             : `Nothing legible came back from the other ${imageCount - recognisedImages}. That is the ordinary answer for a picture with no writing in it.`,
         action: { label: "Check the reading", onClick: onCheckReading },
       });
@@ -400,7 +400,7 @@ export function ResultView({
             kind: "note",
             icon: AudioLines,
             title: `${mediaCount} ${noun(mediaCount)} that can be written out.`,
-            body: "The speech, and in a video the text on screen, read here in the browser, never started for you: the first time downloads a speech model (66 MB for English, 244 MB for other languages).",
+            body: "The speech, and in a video the text on screen, can be read here in your browser. It never starts on its own: the first time downloads a speech model (66 MB for English, 244 MB for other languages).",
             action: { label: "Transcribe them", onClick: onCheckReading },
           }
         : {
@@ -413,7 +413,7 @@ export function ResultView({
                 : mediaCount === 1
                   ? "Transcribed the recording."
                   : `Transcribed all ${mediaCount} recordings.`,
-            body: "A speech model hears words, not spelling, so names and terms can come out wrong. Worth a look before you trust them.",
+            body: "A speech model hears words, not spelling, so names and terms can come out wrong. Check them before you trust them.",
             action: { label: "Check the transcript", onClick: onCheckReading },
           },
     );
@@ -491,7 +491,7 @@ export function ResultView({
         count: partialDocuments.length,
         label: "partly read",
         tone: "warn",
-        lead: "The text in the bundle is real, just not all of what the file holds. A model reading the bundle has no way to know that.",
+        lead: "The text in the bundle is real, but not all of what the file holds. A model reading the bundle has no way to know that.",
         items: partialDocuments,
       },
       {
@@ -537,7 +537,7 @@ export function ResultView({
       <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
         <Check className="text-primary h-[17px] w-[17px] shrink-0" strokeWidth={2.8} />
         <h2 className="font-display text-ink text-xl font-semibold tracking-[-0.02em]">
-          Your document is ready
+          Your bundle is ready
         </h2>
         <span className="border-border bg-surface text-ink-muted rounded-chip max-w-full truncate border px-2.5 py-1 font-mono text-[11.5px] sm:ml-auto">
           {sourceLabel}
@@ -775,8 +775,10 @@ export function ResultView({
         </div>
         {/* A fixed window, not a max height: the page's geometry is the point of
             the rework, and a preview that sets its own height moves everything
-            under it by however long the first file happens to be. */}
-        <pre className="border-border bg-surface-inset text-code rounded-card h-[210px] overflow-auto border p-4 font-mono text-[11.5px] leading-[1.65]">
+            under it by however long the first file happens to be.
+            Masked in Clarity recordings: this is the one place the files'
+            text is on screen, and the attribute overrides the site setting. */}
+        <pre data-clarity-mask="True" className="border-border bg-surface-inset text-code rounded-card h-[210px] overflow-auto border p-4 font-mono text-[11.5px] leading-[1.65]">
           {preview}
         </pre>
       </div>
@@ -1218,7 +1220,7 @@ function ReadingProgress({ progress }: { progress: { done: number; total: number
             <div className="text-ink-muted mt-[3px] text-[13px] leading-[1.55]">
               {/* Speech names where inside the file it is, as one recording can
                   be the whole pass. */}
-              {progress?.note ? `${progress.note}.` : "Recognising the page images, here in the browser."} You
+              {progress?.note ? `${progress.note}.` : "Recognising the page images, here in your browser."} You
               can leave this tab open and come back.
             </div>
           </div>

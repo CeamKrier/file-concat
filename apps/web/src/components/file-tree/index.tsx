@@ -153,7 +153,7 @@ function FileTree({
         <div className="space-y-1">
           <h3 className="font-semibold">Files</h3>
           <p className="text-muted-foreground text-sm">
-            <span className="text-foreground">{stats.uploadedCount}</span> files uploaded with total
+            <span className="text-foreground">{stats.uploadedCount}</span> files dropped with total
             size of <span className="text-foreground">{formatSize(stats.uploadedSize)}</span>
           </p>
         </div>

@@ -6,8 +6,8 @@ description: "How the FileConcat Clipper extension saves an article, a YouTube t
 # Browser clipper
 
 FileConcat Clipper is a Chrome extension that turns the page you are
-reading into Markdown and pushes it into an open fileconcat.com tab,
-where it joins your bundle like any dropped file. It covers articles on
+reading into Markdown and pushes it into an open fileconcat.com tab.
+There it joins your bundle like any dropped file. It covers articles on
 any site, plus YouTube transcripts, Reddit threads, Hacker News
 discussions, and ChatGPT, Claude and Gemini conversations.
 
@@ -26,14 +26,14 @@ itself is on the
 
 The panel's **Now** block names the page it is looking at. It re-reports
 itself on every tab switch, every navigation, and whenever the page
-grows, so scrolling a feed to load more rows updates the list without a
-click and the panel never describes the page you came from.
+grows. Scrolling a feed to load more rows updates the list without a
+click, and the panel never describes the page you came from.
 
 ## What it reads
 
 **Any article.** If a page reads as an article, the panel offers **Clip
 this page**. Mozilla's Readability decides what the body is and Turndown
-renders it, which covers Substack, Medium, documentation sites, news and
+renders it. That covers Substack, Medium, documentation sites, news and
 blogs with no per-site code. Navigation, sidebars, cookie bars and
 footers are left behind.
 
@@ -43,8 +43,8 @@ Videos tab and a search page list every video the page has loaded, with
 a tap target on each row. A channel's Playlists tab lists playlists
 instead, and taking one row takes every video that playlist holds, filed
 under the playlist's name. **Include comments** adds the top 60
-threads and the first page of replies under the 25 most-replied of them,
-and is off by default, because it costs about 30 more requests, five
+threads and the first page of replies under the 25 most-replied of them.
+It is off by default, because it costs about 30 more requests, five
 seconds, and three to four times the tokens.
 
 **Reddit.** A thread offers **Clip this post** and takes the post plus
@@ -52,7 +52,7 @@ the comments the page has rendered, keeping every author, score and level
 of nesting. **Expand more comments** clicks the thread's own "more
 replies" three rounds deep and is off by default because it is slower.
 Clipping from a subreddit listing instead fetches each post's full body
-but not its comments, which Reddit renders on the client; that clipping
+but not its comments, which Reddit renders on the client. That clipping
 says so in place of its comment section and never overwrites a fuller
 clipping of the same post.
 
@@ -62,7 +62,7 @@ tap target on each.
 
 **ChatGPT, Claude and Gemini.** All three pages render a window of the
 conversation (4 of 82 messages on a measured ChatGPT page, 2 of 11 on Claude,
-2 of 105 on Gemini), so the extension reads the conversation the way the
+2 of 105 on Gemini). So the extension reads the conversation the way the
 site's own client does: one or two same-origin requests, using the page's
 session, nothing stored. The file holds every turn with the assistant's own
 Markdown. The opt-in adds reasoning and tool activity, measured at 3 to 6.5
@@ -73,15 +73,15 @@ conversation built, arrive as their own files under the conversation's folder.
 ## Sending into a bundle
 
 Clips collect in the panel's cart. **Peek** reads a clipping's Markdown
-back inside the panel before you send it, which is where a wrong page or
-a transcript that stopped early shows up while it is still cheap to fix.
+back inside the panel before you send it. That is where a wrong page or
+a transcript that stopped early shows up, while it is still cheap to fix.
 
 **Send** pushes every finished clipping into an open fileconcat.com tab,
 opening one if there is none. A send extends the bundle rather than
-replacing it and de-duplicates by path, so a repository and the
+replacing it, and de-duplicates by path. So a repository and the
 discussion about it can sit in one bundle in either order, re-sending a
 corrected clipping fixes it in place, and sending the same set twice
-does not double it. **Start over** in the app is the only thing that
+does not double it. **Start over** on fileconcat.com is the only thing that
 clears a bundle.
 
 Closing the panel does not stop a batch. The clipping runs in the
@@ -94,8 +94,8 @@ Nothing is read from a page until you ask for it. There is no background
 crawling, no page is touched because you happened to visit it, and no
 clipping is sent anywhere except the fileconcat.com tab you are looking
 at. There is no account and no server of ours in the path. Clippings are
-held in your browser's own storage between the clip and the send, and
-the sent list is a receipt rather than a library: rows leave after seven
+held in your browser's own storage between the clip and the send. The
+sent list is a receipt rather than a library: rows leave after seven
 days. The [privacy page](/privacy) covers the extension alongside the
 site.
 

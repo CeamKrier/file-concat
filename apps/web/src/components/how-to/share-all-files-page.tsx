@@ -35,7 +35,7 @@ function ShareLanding(dropProps: DropZoneProps) {
 
 const TRUST = [
   "No sign-up, no install",
-  "Nothing uploaded to us, not even PDFs",
+  "Files not uploaded to us, not even PDFs",
   "One file back in about a second",
 ];
 
@@ -46,7 +46,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <Lock className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs in your browser. Nothing uploaded to us.
+            Runs in your browser. Files not uploaded to us.
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
@@ -73,7 +73,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <DropZone
             {...dropProps}
-            title="Drag your folder here"
+            title="Drop your folder here"
             hint="Files, PDFs, docs, a whole folder. Read in a second."
           />
         </div>
@@ -103,10 +103,16 @@ const LIMITS = [
     href: "/how-to/chatgpt-conversation-too-long",
   },
   {
-    where: "ChatGPT folders and ZIPs",
+    where: "ChatGPT folders",
     caps: "What it opens",
-    limit: "No folder upload; archives are not a listed file type",
+    limit: "No folder upload; each file inside is its own upload",
     href: "/how-to/upload-folder-to-chatgpt",
+  },
+  {
+    where: "ZIP files",
+    caps: "What gets read",
+    limit: "ChatGPT may not unpack one; Gemini reads up to 10 files inside",
+    href: "/how-to/upload-zip-to-chatgpt",
   },
   {
     where: "A book or textbook",
@@ -244,11 +250,11 @@ function SourceLink({ href, children }: { href: string; children: React.ReactNod
 const STEPS = [
   {
     title: "Drop the whole folder",
-    body: "Drag in everything you want the AI to read. Subfolders come along, and you can add a repo or a link too.",
+    body: "Drop in everything you want the AI to read. Subfolders come along, and you can add a repo or a link too.",
   },
   {
     title: "It reads everything here",
-    body: "PDFs, Word, Excel, code, and notes are turned into text right in this tab. Nothing is uploaded to us.",
+    body: "PDFs, Word, Excel, code, and notes are turned into text in your browser. Your files are not uploaded to us.",
   },
   {
     title: "Paste the one file in",

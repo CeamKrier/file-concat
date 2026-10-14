@@ -1,16 +1,16 @@
 ---
 title: "CLI usage - run FileConcat from the terminal"
-description: "Install the file-concat CLI, the flags it takes, its config file, and how documents, notebooks and archives are handled. Shares the web app's core library, no browser required."
+description: "Install the file-concat CLI, the flags it takes, its config file, and how documents, notebooks and archives are handled. Shares the core library of fileconcat.com, no browser required."
 ---
 
 # CLI usage
 
-The `file-concat` CLI is built on the `@fileconcat/core` library the
-web app uses, with the same filtering rules and no browser required.
-It reads fewer formats than the web app: no scanned pages, no
+The `file-concat` CLI is built on the `@fileconcat/core` library
+fileconcat.com uses, with the same filtering rules and no browser required.
+It reads fewer formats than fileconcat.com: no scanned pages, no
 97-2003 Office files, Kindle books, Outlook `.msg`, 7z or rar
 archives, and no transcription. The published version can lag behind
-the web app.
+fileconcat.com.
 
 ## Install
 
@@ -73,7 +73,7 @@ file-concat ./src \
   --output context.md
 ```
 
-This walks `./src`, drops every test file and snapshot directory,
+This walks `./src`, leaves out every test file and snapshot directory,
 emits Markdown with fenced code blocks, and writes to `context.md`.
 
 ## Config file
@@ -128,7 +128,7 @@ each isolating one structure, scored against an independent reader.
 
 ## Notebooks, transcripts and messages (IPYNB, SRT, VTT, EML)
 
-These are already text, so they used to go in whole, which meant
+These are already text, so they used to go in whole. That meant
 base64 PNGs of every plot in a notebook, MIME boundaries and base64
 attachments in a saved message, and a cue index plus a timestamp range
 for every two seconds of a transcript. All three are now rendered
@@ -136,16 +136,16 @@ instead:
 
 - **`.ipynb`** becomes markdown. Prose cells verbatim, code cells fenced
   in the notebook's own language, text output and tracebacks kept.
-  Images and other binary output are dropped and counted, so the summary
+  Images and other binary output are left out and counted, so the summary
   says how much was left behind.
 - **`.srt` / `.vtt`** become the transcript. Indices, timestamps and
   styling go; a line that a rolling caption repeats in the next cue is
-  emitted once. Timestamps are dropped rather than thinned, a
+  emitted once. Timestamps are removed rather than thinned, because a
   transcript is read for what was said.
 - **`.eml`** becomes the correspondence: From, To, Cc, Date, Subject,
   then the body, quoted-printable and MIME-encoded headers decoded, and
   an HTML-only message flattened to its words. Attachments are named in
-  the text and counted, never inlined and never silently dropped.
+  the text and counted, never inlined and never silently left out.
 
 Same rule as documents: the **leading bytes** decide, so a notebook
 saved as `.json`, a transcript saved as `.txt`, and a message saved with
@@ -158,22 +158,22 @@ the raw file in the bundle.
 
 Archives are left packed by default. Walking a directory that happens
 to contain `assets.zip` is not a request to inline it, and doing so
-would bury the code you actually asked for. Pass `--expand-archives`
+would bury the code you asked for. Pass `--expand-archives`
 when you do want the contents:
 
 ```bash
 file-concat ./repo --expand-archives
 ```
 
-Zip, tar, and gzip (including `.tar.gz`) are unpacked; each entry lands
-under a folder named after the archive and faces the same size, binary
-and extraction handling as a loose file. Nesting is one level deep, an
+Zip, tar, and gzip (including `.tar.gz`) are unpacked. Each entry lands
+under a folder named after the archive and gets the same size, binary
+and extraction handling as a loose file. Nesting is one level deep: an
 archive inside an archive stays packed. `.rar` and `.7z` are recognized
 but cannot be opened yet, and are reported as skipped.
 
 ## For AI coding agents
 
-The CLI is designed to drop into Claude Code, Cursor agent mode,
+The CLI is designed to fit into Claude Code, Cursor agent mode,
 aider, or any custom orchestrator without surprises. Three contracts
 hold:
 
@@ -225,6 +225,6 @@ file-concat ./service --expand-archives -o ctx.xml
 ## See also
 
 - [File filtering](/docs/file-filtering) covers the glob syntax,
-  which is shared with the web app's filter textareas.
-- [Configuration](/docs/configuration) describes the web app's
-  parallel configuration surfaces.
+  which is shared with the filter textareas on fileconcat.com.
+- [Configuration](/docs/configuration) describes the parallel
+  configuration surfaces on fileconcat.com.

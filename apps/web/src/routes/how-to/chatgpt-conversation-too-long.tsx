@@ -25,7 +25,7 @@ export const Route = createFileRoute("/how-to/chatgpt-conversation-too-long")({
         // description names it.
         title: "ChatGPT conversation too long? Carry it into a new chat",
         description:
-          "Hit the maximum length for a ChatGPT conversation? A free Chrome side panel reads every turn and hands it back as one file to attach to a new chat. Nothing uploaded to us.",
+          "Hit the maximum length for a ChatGPT conversation? A free Chrome side panel reads every turn and hands it back as one file to attach to a new chat. Not uploaded to us.",
         url: "https://fileconcat.com/how-to/chatgpt-conversation-too-long",
       }),
       {

@@ -1,6 +1,6 @@
 ---
 title: "Convert a Spreadsheet to Text for an LLM"
-description: "Turn Excel and other spreadsheets into text a model can actually read. Sheet names and cell boundaries survive, in your browser, with live token counts."
+description: "Turn Excel and other spreadsheets into text a model can read. Sheet names and cell boundaries survive, in your browser, with live token counts."
 date: "2026-08-15"
 author: "CeamKrier"
 draft: false
@@ -11,7 +11,7 @@ draft: false
     "Drop the workbook on fileconcat.com: every sheet comes out under its own name with each row's cells kept apart, extracted in your browser.",
     "Formulas arrive as their computed results. Since 2026-10-07 an Excel date arrives as the cell shows it, not as a serial number such as 45000.",
     "Charts, cell colours and conditional formatting are not text and do not come out. Say in the prompt what the highlighting meant.",
-    "Nothing is uploaded to us.",
+    "Your files are not uploaded to us.",
   ]}
 />
 
@@ -20,8 +20,8 @@ become text first, and that is where most of the answer quietly goes missing. A 
 not a document that happens to hold numbers. It is a grid, and the grid is half the meaning.
 
 This guide covers converting a spreadsheet to text for an LLM prompt: what a flattened read
-destroys, what actually reaches the model, and what a workbook loses on the
-way out. There is a spot to try it on your own files partway down. Nothing is uploaded to us;
+destroys, what reaches the model, and what a workbook loses on the
+way out. There is a spot to try it on your own files partway down. Your files are not uploaded to us;
 the extraction runs in your browser.
 
 ## A row is only data while its cells stay apart
@@ -80,12 +80,14 @@ belonged to, which is what any question about a spreadsheet turns on.
 ## Try it on your own workbook
 
 Drop a spreadsheet below, or a folder with a few of them mixed in with your other documents. It
-runs in your browser, there is no account, and nothing is uploaded to us.
+runs in your browser, there is no account, and your files are not uploaded to us.
 
 <TryIt
   title="Bundle your own spreadsheets"
-  hint="Drop a workbook or a folder of mixed documents. It runs here in your browser, nothing is uploaded."
+  hint="Drop a workbook or a folder of mixed documents. It runs here in your browser, your files are not uploaded to us."
 />
+
+Converting a single workbook? [Excel to text](/convert/excel-to-text) shows what a sample budget comes back as.
 
 ## What a workbook loses on the way out
 

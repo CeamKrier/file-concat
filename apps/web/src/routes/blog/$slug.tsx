@@ -73,7 +73,7 @@ function BlogPostPage() {
               {version ? ` with FileConcat ${version}` : ""}
               {current
                 ? ", the current version. What it reads, format by format, is listed in "
-                : " and kept as measured. FileConcat has changed since; what it reads today is listed in "}
+                : " and kept as measured. FileConcat has changed since. What it reads today is listed in "}
               <Link
                 to="/docs/$slug"
                 params={{ slug: "formats" }}

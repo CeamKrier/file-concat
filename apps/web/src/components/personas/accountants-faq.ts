@@ -7,7 +7,7 @@
 export const ACCOUNTANTS_FAQ = [
   {
     q: "Is it safe to use AI on confidential client financials?",
-    a: "The combining step is fully local: FileConcat reads every file in your browser and never uploads it, so the documents are not sent to a server to be read. What you then paste into an assistant is your own choice, but preparing the file uploads nothing.",
+    a: "FileConcat reads every file in your browser and never uploads it, so the documents are not sent to a server to be read. What you then paste into an assistant is your own choice, but preparing the file uploads nothing.",
   },
   {
     q: "Can it read bank statements and spreadsheets?",
@@ -18,7 +18,7 @@ export const ACCOUNTANTS_FAQ = [
     a: "No. Drop XLSX and CSV files straight in, and FileConcat pulls the values into the combined file as text alongside the PDFs and Word documents.",
   },
   {
-    q: "Does anything get uploaded to a server?",
-    a: "No. Everything, including the PDFs, is read in your browser tab. Nothing is uploaded, and there is no account to create.",
+    q: "Are my files uploaded to a server?",
+    a: "No. Every file, the PDFs included, is read in your browser. Your files are not uploaded to us, and there is no account to create.",
   },
 ];

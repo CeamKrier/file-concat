@@ -38,7 +38,7 @@ function UploadFolderLanding(dropProps: DropZoneProps) {
 const TRUST = [
   "Folders and .zip, .7z, .rar, .tar opened here",
   "PDFs and Office docs inside read too",
-  "No sign-up, nothing uploaded to us",
+  "No sign-up, files not uploaded to us",
 ];
 
 function Hero({ dropProps }: { dropProps: DropZoneProps }) {
@@ -48,11 +48,11 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <Lock className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs in your browser. Nothing uploaded to us.
+            Runs in your browser. Files not uploaded to us.
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
-            Upload a whole folder or ZIP to ChatGPT.
+            Upload a whole folder to ChatGPT.
           </h1>
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
@@ -82,7 +82,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <DropZone
             {...dropProps}
-            title="Drag your folder or ZIP here"
+            title="Drop your folder or ZIP here"
             hint="Every file inside, read in a second."
           />
         </div>
@@ -232,11 +232,11 @@ function WhyOneFile() {
 const STEPS = [
   {
     title: "Drop the folder or the ZIP",
-    body: "Drag it in or pick it. Subfolders come along, and .zip, .7z, .rar, .tar and .tar.gz are unpacked here.",
+    body: "Drop it in or pick it. Subfolders come along, and .zip, .7z, .rar, .tar and .tar.gz are unpacked here.",
   },
   {
     title: "It reads everything inside",
-    body: "PDFs, Word, Excel, and notes become text in this tab, with the token count shown as it goes. Nothing is uploaded to us.",
+    body: "PDFs, Word, Excel, and notes become text in your browser, with the token count shown as it goes. Your files are not uploaded to us.",
   },
   {
     title: "Upload the one file",
@@ -384,6 +384,7 @@ function ClosingCta() {
         </button>
       </div>
       <FurtherReading>
+        Already zipped? See <ProseLink to="/how-to/upload-zip-to-chatgpt">whether ChatGPT can read a ZIP</ProseLink>.
         Filling a Project rather than a chat? See{" "}
         <ProseLink to="/for/chatgpt-projects">the ChatGPT Projects source limit</ProseLink>, which
         caps how many files a Project holds. What each format keeps and leaves out is on <ProseLink to="/docs/formats">the formats list</ProseLink>.

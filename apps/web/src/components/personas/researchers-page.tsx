@@ -31,7 +31,7 @@ function ResearchersLanding(dropProps: DropZoneProps) {
   );
 }
 
-const TRUST = ["Nothing is uploaded", "Token count shown before you paste", "PDFs, notes, and data"];
+const TRUST = ["Files not uploaded to us", "Token count shown before you paste", "PDFs, notes, and data"];
 
 function Hero({ dropProps }: { dropProps: DropZoneProps }) {
   return (
@@ -49,8 +49,8 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
             Drop the PDFs, your notes, and the data. FileConcat pulls the text out of every paper
-            right in your browser, packs it into one document, and shows you the token count so you
-            know it fits ChatGPT, Claude, or Gemini before you paste.
+            in your browser and packs it into one bundle. It shows you the token count, so you know
+            it fits ChatGPT, Claude, or Gemini before you paste.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -73,7 +73,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <DropZone
             {...dropProps}
-            title="Drag your reading folder here"
+            title="Drop your reading folder here"
             hint="Papers, notes, and data. Read in a second."
           />
         </div>
@@ -102,7 +102,7 @@ function ContextWindow() {
         </p>
         <p className="text-go-fg mt-5 inline-flex items-center gap-2 font-mono text-[12.5px]">
           <Hash className="text-primary h-4 w-4 shrink-0" strokeWidth={2} />
-          Counted locally, with the same tokenizer the models use
+          Counted in your browser, with the same tokenizer the models use
         </p>
       </div>
 
@@ -134,10 +134,10 @@ const STEPS = [
   },
   {
     title: "Every file becomes text",
-    body: "PDFs are extracted, notes and data pass straight through, boilerplate is dropped.",
+    body: "PDFs are extracted, notes and data pass straight through, boilerplate is left out.",
   },
   {
-    title: "One document, counted up front",
+    title: "One bundle, counted up front",
     body: "You get a single file, with the token count up front so you know whether it lands in one window.",
   },
 ];
@@ -233,7 +233,7 @@ function WorkedExample() {
           A review folder, packed and counted.
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[46ch] text-[15px] leading-relaxed">
-          Three papers, a note file, and a results table go in. One document comes out, labeled as
+          Three papers, a note file, and a results table go in. One bundle comes out, labeled as
           documents, with the token count already known.
         </p>
       </div>

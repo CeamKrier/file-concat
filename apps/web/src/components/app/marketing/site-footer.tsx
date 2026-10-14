@@ -71,7 +71,10 @@ export function SiteFooter() {
               ChatGPT conversation too long
             </Link>
             <Link to="/how-to/upload-folder-to-chatgpt" className={linkClass}>
-              Folder or ZIP to ChatGPT
+              Folder to ChatGPT
+            </Link>
+            <Link to="/how-to/upload-zip-to-chatgpt" className={linkClass}>
+              ZIP file to ChatGPT
             </Link>
             <Link to="/how-to/upload-book-to-chatgpt" className={linkClass}>
               Book or textbook to ChatGPT
@@ -112,6 +115,22 @@ export function SiteFooter() {
             </Link>
             <Link to="/for/researchers" className={linkClass}>
               For researchers
+            </Link>
+            <h2 className={`${headingClass} mt-6`}>Convert to text</h2>
+            <Link to="/convert/$slug" params={{ slug: "pdf-to-text" }} className={linkClass}>
+              PDF to text
+            </Link>
+            <Link to="/convert/$slug" params={{ slug: "docx-to-text" }} className={linkClass}>
+              Word to text
+            </Link>
+            <Link to="/convert/$slug" params={{ slug: "excel-to-text" }} className={linkClass}>
+              Excel to text
+            </Link>
+            <Link to="/convert/$slug" params={{ slug: "pptx-to-text" }} className={linkClass}>
+              PowerPoint to text
+            </Link>
+            <Link to="/convert/$slug" params={{ slug: "image-to-text" }} className={linkClass}>
+              Image to text
             </Link>
           </div>
 

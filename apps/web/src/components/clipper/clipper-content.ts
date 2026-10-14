@@ -10,7 +10,7 @@
  */
 
 export const THREAD = "Ask HN: How do you keep a design system honest?";
-export const VIDEO = "How databases actually store your data";
+export const VIDEO = "How databases store your data on disk";
 
 /**
  * The cart, in the order the page fills it: the thread, then the three rows off

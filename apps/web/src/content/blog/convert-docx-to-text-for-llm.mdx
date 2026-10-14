@@ -11,7 +11,7 @@ draft: false
     "Drop the Word files, or the folder, on fileconcat.com: the words come out as one file with each table row on its own line, cells in column order, extracted in your browser.",
     "Headings flatten to plain lines, and images, charts and text boxes do not come through. Say in the prompt what a diagram carried.",
     "Every Word defect our re-tests found is fixed, and a tracked deletion has never reached a bundle as current text.",
-    "Nothing is uploaded to us.",
+    "Your files are not uploaded to us.",
   ]}
 />
 
@@ -22,7 +22,7 @@ of that container, and the interesting question is what comes with them.
 
 This guide covers converting a Word document to text for an LLM prompt: what survives the trip,
 what flattens, and how to send a folder of them at once. There is a spot to try it on your own
-files partway down. Nothing is uploaded to us; the extraction runs in your browser.
+files partway down. Your files are not uploaded to us; the extraction runs in your browser.
 
 ## The table is the part worth protecting
 
@@ -31,7 +31,7 @@ table is only readable while its cells stay apart and its rows stay whole, and t
 what a careless read gives up first.
 
 <BeforeAfter>
-  <Before label="what you dragged in">{`report.docx
+  <Before label="what you dropped in">{`report.docx
   Quarterly Report
   Revenue by region
   [ Region | Q1   | Q2   ]
@@ -78,12 +78,14 @@ them together.
 ## Try it on your own documents
 
 Drop a Word file below, or a folder with a few mixed in. It runs in your browser, there is no
-account, and nothing is uploaded to us.
+account, and your files are not uploaded to us.
 
 <TryIt
   title="Bundle your own documents"
-  hint="Drop a Word file or a folder of mixed documents. It runs here in your browser, nothing is uploaded."
+  hint="Drop a Word file or a folder of mixed documents. It runs here in your browser, your files are not uploaded to us."
 />
+
+Converting a single document? [Word to text](/convert/docx-to-text) shows what a sample letter comes back as.
 
 ## What flattens
 

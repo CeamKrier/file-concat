@@ -7,7 +7,7 @@
 export const HR_FAQ = [
   {
     q: "Is it safe to use AI on documents with employee personal data?",
-    a: "The combining step is fully local: FileConcat reads every file in your browser and uploads nothing, so the documents stay on your computer while you prepare them. What you then paste into an assistant is your own choice.",
+    a: "FileConcat reads every file in your browser and uploads none of them, so the documents stay on your computer while you prepare them. What you then paste into an assistant is your own choice.",
   },
   {
     q: "Can I combine a batch of CVs into one file?",
@@ -18,7 +18,7 @@ export const HR_FAQ = [
     a: "Yes. Word documents and born-digital PDF files are read as text and combined in order under a file tree, so a whole policy set becomes one reference the assistant can answer from.",
   },
   {
-    q: "Does anything get uploaded to a server?",
-    a: "No. Everything, including the PDFs, is read in your browser tab. Nothing is uploaded, and there is no account to create.",
+    q: "Are my files uploaded to a server?",
+    a: "No. Every file, the PDFs included, is read in your browser. Your files are not uploaded to us, and there is no account to create.",
   },
 ];

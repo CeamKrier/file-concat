@@ -25,7 +25,7 @@ export const Route = createFileRoute("/how-to/github-repo-to-text")({
         // one input here that leaves the tab (to GitHub, never to us).
         title: "GitHub repo to text: one file for any LLM",
         description:
-          "Paste a GitHub repo URL and get one text file for ChatGPT or Claude, with the token count first. Your browser fetches it from GitHub; nothing goes to us.",
+          "Paste a GitHub repo URL and get one text file for ChatGPT or Claude, with the token count first. Your browser fetches it from GitHub. Not uploaded to us.",
         url: "https://fileconcat.com/how-to/github-repo-to-text",
       }),
       {

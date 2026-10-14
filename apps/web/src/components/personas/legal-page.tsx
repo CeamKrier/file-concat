@@ -32,7 +32,7 @@ function LegalLanding(dropProps: DropZoneProps) {
 }
 
 const TRUST = [
-  "Nothing is uploaded",
+  "Files not uploaded to us",
   "PDFs and Word read as text",
   "Scanned pages read here, and marked",
 ];
@@ -44,17 +44,17 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <Lock className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs on your computer. Nothing uploaded.
+            Runs in your browser. Files not uploaded to us.
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
-            Bring a case file to ChatGPT or Claude. Privately.
+            Bring a case file to ChatGPT or Claude, prepared on your computer.
           </h1>
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
             Drop the folder of contracts, filings, and rulings. FileConcat reads the PDFs and Word
-            files right here in your browser and gives back one clean document to paste into your
-            assistant. Nothing is uploaded, so privilege and client confidence stay intact.
+            files right here in your browser and gives back one file to paste into your
+            assistant. What you then paste into an assistant is your own choice, but preparing the file uploads nothing.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -77,7 +77,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <DropZone
             {...dropProps}
-            title="Drag your case folder here"
+            title="Drop your case folder here"
             hint="Contracts, filings, and rulings. Read in a second."
           />
         </div>
@@ -101,21 +101,17 @@ function Confidentiality() {
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
           Most tools that read a document upload it to a server first. FileConcat does the reading in
-          this browser tab, so your file is never uploaded to be read, and there is no account to
+          your browser, so your file is never uploaded to be read, and there is no account to
           create.
-        </p>
-        <p className="text-go-fg mt-5 inline-flex items-center gap-2 font-mono text-[12.5px]">
-          <Lock className="text-primary h-4 w-4 shrink-0" strokeWidth={2} />
-          Suitable for privileged and client-confidential material
         </p>
       </div>
 
       <div className="min-w-0">
-        <MockWindow label="smith-v-acme, handled locally">
+        <MockWindow label="smith-v-acme, read in your browser">
           <ul className="divide-hairline divide-y font-mono text-[12.5px]">
             <li className="flex items-center gap-3 px-4 py-2.5">
               <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
-              <span className="text-ink-secondary min-w-0 flex-1">14 files read in this tab</span>
+              <span className="text-ink-secondary min-w-0 flex-1">14 files read in your browser</span>
             </li>
             <li className="flex items-center gap-3 px-4 py-2.5">
               <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
@@ -125,7 +121,7 @@ function Confidentiality() {
             </li>
             <li className="flex items-center gap-3 bg-[oklch(var(--primary)/0.06)] px-4 py-3">
               <span className="bg-primary h-1.5 w-1.5 shrink-0 rounded-full" />
-              <span className="text-ink min-w-0 flex-1">one document, ready to paste</span>
+              <span className="text-ink min-w-0 flex-1">one file, ready to paste</span>
               <span className="text-go-fg shrink-0">no upload</span>
             </li>
           </ul>
@@ -146,7 +142,7 @@ const STEPS = [
   },
   {
     title: "Paste into your assistant",
-    body: "Out comes one document, a file tree at the top, ready for ChatGPT, Claude, or Gemini.",
+    body: "Out comes one file with a file tree at the top, ready for ChatGPT, Claude, or Gemini.",
   },
 ];
 
@@ -200,7 +196,7 @@ function FileTypes() {
             id="legal-filetypes"
             className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
           >
-            The formats a matter actually arrives in.
+            The formats a matter arrives in.
           </h2>
           <p className="text-ink-secondary mt-4 max-w-[46ch] text-[15px] leading-relaxed">
             You do not have to convert anything first. Born-digital documents are read straight

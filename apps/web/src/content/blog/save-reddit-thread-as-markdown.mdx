@@ -15,7 +15,7 @@ draft: false
 />
 
 You found the thread. Four hundred replies, an argument in the middle of it, and
-somewhere in there the answer to the thing you were actually looking up. You want to
+somewhere in there the answer to the thing you were looking up. You want to
 ask a model about it rather than read all of it, which means getting the thread out of
 the browser first.
 
@@ -104,26 +104,26 @@ you as Markdown.
 ## One thread, or the whole subreddit
 
 A subreddit's front page is a listing, so the panel puts a tap target on every row it has
-loaded. Tap the posts you want and each one is opened and read on its own, which turns a
-session of scrolling into a set of files rather than one flattened page of headlines.
+loaded. Tap the posts you want and each one is opened and read on its own. A session of
+scrolling becomes a set of files rather than one flattened page of headlines.
 
-There is one honest limit worth knowing. A post clipped from a listing carries its full
-body but **not** its comments, because Reddit renders those on the client and fetching the
-page never sees them. That clipping says so in place of its comment section rather than
-reading as a thread that nobody replied to, and it will never overwrite a fuller clipping
-of the same post you already took from the thread itself.
+There is one limit. A post clipped from a listing carries its full body but **not** its
+comments. Reddit renders those on the client, so fetching the page never sees them. That
+clipping says so in place of its comment section rather than reading as a thread that
+nobody replied to. It will never overwrite a fuller clipping of the same post you already
+took from the thread itself.
 
 ## Why Markdown, and why a bundle
 
 Markdown is the format a model reads without being taught anything: headings are
 headings, indentation is nesting, and there is no markup budget spent on layout.
 
-The send does not replace what is already in your bundle, it extends it, and files with
+The send does not replace what is already in your bundle. It extends it, and files with
 the same name replace each other. So a repository and the thread arguing about it can sit
-in the same bundle in either order, and re-sending a corrected clipping fixes it in place
-instead of duplicating it. When you are done, the bundler gives you one document with a
-live token count, so you know it fits before you paste it anywhere.
+in the same bundle in either order. Re-sending a corrected clipping fixes it in place
+instead of duplicating it. When you are done, the bundler gives you one file with a live
+token count, so you know it fits before you paste it anywhere.
 
-Nothing is uploaded to us on the way. The clipping is made in your browser, held in your
+None of it is uploaded to us on the way. The clipping is made in your browser, held in your
 browser's own storage between the clip and the send, and handed to the tab you already
 have open.

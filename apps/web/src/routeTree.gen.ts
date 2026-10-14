@@ -16,6 +16,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as HowToUploadZipToChatgptRouteImport } from './routes/how-to/upload-zip-to-chatgpt'
 import { Route as HowToUploadFolderToChatgptRouteImport } from './routes/how-to/upload-folder-to-chatgpt'
 import { Route as HowToUploadBookToChatgptRouteImport } from './routes/how-to/upload-book-to-chatgpt'
 import { Route as HowToShareAllFilesWithAiRouteImport } from './routes/how-to/share-all-files-with-ai'
@@ -35,6 +36,7 @@ import { Route as ForClaudeProjectsRouteImport } from './routes/for/claude-proje
 import { Route as ForChatgptProjectsRouteImport } from './routes/for/chatgpt-projects'
 import { Route as ForAccountantsRouteImport } from './routes/for/accountants'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
+import { Route as ConvertSlugRouteImport } from './routes/convert/$slug'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as ApiModelsRouteImport } from './routes/api/models'
 import { Route as ApiFeedbackRouteImport } from './routes/api/feedback'
@@ -73,6 +75,11 @@ const DocsIndexRoute = DocsIndexRouteImport.update({
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowToUploadZipToChatgptRoute = HowToUploadZipToChatgptRouteImport.update({
+  id: '/how-to/upload-zip-to-chatgpt',
+  path: '/how-to/upload-zip-to-chatgpt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HowToUploadFolderToChatgptRoute =
@@ -178,6 +185,11 @@ const DocsSlugRoute = DocsSlugRouteImport.update({
   path: '/docs/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConvertSlugRoute = ConvertSlugRouteImport.update({
+  id: '/convert/$slug',
+  path: '/convert/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/blog/$slug',
   path: '/blog/$slug',
@@ -209,6 +221,7 @@ export interface FileRoutesByFullPath {
   '/api/feedback': typeof ApiFeedbackRoute
   '/api/models': typeof ApiModelsRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/convert/$slug': typeof ConvertSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/for/accountants': typeof ForAccountantsRoute
   '/for/chatgpt-projects': typeof ForChatgptProjectsRoute
@@ -228,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/how-to/upload-book-to-chatgpt': typeof HowToUploadBookToChatgptRoute
   '/how-to/upload-folder-to-chatgpt': typeof HowToUploadFolderToChatgptRoute
+  '/how-to/upload-zip-to-chatgpt': typeof HowToUploadZipToChatgptRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
 }
@@ -241,6 +255,7 @@ export interface FileRoutesByTo {
   '/api/feedback': typeof ApiFeedbackRoute
   '/api/models': typeof ApiModelsRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/convert/$slug': typeof ConvertSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/for/accountants': typeof ForAccountantsRoute
   '/for/chatgpt-projects': typeof ForChatgptProjectsRoute
@@ -260,6 +275,7 @@ export interface FileRoutesByTo {
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/how-to/upload-book-to-chatgpt': typeof HowToUploadBookToChatgptRoute
   '/how-to/upload-folder-to-chatgpt': typeof HowToUploadFolderToChatgptRoute
+  '/how-to/upload-zip-to-chatgpt': typeof HowToUploadZipToChatgptRoute
   '/blog': typeof BlogIndexRoute
   '/docs': typeof DocsIndexRoute
 }
@@ -274,6 +290,7 @@ export interface FileRoutesById {
   '/api/feedback': typeof ApiFeedbackRoute
   '/api/models': typeof ApiModelsRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/convert/$slug': typeof ConvertSlugRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/for/accountants': typeof ForAccountantsRoute
   '/for/chatgpt-projects': typeof ForChatgptProjectsRoute
@@ -293,6 +310,7 @@ export interface FileRoutesById {
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/how-to/upload-book-to-chatgpt': typeof HowToUploadBookToChatgptRoute
   '/how-to/upload-folder-to-chatgpt': typeof HowToUploadFolderToChatgptRoute
+  '/how-to/upload-zip-to-chatgpt': typeof HowToUploadZipToChatgptRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
 }
@@ -308,6 +326,7 @@ export interface FileRouteTypes {
     | '/api/feedback'
     | '/api/models'
     | '/blog/$slug'
+    | '/convert/$slug'
     | '/docs/$slug'
     | '/for/accountants'
     | '/for/chatgpt-projects'
@@ -327,6 +346,7 @@ export interface FileRouteTypes {
     | '/how-to/share-all-files-with-ai'
     | '/how-to/upload-book-to-chatgpt'
     | '/how-to/upload-folder-to-chatgpt'
+    | '/how-to/upload-zip-to-chatgpt'
     | '/blog/'
     | '/docs/'
   fileRoutesByTo: FileRoutesByTo
@@ -340,6 +360,7 @@ export interface FileRouteTypes {
     | '/api/feedback'
     | '/api/models'
     | '/blog/$slug'
+    | '/convert/$slug'
     | '/docs/$slug'
     | '/for/accountants'
     | '/for/chatgpt-projects'
@@ -359,6 +380,7 @@ export interface FileRouteTypes {
     | '/how-to/share-all-files-with-ai'
     | '/how-to/upload-book-to-chatgpt'
     | '/how-to/upload-folder-to-chatgpt'
+    | '/how-to/upload-zip-to-chatgpt'
     | '/blog'
     | '/docs'
   id:
@@ -372,6 +394,7 @@ export interface FileRouteTypes {
     | '/api/feedback'
     | '/api/models'
     | '/blog/$slug'
+    | '/convert/$slug'
     | '/docs/$slug'
     | '/for/accountants'
     | '/for/chatgpt-projects'
@@ -391,6 +414,7 @@ export interface FileRouteTypes {
     | '/how-to/share-all-files-with-ai'
     | '/how-to/upload-book-to-chatgpt'
     | '/how-to/upload-folder-to-chatgpt'
+    | '/how-to/upload-zip-to-chatgpt'
     | '/blog/'
     | '/docs/'
   fileRoutesById: FileRoutesById
@@ -405,6 +429,7 @@ export interface RootRouteChildren {
   ApiFeedbackRoute: typeof ApiFeedbackRoute
   ApiModelsRoute: typeof ApiModelsRoute
   BlogSlugRoute: typeof BlogSlugRoute
+  ConvertSlugRoute: typeof ConvertSlugRoute
   DocsSlugRoute: typeof DocsSlugRoute
   ForAccountantsRoute: typeof ForAccountantsRoute
   ForChatgptProjectsRoute: typeof ForChatgptProjectsRoute
@@ -424,6 +449,7 @@ export interface RootRouteChildren {
   HowToShareAllFilesWithAiRoute: typeof HowToShareAllFilesWithAiRoute
   HowToUploadBookToChatgptRoute: typeof HowToUploadBookToChatgptRoute
   HowToUploadFolderToChatgptRoute: typeof HowToUploadFolderToChatgptRoute
+  HowToUploadZipToChatgptRoute: typeof HowToUploadZipToChatgptRoute
   BlogIndexRoute: typeof BlogIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
 }
@@ -477,6 +503,13 @@ declare module '@tanstack/react-router' {
       path: '/blog'
       fullPath: '/blog/'
       preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-to/upload-zip-to-chatgpt': {
+      id: '/how-to/upload-zip-to-chatgpt'
+      path: '/how-to/upload-zip-to-chatgpt'
+      fullPath: '/how-to/upload-zip-to-chatgpt'
+      preLoaderRoute: typeof HowToUploadZipToChatgptRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/how-to/upload-folder-to-chatgpt': {
@@ -612,6 +645,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/convert/$slug': {
+      id: '/convert/$slug'
+      path: '/convert/$slug'
+      fullPath: '/convert/$slug'
+      preLoaderRoute: typeof ConvertSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/blog/$slug': {
       id: '/blog/$slug'
       path: '/blog/$slug'
@@ -653,6 +693,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFeedbackRoute: ApiFeedbackRoute,
   ApiModelsRoute: ApiModelsRoute,
   BlogSlugRoute: BlogSlugRoute,
+  ConvertSlugRoute: ConvertSlugRoute,
   DocsSlugRoute: DocsSlugRoute,
   ForAccountantsRoute: ForAccountantsRoute,
   ForChatgptProjectsRoute: ForChatgptProjectsRoute,
@@ -672,6 +713,7 @@ const rootRouteChildren: RootRouteChildren = {
   HowToShareAllFilesWithAiRoute: HowToShareAllFilesWithAiRoute,
   HowToUploadBookToChatgptRoute: HowToUploadBookToChatgptRoute,
   HowToUploadFolderToChatgptRoute: HowToUploadFolderToChatgptRoute,
+  HowToUploadZipToChatgptRoute: HowToUploadZipToChatgptRoute,
   BlogIndexRoute: BlogIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
 }

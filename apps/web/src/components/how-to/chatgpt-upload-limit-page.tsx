@@ -44,8 +44,8 @@ const OPENAI_UPLOADS_HELP = "https://help.openai.com/en/articles/8555545-file-up
 
 const TRUST = [
   "A whole folder becomes one upload",
-  "PDFs and Office docs read in-browser",
-  "No sign-up, nothing uploaded to us",
+  "PDFs and Office docs read in your browser",
+  "No sign-up, files not uploaded to us",
 ];
 
 function Hero({ dropProps }: { dropProps: DropZoneProps }) {
@@ -55,7 +55,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <Lock className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs in your browser. Nothing uploaded to us.
+            Runs in your browser. Files not uploaded to us.
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
@@ -89,7 +89,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <DropZone
             {...dropProps}
-            title="Drag your folder here"
+            title="Drop your folder here"
             hint="Everything you meant to upload, read in a second."
           />
         </div>
@@ -228,11 +228,11 @@ function WhyItRunsOut() {
 const STEPS = [
   {
     title: "Drop the whole folder",
-    body: "Drag in every file you meant to upload. Subfolders come along, and you can add a repo or a link too.",
+    body: "Drop in every file you meant to upload. Subfolders come along, and you can add a repo or a link too.",
   },
   {
     title: "It reads and counts",
-    body: "PDFs, Word, Excel, and notes become text in this tab, and the token count shows whether it fits one upload. Nothing is uploaded to us.",
+    body: "PDFs, Word, Excel, and notes become text in your browser, and the token count shows whether it fits one upload. Your files are not uploaded to us.",
   },
   {
     title: "Upload the one file",

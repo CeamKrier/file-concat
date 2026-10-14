@@ -16,15 +16,15 @@ export const CLAUDE_UPLOAD_LIMIT_FAQ = [
   },
   {
     q: "Does a combined file count as one of the 20?",
-    a: "Yes. The cap counts files, and FileConcat hands back one file however many documents went into it, with a file tree at the top so Claude can tell them apart. Two hundred files combined take one of the twenty slots.",
+    a: "Yes. The cap counts files, and FileConcat hands back one file however many documents went into it. A file tree at the top lets Claude tell them apart. Two hundred files combined take one of the twenty slots.",
   },
   {
     q: 'Why does Claude say "Your message will exceed the length limit for this chat"?',
-    a: "That is the length limit, not the file count. Claude's help center says it appears when a message is longer than the chat can take, and that a very large first message can still trigger it. A combined file holds the same text as the files in it, so it is just as long. Leave out what Claude does not need, start a new conversation, or pick a model with a larger context window: 200K to 1M tokens on paid plans, depending on the model.",
+    a: "That is the length limit, not the file count. Claude's help center says it appears when a message is longer than the chat can take, and that a very large first message can still trigger it. A combined file holds the same text as the files in it, so it is just as long. Leave out what Claude does not need, start a new conversation, or pick a model with a larger context window. Paid plans run 200K to 1M tokens, depending on the model.",
   },
   {
     q: "Can I upload a PDF over 1,000 pages to Claude?",
-    a: "Not as a PDF. Claude's help center says it refuses one with an \"Uploaded file is too large\" error, and that past 100 pages it reads a PDF's text only, not its charts or images. FileConcat pulls the text out in your browser into a text file, which is not counted in pages, though it still has to fit the chat's length limit.",
+    a: "Not as a PDF. Claude's help center says it refuses one with an \"Uploaded file is too large\" error. It also says that past 100 pages it reads a PDF's text only, not its charts or images. FileConcat pulls the text out in your browser into a text file, which is not counted in pages. It still has to fit the chat's length limit.",
   },
   {
     q: "Which file type should I attach?",
@@ -32,10 +32,10 @@ export const CLAUDE_UPLOAD_LIMIT_FAQ = [
   },
   {
     q: "Is this the same as the Claude Project limit?",
-    a: "No. A chat caps how many files you attach: 20. A project has no file count, only a 30 MB cap per file and a total that must fit the context window, so for a project the fix is leaving files out rather than combining them.",
+    a: "No. A chat caps how many files you attach: 20. A project has no file count, only a 30 MB cap per file and a total that must fit the context window. For a project, the fix is leaving files out rather than combining them.",
   },
   {
     q: "Are my files uploaded to a server?",
-    a: "Not to us. FileConcat reads every file, PDFs and Office documents included, in your browser tab, and a public GitHub repository is fetched by your browser straight from GitHub. There is no account to create. The only upload is the one file you attach to Claude.",
+    a: "Not to us. FileConcat reads every file, PDFs and Office documents included, in your browser, and a public GitHub repository is fetched by your browser straight from GitHub. There is no account to create. The only upload is the one file you attach to Claude.",
   },
 ];

@@ -6,8 +6,8 @@ description: "How FileConcat imports a public GitHub repository: the URL shapes 
 # GitHub import
 
 Paste a public GitHub repository URL into the import panel and press
-**Fetch**, and FileConcat fetches the file tree on demand. No GitHub
-account needed, and no servers in between. The same panel opens
+**Fetch**, and FileConcat fetches the file tree on demand. It needs no
+GitHub account, and no server sits in between. The same panel opens
 [GitHub repo to text](/how-to/github-repo-to-text), next to what 60
 public repositories weigh in tokens.
 
@@ -58,12 +58,11 @@ When a request is denied, the message in the import panel comes from
 `classifyResponseError`
 (`packages/core/src/sources/adapters/_errors.ts`). Status 401, 403 and
 429 each carry their own wording, so "rate limited" reads differently
-from "private repository", and a rate-limit message carries the reset
+from "private repository". A rate-limit message carries the reset
 time GitHub sent back.
 
-If you need higher quotas or access to private repositories today, the
-supported workaround is to download the project locally and use the
-drag-and-drop path instead. Token-authenticated imports are tracked
+For higher quotas or private repositories, download the project to your
+computer and drop the folder into FileConcat instead. Token-authenticated imports are tracked
 separately and are not shipped at the time of writing.
 
 ## Large repositories fall back to an archive
@@ -81,8 +80,8 @@ file, and a subdirectory URL still narrows the result the same way.
 ## When a download fails
 
 A file that fails to download does not fail the import. Each failure is
-recorded with its path and reason and the rest of the bundle is
-assembled without it, so compare the file count in the result against
+recorded with its path and reason, and the rest of the bundle is
+assembled without it. Compare the file count in the result against
 what you expected.
 
 A 429 whose `Retry-After` hint fits inside 30 seconds is retried once,

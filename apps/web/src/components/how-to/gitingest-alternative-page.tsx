@@ -47,7 +47,7 @@ function Landing({ dropProps, linkImport }: LandingProps) {
 const TRUST = [
   "A folder or ZIP read in your browser",
   "A GitHub repo fetched straight from GitHub",
-  "No install, no sign-up, nothing uploaded to us",
+  "No install, no sign-up, files not uploaded to us",
 ];
 
 function Hero({ dropProps, linkImport }: LandingProps) {
@@ -57,7 +57,7 @@ function Hero({ dropProps, linkImport }: LandingProps) {
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <MonitorSmartphone className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs in this tab
+            Runs in your browser
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
@@ -65,9 +65,9 @@ function Hero({ dropProps, linkImport }: LandingProps) {
           </h1>
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
-            Drop a folder or paste a public GitHub link. The files are read here, lock files and
-            tests stay out by default, PDFs and Word files come in as text, and one file comes back
-            with its token count.
+            Drop a folder or paste a public GitHub link. The files are read in your browser, and lock
+            files and tests stay out by default. PDFs and Word files come in as text, and one file
+            comes back with its token count.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -92,8 +92,8 @@ const RUNS = [
   {
     tool: "FileConcat",
     where:
-      "In your browser tab. A folder or ZIP is read from your disk, and a public GitHub repository is fetched by your browser straight from GitHub.",
-    quote: "Nothing uploaded to us",
+      "In your browser. A folder or ZIP is read from your disk, and a public GitHub repository is fetched by your browser straight from GitHub.",
+    quote: "Files not uploaded to us",
     href: "/privacy",
   },
   {

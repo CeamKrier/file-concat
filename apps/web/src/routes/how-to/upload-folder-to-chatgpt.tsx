@@ -20,18 +20,19 @@ export const Route = createFileRoute("/how-to/upload-folder-to-chatgpt")({
     meta: [
       ...generateSEOMeta({
         // The searcher's words, in the order they type them: "upload folder to
-        // chatgpt", "can chatgpt read zip files", "can't upload zip to
-        // chatgpt". The description answers the question first and promises
-        // the way through second.
-        title: "Upload a folder or ZIP to ChatGPT",
+        // chatgpt", "can i upload a folder to chatgpt". ZIP queries have their
+        // own page since 2026-10-13 (/how-to/upload-zip-to-chatgpt), so this
+        // title no longer competes for them. The description answers the
+        // question first and promises the way through second.
+        title: "Upload a folder to ChatGPT as one file",
         description:
-          "Can't upload a folder to ChatGPT, or it won't read your ZIP? Drop either here for one text file it reads in full. Nothing is uploaded to us.",
+          "OpenAI describes no way to upload a folder. Drop it here for one text file ChatGPT reads in full, the folder tree at the top. Not uploaded to us.",
         url: "https://fileconcat.com/how-to/upload-folder-to-chatgpt",
       }),
       {
         name: "keywords",
         content:
-          "upload folder to chatgpt, can chatgpt read zip files, upload zip to chatgpt, can't upload zip to chatgpt, upload entire folder to chatgpt, upload directory to chatgpt, upload multiple files to chatgpt at once, chatgpt cannot read zip file",
+          "upload folder to chatgpt, can i upload a folder to chatgpt, upload entire folder to chatgpt, upload directory to chatgpt, upload multiple files to chatgpt at once",
       },
     ],
     links: [{ rel: "canonical", href: "https://fileconcat.com/how-to/upload-folder-to-chatgpt" }],

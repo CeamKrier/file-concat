@@ -670,7 +670,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
    */
   const activeStepLabel = processingSteps?.find((s) => s.state === "active")?.label;
   const processingAside = isRecognising
-    ? "These pages are pictures, not text. Recognition reads the pixels here in the browser, which takes a few seconds a page."
+    ? "These pages are pictures, not text. Recognition reads the pixels here in your browser, which takes a few seconds a page."
     : undefined;
 
   const startOver = useCallback(() => {
@@ -727,7 +727,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               label: "Keep only the clippings",
               onClick: () => {
                 ingestion.keepOnly(paths);
-                setResultNote({ text: "Kept just the clippings from this push." });
+                setResultNote({ text: "Kept only the clippings from this push." });
               },
             },
           });

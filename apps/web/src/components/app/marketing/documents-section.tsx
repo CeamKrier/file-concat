@@ -28,7 +28,7 @@ export function DocumentsSection() {
         id="documents-read-here"
         title="Documents are read here, and what gets lost is written down."
       >
-        PDF, Word, Excel and slides become text in the tab. The ledger names what was not read
+        PDF, Word, Excel and slides become text in your browser. The ledger names what was not read
         in full.
       </BandIntro>
 
@@ -221,7 +221,7 @@ const CHIP_ICONS: Record<FormatChip["kind"], LucideIcon> = {
 function Formats() {
   return (
     <div className="mt-[18px] flex flex-wrap items-center gap-1.5">
-      <span className="text-ink-faint mr-1.5 py-1 font-mono text-[11.5px]">read in the tab</span>
+      <span className="text-ink-faint mr-1.5 py-1 font-mono text-[11.5px]">read in your browser</span>
       {FORMAT_CHIPS.map((f) => {
         const Icon = CHIP_ICONS[f.kind];
         return (

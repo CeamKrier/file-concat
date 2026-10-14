@@ -14,12 +14,12 @@ they exist.
 
 FileConcat leaves line numbers off, and the current UI does not surface
 a toggle for them. The engine can still prefix every line of every file
-with its 1-based line number; that transform lives in
+with its 1-based line number. That transform lives in
 `packages/core/src/file-processing/transform.ts` as `addLineNumbers`.
 
 Measured against 8 representative repo files on 2026-06-07, turning it
 on raised the token count by 44.83 percent on average, roughly 40 to 50
-percent per file. That cost is why it stays off by default: line numbers
+percent per file. That cost is why it stays off by default. Line numbers
 are a navigation aid for when you want the model to refer back to a
 specific line, not a saving.
 
@@ -35,7 +35,7 @@ no markup.
 The choice costs almost nothing. Measured across five real codebases on
 2026-08-31, the spread between the three styles was 0.24% to 1.13% of
 the bundle, and the wrapper itself ran 0.6% to 3.8%. The 60 repository
-measurement puts the wrapper at a median 2.4%, reaching 17.8% on a
+measurement puts the wrapper at a median 2.4%. It reaches 17.8% on a
 repository of many small files, where there are more file tags than
 file contents.
 
@@ -45,8 +45,8 @@ per-format numbers and the published research on whether the wrapper
 helps a model at all. The short version: what those numbers do **not**
 say is which style a model answers better from. That has been measured
 for tables and for nested data, with results that contradict each
-other, and never for a bundle of source files, by us or by anyone
-else.
+other. It has never been measured for a bundle of source files, by us
+or by anyone else.
 
 ## Cross-link
 

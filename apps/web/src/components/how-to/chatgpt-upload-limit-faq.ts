@@ -14,7 +14,7 @@ export const CHATGPT_UPLOAD_LIMIT_FAQ = [
   },
   {
     q: "When does the ChatGPT file upload limit reset?",
-    a: "OpenAI calls the 80-file cap a rolling upload rate, so it counts what you uploaded over the last three hours rather than resetting at a set time. The help page does not say when the Free plan's daily count starts over, and ChatGPT does not show how much of either quota you have used or have left. Waiting works; sending fewer files works now.",
+    a: "OpenAI calls the 80-file cap a rolling upload rate, so it counts what you uploaded over the last three hours rather than resetting at a set time. The help page does not say when the Free plan's daily count starts over. ChatGPT does not show how much of either quota you have used or have left. Waiting works; sending fewer files works now.",
   },
   {
     q: 'Why does ChatGPT say "upload limit reached" when I have barely uploaded anything?',
@@ -26,7 +26,7 @@ export const CHATGPT_UPLOAD_LIMIT_FAQ = [
   },
   {
     q: "How big can the one combined file be?",
-    a: "OpenAI caps a single upload at 512 MB, and a text or document file at 2 million tokens. FileConcat shows the token count of the combined file before you send it, so you know whether the folder fits in one upload or should go in as two.",
+    a: "OpenAI caps a single upload at 512 MB, and a text or document file at 2 million tokens. FileConcat shows the token count of the combined file before you send it. You then know whether the folder fits in one upload or should go in as two.",
   },
   {
     q: "Is this the same as the ChatGPT Project file limit?",
@@ -34,6 +34,6 @@ export const CHATGPT_UPLOAD_LIMIT_FAQ = [
   },
   {
     q: "Are my documents uploaded to a server?",
-    a: "Not to us. FileConcat reads every file, the PDFs and Office documents included, in your browser tab, and there is no account to create. The only upload is the one combined file you choose to send to ChatGPT.",
+    a: "Not to us. FileConcat reads every file, the PDFs and Office documents included, in your browser, and there is no account to create. The only upload is the one combined file you choose to send to ChatGPT.",
   },
 ];

@@ -17,9 +17,9 @@ Once your file is ready, the result screen carries the output format
 choice.
 
 **Format** is a segmented control offering XML, Markdown, or Plain. XML
-wraps each file in named tags (recommended for Claude); Markdown uses
+wraps each file in named tags (recommended for Claude). Markdown uses
 fenced code blocks (recommended for assistants that emit Markdown
-themselves); Plain concatenates the files with lightweight separators
+themselves). Plain concatenates the files with lightweight separators
 and no markup.
 
 The three differ by less than a percent in tokens on a real bundle, so
@@ -32,7 +32,7 @@ not support, and why there is no fourth option.
 
 The **Adjust what's included** button in the result screen's top bar
 opens a drawer titled "Fine-tune the output." Everything in it updates
-the bundle live; you never have to touch any of it.
+the bundle live. You never have to touch any of it.
 
 - **Quick presets** rewrite both pattern fields in one click for a
   common stack: React / Next, Vue, Python, Go, Rust, Source only, and
@@ -51,20 +51,20 @@ the bundle live; you never have to touch any of it.
 Line numbers are off, and the drawer does not expose a toggle for them.
 The engine can prefix every line with its 1-based number
 (`addLineNumbers` in `packages/core/src/file-processing/transform.ts`),
-and the preference persists in your config, but it is not currently a UI
+and the preference persists in your config. It is not currently a UI
 control. See [Token costs](/docs/token-costs) for why it is an expensive
 option.
 
 There is no per-file size limit in the browser. A 32 MB cap used to apply at
-ingestion and silently drop anything above it, which meant the one large data
+ingestion and silently leave out anything above it. So the one large data
 file or log a bundle was usually about never arrived. Nothing is excluded for
 its size now. What a heavy bundle costs is reported on the result screen
 instead: how much of the selected model's context window it fills, whether it
 has passed the 1 MB mark where the token count becomes a sampled estimate and
 Copy slows down, and which single file is carrying most of the weight.
 
-The `maxFileSizeMB` field survives in the persisted config, unread by the web
-app. The CLI still caps, but explicitly and visibly, through
+The `maxFileSizeMB` field survives in the persisted config, unread in the
+browser. The CLI still caps, but explicitly and visibly, through
 [`--max-size`](/docs/cli-usage).
 
 ## Persistent configuration
@@ -75,15 +75,15 @@ The full `UserConfig` shape lives in
 sessions:
 
 - `includePatterns` and `ignorePatterns` (your textareas)
-- `maxFileSizeMB` (kept for compatibility; the web app no longer reads it)
+- `maxFileSizeMB` (kept for compatibility; the browser no longer reads it)
 - `showLineNumbers`
 - `outputStyle` (xml, markdown, or plain)
 - `defaultSourceType` and `autoSwitchSource`
 
-The store carries a `version` field. When the app loads, anything
+The store carries a `version` field. When FileConcat loads, anything
 older than the current version is run through `migrateConfig` and the
-upgraded shape is written back. You do not take action; the migration
-is silent.
+upgraded shape is written back. The migration is silent and needs
+nothing from you.
 
 ## CLI configuration
 

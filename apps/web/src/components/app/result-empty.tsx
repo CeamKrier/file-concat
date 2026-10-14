@@ -63,7 +63,7 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
   image: {
     icon: ImageOff,
     title: "These look like images, not text",
-    body: "FileConcat bundles text (code, docs, configs and data) into one document. Images and binaries can't be combined this way, so nothing was left to pack.",
+    body: "FileConcat bundles text (code, docs, configs and data) into one file. Images and binaries can't be combined this way, so nothing was left to pack.",
     cta: "Try a folder of files instead",
   },
   // Images, before anyone has looked. Not a dead end and not a promise either:
@@ -72,7 +72,7 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
   recognisable: {
     icon: ScanText,
     title: "These are images",
-    body: "Text can be read off them, here in the browser. FileConcat won't do it on its own, because an icon and a photographed page look alike until the work is done: a few seconds an image, plus a one-time 5 MB language download.",
+    body: "Text can be read off them, here in your browser. FileConcat won't do it on its own, because an icon and a photographed page look alike until the work is done. It takes a few seconds an image, plus a one-time 5 MB language download.",
     cta: "Read them",
   },
   // Recordings, before anyone has listened. Offered like images, and for a
@@ -80,13 +80,13 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
   speech: {
     icon: AudioLines,
     title: "These are recordings",
-    body: "The speech in them can be written out, and in a video the text shown on screen too, here in the browser. FileConcat won't start it on its own: the first time downloads a speech model (66 MB for English, 244 MB for other languages), and ten minutes of speech take under a minute to write out in English, about five in other languages.",
+    body: "The speech in them can be written out, and in a video the text shown on screen too, here in your browser. FileConcat won't start it on its own. The first time downloads a speech model (66 MB for English, 244 MB for other languages). Ten minutes of speech take under a minute to write out in English, about five in other languages.",
     cta: "Transcribe them",
   },
   archive: {
     icon: Archive,
     title: "That archive can't be opened here",
-    body: "FileConcat unpacks .zip, .tar, .gz, .7z, .rar, .bz2 and .xz archives right in the browser, but this one would not open: it may be damaged, password-protected, or packed with a method the browser's reader lacks. Unzip it on your computer, then drop the folder.",
+    body: "FileConcat unpacks .zip, .tar, .gz, .7z, .rar, .bz2 and .xz archives in your browser, but this one would not open. It may be damaged, password-protected, or packed with a method the browser's reader lacks. Unzip it on your computer, then drop the folder.",
     cta: "Start over",
   },
   // The one variant that is not a dead end at all: the documents opened fine,

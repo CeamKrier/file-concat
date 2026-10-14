@@ -37,8 +37,8 @@ function GeminiGemsLanding(dropProps: DropZoneProps) {
 
 const TRUST = [
   "The whole set takes one slot",
-  "PDFs and Office docs read in-browser",
-  "No sign-up, nothing uploaded",
+  "PDFs and Office docs read in your browser",
+  "No sign-up, files not uploaded to us",
 ];
 
 function Hero({ dropProps }: { dropProps: DropZoneProps }) {
@@ -48,7 +48,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <Sparkles className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs in your browser. Nothing uploaded.
+            Runs in your browser. Files not uploaded to us.
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
@@ -81,7 +81,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <DropZone
             {...dropProps}
-            title="Drag your folder here"
+            title="Drop your folder here"
             hint="Everything for your Gem, read in a second."
           />
         </div>
@@ -106,8 +106,8 @@ function OneSlot() {
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
           With only a handful of knowledge slots, a Gem forces you to leave documents out. One
-          combined file changes the math: however many documents you started with, the Gem sees them
-          as a single knowledge file, so nothing gets cut and the slots stay free.
+          combined file changes that. However many documents you started with, the Gem sees them as
+          a single knowledge file. Nothing gets cut, and the slots stay free.
         </p>
         <p className="text-go-fg mt-5 inline-flex items-center gap-2 font-mono text-[12.5px]">
           <Sparkles className="text-primary h-4 w-4 shrink-0" strokeWidth={2} />A file tree at the
@@ -215,11 +215,11 @@ function WhereItStops() {
 const STEPS = [
   {
     title: "Drop the whole folder",
-    body: "Drag in every document you want the Gem to know. Subfolders come along, and you can add a repo or a link too.",
+    body: "Drop in every document you want the Gem to know. Subfolders come along, and you can add a repo or a link too.",
   },
   {
     title: "It reads everything here",
-    body: "PDFs, Word, Excel, and notes are turned into text in this tab, with a file tree at the top. Nothing is uploaded.",
+    body: "PDFs, Word, Excel, and notes are turned into text in your browser, with a file tree at the top. Your files are not uploaded to us.",
   },
   {
     title: "Add the one file to your Gem",

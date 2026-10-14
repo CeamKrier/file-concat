@@ -1,0 +1,60 @@
+{
+  "version": "2.2.0",
+  "samples": {
+    "pdf": {
+      "file": "q3-report.pdf",
+      "tokens": "153",
+      "files": "1",
+      "share": "<1%",
+      "model": "Claude Sonnet 5",
+      "cost": "<$0.01",
+      "characters": "608",
+      "ledger": "1 note",
+      "excerpt": "<file path=\"q3-report.pdf\" language=\"pdf\"><![CDATA[\n# Page 1\n# Q3 report\n\nRevenue was ahead of plan in both regions. Margins held despite freight costs.\n\n# Page 2\n# Outlook\n\nGuidance is unchanged for the full year. Hiring resumes in the third quarter.\n]]></file>"
+    },
+    "docx": {
+      "file": "offer-letter.docx",
+      "tokens": "150",
+      "files": "1",
+      "share": "<1%",
+      "model": "Claude Sonnet 5",
+      "cost": "<$0.01",
+      "characters": "588",
+      "ledger": "1 note",
+      "excerpt": "<file path=\"offer-letter.docx\" language=\"docx\"><![CDATA[\n# Offer letter\nDear Sam, we are pleased to offer you the role below.[^1]\n\n| Role  | Analyst    | \n| Start | 3 November | \n\n\n\n--- Notes ---\n[^1]  Subject to references.\n]]></file>"
+    },
+    "excel": {
+      "file": "budget.xlsx",
+      "tokens": "150",
+      "files": "1",
+      "share": "<1%",
+      "model": "Claude Sonnet 5",
+      "cost": "<$0.01",
+      "characters": "535",
+      "ledger": "1 note",
+      "excerpt": "<file path=\"budget.xlsx\" language=\"xlsx\"><![CDATA[\n# Sheet: Q3\nItem,Budget,Actual\nTravel,\"4,000\",\"3,650\"\nSoftware,\"2,500\",\"2,710\"\nTotal,\"6,500\",\"6,360\"\n\n# Sheet: Q4\nItem,Budget,Actual\n]]></file>"
+    },
+    "pptx": {
+      "file": "kickoff.pptx",
+      "tokens": "145",
+      "files": "1",
+      "share": "<1%",
+      "model": "Claude Sonnet 5",
+      "cost": "<$0.01",
+      "characters": "550",
+      "ledger": "1 note",
+      "excerpt": "<file path=\"kickoff.pptx\" language=\"pptx\"><![CDATA[\n# Slide 1\nProject kickoff\nDesign and engineering\n# Slide 2\nBudget by team\n[Image: budget-chart.png]\n# Slide 3\nNext steps\nAgree scope\nBook review\n]]></file>"
+    },
+    "image": {
+      "file": "whiteboard.jpg",
+      "tokens": "144",
+      "files": "1",
+      "share": "<1%",
+      "model": "Claude Sonnet 5",
+      "cost": "<$0.01",
+      "characters": "576",
+      "ledger": "1 note",
+      "excerpt": "- text below was read by recognition, a guess at the characters rather than the file's own: whiteboard.jpg\n\n<file path=\"whiteboard.jpg\" language=\"jpg\"><![CDATA[\nLaunch plan\n| fix signup bug\nnew pricing page\n| chip Friday |\n| |\n>\n|\n]]></file>"
+    }
+  }
+}

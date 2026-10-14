@@ -48,7 +48,9 @@
         "apps/web/src/components/how-to/upload-book-faq.ts",
         "apps/web/src/content/blog/combine-files-for-llm.mdx",
         "apps/web/src/components/how-to/chatgpt-conversation-too-long-page.tsx",
-        "apps/web/src/components/how-to/chatgpt-conversation-too-long-faq.ts"
+        "apps/web/src/components/how-to/chatgpt-conversation-too-long-faq.ts",
+        "apps/web/src/components/how-to/upload-zip-page.tsx",
+        "apps/web/src/components/how-to/upload-zip-faq.ts"
       ]
     },
     {
@@ -66,7 +68,9 @@
         "apps/web/src/components/how-to/upload-book-page.tsx",
         "apps/web/src/components/how-to/upload-book-faq.ts",
         "apps/web/src/content/blog/youtube-transcript-to-chatgpt.mdx",
-        "apps/web/src/components/how-to/chatgpt-conversation-too-long-page.tsx"
+        "apps/web/src/components/how-to/chatgpt-conversation-too-long-page.tsx",
+        "apps/web/src/components/how-to/upload-zip-page.tsx",
+        "apps/web/src/components/how-to/upload-zip-faq.ts"
       ]
     },
     {
@@ -150,7 +154,9 @@
         "apps/web/src/components/how-to/claude-upload-limit-page.tsx",
         "apps/web/src/components/how-to/claude-upload-limit-faq.ts",
         "apps/web/src/routes/how-to/claude-file-upload-limit.tsx",
-        "apps/web/src/content/blog/youtube-transcript-to-chatgpt.mdx"
+        "apps/web/src/content/blog/youtube-transcript-to-chatgpt.mdx",
+        "apps/web/src/components/how-to/upload-zip-page.tsx",
+        "apps/web/src/components/how-to/upload-zip-faq.ts"
       ]
     },
     {
@@ -170,16 +176,20 @@
     {
       "url": "https://support.google.com/gemini/answer/14903178",
       "anchor": "analyze files in Gemini Apps",
-      "checked": "2026-09-24",
+      "checked": "2026-10-13",
       "quotes": [
         "Up to 10 files (subject to availability) can be uploaded in the same prompt",
         "All other supported file types can be up to 100 MB",
-        "One code folder, or one GitHub repository, with up to 5,000 files and a maximum size of 100 MB, can be added to a chat"
+        "One code folder, or one GitHub repository, with up to 5,000 files and a maximum size of 100 MB, can be added to a chat",
+        "Can contain up to 10 files (subject to availability)",
+        "Can't include video or audio files"
       ],
       "used_by": [
         "apps/web/src/components/how-to/share-all-files-page.tsx",
         "apps/web/src/components/how-to/upload-book-page.tsx",
-        "apps/web/src/content/blog/feed-codebase-to-llm.mdx"
+        "apps/web/src/content/blog/feed-codebase-to-llm.mdx",
+        "apps/web/src/components/how-to/upload-zip-page.tsx",
+        "apps/web/src/components/how-to/upload-zip-faq.ts"
       ]
     },
     {
@@ -270,6 +280,20 @@
       "used_by": [
         "apps/web/src/components/how-to/gitingest-alternative-page.tsx",
         "apps/web/src/components/how-to/gitingest-alternative-faq.ts"
+      ]
+    },
+    {
+      "url": "https://community.openai.com/t/zip-uploads-accepted-but-cannot-be-extracted-in-chatgpt-business/1381613",
+      "anchor": "OpenAI Developer Community",
+      "checked": "2026-10-13",
+      "quotes": [
+        "ZIP archives aren't currently listed among the supported file types for ChatGPT file analysis",
+        "the file-analysis tools may not be able to unpack or inspect the archive",
+        "extract the ZIP locally and upload the individual supported files"
+      ],
+      "used_by": [
+        "apps/web/src/components/how-to/upload-zip-page.tsx",
+        "apps/web/src/components/how-to/upload-zip-faq.ts"
       ]
     },
     {

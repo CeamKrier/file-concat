@@ -28,7 +28,7 @@ export const Route = createFileRoute("/how-to/chatgpt-file-upload-limit")({
         // quota was read, so the numbers live on the page next to it.
         title: "Get past the ChatGPT file upload limit",
         description:
-          "Reached your file upload limit? ChatGPT counts files, so a whole folder, PDFs included, can go in as one upload. Read in your browser, nothing uploaded to us.",
+          "Reached your file upload limit? ChatGPT counts files, so a whole folder, PDFs included, can go in as one upload. Read in your browser, not uploaded to us.",
         url: "https://fileconcat.com/how-to/chatgpt-file-upload-limit",
       }),
       {

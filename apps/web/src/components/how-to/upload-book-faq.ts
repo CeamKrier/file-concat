@@ -14,7 +14,7 @@ export const BOOK_TOKENS = "165,531";
 export const UPLOAD_BOOK_FAQ = [
   {
     q: "Can ChatGPT read EPUB files?",
-    a: "EPUB is not among the file types OpenAI's help center names, which lists text files, spreadsheets, presentations and documents such as PDF, DOCX and TXT. A plain text file of the book sidesteps the question: FileConcat reads the EPUB in your browser and hands back one text file that ChatGPT reads like any other.",
+    a: "EPUB is not among the file types OpenAI's help center names, which lists text files, spreadsheets, presentations and documents such as PDF, DOCX and TXT. A plain text file of the book sidesteps the question. FileConcat reads the EPUB in your browser and hands back one text file that ChatGPT reads like any other.",
   },
   {
     q: "Can FileConcat read a Kindle book?",
@@ -42,6 +42,6 @@ export const UPLOAD_BOOK_FAQ = [
   },
   {
     q: "Is the book uploaded to a server?",
-    a: "Not to us. FileConcat reads the EPUB, Kindle book or PDF in your browser tab, and there is no account to create. The only upload is the one text file you choose to send to the assistant.",
+    a: "Not to us. FileConcat reads the EPUB, Kindle book or PDF in your browser, and there is no account to create. The only upload is the one text file you choose to send to the assistant.",
   },
 ];

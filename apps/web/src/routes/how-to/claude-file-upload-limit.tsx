@@ -27,7 +27,7 @@ export const Route = createFileRoute("/how-to/claude-file-upload-limit")({
         // page next to it.
         title: "Get past the Claude file upload limit per chat",
         description:
-          "Hit Claude's file limit in a chat? It counts files, so a whole folder or GitHub repo, PDFs included, can go in as one attachment. Read in your browser, nothing uploaded to us.",
+          "Hit Claude's file limit in a chat? It counts files, so a whole folder or GitHub repo, PDFs included, can go in as one attachment. Read in your browser, not uploaded to us.",
         url: "https://fileconcat.com/how-to/claude-file-upload-limit",
       }),
       {

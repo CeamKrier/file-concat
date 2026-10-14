@@ -11,7 +11,7 @@ draft: false
     "Drop the PDFs, or the folder holding them, on fileconcat.com: the text comes out as one file, in reading order, extracted in your browser.",
     "A scanned page holds no text to pull. Since 2026-10-07 every such page, in a scanned or a partly scanned PDF, gets a recognition pass in the browser, started on its own for up to three documents and 8 MB per drop, and the result names which files were read that way.",
     "Two of our own PDF defects were open at the last re-test and are named below: a superscript footnote marker sorting above its line, and an image-only page dropped without a note. The second is read by recognition since 2026-10-07.",
-    "Nothing is uploaded to us.",
+    "Your files are not uploaded to us.",
   ]}
 />
 
@@ -19,10 +19,10 @@ Research and casework rarely arrive as one clean file. You have a handful of PDF
 document of notes, maybe a spreadsheet of figures, and you want to ask a model about all of
 them together. The chat box only takes text, and a PDF is not text yet.
 
-This guide covers how to convert PDFs to text for an LLM prompt: why the file you drag in is
-not the text the model reads, how to turn a whole folder of documents into one blob, and
-where the limits are. There is a spot to try it on your own documents partway down. Nothing
-is uploaded to us; the extraction runs in your browser.
+This guide covers how to convert PDFs to text for an LLM prompt: why the file you drop in is
+not the text the model reads, how to turn a whole folder of documents into one file, and
+where the limits are. There is a spot to try it on your own documents partway down. Your
+files are not uploaded to us. The extraction runs in your browser.
 
 ## A PDF is not text yet
 
@@ -35,12 +35,12 @@ folds the recovered text into one bundle alongside any plain notes or markdown y
 Several formats go in; one clean text file comes out.
 
 <BeforeAfter>
-  <Before label="what you dragged in">{`case-notes/
+  <Before label="what you dropped in">{`case-notes/
   motion.pdf
   exhibits.docx
   timeline.xlsx
   memo.md`}</Before>
-  <After label="one prompt-ready blob" tokens="18,400">{`combined.txt
+  <After label="one bundle" tokens="18,400">{`combined.txt
   motion.pdf      (text)
   exhibits.docx   (text)
   timeline.xlsx   (text)
@@ -78,17 +78,19 @@ the bundle.
 ## Try it on your own documents
 
 Drop a few PDFs or a folder of mixed documents below. It runs in your browser, there is no
-account, and nothing is uploaded to us. This is the same engine as the full tool, so what you
+account, and your files are not uploaded to us. This is the same engine as the full tool, so what you
 copy here is ready to paste when you want to feed multiple PDFs to ChatGPT at once.
 
 <TryIt
   title="Bundle your own documents"
-  hint="Drop a few PDFs or a folder of mixed documents. It runs here in your browser, nothing is uploaded."
+  hint="Drop a few PDFs or a folder of mixed documents. It runs here in your browser, your files are not uploaded to us."
 />
+
+Converting a single PDF? [PDF to text](/convert/pdf-to-text) shows what a sample comes back as.
 
 ## What extraction can and cannot pull
 
-Extraction works on the text a document actually stores. A PDF exported from a word processor,
+Extraction works on the text a document stores. A PDF exported from a word processor,
 a Word file, a slide deck: those carry their text, and it comes out clean.
 
 A scanned page is different. If a PDF is really a photograph of a page, there is no text inside
@@ -123,7 +125,7 @@ where a stack of case files or a pile of research papers gets expensive without 
 
 FileConcat counts tokens as you add and remove files, and it can show the cost for a given
 model, so you can trim to what matters first. That helps when you want to summarize multiple
-research papers with ChatGPT and only a few of them hold the section you actually care about.
+research papers with ChatGPT and only a few of them hold the section you care about.
 
 Two things move when the bundle grows, and only one of them is the bill. Input is priced per
 million tokens, so the cost is exactly linear: doubling the documents doubles what the send

@@ -121,21 +121,21 @@ type BeatCopy = { heading: string; body: string; aside?: string };
 const BEATS: BeatCopy[] = [
   {
     heading: "A thread comes out as a thread",
-    body: "Copying a page into Markdown is the easy half, and every bookmarklet does it. What is actually hard to get out of a browser is a discussion. Every author, score and level of nesting is kept, so a reply still reads as a reply to the thing above it rather than as one more paragraph.",
+    body: "Copying a page into Markdown is the easy half, and every bookmarklet does it. The hard part to get out of a browser is a discussion. Every author, score and level of nesting is kept, so a reply still reads as a reply to the thing above it rather than as one more paragraph.",
     aside: "On Hacker News the whole comment tree arrives in one request, however deep it runs. Measured on a 638-comment thread: 264,851 characters, nested eight levels down, none of which was on screen when the button was pressed.",
   },
   {
     heading: "A listing, one item at a time",
-    body: "A subreddit, a Hacker News front page, a YouTube channel or a search page lists what it has loaded, with a tap target on each row. Tap the ones you want and each is opened and read on its own, so a session of scrolling becomes a set of files rather than one flattened page of headlines.",
+    body: "A subreddit, a Hacker News front page, a YouTube channel or a search page lists what it has loaded, with a tap target on each row. Tap the ones you want and each is opened and read on its own. A session of scrolling becomes a set of files rather than one flattened page of headlines.",
   },
   {
     heading: "Words that were never on the page",
     body: "A watch page gives you the video's description and its full transcript, which is not text the page was showing to begin with. A channel's Playlists tab lists its playlists, and clipping one clips the videos it holds.",
-    aside: "Peek reads the Markdown back inside the panel before you send it, so the two ways a read goes wrong are visible while they are still cheap to fix: the wrong page shows in the first block, and a transcript that stopped early shows in the last.",
+    aside: "Peek reads the Markdown back inside the panel before you send it. That shows the two ways a read goes wrong while they are still cheap to fix. The wrong page shows in the first block, and a transcript that stopped early shows in the last.",
   },
   {
     heading: "Then hand it over",
-    body: "Press Send and every finished clipping goes into your fileconcat.com tab at once, opening one if there is none. A send adds to the bundle rather than replacing it, and files with the same name replace each other, so a repository and the discussion about it can sit in one bundle, and re-sending a corrected clipping fixes it in place.",
+    body: "Press Send and every finished clipping goes into your fileconcat.com tab at once, opening one if there is none. A send adds to the bundle rather than replacing it, and files with the same name replace each other. So a repository and the discussion about it can sit in one bundle, and re-sending a corrected clipping fixes it in place.",
   },
 ];
 
@@ -153,7 +153,7 @@ function Hero({ register }: { register: (node: HTMLElement | null) => void }) {
 
       <p className="text-ink-secondary mt-5 max-w-[54ch] text-[16px] leading-relaxed">
         FileConcat Clipper is a browser side panel that turns what you are reading into Markdown and
-        hands it to an open fileconcat.com tab, where it joins a bundle you can copy or download in
+        hands it to an open fileconcat.com tab. There it joins a bundle you can copy or download in
         one piece. It is for anyone who assembles reading material for an LLM and is tired of
         pasting pages in one at a time.
       </p>
@@ -293,7 +293,7 @@ function useSteps() {
 const CASES = [
   {
     heading: "A discussion you were not in",
-    body: "Six hundred replies, thirty of them on screen. The whole tree comes out with its nesting intact, so you can ask what the disagreement actually was instead of scrolling for the comment everybody is quoting.",
+    body: "Six hundred replies, thirty of them on screen. The whole tree comes out with its nesting intact, so you can ask what the disagreement was instead of scrolling for the comment everybody is quoting.",
     Art: ThreadClipping,
     flip: false,
   },
@@ -505,7 +505,7 @@ function Everywhere() {
           },
           {
             label: "conversations",
-            body: "ChatGPT, Claude and Gemini conversations, whole. The page shows 4 of 82 messages on a measured ChatGPT page, 2 of 11 on Claude and 2 of 105 on Gemini; the extension reads the conversation the way the site's own client does, and files Claude or Gemini wrote come along as files.",
+            body: "ChatGPT, Claude and Gemini conversations, whole. The page shows 4 of 82 messages on a measured ChatGPT page, 2 of 11 on Claude and 2 of 105 on Gemini. The extension reads the conversation the way the site's own client does, and files Claude or Gemini wrote come along as files.",
           },
           {
             label: "listings",

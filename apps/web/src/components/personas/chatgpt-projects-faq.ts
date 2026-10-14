@@ -7,7 +7,7 @@
 export const CHATGPT_PROJECTS_FAQ = [
   {
     q: "How many files can I add to a ChatGPT Project?",
-    a: 'A ChatGPT Project holds 5 files on Free, 25 on Go and Plus, and 40 on Pro, Edu, Business and Enterprise. The Plus figure held when we filled a Project on a Plus account in September 2026. ChatGPT calls them the project\'s sources, which is why the limit gets searched for by that word as often as by "files". OpenAI adjusts these numbers, so check the current one. Combining your documents into a single file first means the whole set takes just one of those slots.',
+    a: 'A ChatGPT Project holds 5 files on Free, 25 on Go and Plus, and 40 on Pro, Edu, Business and Enterprise. The Plus figure held when we filled a Project on a Plus account in September 2026. ChatGPT calls them the project\'s sources, which is why the limit gets searched for by that word as often as by "files". OpenAI adjusts these numbers, so check the current one. Combining your documents into a single file first means the whole set takes one of those slots.',
   },
   {
     // The banner and toast a full Project shows, read on a Plus account on
@@ -23,7 +23,7 @@ export const CHATGPT_PROJECTS_FAQ = [
     // page is claiming the half of the question the vendor documents but does
     // not solve.
     q: "What should I do when a Project will not take any more files?",
-    a: "OpenAI's own advice is to remove older uploads, combine file data, or split the work across several projects. Removing means losing context and splitting means the chats stop sharing it, so combining is the one that keeps everything in front of the model. Drop the folder here and the whole set comes back as one file that fills a single slot. A linked Google Drive folder is the other way out: in our September 2026 test it went into a full Project without taking a slot, but ChatGPT read it live at answer time rather than from the Project's file index, and skipped the archives inside it.",
+    a: "OpenAI's own advice is to remove older uploads, combine file data, or split the work across several projects. Removing means losing context, and splitting means the chats stop sharing it. Combining is the one that keeps everything in front of the model. Drop the folder here and the whole set comes back as one file that fills a single slot. A linked Google Drive folder is the other way out. In our September 2026 test it went into a full Project without taking a slot. ChatGPT read it live at answer time, not from the Project's file index, and skipped the archives inside it.",
   },
   {
     q: "Does combining files count as one file in my Project?",
@@ -37,7 +37,7 @@ export const CHATGPT_PROJECTS_FAQ = [
     // folder as above, R7): a 4,172,265-token, 16.8 MB single bundle went in,
     // was indexed, and answered questions on its first and last lines.
     q: "How big can the one combined file be?",
-    a: "OpenAI's File Uploads FAQ puts a hard ceiling of 512 MB on a single uploaded file, and 2 million tokens on a text or document file. It states this for chats and Custom GPTs and does not list Projects separately. In a Plus Project on 14 September 2026 a single combined file of 4.17 million tokens (16.8 MB) was accepted, indexed, and answered questions about its first and last lines, so the 2 million figure is not the Project ceiling; nothing larger was tried. FileConcat shows the token count of the combined file before you upload it, so you know whether the whole folder fits in one slot or needs to be split in two.",
+    a: "OpenAI's File Uploads FAQ puts a hard ceiling of 512 MB on a single uploaded file, and 2 million tokens on a text or document file. It states this for chats and Custom GPTs and does not list Projects separately. In a Plus Project on 14 September 2026, a single combined file of 4.17 million tokens (16.8 MB) was accepted, indexed, and answered questions about its first and last lines. So the 2 million figure is not the Project ceiling, though nothing larger was tried. FileConcat shows the token count of the combined file before you upload it. You then know whether the whole folder fits in one slot or needs to be split in two.",
   },
   {
     q: "What is the difference between Project files and files I attach in a chat?",
@@ -45,10 +45,10 @@ export const CHATGPT_PROJECTS_FAQ = [
   },
   {
     q: "Can ChatGPT read the PDFs and Word documents inside the combined file?",
-    a: "Yes. FileConcat pulls the text out of PDF, Word, Excel, and PowerPoint files in your browser and writes it into the combined file as plain text, so ChatGPT reads the content directly without you converting anything first.",
+    a: "Yes. FileConcat pulls the text out of PDF, Word, Excel, and PowerPoint files in your browser and writes it into the combined file as plain text. ChatGPT reads the content directly, without you converting anything first.",
   },
   {
     q: "Are my documents uploaded to a server?",
-    a: "No. Every file, including the PDFs and Office documents, is read in your browser tab. Nothing is uploaded, and there is no account to create.",
+    a: "No. Every file, including the PDFs and Office documents, is read in your browser. Your files are not uploaded to us, and there is no account to create.",
   },
 ];

@@ -56,8 +56,8 @@ function NotebookLmLanding({ dropProps, linkImport }: LandingProps) {
 
 const TRUST = [
   "A whole pile becomes one source",
-  "PDFs and Office docs read in-browser",
-  "No sign-up, nothing uploaded to us",
+  "PDFs and Office docs read in your browser",
+  "No sign-up, files not uploaded to us",
 ];
 
 function Hero({ dropProps, linkImport }: LandingProps) {
@@ -67,7 +67,7 @@ function Hero({ dropProps, linkImport }: LandingProps) {
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <Lock className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs in your browser, nothing uploaded to us
+            Runs in your browser, files not uploaded to us
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
@@ -122,8 +122,8 @@ function OneSource() {
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
           NotebookLM counts sources, not documents. When a folder of papers and reports becomes one
-          file, it lands as a single source, so a pile that would use up your source count fits in
-          one slot and NotebookLM still grounds its answers on all of it.
+          file, it lands as a single source. A pile that would use up your source count fits in
+          one slot, and NotebookLM still grounds its answers on all of it.
         </p>
         <p className="text-go-fg mt-5 inline-flex items-center gap-2 font-mono text-[12.5px]">
           <Layers className="text-primary h-4 w-4 shrink-0" strokeWidth={2} />A file tree at the top
@@ -251,11 +251,11 @@ function WhereItStops() {
 const STEPS = [
   {
     title: "Drop the whole pile",
-    body: "Drag in every paper, report, and note you want the notebook to draw on. Subfolders come along.",
+    body: "Drop in every paper, report, and note you want the notebook to draw on. Subfolders come along.",
   },
   {
     title: "It reads everything here",
-    body: "PDFs, Word, and notes are turned into text in this tab, with a file tree at the top. Nothing is uploaded to us.",
+    body: "PDFs, Word, and notes are turned into text in your browser, with a file tree at the top. Your files are not uploaded to us.",
   },
   {
     title: "Add the one file as a source",
@@ -347,8 +347,8 @@ function WorkedExample() {
       <div className="mx-auto mt-10 max-w-[720px]">
         <InfoCard tone="info" icon={Layers} title="One source, room to spare">
           <p>
-            The combined file is one source, and the result screen counts it before you add it, so
-            you can see it sits inside the per-source cap while a whole review still leaves you
+            The combined file is one source, and the result screen counts it before you add it.
+            You can see it sits inside the per-source cap, while a whole review still leaves you
             plenty of source slots free.
           </p>
         </InfoCard>
@@ -385,12 +385,12 @@ function GithubRepo() {
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[50ch] text-[15px] leading-relaxed">
           A GitHub link added as a website source brings in the text of that one page, not the
-          files behind it: Google&apos;s help says only the text of the given webpage is imported,
+          files behind it. Google&apos;s help says only the text of the given webpage is imported,
           and nested pages are not.
         </p>
         <p className="text-ink-secondary mt-4 max-w-[50ch] text-[15px] leading-relaxed">
           Paste the repository link at the top of this page instead. Your browser fetches the files
-          straight from GitHub, lock files, dependencies and tests stay out, and the whole
+          straight from GitHub, and lock files, dependencies and tests stay out. The whole
           repository comes back as one file, one source.
         </p>
         <p className="text-ink-muted mt-5 text-[13px] leading-relaxed">

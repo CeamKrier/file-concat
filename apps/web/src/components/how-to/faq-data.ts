@@ -7,15 +7,15 @@
 export const FAQ_ITEMS = [
   {
     q: "How do I share more than 5 files with ChatGPT?",
-    a: "Combine them into one file first. Drop the whole folder into FileConcat and it returns a single file, which you can add to a Project or paste into a chat well under the per-project and per-message caps.",
+    a: "Combine them into one file first. Drop the whole folder into FileConcat and it returns a single file. You can add it to a Project or paste it into a chat, well under the per-project and per-message caps.",
   },
   {
     q: "Can I combine several PDFs or Word documents into one file for Claude or Gemini?",
-    a: "Yes. FileConcat reads PDF, Word, Excel, and PowerPoint files in your browser and pulls their text into one file, so you paste that single file in instead of adding each document separately.",
+    a: "Yes. FileConcat reads PDF, Word, Excel, and PowerPoint files in your browser and pulls their text into one file. You paste that single file in, instead of adding each document separately.",
   },
   {
     q: "Do my files get uploaded to a server?",
-    a: "Not to us. Everything is read in your browser tab, including PDFs and Office documents, and there is no account to create. The only upload is the one file you choose to send to the assistant.",
+    a: "Not to us. Everything is read in your browser, including PDFs and Office documents, and there is no account to create. The only upload is the one file you choose to send to the assistant.",
   },
   {
     q: "Does this work for NotebookLM, Gemini Gems, and Custom GPTs too?",

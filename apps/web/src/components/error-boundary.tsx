@@ -36,7 +36,7 @@ export function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
       <AlertTriangle className="mb-4 h-16 w-16 text-red-500" />
       <h1 className="mb-2 text-2xl font-bold">Something went wrong</h1>
       <p className="text-muted-foreground mb-4 max-w-md">
-        This page did not finish loading. Reloading usually fixes it; the details are in your
+        This page did not finish loading. Reloading usually fixes it. The details are in your
         browser console.
       </p>
       <Button onClick={() => (reset ? reset() : window.location.reload())}>

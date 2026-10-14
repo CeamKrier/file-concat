@@ -37,7 +37,7 @@ function ConsultantsLanding(dropProps: DropZoneProps) {
 const TRUST = [
   "Slides, PDFs, and spreadsheets read as text",
   "One file for the whole engagement",
-  "Nothing is uploaded",
+  "Files not uploaded to us",
 ];
 
 function Hero({ dropProps }: { dropProps: DropZoneProps }) {
@@ -57,7 +57,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
             Drop the decks, reports, interview notes, and data from the whole project. FileConcat
             reads the PDFs, slides, and spreadsheets in your browser and packs them into one file
-            for ChatGPT, Claude, or Gemini. Nothing is uploaded, so client material stays yours.
+            for ChatGPT, Claude, or Gemini. What you then paste into an assistant is your own choice, but preparing the file uploads nothing.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -80,7 +80,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <DropZone
             {...dropProps}
-            title="Drag your engagement folder here"
+            title="Drop your engagement folder here"
             hint="Decks, reports, and data. Read in a second."
           />
         </div>
@@ -144,7 +144,7 @@ const STEPS = [
   },
   {
     title: "Every file becomes text",
-    body: "Slides, PDFs, and spreadsheets are read in this tab, boilerplate is dropped, and duplicates are left out.",
+    body: "Slides, PDFs, and spreadsheets are read in your browser. Boilerplate and duplicates are left out.",
   },
   {
     title: "One file, ready to reason over",

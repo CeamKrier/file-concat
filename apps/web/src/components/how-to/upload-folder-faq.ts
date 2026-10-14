@@ -13,11 +13,11 @@
 export const UPLOAD_FOLDER_FAQ = [
   {
     q: "Can I upload a folder to ChatGPT?",
-    a: "OpenAI's help pages describe no way to upload a folder from your computer; you attach the files inside it instead. The folder routes they describe go through connected apps, such as a Google Drive folder linked as a Project source or picked in Library. For a folder on your own disk, combine it into one file first: FileConcat reads the whole tree in your browser and hands back a single file with every path listed at the top.",
+    a: "OpenAI's help pages describe no way to upload a folder from your computer; you attach the files inside it instead. The folder routes they describe go through connected apps, such as a Google Drive folder linked as a Project source or picked in Library. For a folder on your own disk, combine it into one file first. FileConcat reads the whole tree in your browser and hands back a single file with every path listed at the top.",
   },
   {
     q: "Can ChatGPT read ZIP files?",
-    a: "Archives are not on OpenAI's list of supported file types, which names text files, spreadsheets, presentations and documents. Reports of ZIPs that ChatGPT would not open go back to 2024 on OpenAI's community forum, and a thread active in September 2026 reports ZIP contents no longer readable inside Projects. A plain text file needs no unpacking, so drop the ZIP here and upload what comes back.",
+    a: "Archives are not on OpenAI's list of supported file types, which names text files, spreadsheets, presentations and documents. Reports of ZIPs that ChatGPT would not open go back to 2024 on OpenAI's community forum. A thread active in September 2026 reports ZIP contents no longer readable inside Projects. A plain text file needs no unpacking, so drop the ZIP here and upload what comes back.",
   },
   {
     q: "How do I upload many files to ChatGPT at once?",
@@ -33,10 +33,10 @@ export const UPLOAD_FOLDER_FAQ = [
   },
   {
     q: "What about a Google Drive folder?",
-    a: "If your files already live in Drive, a Drive folder link works as a Project source. In our September 2026 test it went into a full Project without taking a file slot, but ChatGPT read it live when answering rather than from the Project's own files, and it skipped the archives inside the folder. A local folder or a ZIP has no such route, which is what this page is for.",
+    a: "If your files already live in Drive, a Drive folder link works as a Project source. In our September 2026 test it went into a full Project without taking a file slot. ChatGPT read it live when answering, not from the Project's own files, and it skipped the archives inside the folder. A local folder or a ZIP has no such route, which is what this page is for.",
   },
   {
     q: "Are my files uploaded to a server?",
-    a: "Not to us. FileConcat opens the folder or the archive in your browser tab, and there is no account to create. The only upload is the one combined file you choose to send to ChatGPT.",
+    a: "Not to us. FileConcat opens the folder or the archive in your browser, and there is no account to create. The only upload is the one combined file you choose to send to ChatGPT.",
   },
 ];
