@@ -25,16 +25,33 @@ const HTML_ENTITIES: Readonly<Record<string, string>> = {
 };
 
 /**
+ * A line less the separators after its last cell, so a row of a layout table's
+ * empty cells empties. A loop, not `/[ |]+$/`, which backtracks quadratically
+ * on a long run of empty cells mid-line.
+ */
+function trimCells(line: string): string {
+  let end = line.length;
+  for (let at = end; ; ) {
+    while (at > 0 && line[at - 1] === " ") at--;
+    if (at === 0 || line[at - 1] !== "|") break;
+    end = --at;
+  }
+  return line.slice(0, end).trimEnd();
+}
+
+/**
  * The words of an HTML fragment in reading order, with no DOM: comments,
  * scripts and styles go (Word hides its settings in a comment, `<!--[if gte
- * mso 9]><xml>`), a block boundary becomes a line break, every other tag goes,
- * and entities are decoded. Deliberately crude, for markup nobody will render: an
+ * mso 9]><xml>`), a block boundary becomes a line break, a table cell ends
+ * in ` | ` so a row reads as its cells, every other tag goes, and entities are
+ * decoded. Deliberately crude, for markup nobody will render: an
  * HTML-only mail body, a notebook output with no plain-text form.
  */
 export function flattenHtml(html: string): string {
   return html
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "")
+    .replace(/<\/t[dh]\s*>/gi, " | ")
     .replace(HTML_BREAKS, "\n")
     .replace(/<[^>]+>/g, "")
     .replace(/&#(?:x([\da-f]+)|(\d+));/gi, (entity, hex: string | undefined, dec: string) => {
@@ -43,5 +60,8 @@ export function flattenHtml(html: string): string {
     })
     .replace(/&[a-z#0-9]+;/gi, (entity) => HTML_ENTITIES[entity.toLowerCase()] ?? entity)
     .replace(/[ \t]+/g, " ")
-    .replace(/ ?\n ?/g, "\n");
+    .replace(/ ?\n ?/g, "\n")
+    .split("\n")
+    .map(trimCells)
+    .join("\n");
 }

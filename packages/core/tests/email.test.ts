@@ -123,6 +123,18 @@ describe("formatEmail", () => {
     expect(text).not.toMatch(/^> Fine by me/m);
   });
 
+  it("keeps an HTML table's cells apart, row by row", () => {
+    const { text } = formatEmail({
+      attachments: [],
+      html:
+        "<p>Totals:</p><table><tr><th>Item</th><th>Qty</th></tr><tr><td>Tea</td><td>3</td></tr>" +
+        "<tr><td></td><td></td></tr></table>",
+    });
+    expect(text).toContain("Item | Qty\n\nTea | 3");
+    expect(text).not.toContain("TeaQty");
+    expect(text).not.toMatch(/^\|/m);
+  });
+
   it("quotes only what sits inside the blockquote when text runs around it", () => {
     const { text } = formatEmail({ attachments: [], html: "Yes<blockquote>Ready?</blockquote>Ship it" });
     expect(text).toBe("Yes\n> Ready?\nShip it");

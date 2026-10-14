@@ -88,9 +88,9 @@ function outputText(output: NotebookOutput): string | null {
 
   if (output.output_type === "execute_result" || output.output_type === "display_data") {
     const data = (mime: string) => joinSource(output.data?.[mime] as string | string[] | undefined);
-    const html = flattenHtml(data("text/html").replace(/<\/t[dh]\s*>/gi, " | "))
+    const html = flattenHtml(data("text/html"))
       .split("\n")
-      .map((line) => line.replace(/\s*\|\s*$/, "").trim())
+      .map((line) => line.trim())
       .filter(Boolean)
       .join("\n");
     const text = [data("text/plain"), data("text/markdown"), html].find((form) => form.trim());
