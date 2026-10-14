@@ -295,6 +295,36 @@ describe("assemblePdfPages", () => {
     for (const number of [1, 2, 3]) expect(text).toContain(`Body ${number}.`);
   });
 
+  it("keeps one copy of a title that shares its line with the page number", () => {
+    const pages = [1, 2, 3, 4].map((number) => ({
+      number,
+      text: `Body ${"ABCD"[number - 1]}.\n\nAnnual Report 2025 | Page ${number} of 4`,
+    }));
+    const { text } = assemblePdfPages(pages);
+
+    expect(text.match(/Annual Report 2025/g)).toHaveLength(1);
+    for (const letter of "ABCD") expect(text).toContain(`Body ${letter}.`);
+  });
+
+  it("drops printed page numbers that run out of step with the page index", () => {
+    // A cover and a contents page push the printed number two behind the file's;
+    // the running head names the chapter, which changes, so each name stays once.
+    const heads = ["", "", "1 Introduction", "2 Introduction", "3 Methods", "4 Methods", "5 Methods"];
+    const pages = heads.map((head, index) => ({ number: index + 1, text: `${head}\n\nBody ${"ABCDEFG"[index]}.`.trim() }));
+    const { text } = assemblePdfPages(pages);
+
+    expect(text.match(/Introduction/g)).toHaveLength(1);
+    expect(text.match(/Methods/g)).toHaveLength(1);
+    for (const letter of "ABCDEFG") expect(text).toContain(`Body ${letter}.`);
+  });
+
+  it("leaves numbered section headings that open each page", () => {
+    const pages = [1, 2, 3].map((number) => ({ number, text: `Section ${number + 4}: Part\n\nBody ${"ABC"[number - 1]}.` }));
+    const { text } = assemblePdfPages(pages);
+
+    expect(text.match(/Section \d: Part/g)).toHaveLength(3);
+  });
+
   it("leaves the edges of a two-page document alone", () => {
     const pages = [1, 2].map((number) => ({ number, text: `Acme Report\n\nBody ${number}.\n\nPage ${number} of 2` }));
     const { text } = assemblePdfPages(pages);

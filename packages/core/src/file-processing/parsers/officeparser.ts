@@ -451,6 +451,43 @@ function dropRunningFurniture(content: readonly OfficeContentNode[]): void {
 }
 
 /**
+ * The edge lines that carry a printed page number, each with the line's text
+ * minus that number, or nothing when the edge has no folio.
+ *
+ * The printed number may run a constant `k` ahead of or behind the page index,
+ * since a cover and a contents page usually go unnumbered. When `k` is not 0 the
+ * number must stand where a folio stands (at the start or end of the line, or
+ * after "Page"), so `Section 5: Part` heading three pages in a row is not taken
+ * for one. The folio has to hold on all but one page from where it first
+ * appears to the end. A number is a whole number: page 1 must not match the `1`
+ * in `2015`.
+ */
+function folios<T>(
+  lines: readonly { line: T; text: string; number: number }[],
+): { line: T; rest: string }[] | undefined {
+  const byOffset = new Map<number, Map<number, { line: T; rest: string }>>();
+  lines.forEach(({ line, text, number }, at) => {
+    if (text.trim().length > FURNITURE_LINE_LIMIT) return;
+    for (const match of text.matchAll(/(?<!\d)\d{1,5}(?!\d)/g)) {
+      const k = Number(match[0]) - number;
+      const before = text.slice(0, match.index);
+      const after = text.slice(match.index + match[0].length);
+      const folio = /^[^\p{L}\p{N}]*$/u.test(before) || /^[^\p{L}\p{N}]*$/u.test(after) || /\bp(?:age|g)?\.?\s*$/i.test(before);
+      if (k !== 0 && !folio) continue;
+      const group = byOffset.get(k) ?? new Map();
+      if (!group.has(at)) group.set(at, { line, rest: before + after });
+      byOffset.set(k, group);
+    }
+  });
+  for (const group of byOffset.values()) {
+    // Keys go in in page order, so the first is where the folio first appears.
+    const span = lines.length - group.keys().next().value!;
+    if (group.size >= 3 && group.size >= span - 1) return [...group.values()];
+  }
+  return undefined;
+}
+
+/**
  * The edge lines {@link dropRunningFurniture}'s two rules remove, for any
  * reader that can say which line opens and which closes each page. Shared so a
  * PDF read by liteparse is thinned the same way as one read by officeparser.
@@ -468,15 +505,16 @@ function runningFurniture<T>(
       return line === undefined ? [] : [{ line, text: text(line), number: page.number }];
     });
 
-    // Its own page number, as a whole number rather than as digits inside a
-    // longer one: page 1 must not match the `1` in `2015`.
-    const numbered = lines.filter(
-      (line) =>
-        line.text.trim().length <= FURNITURE_LINE_LIMIT &&
-        new RegExp(`(?:^|\\D)${line.number}(?:\\D|$)`).test(line.text),
-    );
-    if (numbered.length >= 3 && numbered.length >= pages.length - 1) {
-      for (const { line } of numbered) doomed.add(line);
+    const numbered = folios(lines);
+    if (numbered) {
+      // The number is what `# Page n` now says. Words beside it (a title, a
+      // chapter name) keep their first copy, as the identical-line rule would.
+      const seen = new Set<string>();
+      for (const { line, rest } of numbered) {
+        const key = rest.replace(/\s+/g, " ").trim();
+        if (/\p{L}/u.test(key.replace(/\b(?:page|pg|p|of)\b/gi, "")) && !seen.has(key)) seen.add(key);
+        else doomed.add(line);
+      }
       continue;
     }
 
