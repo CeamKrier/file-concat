@@ -78,7 +78,7 @@ import {
 } from "@fileconcat/core";
 
 import { extractCfb, extractWorkbook } from "../../../apps/web/src/lib/extract-cfb-client.js";
-import { LITEPARSE_OPTIONS, toPdfPages } from "../../../apps/web/src/lib/liteparse-pages.js";
+import { parsePdfPages } from "../../../apps/web/src/lib/liteparse-pages.js";
 import { parsers } from "../src/parsers.js";
 
 const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -238,8 +238,8 @@ const CHECKS: Check[] = [
   },
   {
     // Found 2026-10-14: liteparse strips repeated page-band lines, so pdf-1.3
-    // passes on the web chain by losing the header altogether. Its
-    // `keepHeadersFooters` brings back every copy, which is pdf-1.3 again.
+    // passed on the web chain by losing the header altogether. Fixed the same
+    // day by keeping them and thinning them in core, as officeparser's are.
     id: "pdf-1.8",
     since: "2026-10-14",
     format: "pdf",
@@ -394,13 +394,8 @@ const officeparser: ParserLoader = (bytes, format) => parsers.extract("office", 
 const anydoc: ParserLoader = async (bytes) => ({ text: (await anydocModule()).toMarkdownBytes(bytes).trim() });
 const webReaders: Record<FirstReaderId, ParserLoader> = {
   liteparse: async (bytes) => {
-    const parser = new (await liteparseModule()).LiteParse(LITEPARSE_OPTIONS);
-    try {
-      const result = await parser.parse(bytes.slice());
-      return assemblePdfPages(toPdfPages(result.pages), result.pageErrors.length);
-    } finally {
-      parser.free();
-    }
+    const { pages, skipped } = await parsePdfPages((await liteparseModule()).LiteParse, bytes);
+    return assemblePdfPages(pages, skipped);
   },
   sheetjs: async (bytes) => extractWorkbook(bytes),
   anydoc,

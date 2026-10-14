@@ -280,6 +280,29 @@ describe("replacePages", () => {
 describe("assemblePdfPages", () => {
   const fence = "```text\n\n```";
 
+  it("keeps the first copy of a running header and drops page-number footers", () => {
+    // liteparse's own stripping drops every copy, title or marking included, so
+    // the reader keeps them and the rule officeparser's PDFs get runs here.
+    const pages = [1, 2, 3].map((number) => ({
+      number,
+      text: `Acme Report - CONFIDENTIAL\n\nBody ${number}.\n\nPage ${number} of 3`,
+    }));
+    const { text } = assemblePdfPages(pages);
+
+    expect(text.match(/Acme Report - CONFIDENTIAL/g)).toHaveLength(1);
+    expect(text.indexOf("Acme Report")).toBeLessThan(text.indexOf("Body 1."));
+    expect(text).not.toMatch(/Page \d of 3/);
+    for (const number of [1, 2, 3]) expect(text).toContain(`Body ${number}.`);
+  });
+
+  it("leaves the edges of a two-page document alone", () => {
+    const pages = [1, 2].map((number) => ({ number, text: `Acme Report\n\nBody ${number}.\n\nPage ${number} of 2` }));
+    const { text } = assemblePdfPages(pages);
+
+    expect(text.match(/Acme Report/g)).toHaveLength(2);
+    expect(text.match(/Page \d of 2/g)).toHaveLength(2);
+  });
+
   it("marks each page and names a scanned one for recognition", () => {
     const { text, notes } = assemblePdfPages([
       { number: 1, text: "Page one reads." },
