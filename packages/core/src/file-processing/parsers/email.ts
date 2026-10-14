@@ -68,19 +68,45 @@ const HTML_ENTITIES: Readonly<Record<string, string>> = {
  * The readable text of an HTML-only message. Deliberately crude: the goal is
  * the words in reading order, not a faithful rendering, and a message that has
  * a `text/plain` part never reaches this.
+ *
+ * Quoted history is marked with `> ` per level, as a plain-text client writes
+ * it, and never removed: in a single exported message it is the only copy of
+ * the earlier ones. Flattened unmarked, a question from the last sender reads
+ * as this sender's own words. A quote is a `blockquote` (Gmail, Apple Mail,
+ * Thunderbird), or everything from Outlook's `divRplyFwdMsg` header block to
+ * the end, since Outlook writes the history as that block's siblings. A
+ * forward carries neither and stays unmarked, as talon also leaves it.
  */
 function htmlToText(html: string): string {
-  return html
-    .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "")
+  const clean = html.replace(/[\uE000\uE001]/g, "").replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+  const header = clean.search(/\bid=["']?divRplyFwdMsg\b/i);
+  const outlook = header < 0 ? -1 : clean.lastIndexOf("<", header);
+  const flat = (outlook < 0 ? clean : `${clean.slice(0, outlook)}\n${QUOTE_OPEN}${clean.slice(outlook)}${QUOTE_CLOSE}\n`)
+    .replace(/<blockquote\b[^>]*>/gi, `\n${QUOTE_OPEN}`)
+    .replace(/<\/blockquote\s*>/gi, `${QUOTE_CLOSE}\n`)
     .replace(HTML_BREAKS, "\n")
     .replace(/<[^>]+>/g, "")
     .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
     .replace(/&[a-z#0-9]+;/gi, (entity) => HTML_ENTITIES[entity.toLowerCase()] ?? entity)
     .replace(/[ \t]+/g, " ")
-    .replace(/ ?\n ?/g, "\n")
+    .replace(/ ?\n ?/g, "\n");
+  let depth = 0;
+  return flat
+    .split("\n")
+    .map((line) => {
+      const level = depth + line.split(QUOTE_OPEN).length - 1;
+      depth = Math.max(0, level - (line.split(QUOTE_CLOSE).length - 1));
+      const words = line.replace(/[\uE000\uE001]/g, "").trim();
+      return words && level > 0 ? `${">".repeat(level)} ${words}` : words;
+    })
+    .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
+
+/** Where a quote opens and closes, between reading the markup and writing lines. */
+const QUOTE_OPEN = "\uE000";
+const QUOTE_CLOSE = "\uE001";
 
 /**
  * Turn a parsed message into the text a bundle should carry. Answers with empty
