@@ -11,7 +11,7 @@ draft: false
     "Paste a GitHub, GitLab or Bitbucket URL, or drop the folder, and the repository becomes one file: a tree, then a tagged block per file.",
     "The defaults leave out lockfiles, build output, vendored code and test files by name. On a fresh clone that is a median 22.7% of tokens.",
     "Count before you paste: the median public repository is 236,218 tokens and only 23 of 60 fit a 128K window.",
-    "Your files are not uploaded to us, the whole thing runs in your browser.",
+    "Your files are not uploaded to us. The whole thing runs in your browser.",
   ]}
 />
 
@@ -19,9 +19,9 @@ Sometimes the thing you want to ask about is not one file, it is the whole proje
 the pieces fit, where a bug is hiding, whether an approach holds across the codebase.
 For that, the model needs to see the repo, not a snippet of it.
 
-This guide covers how to upload your entire codebase to ChatGPT, Claude or Gemini: why
-pasting the raw folder rarely works, how to cut it down to what matters, and how to pull
-a repo straight from a URL. There is a spot to try it on your own repo partway down.
+This guide covers how to upload your entire codebase to ChatGPT, Claude or Gemini. It
+shows why pasting the raw folder rarely works, how to cut it down to what matters, and how
+to pull a repo straight from a URL. There is a spot to try it on your own repo partway down.
 
 ## Why pasting a raw repo fails
 
@@ -33,9 +33,8 @@ output, lock files, the `.git` directory, vendored dependencies, generated asset
 all of it and the signal you care about is buried under the parts you do not.
 
 The second is size. Every model has a ceiling on how much text it takes at once, and an
-installed repo runs past it easily. Fitting a large codebase into a context window is
-really a filtering problem, not a copy-paste one: the dependencies alone are usually
-larger than a chat box will accept.
+installed repo runs past it easily. That makes it a filtering problem, not a copy-paste
+one. The dependencies alone are usually larger than a chat box will accept.
 
 <BeforeAfter>
   <Before label="the whole checkout" tokens="1,240,000">{`my-app/
@@ -52,10 +51,10 @@ larger than a chat box will accept.
 </BeforeAfter>
 
 Those figures are illustrative, and which one you are looking at depends on whether the
-project is installed. On a working checkout, `node_modules` really is the bulk of the bytes.
-On a fresh clone it was never committed, so there is nothing there for a filter to take out:
-across 60 public repositories the defaults stripped a median of 22.7% of tokens, and most of
-that was test files dropped by name rather than dependencies. Either way what is left is the
+project is installed. On a working checkout, `node_modules` is the bulk of the bytes.
+On a fresh clone it was never committed, so there is nothing there for a filter to take out.
+Across 60 public repositories the defaults stripped a median of 22.7% of tokens, mostly test
+files dropped by name rather than dependencies. Either way what is left is the
 source you wanted the model to read, but only one of the two starts out enormous.
 
 ## Cut the noise first
@@ -90,21 +89,21 @@ convert a GitHub repo to text for either one.
     lock files never make it into the bundle.
   </Step>
   <Step title="Copy the bundle">
-    You get one structured document with every file labeled by its path, plus a running
+    You get one structured bundle with every file labeled by its path, plus a running
     token count so you know it fits before you paste it.
   </Step>
 </Steps>
 
 ## Upload the codebase to ChatGPT, Claude or Gemini
 
-In ChatGPT and Claude the whole codebase goes in as the one bundle file, attached or pasted,
-and it counts as one file against their upload caps; [ChatGPT's](/how-to/chatgpt-file-upload-limit)
-are the tightest. Gemini is the one that takes a repository itself: one code folder or one
-GitHub repository per chat, up to 5,000 files and 100 MB, as of September 2026. The bundle
-still helps there when the repository is larger than that, or when you want tests and lock
-files out before the model reads it. NotebookLM reads only the text of a page given as a
-link, so a GitHub URL brings in the text of that one page and not the files behind it; set
-Format to Plain and the bundle goes in as one source instead. The steps are on
+In ChatGPT and Claude the whole codebase goes in as the one bundle file, attached or pasted.
+It counts as one file against their upload caps, and [ChatGPT's](/how-to/chatgpt-file-upload-limit)
+are the tightest. Gemini is the one that takes a repository itself. It allows one code folder
+or one GitHub repository per chat, up to 5,000 files and 100 MB, as of September 2026. The
+bundle still helps there when the repository is larger than that, or when you want tests and
+lock files out before the model reads it. NotebookLM reads only the text of a page given as a
+link. A GitHub URL brings in the text of that one page, not the files behind it. Set Format to
+Plain and the bundle goes in as one source instead. The steps are on
 [adding a GitHub repo to NotebookLM](/for/notebooklm#notebooklm-github).
 
 ## Try it on your own repo
@@ -112,24 +111,23 @@ Format to Plain and the bundle goes in as one source instead. The steps are on
 Drop a project folder below, or open the full tool to paste a repository URL. It runs in
 your browser, there is no account, and your files are not uploaded to us.
 
-<TryIt title="Bundle your own project" hint="Drop a project folder. It runs here in your browser, your files are not uploaded to us." />
+<TryIt title="Bundle your own project" hint="Drop a project folder. It runs here in your browser. Your files are not uploaded to us." />
 
 ## When a paste is the wrong tool
 
-Bundling a codebase into one prompt is the right move when you want a model to reason over
+Bundling a codebase into one file is the right move when you want a model to reason over
 a snapshot: review an approach, explain a module, find where something is defined. It is
 not the right move for everything.
 
-If the repo is too large to fit even after filtering, or you want the model to edit across
-many files and iterate, a single paste is the wrong shape. An agentic coding tool that
+A single paste is the wrong shape when the repo is too large to fit even after filtering,
+or when you want the model to edit across many files and iterate. An agentic coding tool that
 reads files on demand, or a retrieval setup that fetches only the relevant parts, will
 serve you better there.
 
-Command-line packers like Repomix, gitingest and code2prompt cover the same
-bundle-a-git-repo need from the terminal. We ran all three against FileConcat over the same
-60 repositories, and at the median the four bundles land within 8% of each other, so the
-choice is rarely about size:
-[what each tool costs on the same repository](/blog/repomix-vs-gitingest-vs-code2prompt) has
+Command-line packers like Repomix, gitingest and code2prompt cover the same need from the
+terminal. We ran all three against FileConcat over the same 60 repositories. At the median
+the four bundles land within 8% of each other, so the choice is rarely about size.
+[What each tool costs on the same repository](/blog/repomix-vs-gitingest-vs-code2prompt) has
 the distribution and the one case where the gap reached 16.4x. FileConcat's own difference
 is the browser, documents alongside code, and a token count that moves as you build.
 
@@ -147,8 +145,8 @@ fits instead of finding out when the chat box refuses it.
 
 How large is a repository, in practice? We bundled 60 public ones and counted: the median
 came out at 236,218 tokens, and only 23 of the 60 fit inside a 128K context window. That
-is the number worth having before you plan a paste, and
-[how many tokens a codebase is](/blog/how-many-tokens-is-a-codebase) has the whole
+is the number to have before you plan a paste.
+[How many tokens a codebase is](/blog/how-many-tokens-is-a-codebase) has the whole
 distribution with the four common context windows drawn across it.
 
 <Callout type="tip">

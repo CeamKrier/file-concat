@@ -250,11 +250,11 @@ function SourceLink({ href, children }: { href: string; children: React.ReactNod
 const STEPS = [
   {
     title: "Drop the whole folder",
-    body: "Drag in everything you want the AI to read. Subfolders come along, and you can add a repo or a link too.",
+    body: "Drop in everything you want the AI to read. Subfolders come along, and you can add a repo or a link too.",
   },
   {
     title: "It reads everything here",
-    body: "PDFs, Word, Excel, code, and notes are turned into text right in this tab. Your files are not uploaded to us.",
+    body: "PDFs, Word, Excel, code, and notes are turned into text in your browser. Your files are not uploaded to us.",
   },
   {
     title: "Paste the one file in",

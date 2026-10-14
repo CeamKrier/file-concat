@@ -26,7 +26,7 @@ export function PrivacySection() {
       <div className="min-w-0">
         <BandIntro id="private-by-design" title="We don't upload your files.">
           Read, filtered and combined in your browser. No upload, no account. Anonymous usage
-          analytics run; the privacy page says what they see.
+          analytics run, and the privacy page says what they see.
         </BandIntro>
         <BandLinks className="mt-6">
           <BandLink to="/privacy">What we collect, and what we don&apos;t</BandLink>
@@ -41,7 +41,7 @@ function StageRail() {
     <div className="border-border bg-surface rounded-chip min-w-0 border p-5">
       <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-3">
         <FigureTitle className="text-[19px]">Reading your files</FigureTitle>
-        <span className="text-ink-faint font-mono text-[11px]">in this tab</span>
+        <span className="text-ink-faint font-mono text-[11px]">in your browser</span>
       </div>
       <div className="text-ink-secondary mb-[18px] font-mono text-[13px] tabular-nums">
         <span className="text-ink">37</span> / 142 files

@@ -20,8 +20,8 @@ const RULES: { name: string; pattern: RegExp; only?: RegExp }[] = [
   { name: "word: actually", pattern: /\bactually\b/i },
   { name: "word: Worth as an opener", pattern: /(^|[.!?]\s+|["'>`]\s*)Worth\b/m },
   { name: "word: bundle, not blob or prompt", pattern: /\b(one|a|single|project) (clean |LLM-ready |prompt-ready )?blob\b|\bclean prompt\b/i },
-  { name: "word: FileConcat, not the tab", pattern: /\bin the tab\b/ },
-  { name: "word: Drop, not Drag", pattern: /title="Drag / },
+  { name: "word: in your browser, not the tab", pattern: /\bin (the|this)( browser)? tab\b/i },
+  { name: "word: drop, not drag", pattern: /title="Drag |\b[Dd]rag(ged)? (it |them |everything |every \w+ )?in\b|\bdrag[- ]and[- ]drop\b/ },
   { name: "word: no analyst terms", pattern: /\b(p90|p10|signal density|n_?eff)\b/i, only: /^(components|routes)\// },
 ];
 
@@ -52,15 +52,16 @@ describe("shipped copy follows PRODUCT.md, section Voice", () => {
     const hits: string[] = [];
     for (const path of ["components", "content", "routes"].flatMap((d) => files(join(SRC, d)))) {
       const rel = relative(SRC, path).replace(/\\/g, "/");
-      prose(readFileSync(path, "utf8"))
-        .split("\n")
-        .forEach((line, i) => {
-          for (const rule of RULES) {
-            if (rule.only && !rule.only.test(rel)) continue;
-            const m = line.match(rule.pattern);
-            if (m) hits.push(`${rel}:${i + 1} [${rule.name}] ${m[0].trim()}`);
-          }
-        });
+      const text = prose(readFileSync(path, "utf8").replace(/\r/g, ""));
+      // A wrapped MDX line splits a phrase; join single line breaks, same length so offsets hold.
+      const joined = text.replace(/(?<!\n)\n(?!\n)/g, " ");
+      for (const rule of RULES) {
+        if (rule.only && !rule.only.test(rel)) continue;
+        for (const m of joined.matchAll(new RegExp(rule.pattern.source, rule.pattern.flags + "g"))) {
+          const line = text.slice(0, m.index).split("\n").length;
+          hits.push(`${rel}:${line} [${rule.name}] ${m[0].trim()}`);
+        }
+      }
     }
     expect(hits).toEqual([]);
   });

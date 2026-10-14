@@ -258,11 +258,11 @@ function FileCounts() {
 const STEPS = [
   {
     title: "Drop the ZIP",
-    body: "Drag it in or pick it. .zip, .7z, .rar, .tar and .tar.gz are unpacked in your browser, folders inside included.",
+    body: "Drop it in or pick it. .zip, .7z, .rar, .tar and .tar.gz are unpacked in your browser, folders inside included.",
   },
   {
     title: "It reads everything inside",
-    body: "PDFs, Word, Excel and code become text in this tab, each under its own path, with the token count shown as it goes.",
+    body: "PDFs, Word, Excel and code become text in your browser, each under its own path, with the token count shown as it goes.",
   },
   {
     title: "Upload the one file",

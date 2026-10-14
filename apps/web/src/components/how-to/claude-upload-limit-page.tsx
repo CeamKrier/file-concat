@@ -68,7 +68,7 @@ function Hero({ dropProps, linkImport }: LandingProps) {
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <MonitorSmartphone className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs in this tab
+            Runs in your browser
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
@@ -78,7 +78,7 @@ function Hero({ dropProps, linkImport }: LandingProps) {
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
             Claude takes up to {CHAT_FILE_CAP} files per chat, according to its help center in{" "}
             {CAPS_CHECKED}. It counts files, not what is in them. Drop the whole folder here or
-            paste a GitHub link: everything is read in your browser and comes back as one file, one
+            paste a GitHub link. Everything is read in your browser and comes back as one file, one
             of the {CHAT_FILE_CAP}, with its token count.
           </p>
 
@@ -233,7 +233,7 @@ function LengthLimit() {
           </blockquote>
           <p>
             A combined file holds the same text as the files in it, so it is just as long. On paid
-            plans with code execution on, Claude manages long conversations itself, but its{" "}
+            plans with code execution on, Claude manages long conversations itself. Its{" "}
             <SourceLink href={CLAUDE_ERRORS_HELP}>help center</SourceLink> says a very large first
             message can still hit this error. If the count is near the window, leave out what Claude
             does not need under Adjust what&apos;s included, or pick a model with a larger window.
@@ -247,11 +247,11 @@ function LengthLimit() {
 const STEPS = [
   {
     title: "Drop everything",
-    body: "Drag in the folder you meant to attach, subfolders included, or paste a public GitHub link.",
+    body: "Drop in the folder you meant to attach, subfolders included, or paste a public GitHub link.",
   },
   {
     title: "It reads and counts",
-    body: "PDFs, Word, Excel and notes become text in this tab, and the token count shows whether the one file fits the chat. Your files are not uploaded to us.",
+    body: "PDFs, Word, Excel and notes become text in your browser, and the token count shows whether the one file fits the chat. Your files are not uploaded to us.",
   },
   {
     title: "Attach the one file",
@@ -311,7 +311,7 @@ function WorkedExample() {
         <p className="text-ink-secondary mx-auto mt-4 max-w-[52ch] text-[15px] leading-relaxed">
           We imported the Express repository on 2026-09-24. Its {num(EXAMPLE.combined)} files would
           fill {exampleChats} chats at {CHAT_FILE_CAP} each. As one file they took one slot, at{" "}
-          {num(EXAMPLE.tokens)} tokens by our estimate: {shareOf(1_000_000)}% of a 1M-token window,
+          {num(EXAMPLE.tokens)} tokens by our estimate. That is {shareOf(1_000_000)}% of a 1M-token window,
           and {shareOf(200_000)}% of a 200K one, where the length limit is the wall to watch.
         </p>
       </div>

@@ -10,7 +10,7 @@ export const Route = createFileRoute("/blog/")({
     meta: generateSEOMeta({
       title: "Blog - FileConcat",
       description:
-        "Notes on bundling files for LLMs: combining a codebase or documents into one prompt, token budgets, and getting clean context into ChatGPT, Claude, or Gemini.",
+        "Notes on bundling files for LLMs: combining a codebase or documents into one file, token budgets, and getting clean context into ChatGPT, Claude, or Gemini.",
       url: "https://fileconcat.com/blog",
     }),
     links: [{ rel: "canonical", href: "https://fileconcat.com/blog" }],
@@ -75,7 +75,7 @@ function BlogIndexPage() {
             >
               docs
             </Link>{" "}
-            cover how FileConcat picks, filters, and bundles your files into one document.
+            cover how FileConcat picks, filters, and joins your files into one bundle.
           </p>
         </div>
       )}

@@ -125,7 +125,7 @@ export function LicensesPage() {
             Everything else.
           </h2>
           <p className="text-ink-secondary mt-4 text-[15px] leading-relaxed">
-            Office files are read by anydoc from Firecrawl (MIT), and the rest of the app uses npm
+            Office files are read by anydoc from Firecrawl (MIT), and the rest of FileConcat uses npm
             packages under permissive licenses. All of them, with their license texts, are in the
             notices file, which is rebuilt from the shipped code on every release.
           </p>

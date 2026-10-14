@@ -11,7 +11,7 @@ const LAST_UPDATED = "September 26, 2026";
 const STAYS = [
   {
     title: "Your files, and their contents.",
-    body: "The documents you drop are read, filtered, and combined in this browser tab. The file bytes are never uploaded to us, or to anyone, to be processed.",
+    body: "The documents you drop are read, filtered, and combined in your browser. The file bytes are never uploaded to us, or to anyone, to be processed.",
   },
   {
     title: "No server reads them.",
@@ -31,11 +31,11 @@ const COLLECTED = [
   },
   {
     title: "Anonymous counts, kept by us.",
-    body: `So we know which formats to support next and where the tool struggles, we count the file types in a drop (how many of each, how many bytes, and the size of the largest file), the number of files, how long reading them took, how large the combined result was, and whether you copied or downloaded. We also record what kind of site sent you here, such as a search engine or an AI assistant, as a single label, and never the address you came from. When the tool itself crashes we record the kind of error, such as a type error or a script that failed to load, and never its message. Filenames are checked against a short published list of project files such as package.json and go.mod, and only a match is recorded. Nothing else about a filename leaves your browser, and no folder path or file content ever does. Each count carries a random id that lasts for one page load, is never stored on your device, and is never reused, so nothing ties a count to you, to another visit, or to your files, unless you add your email to a feedback note as described below. We delete these counts after ${METRICS_RETENTION_DAYS} days.`,
+    body: `So we know which formats to support next and where the tool struggles, we count the file types in a drop (how many of each, how many bytes, and the size of the largest file), the number of files, how long reading them took, how large the combined result was, and whether you copied or downloaded. We also record what kind of site sent you here, such as a search engine or an AI assistant, as a single label, and never the address you came from. When the tool itself crashes we record the kind of error, such as a type error or a script that failed to load, and never its message. Filenames are checked against a short published list of project files such as package.json and go.mod, and only a match is recorded. Nothing else about a filename leaves your browser, and no folder path or file content ever does. Each count carries a random id that lasts for one page load, is never stored on your device, and is never reused. So nothing ties a count to you, to another visit, or to your files, unless you add your email to a feedback note as described below. We delete these counts after ${METRICS_RETENTION_DAYS} days.`,
   },
   {
     title: "Feedback, when you send it.",
-    body: `After you copy or download, the tool may ask whether it did what you needed. A tap on Yes or Not quite is recorded like the counts above. If you write a note and press Send, we keep what you typed together with that visit's random id, so we can read it beside the counts from the same drop, such as which file types failed to read. If you add your email to get a reply, we keep it with the note and use it only to answer you, which also means the counts from that visit are no longer anonymous to us. Nothing is sent unless you press a button, and your files and their names are never part of it. We delete notes, and any email with them, after ${METRICS_RETENTION_DAYS} days.`,
+    body: `After you copy or download, the tool may ask whether it did what you needed. A tap on Yes or Not quite is recorded like the counts above. If you write a note and press Send, we keep what you typed together with that visit's random id. That lets us read it beside the counts from the same drop, such as which file types failed to read. If you add your email to get a reply, we keep it with the note and use it only to answer you. That also means the counts from that visit are no longer anonymous to us. Nothing is sent unless you press a button, and your files and their names are never part of it. We delete notes, and any email with them, after ${METRICS_RETENTION_DAYS} days.`,
   },
   {
     title: "Standard analytics signals.",
@@ -47,15 +47,15 @@ const COLLECTED = [
   },
   {
     title: "Reading a scanned page, when you drop one.",
-    body: "A scanned PDF or Word file holds a picture of a page, not text, so there is nothing in the file to read. When you drop one, your browser downloads a text-recognition engine and one language file from jsDelivr, a public code CDN, and starts reading (past three documents or 8 MB it asks first). What jsDelivr learns is what any file request tells a server: your IP address, and which file was asked for. Your document is not part of it. Recognition runs in this tab, on bytes already on your device, and the result goes nowhere but your screen. It happens only for pages that hold no text of their own, so a drop with no scan in it downloads nothing. You can stop a reading while it runs.",
+    body: "A scanned PDF or Word file holds a picture of a page, not text, so there is nothing in the file to read. When you drop one, your browser downloads a text-recognition engine and one language file from jsDelivr, a public code CDN, and starts reading. Past three documents or 8 MB, it asks first. What jsDelivr learns is what any file request tells a server: your IP address, and which file was asked for. Your document is not part of it. Recognition runs in your browser, on bytes already on your device, and the result goes nowhere but your screen. It happens only for pages that hold no text of their own, so a drop with no scan in it downloads nothing. You can stop a reading while it runs.",
   },
   {
     title: "Transcribing a recording, when you ask.",
-    body: "Audio, and a video with no subtitle track, can be written out as text, but only when you press Transcribe. The first time, your browser downloads a speech model from Hugging Face, a public model host: 66 MB for English, 244 MB for other languages, kept in your browser's cache for the next time. What Hugging Face learns is what any file request tells a server: your IP address, and which model was asked for. Your recording is not part of it. The speech is written out in this tab, and the text shown on screen in a video is read by the recognition engine described above.",
+    body: "Audio, and a video with no subtitle track, can be written out as text, but only when you press Transcribe. The first time, your browser downloads a speech model from Hugging Face, a public model host: 66 MB for English, 244 MB for other languages. It is kept in your browser's cache for the next time. What Hugging Face learns is what any file request tells a server: your IP address, and which model was asked for. Your recording is not part of it. The speech is written out in your browser, and the text shown on screen in a video is read by the recognition engine described above.",
   },
   {
     title: "Your settings.",
-    body: "Filters and preferences are saved in your browser's local storage, along with the date the feedback question was last shown, so it is not asked again for a month. They stay on your device and are never sent anywhere.",
+    body: "Filters and preferences are saved in your browser's local storage, along with the date the feedback question was last shown. That keeps it from being asked again for a month. They stay on your device and are never sent anywhere.",
   },
 ];
 
@@ -80,7 +80,7 @@ const CLIPPER = [
   },
   {
     title: "Requests go to the site you are already on, never to us.",
-    body: "Clipping a video asks YouTube for its transcript. Clipping a Reddit post from a listing asks Reddit for that post's page, the same way clicking through to it would. Clipping a Hacker News thread asks hn.algolia.com for its comments, because Hacker News blocks that request from its own page. Clipping a ChatGPT conversation asks chatgpt.com for it with the page's own session: one request on a share page, two on a signed-in page, the first for the session token, which is used once and not kept. Clipping a Claude conversation asks claude.ai the same way, one request. Clipping a Gemini conversation asks gemini.google.com the same way, one request per 100 turns, with the token the page itself sends. None of these go to us.",
+    body: "Clipping a video asks YouTube for its transcript. Clipping a Reddit post from a listing asks Reddit for that post's page, the same way clicking through to it would. Clipping a Hacker News thread asks hn.algolia.com for its comments, because Hacker News blocks that request from its own page. Clipping a ChatGPT conversation asks chatgpt.com for it with the page's own session. That is one request on a share page and two on a signed-in page. The first of the two fetches the session token, which is used once and not kept. Clipping a Claude conversation asks claude.ai the same way, one request. Clipping a Gemini conversation asks gemini.google.com the same way, one request per 100 turns, with the token the page itself sends. None of these go to us.",
   },
   {
     title: "It asks for access to all sites.",
@@ -207,7 +207,7 @@ export function PrivacyPage() {
             Open your browser's network panel and drop a folder. Your documents are never
             uploaded. The requests you will see are the analytics beacon, the repository fetch if you
             imported one, the recognition download if a scanned page was in the drop, and your
-            feedback note if you send one. Never your files. Any content blocker stops the analytics, and the whole app is open source, so you
+            feedback note if you send one. Never your files. Any content blocker stops the analytics, and FileConcat is open source, so you
             can read exactly what it does.
           </p>
           <a

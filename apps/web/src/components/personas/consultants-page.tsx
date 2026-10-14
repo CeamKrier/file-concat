@@ -57,7 +57,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
             Drop the decks, reports, interview notes, and data from the whole project. FileConcat
             reads the PDFs, slides, and spreadsheets in your browser and packs them into one file
-            for ChatGPT, Claude, or Gemini. Preparing it uploads nothing. What you then paste into an assistant is your own choice.
+            for ChatGPT, Claude, or Gemini. What you then paste into an assistant is your own choice, but preparing the file uploads nothing.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -144,7 +144,7 @@ const STEPS = [
   },
   {
     title: "Every file becomes text",
-    body: "Slides, PDFs, and spreadsheets are read in this tab, boilerplate is dropped, and duplicates are left out.",
+    body: "Slides, PDFs, and spreadsheets are read in your browser. Boilerplate and duplicates are left out.",
   },
   {
     title: "One file, ready to reason over",

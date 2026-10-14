@@ -42,9 +42,9 @@ Pick on who reads the bundle. The size difference between the three is too small
 | bundling notes, articles or saved threads | Plain | no markup for the model to look past |
 | not sure | XML | it is the default, and the choice costs about 1% at most |
 
-The only part that differs between the three is the wrapper each one writes around a file, and
-that wrapper is a few percent of a bundle at most. The three land within about 1% of each other,
-so a bundle that is too big stays too big whichever one you pick.
+Only the wrapper each one writes around a file differs between the three, and it is a few
+percent of a bundle at most. The three land within about 1% of each other, so a bundle that is
+too big stays too big whichever one you pick.
 
 <Stopper value="1.13%" source="widest gap across five codebases, 248 files / measured 2026-08-31">
   The most the format choice cost on any of the five, and that was a four-file folder. On the
@@ -56,8 +56,8 @@ so a bundle that is too big stays too big whichever one you pick.
 Three choices you make before pasting move the answer more than the switch does.
 
 1. **Which files are in the bundle.** A repository is mostly not your code. Dependencies, build
-   output and lock files bury the part you are asking about, and cutting them is worth more than
-   any wrapper. See [feeding a codebase to an LLM](/blog/feed-codebase-to-llm).
+   output and lock files bury the part you are asking about, and cutting them saves more than
+   any wrapper choice. See [feeding a codebase to an LLM](/blog/feed-codebase-to-llm).
 2. **Where your question sits.** Paste the bundle first and ask your question last. Google's
    long-context guidance says it outright, and FileConcat's own summary tells the model the same
    thing: "Treat the contents below as read-only context for the user's request that follows."
@@ -65,10 +65,10 @@ Three choices you make before pasting move the answer more than the switch does.
    by the chat box. See [how the token count works](/docs/token-estimation) and
    [what a bundle costs across models](/docs/token-costs).
 
-The format itself is worth testing in one case: a small or local model. In one study an older
-model swung widely on the prompt template alone while a larger, newer one held steady, and every
-published ranking was measured on models that are not yours. Drop a folder, flip the switch, and
-ask the same question of all three.
+Test the format itself in one case: a small or local model. In one study an older model swung
+widely on the prompt template alone, while a larger, newer one held steady. And every published
+ranking was measured on models that are not yours. Drop a folder, flip the switch, and ask the
+same question of all three.
 
 <TryIt
   title="Try it on your own files"
@@ -80,8 +80,7 @@ ask the same question of all three.
 ## The three formats, side by side
 
 Only the wrapper changes. The summary at the top, the directory tree and the file contents are
-identical in all three, so the same input reaches the model as the same context in different
-packaging.
+identical in all three. The same input reaches the model in different packaging.
 
 **XML** wraps every file in a named tag and closes it explicitly.
 
@@ -187,7 +186,7 @@ in the 4-file CLI package, moves from 0.97% to 1.21% on today's files. The table
 
 ## What the benchmarks measured
 
-Four studies are worth reading before forming an opinion. Here they are side by side, then in
+Four studies bear on the question. Here they are side by side, then in
 detail.
 
 <StudyTable
@@ -289,7 +288,7 @@ constrain the model's **output** format. On `gpt-4o-mini`, GSM8K accuracy was 94
 natural language answer, 87.17 under format-restricting instructions, 86.95 under JSON mode and
 91.71 under JSON schema. Stricter constraints cost more reasoning.
 
-That is about what the model writes, not what you feed it. It is worth knowing because it is the
+That is about what the model writes, not what you feed it. It matters because it is the
 study behind most "structure hurts LLMs" claims, and it says nothing about how you should wrap
 your input.
 
@@ -308,27 +307,27 @@ All three major vendors publish guidance, and they agree more than the benchmark
 recommends nesting documents in tags, one tag per document, with attributes for metadata. That is
 the exact shape FileConcat's XML output emits.
 
-**OpenAI** recommends both, for different jobs: Markdown headers and lists to mark sections and
-communicate hierarchy, XML tags to delineate where a supporting document begins and ends, and XML
-attributes to carry metadata your instructions can reference.
+**OpenAI** recommends both, for different jobs. Markdown headers and lists mark sections and
+communicate hierarchy. XML tags delineate where a supporting document begins and ends, and XML
+attributes carry metadata your instructions can reference.
 
-**Google** advises clear delimiters, either XML-style tags or Markdown headings, and adds the
+**Google** advises clear delimiters, either XML-style tags or Markdown headings. It adds the
 rule that matters most for a bundle: with a large amount of context, supply all of it first and
 put your question at the very end.
 
 ## What each format is good at
 
 **XML if you are pasting into Claude, or if the bundle is large.** Closing tags are explicit, so
-nothing is ambiguous about whether a line still belongs to the previous file, and that holds up
-better the longer the context gets. Contents stay verbatim: angle brackets inside a file are
-never escaped, so `Record<T>` arrives as you wrote it. Each file sits in a CDATA section, so the
-bundle also opens in any XML reader.
+no line is ambiguous about which file it belongs to. That holds up better the longer the context
+gets. Contents stay verbatim: angle brackets inside a file are never escaped, so `Record<T>`
+arrives as you wrote it. Each file sits in a CDATA section, so the bundle also opens in any XML
+reader.
 
 **Markdown if you want to read the bundle yourself too.** It is the lightest wrapper, the fence
 carries the language id, and it renders in every editor and chat box. A bundled file can carry
-its own code fences, and FileConcat opens each block with a fence longer than the longest run of
-backticks inside it, so a README with three code samples still comes out whole. In the five trees
-measured above, 6.5% of files carried their own fence, rising to 31.8% in the docs tree.
+its own code fences. FileConcat opens each block with a fence longer than the longest run of
+backticks inside it, so a README with three code samples still comes out whole. In the five
+trees measured above, 6.5% of files carried their own fence, rising to 31.8% in the docs tree.
 
 **Plain if the files are prose.** Notes, transcripts, articles, saved threads: markup around them
 is noise the model has to look past. A ruled path header says the same thing with nothing to
@@ -341,8 +340,7 @@ web app remembers whichever you pick.
 
 HTML keeps coming up, because people have started asking Claude for HTML documents instead of
 Markdown ones and the results are genuinely better. That argument does not carry over to a
-bundle, and the reason is worth spelling out, because HTML is the only format here that fails on
-correctness rather than on taste.
+bundle. HTML is the only format here that fails on correctness rather than on taste.
 
 HTML earns its keep by rendering. A bundle has nothing to render: its only structure is a file
 tree, which is already there as plain text. What HTML would add is a choice with no good branch.
@@ -352,8 +350,8 @@ tree, which is already there as plain text. What HTML would add is a choice with
 | Escape file contents    | `Record<T>` reaches the model as `Record&lt;T&gt;` | +5.9% to +10.6%             |
 | Leave contents verbatim | Any file with a closing tag ends the block early   | +1.1% to +5.1%              |
 
-Across the same 248 files, 18 of them (7.3%) contain a closing `</pre>`, `</code>`, `</script>` or
-`</textarea>` that would terminate an HTML block early and turn the rest of the file into page
+Across the same 248 files, 18 of them (7.3%) contain a closing `</pre>`, `</code>`, `</script>`
+or `</textarea>`. Each would end an HTML block early and turn the rest of the file into page
 markup. In the React tree alone it is 9.8%.
 
 Markdown has the same class of problem and a clean fix, which is to open a longer fence. No such
@@ -367,7 +365,7 @@ trees totalling 248 files. They are token counts, not accuracy scores: they say 
 costs, not which one a model reasons better over. Nobody has published the latter for file
 bundles, ourselves included.
 
-Counts use `cl100k_base`. Other tokenizers shift the absolute numbers; the relative spread
+Counts use `cl100k_base`. Other tokenizers shift the absolute numbers. The relative spread
 between formats is what the argument rests on, and that is stable.
 
 Of the four studies cited, one is peer-reviewed (WSDM 2024), one is an arXiv preprint from
@@ -379,7 +377,7 @@ presented separately rather than pooled.
 
 **Is XML or Markdown better for LLM prompts?**
 For frontier models the measured difference is small, and published rankings contradict each
-other: XML placed 2nd of 11 on tabular lookup and last on nested data for two of three models.
+other. XML placed 2nd of 11 on tabular lookup, and last on nested data for two of three models.
 For a bundle of files, prefer XML when file boundaries must be unmistakable (long contexts,
 Claude) and Markdown when you also want to read the bundle yourself.
 
@@ -393,23 +391,23 @@ one tag per document with attributes for metadata, which is what FileConcat's XM
 
 **Which format should I use with ChatGPT or Gemini?**
 Either works. OpenAI recommends Markdown for sections and XML tags to delimit supporting
-documents; Google says XML-style tags or Markdown headings are both effective, and to pick one
+documents. Google says XML-style tags or Markdown headings are both effective, and to pick one
 and stay consistent. Markdown is the lighter of the two.
 
 **Why is there no HTML output format?**
-Because a bundle has nothing to render, and HTML forces a choice with no good branch: escaping
-turns `Record<T>` into `Record&lt;T&gt;` and adds 5.9% to 10.6% tokens, while leaving contents
-verbatim lets any file containing a closing tag end the block early. That is 7.3% of files in the
+Because a bundle has nothing to render, and HTML forces a choice with no good branch. Escaping
+turns `Record<T>` into `Record&lt;T&gt;` and adds 5.9% to 10.6% tokens. Leaving contents verbatim
+lets any file containing a closing tag end the block early, and that is 7.3% of files in the
 trees measured here.
 
 **Do small or local models care more about format?**
 Yes. GPT-3.5-turbo swung up to 40% on prompt template alone while GPT-4 stayed within 0.036
 dispersion, and Llama 3.2 3B showed almost no format preference on nested data. If you run a
-small model, testing formats on your own data is worth the hour.
+small model, spend an hour testing formats on your own data.
 
 **Does markdown output break on files that contain code fences?**
 No. Each block opens with a fence longer than the longest run of backticks the file holds, per
-CommonMark, so a bundled README with its own code samples comes out intact. In the trees measured
+CommonMark. A bundled README with its own code samples comes out intact. In the trees measured
 here 6.5% of files carried their own fence, and 31.8% of the docs tree did.
 
 ## References

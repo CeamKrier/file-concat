@@ -65,8 +65,8 @@ function Hero({ dropProps, linkImport }: LandingProps) {
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
             Paste a public repository URL and press Fetch. Lock files, dependencies and build output
-            stay out, and the rest comes back as one file with the file tree at the top, counted in
-            tokens so you know whether it fits your model before you paste it.
+            stay out. The rest comes back as one file with the file tree at the top. Its token count
+            tells you whether it fits your model before you paste it.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -218,7 +218,7 @@ function Formats() {
       <div className="min-w-0">
         <InfoCard tone="info" icon={FolderTree} title="Every file under its path">
           <p>
-            Whatever the style, the file opens with the repository's tree and every file sits under
+            Whatever the style, the file opens with the repository's tree. Every file sits under
             its own path, so the model can tell src/index.ts from test/index.ts.
           </p>
         </InfoCard>
@@ -234,7 +234,7 @@ const STEPS = [
   },
   {
     title: "Press Fetch",
-    body: "Your browser downloads the files straight from GitHub. A large repository comes as one archive, unpacked in this tab.",
+    body: "Your browser downloads the files straight from GitHub. A large repository comes as one archive, unpacked in your browser.",
   },
   {
     title: "Leave out what you do not need",

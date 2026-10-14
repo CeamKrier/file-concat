@@ -56,7 +56,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
             EPUB is not among the file types OpenAI names, and a long textbook PDF runs into page and
-            size caps elsewhere. Drop the EPUB or the PDF here: the text is read in your browser and
+            size caps elsewhere. Drop the EPUB or the PDF here. The text is read in your browser and
             comes back as one text file, with its token count, that any assistant reads.
           </p>
 
@@ -223,8 +223,8 @@ function WorkedExample() {
           A whole novel, counted.
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[48ch] text-[15px] leading-relaxed">
-          Project Gutenberg's EPUB of Pride and Prejudice, 558 KB without images, came back as one
-          text file of {BOOK_TOKENS} tokens, estimated, when we ran it on 24 September 2026. That
+          We ran Project Gutenberg's EPUB of Pride and Prejudice, 558 KB without images, on 24
+          September 2026. It came back as one text file of {BOOK_TOKENS} tokens, estimated. That
           fits a 200K window with room left for your questions.
         </p>
       </div>
@@ -278,7 +278,7 @@ const STEPS = [
   },
   {
     title: "It reads the text here",
-    body: "EPUB chapters, a Kindle .mobi or .azw3 without DRM, and the PDF's text layer become plain text in this tab. Your files are not uploaded to us.",
+    body: "EPUB chapters, a Kindle .mobi or .azw3 without DRM, and the PDF's text layer become plain text in your browser. Your files are not uploaded to us.",
   },
   {
     title: "Check the count against your model",

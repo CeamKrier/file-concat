@@ -6,14 +6,14 @@ description: "FileConcat packs the files you pick into one LLM-ready document, a
 # Introduction
 
 FileConcat is a privacy-first tool that packs the files you pick into a
-single LLM-ready bundle. The output is one XML, Markdown, or plain-text document you
+single LLM-ready bundle. The output is one XML, Markdown, or plain-text file you
 can paste into Claude, ChatGPT, Gemini, or any other assistant that
 takes long-form context.
 
 ## What it gives you
 
-- A single page at [fileconcat.com](https://fileconcat.com) for drag,
-  drop, filter, and copy.
+- A single page at [fileconcat.com](https://fileconcat.com) to drop,
+  filter, and copy files.
 - A published npm CLI (`pnpm add -g @fileconcat/cli`, or
   `npx @fileconcat/cli`) for the same flow from a shell.
 - Live token counting against the tokenizer most modern LLMs use, so
@@ -21,28 +21,28 @@ takes long-form context.
   before you paste it.
 - Text extraction from documents: drop a PDF, Word, Excel or PowerPoint
   file, or [any other format it reads](/docs/formats), and its text is
-  pulled out and included automatically, entirely in the browser
-  (your files are not uploaded to us). Audio and video can be transcribed on request.
-- The same for files that are technically text but unreadable as text:
-  a Jupyter notebook arrives as markdown instead of JSON wrapped around
-  base64 plots, an `.srt` or `.vtt` caption track arrives as the
-  transcript instead of a timestamp every two seconds, and a saved `.eml`
+  pulled out and included automatically, in your browser. Your files
+  are not uploaded to us. Audio and video can be transcribed on request.
+- The same for files that are technically text but unreadable as text.
+  A Jupyter notebook arrives as markdown instead of JSON wrapped around
+  base64 plots. An `.srt` or `.vtt` caption track arrives as the
+  transcript instead of a timestamp every two seconds. A saved `.eml`
   message arrives as the correspondence instead of MIME boundaries and
   base64 attachments.
 
 ## How it works
 
-Everything runs in your browser. There is no upload step and no
-intermediate server, so your files are never uploaded to us. Anonymous
-usage analytics do run, and the [privacy page](/privacy) says what
-they see. The core library (`@fileconcat/core`) is the same in the web
-app and the CLI; what differs is the surface you drive it from.
+Your files are not uploaded to us. The whole thing runs in your browser,
+with no upload step and no intermediate server. Anonymous usage
+analytics do run, and the [privacy page](/privacy) says what they see.
+The core library (`@fileconcat/core`) is the same on fileconcat.com and
+in the CLI. What differs is the surface you drive it from.
 
 ## Supported sources
 
 You can feed FileConcat from any of these:
 
-- Local files and folders, by drag-and-drop or file picker
+- Local files and folders, dropped in or chosen with the file picker
 - GitHub repositories, including subdirectories
 - GitHub Gists
 - GitLab repositories, including nested groups

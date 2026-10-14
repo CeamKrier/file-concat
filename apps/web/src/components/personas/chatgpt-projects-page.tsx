@@ -39,7 +39,7 @@ function ChatGptProjectsLanding(dropProps: DropZoneProps) {
 
 const TRUST = [
   "One file fills one Project slot",
-  "PDFs and Office docs read in-browser",
+  "PDFs and Office docs read in your browser",
   "No sign-up, files not uploaded to us",
 ];
 
@@ -60,7 +60,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
             A Project holds {PROJECT_FILE_LIMITS}, checked at the OpenAI help center in{" "}
             {CAPS_CHECKED} and measured. Drop the whole folder here instead. Everything, even the
-            PDFs, is read right in your browser and comes back as one file, so all your documents
+            PDFs, is read in your browser and comes back as one file, so all your documents
             take a single Project slot.
           </p>
 
@@ -192,11 +192,11 @@ function WhereItStops() {
 const STEPS = [
   {
     title: "Drop the whole folder",
-    body: "Drag in every document you want the Project to know about. Subfolders come along, and you can add a repo or a link too.",
+    body: "Drop in every document you want the Project to know about. Subfolders come along, and you can add a repo or a link too.",
   },
   {
     title: "It reads everything here",
-    body: "PDFs, Word, Excel, and notes are turned into text in this tab, with a file tree at the top. Your files are not uploaded to us.",
+    body: "PDFs, Word, Excel, and notes are turned into text in your browser, with a file tree at the top. Your files are not uploaded to us.",
   },
   {
     title: "Add the one file to your Project",
@@ -250,7 +250,7 @@ function WhyOneFile() {
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
           Adding documents one by one runs into the cap and scatters them, so the model sees a loose
           pile with no order. A single file keeps every document together, in order, under a file
-          tree, and leaves the rest of your Project slots free for the work you add later.
+          tree. It leaves the rest of your Project slots free for the work you add later.
         </p>
       </div>
 

@@ -18,7 +18,7 @@ enough to be useful as a unified estimate.
 
 What gets counted is the **whole assembled output**, the same string the
 preview shows and the copy button copies: the XML root or Markdown
-headings, the per-file tags, the header and the file tree, not just the
+headings, the per-file tags, the header and the file tree, not only the
 text of your files. Those wrappers are charged for like everything else.
 Measured across 60 public repositories on 2026-09-07 they are a median
 2.4% of the bundle, and 17.8% on a repository of many small files.
@@ -29,8 +29,8 @@ on and off does not introduce a perceptible delay for typical projects.
 ## Above 1 MB the count is sampled
 
 Running the WASM encoder over a multi-megabyte bundle blocks the main
-thread long enough to feel like the tab has frozen. So above 1 MiB of
-text the count is extrapolated instead of taken: 64 evenly spaced 4 KiB
+thread long enough to feel like the page has frozen. So above 1 MiB of
+text the count is extrapolated instead of taken. 64 evenly spaced 4 KiB
 slices are tokenized for real, and the total is scaled by the ratio
 those slices show. The cost is a flat 256 KiB of tokenizing whatever the
 bundle's size. The constants live in `apps/web/src/lib/tokens-client.ts`
@@ -38,8 +38,8 @@ and the threshold in `apps/web/src/lib/tokens.ts`.
 
 Before 2026-09-07 this path was `Math.ceil(length / 4)`, an
 English-prose ratio applied to every language. On the 30 repositories of
-that 60 repository sample that crossed the threshold it ran a median
-13.5% off and 62.5% off on a repository written in Chinese. Sampling
+that 60 repository sample that crossed the threshold, it ran a median
+13.5% off. On a repository written in Chinese it ran 62.5% off. Sampling
 brings the same 30 to a median 0.8% off and 4.5% at worst, all of them
 within 5% of the true count.
 
@@ -61,8 +61,8 @@ A few facts that make the picker behave the way it does:
 - Models are sorted by release date descending, so the newest
   Claude, GPT, Gemini, and so on appear at the top.
 - The picker shows the **canonical** model (e.g. `claude-sonnet-4-6`)
-  and a `via {provider}` hint for the cheapest priced provider that
-  offers that model on the day of the deploy. If the cheapest provider
+  and a `via {provider}` hint. The hint names the cheapest priced provider
+  that offers that model on the day of the deploy. If the cheapest provider
   changes between deploys, the hint changes; the canonical id stays
   the same so your selection survives.
 - The selected model's identifier is the catalog UID

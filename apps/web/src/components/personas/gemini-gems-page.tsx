@@ -37,7 +37,7 @@ function GeminiGemsLanding(dropProps: DropZoneProps) {
 
 const TRUST = [
   "The whole set takes one slot",
-  "PDFs and Office docs read in-browser",
+  "PDFs and Office docs read in your browser",
   "No sign-up, files not uploaded to us",
 ];
 
@@ -106,8 +106,8 @@ function OneSlot() {
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
           With only a handful of knowledge slots, a Gem forces you to leave documents out. One
-          combined file changes the math: however many documents you started with, the Gem sees them
-          as a single knowledge file, so nothing gets cut and the slots stay free.
+          combined file changes that. However many documents you started with, the Gem sees them as
+          a single knowledge file. Nothing gets cut, and the slots stay free.
         </p>
         <p className="text-go-fg mt-5 inline-flex items-center gap-2 font-mono text-[12.5px]">
           <Sparkles className="text-primary h-4 w-4 shrink-0" strokeWidth={2} />A file tree at the
@@ -215,11 +215,11 @@ function WhereItStops() {
 const STEPS = [
   {
     title: "Drop the whole folder",
-    body: "Drag in every document you want the Gem to know. Subfolders come along, and you can add a repo or a link too.",
+    body: "Drop in every document you want the Gem to know. Subfolders come along, and you can add a repo or a link too.",
   },
   {
     title: "It reads everything here",
-    body: "PDFs, Word, Excel, and notes are turned into text in this tab, with a file tree at the top. Your files are not uploaded to us.",
+    body: "PDFs, Word, Excel, and notes are turned into text in your browser, with a file tree at the top. Your files are not uploaded to us.",
   },
   {
     title: "Add the one file to your Gem",

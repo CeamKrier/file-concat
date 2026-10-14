@@ -21,7 +21,7 @@ export const CHATGPT_CONVERSATION_TOO_LONG_FAQ = [
   },
   {
     q: "Can I move the conversation into a Project instead?",
-    a: "Yes, and on Plus and Pro that is ChatGPT's own route: OpenAI's help center says a moved chat inherits the project's instructions and file context, and that ChatGPT can reference previous chats within a project for Plus and Pro users. A chat created with a GPT cannot be moved into a project. The file works on any plan, in Claude or Gemini too, and stays on your disk.",
+    a: "Yes, and on Plus and Pro that is ChatGPT's own route. OpenAI's help center says a moved chat inherits the project's instructions and file context, and that ChatGPT can reference previous chats within a project for Plus and Pro users. A chat created with a GPT cannot be moved into a project. The file works on any plan, in Claude or Gemini too, and stays on your disk.",
   },
   {
     q: 'What if ChatGPT says "This conversation is too long, please start a new one" and the conversation will not open?',
@@ -33,7 +33,7 @@ export const CHATGPT_CONVERSATION_TOO_LONG_FAQ = [
   },
   {
     q: "Does this work for Claude and Gemini conversations?",
-    a: "Yes. The Clipper offers the same on a Claude conversation page and a Gemini one, and a clipped ChatGPT conversation can be attached to a Claude or Gemini chat as easily as to ChatGPT.",
+    a: "Yes. The Clipper offers the same on a Claude conversation page and a Gemini one. A clipped ChatGPT conversation can be attached to a Claude or Gemini chat as easily as to ChatGPT.",
   },
   {
     q: "Is my conversation uploaded anywhere?",

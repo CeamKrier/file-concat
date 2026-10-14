@@ -232,11 +232,11 @@ function WhyOneFile() {
 const STEPS = [
   {
     title: "Drop the folder or the ZIP",
-    body: "Drag it in or pick it. Subfolders come along, and .zip, .7z, .rar, .tar and .tar.gz are unpacked here.",
+    body: "Drop it in or pick it. Subfolders come along, and .zip, .7z, .rar, .tar and .tar.gz are unpacked here.",
   },
   {
     title: "It reads everything inside",
-    body: "PDFs, Word, Excel, and notes become text in this tab, with the token count shown as it goes. Your files are not uploaded to us.",
+    body: "PDFs, Word, Excel, and notes become text in your browser, with the token count shown as it goes. Your files are not uploaded to us.",
   },
   {
     title: "Upload the one file",

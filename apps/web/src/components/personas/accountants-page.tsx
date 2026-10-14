@@ -38,7 +38,7 @@ function AccountantsLanding(dropProps: DropZoneProps) {
 const TRUST = [
   "Files not uploaded to us",
   "Statements and spreadsheets read as text",
-  "Client data stays on your computer",
+  "No account to create",
 ];
 
 function Hero({ dropProps }: { dropProps: DropZoneProps }) {
@@ -48,7 +48,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <Lock className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs on your computer. Files not uploaded to us.
+            Runs in your browser. Files not uploaded to us.
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
@@ -57,8 +57,8 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
             Drop the folder of statements, invoices, and ledgers. FileConcat reads the PDFs and
-            spreadsheets right here in your browser and gives back one file for ChatGPT, Claude, or
-            Gemini. Preparing it uploads nothing. What you then paste into an assistant is your own choice.
+            spreadsheets in your browser and gives back one file for ChatGPT, Claude, or Gemini.
+            What you then paste into an assistant is your own choice, but preparing the file uploads nothing.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -105,17 +105,17 @@ function Confidentiality() {
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
           Most tools that read a document upload it to a server first. FileConcat does the reading
-          in this browser tab, so the documents are never uploaded to be read, and there is no
+          in your browser, so the documents are never uploaded to be read, and there is no
           account to create.
         </p>
       </div>
 
       <div className="min-w-0">
-        <MockWindow label="acme-fy25, handled locally">
+        <MockWindow label="acme-fy25, read in your browser">
           <ul className="divide-hairline divide-y font-mono text-[12.5px]">
             <li className="flex items-center gap-3 px-4 py-2.5">
               <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
-              <span className="text-ink-secondary min-w-0 flex-1">22 files read in this tab</span>
+              <span className="text-ink-secondary min-w-0 flex-1">22 files read in your browser</span>
             </li>
             <li className="flex items-center gap-3 px-4 py-2.5">
               <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
@@ -146,7 +146,7 @@ const STEPS = [
   },
   {
     title: "Paste into your assistant",
-    body: "Out comes one file, a file tree at the top, ready for ChatGPT, Claude, or Gemini.",
+    body: "Out comes one file with a file tree at the top, ready for ChatGPT, Claude, or Gemini.",
   },
 ];
 

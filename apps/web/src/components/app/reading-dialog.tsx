@@ -349,7 +349,7 @@ function ReadingPanel({
               pass it comes from the browser's cache. */}
           {!isReading && !finished && paths.some((d) => d.speech) && (
             <p className="text-ink-muted w-full text-[12px] leading-relaxed">
-              Speech is transcribed on this device by a model downloaded once:{" "}
+              Speech is transcribed in your browser by a model downloaded once:{" "}
               {locale.toLowerCase().split("-")[0] === "en" ? "66 MB for English" : "244 MB for this language"}.
             </p>
           )}

@@ -44,7 +44,7 @@ const OPENAI_UPLOADS_HELP = "https://help.openai.com/en/articles/8555545-file-up
 
 const TRUST = [
   "A whole folder becomes one upload",
-  "PDFs and Office docs read in-browser",
+  "PDFs and Office docs read in your browser",
   "No sign-up, files not uploaded to us",
 ];
 
@@ -228,11 +228,11 @@ function WhyItRunsOut() {
 const STEPS = [
   {
     title: "Drop the whole folder",
-    body: "Drag in every file you meant to upload. Subfolders come along, and you can add a repo or a link too.",
+    body: "Drop in every file you meant to upload. Subfolders come along, and you can add a repo or a link too.",
   },
   {
     title: "It reads and counts",
-    body: "PDFs, Word, Excel, and notes become text in this tab, and the token count shows whether it fits one upload. Your files are not uploaded to us.",
+    body: "PDFs, Word, Excel, and notes become text in your browser, and the token count shows whether it fits one upload. Your files are not uploaded to us.",
   },
   {
     title: "Upload the one file",

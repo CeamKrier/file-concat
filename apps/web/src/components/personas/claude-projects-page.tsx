@@ -40,7 +40,7 @@ function ClaudeProjectsLanding(dropProps: DropZoneProps) {
 
 const TRUST = [
   "See the token count before you add it",
-  "PDFs and Office docs read in-browser",
+  "PDFs and Office docs read in your browser",
   "No sign-up, files not uploaded to us",
 ];
 
@@ -60,9 +60,9 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
             Claude shows this when a project's files no longer fit. It limits a project by total
-            size, not by file count, so the fix is choosing what to leave out. Drop the folder here:
-            every file and folder shows its size, the token count updates as you take things out,
-            and what remains comes back as one file you know fits.
+            size, not by file count, so the fix is choosing what to leave out. Drop the folder here.
+            Every file and folder shows its size, and the token count updates as you take things
+            out. What remains comes back as one file you know fits.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -115,7 +115,7 @@ function Capacity() {
         </p>
         <p className="text-go-fg mt-5 inline-flex items-center gap-2 font-mono text-[12.5px]">
           <Hash className="text-primary h-4 w-4 shrink-0" strokeWidth={2} />
-          Counted locally, with the same kind of tokenizer the models use
+          Counted in your browser, with the same kind of tokenizer the models use
         </p>
       </div>
 
@@ -253,7 +253,7 @@ function WhereItStops() {
 const STEPS = [
   {
     title: "Drop the whole folder",
-    body: "Drag in every document the project might need. PDFs, Word, Excel, and notes become text in this tab. Your files are not uploaded to us.",
+    body: "Drop in every document the project might need. PDFs, Word, Excel, and notes become text in your browser. Your files are not uploaded to us.",
   },
   {
     title: "Leave out what it does not need",
@@ -305,8 +305,8 @@ function WorkedExample() {
           A full folder, packed and counted.
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[46ch] text-[15px] leading-relaxed">
-          A folder goes in and one document comes out, labeled as documents, with its token count
-          known so you can see it lands in the window. If it does not, leave out a folder and the
+          A folder goes in and one bundle comes out, labeled as documents. Its token count is
+          known, so you can see it lands in the window. If it does not, leave out a folder and the
           count updates.
         </p>
       </div>
@@ -349,8 +349,8 @@ function WorkedExample() {
       <div className="mx-auto mt-10 max-w-[720px]">
         <InfoCard tone="info" icon={FileStack} title="One file, the whole project">
           <p>
-            A single file keeps every document together, in order, under a file tree, so the project
-            reads it as one labeled set and every chat inside the project can draw on the whole
+            A single file keeps every document together, in order, under a file tree. The project
+            reads it as one labeled set, and every chat inside the project can draw on the whole
             thing.
           </p>
         </InfoCard>

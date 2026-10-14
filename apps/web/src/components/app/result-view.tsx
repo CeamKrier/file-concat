@@ -366,7 +366,7 @@ export function ResultView({
         kind: "note",
         icon: ImageIcon,
         title: `${imageCount} ${noun(imageCount)} might be holding text.`,
-        body: "Recognition can read writing off a picture, here in the browser. It is never started for you: a few seconds an image, and only you know whether these are pages or decoration.",
+        body: "Recognition can read writing off a picture, here in your browser. It is never started for you: a few seconds an image, and only you know whether these are pages or decoration.",
         action: { label: "Read them", onClick: onCheckReading },
       });
     } else {
@@ -400,7 +400,7 @@ export function ResultView({
             kind: "note",
             icon: AudioLines,
             title: `${mediaCount} ${noun(mediaCount)} that can be written out.`,
-            body: "The speech, and in a video the text on screen, read here in the browser, never started for you: the first time downloads a speech model (66 MB for English, 244 MB for other languages).",
+            body: "The speech, and in a video the text on screen, can be read here in your browser. It never starts on its own: the first time downloads a speech model (66 MB for English, 244 MB for other languages).",
             action: { label: "Transcribe them", onClick: onCheckReading },
           }
         : {
@@ -491,7 +491,7 @@ export function ResultView({
         count: partialDocuments.length,
         label: "partly read",
         tone: "warn",
-        lead: "The text in the bundle is real, just not all of what the file holds. A model reading the bundle has no way to know that.",
+        lead: "The text in the bundle is real, but not all of what the file holds. A model reading the bundle has no way to know that.",
         items: partialDocuments,
       },
       {
@@ -537,7 +537,7 @@ export function ResultView({
       <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
         <Check className="text-primary h-[17px] w-[17px] shrink-0" strokeWidth={2.8} />
         <h2 className="font-display text-ink text-xl font-semibold tracking-[-0.02em]">
-          Your document is ready
+          Your bundle is ready
         </h2>
         <span className="border-border bg-surface text-ink-muted rounded-chip max-w-full truncate border px-2.5 py-1 font-mono text-[11.5px] sm:ml-auto">
           {sourceLabel}
@@ -1220,7 +1220,7 @@ function ReadingProgress({ progress }: { progress: { done: number; total: number
             <div className="text-ink-muted mt-[3px] text-[13px] leading-[1.55]">
               {/* Speech names where inside the file it is, as one recording can
                   be the whole pass. */}
-              {progress?.note ? `${progress.note}.` : "Recognising the page images, here in the browser."} You
+              {progress?.note ? `${progress.note}.` : "Recognising the page images, here in your browser."} You
               can leave this tab open and come back.
             </div>
           </div>

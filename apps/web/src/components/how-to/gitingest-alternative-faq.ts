@@ -12,7 +12,7 @@
 export const GITINGEST_ALTERNATIVE_FAQ = [
   {
     q: "Is there a gitingest alternative that runs locally?",
-    a: "FileConcat runs in your browser tab: a folder or ZIP is read from your disk, and a public GitHub repository is fetched by your browser straight from GitHub, with nothing to install. gitingest's own command-line tool also runs on your machine, installed with pip.",
+    a: "FileConcat runs in your browser, with nothing to install. A folder or ZIP is read from your disk, and a public GitHub repository is fetched by your browser straight from GitHub. gitingest's own command-line tool also runs on your machine, installed with pip.",
   },
   {
     q: "Is Repomix safe to use?",
@@ -24,14 +24,14 @@ export const GITINGEST_ALTERNATIVE_FAQ = [
   },
   {
     q: "Which one packs the most of my own code?",
-    a: "Over the same 60 public repositories on 2026-09-10, each tool at its defaults, a FileConcat bundle was a median 68.0% source code, against 51.1% for gitingest and 49.6% for Repomix. Tests alone were a median 9.0% of a gitingest bundle and 9.4% of a Repomix one, against 0.7% of ours.",
+    a: "We ran each tool at its defaults over the same 60 public repositories on 2026-09-10. A FileConcat bundle was a median 68.0% source code, against 51.1% for gitingest and 49.6% for Repomix. Tests alone were a median 9.0% of a gitingest bundle and 9.4% of a Repomix one, against 0.7% of ours.",
   },
   {
     q: "Can gitingest or Repomix read PDFs and Word files?",
-    a: "Not at their defaults in our test on 2026-09-10. Given a folder with a PDF, a Word file, a spreadsheet and a slide deck next to the code, Repomix packed the source file only and gitingest named three of the documents without their text. FileConcat carried the text of all four. Both describe themselves as packing a codebase, and a PDF is not code.",
+    a: "Not at their defaults in our test on 2026-09-10. We gave each a folder with a PDF, a Word file, a spreadsheet and a slide deck next to the code. Repomix packed the source file only, and gitingest named three of the documents without their text. FileConcat carried the text of all four. Both describe themselves as packing a codebase, and a PDF is not code.",
   },
   {
     q: "Is my code uploaded to a server?",
-    a: "Not to us. A folder is read in your browser tab, and a public repository is fetched by your browser from GitHub, so that request goes to them. There is no account to create.",
+    a: "Not to us. A folder is read in your browser, and a public repository is fetched by your browser from GitHub, so that request goes to them. There is no account to create.",
   },
 ];

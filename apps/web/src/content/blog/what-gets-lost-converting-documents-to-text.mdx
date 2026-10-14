@@ -27,7 +27,7 @@ kind: "research"
 />
 
 A PDF is not text. Neither is a Word file or a spreadsheet. Something has to walk the container and
-decide what the words were, and that step is where a document quietly stops meaning what it meant.
+decide what the words were. That step is where a document quietly stops meaning what it meant.
 
 <Contents />
 
@@ -57,7 +57,7 @@ and each one is faster than reading the document again.
     },
     {
       check: "Look for your running header repeated inside sentences",
-      why: "A 40-page report can splice 80 lines of furniture through its own prose",
+      why: "A 40-page report can splice 80 lines of headers and footers through its own prose",
     },
     {
       check: "Open a date column",
@@ -81,8 +81,8 @@ Other losses are a reader's choice. We ran every PDF through an independent read
 code with ours. Both read an ordinary
 two-column page correctly. On one whose internal order runs across the gutter, the other reader
 alternated one line from each column, where ours kept the columns apart. On pages with a running
-header and footer it poured every copy into the prose, where ours kept the header once and marked the
-page breaks instead.
+header and footer, it poured every copy into the prose. Ours kept the header once and marked the page
+breaks instead.
 
 That is why swapping libraries on the strength of a published ranking is a gamble. The rankings score
 whole pages and average them, and the largest one leaves headers and footers out of the score. Test
@@ -93,19 +93,19 @@ the page you care about.
 Drop a document and read what comes out before you paste it. Three losses are still open in ours:
 spreadsheet dates arrive as raw serial numbers, a superscript footnote marker lands on its own line
 above the claim, and a scanned page inside an otherwise text document is dropped without a note. In
-the browser, the OCR the tool offers can bring that page back if you accept it.
+your browser, the OCR FileConcat offers can bring that page back if you accept it.
 
 <TryIt
   title="Drop your own documents"
-  hint="Extraction runs in your browser, on your machine. Your files are not uploaded to us."
+  hint="Extraction runs in your browser. Your files are not uploaded to us."
 />
 
 {/* evidence */}
 
 ## What nobody had measured yet
 
-The question this page answers: when a document becomes LLM context, which structures survive, and
-where one does not, is the loss forced by the format or chosen by the reader?
+The question this page answers has two halves. When a document becomes LLM context, which structures
+survive? And where one does not, is the loss forced by the format or chosen by the reader?
 
 The second half is what makes the first half actionable. A structure that every reader loses is a
 property of the file format, and no amount of library shopping will get it back. A structure that
@@ -151,12 +151,12 @@ Two things are missing from all of it.
 
 **Nothing isolates a structure.** These studies score whole real pages, so a merged cell, a running
 header and a two-column layout all land in one edit-distance number. When that number moves you cannot
-say what moved it. Our corpus goes the other way: one file, one structure, one predicate.
+say what moved it. Our corpus goes the other way: one file, one structure, one check.
 
-**The largest benchmark excludes the furniture.** OmniDocBench states its ignore rule plainly: headers,
+**The largest benchmark excludes headers and footers.** OmniDocBench states its ignore rule plainly: headers,
 footers, page numbers and page footnotes "participate in matching but are excluded from metric
 calculations", because tools handle them inconsistently. Captions are excluded for the same reason. That
-is a fair choice for ranking parsers against each other, and it means the benchmark is silent on a
+is a fair choice for ranking parsers against each other. It also means the benchmark is silent on a
 structure we measured doing real damage. A 40-page report that interleaves its running header into every
 page seam is not a small scoring artifact to the model reading it.
 
@@ -181,7 +181,7 @@ Twenty-seven documents, twelve formats, each file written to isolate one structu
 
 **Every fixture is generated**, written with the `docx`, `exceljs`, `pptxgenjs` and `pdfkit` libraries
 plus PIL for the scanned pages. No real corpus was available, and a real one could not be published
-anyway: the directory is gitignored precisely because a document dropped there is somebody's. What is
+anyway. The directory is gitignored precisely because a document dropped there is somebody's. What is
 published is the generator and this measurement, not the files.
 
 That is the sample's main weakness and it is not a small one. A merged cell written by the `docx`
@@ -197,7 +197,7 @@ Every file goes through the path the product uses. Nothing here reimplements ext
 
 <Method
   dataset="27 generated documents across 12 formats, each isolating one document structure"
-  sample="22,789 characters extracted, 27 of 27 routed correctly, 17 predicates evaluated"
+  sample="22,789 characters extracted, 27 of 27 routed correctly, 17 checks evaluated"
   measured="2026-09-07"
   build="@fileconcat/core 2.0.0 at 3b73d78, Node path"
   tokenizer="Not applicable. Recovered text, not tokens."
@@ -215,25 +215,25 @@ Every file goes through the path the product uses. Nothing here reimplements ext
     The router names a parser and the registry runs it. This is the same registry the CLI uses, so the
     text measured here is the text a bundle would carry.
   </Step>
-  <Step title="Score each structure as a predicate">
+  <Step title="Score each structure as a check">
     Every defect from the earlier reading is written as a test over the extracted text. A rerun reports
     FIXED or STILL BROKEN. Nobody re-reads a paragraph and decides.
   </Step>
   <Step title="Read the PDFs again with an unrelated library">
     The same bytes go through pypdf 6.14.2, which shares no code with our stack. Running the same
-    predicate against both outputs is what turns a defect into an attribution.
+    check against both outputs is what turns a defect into an attribution.
   </Step>
 </Steps>
 
 Two details in that fourth step matter more than they look.
 
-**A predicate that hunts for a defect can pass for the wrong reason.** If a check looks for the broken
-output and the corpus is regenerated with different wording, the check finds nothing and reports FIXED
-while nothing was fixed. Every such check therefore carries an anchor: text the fixture must produce for
+**A check that hunts for a defect can pass for the wrong reason.** Suppose a check looks for the broken
+output and the corpus is regenerated with different wording. The check then finds nothing and reports
+FIXED while nothing was fixed. Every such check therefore carries an anchor: text the fixture must produce for
 the check to mean anything. A missing anchor reports SIGNAL ABSENT and is never counted as a pass.
 
-**A predicate written for our output shape does not transfer.** Our reader renders a recovered table with
-pipes. No other library does, so running that predicate against pypdf would score output formatting
+**A check written for our output shape does not transfer.** Our reader renders a recovered table with
+pipes. No other library does, so running that check against pypdf would score output formatting
 rather than whether data survived. That check is marked not compared, and the honest consequence is that
 the table finding below has no attribution.
 
@@ -248,8 +248,8 @@ password protected, which is something a person can act on, instead of disappear
 parse error. The fully scanned PDF has no text layer at all, so on this path it yields nothing.
 
 <Callout type="note" title="The scan result here is a floor">
-  This measurement runs under Node. In the browser the app renders pages it could not decode and runs
-  the OCR it already ships, so a scanned PDF that yields nothing here is recovered there. That
+  This measurement runs under Node. In the browser, FileConcat renders pages it could not decode and
+  runs the OCR it already ships. So a scanned PDF that yields nothing here is recovered there. That
   recovery is offered, never automatic.
 </Callout>
 
@@ -310,7 +310,7 @@ against the current build:
 />
 
 `docx-3.2` carries the generated-file caveat: Word's merge XML differs slightly from what the `docx`
-library emits, so that one is worth re-checking against a file Word wrote.
+library emits. That one is worth re-checking against a file Word wrote.
 
 `docx-3.1` is listed apart from the rest on purpose. It is a standing guard, not a defect that got
 fixed, and folding it into the headline would inflate the count by one. A tracked deletion has never
@@ -318,7 +318,7 @@ reached a bundle, and the check exists so that stays true.
 
 ### Where the loss belongs
 
-Four PDF findings have predicates that read only the text, so they can be run against both readers on
+Four PDF findings have checks that read only the text, so they can be run against both readers on
 identical bytes. This is the part no benchmark reports.
 
 <ReaderDuel
@@ -347,21 +347,21 @@ identical bytes. This is the part no benchmark reports.
       structure: "Superscript footnote marker",
       a: { text: "loses", kind: "lost" },
       b: { text: "not attributable", kind: "absent", note: "its own output was corrupt" },
-      verdict: "Neither reader can be credited here, so the harness scores nothing rather than a false pass.",
+      verdict: "Neither reader can be credited here, so the measurement scores nothing rather than a false pass.",
     },
   ]}
 />
 
-The third row is the practical one. On three pages of prose with a running header and a `Page n of 3`
-footer, pypdf pours the header into the text three times and the footer three times. Ours emits the
-header once and no footers, and marks the page boundaries instead. On a 40-page report that is the
-difference between 80 lines of furniture spliced through your sentences and none.
+The third row is the practical one. The test file is three pages of prose with a running header and a
+`Page n of 3` footer. pypdf pours the header into the text three times and the footer three times. Ours
+emits the header once and no footers, and marks the page boundaries instead. On a 40-page report that is
+the difference between 80 lines of headers and footers spliced through your sentences and none.
 
 ### The experiment that separates a column model from luck
 
 Reading order on a two-column page is the classic extraction failure, and it is usually reported as a
 single pass or fail. That is not enough to tell a reader that understands columns from one that got
-lucky, because a PDF's content stream often happens to be written column by column already.
+lucky. A PDF's content stream often happens to be written column by column already.
 
 So the corpus contains the same visual layout twice. One file writes the content stream column by
 column. The other writes it line by line **across the gutter**, which is what a reader following the
@@ -409,8 +409,8 @@ Right column line 6 of eighteen.`,
     },
   ]}
 >
-  Both panes are the same lines of text. Colour is the only difference marked: on the left the blue
-  block starts once and runs to the end, on the right blue appears on every other line. Reading order
+  Both panes are the same lines of text. Colour is the only difference marked. On the left the blue
+  block starts once and runs to the end. On the right, blue appears on every other line. Reading order
   is the finding.
 </PaneDiff>
 
@@ -428,7 +428,7 @@ On the typography fixture, pypdf's character mapping breaks against the embedded
 reads `Claim needin' support`, with letters substituted for punctuation throughout. Our reader recovers
 that page's ligatures, curly quotes, en dash and accented characters intact.
 
-A comparison against a reference whose own text is corrupted proves nothing, so the harness says so
+A comparison against a reference whose own text is corrupted proves nothing, so the measurement says so
 instead of scoring a false pass. Most extraction comparisons do not make that distinction, and it is
 the difference between "we fixed it" and "we cannot see it from here".
 
@@ -440,16 +440,16 @@ defect here.
 
 **A superscript footnote marker sorts above the line it annotates.** Lines are ordered by vertical
 position and a superscript sits a few points higher, so the marker lands on its own line before the
-claim. Minor next to the others, and the same root cause the column work addressed.
+claim. It is minor next to the others, and has the same root cause the column work addressed.
 
-**A page with no text layer disappears without a note.** A document whose page one carries real text and
-whose page two is a raster image extracts page one, marks the page boundary, and says nothing about the
-rest. The document is not empty, so it never reaches the "no extractable text" path.
+**A page with no text layer disappears without a note.** Take a document whose page one carries real text
+and whose page two is a raster image. It extracts page one, marks the page boundary, and says nothing
+about the rest. The document is not empty, so it never reaches the "no extractable text" path.
 
 That last one is worth being precise about, because it is the only finding here where our own layers
 disagree. The silence is in the shared engine: a note is raised for a page that failed to **load**,
 never for one that loaded carrying no text. The browser's OCR can recover the missing page, and only if
-the reader accepts it. We are not promising a fix date; emitting the note needs page-level text
+the reader accepts it. We are not promising a fix date. Emitting the note needs page-level text
 accounting the underlying library does not currently expose.
 
 ## Limitations
@@ -462,7 +462,7 @@ accounting the underlying library does not currently expose.
 - **The independent reader covers PDF only.** pypdf reads PDFs. The docx, xlsx, pptx and rtf findings
   therefore have no attribution column at all, and could be format limits or our own choices. We do not
   know which, and say so rather than guessing.
-- **One comparison is unattributable even within PDF.** The table finding's predicate reads our own pipe
+- **One comparison is unattributable even within PDF.** The table finding's check reads our own pipe
   rendering, which no other library emits.
 - **This is the Node path.** The browser adds an OCR layer that recovers scanned pages when the reader
   accepts it. Scan results here are floors.
@@ -491,7 +491,7 @@ attribution column. Run it without the pypdf step and the comparison column repo
 than assuming anything. How the same extraction behaves in day-to-day use, including what a parse
 failure does to a run, is in the [CLI usage docs](/docs/cli-usage).
 
-One number here cannot be reproduced from the current build, and it is named where it appears: the
+One number here cannot be reproduced from the current build, and it is named where it appears. The
 defect states as they stood in August describe builds that no longer exist. What the command reproduces
 is the right-hand column, which is the claim this page makes.
 
@@ -499,25 +499,25 @@ is the right-hand column, which is the claim this page makes.
 
 ### What gets lost when you convert a PDF to text?
 
-Structure, mostly. Text in a PDF is positioned glyphs with no notion of a column, a cell or a heading, so
-a reader has to infer all of it. In our measurement the recoverable-but-commonly-lost structures were
+Structure, mostly. Text in a PDF is positioned glyphs with no notion of a column, a cell or a heading.
+A reader has to infer all of it. In our measurement the recoverable-but-commonly-lost structures were
 column reading order, table cell positions, running headers and footers, and footnote attachment. The
 words themselves usually survive; what they belonged to often does not.
 
 ### Is a document extraction failure the library's fault or the format's?
 
 Both happen, and you cannot tell without a second reader. On identical bytes, our reader and pypdf both
-read a naturally ordered two-column page correctly, but only ours read a page whose content stream was
+read a naturally ordered two-column page correctly. Only ours read a page whose content stream was
 written across the gutter. That is a library difference. A table's cell boundaries, by contrast, do not
 exist anywhere in a PDF, so no reader can recover them reliably.
 
 ### Should I just upload the PDF to the model instead?
 
 Sometimes. Anthropic's documentation says each page is converted to an image and its text extracted, and
-both are sent, which is why charts and diagrams can be asked about. It costs more: their Bedrock
+both are sent. That is why charts and diagrams can be asked about. It costs more: their Bedrock
 documentation puts text-only extraction at roughly 1,000 tokens for a three-page PDF against roughly
 7,000 for the full visual mode. Encrypted PDFs are rejected outright. Extracting to text first is
-cheaper and lets you see exactly what the model will see, which is the point of checking the furniture.
+cheaper and lets you see exactly what the model will see, which is the point of checking the headers and footers.
 
 ### Why do my spreadsheet dates come out as numbers?
 
@@ -528,8 +528,8 @@ in this measurement that has been open longest.
 ### Does a scanned PDF work?
 
 In the browser, yes: pages with no text layer are rendered and read with OCR that runs on your machine,
-offered rather than automatic. In the CLI, no. And a document that is only partly scanned currently
-loses its image-only pages with no note in either, which is one of the three open defects above.
+offered rather than automatic. In the CLI, no. A document that is only partly scanned currently loses
+its image-only pages with no note in either. That is one of the three open defects above.
 
 ### How do I check whether my document survived extraction?
 

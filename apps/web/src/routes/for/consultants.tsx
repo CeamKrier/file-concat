@@ -21,7 +21,7 @@ export const Route = createFileRoute("/for/consultants")({
       ...generateSEOMeta({
         title: "Turn a whole engagement into one AI context",
         description:
-          "Drop the decks, reports, and data from a whole engagement. Slides, PDFs, and spreadsheets are read in your browser, never uploaded, into one file.",
+          "Drop the decks, reports, and data from a whole engagement. Slides, PDFs, and spreadsheets are read in your browser and packed into one file. Not uploaded to us.",
         url: "https://fileconcat.com/for/consultants",
       }),
       {

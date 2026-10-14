@@ -10,7 +10,7 @@ export const Route = createFileRoute("/for/legal")({
       ...generateSEOMeta({
         title: "Bundle a case file for AI, privately",
         description:
-          "Drop a folder of contracts, filings, and rulings. The PDFs and Word files are read in your browser, never uploaded, and packed into one document.",
+          "Drop a folder of contracts, filings, and rulings. The PDFs and Word files are read in your browser and packed into one file. Not uploaded to us.",
         url: "https://fileconcat.com/for/legal",
       }),
       {

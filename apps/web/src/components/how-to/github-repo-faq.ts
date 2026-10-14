@@ -26,11 +26,11 @@ const num = (v: number) => Math.round(v).toLocaleString("en-US");
 export const GITHUB_REPO_FAQ = [
   {
     q: "How do I convert a GitHub repo to a text file?",
-    a: "Paste the repository URL at the top of this page and press Fetch. Your browser downloads the files straight from GitHub, leaves out lock files, dependencies, build output and test files by default, and hands back one text file with the file tree at the top and every file under its path. Copy it or download it.",
+    a: "Paste the repository URL at the top of this page and press Fetch. Your browser downloads the files straight from GitHub. Lock files, dependencies, build output and test files are left out by default. You get back one text file with the file tree at the top and every file under its path. Copy it or download it.",
   },
   {
     q: "How many tokens is a GitHub repository?",
-    a: `It varies more than any average suggests. We bundled ${REPO_SAMPLE.count} public repositories in 10 languages on 2026-09-11: the median came to ${num(REPO_SAMPLE.median)} tokens, ${REPO_SAMPLE.fits(128_000)} of ${REPO_SAMPLE.count} fit a 128K context window, and the largest reached ${num(REPO_SAMPLE.largest)}. FileConcat counts yours before you paste it.`,
+    a: `It varies more than any average suggests. We bundled ${REPO_SAMPLE.count} public repositories in 10 languages on 2026-09-11. The median came to ${num(REPO_SAMPLE.median)} tokens, ${REPO_SAMPLE.fits(128_000)} of ${REPO_SAMPLE.count} fit a 128K context window, and the largest reached ${num(REPO_SAMPLE.largest)}. FileConcat counts yours before you paste it.`,
   },
   {
     q: "Can I convert a private repository?",
@@ -46,14 +46,14 @@ export const GITHUB_REPO_FAQ = [
   },
   {
     q: "Markdown or XML for a codebase?",
-    a: "FileConcat writes XML, Markdown or plain text, switched under the preview. Across five real codebases the switch changed the total by 0.24% to 1.13% of tokens (our measurement, August 2026), so use the one your prompt already uses.",
+    a: "FileConcat writes XML, Markdown or plain text, switched under the preview. Across five real codebases the switch changed the total by 0.24% to 1.13% of tokens (our measurement, August 2026). Use the one your prompt already uses.",
   },
   {
     q: "Does a large repository work?",
-    a: "Yes. When GitHub's file listing for a repository comes back incomplete, FileConcat downloads the whole repository as one archive instead and unpacks it in your browser. Without an account, GitHub limits how often one address can call its API, so many imports in a short time can be refused; the message says when to try again.",
+    a: "Yes. When GitHub's file listing for a repository comes back incomplete, FileConcat downloads the whole repository as one archive instead and unpacks it in your browser. Without an account, GitHub limits how often one address can call its API. Many imports in a short time can be refused, and the message says when to try again.",
   },
   {
     q: "Is my code uploaded to a server?",
-    a: "Not to us. Your browser fetches the files directly from GitHub, so that request goes to them, and the bundle is built in your tab. There is no account to create.",
+    a: "Not to us. Your browser fetches the files directly from GitHub, so that request goes to them, and the bundle is built in your browser. There is no account to create.",
   },
 ];

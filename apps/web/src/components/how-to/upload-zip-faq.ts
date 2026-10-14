@@ -17,7 +17,7 @@
 export const UPLOAD_ZIP_FAQ = [
   {
     q: "Can I upload a ZIP file to ChatGPT?",
-    a: "Yes, the upload goes through. Reading it is a separate step: ChatGPT's file-analysis tools have to unpack the archive before it sees any file inside. ZIP is not on OpenAI's list of supported file types, and OpenAI's support team wrote on its community forum in September 2026 that the file-analysis tools may not be able to unpack or inspect the archive even when the upload appears to succeed.",
+    a: "Yes, the upload goes through. Reading it is a separate step: ChatGPT's file-analysis tools have to unpack the archive before it sees any file inside. ZIP is not on OpenAI's list of supported file types. OpenAI's support team wrote on its community forum in September 2026 that the file-analysis tools may not be able to unpack or inspect the archive, even when the upload appears to succeed.",
   },
   {
     q: "Why does ChatGPT say it can't open my ZIP?",
@@ -29,11 +29,11 @@ export const UPLOAD_ZIP_FAQ = [
   },
   {
     q: "Can Claude read ZIP files?",
-    a: "ZIP is not on the list of document types Anthropic says Claude works with (PDF, DOCX, CSV, TXT, HTML, ODT, RTF, EPUB and JSON), and its help pages say nothing about archives. A chat also takes at most 20 files, and 59 of the 60 repositories we measured held more than that. One combined TXT file is on the list and takes one of the 20.",
+    a: "ZIP is not on the list of document types Anthropic says Claude works with (PDF, DOCX, CSV, TXT, HTML, ODT, RTF, EPUB and JSON). Its help pages say nothing about archives. A chat also takes at most 20 files, and 59 of the 60 repositories we measured held more than that. One combined TXT file is on the list and takes one of the 20.",
   },
   {
     q: "Can Gemini read ZIP files?",
-    a: "Yes, Google lists ZIP as supported, with limits: a ZIP can contain up to 10 files, can be up to 100 MB and can't include video or audio. Every one of the 60 repositories we measured held more than 10 files, the median 183. For code, Gemini's Import Code takes one folder or GitHub repository of up to 5,000 files instead; for documents, a combined text file carries everything in one.",
+    a: "Yes, Google lists ZIP as supported, with limits: a ZIP can contain up to 10 files, can be up to 100 MB and can't include video or audio. Every one of the 60 repositories we measured held more than 10 files, the median 183. For code, Gemini's Import Code takes one folder or GitHub repository of up to 5,000 files instead. For documents, a combined text file carries everything in one.",
   },
   {
     q: "Which archives does FileConcat open?",
@@ -41,6 +41,6 @@ export const UPLOAD_ZIP_FAQ = [
   },
   {
     q: "Are my files uploaded to a server?",
-    a: "Not to us. FileConcat unpacks the archive in your browser tab, and there is no account to create. The only upload is the one combined file you choose to send to ChatGPT.",
+    a: "Not to us. FileConcat unpacks the archive in your browser, and there is no account to create. The only upload is the one combined file you choose to send to ChatGPT.",
   },
 ];

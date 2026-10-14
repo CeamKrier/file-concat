@@ -33,11 +33,11 @@ whitelist when you use it.
 ## Hidden files
 
 A file whose own name starts with a dot (`.gitignore`, `.editorconfig`,
-`.env`) is held back before any pattern runs and shows dimmed in the
+`.env`) is held back before any pattern runs. It shows dimmed in the
 tree with the reason "Hidden file"; tick it to include it. A directory
 that starts with a dot is not held back here: `.github/workflows/ci.yml`
 comes through unless a pattern names it. The CLI walks differently and
-skips everything under a dot directory as well; see
+skips everything under a dot directory as well. See
 [CLI usage](/docs/cli-usage) for the config key that turns that off.
 
 ## Pattern semantics
@@ -48,7 +48,7 @@ every case:
 
 - **A bare directory or filename pattern matches anywhere in the path.**
   Typing `node_modules` matches `apps/web/node_modules/react/index.js`,
-  not just a top-level `node_modules` directory. The same goes for
+  not only a top-level `node_modules` directory. The same goes for
   `*.log`, which matches every `.log` file at any depth.
 - **A slashed pattern matches the full path or any suffix obtained by
   stripping leading directories.** Typing `src/**/*.ts` matches both
@@ -85,7 +85,7 @@ file stays included.
 The drawer's file list is headed with a live count of how many files
 are going into the output. Auto-skipped noise (binaries, oversize
 files, and anything your patterns exclude) stays visible but dimmed, so
-you can see what was dropped and re-check it by hand.
+you can see what was left out and re-check it by hand.
 
 ## See also
 

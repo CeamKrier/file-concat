@@ -22,15 +22,15 @@ https://gitlab.com/owner/repo/-/tree/branch/subdirectory
 ```
 
 GitLab supports nested groups, which means the "owner" segment can
-itself be a path of group and subgroup names. The adapter handles up
-to any depth of nesting before the `-/tree/...` marker. A trailing
+itself be a path of group and subgroup names. The adapter handles
+any depth of nesting before the `-/tree/...` marker. A trailing
 `.git` is tolerated and stripped.
 
 When a branch is omitted, the project's default branch is read from the
-project API. If that lookup fails the adapter falls back to `main`
-rather than giving up, so a project whose default branch is `master`
-and whose metadata request was rate limited reports a missing branch
-rather than a rate limit. Put the branch in the URL to skip the lookup
+project API. If that lookup fails, the adapter falls back to `main`
+rather than giving up. So a project whose default branch is `master`
+and whose metadata request was rate limited reports a missing branch,
+not a rate limit. Put the branch in the URL to skip the lookup
 entirely.
 
 When a subdirectory is included, only files at or under that path are
@@ -60,23 +60,23 @@ call.
 GitLab.com documents 500 requests each minute for unauthenticated
 traffic from an IP address, and the same 500 each minute for repository
 files (GitLab, *GitLab.com settings*, read September 2026). That is a
-per-minute ceiling rather than a small hourly total, so what limits a
+per-minute ceiling rather than a small hourly total. What limits a
 large project here is how fast the requests go out, not how many files
 it has.
 
 When a request is denied, the import panel surfaces a message produced
 by `classifyResponseError`
-(`packages/core/src/sources/adapters/_errors.ts`); status 401, 403 and
+(`packages/core/src/sources/adapters/_errors.ts`). Status 401, 403 and
 429 each carry distinct wording. A 429 whose `Retry-After` hint fits
 inside 30 seconds is retried once automatically.
 
 A file that fails to download does not fail the import. The failure is
-recorded with its path and reason and the rest of the bundle is
-assembled without it, so check the file count in the result against
+recorded with its path and reason, and the rest of the bundle is
+assembled without it. Check the file count in the result against
 what you expected.
 
 Public repositories work without authentication. Private repositories
-are not accessible at the time of writing; token-authenticated
+are not accessible at the time of writing. Token-authenticated
 imports are tracked as separate work.
 
 ## Snippets

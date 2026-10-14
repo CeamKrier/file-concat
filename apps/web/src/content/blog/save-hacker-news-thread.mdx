@@ -9,22 +9,22 @@ draft: false
 <Tldr
   items={[
     "FileConcat Clipper, a free Chrome side panel, reads a Hacker News thread through the Algolia API: the whole comment tree in one request, nothing to expand first.",
-    "Clip this thread, Peek to read it back, Send to fileconcat.com, where it becomes one Markdown document with a live token count.",
+    "Clip this thread, Peek to read it back, Send to fileconcat.com, where it becomes one Markdown bundle with a live token count.",
     "Depth costs nothing. A 638-comment thread came back as 264,851 characters, eight levels deep, none of it on screen when the button was pressed.",
   ]}
 />
 
-Hacker News threads are dense in a specific way: the correction that matters is usually
-four levels down, under a comment that is collapsed, in a subtree nobody scrolled to. The
-value is in the whole tree, and the whole tree is exactly what you cannot see.
+Hacker News threads are dense in a specific way. The correction that matters is usually
+four levels down, under a collapsed comment, in a subtree nobody scrolled to. The value is
+in the whole tree, and the whole tree is what you cannot see.
 
 If you want to ask a model what the thread concluded, you have to hand it the
 thread, not the top of it.
 
 ## The page is not the discussion
 
-Open a 600-comment thread and the page gives you the ones it decided to render, with
-[more] links standing in for the rest and collapse toggles hiding subtrees. Select all,
+Open a 600-comment thread and the page gives you the ones it decided to render. [more]
+links stand in for the rest, and collapse toggles hide subtrees. Select all,
 copy, paste, and you have captured the state of a user interface rather than the content
 of a discussion.
 
@@ -42,7 +42,7 @@ it goes to `hn.algolia.com/api/v1/items/<id>`, which returns the entire comment 
 one request: no authentication, no paging, and nothing to expand first.
 
 That means depth costs nothing. Measured on 2026-08-19 against a 638-comment thread, one
-clipping came back with 264,851 characters nested eight levels deep, none of which was on
+clipping came back with 264,851 characters nested eight levels deep. None of it was on
 screen when the button was pressed.
 
 <Steps>
@@ -51,12 +51,12 @@ screen when the button was pressed.
     Nothing needs expanding first, and there is no setting to get right.
   </Step>
   <Step title="Check it if you want to">
-    **Peek** reads the Markdown back inside the panel before you send it, which is where a
-    wrong page or a read that stopped early shows up while it is still cheap to fix.
+    **Peek** reads the Markdown back inside the panel before you send it. A wrong page or a
+    read that stopped early shows up there, while it is still cheap to fix.
   </Step>
   <Step title="Send it to the bundler">
     **Send** pushes the clipping into an open [fileconcat.com](/) tab, opening one if there
-    is none, where it becomes one document with a live token count.
+    is none, where it becomes one bundle with a live token count.
   </Step>
 </Steps>
 
@@ -73,15 +73,15 @@ A quarter of a million characters is roughly 65,000 tokens, which is a real port
 context window spent on one thread. That is the correct trade when the thread is the
 subject, and the wrong one when it is background.
 
-The bundler is where you find that out rather than guessing: it counts the tokens for
+The bundler is where you find that out rather than guessing. It counts the tokens for
 every major model as the bundle grows, so you know what the discussion costs before you
 paste it. If it is too much, take the linked article instead and keep the thread for a
 follow-up question.
 
 <Callout type="warn" title="A snapshot, not a feed">
   A clipping is the thread as it stood when you took it. Hacker News threads keep growing
-  for a day or two after they peak, so a thread clipped early is a different document from
-  the same thread clipped tomorrow. Re-clipping and sending again replaces the old file in
+  for a day or two after they peak. A thread clipped early is a different file from the
+  same thread clipped tomorrow. Re-clipping and sending again replaces the old file in
   place rather than adding a second copy.
 </Callout>
 
@@ -93,8 +93,8 @@ open tabs becomes a set of files.
 
 The more useful pattern is mixing sources. A Hacker News thread is usually about
 something: a blog post, a repository, a specification. The clipper reads articles anywhere
-with no per-site code, so the post and the argument about it can go into the same bundle,
-and the repository can go in under it from the bundler itself. A send extends the bundle
+with no per-site code, so the post and the argument about it can go into the same bundle.
+The repository can go in under it from the bundler itself. A send extends the bundle
 rather than replacing it, so the order you collect things in does not matter.
 
 That is the question worth asking a model: not what this thread says, but where the thread

@@ -37,7 +37,7 @@ function HrLanding(dropProps: DropZoneProps) {
 const TRUST = [
   "Files not uploaded to us",
   "PDFs and Word files read as text",
-  "Employee data stays on your computer",
+  "No account to create",
 ];
 
 function Hero({ dropProps }: { dropProps: DropZoneProps }) {
@@ -47,7 +47,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
         <div className="min-w-0">
           <span className="text-go-fg rounded-pill inline-flex items-center gap-2 border border-[oklch(var(--primary)/0.25)] bg-[oklch(var(--primary)/0.08)] px-3 py-1 font-mono text-[11px]">
             <Lock className="text-primary h-3 w-3" strokeWidth={2.5} />
-            Runs on your computer. Files not uploaded to us.
+            Runs in your browser. Files not uploaded to us.
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
@@ -56,8 +56,8 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
             Drop the folder of policies, handbooks, and records, or a batch of CVs. FileConcat reads
-            the PDFs and Word files right here in your browser and returns one file for ChatGPT,
-            Claude, or Gemini. Preparing it uploads nothing. What you then paste into an assistant is your own choice.
+            the PDFs and Word files in your browser and returns one file for ChatGPT, Claude, or
+            Gemini. What you then paste into an assistant is your own choice, but preparing the file uploads nothing.
           </p>
 
           <ul className="mt-6 space-y-2">
@@ -101,21 +101,21 @@ function Confidentiality() {
           id="hr-confidential"
           className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          Your people's data isn't uploaded.
+          Your people's data isn't uploaded to us.
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
           HR files are full of personal data, and most tools that read a document upload it to a
-          server first. FileConcat does the reading in this browser tab, so the files are never
+          server first. FileConcat does the reading in your browser, so the files are never
           uploaded to be read, and there is no account to create.
         </p>
       </div>
 
       <div className="min-w-0">
-        <MockWindow label="q3-hiring, handled locally">
+        <MockWindow label="q3-hiring, read in your browser">
           <ul className="divide-hairline divide-y font-mono text-[12.5px]">
             <li className="flex items-center gap-3 px-4 py-2.5">
               <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
-              <span className="text-ink-secondary min-w-0 flex-1">28 CVs read in this tab</span>
+              <span className="text-ink-secondary min-w-0 flex-1">28 CVs read in your browser</span>
             </li>
             <li className="flex items-center gap-3 px-4 py-2.5">
               <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
@@ -139,12 +139,12 @@ const CASES = [
   {
     icon: FileStack,
     title: "A policy set as one reference",
-    body: "Combine the handbook, the policies, and the forms into one file, then hand it to a Project or a Gem so it answers staff questions from the whole set at once.",
+    body: "Combine the handbook, the policies, and the forms into one file. Hand it to a Project or a Gem, so it answers staff questions from the whole set at once.",
   },
   {
     icon: Users,
     title: "A batch of CVs in one pass",
-    body: "Combine a folder of CVs into one file and screen the whole batch against a role in a single prompt, instead of pasting one candidate at a time.",
+    body: "Combine a folder of CVs into one file. Screen the whole batch against a role in a single prompt, instead of pasting one candidate at a time.",
   },
 ];
 
@@ -159,8 +159,8 @@ function UseCases() {
           Two ways HR teams reach for it.
         </h2>
         <p className="text-ink-secondary mt-4 max-w-[48ch] text-[15px] leading-relaxed">
-          Whether the goal is answering from a policy set or working through a stack of
-          applications, the move is the same: many documents into one file the assistant can take in
+          The goal may be answering from a policy set or working through a stack of applications.
+          Either way the move is the same: many documents into one file the assistant can take in
           at once.
         </p>
       </div>
@@ -183,7 +183,7 @@ const STEPS = [
   },
   {
     title: "It reads everything here",
-    body: "PDFs and Word files are turned into text in this tab, with a file tree at the top. Your files are not uploaded to us.",
+    body: "PDFs and Word files are turned into text in your browser, with a file tree at the top. Your files are not uploaded to us.",
   },
   {
     title: "Paste into your assistant",
