@@ -174,7 +174,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["html", "htm"],
     formats: ["html"],
     how: "auto",
-    gives: "The article as markdown, a formula as its TeX source.",
+    gives: "The article as markdown, a formula as its TeX source, and a form field as the value it shows.",
     loses: "Menus, ads, text the page hides and everything else outside the article. HTML source code stays code.",
   },
   {

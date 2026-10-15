@@ -37,6 +37,46 @@ export function dropHidden(root: Element): number {
   return dropped;
 }
 
+/** Inputs that draw the text they hold. A password field draws dots, and its value stays out. */
+const TEXT_INPUTS = new Set(["", "text", "search", "email", "url", "tel", "number", "date", "datetime-local", "month", "week", "time"]);
+
+/**
+ * Each form control in `root` as the text it draws: a text field's value, a
+ * closed list's selected option, a list box's rows, a text area's text.
+ * Readability removes every control, and Turndown writes an option list as
+ * one run of words. A form becomes a plain box, so the text around its
+ * controls stays. An `iframe` with its document inline (`srcdoc`) draws that
+ * document, which becomes its content here, first, so its controls are
+ * written the same way.
+ */
+export function drawnControls(root: Element): void {
+  const doc = root.ownerDocument;
+  const text = (control: Node, value: string) => control.parentNode?.replaceChild(doc.createTextNode(value ? ` ${value} ` : ""), control);
+  for (const frame of root.querySelectorAll("iframe[srcdoc]")) {
+    const inner = new DOMParser().parseFromString(frame.getAttribute("srcdoc") ?? "", "text/html").body;
+    const box = doc.createElement("div");
+    for (const node of Array.from(inner.childNodes)) box.appendChild(doc.importNode(node, true));
+    frame.replaceWith(box);
+  }
+  for (const input of root.querySelectorAll("input")) {
+    if (TEXT_INPUTS.has((input.getAttribute("type") ?? "").toLowerCase())) text(input, input.getAttribute("value")?.trim() ?? "");
+  }
+  for (const select of root.querySelectorAll("select")) {
+    // A list box shows its rows; a closed list, the default, its selected one.
+    const options = Array.from(select.querySelectorAll("option"));
+    const shown = select.multiple || select.size > 1 ? options : [select.querySelector("option[selected]") ?? options[0]];
+    text(select, shown.map((option) => option?.textContent?.trim()).filter(Boolean).join(", "));
+  }
+  for (const area of root.querySelectorAll("textarea")) text(area, area.textContent?.trim() ?? "");
+  // With its controls written out a form is a box of text, and Readability,
+  // which drops a form whole when it scores low, now weighs it as one.
+  for (const form of root.querySelectorAll("form")) {
+    const box = doc.createElement("div");
+    for (const node of Array.from(form.childNodes)) box.appendChild(node);
+    form.replaceWith(box);
+  }
+}
+
 /**
  * HTML to Markdown for the readers that hold a DOM: saved web pages and
  * ebooks. The options and the link rule are the clipper's (`apps/extension/
@@ -81,10 +121,14 @@ export function turndown(base: string): TurndownService {
       return resolved.origin === new URL(base).origin ? content : `[${content}](${resolved.href})`;
     },
   });
+  // A summary is the line a closed `details` shows; Turndown has no block
+  // rule for it and ran it into the body.
+  service.addRule("summary", { filter: "summary", replacement: (content) => `\n\n${content.trim()}\n\n` });
   addTableRules(service);
   service.addRule("math", { filter: (node) => node.nodeName.toLowerCase() === "math", replacement: (_content, node) => math(node as Element) });
   service.addRule("svg", { filter: (node) => node.nodeName.toLowerCase() === "svg", replacement: (_content, node) => svg(node as Element) });
-  service.remove(["script", "style", "noscript", "iframe", "form", "button", "template"]);
+  // A form's text stays: a page builder may wrap a whole page in one.
+  service.remove(["script", "style", "noscript", "iframe", "button", "template"]);
   return service;
 }
 

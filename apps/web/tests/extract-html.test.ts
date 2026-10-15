@@ -101,6 +101,38 @@ describe("extractHtml", () => {
     expect(text).toContain("![QZALT](https://cdn.example.org/f.png)\n\n_QZCAP_");
   });
 
+  it("writes a form's controls as what they draw, in the article and in the whole body", () => {
+    const form =
+      '<form><label>Name</label> <input value="Ada"> <input type="password" value="QZSECRET"> <input type="hidden" value="QZTOKEN">' +
+      "<select><option>QZUNSEEN</option><option selected>Second</option></select>" +
+      // A list box draws its rows, so they stay as they are.
+      "<select multiple><option>Listed</option></select><textarea>Notes here</textarea><button>QZSEND</button></form>";
+    for (const body of [`<article><h1>A post</h1><p>${prose}</p>${form}<p>${prose}</p></article>`, form]) {
+      const { text } = extractHtml(page(body));
+      expect(text).toMatch(/Name Ada\s+Second\s+Listed\s+Notes here/);
+      for (const word of ["QZSECRET", "QZTOKEN", "QZUNSEEN", "QZSEND"]) expect(text).not.toContain(word);
+    }
+  });
+
+  it("writes a details summary apart from its body, an inline frame's document, and a fenced block's language", () => {
+    const { text } = extractHtml(
+      page(
+        `<article><h1>A post</h1><p>${prose}</p><details><summary>Show more</summary>Hidden body</details>` +
+          `<iframe srcdoc="&lt;p&gt;Framed text&lt;/p&gt;"></iframe><pre><code class="language-python">print(1)</code></pre><p>${prose}</p></article>`,
+      ),
+    );
+    expect(text).toContain("Show more\n\nHidden body");
+    expect(text).toContain("Framed text");
+    expect(text).toContain("```python\nprint(1)\n```");
+  });
+
+  it("resolves a picture's relative address against the page it was saved from", () => {
+    const { text } = extractHtml(page('<ul><li>Milk</li></ul><img src="pic.png" alt="A cat">'));
+    expect(text).toContain("![A cat](https://example.com/blog/pic.png)");
+    expect(extractHtml(page('<ul><li>Milk</li></ul><img src="data:image/png;base64,QZBLOB" alt="A dog">')).text).toMatch(/A dog$/);
+    expect(readHtml('<html><body><p>Milk</p><img src="pic.png" alt="A cat"></body></html>').text).toContain("![A cat](pic.png)");
+  });
+
   it("drops hidden elements from any root it is handed, as the ebook reader does", () => {
     const doc = new DOMParser().parseFromString(`<body><p>Kept</p><p style="display: None">Gone</p></body>`, "text/html");
     expect(dropHidden(doc.body)).toBe(1);

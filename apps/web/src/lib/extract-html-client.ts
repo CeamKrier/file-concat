@@ -1,6 +1,6 @@
 import { Readability } from "@mozilla/readability";
 import { savedPageUrl, type ExtractionResult } from "@fileconcat/core";
-import { dropHidden, turndown } from "./turndown-client";
+import { drawnControls, dropHidden, turndown } from "./turndown-client";
 
 /**
  * Client-only reading of a page a browser saved (extraction router, step R5).
@@ -82,10 +82,36 @@ export function readHtml(html: string, fetchedFrom?: string): ExtractionResult {
     base.href = url;
     doc.head.insertBefore(base, doc.head.firstChild);
   }
+  if (doc.body) drawnControls(doc.body);
   const service = turndown(url);
+  // A picture's address against the page it was saved from; the reader
+  // only resolves the copy it keeps, and a page with no known address has
+  // nothing to resolve against.
+  if (saved ?? fetchedFrom) {
+    service.addRule("image", {
+      filter: "img",
+      replacement: (_content, node) => {
+        const alt = ((node as HTMLElement).getAttribute("alt") ?? "").replace(/\s+/g, " ").trim();
+        // As the link rule does: only a web address is written. A `data:`
+        // picture is its whole file in base64, billed by the token.
+        const raw = (node as HTMLElement).getAttribute("src")?.trim();
+        if (!raw) return alt;
+        try {
+          const src = new URL(raw, url);
+          return /^https?:$/.test(src.protocol) ? `![${alt}](${src.href})` : alt;
+        } catch {
+          return alt;
+        }
+      },
+    });
+  }
   const title = doc.title.trim();
 
-  const article = new Readability(doc.cloneNode(true) as Document).parse();
+  // Readability keeps no class but those named; a code block's language is one.
+  const languages = Array.from(doc.querySelectorAll("code[class*='language-']"), (code) =>
+    Array.from(code.classList).filter((name) => name.startsWith("language-")),
+  );
+  const article = new Readability(doc.cloneNode(true) as Document, { classesToPreserve: Array.from(new Set(([] as string[]).concat(...languages))) }).parse();
   let body = article?.content ? service.turndown(article.content).trim() : "";
   let reader = "readability";
   let hidden = 0;
