@@ -13,9 +13,9 @@ import type { ExtractionNote, ExtractionResult } from "./types";
  *
  * The character stream is the main body, then footnotes, headers, comments,
  * endnotes and text boxes, each of a length the FIB gives. The body, the
- * notes and the text boxes are kept; headers are not, for the reason the
- * office reader drops running furniture from a PDF. Comments are written into
- * the body at the end of their paragraph (Q24 O1).
+ * notes and the text boxes are kept. Headers and footers are written once
+ * each, labelled, before and after the body as a docx's are (C7). Comments
+ * are written into the body at the end of their paragraph (Q24 O1).
  *
  * Only the reading lives here, over streams already lifted out of the
  * container (ADR-0012); the browser opens it with the library that reads a
@@ -229,10 +229,63 @@ function plain(text: string, left: { hidden: number }): string {
     .trim();
 }
 
-/** FibRgFcLcb97 (MS-DOC 2.5.6): the comment tables and the authors' names. */
+/** FibRgFcLcb97 (MS-DOC 2.5.6): the comment tables, the authors' names and the header stories. */
 const FC_PLCF_AND_REF = 0x00ba;
 const FC_PLCF_AND_TXT = 0x00c2;
 const FC_GRP_XST_ATN_OWNERS = 0x01ba;
+const FC_PLCF_HDD = 0x00f2;
+
+/** The table-stream structure an FcLcb pair at `offset` of the FIB names, if it fits. */
+function listed(word: Uint8Array, table: Uint8Array, offset: number): DataView | undefined {
+  if (offset + 8 > word.byteLength) return undefined;
+  const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
+  const fc = fib.getUint32(offset, true);
+  const lcb = fib.getUint32(offset + 4, true);
+  return lcb > 0 && fc + lcb <= table.byteLength ? new DataView(table.buffer, table.byteOffset + fc, lcb) : undefined;
+}
+
+/**
+ * The header part split into its stories by PlcfHdd (MS-DOC 2.3.3): six
+ * footnote and endnote separators, then six per section, in the order even
+ * header, odd header, even footer, odd footer, first-page header, first-page
+ * footer. Each distinct line once, as the docx path writes them; the header
+ * text boxes (2.3.7) count as header. POI reads the same table
+ * (`HeaderStories`), and Tika writes them before and after the body.
+ *
+ * ponytail: a WordArt watermark is a shape, not story text, and is left out.
+ */
+function pageFurniture(
+  word: Uint8Array,
+  table: Uint8Array,
+  stories: string,
+  boxes: string,
+  left: { hidden: number },
+): { headers: string[]; footers: string[] } {
+  const found = { headers: [] as string[], footers: [] as string[] };
+  const seen = new Set<string>();
+  const add = (into: string[], text: string) => {
+    for (const line of plain(text, left).split("\n")) {
+      const folded = line.replace(/\s+/g, " ").trim();
+      if (folded && !seen.has(folded)) {
+        seen.add(folded);
+        into.push(folded);
+      }
+    }
+  };
+  const plc = listed(word, table, FC_PLCF_HDD);
+  const count = plc ? Math.floor(plc.byteLength / 4) - 1 : 0;
+  // Read forward only, so a forged table whose stories overlap cannot read
+  // the part more than once.
+  let read = 0;
+  for (let story = 6; plc && story < count; story++) {
+    const from = Math.max(read, plc.getUint32(story * 4, true));
+    const to = Math.max(from, Math.min(stories.length, plc.getUint32((story + 1) * 4, true)));
+    read = to;
+    add([0, 1, 4].includes((story - 6) % 6) ? found.headers : found.footers, stories.slice(from, to));
+  }
+  add(found.headers, boxes);
+  return found;
+}
 
 /**
  * Each comment (MS-DOC 2.3.4) as `[Comment, author: text]` with the position
@@ -247,21 +300,14 @@ function commentLabels(
   comments: string,
   left: { hidden: number },
 ): { at: number; label: string }[] {
-  const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
-  const listed = (offset: number): DataView | undefined => {
-    if (offset + 8 > word.byteLength) return undefined;
-    const fc = fib.getUint32(offset, true);
-    const lcb = fib.getUint32(offset + 4, true);
-    return lcb > 0 && fc + lcb <= table.byteLength ? new DataView(table.buffer, table.byteOffset + fc, lcb) : undefined;
-  };
-  const refs = listed(FC_PLCF_AND_REF);
-  const txt = listed(FC_PLCF_AND_TXT);
+  const refs = listed(word, table, FC_PLCF_AND_REF);
+  const txt = listed(word, table, FC_PLCF_AND_TXT);
   if (!refs || !txt) return [];
   const utf16 = new TextDecoder("utf-16le");
   const name = (view: DataView, at: number, length: number) =>
     utf16.decode(new Uint8Array(view.buffer, view.byteOffset + at, Math.min(length * 2, view.byteLength - at)));
   const owners: string[] = [];
-  const grp = listed(FC_GRP_XST_ATN_OWNERS);
+  const grp = listed(word, table, FC_GRP_XST_ATN_OWNERS);
   for (let at = 0; grp && at + 2 <= grp.byteLength; ) {
     const length = grp.getUint16(at, true);
     owners.push(name(grp, at + 2, length));
@@ -329,8 +375,8 @@ export function formatDoc(streams: CfbStreams): ExtractionResult {
 
   const all = readPieces(word, table);
   // Character counts of each part of the stream, in the order they are stored.
-  const [body, footnotes, headers, macros, comments, endnotes, textboxes] = [
-    0x4c, 0x50, 0x54, 0x58, 0x5c, 0x60, 0x64,
+  const [body, footnotes, headers, macros, comments, endnotes, textboxes, headerBoxes] = [
+    0x4c, 0x50, 0x54, 0x58, 0x5c, 0x60, 0x64, 0x68,
   ].map((offset) => fib.getInt32(offset, true));
   let cursor = 0;
   const part = (length: number): string => {
@@ -339,15 +385,20 @@ export function formatDoc(streams: CfbStreams): ExtractionResult {
     return slice;
   };
   const kept = [part(body), part(footnotes)];
-  part(headers);
+  const stories = part(headers);
   part(macros);
   const left = { hidden: 0 };
   const labels = commentLabels(word, table, part(comments), left).filter(({ at }) => at < kept[0].length);
   kept[0] = atParagraphEnds(kept[0], labels);
   kept.push(part(endnotes), part(textboxes));
+  const furniture = pageFurniture(word, table, stories, part(headerBoxes), left);
+  const block = (label: string, lines: string[]) => (lines.length ? [[label, ...lines].join("\n")] : []);
 
-  const text = kept
-    .map((part) => plain(part, left))
+  const text = [
+    ...block("--- Page header ---", furniture.headers),
+    ...kept.map((part) => plain(part, left)),
+    ...block("--- Page footer ---", furniture.footers),
+  ]
     .filter(Boolean)
     .join("\n\n");
   if (!text) return { text };

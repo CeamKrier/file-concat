@@ -25,13 +25,23 @@ export interface Piece {
  * `parts` are the lengths of body, footnotes, headers, comments, endnotes and
  * text boxes, in the stream's own order. `comments` lists each comment's
  * reference position in the body, its start in the comment part, and its
- * author, by name or, with `initials`, by initials only.
+ * author, by name or, with `initials`, by initials only. `stories` are the
+ * PlcfHdd CPs splitting the header part into its stories.
  */
 export function wordStreams(
   pieces: Piece[],
-  parts: { body: number; footnotes?: number; headers?: number; comments?: number; endnotes?: number; textboxes?: number },
+  parts: {
+    body: number;
+    footnotes?: number;
+    headers?: number;
+    comments?: number;
+    endnotes?: number;
+    textboxes?: number;
+    headerBoxes?: number;
+  },
   flags = 0x0200,
   comments: { ref: number; start: number; author: string; initials?: boolean }[] = [],
+  stories: number[] = [],
 ): Map<string, Uint8Array> {
   const fibLength = 0x0200;
   let fc = fibLength;
@@ -56,6 +66,7 @@ export function wordStreams(
   fib.setInt32(0x5c, parts.comments ?? 0, true);
   fib.setInt32(0x60, parts.endnotes ?? 0, true);
   fib.setInt32(0x64, parts.textboxes ?? 0, true);
+  fib.setInt32(0x68, parts.headerBoxes ?? 0, true);
   for (const piece of encoded) word.set(piece.bytes, piece.at);
   if (fkpAt >= 0) {
     const page = new DataView(word.buffer, fkpAt, 512);
@@ -92,7 +103,13 @@ export function wordStreams(
   const txtLength = comments.length ? (comments.length + 1) * 4 : 0;
   const ownersLength = owners.reduce((sum, owner) => sum + 2 + owner.length * 2, 0);
   const notesAt = 64 + clx.length + 12;
-  const table = new Uint8Array(notesAt + refLength + txtLength + ownersLength);
+  const storiesAt = notesAt + refLength + txtLength + ownersLength;
+  const table = new Uint8Array(storiesAt + stories.length * 4);
+  if (stories.length) {
+    stories.forEach((cp, i) => new DataView(table.buffer).setUint32(storiesAt + i * 4, cp, true));
+    fib.setUint32(0x00f2, storiesAt, true);
+    fib.setUint32(0x00f6, stories.length * 4, true);
+  }
   if (comments.length) {
     const notes = new DataView(table.buffer);
     comments.forEach((note, i) => {

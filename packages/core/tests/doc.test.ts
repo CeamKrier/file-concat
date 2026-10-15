@@ -20,7 +20,7 @@ describe("formatDoc", () => {
     expect(text).toBe("Chapter 7 of the book.");
   });
 
-  it("keeps the body, notes and text boxes, and leaves headers and unanchored comments out", () => {
+  it("keeps the body, notes and text boxes, and leaves unanchored comments out", () => {
     const body = "Body paragraph.\r";
     const footnotes = "A footnote.\r";
     const headers = "Running header\r";
@@ -39,6 +39,28 @@ describe("formatDoc", () => {
       }),
     );
     expect(text).toBe("Body paragraph.\n\nA footnote.\n\nAn endnote.\n\nBox text");
+  });
+
+  it("writes each distinct header and footer story once, labelled, around the body", () => {
+    const body = "Body.\r";
+    // Six separator stories, then one section's six: even header, odd
+    // header, even footer, odd footer, first-page header, first-page footer.
+    const separators = "\x03\r\x04\r";
+    const stories = ["Running  head\r", "Running head\r", "", "Page \x13 PAGE \x142\x15\r", "Cover\r", "Cover\r"];
+    const headers = separators + stories.join("") + "\r";
+    const boxes = "Box in header\r";
+    const cps = [0, 2, 4, 4, 4, 4];
+    let at = separators.length;
+    for (const story of stories) {
+      cps.push(at);
+      at += story.length;
+    }
+    // The part ends with a guard paragraph mark, a story of its own.
+    cps.push(at, at + 1);
+    const { text } = formatDoc(
+      wordStreams([{ text: body + headers + boxes }], { body: body.length, headers: headers.length, headerBoxes: boxes.length }, 0x0200, [], cps),
+    );
+    expect(text).toBe("--- Page header ---\nRunning head\nCover\nBox in header\n\nBody.\n\n--- Page footer ---\nPage 2");
   });
 
   it("writes each comment at the end of its paragraph, author named, and counts it", () => {
