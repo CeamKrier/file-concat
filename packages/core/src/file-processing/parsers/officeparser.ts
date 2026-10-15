@@ -3,6 +3,7 @@ import type { OfficeContentNode } from "officeparser";
 import { chartParts, withChartTables, workbookSheets, type ChartBlock } from "./office-charts";
 import { odfPageFurniture, odsSheetFurniture, slideMasterText } from "./office-furniture";
 import { withoutHiddenText } from "./office-hidden";
+import { wordListLabels } from "./office-lists";
 import { noteLayersOff } from "./pdf-layers";
 import type { ExtractionNote, ExtractionNoteKind, ExtractionResult } from "./types";
 
@@ -978,6 +979,31 @@ function numberFootnotes(): (node: OfficeContentNode) => void {
   };
 }
 
+/**
+ * Each docx list item as a line opening with its label, indented four spaces
+ * a level as officeparser indents it. officeparser's renderer writes its own
+ * "1." or "-" in front of a list node, so a labelled item becomes a paragraph.
+ * Walked once before rendering: the labels count items in document order, and
+ * the renderer visits a node more than once.
+ */
+function labelWordLists(content: readonly OfficeContentNode[], bytes: Uint8Array): void {
+  const label = wordListLabels(bytes);
+  if (!label) return;
+  const walk = (nodes: readonly OfficeContentNode[]) => {
+    for (const node of nodes) {
+      const meta = node.metadata as { listId?: string; indentation?: number } | undefined;
+      const level = meta?.indentation ?? 0;
+      const text = node.type === "list" && meta?.listId !== undefined ? label(meta.listId, level) : undefined;
+      if (text !== undefined) {
+        node.type = "paragraph";
+        node.children = [{ type: "text", text: `${"    ".repeat(level)}${text ? `${text} ` : ""}` }, ...(node.children ?? [])];
+      }
+      walk(node.children ?? []);
+    }
+  };
+  walk(content);
+}
+
 function toLibraryConfig(options: OfficeParserOptions): Record<string, unknown> {
   // A PDF is read as a flow of pages, not laid out from its geometry (8.x's
   // default): that layout drops the page nodes our passes key on, and the
@@ -1281,6 +1307,8 @@ export async function extractOfficeDocument(
       if (lines) node.children = [...(node.children ?? []), ...lines.map((text) => row([text]))];
     }
   }
+  // A Word list item opens with the label Word prints for it (C8).
+  if (ast.type === "docx") labelWordLists(ast.content, readable);
   // What a deck's masters and layouts print on every slide, once at the top (Q28 O1).
   if (ast.content.some((node) => node.type === "slide")) {
     const master = slideMasterText(readable);
