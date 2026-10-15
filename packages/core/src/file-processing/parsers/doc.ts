@@ -59,6 +59,15 @@ const SPRM_SYMBOL = 0x6a09;
  * read as NUL first; Word never writes one.
  */
 const HIDDEN = 0x10;
+/**
+ * Stand in for a mark the paragraph properties say more about: a cell mark
+ * that ends a row, and a paragraph mark inside a table cell. Read as NUL when
+ * the file itself holds one, as HIDDEN is.
+ */
+const ROW_END = 0x11;
+const CELL_BREAK = 0x12;
+/** A mark that ends a paragraph: of the body, a cell, a row or a paragraph inside a cell. */
+const endsParagraph = (code: number): boolean => code === PARAGRAPH || code === CELL_MARK || code === ROW_END || code === CELL_BREAK;
 
 /**
  * `WordDocument` with the bytes of its tracked deletions zeroed, read from the
@@ -242,7 +251,7 @@ function styleHides(styles: Map<number, { base: number; operand?: number }>, ist
 function styledHidden(word: Uint8Array, table: Uint8Array, runs: StyledRun[]): [number, number][] | undefined {
   const styles = vanishStyles(word, table);
   if (!styles) return undefined;
-  const paragraphs = markedParagraphs(word, table, (istd) => styleHides(styles, istd, false));
+  const paragraphs = markedParagraphs(word, table, (paragraph) => styleHides(styles, paragraph.istd, false));
   const hide: [number, number][] = [];
   const show: [number, number][] = [];
   let paragraph = 0;
@@ -346,6 +355,13 @@ interface Piece {
 function readPieces(document: Uint8Array, table: Uint8Array): { text: string; pieces: Piece[]; pictures: Picture[] } {
   const { word, hidden: own, caps, pictures, symbols, styled } = withoutDeletions(document, table);
   const hidden = styledHidden(word, table, styled) ?? own;
+  // The mark that ends each table paragraph: a row's end, or a break inside a
+  // cell (a paragraph, or a nested table's cell or row, MS-DOC 2.4.3).
+  const rowEnds: [number, number][] = [];
+  const inCells: [number, number][] = [];
+  for (const paragraph of markedParagraphs(word, table, (paragraph) => paragraph.inTable || paragraph.rowEnd)) {
+    (paragraph.rowEnd ? rowEnds : inCells).push([paragraph.to - 1, paragraph.to]);
+  }
   const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
   const fonts = symbols.length > 0 ? fontNames(fib, table) : [];
   const fcClx = fib.getUint32(0x01a2, true);
@@ -376,10 +392,13 @@ function readPieces(document: Uint8Array, table: Uint8Array): { text: string; pi
     const length = (end - start) * (compressed ? 1 : 2);
     if (offset + length > word.byteLength) break;
     const bytes = word.subarray(offset, offset + length);
-    const read = (compressed ? ansi.decode(bytes) : utf16.decode(bytes)).split(String.fromCharCode(HIDDEN)).join("\0");
+    // eslint-disable-next-line no-control-regex
+    const read = (compressed ? ansi.decode(bytes) : utf16.decode(bytes)).replace(/[\x10-\x12]/g, "\0");
     pieces.push({ cp: text.length, end: text.length + read.length, offset, width: compressed ? 1 : 2 });
     const width = compressed ? 1 : 2;
-    const shown = inRanges(withSymbols(read, offset, width, symbols, fonts), offset, width, caps, capitals);
+    const rows = inRanges(read, offset, width, rowEnds, (mark) => mark.split(String.fromCharCode(CELL_MARK)).join(String.fromCharCode(ROW_END)));
+    const marked = inRanges(rows, offset, width, inCells, (mark) => mark.replace(/\r/g, String.fromCharCode(CELL_BREAK)));
+    const shown = inRanges(withSymbols(marked, offset, width, symbols, fonts), offset, width, caps, capitals);
     text += inRanges(shown, offset, width, hidden, hiddenText);
   }
   return { text, pieces, pictures };
@@ -436,6 +455,7 @@ function plain(text: string, left: { hidden: number }): string {
   let out = "";
   const fields: Array<{ code: boolean; instr: string; result: number; address?: string }> = [];
   let hiding = false;
+  const rows = text.includes(String.fromCharCode(ROW_END));
   for (const char of text) {
     const code = char.charCodeAt(0);
     const field = fields[fields.length - 1];
@@ -465,10 +485,12 @@ function plain(text: string, left: { hidden: number }): string {
     }
     hiding = false;
     if (code === PARAGRAPH || code === LINE_BREAK || code === PAGE_BREAK) out += "\n";
-    // ponytail: a row ends with a cell mark right after the last cell's, so two
-    // in a row is read as a row break; an empty cell reads the same way and
-    // splits its row. Telling them apart needs the paragraph properties.
-    else if (code === CELL_MARK) out += out.endsWith("\t") ? "\n" : "\t";
+    else if (code === ROW_END) out += "\n";
+    // A cell's paragraphs, and a table nested in it, stay on its row.
+    else if (code === CELL_BREAK) out += out.endsWith(" ") ? "" : " ";
+    // Without paragraph properties a row's end is the cell mark right after
+    // the last cell's, which an empty cell also is.
+    else if (code === CELL_MARK) out += rows || !out.endsWith("\t") ? "\t" : "\n";
     else if (code >= 0x20 || code === 0x09) out += char;
   }
   return out
@@ -596,7 +618,7 @@ function atParagraphEnds(body: string, labels: { at: number; label: string }[]):
     if (at >= body.length) continue;
     if (end < at) {
       end = at;
-      while (end < body.length && body.charCodeAt(end) !== PARAGRAPH && body.charCodeAt(end) !== CELL_MARK) end++;
+      while (end < body.length && !endsParagraph(body.charCodeAt(end))) end++;
     }
     out.push({ at: end, text: ` ${label}` });
   }
@@ -674,6 +696,27 @@ const FC_PLF_LFO = 0x02ea;
 /** sprmPIlvl and sprmPIlfo (MS-DOC 2.6.2): a paragraph's list level and list instance. */
 const SPRM_ILVL = 0x260a;
 const SPRM_ILFO = 0x460b;
+/**
+ * sprmPFInTable, sprmPItap, sprmPFInnerTableCell and sprmPFInnerTtp (MS-DOC
+ * 2.6.2): the paragraph sits in a table, at a depth, or ends a nested cell or
+ * row. sprmPFTtp: its mark, a cell mark, ends a row of the outer table.
+ */
+const SPRM_IN_TABLE = 0x2416;
+const SPRM_ROW_END = 0x2417;
+const SPRM_INNER_CELL = 0x244b;
+const SPRM_INNER_ROW_END = 0x244c;
+const SPRM_TABLE_DEPTH = 0x6649;
+
+/** A paragraph run of a PapxFkp, by its byte range in `WordDocument`, and what it says. */
+interface Paragraph {
+  from: number;
+  to: number;
+  ilfo: number;
+  ilvl: number;
+  istd: number;
+  inTable: boolean;
+  rowEnd: boolean;
+}
 /** MS-DOC 2.9.158 nfc to the format names the docx reader uses; any other reads as decimal. */
 const NFC: Record<number, string> = {
   0: "decimal", 1: "upperRoman", 2: "lowerRoman", 3: "upperLetter", 4: "lowerLetter",
@@ -763,8 +806,7 @@ function docListLabels(word: Uint8Array, table: Uint8Array): ((ilfo: number, ilv
 }
 
 /**
- * Each paragraph run that belongs to a list or has a heading style, by its
- * byte range in `WordDocument`: PlcBtePapx names the paragraph property pages
+ * Each paragraph run `keep` accepts, by its byte range in `WordDocument`: PlcBtePapx names the paragraph property pages
  * (PapxFkp, MS-DOC 2.9.175), each listing runs and their properties. Read from
  * the paragraph's own properties.
  *
@@ -775,10 +817,10 @@ function docListLabels(word: Uint8Array, table: Uint8Array): ((ilfo: number, ilv
 function markedParagraphs(
   word: Uint8Array,
   table: Uint8Array,
-  keep: (istd: number, ilfo: number) => boolean,
-): { from: number; to: number; ilfo: number; ilvl: number; istd: number }[] {
+  keep: (paragraph: Paragraph) => boolean,
+): Paragraph[] {
   const plc = listed(word, table, FC_PLCF_BTE_PAPX);
-  const runs: { from: number; to: number; ilfo: number; ilvl: number; istd: number }[] = [];
+  const runs: Paragraph[] = [];
   if (!plc || plc.byteLength < 8) return runs;
   const pages = Math.floor((plc.byteLength - 4) / 8);
   const seen = new Set<number>();
@@ -797,6 +839,8 @@ function markedParagraphs(
       const end = Math.min(511, start + (cb ? cb * 2 - 1 : fkp.getUint8(papx + 1) * 2));
       let ilfo = 0;
       let ilvl = 0;
+      let inTable = false;
+      let rowEnd = false;
       const istd = start + 2 <= end ? fkp.getUint16(start, true) : -1;
       // The istd first, then sprms as in a ChpxFkp.
       for (let at = start + 2; at + 2 <= end; ) {
@@ -805,9 +849,13 @@ function markedParagraphs(
         const size = [1, 1, 2, 4, 2, 2, -1, 3][sprm >>> 13];
         if (sprm === SPRM_ILFO && at + 2 <= end) ilfo = fkp.getInt16(at, true);
         else if (sprm === SPRM_ILVL && at < end) ilvl = fkp.getUint8(at);
+        else if ((sprm === SPRM_IN_TABLE || sprm === SPRM_INNER_CELL || sprm === SPRM_INNER_ROW_END) && at < end) inTable ||= fkp.getUint8(at) === 1;
+        else if (sprm === SPRM_TABLE_DEPTH && at + 4 <= end) inTable ||= fkp.getInt32(at, true) > 0;
+        else if (sprm === SPRM_ROW_END && at < end) rowEnd = fkp.getUint8(at) === 1;
         at += size < 0 ? (at < end ? fkp.getUint8(at) + 1 : 1) : size;
       }
-      if (keep(istd, ilfo)) runs.push({ from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), ilfo, ilvl: Math.min(ilvl, 8), istd });
+      const paragraph = { from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), ilfo, ilvl: Math.min(ilvl, 8), istd, inTable, rowEnd };
+      if (keep(paragraph)) runs.push(paragraph);
     }
   }
   return runs.sort((a, b) => a.from - b.from);
@@ -822,7 +870,7 @@ function markedParagraphs(
  */
 function paragraphInserts(word: Uint8Array, table: Uint8Array, body: string, pieces: Piece[]): { at: number; text: string }[] {
   const headings = headingStyles(word, table);
-  const runs = markedParagraphs(word, table, (istd, ilfo) => ilfo > 0 || headings.has(istd));
+  const runs = markedParagraphs(word, table, (paragraph) => paragraph.ilfo > 0 || headings.has(paragraph.istd));
   if (!runs.length) return [];
   const label = runs.some((run) => run.ilfo > 0) ? docListLabels(word, table) : undefined;
   const inserts: { at: number; text: string }[] = [];
@@ -830,7 +878,7 @@ function paragraphInserts(word: Uint8Array, table: Uint8Array, body: string, pie
   let start = 0;
   for (let at = 0; at < body.length; at++) {
     const code = body.charCodeAt(at);
-    if (code !== PARAGRAPH && code !== CELL_MARK) continue;
+    if (!endsParagraph(code)) continue;
     while (piece < pieces.length && pieces[piece]!.end <= at) piece++;
     const holder = pieces[piece];
     const paragraph = body.slice(start, at);

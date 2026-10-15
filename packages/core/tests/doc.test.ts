@@ -266,7 +266,7 @@ function withNotes(
  */
 function withLists(
   streams: Map<string, Uint8Array>,
-  paragraphs: { text: string; ilfo?: number; ilvl?: number; istd?: number }[],
+  paragraphs: { text: string; ilfo?: number; ilvl?: number; istd?: number; cell?: boolean; rowEnd?: boolean }[],
   lists: { lsid: number; levels: { nfc: number; text: string; start?: number }[] }[],
   lfos: { lsid: number; starts?: [number, number][] }[],
   styles: Array<number | { base: number; vanish?: number }> = [],
@@ -281,10 +281,14 @@ function withLists(
   paragraphs.forEach((paragraph, run) => {
     page.setUint32(run * 4, textAt + cp * 2, true);
     cp += paragraph.text.length;
-    const papx = 400 + run * 12;
+    const papx = 200 + run * 20;
     page.setUint8((paragraphs.length + 1) * 4 + run * 13, papx / 2);
-    // cb 5: istd, sprmPIlfo and sprmPIlvl, 9 bytes.
-    word.set([5, paragraph.istd ?? 0, 0, 0x0b, 0x46, paragraph.ilfo ?? 0, 0, 0x0a, 0x26, paragraph.ilvl ?? 0], pageAt + papx);
+    // cb 8: istd, sprmPIlfo, sprmPIlvl, sprmPFInTable and sprmPFTtp, 15 bytes.
+    const table = paragraph.cell || paragraph.rowEnd ? 1 : 0;
+    word.set(
+      [8, paragraph.istd ?? 0, 0, 0x0b, 0x46, paragraph.ilfo ?? 0, 0, 0x0a, 0x26, paragraph.ilvl ?? 0, 0x16, 0x24, table, 0x17, 0x24, paragraph.rowEnd ? 1 : 0],
+      pageAt + papx,
+    );
   });
   page.setUint32(paragraphs.length * 4, textAt + cp * 2, true);
   page.setUint8(511, paragraphs.length);
@@ -405,6 +409,23 @@ describe("formatDoc and lists", () => {
     const styles = [0, 0x0ffe, 1, 8, 0x0ffe];
     const { text } = formatDoc(withLists(wordStreams([{ text: body }], { body: body.length }), paragraphs, lists, [{ lsid: 7 }], styles));
     expect(text).toBe("# Intro\nBody\n###### Deep\n# 1. Numbered\nCustom\nEnd");
+  });
+});
+
+describe("formatDoc and tables", () => {
+  it("ends a row where the paragraph properties say, keeping an empty cell and a cell's paragraphs on it", () => {
+    const paragraphs = [
+      { text: "Head\r" },
+      { text: "\x07", cell: true },
+      { text: "Sydney\r", cell: true },
+      { text: "NSW\x07", cell: true },
+      { text: "Mid\x07", cell: true },
+      { text: "\x07", rowEnd: true },
+      { text: "After\r" },
+    ];
+    const body = paragraphs.map((p) => p.text).join("");
+    const { text } = formatDoc(withLists(wordStreams([{ text: body }], { body: body.length }), paragraphs, [], []));
+    expect(text).toBe("Head\n\tSydney NSW\tMid\nAfter");
   });
 });
 
