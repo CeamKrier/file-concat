@@ -172,8 +172,8 @@ importers:
         specifier: 6.1.200
         version: 6.1.200
       postal-mime:
-        specifier: ^4.0.2
-        version: 4.0.2
+        specifier: ^4.0.7
+        version: 4.0.7
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -302,8 +302,8 @@ importers:
         specifier: ^8.1.1
         version: 8.1.1
       postal-mime:
-        specifier: ^4.0.2
-        version: 4.0.2
+        specifier: ^4.0.7
+        version: 4.0.7
     devDependencies:
       7z-wasm:
         specifier: ^1.2.0
@@ -430,8 +430,8 @@ importers:
         specifier: ^4.8.0
         version: 4.8.0
       postal-mime:
-        specifier: ^4.0.2
-        version: 4.0.2
+        specifier: ^4.0.7
+        version: 4.0.7
       saxes:
         specifier: 6.0.0
         version: 6.0.0
@@ -5330,8 +5330,8 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  postal-mime@4.0.2:
-    resolution: {integrity: sha512-b/FqJGdS+Y+leh30r2ord1gWZNPfYcTiFBR1BIPvZYvQrKJjYYqGeECh9sQ5BpkWtcjSj39ngIAiE2w6XNfMjA==}
+  postal-mime@4.0.7:
+    resolution: {integrity: sha512-6iBsSWv8bd9ss+lp9hzKITHj+h7HyDSum7MC8P6XH5/HEuEzZxk8+6u/MpfX7mLstMw6dQ9MvPEMP/SOcGQnFg==}
     engines: {node: '>=20'}
 
   postcss-import@15.1.0:
@@ -11564,7 +11564,7 @@ snapshots:
 
   playwright-core@1.61.1: {}
 
-  postal-mime@4.0.2: {}
+  postal-mime@4.0.7: {}
 
   postcss-import@15.1.0(postcss@8.5.6):
     dependencies:
