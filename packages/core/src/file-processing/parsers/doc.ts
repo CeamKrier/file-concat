@@ -451,6 +451,9 @@ function inRanges(text: string, offset: number, width: number, ranges: [number, 
  * reaching a separator, and fields nest, so this is a stack of "still in the
  * code" flags rather than a counter.
  */
+/** Word's phonetic guide field code: `EQ ... \o\ad(\s\up 10(reading),base)`, any alignment. */
+const PHONETIC_GUIDE = /^\s*EQ\b[^(]*\\o\\a[dlcr]?\(\\s\\up\s*-?\d+\(([^()]*)\),([^()]*)\)/i;
+
 function plain(text: string, left: { hidden: number }): string {
   let out = "";
   const fields: Array<{ code: boolean; instr: string; result: number; address?: string }> = [];
@@ -472,6 +475,10 @@ function plain(text: string, left: { hidden: number }): string {
       // A HYPERLINK field's result as [text](address), as a docx's (Q32 O1).
       const result = field?.address ? out.slice(field.result) : "";
       if (field?.address && linkWorthWriting(result, field.address)) out = `${out.slice(0, field.result)}[${result}](${field.address})`;
+      // A phonetic guide is an EQ field with no result: its base and reading
+      // sit in the code, written base(reading) as a docx's ruby is.
+      const ruby = field?.code && !fields.some((open) => open.code) ? PHONETIC_GUIDE.exec(field.instr) : null;
+      if (ruby) out += `${ruby[2]}(${ruby[1]})`;
       continue;
     }
     if (field?.code) field.instr += char;

@@ -412,6 +412,14 @@ describe("formatDoc and lists", () => {
   });
 });
 
+describe("formatDoc and phonetic guides", () => {
+  it("writes an EQ phonetic guide as base(reading), and no other EQ field", () => {
+    const field = (code: string) => `\x13${code}\x15`;
+    const body = `Read ${field(String.raw`EQ \* jc2 \o\ad(\s\up 10(kan),Kan)`)} and ${field(String.raw`EQ \f(1,2)`)} here.\r`;
+    expect(formatDoc(wordStreams([{ text: body }], { body: body.length })).text).toBe("Read Kan(kan) and  here.");
+  });
+});
+
 describe("formatDoc and tables", () => {
   it("ends a row where the paragraph properties say, keeping an empty cell and a cell's paragraphs on it", () => {
     const paragraphs = [
