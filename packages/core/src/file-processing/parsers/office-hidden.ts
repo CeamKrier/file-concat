@@ -293,6 +293,9 @@ export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidde
       if (!WORD_PART.test(name)) continue;
       const before = strFromU8(data);
       const after = withoutHiddenRuns(before);
+      // An absolute-position tab ("Left<ptab>Right" in a header) is a tab to
+      // the reader, as POI's XWPFRun reads it; officeparser drops it, "LeftRight".
+      after.xml = after.xml.replace(/<w:ptab\b[^>]*?(?:\/>|>\s*<\/w:ptab>)/g, "<w:tab/>");
       if (after.xml === before) continue;
       changed[name] = strToU8(after.xml);
       hidden += after.hidden;

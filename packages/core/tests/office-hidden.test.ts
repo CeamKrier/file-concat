@@ -53,6 +53,12 @@ describe("extractOfficeDocument and hidden text", () => {
     expect(text).not.toContain("SECRET");
     expect(notes).toEqual([{ kind: "hidden-left-out", count: 1 }]);
   });
+
+  it("reads an absolute-position tab as a tab", async () => {
+    const ptab = '<w:r><w:t>Left</w:t><w:ptab w:relativeTo="margin" w:alignment="right" w:leader="none"/><w:t>Right</w:t></w:r>';
+    const { text } = await extractOfficeDocument(docxWithBody(`<w:p>${ptab}</w:p>`));
+    expect(text).toContain("Left\tRight");
+  });
 });
 
 /** An OpenDocument zip: `mimetype` first and stored, then the content. */
