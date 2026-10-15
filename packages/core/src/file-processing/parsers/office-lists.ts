@@ -16,8 +16,16 @@ import { attr, decodeXml, tagsOf, unpack } from "./office-charts";
  * `numStyleLink` is followed to the abstract list that holds the levels.
  */
 
-interface Level {
+/**
+ * A label template is written before every item of its level, so a crafted
+ * template megabytes long would multiply with the item count. Word's own
+ * dialog stops far short of this.
+ */
+const MAX_LABEL = 64;
+
+export interface ListLevel {
   format: string;
+  /** The label, each `%n` standing for level n's counter. */
   text: string;
   start: number;
   /** One-based: restart after a level up to this one is used; 0 never. Absent: after any higher level. */
@@ -25,17 +33,18 @@ interface Level {
   legal: boolean;
 }
 
-interface Abstract {
-  levels: Map<number, Level>;
+export interface ListDefinition {
+  levels: Map<number, ListLevel>;
   /** `numStyleLink`: the levels live in the abstract list whose `styleLink` names this style. */
   link?: string;
   style?: string;
 }
 
-interface Instance {
+/** One use of a list definition: Word's `w:num`, a .doc's LFO. */
+export interface ListInstance {
   abstract: string;
   starts: Map<number, number>;
-  levels: Map<number, Level>;
+  levels: Map<number, ListLevel>;
 }
 
 /**
@@ -47,6 +56,17 @@ export function wordListLabels(bytes: Uint8Array): ((numId: string, level: numbe
   const part = unpack(bytes, (name) => name === "word/numbering.xml")?.["word/numbering.xml"];
   if (!part) return undefined;
   const { abstracts, instances } = readNumbering(strFromU8(part));
+  return listLabels(abstracts, instances);
+}
+
+/**
+ * The counting both Word readers share, the .docx one over numbering.xml and
+ * the .doc one over its list tables (MS-DOC 2.9.150 LVL is the same model).
+ */
+export function listLabels(
+  abstracts: Map<string, ListDefinition>,
+  instances: Map<string, ListInstance>,
+): (instance: string, level: number) => string | undefined {
   const byStyle = new Map([...abstracts].flatMap(([id, a]) => (a.style ? [[a.style, id] as const] : [])));
   const resolve = (id: string) => {
     const link = abstracts.get(id)?.link;
@@ -74,7 +94,7 @@ export function wordListLabels(bytes: Uint8Array): ((numId: string, level: numbe
       if (restart === undefined || (restart > 0 && ilvl < restart)) counts[deeper] = undefined;
     }
     if (own.format === "bullet") return "-";
-    return own.text.replace(/%([1-9])/g, (_, digit: string) => {
+    return own.text.slice(0, MAX_LABEL).replace(/%([1-9])/g, (_, digit: string) => {
       const n = Number(digit) - 1;
       const at = level(n);
       return numberText(counts[n] ?? at?.start ?? 0, own.legal ? "decimal" : (at?.format ?? "decimal"));
@@ -82,13 +102,13 @@ export function wordListLabels(bytes: Uint8Array): ((numId: string, level: numbe
   };
 }
 
-function readNumbering(xml: string): { abstracts: Map<string, Abstract>; instances: Map<string, Instance> } {
-  const abstracts = new Map<string, Abstract>();
-  const instances = new Map<string, Instance>();
-  let abstract: Abstract | undefined;
-  let instance: Instance | undefined;
+function readNumbering(xml: string): { abstracts: Map<string, ListDefinition>; instances: Map<string, ListInstance> } {
+  const abstracts = new Map<string, ListDefinition>();
+  const instances = new Map<string, ListInstance>();
+  let abstract: ListDefinition | undefined;
+  let instance: ListInstance | undefined;
   let overriding: number | undefined;
-  let level: Level | undefined;
+  let level: ListLevel | undefined;
   const value = (tag: string) => decodeXml(attr(tag, "w:val") ?? "");
   const int = (tag: string) => parseInt(attr(tag, "w:val") ?? "", 10);
   for (const { name, tag, opens, closes } of tagsOf(xml)) {
@@ -189,8 +209,8 @@ function odfListStyles(xml: string, into: Map<string, Map<number, OdfLevel>>): v
       levels.set(parseInt(attr(tag, "text:level") ?? "1", 10) || 1, {
         bullet: !number,
         format: ODF_FORMAT[attr(tag, "style:num-format") ?? ""] ?? "decimal",
-        prefix: decodeXml(attr(tag, "style:num-prefix") ?? ""),
-        suffix: decodeXml(attr(tag, "style:num-suffix") ?? ""),
+        prefix: decodeXml(attr(tag, "style:num-prefix") ?? "").slice(0, MAX_LABEL),
+        suffix: decodeXml(attr(tag, "style:num-suffix") ?? "").slice(0, MAX_LABEL),
         display: parseInt(attr(tag, "text:display-levels") ?? "1", 10) || 1,
         start: parseInt(attr(tag, "text:start-value") ?? "1", 10) || 1,
       });

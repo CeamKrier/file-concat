@@ -41,6 +41,15 @@ describe("wordListLabels", () => {
     expect([numberText(2 ** 31, "upperRoman"), numberText(1e6, "lowerLetter"), numberText(3, "cardinalText")]).toEqual(["2147483648", "1000000", "3"]);
     expect(wordListLabels(zipSync({ "word/document.xml": strToU8("<w:document/>") }))).toBeUndefined();
   });
+
+  it("caps a label template, which is written before every item of its level", () => {
+    const long = "x".repeat(100_000);
+    const label = wordListLabels(numbering(`<w:abstractNum w:abstractNumId="0">${lvl(0, "decimal", `%1${long}`)}</w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>`))!;
+    expect(label("1", 0)!.length).toBeLessThanOrEqual(64);
+    const styles = `<text:list-style style:name="L"><text:list-level-style-number text:level="1" style:num-format="1" style:num-prefix="${long}" style:num-suffix="${long}"/></text:list-style>`;
+    const out = withOdfListLabels(`<text:list text:style-name="L"><text:list-item><text:p>x</text:p></text:list-item></text:list>`, styles);
+    expect(out.length).toBeLessThan(300);
+  });
 });
 
 describe("extractOfficeDocument and Word lists", () => {
