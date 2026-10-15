@@ -19,7 +19,22 @@ import type { ExtractionResult } from "./types";
  * if a false notice is ever reported.
  */
 export function pdfLayersOff(bytes: Uint8Array): boolean {
-  if (holds(bytes)) return true;
+  return scanned(bytes, holds);
+}
+
+/**
+ * Whether a PDF may hold an interactive form or an attached file: the names
+ * `/AcroForm`, `/EmbeddedFiles` or `/FileAttachment`, in the file or in its
+ * object streams, scanned as {@link pdfLayersOff} scans. A yes only says the
+ * second read (pdf.js) is worth paying for; it reads what is really there.
+ */
+export function pdfMayHoldFormsOrFiles(bytes: Uint8Array): boolean {
+  return scanned(bytes, (part) => FORMS_OR_FILES.some((name) => find(part, name) !== -1));
+}
+
+/** `test` over the file, then over each Flate object stream inflated, within the budgets. */
+function scanned(bytes: Uint8Array, test: (part: Uint8Array) => boolean): boolean {
+  if (test(bytes)) return true;
   const out = new Uint8Array(STREAM_CAP);
   let budget = INFLATE_BUDGET;
   for (let at = find(bytes, OBJSTM); at !== -1 && budget > 0; at = find(bytes, OBJSTM, at + 1)) {
@@ -34,7 +49,7 @@ export function pdfLayersOff(bytes: Uint8Array): boolean {
       // A fixed buffer stops a stream at the cap instead of growing with it.
       const inflated = unzlibSync(bytes.subarray(start, end), { out });
       budget -= inflated.length;
-      if (holds(inflated)) return true;
+      if (test(inflated)) return true;
     } catch {
       // Not Flate, or damaged: the readers will say what they make of it.
     }
@@ -54,6 +69,7 @@ const STREAM = ascii("stream");
 const ENDSTREAM = ascii("endstream");
 const OCPROPERTIES = ascii("/OCProperties");
 const OFF = ascii("/OFF");
+const FORMS_OR_FILES = [ascii("/AcroForm"), ascii("/EmbeddedFiles"), ascii("/FileAttachment")];
 
 function holds(bytes: Uint8Array): boolean {
   if (find(bytes, OCPROPERTIES) === -1) return false;

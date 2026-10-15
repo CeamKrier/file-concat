@@ -60,9 +60,9 @@
  */
 
 import * as fs from "node:fs";
-import { createRequire } from "node:module";
+import { createRequire, findPackageJSON } from "node:module";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
   FIRST_READERS,
@@ -71,6 +71,7 @@ import {
   extractWithFallback,
   isPasswordProtected,
   noteLayersOff,
+  pdfMayHoldFormsOrFiles,
   pdfTitle,
   routeBytes,
   rtfTitle,
@@ -87,6 +88,7 @@ import {
 
 import { extractCfb, extractWorkbook } from "../../../apps/web/src/lib/extract-cfb-client.js";
 import { parsePdfPages } from "../../../apps/web/src/lib/liteparse-pages.js";
+import { readPdfForms, withPdfForms, type PdfJs } from "../../../apps/web/src/lib/pdf-forms.js";
 import { parsers } from "../src/parsers.js";
 
 const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -392,6 +394,12 @@ const liteparseModule = once(async () => {
   lite.initSync({ module: fs.readFileSync(require.resolve("@llamaindex/liteparse-wasm/liteparse_wasm_bg.wasm")) });
   return lite;
 });
+// The web's own pdf.js, in its node build, for a form's fields and attached files.
+const pdfjsModule = once(async (): Promise<PdfJs> => {
+  const manifest = findPackageJSON("pdfjs-dist", pathToFileURL(path.join(REPO_ROOT, "apps", "web", "package.json")));
+  if (!manifest) throw new Error("pdfjs-dist is not installed for apps/web");
+  return import(pathToFileURL(path.join(path.dirname(manifest), "legacy", "build", "pdf.mjs")).href);
+});
 const anydocModule = once(async () => {
   const anydoc = await import("@firecrawl/anydoc-wasm");
   anydoc.initSync({ module: fs.readFileSync(require.resolve("@firecrawl/anydoc-wasm/anydoc_wasm_bg.wasm")) });
@@ -416,8 +424,10 @@ const anydoc: ParserLoader = async (bytes) => {
 const webReaders: Record<FirstReaderId, ParserLoader> = {
   liteparse: async (bytes) => {
     const { pages, skipped } = await parsePdfPages((await liteparseModule()).LiteParse, bytes);
+    const extra = pdfMayHoldFormsOrFiles(bytes) ? await readPdfForms(await pdfjsModule(), bytes).catch(() => undefined) : undefined;
     const title = pdfTitle(bytes);
-    return { ...noteLayersOff(assemblePdfPages(pages, skipped), bytes), ...(title ? { title } : {}) };
+    const assembled = extra ? assemblePdfPages(withPdfForms(pages, extra), skipped, extra.files) : assemblePdfPages(pages, skipped);
+    return { ...noteLayersOff(assembled, bytes), ...(title ? { title } : {}) };
   },
   sheetjs: async (bytes) => extractWorkbook(bytes),
   anydoc,

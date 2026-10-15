@@ -14,6 +14,7 @@ export type { ArchiveEntry, ArchiveKind } from "./archives";
 export {
   assemblePdfPages,
   noteLayersOff,
+  pdfMayHoldFormsOrFiles,
   withoutHiddenText,
   withRtfComments,
   withRtfFurniture,
@@ -50,6 +51,7 @@ export type {
   ParserId,
   ParserLoader,
   ParserRegistry,
+  PdfAttachment,
   PdfPage,
 } from "./parsers";
 export { validateFile } from "./validation";

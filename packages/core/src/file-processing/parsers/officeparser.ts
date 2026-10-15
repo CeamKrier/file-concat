@@ -1234,6 +1234,17 @@ export interface PdfPage {
   label?: string;
   /** Review comments on the page; `anchor` is the text a highlight or other text markup covers. */
   comments?: { author?: string; text: string; anchor?: string }[];
+  /** The page's form fields: the name a viewer shows for each, its value, and a check box's state as a boolean. */
+  fields?: { name: string; value: string | boolean }[];
+  /** Files attached to the page by a file attachment annotation. */
+  attachments?: PdfAttachment[];
+}
+
+/** A file a PDF carries: its name, the author's description, and its text when it is a text file. */
+export interface PdfAttachment {
+  name: string;
+  description?: string;
+  text?: string;
 }
 
 /**
@@ -1253,7 +1264,7 @@ export interface PdfPage {
  * decodes no JBIG2 or JPEG 2000 picture (38 of 181 olmOCR-bench scan pages read
  * nothing there), and liteparse's picture reasons missed 1 of those 181.
  */
-export function assemblePdfPages(pages: readonly PdfPage[], skipped = 0): ExtractionResult {
+export function assemblePdfPages(pages: readonly PdfPage[], skipped = 0, files: readonly PdfAttachment[] = []): ExtractionResult {
   const readable = (text: string) => /[\p{L}\p{N}]/u.test(text);
   // liteparse writes an empty ```text fence for a page with no text.
   const trimmed = pages.map((page) => ({
@@ -1292,19 +1303,30 @@ export function assemblePdfPages(pages: readonly PdfPage[], skipped = 0): Extrac
   // ponytail: not where the figure sits; liteparse's text items carry no
   // marked-content id to place it by.
   let comments = 0;
-  const marked = bodies
-    .map((page) => {
+  let unread = 0;
+  const attached = (list: readonly PdfAttachment[]) => {
+    const { lines, skipped: left } = attachmentLines(list);
+    unread += left;
+    return lines;
+  };
+  const marked = [
+    ...bodies.map((page) => {
       const figures = (page.figures ?? []).map((alt) => altLabel("Image", [alt])).filter(Boolean);
-      const { text, after, count } = withPdfComments(page.text, page.comments ?? []);
-      comments += count;
+      const commented = withPdfComments(page.text, page.comments ?? []);
+      comments += commented.count;
+      const { text, after } = withPdfFields(commented.text, page.fields ?? []);
       // The number the page is cited by, a front matter's `iv`, beside the
       // count from 1. A label is the file's to choose: folded and cut.
       const label = (page.label ?? "").replace(/\s+/g, " ").trim().slice(0, 64);
       const heading = `# Page ${page.number}${label && label !== String(page.number) ? ` (numbered ${label})` : ""}`;
-      return [heading, [text, [...figures, ...after].join("\n")].filter(Boolean).join("\n\n")].filter(Boolean).join("\n");
-    })
-    .join("\n\n");
+      const below = [...figures, ...commented.after, ...after, ...attached(page.attachments ?? [])].join("\n");
+      return [heading, [text, below].filter(Boolean).join("\n\n")].filter(Boolean).join("\n");
+    }),
+    // Files the document itself carries belong to no page.
+    ...(files.length ? [["# Attached files", ...attached(files)].join("\n")] : []),
+  ].join("\n\n");
   if (comments > 0) notes.push({ kind: "comments-included", count: comments });
+  if (unread > 0) notes.push({ kind: "attachments-skipped", count: unread });
   const { text, lost, pages: lostPages } = dropUndecodableLines(marked);
   if (lost > 0) {
     notes.push({
@@ -1339,6 +1361,68 @@ function withPdfComments(text: string, comments: NonNullable<PdfPage["comments"]
     else after.push(label);
   }
   return { text, after, count };
+}
+
+/** How many of a page's fields are looked for in its text; the rest are written after it. */
+const FIELDS_PLACED = 100;
+/** A value longer than this is written after the page, never looked for. */
+const PLACED_VALUE = 200;
+
+/**
+ * A page's form fields as `[Form field, name: value]`, a check box's value as
+ * `[x]` or `[ ]`. A value the page already shows (the field's appearance, which
+ * the reader reads as text) is labelled where it stands when it occurs there
+ * once as whole words, as a link is; any other is written after the page,
+ * where Tika writes every field. An empty text field is left out.
+ */
+function withPdfFields(text: string, fields: NonNullable<PdfPage["fields"]>): { text: string; after: string[] } {
+  const fold = (value: string) => value.replace(/\s+/g, " ").trim();
+  const after: string[] = [];
+  fields.forEach((field, index) => {
+    const name = fold(field.name).slice(0, 255) || "unnamed";
+    if (typeof field.value === "boolean") {
+      after.push(`[Form field, ${name}: ${field.value ? "[x]" : "[ ]"}]`);
+      return;
+    }
+    const value = fold(field.value);
+    if (!value) return;
+    const label = `[Form field, ${name}: ${value}]`;
+    const at = index < FIELDS_PLACED && value.length <= PLACED_VALUE ? onceAsWords(text, value) : -1;
+    if (at >= 0) text = `${text.slice(0, at)}${label}${text.slice(at + value.length)}`;
+    else after.push(label);
+  });
+  return { text, after };
+}
+
+/** Where `value` occurs in `text` with no letter or digit on either side, when it does so exactly once; else -1. */
+function onceAsWords(text: string, value: string): number {
+  const word = /[\p{L}\p{N}]/u;
+  let found = -1;
+  for (let at = text.indexOf(value); at !== -1; at = text.indexOf(value, at + 1)) {
+    if (word.test(text[at - 1] ?? "") || word.test(text[at + value.length] ?? "")) continue;
+    if (found !== -1) return -1;
+    found = at;
+  }
+  return found;
+}
+
+/**
+ * Each attached file as `[Attachment, name: description]`, with its text and
+ * an end line when it is a text file, as an e-mail's attachments are named.
+ * Any other is named, marked "not included", and counted.
+ */
+function attachmentLines(files: readonly PdfAttachment[]): { lines: string[]; skipped: number } {
+  const fold = (value = "") => value.replace(/\s+/g, " ").trim();
+  let skipped = 0;
+  const lines = files.map((file) => {
+    const name = fold(file.name).slice(0, 255) || "unnamed";
+    const description = fold(file.description).slice(0, 1000);
+    const label = `[Attachment, ${name}${description ? `: ${description}` : ""}]`;
+    if (file.text !== undefined) return file.text.trim() ? `${label}\n${file.text.trim()}\n[End of attachment, ${name}]` : label;
+    skipped++;
+    return `${label} (not included)`;
+  });
+  return { lines, skipped };
 }
 
 /**

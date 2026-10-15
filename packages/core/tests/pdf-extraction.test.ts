@@ -278,6 +278,37 @@ describe("replacePages", () => {
 describe("assemblePdfPages", () => {
   const fence = "```text\n\n```";
 
+  it("labels a field's value where the page shows it once, and writes the rest and check boxes after the page", () => {
+    const { text } = assemblePdfPages([
+      {
+        number: 1,
+        text: "Name: Ada Lovelace\n\nCity: Ada",
+        fields: [
+          { name: "Full name", value: "Ada Lovelace" },
+          { name: "First", value: "Ada" },
+          { name: "Agree", value: true },
+          { name: "Opt out", value: false },
+          { name: "Notes", value: "  " },
+        ],
+      },
+    ]);
+    expect(text).toBe(
+      "# Page 1\nName: [Form field, Full name: Ada Lovelace]\n\nCity: Ada\n\n[Form field, First: Ada]\n[Form field, Agree: [x]]\n[Form field, Opt out: [ ]]",
+    );
+  });
+
+  it("writes a page's attached files after it and the document's under their own heading, counting the unread", () => {
+    const { text, notes } = assemblePdfPages(
+      [{ number: 1, text: "Body.", attachments: [{ name: "notes.txt", description: "Reviewer notes", text: "Line one.\n" }] }],
+      0,
+      [{ name: "data.bin" }, { name: "empty.txt", text: "" }],
+    );
+    expect(text).toBe(
+      "# Page 1\nBody.\n\n[Attachment, notes.txt: Reviewer notes]\nLine one.\n[End of attachment, notes.txt]\n\n# Attached files\n[Attachment, data.bin] (not included)\n[Attachment, empty.txt]",
+    );
+    expect(notes).toEqual([{ kind: "attachments-skipped", count: 1 }]);
+  });
+
   it("keeps the first copy of a running header and drops page-number footers", () => {
     // liteparse's own stripping drops every copy, title or marking included, so
     // the reader keeps them and the rule officeparser's PDFs get runs here.

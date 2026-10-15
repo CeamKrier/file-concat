@@ -1,6 +1,6 @@
 import { strToU8, zlibSync } from "fflate";
 import { describe, expect, it } from "vitest";
-import { noteLayersOff, pdfLayersOff } from "../src/file-processing/parsers/pdf-layers";
+import { noteLayersOff, pdfLayersOff, pdfMayHoldFormsOrFiles } from "../src/file-processing/parsers/pdf-layers";
 
 const catalog = (off: string) =>
   `<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [19 0 R 20 0 R] /D << /ON [20 0 R] /OFF ${off} >> >> >>`;
@@ -50,5 +50,14 @@ describe("noteLayersOff", () => {
     });
     expect(noteLayersOff({ text: "" }, bytes)).toEqual({ text: "" });
     expect(noteLayersOff({ text: "Body" }, pdf(catalog("[]")))).toEqual({ text: "Body" });
+  });
+});
+
+describe("pdfMayHoldFormsOrFiles", () => {
+  it("finds a form or an attached file in the file or in an object stream, and nothing in a plain PDF", () => {
+    expect(pdfMayHoldFormsOrFiles(pdf("<< /Type /Catalog /AcroForm 9 0 R >>"))).toBe(true);
+    expect(pdfMayHoldFormsOrFiles(inObjectStream("<< /Names << /EmbeddedFiles 9 0 R >> >>"))).toBe(true);
+    expect(pdfMayHoldFormsOrFiles(pdf("<< /Type /Annot /Subtype /FileAttachment >>"))).toBe(true);
+    expect(pdfMayHoldFormsOrFiles(pdf(catalog("[]")))).toBe(false);
   });
 });

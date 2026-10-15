@@ -6,8 +6,8 @@ export {
   isPasswordProtected,
   replacePages,
 } from "./officeparser";
-export type { OcrOptions, OfficeParserOptions, PdfPage } from "./officeparser";
-export { noteLayersOff } from "./pdf-layers";
+export type { OcrOptions, OfficeParserOptions, PdfAttachment, PdfPage } from "./officeparser";
+export { noteLayersOff, pdfMayHoldFormsOrFiles } from "./pdf-layers";
 export { pdfTitle, rtfTitle, withTitle } from "./title";
 export { withoutHiddenText } from "./office-hidden";
 export { withRtfComments } from "./rtf-comments";
