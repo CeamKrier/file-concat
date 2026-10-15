@@ -1,0 +1,46 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 6 0 R >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 7 0 R >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<<  /Length 202 >>
+stream
+BT /F1 11 Tf 72 720 Td (QZTRTHREECTL visible line above.) Tj ET
+q BT /F1 11 Tf 72 700 Td 3 Tr (QZTRTHREEALONE invisible line without a picture) Tj ET Q
+BT /F1 11 Tf 72 680 Td (visible line below.) Tj ET
+endstream
+endobj
+7 0 obj
+<<  /Length 56 >>
+stream
+BT /F1 11 Tf 72 700 Td (second page visible line.) Tj ET
+endstream
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000127 00000 n 
+0000000253 00000 n 
+0000000379 00000 n 
+0000000476 00000 n 
+0000000730 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R /ID [<7064662d7472332e7064660000000000> <7064662d7472332e7064660000000000>] >>
+startxref
+837
+%%EOF

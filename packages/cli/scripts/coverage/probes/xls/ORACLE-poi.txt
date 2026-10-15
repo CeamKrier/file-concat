@@ -1,0 +1,786 @@
+##### 44010-SingleChart.xls
+2026-10-14T18:04:12.705107555Z main ERROR Log4j API could not find a logging provider.
+SHEET auto_1 visibility=VISIBLE header=[||] footer=[||]
+  MERGED A1:A2
+  MERGED B1:B2
+  MERGED C1:C2
+  MERGED D1:D2
+  TEXTBOX Les calculs d'allongement devront être reportés ici
+  TEXTBOX Les calculs d'allongement devront être reportés ici
+  TEXTBOX Les calculs d'allongement devront être reportés ici
+  TEXTBOX Les calculs d'allongement devront être reportés ici
+  TEXTBOX Les calculs d'allongement devront être reportés ici
+  TEXTBOX Les calculs d'allongement devront être reportés ici
+SHEET Graph2 visibility=VISIBLE header=[||] footer=[||]
+  CHART title=TEST
+    SERIES title=Nombre de cycles
+    SERIES title=taux
+NAME Print_Area = auto_1!#REF!
+TITLE null
+EXTRACTOR
+auto_1
+Programme	Crayon	Nombre de cycles	taux	Allongement (%)	
+Mesuré	Prédit RAD	Ecart 0.005	Nbr mesure	15 % BPZ	
+FSH-PWS1.72	C18	4	46.4	0.70	0.77	ECART	1	0	
+FSH-PWS1.72	C06	4	46.5	0.65	0.75	ECART	1	0	
+FSH-PWS1.72	C05	4	47.8	0.53	0.78	ECART	1	0	
+FSH-PWS1.72	C09	4	48.3	0.48	0.80	ECART	1	0	
+FSH-PWS1.72	C07	5	55.7	0.77	0.99	ECART	1	0	
+FSH-PWS1.72	C12	5	56.9	0.74	1.02	ECART	1	0	
+FSH-PWS1.72	C20	5	57.8	0.82	1.06	ECART	1	0	
+FSH-PWS1.72	C13	5	58.1	0.59	1.05	ECART	1	0	
+
+
+Graph2
+
+4	46.4
+4	46.5
+4	47.8
+4	48.3
+5	55.7
+5	56.9
+5	57.8
+5	58.1
+
+##### 45538_classic_Footer.xls
+SHEET Profile of Class visibility=VISIBLE header=[||] footer=[testdoc|test phrase|]
+SHEET Hires by Function visibility=VISIBLE header=[||] footer=[&F||]
+SHEET Top Six Functions visibility=VISIBLE header=[||] footer=[&F||]
+  CHART title=null
+    SERIES title=Top Six Functions - Intern
+SHEET Hires by Industry visibility=VISIBLE header=[||] footer=[&F||]
+SHEET Top Five Industries visibility=VISIBLE header=[||] footer=[&F||]
+  CHART title=null
+    SERIES title=Top Five Industries - Intern
+SHEET Hires by Location visibility=VISIBLE header=[||] footer=[&F||]
+SHEET Job Source visibility=VISIBLE header=[||] footer=[testdoc|test phrase|]
+TITLE null
+EXTRACTOR
+Profile of Class
+The University of Chicago Graduate School of Business
+Employment Statistics:  2005-2006
+ 
+Profile of the Class of 2007
+September 11, 2006
+
+Class Profile for First-Year Full-Time MBA, Joint Degree, and IMBA Students	
+Employment Profile	Percent	Number
+of Class	of Students
+Seeking Employment	93.8%	532
+Not Seeking Employment	6.2%	35
+Continuing education	3.4%	19
+Self employed/founding business	1.2%	7
+Sponsored student	1.1%	6
+Postponing job search	0.2%	1
+Other Reasons	0.4%	2
+
+Not Responding to Survey	0.0%	0
+
+First-Year Students	100.0%	567
+Job Offers(1)	
+U.S. Citizens/Permanent Residents	99.4%	
+Foreign Nationals	100.0%	
+Total	99.6%	
+
+
+Job Acceptances(1)	
+U.S. Citizens/Permanent Residents	99.4%	
+Foreign Nationals	100.0%	
+Total	99.6%	
+Demographic Profile(2)	
+Mean Age	28	
+Mean Years of Work Experience	5	
+Female	28.0%	
+International	32.0%	
+Married	24.0%	
+(1)  Represents percent of students who are seeking employment.	
+(2)  Demographic information is based on full-time MBA students matriculating	
+    in September 2005.	
+
+
+ 
+kdflsqkdfskjfmlskjflm jkjlmk	qsdfmlksjlmdfk
+testdoc	test phrase	
+Hires by Function
+The University of Chicago Graduate School of Business	
+Employment Statistics - 2005-2006	
+
+New Hires by Function - Intern	
+September 11, 2006	
+Function	Percent	Number	Minimum	Maximum	Median
+of Hires	of Hires(1)	Monthly	Monthly	Monthly
+Salary(2) 	Salary(2) 	Salary(2) 
+Business Development	2.4%	13	$2,300	$8,300	$5,600
+Consulting	16.4%	89	$1,000	$12,800	$9,500
+Finance	59.5%	323	$900	$13,900	$7,916
+Finance - Company Finance (Analysis/Treasury)	9.0%	49	$2,400	$8,400	$6,000
+Finance - Investment Banking	21.7%	118	$900	$10,000	$7,917
+Finance - Investment Management/Research	11.8%	64	$1,000	$13,235	$7,917
+Finance - Private Client Services	1.1%	6	$7,300	$8,000	$7,900
+Finance - Real Estate	0.7%	4	Insufficient(2)	
+Finance - Sales and Trading	9.0%	49	$5,000	$13,900	$7,917
+Finance - Venture Capital/Private Equity	6.1%	33	$1,000	$9,000	$4,500
+General Management	4.6%	25	$3,200	$7,500	$6,055
+Human Resources	0.7%	4	Insufficient(2)	
+Information Systems - Management	0.7%	4	Insufficient(2)	
+Marketing	10.1%	55	$1,300	$7,916	$5,600
+Marketing - Advertising/Communications	1.1%	6	$2,000	$7,000	$5,888
+Marketing - Brand/Product Management	7.2%	39	$1,300	$7,916	$5,600
+Marketing - Research	1.8%	10	$2,600	$7,550	$5,300
+Strategic Planning	4.8%	26	$1,000	$12,000	$5,400
+Other	0.7%	4	Insufficient(2)	
+Total	100.0%	543	$900	$13,900	$7,600
+(1)   Eleven students in the Class of 2007 reported having two internships; one student had three internships.	
+(2)   Compensation information is self-reported. Insufficient data indicates less than 1% reporting for all accepted offers.	
+(3)  Bonus information: 24% of accepted offers reported in the consulting function received a sign-on bonus, for which the 
+    median bonus was $5,000.
+
+&F		
+Top Six Functions
+The University of Chicago Graduate School of Business	
+Employment Statistics:  2005-2006	
+Top Six Functions - Intern	
+September 11, 2006	
+Function	Percent of Hires	Number of Hires(1)
+Top Six Functions	78.1%	424
+Finance - Investment Banking	21.7%	118
+Consulting	16.4%	89
+Finance - Investment Management/ Research	11.8%	64
+Marketing	10.1%	55
+Finance - Company Finance (Analysis/ Treasury)	9.0%	49
+Finance - Sales and Trading	9.0%	49
+All Others	21.9%	119
+Total	100.0%	543
+(1)   Eleven students in the Class of 2007 reported having 2 internships; one student had 3 internships.	
+
+&F		
+Hires by Industry
+The University of Chicago Graduate School of Business	
+Employment Statistics:  2005-2006	
+
+New Hires by Industry - Intern	
+September 11, 2006	
+Industry	Percent	Number	Minimum	Maximum	Median
+of Hires	of Hires(1)	Monthly	Monthly	Monthly
+Salary(2) 	Salary(2) 	Salary(2) 
+Consulting	16.9%	92	$4,333	$12,800	$9,500
+Consumer Packaged Goods	5.5%	30	$4,400	$7,500	$5,650
+Entertainment/Leisure	0.9%	5	Insufficient(2)	
+Financial Services	53.0%	288	$900	$13,900	$7,916
+Financial Services - Commercial Banking	1.3%	7	$2,500	$7,916	$6,500
+Financial Services - Diversified Financial Services	6.8%	37	$2,000	$8,000	$7,200
+Financial Services - Insurance	0.4%	2	Insufficient(2)	
+Financial Services - Investment Banking/Brokerage	29.8%	162	$1,000	$13,900	$7,917
+Financial Services - Investment Management	9.6%	52	$1,000	$13,235	$7,796
+Financial Services - Venture Capital/Private Equity	5.2%	28	$900	$8,500	$4,800
+Government/Nonprofit	1.1%	6	$2,300	$4,400	$3,040
+Manufacturing  	3.5%	19	$1,583	$10,000	$6,000
+Petroleum/Energy	2.4%	13	$1,300	$7,550	$6,000
+Pharmaceutical/Biotechnology/Healthcare Services	3.3%	18	$5,200	$7,550	$6,675
+Retail	1.5%	8	$2,500	$6,000	$5,470
+Technology	7.4%	40	$1,400	$8,400	$5,717
+Computer-Related Services	1.3%	7	$2,000	$7,083	$6,000
+E-Commerce and Internet	1.1%	6	$4,000	$8,300	$6,650
+Electronic Equipment	3.5%	19	$1,400	$8,400	$5,600
+Software/Printing/Publishing	0.9%	5	Insufficient(2)	
+Telecommunications	0.6%	3	Insufficient(2)	
+Transportation Services/Equipment	1.1%	6	$4,850	$12,000	$5,946
+Other	3.3%	18	$1,000	$10,400	$4,700
+Total	100.0%	543	$900	$13,900	$7,600
+(1)   Eleven students in the Class of 2007 reported having two internships; one student had three internships.	
+(2)   Compensation information is self-reported. Insufficient data indicates less than 1% reporting for all accepted offers. 	
+(3)  Bonus information: 23% of accepted offers reported in the consulting industry received a sign-on bonus, for which the 	
+    median bonus was $5,000.	
+
+&F		
+Top Five Industries
+The University of Chicago Graduate School of Business
+Employment Statistics:  2005-2006
+Top Five Industries - Intern	
+September 11, 2006	
+Industry	Percent of Hires	Number of Hires(1)	
+Top Five Industries	70.5%	383
+Financial Services - Investment Banking/Brokerage	29.8%	162
+Consulting	16.9%	92
+Financial Services - Investment Management	9.6%	52
+Technology	7.4%	40
+Financial Services - Diversified Financial Services	6.8%	37
+All Others	29.5%	160
+Total	100.0%	543
+(1)   Eleven students in the Class of 2007 reported having 2 internships; one student had 3 internships.	
+
+
+
+
+
+&F		
+Hires by Location
+The University of Chicago Graduate School of Business	
+Employment Statistics:  2005-2006	
+
+New Hires by Location - Intern	
+September 11, 2006	
+Region	Percent	Number	Median
+of Hires	of Hires(1)	Monthly
+Salary(2)
+United States	78.1%	424	$7,550
+
+Midwest	36.1%	196	$6,021
+Chicago	29.7%	161	$6,000
+Minneapolis	1.8%	10	$6,460
+
+Northeast	27.4%	149	$7,917
+New York City	24.1%	131	$7,917
+Boston	3.1%	17	$7,500
+
+West	9.6%	52	$7,000	
+San Francisco	4.6%	25	$7,550	
+Los Angeles	2.8%	15	$7,600	
+
+Southwest	1.8%	10	$9,500	
+Dallas	1.1%	6	$9,500	
+
+Mid-Atlantic	1.7%	9	$7,346	
+
+South	1.5%	8	$6,750	
+
+International	21.9%	119	$7,916
+
+Asia	10.9%	59	$7,916	
+Hong Kong	3.3%	18	$7,919	
+Tokyo	2.6%	14	$7,500	
+Seoul	2.0%	11	$8,800	
+
+Europe	9.2%	50	$8,355	
+London	7.7%	42	$8,372	
+
+Latin America and the Caribbean	1.5%	8	$5,300	
+
+Africa	0.2%	1	Insufficient(2)	
+
+North America	0.2%	1	Insufficient(2)	
+
+TOTAL	100.0%	543	$7,600
+(1)   Eleven students in the Class of 2007 reported having 2 internships; one student had 3 internships.
+(2)   Compensation information is self-reported. Insufficient data indicates less than 1% reporting for all accepted offers.
+
+&F		
+Job Source
+The University of Chicago Graduate School of Business
+Employment Statistics:  2005-2006
+New Hires by Job Source - Intern
+September 11, 2006
+
+Method of Hire	Percent	Number
+Of Hires	Of Hires(1)
+School Facilitated	93.2%	506	
+Interview on campus - invite schedule	48.1%	261
+Interview on campus - open schedule	13.6%	74
+Other GSB source (e.g., faculty/staff/student groups)	11.2%	61
+Off-campus interview sourced through the GSB	10.5%	57
+Job Postings/Resume Referral Service	6.6%	36
+Alumni contact	1.8%	10
+School-sponsored career fair 	1.3%	7
+
+Direct Contact with Company (2)	6.8%	37	
+Prior business contact	3.1%	17
+Personal/family contact	2.0%	11
+Letter campaign	1.7%	9
+
+Total	100.0%	543
+(1)   Eleven students in the Class of 2007 reported having two internships; one student had three internships.
+
+testdoc	test phrase	
+
+##### 45538_classic_Header.xls
+SHEET Profile of Class visibility=VISIBLE header=[|testdoc|test phrase] footer=[||]
+SHEET Hires by Function visibility=VISIBLE header=[||] footer=[&F||]
+SHEET Top Six Functions visibility=VISIBLE header=[||] footer=[&F||]
+  CHART title=null
+    SERIES title=Top Six Functions - Intern
+SHEET Hires by Industry visibility=VISIBLE header=[||] footer=[&F||]
+SHEET Top Five Industries visibility=VISIBLE header=[||] footer=[&F||]
+  CHART title=null
+    SERIES title=Top Five Industries - Intern
+SHEET Hires by Location visibility=VISIBLE header=[||] footer=[&F||]
+SHEET Job Source visibility=VISIBLE header=[testdoc||test phrase] footer=[||]
+TITLE null
+EXTRACTOR
+Profile of Class
+testdoc	test phrase
+The University of Chicago Graduate School of Business
+Employment Statistics:  2005-2006
+ 
+Profile of the Class of 2007
+September 11, 2006
+
+Class Profile for First-Year Full-Time MBA, Joint Degree, and IMBA Students	
+Employment Profile	Percent	Number
+of Class	of Students
+Seeking Employment	93.8%	532
+Not Seeking Employment	6.2%	35
+Continuing education	3.4%	19
+Self employed/founding business	1.2%	7
+Sponsored student	1.1%	6
+Postponing job search	0.2%	1
+Other Reasons	0.4%	2
+
+Not Responding to Survey	0.0%	0
+
+First-Year Students	100.0%	567
+Job Offers(1)	
+U.S. Citizens/Permanent Residents	99.4%	
+Foreign Nationals	100.0%	
+Total	99.6%	
+
+
+Job Acceptances(1)	
+U.S. Citizens/Permanent Residents	99.4%	
+Foreign Nationals	100.0%	
+Total	99.6%	
+Demographic Profile(2)	
+Mean Age	28	
+Mean Years of Work Experience	5	
+Female	28.0%	
+International	32.0%	
+Married	24.0%	
+(1)  Represents percent of students who are seeking employment.	
+(2)  Demographic information is based on full-time MBA students matriculating	
+    in September 2005.	
+
+
+ 
+kdflsqkdfskjfmlskjflm jkjlmk	qsdfmlksjlmdfk
+Hires by Function
+The University of Chicago Graduate School of Business	
+Employment Statistics - 2005-2006	
+
+New Hires by Function - Intern	
+September 11, 2006	
+Function	Percent	Number	Minimum	Maximum	Median
+of Hires	of Hires(1)	Monthly	Monthly	Monthly
+Salary(2) 	Salary(2) 	Salary(2) 
+Business Development	2.4%	13	$2,300	$8,300	$5,600
+Consulting	16.4%	89	$1,000	$12,800	$9,500
+Finance	59.5%	323	$900	$13,900	$7,916
+Finance - Company Finance (Analysis/Treasury)	9.0%	49	$2,400	$8,400	$6,000
+Finance - Investment Banking	21.7%	118	$900	$10,000	$7,917
+Finance - Investment Management/Research	11.8%	64	$1,000	$13,235	$7,917
+Finance - Private Client Services	1.1%	6	$7,300	$8,000	$7,900
+Finance - Real Estate	0.7%	4	Insufficient(2)	
+Finance - Sales and Trading	9.0%	49	$5,000	$13,900	$7,917
+Finance - Venture Capital/Private Equity	6.1%	33	$1,000	$9,000	$4,500
+General Management	4.6%	25	$3,200	$7,500	$6,055
+Human Resources	0.7%	4	Insufficient(2)	
+Information Systems - Management	0.7%	4	Insufficient(2)	
+Marketing	10.1%	55	$1,300	$7,916	$5,600
+Marketing - Advertising/Communications	1.1%	6	$2,000	$7,000	$5,888
+Marketing - Brand/Product Management	7.2%	39	$1,300	$7,916	$5,600
+Marketing - Research	1.8%	10	$2,600	$7,550	$5,300
+Strategic Planning	4.8%	26	$1,000	$12,000	$5,400
+Other	0.7%	4	Insufficient(2)	
+Total	100.0%	543	$900	$13,900	$7,600
+(1)   Eleven students in the Class of 2007 reported having two internships; one student had three internships.	
+(2)   Compensation information is self-reported. Insufficient data indicates less than 1% reporting for all accepted offers.	
+(3)  Bonus information: 24% of accepted offers reported in the consulting function received a sign-on bonus, for which the 
+    median bonus was $5,000.
+
+&F		
+Top Six Functions
+The University of Chicago Graduate School of Business	
+Employment Statistics:  2005-2006	
+Top Six Functions - Intern	
+September 11, 2006	
+Function	Percent of Hires	Number of Hires(1)
+Top Six Functions	78.1%	424
+Finance - Investment Banking	21.7%	118
+Consulting	16.4%	89
+Finance - Investment Management/ Research	11.8%	64
+Marketing	10.1%	55
+Finance - Company Finance (Analysis/ Treasury)	9.0%	49
+Finance - Sales and Trading	9.0%	49
+All Others	21.9%	119
+Total	100.0%	543
+(1)   Eleven students in the Class of 2007 reported having 2 internships; one student had 3 internships.	
+
+&F		
+Hires by Industry
+The University of Chicago Graduate School of Business	
+Employment Statistics:  2005-2006	
+
+New Hires by Industry - Intern	
+September 11, 2006	
+Industry	Percent	Number	Minimum	Maximum	Median
+of Hires	of Hires(1)	Monthly	Monthly	Monthly
+Salary(2) 	Salary(2) 	Salary(2) 
+Consulting	16.9%	92	$4,333	$12,800	$9,500
+Consumer Packaged Goods	5.5%	30	$4,400	$7,500	$5,650
+Entertainment/Leisure	0.9%	5	Insufficient(2)	
+Financial Services	53.0%	288	$900	$13,900	$7,916
+Financial Services - Commercial Banking	1.3%	7	$2,500	$7,916	$6,500
+Financial Services - Diversified Financial Services	6.8%	37	$2,000	$8,000	$7,200
+Financial Services - Insurance	0.4%	2	Insufficient(2)	
+Financial Services - Investment Banking/Brokerage	29.8%	162	$1,000	$13,900	$7,917
+Financial Services - Investment Management	9.6%	52	$1,000	$13,235	$7,796
+Financial Services - Venture Capital/Private Equity	5.2%	28	$900	$8,500	$4,800
+Government/Nonprofit	1.1%	6	$2,300	$4,400	$3,040
+Manufacturing  	3.5%	19	$1,583	$10,000	$6,000
+Petroleum/Energy	2.4%	13	$1,300	$7,550	$6,000
+Pharmaceutical/Biotechnology/Healthcare Services	3.3%	18	$5,200	$7,550	$6,675
+Retail	1.5%	8	$2,500	$6,000	$5,470
+Technology	7.4%	40	$1,400	$8,400	$5,717
+Computer-Related Services	1.3%	7	$2,000	$7,083	$6,000
+E-Commerce and Internet	1.1%	6	$4,000	$8,300	$6,650
+Electronic Equipment	3.5%	19	$1,400	$8,400	$5,600
+Software/Printing/Publishing	0.9%	5	Insufficient(2)	
+Telecommunications	0.6%	3	Insufficient(2)	
+Transportation Services/Equipment	1.1%	6	$4,850	$12,000	$5,946
+Other	3.3%	18	$1,000	$10,400	$4,700
+Total	100.0%	543	$900	$13,900	$7,600
+(1)   Eleven students in the Class of 2007 reported having two internships; one student had three internships.	
+(2)   Compensation information is self-reported. Insufficient data indicates less than 1% reporting for all accepted offers. 	
+(3)  Bonus information: 23% of accepted offers reported in the consulting industry received a sign-on bonus, for which the 	
+    median bonus was $5,000.	
+
+&F		
+Top Five Industries
+The University of Chicago Graduate School of Business
+Employment Statistics:  2005-2006
+Top Five Industries - Intern	
+September 11, 2006	
+Industry	Percent of Hires	Number of Hires(1)	
+Top Five Industries	70.5%	383
+Financial Services - Investment Banking/Brokerage	29.8%	162
+Consulting	16.9%	92
+Financial Services - Investment Management	9.6%	52
+Technology	7.4%	40
+Financial Services - Diversified Financial Services	6.8%	37
+All Others	29.5%	160
+Total	100.0%	543
+(1)   Eleven students in the Class of 2007 reported having 2 internships; one student had 3 internships.	
+
+
+
+
+
+&F		
+Hires by Location
+The University of Chicago Graduate School of Business	
+Employment Statistics:  2005-2006	
+
+New Hires by Location - Intern	
+September 11, 2006	
+Region	Percent	Number	Median
+of Hires	of Hires(1)	Monthly
+Salary(2)
+United States	78.1%	424	$7,550
+
+Midwest	36.1%	196	$6,021
+Chicago	29.7%	161	$6,000
+Minneapolis	1.8%	10	$6,460
+
+Northeast	27.4%	149	$7,917
+New York City	24.1%	131	$7,917
+Boston	3.1%	17	$7,500
+
+West	9.6%	52	$7,000	
+San Francisco	4.6%	25	$7,550	
+Los Angeles	2.8%	15	$7,600	
+
+Southwest	1.8%	10	$9,500	
+Dallas	1.1%	6	$9,500	
+
+Mid-Atlantic	1.7%	9	$7,346	
+
+South	1.5%	8	$6,750	
+
+International	21.9%	119	$7,916
+
+Asia	10.9%	59	$7,916	
+Hong Kong	3.3%	18	$7,919	
+Tokyo	2.6%	14	$7,500	
+Seoul	2.0%	11	$8,800	
+
+Europe	9.2%	50	$8,355	
+London	7.7%	42	$8,372	
+
+Latin America and the Caribbean	1.5%	8	$5,300	
+
+Africa	0.2%	1	Insufficient(2)	
+
+North America	0.2%	1	Insufficient(2)	
+
+TOTAL	100.0%	543	$7,600
+(1)   Eleven students in the Class of 2007 reported having 2 internships; one student had 3 internships.
+(2)   Compensation information is self-reported. Insufficient data indicates less than 1% reporting for all accepted offers.
+
+&F		
+Job Source
+testdoc		test phrase
+The University of Chicago Graduate School of Business
+Employment Statistics:  2005-2006
+New Hires by Job Source - Intern
+September 11, 2006
+
+Method of Hire	Percent	Number
+Of Hires	Of Hires(1)
+School Facilitated	93.2%	506	
+Interview on campus - invite schedule	48.1%	261
+Interview on campus - open schedule	13.6%	74
+Other GSB source (e.g., faculty/staff/student groups)	11.2%	61
+Off-campus interview sourced through the GSB	10.5%	57
+Job Postings/Resume Referral Service	6.6%	36
+Alumni contact	1.8%	10
+School-sponsored career fair 	1.3%	7
+
+Direct Contact with Company (2)	6.8%	37	
+Prior business contact	3.1%	17
+Personal/family contact	2.0%	11
+Letter campaign	1.7%	9
+
+Total	100.0%	543
+(1)   Eleven students in the Class of 2007 reported having two internships; one student had three internships.
+
+
+##### 45761.xls
+SHEET VisibleSheet visibility=VISIBLE header=[||] footer=[||]
+SHEET HiddenSheet visibility=HIDDEN header=[||] footer=[||]
+SHEET VeryHiddenSheet visibility=VERY_HIDDEN header=[||] footer=[||]
+TITLE null
+EXTRACTOR
+VisibleSheet
+Visible
+HiddenSheet
+Hidden
+VeryHiddenSheet
+Very Hidden
+
+##### 60405.xls
+SHEET MyWB visibility=VISIBLE header=[||] footer=[||]
+SHEET Macro1 visibility=VISIBLE header=[||] footer=[||]
+NAME Consolidate_Area = Macro1!$B$1
+NAME Macro1 = Macro1!$A$1
+NAME Macro2 = Macro1!$A$8
+NAME Macro3 = Macro1!$A$15
+NAME Recover = Macro1!$A$23
+NAME TableName = "Dummy"
+TITLE null
+EXTRACTOR
+MyWB
+MyWB meeting  28-MAY-13
+Col1	Col2	Col3	Col4	Col5	Col6	Col7
+1241574	0020537	In Progress	User1	NullPointerException during build	-	Severe
+1241570	0020528	In Progress	User1	Add functionality to automatically insert history comment in a file	-	Standard
+Macro1
+Macro1	Auto_Open
+0	true
+0	false
+0	true
+0	true
+true	0
+0
+Macro2	0
+0	0
+0	0
+0	0
+0	0
+true	0
+false
+Macro3	0
+false	false
+0	false
+0	0
+0	false
+0	true
+true
+Recover
+false
+true
+
+##### DrawingAndComments.xls
+SHEET Sheet1 visibility=VISIBLE header=[||] footer=[||]
+  COMMENT B4 author=evgeniy text=evgeniy:
+dbgdfbtgbfdgb
+  COMMENT C6 author=evgeniy text=evgeniy:
+21313213sfdf
+  COMMENT F7 author=evgeniy text=evgeniy:
+1sdasdadsas
+sdasd
+SHEET Sheet2 visibility=VISIBLE header=[||] footer=[||]
+SHEET Sheet3 visibility=VISIBLE header=[||] footer=[||]
+TITLE null
+EXTRACTOR
+Sheet1
+fsdf
+f
+fsd Comment by evgeniy: evgeniy: dbgdfbtgbfdgb
+sdfsd
+sdf Comment by evgeniy: evgeniy: 21313213sfdf
+sd Comment by evgeniy: evgeniy: 1sdasdadsas sdasd
+sdfs
+Sheet2
+Sheet3
+
+##### Formatting.xls
+SHEET Sheet1 visibility=VISIBLE header=[||] footer=[||]
+SHEET Sheet2 visibility=VISIBLE header=[||] footer=[||]
+SHEET Sheet3 visibility=VISIBLE header=[||] footer=[||]
+TITLE null
+EXTRACTOR
+Sheet1
+Dates, all 24th November 2006
+dd/mm/yyyy	11/24/06
+yyyy/mm/dd	2006/11/24
+yyyy-mm-dd	2006-11-24
+yy/mm/dd	06/11/24
+dd/mm/yy	24/11/06
+dd-mm-yy	24-11-06
+
+Numbers, all 10.52
+nn.nn	10.52
+nn.nnn	10.520
+nn.n	10.5
+£nn.nn	£10.52
+Sheet2
+Sheet3
+
+##### SimpleWithComments.xls
+SHEET Sheet1 visibility=VISIBLE header=[||] footer=[||]
+  COMMENT B1 author=Yegor Kozlov text=Yegor Kozlov:
+first cell
+  COMMENT B2 author=Yegor Kozlov text=Yegor Kozlov:
+second cell
+  COMMENT B3 author=Yegor Kozlov text=Yegor Kozlov:
+third cell
+SHEET Sheet2 visibility=VISIBLE header=[||] footer=[||]
+SHEET Sheet3 visibility=VISIBLE header=[||] footer=[||]
+TITLE null
+EXTRACTOR
+Sheet1
+1	one Comment by Yegor Kozlov: Yegor Kozlov: first cell
+2	two Comment by Yegor Kozlov: Yegor Kozlov: second cell
+3	three Comment by Yegor Kozlov: Yegor Kozlov: third cell
+Sheet2
+Sheet3
+
+##### StringFormulas.xls
+SHEET Sheet1 visibility=VISIBLE header=[||] footer=[||]
+SHEET Sheet2 visibility=VISIBLE header=[||] footer=[||]
+SHEET Sheet3 visibility=VISIBLE header=[||] footer=[||]
+TITLE null
+EXTRACTOR
+Sheet1
+XYZ
+Sheet2
+Sheet3
+
+##### TwoSheetsOneHidden.xls
+SHEET Sheet1 visibility=HIDDEN header=[||] footer=[||]
+SHEET Sheet2 visibility=VISIBLE header=[||] footer=[||]
+TITLE null
+EXTRACTOR
+Sheet1
+Sheet1A1
+Sheet2
+Sheet2A1
+
+##### WithChart.xls
+SHEET Sheet1 visibility=VISIBLE header=[||] footer=[||]
+SHEET Sheet2 visibility=VISIBLE header=[||] footer=[||]
+  CHART title=null
+    SERIES title=1st Column
+    SERIES title=2nd Column
+SHEET Sheet3 visibility=VISIBLE header=[||] footer=[||]
+TITLE null
+EXTRACTOR
+Sheet1
+1	10
+2	12
+3	14
+4	9
+5	15
+6	17
+Sheet2
+Sheet3
+
+##### WithHyperlink.xls
+SHEET Sheet1 visibility=VISIBLE header=[||] footer=[||]
+  LINK A5 -> http://poi.apache.org/
+SHEET Sheet2 visibility=VISIBLE header=[||] footer=[||]
+SHEET Sheet3 visibility=VISIBLE header=[||] footer=[||]
+TITLE null
+EXTRACTOR
+Sheet1
+Simple Spreadsheet	Has Links
+Label is Foo
+URL is http://poi.apache.org/
+Foo
+Sheet2
+Sheet3
+
+##### gen-xls-coverage.xls
+SHEET QZSHEETMAIN visibility=VISIBLE header=[QZHDRLEFT|Page &P of &N|QZHDRRIGHT] footer=[|QZFOOTER &D|]
+  HIDDENCOLCELL J1
+  LINK B3 -> https://example.com/QZLINKTARGET
+  HIDDENROW 5
+  COMMENT A3 author=QZAUTHOR text=QZCOMMENT
+  MERGED A4:C5
+  TEXTBOX QZTEXTBOX
+SHEET QZHIDDENSHEET visibility=HIDDEN header=[||] footer=[||]
+SHEET QZVHIDDENSHEET visibility=VERY_HIDDEN header=[||] footer=[||]
+SHEET QZLASTSHEET visibility=VISIBLE header=[||] footer=[||]
+NAME QZDEFNAME = QZSHEETMAIN!$A$1
+TITLE QZDOCTITLE
+EXTRACTOR
+QZSHEETMAIN
+QZHDRLEFT	Page &P of &N	QZHDRRIGHT
+QZSHAREDSTR	QZRICHA QZRICHB	QZUNICODE Ç日本€	QZFORMULASTR	QZFORMRESULT	12345	#DIV/0!	true	QZHIDDENCOL	QZAFTERHIDDENCOL
+43.21%	3/15/23	2023-03-15	13579.0	42 QZUNITS	$1,234.50	true
+QZCOMMENTEDCELL Comment by QZAUTHOR: QZCOMMENT	QZLINKDISPLAY	QZDVCELL
+QZMERGED	QZAFTERMERGE
+QZHIDDENROW
+QZAFTERHIDDENROW
+QZLONGSTART<lorem>QZLONGEND
+QZFOOTER &D	
+QZHIDDENSHEET
+QZHIDDENCELL
+QZVHIDDENSHEET
+QZVHIDDENCELL
+QZLASTSHEET
+QZLASTCELL
+
+##### password.xls
+ERROR org.apache.poi.EncryptedDocumentException: Default password is invalid for salt/verifier/verifierHash
+##### testEXCEL.xls
+SHEET Feuil1 visibility=VISIBLE header=[||] footer=[||]
+SHEET Feuil2 visibility=VISIBLE header=[||] footer=[||]
+SHEET Feuil3 visibility=VISIBLE header=[||] footer=[||]
+TITLE Simple Excel document
+EXTRACTOR
+Feuil1
+Sample Excel Worksheet - Numbers and their Squares	
+Number	Square	
+1	1	
+2	4	
+3	9	
+4	16	
+5	25	
+6	36	
+7	49	
+8	64	
+9	81	
+10	100	
+11	121	
+12	144
+13	169
+14	196
+15	225
+Written and saved in Microsoft Excel X for Mac Service Release 1.
+	
+Feuil2
+Feuil3
+
+##### testEXCEL_95.xls
+ERROR org.apache.poi.hssf.OldExcelFormatException: The supplied spreadsheet seems to be Excel 5.0/7.0 (BIFF5) format. POI only supports BIFF8 format (from Excel versions 97/2000/XP/2003)
+##### xor-encryption-abc.xls
+ERROR org.apache.poi.EncryptedDocumentException: Default password is invalid for salt/verifier/verifierHash

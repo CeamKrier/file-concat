@@ -1,0 +1,9 @@
+From: Ann Probe <ann@example.com>
+To: Bob <bob@example.com>
+Subject: html misc
+Date: Tue, 13 Oct 2026 09:15:00 +0200
+Message-ID: <probe@example.com>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><body><span style="display:none;max-height:0;overflow:hidden">QZHIDDENPREHEADER</span><p>QZENTNAMED&rsquo;s and QZENTHEX&#x2019;s and QZENTDEC&#8217;s</p><table><tr><td>QZCELLA</td><td>QZCELLB</td></tr></table><p><a href="https://example.com/QZLINKHREF">QZLINKTEXT</a></p><p><img src="https://example.com/x.png" alt="QZIMGALT"></p><ul><li>QZLISTONE</li><li>QZLISTTWO</li></ul><!-- QZHTMLCOMMENT --></body></html>

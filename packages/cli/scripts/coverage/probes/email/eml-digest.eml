@@ -1,0 +1,21 @@
+From: list@example.com
+To: Bob <bob@example.com>
+Subject: Digest
+Date: Tue, 13 Oct 2026 09:15:00 +0200
+Message-ID: <probe@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/digest; boundary="DIG"
+
+--DIG
+
+From: a@example.com
+Subject: QZDIGESTSUBJONE
+
+QZDIGESTONE body.
+--DIG
+
+From: b@example.com
+Subject: QZDIGESTSUBJTWO
+
+QZDIGESTTWO body.
+--DIG--

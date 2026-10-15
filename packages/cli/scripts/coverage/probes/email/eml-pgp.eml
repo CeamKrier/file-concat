@@ -1,0 +1,24 @@
+From: Ann Probe <ann@example.com>
+To: Bob <bob@example.com>
+Subject: pgp
+Date: Tue, 13 Oct 2026 09:15:00 +0200
+Message-ID: <probe@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha256; protocol="application/pgp-signature"; boundary="PGP"
+
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--PGP
+Content-Type: text/plain; charset=utf-8
+
+QZPGPSIGNED signed words.
+--PGP
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQZPGPSIGBLOCKabc
+-----END PGP SIGNATURE-----
+
+--PGP--

@@ -1,0 +1,21 @@
+Received: from QZRECEIVED.example.com by mx.example.com; Tue, 13 Oct 2026 09:15:01 +0200
+From: =?UTF-8?B?UVpGUk9NTkFNRSBNw7xsbGVy?= <from@example.com>
+Sender: QZSENDERNAME <sender@example.com>
+Reply-To: QZREPLYTONAME <reply@example.com>
+To: =?ISO-8859-1?Q?QZTONAME_J=F6rg?= <to@example.com>
+Cc: =?UTF-8?Q?QZCCNAME_=C3=89lise?= <cc@example.com>, QZGROUPNAME: g1@example.com, g2@example.com;
+Bcc: =?ISO-8859-2?B?UVpCQ0NOQU1FIKN1a2Fzeg==?= <bcc@example.com>
+Subject: =?UTF-8?B?UVpTVUJK?=
+ =?UTF-8?Q?ECTSPLIT_caf=C3=A9?=
+Date: Tue, 13 Oct 2026 09:15:00 +0200
+Comments: QZCOMMENTSHEADER about
+ the draft
+Keywords: QZKEYWORDONE, QZKEYWORDTWO
+Message-ID: <QZMESSAGEID@example.com>
+In-Reply-To: <QZINREPLYTO@example.com>
+X-Mailer: QZXMAILER 1.0
+Thread-Topic: QZTHREADTOPIC
+MIME-Version: 1.0
+Content-Type: text/plain
+
+QZPLAINNOCHARSET body in us-ascii.
