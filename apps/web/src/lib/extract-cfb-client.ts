@@ -1,4 +1,12 @@
-import { formatDoc, formatMsg, formatPpt, workbookSheets, type CfbStreams, type ExtractionResult } from "@fileconcat/core";
+import {
+  biffSheetFurniture,
+  formatDoc,
+  formatMsg,
+  formatPpt,
+  workbookSheets,
+  type CfbStreams,
+  type ExtractionResult,
+} from "@fileconcat/core";
 import * as XLSX from "xlsx";
 
 /**
@@ -51,10 +59,11 @@ export function extractCfb(bytes: Uint8Array): ExtractionResult {
   // `Workbook` is BIFF8 (Excel 97-2003), `Book` is BIFF5 (Excel 5/95), in any
   // case: stream names compare case-insensitively (MS-CFB 2.6.4), and some
   // writers store `WORKBOOK`.
-  if (!container.FullPaths.some((entry) => /(^|\/)(Workbook|Book)$/i.test(entry))) {
-    return { text: "", notes: [{ kind: "parser-unavailable" }] };
-  }
-  return extractWorkbook(bytes);
+  const book = container.FullPaths.findIndex((entry) => /(^|\/)(Workbook|Book)$/i.test(entry));
+  if (book < 0) return { text: "", notes: [{ kind: "parser-unavailable" }] };
+  // SheetJS reads a sheet's Header and Footer records and keeps nothing of them.
+  const content = container.FileIndex[book]?.content;
+  return extractWorkbook(bytes, content ? biffSheetFurniture(new Uint8Array(content)) : undefined);
 }
 
 /**
@@ -67,11 +76,13 @@ export function extractCfb(bytes: Uint8Array): ExtractionResult {
  * empty rows becomes one blank line: the gap between two tables on a sheet,
  * which Docling and Unstructured also split on.
  */
-export function extractWorkbook(bytes: Uint8Array): ExtractionResult {
+export function extractWorkbook(bytes: Uint8Array, furniture?: ReturnType<typeof biffSheetFurniture>): ExtractionResult {
   const workbook = XLSX.read(bytes, { type: "array" });
-  // SheetJS keeps nothing of a chart or a text box; core reads them from the
-  // package (C6). A BIFF workbook is no zip, and has none here.
+  // SheetJS keeps nothing of a chart, a text box or a print header; core reads
+  // them from the package (C6, C7). A BIFF workbook is no zip: its headers
+  // come from the caller, and it has no drawing here.
   const drawn = new Map(workbookSheets(bytes).sheets.map((sheet) => [sheet.name, sheet.blocks]));
+  for (const [name, blocks] of furniture ?? []) drawn.set(name, [...(drawn.get(name) ?? []), ...blocks]);
   let comments = 0;
   const sheets = workbook.SheetNames.flatMap((name, index) => {
     const sheet = workbook.Sheets[name] as (XLSX.WorkSheet & { "!type"?: string }) | undefined;
