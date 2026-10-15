@@ -109,6 +109,21 @@ describe("formatDoc", () => {
     expect(formatDoc(wordStreams(pieces, { body: length })).text).toBe("The lazy dog. A paragraph\nkept.");
   });
 
+  it("writes a Symbol-font character as the character it draws, and leaves other fonts' codes as stored", () => {
+    const pieces = [
+      { text: "At 25" },
+      { text: "(", compressed: true, symbol: { font: "Symbol", code: 0xf0b0 } },
+      { text: "C, " },
+      { text: "a", symbol: { font: "Symbol", code: 0xf061 } },
+      { text: "1 and " },
+      { text: "(", symbol: { font: "Wingdings", code: 0xf0fe } },
+      { text: "x", deleted: true },
+      { text: ".\r" },
+    ];
+    const length = pieces.reduce((sum, piece) => sum + piece.text.length, 0);
+    expect(formatDoc(wordStreams(pieces, { body: length })).text).toBe("At 25°C, α1 and (.");
+  });
+
   it("leaves hidden text out and counts it, keeping the paragraph it ends", () => {
     const pieces = [
       { text: "Visible " },

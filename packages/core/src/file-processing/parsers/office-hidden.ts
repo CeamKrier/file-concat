@@ -1,8 +1,10 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { withOdfAltText, withRtfAltText, withWordAltText } from "./alt-text";
+import { escapeXml } from "./office-charts";
 import { withWordFieldLinks } from "./office-links";
 import { withOdfListLabels } from "./office-lists";
 import { withoutHiddenRtf } from "./rtf-hidden";
+import { symbolFontChar } from "./symbol-font";
 
 /**
  * Text the author hid, taken out before the document is read (Q18 O1): a
@@ -145,6 +147,21 @@ function withRubyText(xml: string): string {
     at = end + "</w:ruby>".length;
   }
   return at === 0 ? xml : out + xml.slice(at);
+}
+
+/**
+ * A symbol-font character (`w:sym`, such as the Symbol font's alpha) and a
+ * non-breaking hyphen as the text they draw; officeparser drops both, so the
+ * words around them run together. pandoc writes the hyphen as
+ * U+2011; the plain hyphen here is the character a reader searches for.
+ */
+function withWordSymbols(xml: string): string {
+  return xml.replace(/<w:noBreakHyphen\b[^>]*?(?:\/>|>\s*<\/w:noBreakHyphen>)/g, "<w:t>-</w:t>").replace(/<w:sym\b([^>]*?)\/>/g, (tag, attributes: string) => {
+    const font = /\sw:font="([^"]*)"/.exec(attributes)?.[1] ?? "";
+    const code = /\sw:char="([0-9A-Fa-f]{1,4})"/.exec(attributes)?.[1];
+    const char = code === undefined ? undefined : symbolFontChar(font, parseInt(code, 16));
+    return char ? `<w:t xml:space="preserve">${escapeXml(char)}</w:t>` : tag;
+  });
 }
 
 /** What an OpenDocument style hides: text, a sheet, or a slide. */
@@ -331,9 +348,10 @@ export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidde
       const after = withoutHiddenRuns(before);
       // An absolute-position tab ("Left<ptab>Right" in a header) is a tab to
       // the reader, as POI's XWPFRun reads it; officeparser drops it, "LeftRight".
+      // Symbol characters and non-breaking hyphens, which it drops too.
       // Pictures' and tables' alternative text, which officeparser drops (Q31 O1),
       // and a HYPERLINK field's address, which it drops with the field code (Q32 O1).
-      after.xml = withWordFieldLinks(withWordAltText(withRubyText(after.xml.replace(/<w:ptab\b[^>]*?(?:\/>|>\s*<\/w:ptab>)/g, "<w:tab/>"))));
+      after.xml = withWordFieldLinks(withWordAltText(withRubyText(withWordSymbols(after.xml).replace(/<w:ptab\b[^>]*?(?:\/>|>\s*<\/w:ptab>)/g, "<w:tab/>"))));
       if (after.xml === before) continue;
       changed[name] = strToU8(after.xml);
       hidden += after.hidden;

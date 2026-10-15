@@ -2,6 +2,7 @@ import { altLabel } from "./alt-text";
 import { listLabels, type ListDefinition, type ListInstance, type ListLevel } from "./office-lists";
 import { hyperlinkAddress, linkWorthWriting } from "./office-links";
 import type { CfbStreams } from "./msg";
+import { symbolFontChar } from "./symbol-font";
 import { SUMMARY_INFORMATION, summaryTitle } from "./title";
 import type { ExtractionNote, ExtractionResult } from "./types";
 
@@ -47,6 +48,8 @@ const SPRM_DELETED = 0x0800;
 const SPRM_HIDDEN = 0x083c;
 /** sprmCPicLocation (MS-DOC 2.6.1): where a picture character's PICF sits in the `Data` stream. */
 const SPRM_PIC_LOCATION = 0x6a03;
+/** sprmCSymbol (MS-DOC 2.6.1): the run draws one character of a symbol font, a font index and a code. */
+const SPRM_SYMBOL = 0x6a09;
 /**
  * Stands in for each character of hidden text, so the text keeps its length
  * and the FIB's part lengths still slice it. A 0x10 the file itself holds is
@@ -73,13 +76,17 @@ const HIDDEN = 0x10;
  * ponytail: the flag is read from the run's own properties only; a deletion
  * set through a character style (operand 0x80/0x81) is taken as on for 0x81.
  */
-function withoutDeletions(word: Uint8Array, table: Uint8Array): { word: Uint8Array; hidden: [number, number][]; pictures: Picture[] } {
+function withoutDeletions(
+  word: Uint8Array,
+  table: Uint8Array,
+): { word: Uint8Array; hidden: [number, number][]; pictures: Picture[]; symbols: SymbolRun[] } {
   const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
   const fcPlc = fib.getUint32(0x00fa, true);
   const lcbPlc = fib.getUint32(0x00fe, true);
   const hidden: [number, number][] = [];
   const pictures: Picture[] = [];
-  if (lcbPlc < 8 || fcPlc + lcbPlc > table.byteLength) return { word, hidden, pictures };
+  const symbols: SymbolRun[] = [];
+  if (lcbPlc < 8 || fcPlc + lcbPlc > table.byteLength) return { word, hidden, pictures, symbols };
   const plc = new DataView(table.buffer, table.byteOffset + fcPlc, lcbPlc);
   const pages = Math.floor((lcbPlc - 4) / 8);
   const seen = new Set<number>();
@@ -97,6 +104,7 @@ function withoutDeletions(word: Uint8Array, table: Uint8Array): { word: Uint8Arr
       if (chpx === 0 || chpx >= 511) continue;
       const end = Math.min(511, chpx + 1 + fkp.getUint8(chpx));
       let picture: number | undefined;
+      let symbol: { font: number; code: number } | undefined;
       let vanished = false;
       // A grpprl is a run of sprms: a 2-byte code whose top three bits say
       // how long the operand is (MS-DOC 2.2.5.1).
@@ -119,15 +127,79 @@ function withoutDeletions(word: Uint8Array, table: Uint8Array): { word: Uint8Arr
           const to = Math.min(fkp.getUint32((run + 1) * 4, true), word.byteLength);
           if (from < to) hidden.push([from, to]);
         } else if (sprm === SPRM_PIC_LOCATION && at + 4 <= end) picture = fkp.getUint32(at, true);
+        else if (sprm === SPRM_SYMBOL && at + 4 <= end) symbol = { font: fkp.getUint16(at, true), code: fkp.getUint16(at + 2, true) };
         at += size < 0 ? (at < end ? fkp.getUint8(at) + 1 : 1) : size;
       }
       // A hidden picture's alternative text is hidden text too.
       if (picture !== undefined && !vanished) {
         pictures.push({ from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), data: picture });
       }
+      if (symbol) symbols.push({ from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), ...symbol });
     }
   }
-  return { word: out, hidden, pictures: pictures.sort((a, b) => a.from - b.from) };
+  return { word: out, hidden, pictures: pictures.sort((a, b) => a.from - b.from), symbols: symbols.sort((a, b) => a.from - b.from) };
+}
+
+/** A run that draws a symbol-font character, by its byte range in `WordDocument`. */
+interface SymbolRun {
+  from: number;
+  to: number;
+  font: number;
+  code: number;
+}
+
+/**
+ * The font names in SttbfFfn (MS-DOC 2.9.284), by font index: a count and a
+ * zero, then FFN records (2.9.82) of `cbFfnM1 + 1` bytes, each with its name
+ * as a NUL-terminated UTF-16 string 40 bytes into the record. POI's
+ * `FontTable` reads it the same way.
+ */
+function fontNames(fib: DataView, table: Uint8Array): string[] {
+  const fc = fib.getUint32(0x0112, true);
+  const lcb = fib.getUint32(0x0116, true);
+  if (lcb < 4 || fc + lcb > table.byteLength) return [];
+  const sttb = new DataView(table.buffer, table.byteOffset + fc, lcb);
+  const names: string[] = [];
+  let at = 4;
+  for (let font = 0; font < sttb.getUint16(0, true) && at < lcb; font++) {
+    const size = sttb.getUint8(at) + 1;
+    let name = "";
+    for (let char = at + 40; char + 2 <= Math.min(at + size, lcb) && sttb.getUint16(char, true) !== 0; char += 2) name += String.fromCharCode(sttb.getUint16(char, true));
+    names.push(name);
+    at += size;
+  }
+  return names;
+}
+
+/**
+ * A piece's text with each symbol-font character drawn as its own character
+ * (the stream holds a placeholder there, "(" for a degree sign), one for one so
+ * every offset after it still holds. A code no table knows is left as stored,
+ * and a deleted run's zeroed characters stay zeroed. Found and sliced the way
+ * {@link hide} does it, so a crafted file with many runs costs one pass.
+ */
+function withSymbols(text: string, offset: number, width: number, symbols: readonly SymbolRun[], fonts: readonly string[]): string {
+  const end = offset + text.length * width;
+  let low = 0;
+  for (let high = symbols.length; low < high; ) {
+    const middle = (low + high) >>> 1;
+    if (symbols[middle].to <= offset) low = middle + 1;
+    else high = middle;
+  }
+  let out = "";
+  let cursor = 0;
+  for (let index = low; index < symbols.length && symbols[index].from < end; index++) {
+    const run = symbols[index];
+    const char = symbolFontChar(fonts[run.font] ?? "", run.code);
+    const from = Math.max(cursor, Math.floor((run.from - offset) / width));
+    const to = Math.min(text.length, Math.ceil((run.to - offset) / width));
+    if (!char || char.length !== 1 || from >= to) continue;
+    // A paragraph or cell mark in the run still ends its paragraph or cell.
+    // eslint-disable-next-line no-control-regex
+    out += text.slice(cursor, from) + text.slice(from, to).replace(/[^\0\r\x07]/g, char);
+    cursor = to;
+  }
+  return out + text.slice(cursor);
 }
 
 /** A run of characters and where its bytes sit in `WordDocument`, one or two per character. */
@@ -139,8 +211,9 @@ interface Piece {
 }
 
 function readPieces(document: Uint8Array, table: Uint8Array): { text: string; pieces: Piece[]; pictures: Picture[] } {
-  const { word, hidden, pictures } = withoutDeletions(document, table);
+  const { word, hidden, pictures, symbols } = withoutDeletions(document, table);
   const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
+  const fonts = symbols.length > 0 ? fontNames(fib, table) : [];
   const fcClx = fib.getUint32(0x01a2, true);
   const lcbClx = fib.getUint32(0x01a6, true);
   if (fcClx + lcbClx > table.byteLength) return { text: "", pieces: [], pictures };
@@ -171,7 +244,7 @@ function readPieces(document: Uint8Array, table: Uint8Array): { text: string; pi
     const bytes = word.subarray(offset, offset + length);
     const read = (compressed ? ansi.decode(bytes) : utf16.decode(bytes)).split(String.fromCharCode(HIDDEN)).join("\0");
     pieces.push({ cp: text.length, end: text.length + read.length, offset, width: compressed ? 1 : 2 });
-    text += hide(read, offset, compressed ? 1 : 2, hidden);
+    text += hide(withSymbols(read, offset, compressed ? 1 : 2, symbols, fonts), offset, compressed ? 1 : 2, hidden);
   }
   return { text, pieces, pictures };
 }

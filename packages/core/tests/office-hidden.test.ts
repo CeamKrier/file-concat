@@ -68,6 +68,16 @@ describe("extractOfficeDocument and hidden text", () => {
     const { text } = await extractOfficeDocument(docxWithBody(`<w:p>${ptab}</w:p>`));
     expect(text).toContain("Left\tRight");
   });
+
+  it("reads a Symbol-font character and a non-breaking hyphen as the text they draw", async () => {
+    const sym = (font: string, char: string) => `<w:sym w:font="${font}" w:char="${char}"/>`;
+    const body =
+      `<w:p><w:r><w:t>a</w:t>${sym("Symbol", "F061")}<w:t>b</w:t>${sym("Symbol", "F026")}<w:t>c</w:t><w:noBreakHyphen/><w:t>d</w:t></w:r></w:p>` +
+      `<w:p><w:r><w:t>e</w:t>${sym("Wingdings", "F0FE")}<w:t>f</w:t>${sym("Arial", "2013")}<w:t>g</w:t></w:r></w:p>`;
+    const { text } = await extractOfficeDocument(docxWithBody(body));
+    expect(text).toContain("aαb&c-d");
+    expect(text).toContain("ef–g");
+  });
 });
 
 /** An OpenDocument zip: `mimetype` first and stored, then the content. */

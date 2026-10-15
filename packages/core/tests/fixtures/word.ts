@@ -19,6 +19,8 @@ export interface Piece {
   hidden?: boolean;
   /** A picture character, its PICF at offset 0 of the `Data` stream (sprmCPicLocation). */
   picture?: boolean;
+  /** A symbol-font character (sprmCSymbol): the font's name, in the font table, and the code. */
+  symbol?: { font: string; code: number };
 }
 
 /**
@@ -56,7 +58,8 @@ export function wordStreams(
   // One ChpxFkp page after the text when any piece is deleted or hidden (MS-DOC
   // 2.9.44): a run per piece, the marked ones pointing at a CHPX holding
   // sprmCFRMarkDel or sprmCFVanish.
-  const fkpAt = pieces.some((piece) => piece.deleted || piece.hidden || piece.picture) ? Math.ceil(fc / 512) * 512 : -1;
+  const fkpAt = pieces.some((piece) => piece.deleted || piece.hidden || piece.picture || piece.symbol) ? Math.ceil(fc / 512) * 512 : -1;
+  const fonts = ["Times New Roman", ...Array.from(new Set(pieces.flatMap((piece) => (piece.symbol ? [piece.symbol.font] : []))))];
   const word = new Uint8Array(fkpAt < 0 ? fc : fkpAt + 512);
   const fib = new DataView(word.buffer);
   fib.setUint16(0, 0xa5ec, true);
@@ -75,6 +78,13 @@ export function wordStreams(
     encoded.forEach((piece, run) => {
       page.setUint32(run * 4, piece.at, true);
       page.setUint8((encoded.length + 1) * 4 + run, piece.deleted ? 240 : piece.hidden && piece.picture ? 232 : piece.hidden ? 244 : piece.picture ? 248 : 0);
+      // A symbol run's own CHPX, one 8-byte slot per run from 400.
+      if (piece.symbol) {
+        page.setUint8((encoded.length + 1) * 4 + run, 200 + run * 4);
+        word.set([6, 0x09, 0x6a], fkpAt + 400 + run * 8);
+        page.setUint16(400 + run * 8 + 3, fonts.indexOf(piece.symbol.font), true);
+        page.setUint16(400 + run * 8 + 5, piece.symbol.code, true);
+      }
     });
     page.setUint32(encoded.length * 4, fc, true);
     word.set([3, 0x00, 0x08, 0x01], fkpAt + 480);
@@ -108,7 +118,14 @@ export function wordStreams(
   const ownersLength = owners.reduce((sum, owner) => sum + 2 + owner.length * 2, 0);
   const notesAt = 64 + clx.length + 12;
   const storiesAt = notesAt + refLength + txtLength + ownersLength;
-  const table = new Uint8Array(storiesAt + stories.length * 4);
+  // SttbfFfn: a count, a zero, then an FFN per font with its name 40 bytes in.
+  const fontsAt = storiesAt + stories.length * 4;
+  const ffn = fonts.map((name) => [40 + name.length * 2 + 1, ...new Array<number>(39).fill(0), ...Array.from(utf16(`${name}\0`))]);
+  const fontTable = Uint8Array.from([fonts.length, 0, 0, 0, ...ffn.flat()]);
+  const table = new Uint8Array(fontsAt + fontTable.length);
+  table.set(fontTable, fontsAt);
+  fib.setUint32(0x0112, fontsAt, true);
+  fib.setUint32(0x0116, fontTable.length, true);
   if (stories.length) {
     stories.forEach((cp, i) => new DataView(table.buffer).setUint32(storiesAt + i * 4, cp, true));
     fib.setUint32(0x00f2, storiesAt, true);
