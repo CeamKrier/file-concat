@@ -13,8 +13,8 @@ describe("unreadableReason", () => {
       label: "Excel 97-2003 workbook",
       remedy: "Save it as .xlsx and it will be read.",
     });
-    expect(unreadableReason("memo.doc", cfb).label).toBe("Word 97-2003 document");
-    expect(unreadableReason("deck.ppt", cfb).label).toBe("PowerPoint 97-2003 file");
+    expect(unreadableReason("memo.doc", cfb).label).toBe("Word 6.0/95 or damaged document");
+    expect(unreadableReason("deck.ppt", cfb).label).toBe("PowerPoint 95 or damaged presentation");
     // The one remedy that points at a format this tool already reads.
     expect(unreadableReason("inbox/re-quote.msg", cfb).remedy).toContain(".eml");
   });
