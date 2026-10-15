@@ -155,21 +155,18 @@ describe("extractOfficeDocument — multi-column PDFs", () => {
 /**
  * A PDF has no cells, only glyphs at positions, so a table arrives as runs
  * separated by nothing but a wider gap, and an empty cell by nothing at all.
- * officeparser 8 recovers such a table as a table.
- *
- * ponytail: an empty cell's slot is lost, so the cells after it shift left
- * ("| APAC | 980 | 980 |"). The 7.6.1 patch kept it; 8.0 rewrote the layout
- * code it patched, and the upgrade accepted the loss (Q12, 2026-10-15). On the
- * web this reader is only the fallback behind liteparse.
+ * officeparser 8 recovers such a table as a table, and gives each cell the
+ * column it sits in; the renderer writes only the cells there are, so the
+ * slot an empty cell held is restored from that column.
  */
 describe("extractOfficeDocument — tables drawn as positioned text", () => {
-  it("reads a table with an empty cell as a table, every row present", async () => {
+  it("reads a table with an empty cell as a table, keeping the empty cell's slot", async () => {
     const text = (await extractOfficeDocument(tableWithEmptyCellPdf())).text.replace(/ +/g, " ");
 
     expect(text).toContain("| EMEA | 1200 | 1350 | 2550 |");
     expect(text).toContain("| AMER | 1440 | 1510 | 2950 |");
-    // The known limit above: the empty slot is gone and the total shifts left.
-    expect(text).toContain("| APAC | 980 | 980 |");
+    // The defect: "| APAC | 980 | 980 |", the total read as Q2 (pdf-1.2).
+    expect(text).toContain("| APAC | 980 | | 980 |");
   });
 
   it("leaves prose alone", async () => {

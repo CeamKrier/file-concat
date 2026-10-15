@@ -661,6 +661,38 @@ function plainText(node: OfficeContentNode): string {
  * walking the table's children, and again inside its own table layout pass —
  * and a second expansion would pad the row to five columns instead of three.
  */
+/**
+ * Give a PDF table row back the slots its empty cells held (pdf-1.2).
+ *
+ * A PDF has no cells, so officeparser recovers a table from positions and
+ * gives each cell the column it sits in (`metadata.col`); an empty cell has no
+ * glyphs and no node, and the renderer writes the cells there are in order.
+ * "APAC | 980 | (empty) | 980" then read as "| APAC | 980 | 980 |", the total
+ * taken for Q2. Only for a PDF: the office parsers number `col` their own way
+ * (RTF always 0) and write their empty cells as nodes.
+ *
+ * Runs before {@link expandMergedCells}, so a merged cell's span counts as the
+ * columns it covers. A row gets at most MAX_EMPTY_SLOTS of them, so crafted
+ * column numbers cannot make a row of millions of cells.
+ */
+function keepEmptyCellSlots(node: OfficeContentNode): void {
+  if (node.type !== "row" || !node.children) return;
+  const kept: OfficeContentNode[] = [];
+  let next = 0;
+  let padded = 0;
+  for (const cell of node.children) {
+    const col = cell.type === "cell" ? cell.metadata?.col : undefined;
+    for (let at = next; typeof col === "number" && at < col && padded < MAX_EMPTY_SLOTS; at++, padded++) {
+      kept.push({ type: "cell", text: "" });
+    }
+    kept.push(cell);
+    next = (typeof col === "number" ? Math.max(col, next) : next) + (cell.type === "cell" ? (cell.metadata?.colSpan ?? 1) : 1);
+  }
+  if (kept.length !== node.children.length) node.children = kept;
+}
+
+const MAX_EMPTY_SLOTS = 100;
+
 function expandMergedCells(): (node: OfficeContentNode) => void {
   const expandedRows = new WeakSet<OfficeContentNode>();
 
@@ -1240,6 +1272,7 @@ export async function extractOfficeDocument(
     numberFootnotes(),
     showLinkDestinations,
     flattenNestedTables,
+    ...(ast.type === "pdf" ? [keepEmptyCellSlots] : []),
     expandMergedCells(),
     charts,
     comments.visit,
