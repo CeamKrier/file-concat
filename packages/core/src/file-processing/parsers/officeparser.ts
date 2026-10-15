@@ -2,7 +2,7 @@ import { strFromU8, unzipSync } from "fflate";
 import type { OfficeContentNode } from "officeparser";
 import { altLabel } from "./alt-text";
 import { cellName, chartParts, withChartTables, workbookSheets, type ChartBlock } from "./office-charts";
-import { odfPageFurniture, odsSheetFurniture, odsValidations, slideMasterText } from "./office-furniture";
+import { odfPageFurniture, odsHidden, odsSheetFurniture, odsValidations, slideMasterText } from "./office-furniture";
 import { withoutHiddenText } from "./office-hidden";
 import { wordListLabels } from "./office-lists";
 import { linkWorthWriting } from "./office-links";
@@ -574,14 +574,19 @@ function showCharts(bytes: Uint8Array, workbook: boolean): (node: OfficeContentN
  * chartsheet's `sheet1.xml` renamed the first worksheet. It reads worksheets
  * in the package's order; a node whose name is not the one it would give
  * that part is left as it is.
+ *
+ * A very hidden sheet is left out, and how many is returned for the bundle's
+ * note (Q34 O1): only a macro can show one, so it is the workbook's own
+ * machinery rather than a sheet the author keeps out of sight.
  */
-function showWorkbookSheets(content: OfficeContentNode[], bytes: Uint8Array): void {
+function showWorkbookSheets(content: OfficeContentNode[], bytes: Uint8Array): number {
   const { sheets, order } = workbookSheets(bytes);
   const base = (part: string) => part.slice(part.lastIndexOf("/") + 1);
   const given = new Map(sheets.map((sheet) => [base(sheet.part), sheet.name]));
   const byPart = new Map(sheets.map((sheet) => [sheet.part, sheet]));
-  const state = (sheet: { state: number }) => ["", " (hidden)", " (very hidden)"][sheet.state] ?? "";
+  const state = (sheet: { state: number }) => (sheet.state === 1 ? " (hidden)" : "");
   const rows = (blocks: readonly ChartBlock[]) => blocks.flatMap((block) => [row([block.label]), ...block.rows.map(row)]);
+  const dropped = new Set<OfficeContentNode>();
   content
     .filter((node) => node.type === "sheet")
     .forEach((node, at) => {
@@ -589,12 +594,18 @@ function showWorkbookSheets(content: OfficeContentNode[], bytes: Uint8Array): vo
       const sheet = byPart.get(part);
       const meta = node.metadata as { sheetName?: string } | undefined;
       if (!sheet || meta?.sheetName !== (given.get(base(part)) ?? base(part))) return;
+      if (sheet.state === 2) dropped.add(node);
       node.metadata = { ...meta, sheetName: `${sheet.name}${state(sheet)}` };
       node.children = [...(node.children ?? []), ...rows(sheet.blocks)];
     });
+  for (let at = content.length - 1; at >= 0; at--) if (dropped.has(content[at])) content.splice(at, 1);
+  let left = dropped.size;
   for (const sheet of sheets) {
-    if (sheet.chartsheet) content.push({ type: "sheet", metadata: { sheetName: `${sheet.name} (chart)${state(sheet)}` }, children: rows(sheet.blocks) });
+    if (!sheet.chartsheet) continue;
+    if (sheet.state === 2) left++;
+    else content.push({ type: "sheet", metadata: { sheetName: `${sheet.name} (chart)${state(sheet)}` }, children: rows(sheet.blocks) });
   }
+  return left;
 }
 
 // A threaded comment reaches the legacy note part only as Excel's fallback
@@ -1358,14 +1369,15 @@ export async function extractOfficeDocument(
     dropRunningFurniture(ast.content);
     includePageFurniture(ast.content, ast.type === "odt" ? withOdfFurniture(ast.auxiliary, bytes) : ast.auxiliary);
   }
-  if (isWorkbook(ast.content)) showWorkbookSheets(ast.content, bytes);
-  // An ODS sheet's validation rules, then its print header and footer, as rows after its own (Q27 O1).
+  const veryHidden = isWorkbook(ast.content) ? showWorkbookSheets(ast.content, bytes) : 0;
+  // An ODS sheet's hidden rows and columns (Q34 O1), validation rules, then its print header and footer, as rows after its own (Q27 O1).
   if (ast.type === "ods") {
+    const hidden = odsHidden(readable);
     const rules = odsValidations(readable);
     const furniture = odsSheetFurniture(readable);
     for (const node of ast.content) {
       const name = node.type === "sheet" ? ((node.metadata as { sheetName?: string } | undefined)?.sheetName ?? "") : undefined;
-      const lines = name === undefined ? [] : [...(rules.get(name) ?? []), ...(furniture.get(name) ?? [])];
+      const lines = name === undefined ? [] : [...(hidden.has(name) ? [hidden.get(name)!] : []), ...(rules.get(name) ?? []), ...(furniture.get(name) ?? [])];
       if (lines.length) node.children = [...(node.children ?? []), ...lines.map((text) => row([text]))];
     }
   }
@@ -1423,7 +1435,7 @@ export async function extractOfficeDocument(
   if (lost > 0) {
     notes.push({ kind: "text-undecodable", count: lost, ...(pages.length > 0 ? { pages } : {}) });
   }
-  if (hiddenRuns > 0) notes.push({ kind: "hidden-left-out", count: hiddenRuns });
+  if (hiddenRuns + veryHidden > 0) notes.push({ kind: "hidden-left-out", count: hiddenRuns + veryHidden });
   if (comments.count() > 0) notes.push({ kind: "comments-included", count: comments.count() });
   // officeparser leaves RTF's info group unread, and a PDF's title is read
   // the way the web's first PDF reader reads it, so both platforms agree.

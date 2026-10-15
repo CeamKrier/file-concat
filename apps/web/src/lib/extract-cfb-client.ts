@@ -98,14 +98,20 @@ export function extractWorkbook(bytes: Uint8Array, furniture?: ReturnType<typeof
       );
   for (const [name, blocks] of [...(furniture ?? []), ...(names ?? [])]) drawn.set(name, [...(drawn.get(name) ?? []), ...blocks]);
   let comments = 0;
+  let veryHidden = 0;
   const sheets = workbook.SheetNames.flatMap((name, index) => {
     const sheet = workbook.Sheets[name] as (XLSX.WorkSheet & { "!type"?: string }) | undefined;
     // SheetJS lists a sheet it failed to parse and leaves its entry out.
     if (!sheet) return [];
     // A hidden sheet is still the author's data, often the lookup a formula
     // reads, so it stays and says so (Q18 O1, as docling files it apart). Only
-    // a macro can show a very hidden one, so that is named apart.
-    const state = ["", " (hidden)", " (very hidden)"][workbook.Workbook?.Sheets?.[index]?.Hidden ?? 0] ?? "";
+    // a macro can show a very hidden one: it is left out and counted (Q34 O1).
+    const hidden = workbook.Workbook?.Sheets?.[index]?.Hidden ?? 0;
+    if (hidden === 2) {
+      veryHidden++;
+      return [];
+    }
+    const state = hidden === 1 ? " (hidden)" : "";
     const drawing = (drawn.get(name) ?? []).flatMap((block) => [[block.label], ...block.rows]).map(csvRow);
     // A chartsheet holds no cells, so its csv is empty and the filter below
     // used to drop it, name and all. Tika, docling and openpyxl all keep every
@@ -119,9 +125,13 @@ export function extractWorkbook(bytes: Uint8Array, furniture?: ReturnType<typeof
     return body ? [`# Sheet: ${name}${state}\n${body}`] : [];
   });
   const title = workbook.Props?.Title;
+  const said = [
+    ...(veryHidden ? [{ kind: "hidden-left-out" as const, count: veryHidden }] : []),
+    ...(comments ? [{ kind: "comments-included" as const, count: comments }] : []),
+  ];
   return {
     text: sheets.join("\n\n"),
-    ...(comments ? { notes: [{ kind: "comments-included" as const, count: comments }] } : {}),
+    ...(said.length ? { notes: said } : {}),
     ...(title ? { title } : {}),
   };
 }

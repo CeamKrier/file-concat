@@ -4,12 +4,14 @@ import {
   cellName,
   decodeXml,
   fold,
+  hiddenLabel,
   relationships,
   sheetHeaderText,
   tagsOf,
   text,
   unpack,
   validationLabel,
+  within,
   type ChartBlock,
 } from "./office-charts";
 
@@ -78,13 +80,19 @@ const BIFF_BOUNDSHEET = 0x0085;
 const BIFF_HEADER = 0x0014;
 const BIFF_FOOTER = 0x0015;
 const BIFF_DV = 0x01be;
+const BIFF_DIMENSIONS = 0x0200;
+const BIFF_ROW = 0x0208;
+const BIFF_COLINFO = 0x007d;
 
 /**
  * An Excel 97-2003 or 5/95 workbook's print headers and footers by sheet
  * name, from its `Workbook` or `Book` stream: the Header and Footer records
  * each sheet carries (MS-XLS 2.4.136), labelled as an xlsx's are (Q27 O1),
- * and its data validation rules (Dv, 2.4.95). SheetJS parses neither and
- * keeps nothing of them. An encrypted stream gives nothing.
+ * its data validation rules (Dv, 2.4.95), and the rows (Row fDyZero, 2.4.221)
+ * and columns (ColInfo fHidden, 2.4.53) it hides inside its used range
+ * (Dimensions, 2.4.90), as an xlsx's are (Q34 O1). SheetJS keeps nothing of
+ * the first two, and a hidden column only with cell styles on. An encrypted
+ * stream gives nothing.
  *
  * ponytail: the odd-page pair only; the even and first-page ones in a
  * HeaderFooter record (2.4.137) are left out. A BIFF5 name is read as
@@ -165,6 +173,9 @@ export function biffSheetFurniture(stream: Uint8Array): Map<string, ChartBlock[]
   const byStart = new Map<number, ChartBlock[]>();
   starts.forEach((start, index) => {
     const blocks: ChartBlock[] = [];
+    const rows: [number, number][] = [];
+    const cols: [number, number][] = [];
+    let end: { row: number; col: number } | undefined;
     let depth = 0;
     for (const r of records(start, starts[index + 1] ?? stream.byteLength)) {
       // A chart drawn on the sheet is a substream of its own, BOF to EOF.
@@ -180,8 +191,20 @@ export function biffSheetFurniture(stream: Uint8Array): Map<string, ChartBlock[]
       } else if (depth === 1 && biff8 && r.type === BIFF_DV) {
         const label = biffValidation(r.data, r.data + r.size);
         if (label) blocks.push({ label, rows: [] });
+      } else if (depth === 1 && r.type === BIFF_DIMENSIONS && r.size >= (biff8 ? 12 : 8)) {
+        // The row and column past the last used one; BIFF8 counts rows in 32 bits.
+        const wide = biff8 ? 4 : 2;
+        const row = wide === 4 ? view.getUint32(r.data + 4, true) : view.getUint16(r.data + 2, true);
+        end = { row: row - 1, col: view.getUint16(r.data + 2 * wide + 2, true) - 1 };
+      } else if (depth === 1 && r.type === BIFF_ROW && r.size >= 13 && view.getUint8(r.data + 12) & 0x20) {
+        const row = view.getUint16(r.data, true);
+        rows.push([row, row]);
+      } else if (depth === 1 && r.type === BIFF_COLINFO && r.size >= 10 && view.getUint16(r.data + 8, true) & 1) {
+        cols.push([view.getUint16(r.data, true), view.getUint16(r.data + 2, true)]);
       }
     }
+    const hidden = hiddenLabel(end ? within(rows, end.row) : rows, end ? within(cols, end.col) : cols);
+    if (hidden) blocks.unshift({ label: hidden, rows: [] });
     byStart.set(start, blocks);
   });
   for (const sheet of sheets) {
@@ -328,6 +351,69 @@ export function odsValidations(bytes: Uint8Array): Map<string, string[]> {
     if (used) {
       const lines = found.get(sheet) ?? [];
       if (!lines.includes(used)) found.set(sheet, [...lines, used]);
+    }
+  }
+  return found;
+}
+
+/**
+ * An OpenDocument spreadsheet's hidden rows and columns by sheet name, as an
+ * xlsx's are (Q34 O1): `table:visibility` `collapse` or `filter` on a row or
+ * a column (ODF 1.3 9.1.3, 9.1.6), inside the rows and columns its cells use.
+ * A row or column repeated N times counts N, as the sheet draws it.
+ */
+export function odsHidden(bytes: Uint8Array): Map<string, string> {
+  const found = new Map<string, string>();
+  const content = text(unpack(bytes, (name) => name === "content.xml")?.["content.xml"]);
+  if (!content.includes("table:visibility")) return found;
+  const repeat = (tag: string, name: string) => Math.max(1, Number(attr(tag, name)) || 1);
+  const shut = (tag: string) => /^(collapse|filter)$/.test(attr(tag, "table:visibility") ?? "");
+  let sheet = "";
+  let rows: [number, number][] = [];
+  let cols: [number, number][] = [];
+  let row = 0;
+  let col = 0;
+  let cell = 0;
+  let span = 1;
+  let rowHidden = false;
+  let used = false;
+  let last = { row: -1, col: -1 };
+  for (const t of tagsOf(content)) {
+    if (t.name === "table:table") {
+      if (t.opens) {
+        sheet = decodeXml(attr(t.tag, "table:name") ?? "");
+        rows = [];
+        cols = [];
+        row = col = 0;
+        last = { row: -1, col: -1 };
+      } else {
+        const label = hiddenLabel(within(rows, last.row), within(cols, last.col));
+        if (label && !found.has(sheet)) found.set(sheet, label);
+      }
+    } else if (t.name === "table:table-column" && t.opens) {
+      const n = repeat(t.tag, "table:number-columns-repeated");
+      if (shut(t.tag)) cols.push([col, col + n - 1]);
+      col += n;
+    } else if (t.name === "table:table-row") {
+      if (t.opens) {
+        span = repeat(t.tag, "table:number-rows-repeated");
+        rowHidden = shut(t.tag);
+        used = false;
+        cell = 0;
+      }
+      if (!t.opens || t.closes) {
+        if (used) last.row = Math.max(last.row, row + span - 1);
+        if (rowHidden) rows.push([row, row + span - 1]);
+        row += span;
+      }
+    } else if ((t.name === "table:table-cell" || t.name === "table:covered-table-cell") && t.opens) {
+      const n = repeat(t.tag, "table:number-columns-repeated");
+      // A cell with a value or anything inside it is one the sheet uses.
+      if (!t.closes || attr(t.tag, "office:value-type") !== undefined) {
+        used = true;
+        last.col = Math.max(last.col, cell + n - 1);
+      }
+      cell += n;
     }
   }
   return found;

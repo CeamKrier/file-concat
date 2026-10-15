@@ -342,7 +342,7 @@ export interface WorkbookSheet {
   state: number;
   part: string;
   chartsheet: boolean;
-  /** The charts and text boxes drawn on the sheet, in drawing order, then its validation rules, print header and footer, and defined names. */
+  /** The rows and columns it hides, the charts and text boxes drawn on the sheet in drawing order, then its validation rules, print header and footer, and defined names. */
   blocks: ChartBlock[];
 }
 
@@ -422,6 +422,72 @@ export function cellName(row: number, col: number): string {
   let name = "";
   for (let n = col + 1; n > 0; n = Math.floor((n - 1) / 26)) name = String.fromCharCode(65 + ((n - 1) % 26)) + name;
   return `${name}${row + 1}`;
+}
+
+/** At most this many runs of rows, then of columns, before "+N more". */
+const HIDDEN_RUNS = 20;
+
+/**
+ * `[Hidden: rows 7-9, 12, column E]` for the rows and columns a sheet hides,
+ * given as inclusive ranges counted from 0. The cells stay in the reading
+ * (Q34 O1): a hidden row is often the lookup or the working a total reads,
+ * and the line tells a reader which of them the author does not show.
+ */
+export function hiddenLabel(rows: ReadonlyArray<readonly [number, number]>, cols: ReadonlyArray<readonly [number, number]>): string | undefined {
+  const runs = (ranges: ReadonlyArray<readonly [number, number]>, name: (n: number) => string, one: string, many: string) => {
+    const merged: [number, number][] = [];
+    for (const [from, to] of [...ranges].sort((a, b) => a[0] - b[0])) {
+      const last = merged[merged.length - 1];
+      if (last && from <= last[1] + 1) last[1] = Math.max(last[1], to);
+      else merged.push([from, to]);
+    }
+    if (!merged.length) return "";
+    const listed = merged.slice(0, HIDDEN_RUNS).map(([from, to]) => (from === to ? name(from) : `${name(from)}-${name(to)}`));
+    const more = merged.length > HIDDEN_RUNS ? ` +${merged.length - HIDDEN_RUNS} more` : "";
+    return `${merged.length === 1 && merged[0][0] === merged[0][1] ? one : many} ${listed.join(", ")}${more}`;
+  };
+  const parts = [
+    runs(rows, (n) => String(n + 1), "row", "rows"),
+    runs(cols, (n) => cellName(0, n).slice(0, -1), "column", "columns"),
+  ].filter(Boolean);
+  return parts.length ? `[Hidden: ${parts.join(", ")}]` : undefined;
+}
+
+/** The last row and column a sheet's `A1:G16` range reaches, from 0. */
+export function rangeEnd(ref: string): { row: number; col: number } | undefined {
+  const end = /([A-Z]+)(\d+)$/.exec(ref.trim().toUpperCase());
+  if (!end) return undefined;
+  const col = Array.from(end[1]).reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0) - 1;
+  return { row: Number(end[2]) - 1, col };
+}
+
+/** Ranges cut at `last`, those past it dropped. */
+export function within(ranges: ReadonlyArray<readonly [number, number]>, last: number): [number, number][] {
+  return ranges.filter(([from]) => from <= last).map(([from, to]) => [from, Math.min(to, last)]);
+}
+
+/**
+ * A worksheet's hidden rows and columns, inside the range its cells use: a
+ * column hidden out to XFD to tidy the sheet hides nothing of the author's.
+ * A row an outline collapsed or a filter left out is hidden the same way.
+ */
+function hiddenBlocks(xml: string): ChartBlock[] {
+  const end = rangeEnd(attr(/<dimension\b[^>]*>/.exec(xml)?.[0] ?? "", "ref") ?? "");
+  const rows: [number, number][] = [];
+  const cols: [number, number][] = [];
+  // A pattern, not a walk over every cell's tag: only the row and col tags count.
+  for (const [tag] of xml.matchAll(/<(?:\w+:)?(?:row|col)\s[^>]*>/g)) {
+    if (!isOn(tag, "hidden")) continue;
+    if (/^<(?:\w+:)?row/.test(tag)) {
+      const r = Number(attr(tag, "r")) - 1;
+      if (r >= 0) rows.push([r, r]);
+    } else {
+      const min = Number(attr(tag, "min")) - 1;
+      if (min >= 0) cols.push([min, Math.max(min, Number(attr(tag, "max")) - 1 || min)]);
+    }
+  }
+  const label = hiddenLabel(end ? within(rows, end.row) : rows, end ? within(cols, end.col) : cols);
+  return label ? [{ label, rows: [] }] : [];
 }
 
 /** What a data validation rule tells the person filling the cell. */
@@ -583,6 +649,7 @@ export function workbookSheets(bytes: Uint8Array): { sheets: WorkbookSheet[]; or
       part: rel.part,
       chartsheet: rel.type.endsWith("/chartsheet"),
       blocks: [
+        ...hiddenBlocks(xml),
         ...drawings.flatMap((drawing) => drawingBlocks(parts, drawing.part, seen)),
         ...validationBlocks(xml),
         ...sheetHeaderBlocks(xml, labels),

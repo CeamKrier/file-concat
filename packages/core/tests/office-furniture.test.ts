@@ -1,8 +1,8 @@
 import { strToU8, unzipSync, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
 import { extractOfficeDocument } from "../src/file-processing/parsers/officeparser";
-import { nameBlocks, sheetHeaderText, workbookSheets } from "../src/file-processing/parsers/office-charts";
-import { biffSheetFurniture, odsSheetFurniture, odsValidations, slideMasterText } from "../src/file-processing/parsers/office-furniture";
+import { hiddenLabel, nameBlocks, sheetHeaderText, workbookSheets } from "../src/file-processing/parsers/office-charts";
+import { biffSheetFurniture, odsHidden, odsSheetFurniture, odsValidations, slideMasterText } from "../src/file-processing/parsers/office-furniture";
 import { deckPptx, odfDocument, twoSheetXlsx } from "./fixtures/containers";
 
 describe("sheetHeaderText", () => {
@@ -211,6 +211,76 @@ describe("validation rules and defined names", () => {
     const { text } = await extractOfficeDocument(ods);
     expect(text).toContain("[Validation: Level: Pick a level; allowed: Low, High]");
     expect(text).not.toContain("Not shown");
+  });
+});
+
+describe("hidden rows, columns and very hidden sheets", () => {
+  it("names hidden rows and columns in runs, and stops after twenty", () => {
+    expect(hiddenLabel([[6, 6], [7, 8], [11, 11]], [[4, 4]])).toBe("[Hidden: rows 7-9, 12, column E]");
+    expect(hiddenLabel([[0, 0]], [[26, 27]])).toBe("[Hidden: row 1, columns AA-AB]");
+    expect(hiddenLabel([], [])).toBeUndefined();
+    const many = Array.from({ length: 22 }, (_, i): [number, number] => [i * 2, i * 2]);
+    expect(hiddenLabel(many, [])).toMatch(/^\[Hidden: rows 1, 3, .*, 39 \+2 more\]$/);
+  });
+
+  it("labels an xlsx sheet's hidden row and column inside its range and leaves a very hidden sheet out", async () => {
+    const parts = unzipSync(twoSheetXlsx());
+    const edit = (part: string, from: string, to: string) => {
+      parts[part] = strToU8(new TextDecoder().decode(parts[part]).replace(from, to));
+    };
+    // A column hidden out to XFD past the range hides nothing of the author's.
+    edit("xl/worksheets/sheet1.xml", "<sheetData>", '<dimension ref="A1:C3"/><cols><col min="2" max="2" hidden="1"/><col min="4" max="16384" hidden="1"/></cols><sheetData>');
+    edit("xl/worksheets/sheet1.xml", '<row r="2">', '<row r="2" hidden="1">');
+    edit("xl/workbook.xml", 'name="Headcount"', 'name="Headcount" state="veryHidden"');
+    const xlsx = zipSync(parts);
+    expect(workbookSheets(xlsx).sheets[0].blocks.map((block) => block.label)).toEqual(["[Hidden: row 2, column B]"]);
+    const { text, notes } = await extractOfficeDocument(xlsx);
+    expect(text).toContain("EMEA,1200,1350");
+    expect(text).toContain("[Hidden: row 2, column B]");
+    expect(text).not.toContain("Headcount");
+    expect(text).not.toContain("Eng");
+    expect(notes).toContainEqual({ kind: "hidden-left-out", count: 1 });
+  });
+
+  it("reads an xls sheet's Row and ColInfo records inside its Dimensions", () => {
+    const record = (type: number, data: number[] = []) => [type & 0xff, type >> 8, data.length & 0xff, data.length >> 8, ...data];
+    const u16 = (n: number) => [n & 0xff, n >> 8];
+    const u32 = (n: number) => [...u16(n & 0xffff), ...u16(n >>> 16)];
+    const bof = record(0x0809, [0x00, 0x06, 0x10, 0x00, ...new Array<number>(12).fill(0)]);
+    const eof = record(0x000a);
+    const row = (rw: number, hidden: boolean) => record(0x0208, [...u16(rw), 0, 0, 3, 0, 0xff, 0, 0, 0, 0, 0, hidden ? 0x20 : 0, 0x01]);
+    const colInfo = (first: number, last: number) => record(0x007d, [...u16(first), ...u16(last), 0, 9, 0x0f, 0, 1, 0, 0, 0]);
+    const sheet = [
+      ...bof,
+      ...record(0x0200, [...u32(0), ...u32(5), ...u16(0), ...u16(3), 0, 0]),
+      ...row(0, false),
+      ...row(2, true),
+      ...row(9, true),
+      ...colInfo(1, 1),
+      ...colInfo(3, 255),
+      ...eof,
+    ];
+    const start = bof.length + 4 + 8 + 3 + eof.length;
+    const bound = record(0x0085, [start & 0xff, start >> 8, 0, 0, 0, 0, 3, 0, ...Array.from("One", (c) => c.charCodeAt(0))]);
+    const found = biffSheetFurniture(Uint8Array.from([...bof, ...bound, ...eof, ...sheet]));
+    expect(found.get("One")?.map((block) => block.label)).toEqual(["[Hidden: row 3, column B]"]);
+  });
+
+  it("counts an ODS sheet's repeated hidden rows and columns as it draws them, inside the cells it uses", async () => {
+    const cells = (n: number) => Array.from({ length: n }, () => '<table:table-cell office:value-type="string"><text:p>x</text:p></table:table-cell>').join("");
+    const ods = odfDocument(
+      "spreadsheet",
+      '<table:table table:name="One">' +
+        '<table:table-column table:number-columns-repeated="2"/><table:table-column table:visibility="collapse"/>' +
+        '<table:table-column table:number-columns-repeated="1021" table:visibility="collapse"/>' +
+        `<table:table-row>${cells(3)}</table:table-row>` +
+        `<table:table-row table:visibility="collapse">${cells(1)}</table:table-row>` +
+        `<table:table-row table:number-rows-repeated="2" table:visibility="filter">${cells(2)}</table:table-row>` +
+        '<table:table-row table:number-rows-repeated="1000" table:visibility="collapse"><table:table-cell table:number-columns-repeated="1024"/></table:table-row>' +
+        "</table:table>",
+    );
+    expect(Object.fromEntries(odsHidden(ods))).toEqual({ One: "[Hidden: rows 2-4, column C]" });
+    expect((await extractOfficeDocument(ods)).text).toContain("[Hidden: rows 2-4, column C]");
   });
 });
 

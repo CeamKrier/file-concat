@@ -77,6 +77,16 @@ describe("extractWorkbook names", () => {
     expect(text).toContain("[Name: QZDEFNAME = QZSHEETMAIN!$A$1]");
   });
 
+  it("names an xls sheet's hidden row and column and leaves its very hidden sheet out", () => {
+    const probe = readFileSync(join(__dirname, "../../../packages/cli/scripts/coverage/probes/xls/gen-xls-coverage.xls"));
+    const { text, notes } = extractCfb(new Uint8Array(probe));
+    expect(text).toContain("[Hidden: row 6, column J]");
+    expect(text).toContain("QZHIDDENROW");
+    expect(text).toContain("# Sheet: QZHIDDENSHEET (hidden)");
+    expect(text).not.toContain("QZVHIDDEN");
+    expect(notes).toContainEqual({ kind: "hidden-left-out", count: 1 });
+  });
+
   it("writes an xlsx workbook's names once, from the package rather than SheetJS", () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([["Rate"]]), "Inputs");
@@ -207,15 +217,16 @@ describe("extractWorkbook", () => {
     expect(extractWorkbook(formatted("xlsb")).text).toBe("# Sheet: Plan\nRate,Due\n8%,2024-10-02");
   });
 
-  it("labels a hidden and a very hidden sheet and keeps their cells", () => {
+  it("labels a hidden sheet and keeps its cells, and leaves a very hidden one out", () => {
     const workbook = XLSX.utils.book_new();
     for (const name of ["Shown", "Lookup", "Macro"]) XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([[name]]), name);
     workbook.Workbook = { Sheets: [{ Hidden: 0 }, { Hidden: 1 }, { Hidden: 2 }] };
     for (const bookType of ["xlsx", "biff8"] as const) {
       const bytes = new Uint8Array(XLSX.write(workbook, { bookType, type: "array" }));
-      expect(extractWorkbook(bytes).text).toBe(
-        "# Sheet: Shown\nShown\n\n# Sheet: Lookup (hidden)\nLookup\n\n# Sheet: Macro (very hidden)\nMacro",
-      );
+      expect(extractWorkbook(bytes)).toEqual({
+        text: "# Sheet: Shown\nShown\n\n# Sheet: Lookup (hidden)\nLookup",
+        notes: [{ kind: "hidden-left-out", count: 1 }],
+      });
     }
   });
 
