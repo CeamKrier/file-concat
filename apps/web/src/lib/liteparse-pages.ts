@@ -180,8 +180,38 @@ function pageComments(page: LiteparsePage): NonNullable<PdfPage["comments"]> {
   });
 }
 
+/**
+ * The lines an upright page sets vertically, a margin banner or a turned table
+ * heading, which liteparse's markdown writer drops with the watermarks (Q38 O1).
+ * Poppler's `pdftotext` writes text at every quarter turn; here the page's
+ * upright text comes first and its vertical lines after it. A line already in
+ * the page's text, or written on an earlier page, is left out, so a banner
+ * repeated on every page is written once. A line with no letter or digit is
+ * left out too.
+ *
+ * A journal's "Downloaded from ... by guest" stamp is vertical too, and is
+ * written: on olmOCR-bench's single-page header tests this costs 57.0% to
+ * 55.5% (2026-10-15). Leaving out the margin would also leave out a table set
+ * vertically on an upright page, which the same bench holds.
+ */
+function verticalLines(page: LiteparsePage, written: Set<string>): string[] {
+  const lines = new Map<string, string[]>();
+  for (const item of page.textItems ?? []) {
+    const turn = Math.round(item.rotation / 90) * 90;
+    if (Math.abs(turn % 180) !== 90 || Math.abs(item.rotation - turn) > 2 || !item.text.trim()) continue;
+    const key = `${turn % 360}:${Math.round(item.x)}`;
+    lines.set(key, [...(lines.get(key) ?? []), item.text.trim()]);
+  }
+  return Array.from(lines.values(), (parts) => parts.join(" ")).filter((line) => {
+    if (!/[\p{L}\p{N}]/u.test(line) || written.has(line) || page.markdown.includes(line)) return false;
+    written.add(line);
+    return true;
+  });
+}
+
 /** Each page's markdown and whether it holds a picture, which core needs to tell a scanned page from a blank one. */
 function toPdfPages(pages: readonly LiteparsePage[]): PdfPage[] {
+  const written = new Set<string>();
   return pages.map((page) => {
     // liteparse's own `needsOcr` also fires on sparse text and on any
     // figure, so only the two reasons that mean "a picture" are read.
@@ -191,7 +221,7 @@ function toPdfPages(pages: readonly LiteparsePage[]): PdfPage[] {
     return {
       number: page.pageNum,
       ...(page.pageLabel ? { label: page.pageLabel } : {}),
-      text: withLinks(page),
+      text: [withLinks(page), ...verticalLines(page, written)].filter(Boolean).join("\n\n"),
       ...(figures.length ? { figures } : {}),
       ...(comments.length ? { comments } : {}),
       scanned: reasons.includes("scanned") || reasons.includes("embedded-images"),

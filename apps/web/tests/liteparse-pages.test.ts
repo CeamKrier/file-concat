@@ -97,7 +97,8 @@ describe("parsePdfPages", () => {
 /**
  * A stand-in reader over pages whose text items lie at the given angles, each
  * item `chars` characters long. Like liteparse's markdown, a page reads empty
- * unless its text is upright or a correction turned it so.
+ * unless its text is upright or a correction turned it so, and a turned page's
+ * items come back turned with it.
  */
 function sidewaysParser(pages: { rotation: number; chars?: number }[][]) {
   const corrections: unknown[] = [];
@@ -112,7 +113,7 @@ function sidewaysParser(pages: { rotation: number; chars?: number }[][]) {
           return {
             pageNum: i + 1,
             markdown: upright ? `page ${i + 1}` : "",
-            textItems: items.map((item) => ({ rotation: item.rotation, text: "x".repeat(item.chars ?? 10) })),
+            textItems: items.map((item) => ({ rotation: item.rotation - (turned.get(i + 1) ?? 0), text: "x".repeat(item.chars ?? 10) })),
           };
         }),
         pageErrors: [],
@@ -140,6 +141,26 @@ describe("parsePdfPages on a sideways page", () => {
     await parsePdfPages(Parser, new Uint8Array());
 
     expect(corrections).toEqual([undefined]);
+  });
+
+  it("writes an upright page's vertical lines after its text, a line repeated across pages once", async () => {
+    const item = (text: string, x: number, rotation: number) => ({ text, x, y: 0, width: 10, height: 100, rotation });
+    class Parser {
+      async parse() {
+        const banner = item("arXiv:2310.01234 [cs.CL]", 20, 90);
+        return {
+          pages: [
+            { pageNum: 1, markdown: "Body one", textItems: [item("Body one", 100, 0), banner, item("Total", 500, 270), item("cost", 500, 270), item("Diagonal", 300, 45)] },
+            { pageNum: 2, markdown: "Body two Shown", textItems: [item("Body two", 100, 0), banner, item("Shown", 500, 270)] },
+          ],
+          pageErrors: [],
+        };
+      }
+      free() {}
+    }
+    const { pages } = await parsePdfPages(Parser as unknown as typeof LiteParse, new Uint8Array());
+
+    expect(pages.map((page) => page.text)).toEqual(["Body one\n\narXiv:2310.01234 [cs.CL]\n\nTotal cost", "Body two Shown"]);
   });
 
   it("lets no diagonal watermark turn a page", async () => {
