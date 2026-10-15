@@ -20,8 +20,9 @@ import type { ExtractionNote, ExtractionResult } from "./types";
  * endnotes and text boxes, each of a length the FIB gives. The body, the
  * notes and the text boxes are kept. Headers and footers are written once
  * each, labelled, before and after the body as a docx's are (C7). Comments
- * are written into the body at the end of their paragraph (Q24 O1), and a
- * list paragraph opens with the label Word prints for it (C8).
+ * are written into the body at the end of their paragraph (Q24 O1), a list
+ * paragraph opens with the label Word prints for it (C8), and notes are
+ * numbered at their marks and labelled as a docx's are.
  *
  * Only the reading lives here, over streams already lifted out of the
  * container (ADR-0012); the browser opens it with the library that reads a
@@ -46,6 +47,8 @@ const FIELD_END = 0x15;
 const SPRM_DELETED = 0x0800;
 /** sprmCFVanish (MS-DOC 2.6.1): the run is hidden text. */
 const SPRM_HIDDEN = 0x083c;
+/** sprmCFCaps (MS-DOC 2.6.1): the run is shown in capitals. */
+const SPRM_CAPS = 0x083b;
 /** sprmCPicLocation (MS-DOC 2.6.1): where a picture character's PICF sits in the `Data` stream. */
 const SPRM_PIC_LOCATION = 0x6a03;
 /** sprmCSymbol (MS-DOC 2.6.1): the run draws one character of a symbol font, a font index and a code. */
@@ -71,7 +74,8 @@ const HIDDEN = 0x10;
  * Hidden text (Q18 O1) comes back as byte ranges instead, kept in the same
  * order, because only the piece that holds a range knows how wide its
  * characters are, and a hidden paragraph or cell mark still has to end its
- * paragraph or cell. POI calls the flag `CharacterRun.isVanished()`.
+ * paragraph or cell. POI calls the flag `CharacterRun.isVanished()`. Runs
+ * shown in capitals come back the same way.
  *
  * ponytail: the flag is read from the run's own properties only; a deletion
  * set through a character style (operand 0x80/0x81) is taken as on for 0x81.
@@ -79,14 +83,15 @@ const HIDDEN = 0x10;
 function withoutDeletions(
   word: Uint8Array,
   table: Uint8Array,
-): { word: Uint8Array; hidden: [number, number][]; pictures: Picture[]; symbols: SymbolRun[] } {
+): { word: Uint8Array; hidden: [number, number][]; caps: [number, number][]; pictures: Picture[]; symbols: SymbolRun[] } {
   const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
   const fcPlc = fib.getUint32(0x00fa, true);
   const lcbPlc = fib.getUint32(0x00fe, true);
   const hidden: [number, number][] = [];
+  const caps: [number, number][] = [];
   const pictures: Picture[] = [];
   const symbols: SymbolRun[] = [];
-  if (lcbPlc < 8 || fcPlc + lcbPlc > table.byteLength) return { word, hidden, pictures, symbols };
+  if (lcbPlc < 8 || fcPlc + lcbPlc > table.byteLength) return { word, hidden, caps, pictures, symbols };
   const plc = new DataView(table.buffer, table.byteOffset + fcPlc, lcbPlc);
   const pages = Math.floor((lcbPlc - 4) / 8);
   const seen = new Set<number>();
@@ -126,6 +131,10 @@ function withoutDeletions(
           const from = Math.max(fkp.getUint32(run * 4, true), hidden[hidden.length - 1]?.[1] ?? 0);
           const to = Math.min(fkp.getUint32((run + 1) * 4, true), word.byteLength);
           if (from < to) hidden.push([from, to]);
+        } else if (sprm === SPRM_CAPS && on) {
+          const from = Math.max(fkp.getUint32(run * 4, true), caps[caps.length - 1]?.[1] ?? 0);
+          const to = Math.min(fkp.getUint32((run + 1) * 4, true), word.byteLength);
+          if (from < to) caps.push([from, to]);
         } else if (sprm === SPRM_PIC_LOCATION && at + 4 <= end) picture = fkp.getUint32(at, true);
         else if (sprm === SPRM_SYMBOL && at + 4 <= end) symbol = { font: fkp.getUint16(at, true), code: fkp.getUint16(at + 2, true) };
         at += size < 0 ? (at < end ? fkp.getUint8(at) + 1 : 1) : size;
@@ -137,7 +146,7 @@ function withoutDeletions(
       if (symbol) symbols.push({ from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), ...symbol });
     }
   }
-  return { word: out, hidden, pictures: pictures.sort((a, b) => a.from - b.from), symbols: symbols.sort((a, b) => a.from - b.from) };
+  return { word: out, hidden, caps, pictures: pictures.sort((a, b) => a.from - b.from), symbols: symbols.sort((a, b) => a.from - b.from) };
 }
 
 /** A run that draws a symbol-font character, by its byte range in `WordDocument`. */
@@ -176,7 +185,7 @@ function fontNames(fib: DataView, table: Uint8Array): string[] {
  * (the stream holds a placeholder there, "(" for a degree sign), one for one so
  * every offset after it still holds. A code no table knows is left as stored,
  * and a deleted run's zeroed characters stay zeroed. Found and sliced the way
- * {@link hide} does it, so a crafted file with many runs costs one pass.
+ * {@link inRanges} does it, so a crafted file with many runs costs one pass.
  */
 function withSymbols(text: string, offset: number, width: number, symbols: readonly SymbolRun[], fonts: readonly string[]): string {
   const end = offset + text.length * width;
@@ -211,7 +220,7 @@ interface Piece {
 }
 
 function readPieces(document: Uint8Array, table: Uint8Array): { text: string; pieces: Piece[]; pictures: Picture[] } {
-  const { word, hidden, pictures, symbols } = withoutDeletions(document, table);
+  const { word, hidden, caps, pictures, symbols } = withoutDeletions(document, table);
   const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
   const fonts = symbols.length > 0 ? fontNames(fib, table) : [];
   const fcClx = fib.getUint32(0x01a2, true);
@@ -244,36 +253,48 @@ function readPieces(document: Uint8Array, table: Uint8Array): { text: string; pi
     const bytes = word.subarray(offset, offset + length);
     const read = (compressed ? ansi.decode(bytes) : utf16.decode(bytes)).split(String.fromCharCode(HIDDEN)).join("\0");
     pieces.push({ cp: text.length, end: text.length + read.length, offset, width: compressed ? 1 : 2 });
-    text += hide(withSymbols(read, offset, compressed ? 1 : 2, symbols, fonts), offset, compressed ? 1 : 2, hidden);
+    const width = compressed ? 1 : 2;
+    const shown = inRanges(withSymbols(read, offset, width, symbols, fonts), offset, width, caps, capitals);
+    text += inRanges(shown, offset, width, hidden, hiddenText);
   }
   return { text, pieces, pictures };
 }
 
 /**
- * `text`, read from the bytes at `offset`, with each character inside a hidden
- * range read as HIDDEN. Control characters stay, so a hidden paragraph mark
- * still ends its paragraph and a hidden field keeps its structure. One index
- * per UTF-16 code unit or 8-bit byte, so a range maps straight onto the string.
+ * Each character of hidden text read as HIDDEN. Control characters stay, so a
+ * hidden paragraph mark still ends its paragraph and a hidden field keeps its
+ * structure.
  */
-function hide(text: string, offset: number, width: number, hidden: [number, number][]): string {
+// eslint-disable-next-line no-control-regex
+const hiddenText = (slice: string): string => slice.replace(/[^\x00-\x1f]/g, String.fromCharCode(HIDDEN));
+
+/** Text shown in capitals as capitals, except a letter that becomes two ("ß"), so every offset still holds. */
+const capitals = (slice: string): string =>
+  Array.from(slice, (char) => (char.toUpperCase().length === char.length ? char.toUpperCase() : char)).join("");
+
+/**
+ * `text`, read from the bytes at `offset`, with each stretch inside one of
+ * `ranges` passed through `change`, which keeps its length. One index per
+ * UTF-16 code unit or 8-bit byte, so a range maps straight onto the string.
+ */
+function inRanges(text: string, offset: number, width: number, ranges: [number, number][], change: (slice: string) => string): string {
   const end = offset + text.length * width;
   // The ranges ascend without overlap: find the first that ends past `offset`.
   let low = 0;
-  for (let high = hidden.length; low < high; ) {
+  for (let high = ranges.length; low < high; ) {
     const middle = (low + high) >>> 1;
-    if (hidden[middle][1] <= offset) low = middle + 1;
+    if (ranges[middle][1] <= offset) low = middle + 1;
     else high = middle;
   }
   // Sliced around the ranges, never split per character: a whole document is
   // often one piece.
   let out = "";
   let cursor = 0;
-  for (let range = low; range < hidden.length && hidden[range][0] < end; range++) {
-    const from = Math.max(cursor, Math.floor((hidden[range][0] - offset) / width));
-    const to = Math.min(text.length, Math.ceil((hidden[range][1] - offset) / width));
+  for (let range = low; range < ranges.length && ranges[range][0] < end; range++) {
+    const from = Math.max(cursor, Math.floor((ranges[range][0] - offset) / width));
+    const to = Math.min(text.length, Math.ceil((ranges[range][1] - offset) / width));
     if (from >= to) continue;
-    out += text.slice(cursor, from);
-    for (let at = from; at < to; at++) out += text.charCodeAt(at) >= 0x20 ? String.fromCharCode(HIDDEN) : text[at];
+    out += text.slice(cursor, from) + change(text.slice(from, to));
     cursor = to;
   }
   return out + text.slice(cursor);
@@ -468,6 +489,59 @@ function insertAll(body: string, inserts: { at: number; text: string }[]): strin
   return out + body.slice(cursor);
 }
 
+/** FibRgFcLcb97: the footnote and endnote reference marks and text ranges. */
+const FC_PLCFFND_REF = 0x00aa;
+const FC_PLCFFND_TXT = 0x00b2;
+const FC_PLCFEND_REF = 0x020a;
+const FC_PLCFEND_TXT = 0x0212;
+
+/**
+ * Each footnote (MS-DOC 2.3.2) or endnote (2.3.5) with the position of its
+ * reference mark in the body: the Ref table lists the marks, the Txt table
+ * splits the note part into one range per note. Nothing when either table is
+ * missing.
+ */
+function noteRanges(word: Uint8Array, table: Uint8Array, part: string, refAt: number, txtAt: number): { at: number; text: string }[] | undefined {
+  const refs = listed(word, table, refAt);
+  const txt = listed(word, table, txtAt);
+  if (!refs || !txt) return undefined;
+  const count = Math.min(Math.floor((refs.byteLength - 4) / 6), Math.floor(txt.byteLength / 4) - 1);
+  const notes: { at: number; text: string }[] = [];
+  // Read forward only, as the comment ranges are.
+  let read = 0;
+  for (let i = 0; i < count; i++) {
+    const from = Math.max(read, txt.getUint32(i * 4, true));
+    const to = Math.max(from, Math.min(part.length, txt.getUint32((i + 1) * 4, true)));
+    read = to;
+    notes.push({ at: refs.getUint32(i * 4, true), text: part.slice(from, to) });
+  }
+  return notes;
+}
+
+/** FibRgFcLcb97: the stylesheet. */
+const FC_STSHF = 0x00a2;
+
+/**
+ * The level of each paragraph style that is one of Word's built-in Heading 1
+ * to 9, by istd. The STSH (MS-DOC 2.9.271) is a Stshi of `cbStshi` bytes, its
+ * style count first, then one LPStd per style: a length and an STD whose first
+ * 12 bits are the sti, 1 to 9 for the headings whatever their display name.
+ */
+function headingStyles(word: Uint8Array, table: Uint8Array): Map<number, number> {
+  const levels = new Map<number, number>();
+  const stsh = listed(word, table, FC_STSHF);
+  if (!stsh || stsh.byteLength < 4 || stsh.getUint16(0, true) < 2) return levels;
+  const count = stsh.getUint16(2, true);
+  let at = 2 + stsh.getUint16(0, true);
+  for (let istd = 0; istd < count && at + 2 <= stsh.byteLength; istd++) {
+    const size = stsh.getUint16(at, true);
+    const sti = size >= 2 && at + 4 <= stsh.byteLength ? stsh.getUint16(at + 2, true) & 0x0fff : 0;
+    if (sti >= 1 && sti <= 9) levels.set(istd, sti);
+    at += 2 + size;
+  }
+  return levels;
+}
+
 /** FibRgFcLcb97: paragraph property pages, the list definitions, the list instances. */
 const FC_PLCF_BTE_PAPX = 0x0102;
 const FC_PLF_LST = 0x02e2;
@@ -564,17 +638,18 @@ function docListLabels(word: Uint8Array, table: Uint8Array): ((ilfo: number, ilv
 }
 
 /**
- * Each paragraph run that belongs to a list, by its byte range in
- * `WordDocument`: PlcBtePapx names the paragraph property pages (PapxFkp,
- * MS-DOC 2.9.175), each listing runs and their properties. Read from the
- * paragraph's own properties.
+ * Each paragraph run that belongs to a list or has a heading style, by its
+ * byte range in `WordDocument`: PlcBtePapx names the paragraph property pages
+ * (PapxFkp, MS-DOC 2.9.175), each listing runs and their properties. Read from
+ * the paragraph's own properties.
  *
  * ponytail: a list applied through the paragraph's style (its istd in the
- * stylesheet) is not followed; read STSH when such files turn up.
+ * stylesheet) is not followed; read the style's own properties when such files
+ * turn up.
  */
-function listParagraphs(word: Uint8Array, table: Uint8Array): { from: number; to: number; ilfo: number; ilvl: number }[] {
+function markedParagraphs(word: Uint8Array, table: Uint8Array, headings: Map<number, number>): { from: number; to: number; ilfo: number; ilvl: number; istd: number }[] {
   const plc = listed(word, table, FC_PLCF_BTE_PAPX);
-  const runs: { from: number; to: number; ilfo: number; ilvl: number }[] = [];
+  const runs: { from: number; to: number; ilfo: number; ilvl: number; istd: number }[] = [];
   if (!plc || plc.byteLength < 8) return runs;
   const pages = Math.floor((plc.byteLength - 4) / 8);
   const seen = new Set<number>();
@@ -593,6 +668,7 @@ function listParagraphs(word: Uint8Array, table: Uint8Array): { from: number; to
       const end = Math.min(511, start + (cb ? cb * 2 - 1 : fkp.getUint8(papx + 1) * 2));
       let ilfo = 0;
       let ilvl = 0;
+      const istd = start + 2 <= end ? fkp.getUint16(start, true) : -1;
       // The istd first, then sprms as in a ChpxFkp.
       for (let at = start + 2; at + 2 <= end; ) {
         const sprm = fkp.getUint16(at, true);
@@ -602,7 +678,7 @@ function listParagraphs(word: Uint8Array, table: Uint8Array): { from: number; to
         else if (sprm === SPRM_ILVL && at < end) ilvl = fkp.getUint8(at);
         at += size < 0 ? (at < end ? fkp.getUint8(at) + 1 : 1) : size;
       }
-      if (ilfo > 0) runs.push({ from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), ilfo, ilvl: Math.min(ilvl, 8) });
+      if (ilfo > 0 || headings.has(istd)) runs.push({ from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), ilfo, ilvl: Math.min(ilvl, 8), istd });
     }
   }
   return runs.sort((a, b) => a.from - b.from);
@@ -610,13 +686,16 @@ function listParagraphs(word: Uint8Array, table: Uint8Array): { from: number; to
 
 /**
  * The label to write at the start of each list paragraph of the body, indented
- * four spaces a level as the docx reader writes them. A paragraph with nothing
- * visible (hidden or deleted text) is neither labelled nor counted.
+ * four spaces a level as the docx reader writes them, and a heading's `#`
+ * marks, one a level up to six as the docx reader writes them, with any list
+ * label after them unindented. A paragraph with nothing visible (hidden or
+ * deleted text) is neither labelled nor counted.
  */
-function listLabelInserts(word: Uint8Array, table: Uint8Array, body: string, pieces: Piece[]): { at: number; text: string }[] {
-  const runs = listParagraphs(word, table);
-  const label = runs.length ? docListLabels(word, table) : undefined;
-  if (!label) return [];
+function paragraphInserts(word: Uint8Array, table: Uint8Array, body: string, pieces: Piece[]): { at: number; text: string }[] {
+  const headings = headingStyles(word, table);
+  const runs = markedParagraphs(word, table, headings);
+  if (!runs.length) return [];
+  const label = runs.some((run) => run.ilfo > 0) ? docListLabels(word, table) : undefined;
   const inserts: { at: number; text: string }[] = [];
   let piece = 0;
   let start = 0;
@@ -639,8 +718,11 @@ function listLabelInserts(word: Uint8Array, table: Uint8Array, body: string, pie
     }
     const run = runs[low - 1];
     if (!run || fc >= run.to) continue;
-    const text = label(run.ilfo, run.ilvl);
-    if (text !== undefined) inserts.push({ at: from, text: `${"    ".repeat(run.ilvl)}${text ? `${text} ` : ""}` });
+    const text = run.ilfo > 0 ? label?.(run.ilfo, run.ilvl) : undefined;
+    // A heading in a table cell stays a cell.
+    const level = code === PARAGRAPH ? headings.get(run.istd) : undefined;
+    if (level) inserts.push({ at: from, text: `${"#".repeat(Math.min(level, 6))} ${text ? `${text} ` : ""}` });
+    else if (text !== undefined) inserts.push({ at: from, text: `${"    ".repeat(run.ilvl)}${text ? `${text} ` : ""}` });
   }
   return inserts;
 }
@@ -748,23 +830,44 @@ export function formatDoc(streams: CfbStreams): ExtractionResult {
     cursor += Math.max(0, length);
     return slice;
   };
-  const kept = [part(body), part(footnotes)];
-  const stories = part(headers);
+  const [main, foot, stories] = [part(body), part(footnotes), part(headers)];
   part(macros);
+  const [said, end, boxes, headerBoxText] = [part(comments), part(endnotes), part(textboxes), part(headerBoxes)];
   const left = { hidden: 0 };
-  const labels = commentLabels(word, table, part(comments), left).filter(({ at }) => at < kept[0].length);
-  kept[0] = insertAll(kept[0], [
-    ...listLabelInserts(word, table, kept[0], pieces),
-    ...pictureInserts(kept[0], pieces, pictures, streams.get("Data")),
-    ...atParagraphEnds(kept[0], labels),
+  const labels = commentLabels(word, table, said, left).filter(({ at }) => at < main.length);
+
+  // Each note numbered in the order its mark stands in the body, footnotes
+  // and endnotes in one sequence, as the docx reader numbers them: [^1] at
+  // the mark, its text after "[^1]" under the notes label.
+  const footnoteList = noteRanges(word, table, foot, FC_PLCFFND_REF, FC_PLCFFND_TXT);
+  const endnoteList = fib.getUint16(0x98, true) > 47 ? noteRanges(word, table, end, FC_PLCFEND_REF, FC_PLCFEND_TXT) : undefined;
+  const numbered = [...(footnoteList ?? []), ...(endnoteList ?? [])]
+    .filter(({ at }) => at < main.length)
+    .sort((a, b) => a.at - b.at)
+    .map(({ at, text }) => ({ at, text: plain(text, left) }))
+    .filter(({ text }) => text);
+  const noteLines = [
+    ...numbered.map(({ text }, i) => `[^${i + 1}] ${text}`),
+    // A note part without its tables is still notes, unnumbered.
+    ...(footnoteList ? [] : [plain(foot, left)]),
+    ...(endnoteList ? [] : [plain(end, left)]),
+  ].filter(Boolean);
+
+  const kept = insertAll(main, [
+    ...paragraphInserts(word, table, main, pieces),
+    ...pictureInserts(main, pieces, pictures, streams.get("Data")),
+    ...numbered.map(({ at }, i) => ({ at: at + 1, text: `[^${i + 1}]` })),
+    ...atParagraphEnds(main, labels),
   ]);
-  kept.push(part(endnotes), part(textboxes));
-  const furniture = pageFurniture(word, table, stories, part(headerBoxes), left);
+  const furniture = pageFurniture(word, table, stories, headerBoxText, left);
   const block = (label: string, lines: string[]) => (lines.length ? [[label, ...lines].join("\n")] : []);
 
   const text = [
     ...block("--- Page header ---", furniture.headers),
-    ...kept.map((part) => plain(part, left)),
+    // A heading paragraph that held only a field code or an object marks nothing.
+    plain(kept, left).replace(/^#{1,6}[ \t]*(?:\n|$)/gm, "").replace(/\n{3,}/g, "\n\n").trim(),
+    ...block("--- Notes ---", noteLines),
+    plain(boxes, left),
     ...block("--- Page footer ---", furniture.footers),
   ]
     .filter(Boolean)

@@ -45,7 +45,33 @@ describe("formatDoc", () => {
         textboxes: textboxes.length,
       }),
     );
-    expect(text).toBe("Body paragraph.\n\nA footnote.\n\nAn endnote.\n\nBox text");
+    // Without the note tables the notes are still labelled, unnumbered.
+    expect(text).toBe("Body paragraph.\n\n--- Notes ---\nA footnote.\nAn endnote.\n\nBox text");
+  });
+
+  it("numbers each note at its mark in the body, footnotes and endnotes in one sequence", () => {
+    const body = "Claim\x02 and\x02 more\x02.\r";
+    const footnotes = "\x02 First by part.\r\x02 \x10\x10\r";
+    const endnotes = "\x02 Second\rpart.\r";
+    const all = body + footnotes + endnotes;
+    const streams = withNotes(
+      wordStreams([{ text: all }], { body: body.length, footnotes: footnotes.length, endnotes: endnotes.length }),
+      // The second footnote is empty, so it is neither numbered nor marked.
+      [
+        { ref: 10, start: 0 },
+        { ref: 16, start: 17 },
+      ],
+      [{ ref: 5, start: 0 }],
+      footnotes.length,
+      endnotes.length,
+    );
+    expect(formatDoc(streams).text).toBe("Claim[^1] and[^2] more.\n\n--- Notes ---\n[^1] Second\npart.\n[^2] First by part.");
+  });
+
+  it("writes text shown in capitals in capitals, a letter that would become two left as it is", () => {
+    const pieces = [{ text: "Word is: " }, { text: "capitalized straße", caps: true }, { text: " and " }, { text: "this", caps: true, compressed: true }, { text: ".\r" }];
+    const length = pieces.reduce((sum, piece) => sum + piece.text.length, 0);
+    expect(formatDoc(wordStreams(pieces, { body: length })).text).toBe("Word is: CAPITALIZED STRAßE and THIS.");
   });
 
   it("writes each distinct header and footer story once, labelled, around the body", () => {
@@ -192,15 +218,58 @@ describe("formatDoc", () => {
 });
 
 /**
+ * `streams` given footnote and endnote tables appended to the table stream:
+ * each Ref table the marks' CPs, a last CP and a 2-byte FRD each, each Txt
+ * table the notes' starts, the part's end and one more CP.
+ */
+function withNotes(
+  streams: Map<string, Uint8Array>,
+  footnotes: { ref: number; start: number }[],
+  endnotes: { ref: number; start: number }[],
+  footLength: number,
+  endLength: number,
+): Map<string, Uint8Array> {
+  const word = streams.get("WordDocument")!;
+  const old = streams.get("1Table")!;
+  const bytes: number[] = [];
+  const u32 = (n: number) => bytes.push(n & 0xff, (n >> 8) & 0xff, (n >> 16) & 0xff, (n >>> 24) & 0xff);
+  const fib = new DataView(word.buffer);
+  fib.setUint16(0x98, 93, true);
+  const tables = (notes: { ref: number; start: number }[], length: number, refAt: number, txtAt: number) => {
+    fib.setUint32(refAt, old.length + bytes.length, true);
+    for (const note of notes) u32(note.ref);
+    u32(0);
+    bytes.push(...new Array<number>(notes.length * 2).fill(0));
+    fib.setUint32(refAt + 4, notes.length * 6 + 4, true);
+    fib.setUint32(txtAt, old.length + bytes.length, true);
+    for (const note of notes) u32(note.start);
+    u32(length);
+    u32(length + 1);
+    fib.setUint32(txtAt + 4, (notes.length + 2) * 4, true);
+  };
+  tables(footnotes, footLength, 0x00aa, 0x00b2);
+  tables(endnotes, endLength, 0x020a, 0x0212);
+  const table = new Uint8Array(old.length + bytes.length);
+  table.set(old);
+  table.set(bytes, old.length);
+  return new Map([
+    ["WordDocument", word],
+    ["1Table", table],
+  ]);
+}
+
+/**
  * `streams` (one UTF-16 piece at 0x400) given paragraph list properties and
  * list tables: a PapxFkp page after the text, then PlcBtePapx, PlfLst with
- * its LVLs and PlfLfo with its LFOData appended to the table stream.
+ * its LVLs and PlfLfo with its LFOData appended to the table stream, and a
+ * stylesheet giving each style its sti.
  */
 function withLists(
   streams: Map<string, Uint8Array>,
-  paragraphs: { text: string; ilfo?: number; ilvl?: number }[],
+  paragraphs: { text: string; ilfo?: number; ilvl?: number; istd?: number }[],
   lists: { lsid: number; levels: { nfc: number; text: string; start?: number }[] }[],
   lfos: { lsid: number; starts?: [number, number][] }[],
+  styles: number[] = [],
 ): Map<string, Uint8Array> {
   const textAt = 0x400;
   const old = streams.get("WordDocument")!;
@@ -215,7 +284,7 @@ function withLists(
     const papx = 400 + run * 12;
     page.setUint8((paragraphs.length + 1) * 4 + run * 13, papx / 2);
     // cb 5: istd, sprmPIlfo and sprmPIlvl, 9 bytes.
-    word.set([5, 0, 0, 0x0b, 0x46, paragraph.ilfo ?? 0, 0, 0x0a, 0x26, paragraph.ilvl ?? 0], pageAt + papx);
+    word.set([5, paragraph.istd ?? 0, 0, 0x0b, 0x46, paragraph.ilfo ?? 0, 0, 0x0a, 0x26, paragraph.ilvl ?? 0], pageAt + papx);
   });
   page.setUint32(paragraphs.length * 4, textAt + cp * 2, true);
   page.setUint8(511, paragraphs.length);
@@ -255,6 +324,14 @@ function withLists(
       bytes.push(ilvl | 0x10, 0, 0, 0);
     }
   }
+  // STSH: cbStshi 2 and the style count, then a 2-byte STD per style, its sti.
+  const stshAt = old2.length + bytes.length;
+  u16(2);
+  u16(styles.length);
+  for (const sti of styles) {
+    u16(2);
+    u16(sti);
+  }
   const table = new Uint8Array(old2.length + bytes.length);
   table.set(old2);
   table.set(bytes, old2.length);
@@ -265,7 +342,9 @@ function withLists(
   fib.setUint32(0x02e2, lstAt, true);
   fib.setUint32(0x02e6, 2 + lists.length * 28, true);
   fib.setUint32(0x02ea, lfoAt, true);
-  fib.setUint32(0x02ee, table.length - lfoAt, true);
+  fib.setUint32(0x02ee, stshAt - lfoAt, true);
+  fib.setUint32(0x00a2, stshAt, true);
+  fib.setUint32(0x00a6, table.length - stshAt, true);
   return new Map([
     ["WordDocument", word],
     ["1Table", table],
@@ -292,5 +371,24 @@ describe("formatDoc and lists", () => {
     const lfos = [{ lsid: 7 }, { lsid: 7, starts: [[0, 5]] as [number, number][] }, { lsid: 9 }];
     const { text } = formatDoc(withLists(wordStreams([{ text: body }], { body: body.length }), paragraphs, lists, lfos));
     expect(text).toBe("Terms\nArticle 1. Scope\n    (a) Parties\nArticle 2. Fees\n    (a) Again\nArticle 5. Fresh\n- Dot");
+  });
+
+  it("marks a paragraph in a built-in heading style with its level, whatever the style's istd", () => {
+    const paragraphs = [
+      { text: "Intro\r", istd: 2 },
+      { text: "Body\r" },
+      { text: "Deep\r", istd: 3 },
+      { text: "Numbered\r", istd: 2, ilfo: 1 },
+      // A heading holding only a field code marks nothing.
+      { text: "\x13 EMBED Paint \x15\r", istd: 2 },
+      { text: "Custom\r", istd: 4 },
+      { text: "End\r" },
+    ];
+    const body = paragraphs.map((p) => p.text).join("");
+    const lists = [{ lsid: 7, levels: [{ nfc: 0, text: "\x00." }, ...new Array(8).fill({ nfc: 0, text: "" })] }];
+    // Normal, a user style, Heading 1, Heading 8, then a user style again.
+    const styles = [0, 0x0ffe, 1, 8, 0x0ffe];
+    const { text } = formatDoc(withLists(wordStreams([{ text: body }], { body: body.length }), paragraphs, lists, [{ lsid: 7 }], styles));
+    expect(text).toBe("# Intro\nBody\n###### Deep\n# 1. Numbered\nCustom\nEnd");
   });
 });
