@@ -83,7 +83,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     formats: ["xlsx", "xlsm", "xlsb", "xltx", "xltm", "cfb"],
     how: "auto",
     gives:
-      "Every sheet under its name, rows as comma-separated cells, each cell as Excel shows it. Charts and text boxes on a sheet follow its rows, a chart as a table of its data. A hidden sheet is read and marked (hidden).",
+      "Every sheet under its name, rows as comma-separated cells, each cell as Excel shows it. Charts, text boxes and the print header and footer follow a sheet's rows, a chart as a table of its data. A hidden sheet is read and marked (hidden).",
     loses: "Formulas (their results come through), cell colours and conditional formatting. The charts in an .xls or .xlsb file.",
   },
   {
@@ -92,7 +92,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["ods"],
     formats: ["ods"],
     how: "auto",
-    gives: "Every sheet's cells as text, and its charts after them as tables of their data. A hidden sheet is read and marked (hidden).",
+    gives: "Every sheet's cells as text, then its print header and footer, and its charts as tables of their data. A hidden sheet is read and marked (hidden).",
     loses: "Formulas (their results come through) and cell colours.",
   },
   {
@@ -101,8 +101,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["pptx", "pptm", "potx", "potm", "ppsx", "ppsm", "ppt"],
     formats: ["pptx", "pptm", "potx", "potm", "ppsx", "ppsm", "cfb"],
     how: "auto",
-    gives: "The text of each slide, slide by slide, and a chart as a table of its data. A hidden slide is read and marked (hidden).",
-    loses: "A chart or diagram that exists only as a picture, and the charts in a PowerPoint 97-2003 file.",
+    gives: "The text of each slide, slide by slide, and a chart as a table of its data. Text the slide master prints on every slide comes once, at the top. A hidden slide is read and marked (hidden).",
+    loses: "A chart or diagram that exists only as a picture, and the charts and slide master text in a PowerPoint 97-2003 file.",
   },
   {
     group: "Slides",
@@ -110,7 +110,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["odp"],
     formats: ["odp"],
     how: "auto",
-    gives: "The text of each slide, and a chart as a table of its data. A hidden slide is read and marked (hidden).",
+    gives: "The text of each slide, and a chart as a table of its data. Text the master page prints on every slide comes once, at the top. A hidden slide is read and marked (hidden).",
     loses: "A chart or diagram that exists only as a picture.",
   },
   {
