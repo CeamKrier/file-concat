@@ -36,9 +36,9 @@ export function decodeXml(text: string): string {
   });
 }
 
-const fold = (text: string) => text.replace(/\s+/g, " ").trim();
+export const fold = (text: string) => text.replace(/\s+/g, " ").trim();
 
-interface Tag {
+export interface Tag {
   /** The qualified name, `c:pt`. */
   name: string;
   /** The name without its prefix, `pt`. */
@@ -51,7 +51,7 @@ interface Tag {
 }
 
 /** Each tag of a part in order, found by index, so a crafted part cannot make the scan quadratic. */
-function* tagsOf(xml: string): Generator<Tag> {
+export function* tagsOf(xml: string): Generator<Tag> {
   for (let at = xml.indexOf("<"); at >= 0; ) {
     const end = xml.indexOf(">", at);
     if (end < 0) return;
@@ -65,7 +65,7 @@ function* tagsOf(xml: string): Generator<Tag> {
   }
 }
 
-const attr = (tag: string, name: string) => new RegExp(`\\s${name}="([^"]*)"`).exec(tag)?.[1];
+export const attr = (tag: string, name: string) => new RegExp(`\\s${name}="([^"]*)"`).exec(tag)?.[1];
 const index = (tag: string, name: string) => parseInt(attr(tag, name) ?? "", 10) || 0;
 
 /** `[Chart, bar: title; subtitle; alt; values: value axis title]`, each part only when there is one. */
@@ -227,7 +227,7 @@ export function odfChart(xml: string, alt = ""): ChartBlock | undefined {
   return { label: labelOf(kinds, [texts.title, texts.subtitle, alt], [texts.y]), rows: grid };
 }
 
-const text = (data: Uint8Array | undefined) => (data ? strFromU8(data) : "");
+export const text = (data: Uint8Array | undefined) => (data ? strFromU8(data) : "");
 
 /** A part's path from a relationship target, relative to the part that names it unless it starts at the root. */
 function resolvePart(from: string, target: string): string {
@@ -254,7 +254,7 @@ function relationships(parts: Record<string, Uint8Array>, part: string): Map<str
 }
 
 /** The parts a filter keeps, or nothing when the file is no zip or unpacks past the cap. */
-function unpack(bytes: Uint8Array, keep: (name: string) => boolean): Record<string, Uint8Array> | undefined {
+export function unpack(bytes: Uint8Array, keep: (name: string) => boolean): Record<string, Uint8Array> | undefined {
   let unpacked = 0;
   try {
     const parts = unzipSync(bytes, {

@@ -1,6 +1,7 @@
 import { strFromU8, unzipSync } from "fflate";
 import type { OfficeContentNode } from "officeparser";
 import { chartParts, withChartTables, workbookSheets, type ChartBlock } from "./office-charts";
+import { odfPageFurniture } from "./office-furniture";
 import { withoutHiddenText } from "./office-hidden";
 import { noteLayersOff } from "./pdf-layers";
 import type { ExtractionNote, ExtractionNoteKind, ExtractionResult } from "./types";
@@ -762,8 +763,10 @@ function includePageFurniture(
 ): void {
   const labelled = (label: string, nodes: readonly OfficeContentNode[]): OfficeContentNode[] => {
     const seen = new Set<string>();
+    // Compared with runs of whitespace folded, so a line read by officeparser
+    // and the same line read by `odfPageFurniture` are one.
     const lines = nodes.filter((node) => {
-      const text = node.text?.trim();
+      const text = node.text?.replace(/\s+/g, " ").trim();
       if (!text || seen.has(text)) return false;
       seen.add(text);
       return true;
@@ -777,6 +780,21 @@ function includePageFurniture(
 
   content.unshift(...labelled("--- Page header ---", auxiliary?.headers ?? []));
   content.push(...labelled("--- Page footer ---", auxiliary?.footers ?? []));
+}
+
+/**
+ * officeparser's ODT header and footer with every other one the file prints
+ * after them (C7): first-page, left-page and other master pages' ones.
+ */
+function withOdfFurniture(
+  auxiliary: { headers?: OfficeContentNode[]; footers?: OfficeContentNode[] } | undefined,
+  bytes: Uint8Array,
+): { headers: OfficeContentNode[]; footers: OfficeContentNode[] } {
+  const more = odfPageFurniture(bytes);
+  return {
+    headers: [...(auxiliary?.headers ?? []), ...more.headers.map(line)],
+    footers: [...(auxiliary?.footers ?? []), ...more.footers.map(line)],
+  };
 }
 
 /** How long a line may be and still be taken for a page-number footer. */
@@ -1252,7 +1270,7 @@ export async function extractOfficeDocument(
   // and the csv renderer would write a paragraph of ours as a row.
   if (!asWorkbook) {
     dropRunningFurniture(ast.content);
-    includePageFurniture(ast.content, ast.auxiliary);
+    includePageFurniture(ast.content, ast.type === "odt" ? withOdfFurniture(ast.auxiliary, bytes) : ast.auxiliary);
   }
   if (isWorkbook(ast.content)) showWorkbookSheets(ast.content, bytes);
   // Each visitor restores one thing the text renderer drops. They are composed

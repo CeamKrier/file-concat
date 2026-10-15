@@ -309,6 +309,24 @@ describe("extractOfficeDocument — structure survives extraction", () => {
     expect(text.indexOf("CONFIDENTIAL")).toBeLessThan(text.indexOf("The body of the document"));
   });
 
+  it("keeps every header and footer an ODT prints, once each", async () => {
+    const master = (name: string, regions: string) => `<style:master-page style:name="${name}">${regions}</style:master-page>`;
+    const region = (tag: string, text: string, off = false) =>
+      `<style:${tag}${off ? ' style:display="false"' : ""}><text:p>${text}</text:p></style:${tag}>`;
+    const odt = odfDocument(
+      "text",
+      "<text:p>Body</text:p>",
+      master("Standard", region("header", "Main head") + region("header-first", "Cover head") + region("footer", "Main  foot") + region("footer-left", "Even foot")) +
+        master("Unused", region("header", "Template junk")) +
+        master("Off", region("header", "Switched off", true)),
+    );
+    // officeparser's own reading of the default pair comes first; the same line
+    // read again here differs only in whitespace and is dropped as a repeat.
+    expect((await extractOfficeDocument(odt)).text).toBe(
+      "--- Page header ---\nMain head\nCover head\nBody\n--- Page footer ---\nMain  foot\nEven foot",
+    );
+  });
+
   it("marks where each slide of a deck begins", async () => {
     const { text } = await extractOfficeDocument(twoSlidePptx());
 

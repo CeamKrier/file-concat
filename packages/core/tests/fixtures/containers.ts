@@ -458,7 +458,7 @@ export function commentedXlsx(
 }
 
 /** An OpenDocument file of `kind` (text, spreadsheet) holding `body`. */
-export function odfDocument(kind: string, body: string): Uint8Array {
+export function odfDocument(kind: string, body: string, masterStyles = ""): Uint8Array {
   const ns =
     'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" ' +
     'xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" ' +
@@ -470,6 +470,13 @@ export function odfDocument(kind: string, body: string): Uint8Array {
       "content.xml": strToU8(
         `<?xml version="1.0" encoding="UTF-8"?><office:document-content ${ns}><office:body><office:${kind}>${body}</office:${kind}></office:body></office:document-content>`,
       ),
+      ...(masterStyles
+        ? {
+            "styles.xml": strToU8(
+              `<?xml version="1.0" encoding="UTF-8"?><office:document-styles ${ns} xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"><office:master-styles>${masterStyles}</office:master-styles></office:document-styles>`,
+            ),
+          }
+        : {}),
     },
     { level: 0 },
   );
