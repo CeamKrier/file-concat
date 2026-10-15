@@ -34,6 +34,13 @@ describe("withWordAltText", () => {
     expect(withWordAltText(fallback).endsWith("</w:r><w:r><w:t>[Image: Once]</w:t></w:r>")).toBe(true);
   });
 
+  it("names a SmartArt diagram, with or without its alternative text", () => {
+    const diagram = (docPr: string) =>
+      `<w:r><w:drawing><wp:docPr id="3" name="Diagram 3"${docPr}/><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/diagram"/></w:drawing></w:r>`;
+    expect(withWordAltText(diagram(' descr="Process"'))).toBe(`${diagram(' descr="Process"')}<w:r><w:t>[Diagram: Process]</w:t></w:r>`);
+    expect(withWordAltText(diagram(""))).toBe(`${diagram("")}<w:r><w:t>[Diagram]</w:t></w:r>`);
+  });
+
   it("skips a picture in a hidden run, a tracked deletion or the source of a move", () => {
     for (const xml of [
       `<w:r><w:rPr><w:vanish/></w:rPr>${picture('descr="Secret"')}</w:r>`,

@@ -39,9 +39,9 @@ const GENERIC = /^(\p{L}+ ?\d{1,4}|[^\s/\\]+\.(png|jpe?g|gif|bmp|tiff?|emf|wmf|s
  * text is (`withoutHiddenRuns`).
  */
 export function withWordAltText(xml: string): string {
-  if (!/\s(?:descr|title|alt|o:title)="|<w:tblCaption|<w:tblDescription/.test(xml)) return xml;
+  if (!/\s(?:descr|title|alt|o:title)="|<w:tblCaption|<w:tblDescription|\/drawingml\/2006\/diagram"/.test(xml)) return xml;
   const out: string[] = [];
-  const drawings: Array<{ run: number; parts: Array<string | undefined>; chart: boolean; hidden: boolean }> = [];
+  const drawings: Array<{ run: number; parts: Array<string | undefined>; chart: boolean; diagram: boolean; hidden: boolean }> = [];
   const hidden = new Set<number>();
   const open: string[] = [];
   const pending = new Map<number, string[]>();
@@ -72,10 +72,13 @@ export function withWordAltText(xml: string): string {
       }
     } else if (skipped > 0) continue;
     else if ((t.name === "w:drawing" || t.name === "w:pict") && t.opens !== t.closes) {
-      if (t.opens) drawings.push({ run: runs, parts: [], chart: false, hidden: hidden.has(runs) });
+      if (t.opens) drawings.push({ run: runs, parts: [], chart: false, diagram: false, hidden: hidden.has(runs) });
       else {
         const drawing = drawings.pop();
-        const label = drawing && !drawing.chart && !drawing.hidden ? altLabel("Image", drawing.parts) : "";
+        // A SmartArt diagram is always named, so the node text officeparser
+        // writes after it reads as the diagram's, not as a list in the body.
+        const label =
+          !drawing || drawing.chart || drawing.hidden ? "" : drawing.diagram ? altLabel("Diagram", drawing.parts) || "[Diagram]" : altLabel("Image", drawing.parts);
         if (drawing && label) pending.set(drawing.run, [...(pending.get(drawing.run) ?? []), label]);
       }
     } else if (drawings.length && t.opens) {
@@ -84,7 +87,10 @@ export function withWordAltText(xml: string): string {
       // A drawing its author hid (ECMA-376 20.4.2.5, VML's visibility) is skipped.
       if (/^(1|true)$/.test(attr(t.tag, "hidden") ?? "") || /visibility:\s*hidden/i.test(attr(t.tag, "style") ?? "")) drawing.hidden = true;
       if (t.local === "docPr") read("title", "descr");
-      else if (t.local === "graphicData") drawing.chart ||= /\/chart$/.test(attr(t.tag, "uri") ?? "");
+      else if (t.local === "graphicData") {
+        drawing.chart ||= /\/chart$/.test(attr(t.tag, "uri") ?? "");
+        drawing.diagram ||= /\/diagram$/.test(attr(t.tag, "uri") ?? "");
+      }
       else if (t.name === "v:shape") read("alt");
       else if (t.name === "v:imagedata") read("o:title");
     } else if (t.name === "w:tbl" && t.opens && !t.closes) {
