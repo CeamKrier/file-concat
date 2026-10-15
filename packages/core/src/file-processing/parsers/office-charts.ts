@@ -70,7 +70,7 @@ export const attr = (tag: string, name: string) => new RegExp(`\\s${name}="([^"]
 const index = (tag: string, name: string) => parseInt(attr(tag, name) ?? "", 10) || 0;
 
 /** `[Chart, bar: title; subtitle; alt; values: value axis title]`, each part only when there is one. */
-function labelOf(kinds: string[], parts: string[], values: string[]): string {
+export function labelOf(kinds: string[], parts: string[], values: string[]): string {
   const kind = [...new Set(kinds.filter(Boolean))].join(", ");
   const head = parts.map(fold).filter((part, at, all) => part && all.indexOf(part) === at).join("; ");
   const axes = values.map(fold).filter(Boolean).map((title) => `; values: ${title}`).join("");
@@ -167,7 +167,7 @@ export function drawingChart(xml: string, alt = ""): ChartBlock | undefined {
 }
 
 /** The most cells a chart's table is written with. */
-const MAX_CELLS = 100_000;
+export const MAX_CELLS = 100_000;
 
 /**
  * An OpenDocument chart object (`Object N/content.xml`) as a label and its

@@ -5,6 +5,8 @@ import {
   decodeXml,
   fold,
   hiddenLabel,
+  labelOf,
+  MAX_CELLS,
   relationships,
   sheetHeaderText,
   tagsOf,
@@ -83,6 +85,63 @@ const BIFF_DV = 0x01be;
 const BIFF_DIMENSIONS = 0x0200;
 const BIFF_ROW = 0x0208;
 const BIFF_COLINFO = 0x007d;
+const BIFF_OBJ = 0x005d;
+const BIFF_TXO = 0x01b6;
+const BIFF_CONTINUE = 0x003c;
+const BIFF_NUMBER = 0x0203;
+const BIFF_LABEL = 0x0204;
+const CHART_SERIES = 0x1003;
+const CHART_SERIESTEXT = 0x100d;
+const CHART_TEXT = 0x1025;
+const CHART_OBJECTLINK = 0x1027;
+const CHART_SIINDEX = 0x1065;
+/** A chart group's record (MS-XLS 2.4.38 and on), by the name an xlsx chart's element gives that kind. */
+const CHART_KINDS = new Map([
+  [0x1017, "bar"],
+  [0x1018, "line"],
+  [0x1019, "pie"],
+  [0x101a, "area"],
+  [0x101b, "scatter"],
+  [0x103e, "radar"],
+  [0x103f, "surface"],
+  [0x1040, "radar"],
+  [0x1061, "ofPie"],
+]);
+
+/** What a chart substream has given so far. */
+interface BiffChart {
+  depth: number;
+  kinds: string[];
+  /** Each series' name and its cached values by point. */
+  series: { name: string; values: Map<number, string> }[];
+  categories: Map<number, string>;
+  /** An attached label's text, until its ObjectLink says what it labels. */
+  label?: string;
+  /** Labels by ObjectLink wLinkObj: 1 the chart, 2 the value axis, 3 the category axis. */
+  titles: Map<number, string>;
+  /** The SIIndex the cached Number and Label records belong to: 1 values, 2 categories. */
+  cache: number;
+}
+
+/** A BIFF chart as an xlsx chart is written: a label, then categories down and a column per series. */
+function biffChartBlock(chart: BiffChart): ChartBlock {
+  const label = labelOf(chart.kinds, [chart.titles.get(1) ?? ""], [chart.titles.get(2) ?? ""]);
+  if (!chart.series.length) return { label, rows: [] };
+  const all = new Set(chart.categories.keys());
+  chart.series.forEach((one) => one.values.forEach((_, at) => all.add(at)));
+  // Past the cap the rest is named, not written, as an xlsx chart's are.
+  const points = Array.from(all)
+    .sort((a, b) => a - b)
+    .slice(0, Math.floor(MAX_CELLS / (chart.series.length + 1)));
+  return {
+    label,
+    rows: [
+      [fold(chart.titles.get(3) ?? "") || "Category", ...chart.series.map((one, at) => fold(one.name) || `Series ${at + 1}`)],
+      ...points.map((at) => [fold(chart.categories.get(at) ?? ""), ...chart.series.map((one) => fold(one.values.get(at) ?? ""))]),
+      ...(all.size > points.length ? [[`(${all.size - points.length} more points left out)`]] : []),
+    ],
+  };
+}
 
 /**
  * An Excel 97-2003 or 5/95 workbook's print headers and footers by sheet
@@ -90,9 +149,13 @@ const BIFF_COLINFO = 0x007d;
  * each sheet carries (MS-XLS 2.4.136), labelled as an xlsx's are (Q27 O1),
  * its data validation rules (Dv, 2.4.95), and the rows (Row fDyZero, 2.4.221)
  * and columns (ColInfo fHidden, 2.4.53) it hides inside its used range
- * (Dimensions, 2.4.90), as an xlsx's are (Q34 O1). SheetJS keeps nothing of
- * the first two, and a hidden column only with cell styles on. An encrypted
- * stream gives nothing.
+ * (Dimensions, 2.4.90), as an xlsx's are (Q34 O1). Also a text box's text
+ * (Obj 2.4.181 then Txo 2.4.329, a note's left to SheetJS) and each chart, on
+ * the sheet or a chart sheet of its own: its kind, title, axis titles, series
+ * names and the values it keeps cached (SIIndex 2.4.260), as an xlsx chart is
+ * written (C6). Tika writes the same series and title text unlabelled. SheetJS
+ * keeps nothing of these but the notes, and a hidden column only with cell
+ * styles on. An encrypted stream gives nothing.
  *
  * ponytail: the odd-page pair only; the even and first-page ones in a
  * HeaderFooter record (2.4.137) are left out. A BIFF5 name is read as
@@ -159,6 +222,35 @@ export function biffSheetFurniture(stream: Uint8Array): Map<string, ChartBlock[]
       ...(flags & 0x80000 ? { errorTitle, error } : {}),
     });
   };
+  /** One record of a chart substream into what the chart has given so far. */
+  const readChart = (chart: BiffChart, r: { type: number; data: number; size: number }) => {
+    const kind = CHART_KINDS.get(r.type);
+    if (kind) {
+      // A pie with a hole is a doughnut (PieFormat pcDonut), a scatter with sizes a bubble chart.
+      const flag = (at: number) => r.size >= at + 2 && view.getUint16(r.data + at, true);
+      chart.kinds.push(kind === "pie" && flag(2) ? "doughnut" : kind === "scatter" && Number(flag(4)) & 1 ? "bubble" : kind);
+    } else if (r.type === CHART_SERIES) {
+      chart.series.push({ name: "", values: new Map() });
+      chart.label = undefined;
+    } else if (r.type === CHART_TEXT) chart.label = "";
+    else if (r.type === CHART_SERIESTEXT && r.size > 2) {
+      const text = read(r.data + 2, r.size - 2, false);
+      if (chart.label !== undefined) chart.label = text;
+      else if (chart.series.length) chart.series[chart.series.length - 1].name = text;
+    } else if (r.type === CHART_OBJECTLINK && r.size >= 2 && chart.label) {
+      const link = view.getUint16(r.data, true);
+      if (!chart.titles.has(link)) chart.titles.set(link, chart.label);
+      chart.label = undefined;
+    } else if (r.type === CHART_SIINDEX && r.size >= 2) chart.cache = view.getUint16(r.data, true);
+    else if ((r.type === BIFF_NUMBER || r.type === BIFF_LABEL) && r.size >= 8) {
+      // The cache's row is the point, its column the series.
+      const point = view.getUint16(r.data, true);
+      const value = r.type === BIFF_NUMBER ? (r.size >= 14 ? String(view.getFloat64(r.data + 6, true)) : "") : read(r.data + 6, r.size - 6, true);
+      const series = chart.series[view.getUint16(r.data + 2, true)];
+      if (chart.cache === 1 && series) series.values.set(point, value);
+      else if (chart.cache === 2 && !chart.categories.has(point)) chart.categories.set(point, value);
+    }
+  };
   const sheets: { at: number; name: string }[] = [];
   for (const r of records(0, stream.byteLength)) {
     if (r.type === BIFF_BOF && r.size >= 2 && sheets.length === 0) biff8 = view.getUint16(r.data, true) === 0x0600;
@@ -177,11 +269,51 @@ export function biffSheetFurniture(stream: Uint8Array): Map<string, ChartBlock[]
     const cols: [number, number][] = [];
     let end: { row: number; col: number } | undefined;
     let depth = 0;
+    let chart: BiffChart | undefined;
+    let object = 0;
+    let box: { left: number; text: string } | undefined;
+    const boxes = new Set<string>();
+    const addBox = (text: string) => {
+      const label = `[Text box: ${fold(text)}]`;
+      if (fold(text) && !boxes.has(label)) {
+        boxes.add(label);
+        blocks.push({ label, rows: [] });
+      }
+    };
     for (const r of records(start, starts[index + 1] ?? stream.byteLength)) {
-      // A chart drawn on the sheet is a substream of its own, BOF to EOF.
-      if (r.type === BIFF_BOF) depth++;
-      else if (r.type === BIFF_EOF && --depth <= 0) break;
-      else if (depth === 1 && (r.type === BIFF_HEADER || r.type === BIFF_FOOTER)) {
+      // A text box's text is in the Continue records right after its Txo.
+      if (box && r.type !== BIFF_CONTINUE) {
+        addBox(box.text);
+        box = undefined;
+      }
+      // A chart, drawn on the sheet or a chart sheet, is a substream of its own, BOF to EOF.
+      if (r.type === BIFF_BOF) {
+        depth++;
+        if (biff8 && !chart && r.size >= 4 && view.getUint16(r.data + 2, true) === 0x0020) {
+          chart = { depth, kinds: [], series: [], categories: new Map(), titles: new Map(), cache: 0 };
+        }
+      } else if (r.type === BIFF_EOF) {
+        if (chart?.depth === depth) {
+          blocks.push(biffChartBlock(chart));
+          chart = undefined;
+        }
+        if (--depth <= 0) break;
+      } else if (chart) readChart(chart, r);
+      else if (box) {
+        const wide = r.size > 0 && (view.getUint8(r.data) & 1) === 1;
+        const count = Math.min(box.left, Math.floor((r.size - 1) / (wide ? 2 : 1)));
+        const bytes = stream.subarray(r.data + 1, r.data + 1 + Math.max(count, 0) * (wide ? 2 : 1));
+        box.text += wide ? utf16.decode(bytes) : strFromU8(bytes, true);
+        box.left -= count;
+        if (box.left <= 0 || count <= 0) {
+          addBox(box.text);
+          box = undefined;
+        }
+      } else if (depth === 1 && biff8 && r.type === BIFF_OBJ && r.size >= 6) object = view.getUint16(r.data + 4, true);
+      // An Obj of type 0x19 is a note, which SheetJS reads with its author.
+      else if (depth === 1 && biff8 && r.type === BIFF_TXO && r.size >= 14 && object !== 0x19) {
+        box = { left: view.getUint16(r.data + 10, true), text: "" };
+      } else if (depth === 1 && (r.type === BIFF_HEADER || r.type === BIFF_FOOTER)) {
         const line = sheetHeaderText(read(r.data, r.size, true));
         const label = `[Page ${r.type === BIFF_HEADER ? "header" : "footer"}: ${line}]`;
         if (line && !seen.has(label)) {
