@@ -64,8 +64,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["docx", "docm", "dotx", "dotm", "doc"],
     formats: ["docx", "docm", "dotx", "dotm", "cfb"],
     how: "auto",
-    gives: "Text with headings, tables, footnotes, page headers and footers, and link addresses. A chart comes through as a table of its data. Tracked deletions and hidden text are left out.",
-    loses: "Pictures are not described. A chart in a Word 97-2003 file, or in a header or footer, is not read.",
+    gives: "Text with headings, tables, footnotes, page headers and footers, and link addresses. A list item keeps the number or bullet Word shows for it. A chart comes through as a table of its data. Tracked deletions and hidden text are left out.",
+    loses: "Pictures are not described. A chart in a Word 97-2003 file, or in a header or footer, is not read. A Word 97-2003 list numbered through a paragraph style loses its numbers.",
   },
   {
     group: "Documents",
@@ -73,7 +73,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["odt", "rtf"],
     formats: ["odt", "rtf"],
     how: "auto",
-    gives: "The text, with its page headers and footers. An OpenDocument chart comes through as a table of its data. Hidden text is left out.",
+    gives: "The text, with its page headers and footers. An OpenDocument list item keeps its number or bullet, and an OpenDocument chart comes through as a table of its data. Hidden text is left out.",
     loses: "Pictures and the charts in an RTF file are not described.",
   },
   {
