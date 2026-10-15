@@ -1,5 +1,6 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { withOdfAltText, withRtfAltText, withWordAltText } from "./alt-text";
+import { withWordFieldLinks } from "./office-links";
 import { withOdfListLabels } from "./office-lists";
 import { withoutHiddenRtf } from "./rtf-hidden";
 
@@ -330,8 +331,9 @@ export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidde
       const after = withoutHiddenRuns(before);
       // An absolute-position tab ("Left<ptab>Right" in a header) is a tab to
       // the reader, as POI's XWPFRun reads it; officeparser drops it, "LeftRight".
-      // Pictures' and tables' alternative text, which officeparser drops (Q31 O1).
-      after.xml = withWordAltText(withRubyText(after.xml.replace(/<w:ptab\b[^>]*?(?:\/>|>\s*<\/w:ptab>)/g, "<w:tab/>")));
+      // Pictures' and tables' alternative text, which officeparser drops (Q31 O1),
+      // and a HYPERLINK field's address, which it drops with the field code (Q32 O1).
+      after.xml = withWordFieldLinks(withWordAltText(withRubyText(after.xml.replace(/<w:ptab\b[^>]*?(?:\/>|>\s*<\/w:ptab>)/g, "<w:tab/>"))));
       if (after.xml === before) continue;
       changed[name] = strToU8(after.xml);
       hidden += after.hidden;

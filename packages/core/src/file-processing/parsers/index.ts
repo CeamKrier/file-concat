@@ -14,6 +14,7 @@ export { withRtfComments } from "./rtf-comments";
 export { withRtfFurniture } from "./rtf-furniture";
 export { biffSheetFurniture } from "./office-furniture";
 export { workbookSheets } from "./office-charts";
+export { linkWorthWriting } from "./office-links";
 export { formatEmail } from "./email";
 export type { MessageFields } from "./email";
 export { formatMsg } from "./msg";

@@ -45,6 +45,28 @@ describe("parsePdfPages", () => {
 
     expect(pages[0]?.figures).toEqual(["Chart", "Map"]);
   });
+
+  it("writes a web link over the words its rectangle covers, in place when they occur once", async () => {
+    const item = (text: string, y: number) => ({ text, x: 0, y, width: text.length * 10, height: 10, rotation: 0 });
+    const link = (uri: string, x: number, width: number, y: number) => ({ subtype: "link", uri, rect: { x, y, width, height: 10 } });
+    class Parser {
+      async parse() {
+        const markdown = "Read our docs today\n\ndocs again docs";
+        const textItems = [item("Read our docs today", 0), item("docs again docs", 20)];
+        const annotations = [
+          link("https://x.example/docs", 50, 80, 0),
+          link("https://x.example/again", 100, 50, 20),
+          link("#page=2", 0, 40, 0),
+          link("https://x.example/none", 0, 100, 60),
+        ];
+        return { pages: [{ pageNum: 1, markdown, textItems, annotations }, { pageNum: 2, markdown, textItems, annotations }], pageErrors: [] };
+      }
+      free() {}
+    }
+    const { pages } = await parsePdfPages(Parser as unknown as typeof LiteParse, new Uint8Array());
+
+    expect(pages[0]?.text).toBe("Read [our docs](https://x.example/docs) today\n\ndocs again docs\n\n[docs](https://x.example/again)");
+  });
 });
 
 /**

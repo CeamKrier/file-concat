@@ -20,6 +20,13 @@ describe("formatDoc", () => {
     expect(text).toBe("Chapter 7 of the book.");
   });
 
+  it("writes a HYPERLINK field as [text](address), and not a bookmark link or one that is its text", () => {
+    const body =
+      'See \x13 HYPERLINK "https://x.example/a" \\o "Tip" \x14our docs\x15, \x13 HYPERLINK \\l "_Toc1" \x14Chapter 1\x15, \x13 HYPERLINK "mailto:a@x.example" \x14a@x.example\x15.\r';
+    const { text } = formatDoc(wordStreams([{ text: body }], { body: body.length }));
+    expect(text).toBe("See [our docs](https://x.example/a), Chapter 1, a@x.example.");
+  });
+
   it("keeps the body, notes and text boxes, and leaves unanchored comments out", () => {
     const body = "Body paragraph.\r";
     const footnotes = "A footnote.\r";

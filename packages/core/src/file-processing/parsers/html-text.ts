@@ -1,4 +1,5 @@
 import { altLabel } from "./alt-text";
+import { linkWorthWriting } from "./office-links";
 
 /** Block-level tags whose boundaries are the only structure flattened HTML keeps. */
 const HTML_BREAKS = new Set(["p", "div", "br", "tr", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "table"]);
@@ -227,18 +228,54 @@ export function flattenHtml(html: string): string {
   const image = (tag: string) => {
     // A void tag escapes `withoutHiddenHtml`, so a hidden image is checked here.
     if (hides(tag)) return "";
-    const label = altLabel("Image", [/\salt\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i.exec(tag)?.slice(1).find((value) => value !== undefined)]);
+    const label = altLabel("Image", [attribute(tag, "alt")]);
     return label ? ` ${label} ` : "";
   };
-  return mapTags(html, (name, closing, tag) => (cell(name, closing) ? " | " : HTML_BREAKS.has(name) ? "\n" : name === "img" ? image(tag) : ""), true)
-    .replace(/&#(?:x([\da-f]+)|(\d+));/gi, (entity, hex: string | undefined, dec: string) => {
-      const code = hex ? parseInt(hex, 16) : Number(dec);
-      return code <= 0x10ffff ? String.fromCodePoint(code) : entity;
+  // A link as `[text](address)` (Q32 O1), its ends marked until the text is known.
+  const links: string[] = [];
+  const open: boolean[] = [];
+  const link = (closing: boolean, tag: string) => {
+    if (closing) return open.pop() ? LINK_CLOSE : "";
+    const address = decodeEntities(attribute(tag, "href") ?? "").replace(/\s+/g, "");
+    open.push(EXTERNAL.test(address));
+    if (!open[open.length - 1]) return "";
+    links.push(address);
+    return `${LINK_OPEN}${links.length - 1}${LINK_OPEN}`;
+  };
+  return decodeEntities(
+    mapTags(
+      html.replace(/[\uE002\uE003]/g, ""),
+      (name, closing, tag) => (cell(name, closing) ? " | " : HTML_BREAKS.has(name) ? "\n" : name === "img" ? image(tag) : name === "a" ? link(closing, tag) : ""),
+      true,
+    ),
+  )
+    .replace(/\uE002(\d+)\uE002([^\uE002\uE003]*)\uE003/g, (_, at: string, text: string) => {
+      const address = links[Number(at)]!;
+      return linkWorthWriting(text, address) ? ` [${text.replace(/\s+/g, " ").trim()}](${address}) ` : text;
     })
-    .replace(/&[a-z#0-9]+;/gi, (entity) => HTML_ENTITIES[entity.toLowerCase()] ?? entity)
+    .replace(/\uE002\d+\uE002|\uE003/g, "")
     .replace(/[ \t]+/g, " ")
     .replace(/ ?\n ?/g, "\n")
     .split("\n")
     .map(trimCells)
     .join("\n");
+}
+
+/** Where a link opens and closes, between reading the markup and writing its text. */
+const LINK_OPEN = "\uE002";
+const LINK_CLOSE = "\uE003";
+/** An address a reader can follow from a bundle: not `#anchor`, `cid:`, `javascript:` or a relative path. */
+const EXTERNAL = /^(?:https?|ftp|mailto|tel):/i;
+
+/** An attribute's value from one start tag, quoted or bare. */
+const attribute = (tag: string, name: string) =>
+  new RegExp(`\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'>]+))`, "i").exec(tag)?.slice(1).find((value) => value !== undefined);
+
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&#(?:x([\da-f]+)|(\d+));/gi, (entity, hex: string | undefined, dec: string) => {
+      const code = hex ? parseInt(hex, 16) : Number(dec);
+      return code <= 0x10ffff ? String.fromCodePoint(code) : entity;
+    })
+    .replace(/&[a-z#0-9]+;/gi, (entity) => HTML_ENTITIES[entity.toLowerCase()] ?? entity);
 }

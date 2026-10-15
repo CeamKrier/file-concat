@@ -66,6 +66,26 @@ describe("extractWorkbook comments", () => {
   });
 });
 
+describe("extractWorkbook links", () => {
+  it("writes a cell's link after the sheet's rows, once a range, not an in-workbook one or one that is its text", () => {
+    const sheet = XLSX.utils.aoa_to_sheet([["Docs", "Back", "https://x.example/"], ["Both", "", ""]]);
+    sheet.A1.l = { Target: "https://x.example/docs", Tooltip: "Read me" };
+    sheet.B1.l = { Target: "#Sheet2!A1" };
+    sheet.C1.l = { Target: "https://x.example/" };
+    const range = { Target: "mailto:team@x.example" };
+    sheet.A2.l = range;
+    sheet.B2.l = range;
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet, "Links");
+    for (const bookType of ["xlsx", "xls"] as const) {
+      const { text } = extractWorkbook(new Uint8Array(XLSX.write(workbook, { bookType, type: "array" })));
+      const tip = bookType === "xlsx" ? "; Read me" : "";
+      expect(text, bookType).toContain(`Both\n"[Link, A1: https://x.example/docs${tip}]"\n"[Link, A2: mailto:team@x.example]"`);
+      expect(text, bookType).not.toMatch(/Link, (B1|C1|B2)/);
+    }
+  });
+});
+
 describe("extractCfb", () => {
   it("reads an Outlook message as the correspondence it is", () => {
     // Measured 2026-09-15 against ten real Outlook files as well (record in

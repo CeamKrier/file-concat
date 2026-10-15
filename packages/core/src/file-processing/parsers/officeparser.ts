@@ -5,6 +5,7 @@ import { chartParts, withChartTables, workbookSheets, type ChartBlock } from "./
 import { odfPageFurniture, odsSheetFurniture, slideMasterText } from "./office-furniture";
 import { withoutHiddenText } from "./office-hidden";
 import { wordListLabels } from "./office-lists";
+import { linkWorthWriting } from "./office-links";
 import { noteLayersOff } from "./pdf-layers";
 import { pdfTitle, rtfTitle } from "./title";
 import type { ExtractionNote, ExtractionNoteKind, ExtractionResult } from "./types";
@@ -715,28 +716,44 @@ function expandMergedCells(): (node: OfficeContentNode) => void {
 }
 
 /**
- * Write each external link's destination after the text that carried it.
+ * Write each external link as `[text](url)`, the Markdown link the HTML and
+ * RTF readers already write (Q32 O1).
  *
- * The parsed tree keeps the URL on the run (`metadata.link`), and the text
+ * The parsed tree keeps the URL on each run (`metadata.link`), and the text
  * renderer emits only the run's characters, so `our documentation` reaches the
- * bundle with nothing saying it pointed anywhere. Every reference in a linked
- * document is then unrecoverable, and invisibly so: a model asked what a
- * document cites can only answer from the anchor text.
+ * bundle with nothing saying it pointed anywhere. A link of several runs (a
+ * bold word inside it) is one link: consecutive runs with the same address
+ * are wrapped together, at the node that holds them.
  *
- * A run whose text already contains its destination is left alone, since
- * repeating it adds nothing — which also makes this safe to run twice over the
- * same tree. Internal links (`#anchor`) are skipped: they name a position in
- * the same document, and flat text has nowhere to point.
+ * A link whose text already is its destination is left alone, since repeating
+ * it adds nothing; a run is wrapped once, so running this twice changes
+ * nothing. Internal links (`#anchor`) are skipped: they name a position in the
+ * same document, and flat text has nowhere to point.
  */
 function showLinkDestinations(node: OfficeContentNode): void {
-  if (node.type !== "text" || node.metadata?.linkType !== "external") return;
-  const link = node.metadata.link;
-  if (!link || !node.text || node.text.includes(link)) return;
-  // Folded like the renderer's own metadata header: the URL is document-supplied
-  // and a line break in it would forge structure in a bundle a model reads as
-  // one document. A real URL has no whitespace to lose.
-  node.text = `${node.text} (${link.replace(/\s+/g, "")})`;
+  const children = node.children ?? [];
+  const link = (child: OfficeContentNode | undefined) =>
+    child?.type === "text" && child.metadata?.linkType === "external" && !wrapped.has(child) ? child.metadata.link : undefined;
+  for (let from = 0; from < children.length; from++) {
+    const target = link(children[from]);
+    if (!target) continue;
+    let to = from;
+    while (link(children[to + 1]) === target) to++;
+    const runs = children.slice(from, to + 1);
+    runs.forEach((run) => wrapped.add(run));
+    const text = runs.map((run) => run.text ?? "").join("");
+    from = to;
+    if (!linkWorthWriting(text, target)) continue;
+    // Folded like the renderer's own metadata header: the URL is document-supplied
+    // and a line break in it would forge structure in a bundle a model reads as
+    // one document. A real URL has no whitespace to lose.
+    runs[0]!.text = `[${runs[0]!.text ?? ""}`;
+    runs[runs.length - 1]!.text = `${runs[runs.length - 1]!.text ?? ""}](${target.replace(/\s+/g, "")})`;
+  }
 }
+
+/** Runs already written as part of a link. */
+const wrapped = new WeakSet<OfficeContentNode>();
 
 /**
  * Put a word processor document's page header and footer back into the text.

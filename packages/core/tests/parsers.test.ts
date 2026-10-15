@@ -430,7 +430,7 @@ describe("extractOfficeDocument — references survive extraction", () => {
   it("writes a link's destination beside its anchor text", async () => {
     const { text } = await extractOfficeDocument(referencesDocx());
 
-    expect(text).toContain("our documentation (https://fileconcat.com/docs/introduction)");
+    expect(text).toContain("[our documentation](https://fileconcat.com/docs/introduction)");
   });
 
   it("does not repeat a destination that is already the visible text", async () => {

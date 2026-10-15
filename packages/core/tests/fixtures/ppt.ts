@@ -33,6 +33,12 @@ export const container = (type: number, children: Uint8Array[], inst = 0): Uint8
   return concat(header(0xf, inst, type, body.length), body);
 };
 
+/** A click on `[from, to)` of the text body before it follows hyperlink `id`; `mouseOver` is the hover one, `action` another action. */
+export const textLink = (id: number, from: number, to: number, options: { mouseOver?: boolean; action?: number } = {}): Uint8Array[] => [
+  container(0x0ff2, [atom(0x0ff3, concat(u32s(0, id), Uint8Array.of(options.action ?? 4, 0, 0, 0, 0, 0, 0, 0)))], options.mouseOver ? 1 : 0),
+  atom(0x0fdf, u32s(from, to)),
+];
+
 /** A text body: TextHeaderAtom, the characters, and a SlideNumberMCAtom (or
  * `fieldType`) per position in `fields`. `bytes` stores it 8-bit. */
 export function text(chars: string, options: { bytes?: boolean; fields?: number[]; fieldType?: number } = {}): Uint8Array[] {
@@ -93,6 +99,8 @@ export interface DeckSpec {
   notesOrder?: number[];
   masters?: { shapes: Uint8Array[]; ppt12?: boolean }[];
   footer?: { text?: string; on: boolean };
+  /** The deck's hyperlinks, by id: a target and a location. */
+  hyperlinks?: [id: number, target?: string, location?: string][];
   /** The newest edit points back at itself. */
   selfLoop?: boolean;
   /** The edit names an encryption session. */
@@ -138,6 +146,20 @@ export function deckStreams(spec: DeckSpec): Map<string, Uint8Array> {
               ...(spec.footer.text !== undefined ? [atom(0x0fba, utf16(spec.footer.text), 2)] : []),
             ],
             3,
+          ),
+        ]
+      : []),
+    ...(spec.hyperlinks
+      ? [
+          container(
+            0x0409,
+            spec.hyperlinks.map(([id, target, location]) =>
+              container(0x0fd7, [
+                atom(0x0fd3, u32s(id)),
+                ...(target !== undefined ? [atom(0x0fba, utf16(target), 1)] : []),
+                ...(location !== undefined ? [atom(0x0fba, utf16(location), 3)] : []),
+              ]),
+            ),
           ),
         ]
       : []),

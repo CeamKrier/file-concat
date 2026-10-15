@@ -1,5 +1,6 @@
 import { altLabel } from "./alt-text";
 import { listLabels, type ListDefinition, type ListInstance, type ListLevel } from "./office-lists";
+import { hyperlinkAddress, linkWorthWriting } from "./office-links";
 import type { CfbStreams } from "./msg";
 import { SUMMARY_INFORMATION, summaryTitle } from "./title";
 import type { ExtractionNote, ExtractionResult } from "./types";
@@ -214,23 +215,28 @@ function hide(text: string, offset: number, width: number, hidden: [number, numb
  */
 function plain(text: string, left: { hidden: number }): string {
   let out = "";
-  const fields: boolean[] = [];
+  const fields: Array<{ code: boolean; instr: string; result: number; address?: string }> = [];
   let hiding = false;
   for (const char of text) {
     const code = char.charCodeAt(0);
+    const field = fields[fields.length - 1];
     if (code === FIELD_BEGIN) {
-      fields.push(true);
+      fields.push({ code: true, instr: "", result: 0 });
       continue;
     }
     if (code === FIELD_SEPARATOR) {
-      if (fields.length > 0) fields[fields.length - 1] = false;
+      if (field) Object.assign(field, { code: false, result: out.length, address: hyperlinkAddress(field.instr) });
       continue;
     }
     if (code === FIELD_END) {
       fields.pop();
+      // A HYPERLINK field's result as [text](address), as a docx's (Q32 O1).
+      const result = field?.address ? out.slice(field.result) : "";
+      if (field?.address && linkWorthWriting(result, field.address)) out = `${out.slice(0, field.result)}[${result}](${field.address})`;
       continue;
     }
-    if (fields.includes(true)) continue;
+    if (field?.code) field.instr += char;
+    if (fields.some((open) => open.code)) continue;
     // A stretch of hidden characters outside any field code is one passage
     // left out; a hidden XE index entry or TC entry is a field code anyway.
     if (code === HIDDEN) {

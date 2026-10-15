@@ -19,6 +19,14 @@ describe("flattenHtml", () => {
     expect(flattenHtml(`<p>A<img hidden alt="Secret"><img style="display: none" alt="Secret">B</p>`).trim()).toBe("AB");
   });
 
+  it("writes a link as [text](address), once, and only to somewhere outside the message", () => {
+    expect(flattenHtml(`<p>See <a href="https://x.example/a?b=1&amp;c=2">our <b>docs</b></a>.</p>`).trim()).toBe("See [our docs](https://x.example/a?b=1&c=2) .");
+    expect(flattenHtml(`<a href="mailto:ab@x.example">ab@x.example</a> <a href="https://x.example/">https://x.example/</a>`).trim()).toBe(
+      "ab@x.example https://x.example/",
+    );
+    expect(flattenHtml(`<a href="#top">Top</a> <a href="javascript:go()">Go</a> <a href="cid:1">Pic</a> <a href="https://x.example/"></a>`).trim()).toBe("Top Go Pic");
+  });
+
   it("flattens crafted markup in one pass", () => {
     for (const unit of ["<a ", "<!--", "<script ", "<script>", "<p ", "<blockquote ", "</script"]) {
       const html = unit.repeat(40_000);

@@ -3,6 +3,7 @@ import {
   formatDoc,
   formatMsg,
   formatPpt,
+  linkWorthWriting,
   workbookSheets,
   type CfbStreams,
   type ExtractionResult,
@@ -84,6 +85,7 @@ export function extractWorkbook(bytes: Uint8Array, furniture?: ReturnType<typeof
   const drawn = new Map(workbookSheets(bytes).sheets.map((sheet) => [sheet.name, sheet.blocks]));
   for (const [name, blocks] of furniture ?? []) drawn.set(name, [...(drawn.get(name) ?? []), ...blocks]);
   let comments = 0;
+  const zipped = bytes[0] === 0x50 && bytes[1] === 0x4b;
   const sheets = workbook.SheetNames.flatMap((name, index) => {
     const sheet = workbook.Sheets[name] as (XLSX.WorkSheet & { "!type"?: string }) | undefined;
     // SheetJS lists a sheet it failed to parse and leaves its entry out.
@@ -100,8 +102,8 @@ export function extractWorkbook(bytes: Uint8Array, furniture?: ReturnType<typeof
     const csv = XLSX.utils.sheet_to_csv(sheet, { strip: true }).replace(/\n{3,}/g, "\n\n").trim();
     const notes = cellComments(sheet);
     comments += notes.length;
-    // In the office reader's order: cells, what is drawn on the sheet, comments.
-    const body = [csv, ...drawing, ...notes].filter(Boolean).join("\n");
+    // In the office reader's order: cells, what is drawn on the sheet, comments, then links.
+    const body = [csv, ...drawing, ...notes, ...cellLinks(sheet, zipped)].filter(Boolean).join("\n");
     return body ? [`# Sheet: ${name}${state}\n${body}`] : [];
   });
   const title = workbook.Props?.Title;
@@ -134,6 +136,33 @@ function cellComments(sheet: XLSX.WorkSheet): string[] {
         return [`"${cell.replace(/"/g, '""')}"`];
       }),
     );
+}
+
+/**
+ * A sheet's hyperlinks as csv rows after its comments, `[Link, B2: address;
+ * tooltip]` (Q32 O1): the csv holds a cell's text and nothing of where it
+ * points. A link to a place in the workbook (`#Sheet2!A1`) is skipped, as an
+ * anchor is in a document, and so is one whose cell text is its address. A
+ * link over a range is one object on every cell of it, and is written once.
+ *
+ * The tooltip only from a zip workbook: SheetJS fills it from a BIFF link's
+ * display name too, which writers set to their own name ("SheetJS", "url").
+ */
+function cellLinks(sheet: XLSX.WorkSheet, tips: boolean): string[] {
+  const seen = new Set<XLSX.Hyperlink>();
+  return Object.keys(sheet)
+    .filter((key) => !key.startsWith("!"))
+    .map((key) => ({ key, at: XLSX.utils.decode_cell(key), cell: sheet[key] as XLSX.CellObject }))
+    .sort((a, b) => a.at.r - b.at.r || a.at.c - b.at.c)
+    .flatMap(({ key, cell }) => {
+      const link = cell.l;
+      const text = String(cell.w ?? cell.v ?? "");
+      const address = (link?.Target ?? "").replace(/\s+/g, "");
+      if (!link || seen.has(link) || address.startsWith("#") || !linkWorthWriting(text, address)) return [];
+      seen.add(link);
+      const tip = tips ? (link.Tooltip ?? "").replace(/\s+/g, " ").trim() : "";
+      return [csvRow([`[Link, ${key}: ${address}${tip && tip !== text && tip !== address ? `; ${tip}` : ""}]`])];
+    });
 }
 
 /** A csv row, quoting a cell as SheetJS does. */

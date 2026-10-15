@@ -1,4 +1,5 @@
 import type { CfbStreams } from "./msg";
+import { linkWorthWriting } from "./office-links";
 import { SUMMARY_INFORMATION, summaryTitle } from "./title";
 import type { ExtractionResult } from "./types";
 
@@ -67,6 +68,14 @@ const CHILD_ANCHOR = 0xf00f;
 const CLIENT_ANCHOR = 0xf010;
 const CLIENT_DATA = 0xf011;
 const TERTIARY_OPT = 0xf122;
+/** A deck's hyperlinks (ExHyperlinkContainer), and the text ranges a click on follows one (InteractiveInfo, TxInteractiveInfoAtom). */
+const EX_OBJ_LIST = 0x0409;
+const EX_HYPERLINK = 0x0fd7;
+const EX_HYPERLINK_ATOM = 0x0fd3;
+const INTERACTIVE_INFO = 0x0ff2;
+const INTERACTIVE_INFO_ATOM = 0x0ff3;
+const TX_INTERACTIVE_INFO = 0x0fdf;
+const ACTION_HYPERLINK = 0x04;
 
 /** Field atoms, each pinning a `*` in the text that the viewer fills in:
  * slide number, date, generic date, header, footer, RTF date (2.9.47-2.9.52). */
@@ -110,6 +119,8 @@ interface TextBody {
   text: string;
   /** Code-unit positions of field `*` characters. */
   fields: Set<number>;
+  /** Code-unit ranges a mouse click follows a hyperlink from, by the hyperlink's id. */
+  links?: { from: number; to: number; id: number }[];
 }
 
 interface Shape {
@@ -147,12 +158,26 @@ function recordAt(bytes: Uint8Array, at: number): PptRecord | undefined {
 /**
  * Field `*`s removed, paragraph and line breaks as newlines, other control
  * characters dropped. A body that is nothing but a `*` is a field whose value
- * only the viewer knows, and says nothing.
+ * only the viewer knows, and says nothing. A run that is a hyperlink in
+ * `addresses` is written `[text](address)` (Q32 O1).
  */
-function render({ text, fields }: TextBody): string {
+function render({ text, fields, links = [] }: TextBody, addresses = new Map<number, string>()): string {
+  const opens = new Set<number>();
+  const closes = new Map<number, string>();
+  for (const link of links) {
+    const address = addresses.get(link.id);
+    // A range may end one past the text, on the paragraph mark a body's last paragraph has none of.
+    const { from } = link;
+    const to = Math.min(link.to, text.length);
+    if (!address || from >= to || opens.has(from) || closes.has(to) || !linkWorthWriting(text.slice(from, to), address)) continue;
+    opens.add(from);
+    closes.set(to, `](${address})`);
+  }
   let out = "";
-  for (let at = 0; at < text.length; at++) {
-    if (fields.has(at) && text[at] === "*") continue;
+  for (let at = 0; at <= text.length; at++) {
+    out += closes.get(at) ?? "";
+    if (opens.has(at)) out += "[";
+    if (at === text.length || (fields.has(at) && text[at] === "*")) continue;
     out += text[at];
   }
   out = out
@@ -234,16 +259,38 @@ function readDeck(doc: Uint8Array, currentUser: Uint8Array): string {
   /** A run of records into text bodies, one per TextHeaderAtom. */
   const bodies = (records: Iterable<PptRecord>): TextBody[] => {
     const out: TextBody[] = [];
+    // The hyperlink a click on the next range follows; a mouse-over one (instance 1) is not read.
+    let link: number | undefined;
     for (const record of records) {
       const current = out[out.length - 1];
-      if (record.type === TEXT_HEADER) out.push({ text: "", fields: new Set() });
+      if (record.type === TEXT_HEADER) out.push({ text: "", fields: new Set(), links: [] });
       else if (!current) continue;
+      else if (record.type === INTERACTIVE_INFO) {
+        const atom = record.inst === 0 ? find(record.body, INTERACTIVE_INFO_ATOM) : undefined;
+        link = atom && atom.body.length >= 9 && atom.body[8] === ACTION_HYPERLINK ? u32(atom.body, 4) : undefined;
+      } else if (record.type === TX_INTERACTIVE_INFO && record.body.length >= 8) {
+        if (link !== undefined) current.links!.push({ from: u32(record.body, 0), to: u32(record.body, 4), id: link });
+        link = undefined;
+      }
       else if (record.type === TEXT_CHARS) current.text += utf16.decode(record.body);
       else if (record.type === TEXT_BYTES) current.text += lowBytes(record.body);
       else if (FIELDS.has(record.type) && record.body.length >= 4) current.fields.add(i32(record.body, 0));
     }
     return out;
   };
+
+  // A hyperlink's address: its target, with its location as a fragment. One
+  // with no target jumps to a slide of this deck, which flat text cannot.
+  const addresses = new Map<number, string>();
+  const objects = find(document.body, EX_OBJ_LIST);
+  for (const record of objects ? children(objects.body) : []) {
+    const atom = record.type === EX_HYPERLINK ? find(record.body, EX_HYPERLINK_ATOM) : undefined;
+    const target = atom && atom.body.length >= 4 ? find(record.body, CSTRING, 1) : undefined;
+    const address = target ? utf16.decode(target.body).replace(/\s+/g, "") : "";
+    const location = find(record.body, CSTRING, 3);
+    const fragment = location ? utf16.decode(location.body).replace(/\s+/g, "") : "";
+    if (address && !address.startsWith("#")) addresses.set(u32(atom!.body, 0), fragment ? `${address}#${fragment}` : address);
+  }
 
   /** A slide list: per sheet, its persist ref, its id and its outline text. */
   const list = (inst: number) => {
@@ -290,7 +337,7 @@ function readDeck(doc: Uint8Array, currentUser: Uint8Array): string {
     const textOf = (textbox: Uint8Array) => {
       const ref = find(textbox, OUTLINE_TEXT_REF);
       const body = ref && ref.body.length >= 4 ? outline[u32(ref.body, 0)] : bodies(children(textbox))[0];
-      return body ? spend(render(body)) : "";
+      return body ? spend(render(body, addresses)) : "";
     };
     const group = (bytes: Uint8Array, depth: number) => {
       if (depth > MAX_DEPTH) throw new Unreadable("nesting cap");

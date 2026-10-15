@@ -19,6 +19,7 @@ export {
   withRtfFurniture,
   biffSheetFurniture,
   workbookSheets,
+  linkWorthWriting,
   createParserRegistry,
   extractWithFallback,
   FIRST_READERS,

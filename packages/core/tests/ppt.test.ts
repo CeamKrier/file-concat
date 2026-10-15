@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { formatPpt } from "../src/file-processing/parsers/ppt";
-import { amend, deckStreams, group, shape, slideContainer, text } from "./fixtures/ppt";
+import { amend, deckStreams, group, shape, slideContainer, text, textLink } from "./fixtures/ppt";
 
 const UNAVAILABLE = { text: "", notes: [{ kind: "parser-unavailable" }] };
 /** PlaceholderEnum (MS-PPT 2.13.21). */
@@ -169,6 +169,37 @@ describe("formatPpt", () => {
       ],
     });
     expect(formatPpt(deck).text).toBe("# Slide 1\nCaf\u00e9 \u00a9 \u0093\n\u{20B9F} page");
+  });
+
+  it("writes a clicked hyperlink as [text](address), and not a slide jump, a hover link or one that is its text", () => {
+    const body = "See our docs\rwww.x.example\rSlide two\rHover";
+    const deck = deckStreams({
+      slides: [
+        {
+          shapes: [
+            shape({
+              text: [
+                ...text(body),
+                ...textLink(1, 4, 12),
+                ...textLink(2, 13, 27),
+                ...textLink(3, 27, 36),
+                ...textLink(1, 37, 43, { mouseOver: true }),
+              ],
+            }),
+            // A range ending past the last paragraph, on the mark it has none of.
+            shape({ text: [...text("Last"), ...textLink(1, 0, 5)] }),
+          ],
+        },
+      ],
+      hyperlinks: [
+        [1, "https://x.example/docs", "part"],
+        [2, "http://www.x.example/"],
+        [3, undefined, "257,2,Slide 2"],
+      ],
+    });
+    expect(formatPpt(deck).text).toBe(
+      "# Slide 1\nSee [our docs](https://x.example/docs#part)\nwww.x.example\nSlide two\nHover\n[Last](https://x.example/docs#part)",
+    );
   });
 
   it("reads the newest save of a slide, not the one an incremental save left behind", () => {
