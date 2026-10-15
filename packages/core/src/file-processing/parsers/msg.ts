@@ -160,13 +160,27 @@ const LID_LOCATION = 0x8208;
 const LID_START = 0x820d;
 const LID_END = 0x820e;
 
+/** Calendar message classes (MS-OXOCAL 2.2.6), by prefix, to what Outlook calls the item. */
+const CALENDAR_KINDS: readonly [RegExp, string][] = [
+  [/^IPM\.Appointment/i, "Appointment"],
+  [/^IPM\.Schedule\.Meeting\.Request/i, "Meeting request"],
+  [/^IPM\.Schedule\.Meeting\.Canceled/i, "Meeting cancellation"],
+  [/^IPM\.Schedule\.Meeting\.Resp\.Pos/i, "Meeting accepted"],
+  [/^IPM\.Schedule\.Meeting\.Resp\.Tent/i, "Meeting tentatively accepted"],
+  [/^IPM\.Schedule\.Meeting\.Resp\.Neg/i, "Meeting declined"],
+  [/^IPM\.Schedule\.Meeting/i, "Meeting"],
+];
+
 /**
- * When and where a meeting is, which Outlook keeps in named properties: a
- * calendar item or meeting request would otherwise read as a mail sent at its
- * save time. Written the way a mail's invite part is (`calendar.ts`).
+ * What calendar item a message is, and when and where it is, which Outlook
+ * keeps in named properties: a calendar item or meeting request would
+ * otherwise read as a mail sent at its save time. Written the way a mail's
+ * invite part is (`calendar.ts`).
  */
 function appointment(streams: CfbStreams, properties: ReadonlyMap<number, DataView>, codepage: number | undefined): string[] {
-  if (!/^IPM\.(Appointment|Schedule\.Meeting)/i.test(stringProperty(streams, "", MESSAGE_CLASS, codepage))) return [];
+  const messageClass = stringProperty(streams, "", MESSAGE_CLASS, codepage);
+  const kind = CALENDAR_KINDS.find(([pattern]) => pattern.test(messageClass))?.[1];
+  if (!kind) return [];
   const id = (lid: number) => namedProperty(streams, PSETID_APPOINTMENT, lid);
   const time = (lid: number) => {
     const named = id(lid);
@@ -175,11 +189,12 @@ function appointment(streams: CfbStreams, properties: ReadonlyMap<number, DataVi
   };
   const location = id(LID_LOCATION);
   const lines = [
+    ["Calendar item", kind],
     ["Starts", time(LID_START)],
     ["Ends", time(LID_END)],
     ["Location", location === undefined ? "" : stringProperty(streams, "", location.toString(16).toUpperCase(), codepage)],
   ].filter(([, value]) => value);
-  return lines.length > 0 ? [lines.map(([label, value]) => `${label}: ${value}`).join("\n")] : [];
+  return [lines.map(([label, value]) => `${label}: ${value}`).join("\n")];
 }
 
 /** Outlook separates display names with a semicolon. */

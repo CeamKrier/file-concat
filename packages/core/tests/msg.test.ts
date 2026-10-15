@@ -238,10 +238,13 @@ describe("formatMsg", () => {
         [0x8001, 0x0040, filetime("2026-10-20T09:00:00.000Z")],
       ]),
     });
-    expect(formatMsg(streams).text).toContain("\n\nStarts: 2026-10-20 09:00 UTC\nLocation: Room 4\n\nAttachments");
+    expect(formatMsg(streams).text).toContain("\n\nCalendar item: Appointment\nStarts: 2026-10-20 09:00 UTC\nLocation: Room 4\n\nAttachments");
+    streams.set("__substg1.0_001A001F", utf16("IPM.Schedule.Meeting.Canceled"));
+    expect(formatMsg(streams).text).toContain("\n\nCalendar item: Meeting cancellation\nStarts:");
     // A mail that happens to carry the same properties is not a meeting.
     streams.set("__substg1.0_001A001F", utf16("IPM.Note"));
     expect(formatMsg(streams).text).not.toContain("Starts:");
+    expect(formatMsg(streams).text).not.toContain("Calendar item:");
   });
 
   it("names an attached message by its subject when it has no filename", () => {
