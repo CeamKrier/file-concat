@@ -17,6 +17,7 @@ export {
   withoutHiddenText,
   withRtfComments,
   withRtfFurniture,
+  biffSheetFurniture,
   workbookSheets,
   createParserRegistry,
   extractWithFallback,

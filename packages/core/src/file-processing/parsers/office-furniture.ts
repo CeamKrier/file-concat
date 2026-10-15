@@ -1,4 +1,5 @@
-import { attr, decodeXml, fold, tagsOf, text, unpack } from "./office-charts";
+import { strFromU8 } from "fflate";
+import { attr, decodeXml, fold, relationships, sheetHeaderText, tagsOf, text, unpack, type ChartBlock } from "./office-charts";
 
 /** The lines of a document's page headers and footers, a paragraph each. */
 export interface PageFurniture {
@@ -55,4 +56,311 @@ export function odfPageFurniture(bytes: Uint8Array): PageFurniture {
     } else if (line !== undefined && ODF_SPACE.has(t.name) && t.opens) line += " ";
   }
   return found;
+}
+
+/** BIFF record types (MS-XLS 2.3). */
+const BIFF_BOF = 0x0809;
+const BIFF_EOF = 0x000a;
+const BIFF_FILEPASS = 0x002f;
+const BIFF_BOUNDSHEET = 0x0085;
+const BIFF_HEADER = 0x0014;
+const BIFF_FOOTER = 0x0015;
+
+/**
+ * An Excel 97-2003 or 5/95 workbook's print headers and footers by sheet
+ * name, from its `Workbook` or `Book` stream: the Header and Footer records
+ * each sheet carries (MS-XLS 2.4.136), labelled as an xlsx's are (Q27 O1).
+ * SheetJS parses the records and keeps nothing of them. An encrypted stream
+ * gives nothing.
+ *
+ * ponytail: the odd-page pair only; the even and first-page ones in a
+ * HeaderFooter record (2.4.137) are left out. A BIFF5 name is read as
+ * Latin-1, whatever its code page.
+ */
+export function biffSheetFurniture(stream: Uint8Array): Map<string, ChartBlock[]> {
+  const found = new Map<string, ChartBlock[]>();
+  const view = new DataView(stream.buffer, stream.byteOffset, stream.byteLength);
+  const utf16 = new TextDecoder("utf-16le");
+  function* records(from: number, to: number) {
+    for (let at = from; at + 4 <= to; ) {
+      const size = view.getUint16(at + 2, true);
+      if (at + 4 + size > to) return;
+      yield { type: view.getUint16(at, true), data: at + 4, size };
+      at += 4 + size;
+    }
+  }
+  let biff8 = false;
+  // A string inside a record: BIFF8 a 1- or 2-byte count and a flags byte
+  // whose low bit says UTF-16, BIFF5 a 1-byte count and 8-bit text.
+  const read = (at: number, size: number, wide: boolean): string => {
+    const head = biff8 ? (wide ? 3 : 2) : 1;
+    if (size < head) return "";
+    const count = biff8 && wide ? view.getUint16(at, true) : view.getUint8(at);
+    const high = biff8 && (view.getUint8(at + head - 1) & 1) === 1;
+    const bytes = stream.subarray(at + head, Math.min(at + size, at + head + count * (high ? 2 : 1)));
+    return high ? utf16.decode(bytes) : strFromU8(bytes, true);
+  };
+  const sheets: { at: number; name: string }[] = [];
+  for (const r of records(0, stream.byteLength)) {
+    if (r.type === BIFF_BOF && r.size >= 2 && sheets.length === 0) biff8 = view.getUint16(r.data, true) === 0x0600;
+    else if (r.type === BIFF_FILEPASS) return found;
+    else if (r.type === BIFF_BOUNDSHEET && r.size > 6) sheets.push({ at: view.getUint32(r.data, true), name: read(r.data + 6, r.size - 6, false) });
+    else if (r.type === BIFF_EOF) break;
+  }
+  // Each sheet's records are read up to the next sheet's start, once however
+  // many names point at it, so a forged table cannot read the stream again per sheet.
+  const starts = [...new Set(sheets.map((sheet) => sheet.at))].sort((a, b) => a - b);
+  const seen = new Set<string>();
+  const byStart = new Map<number, ChartBlock[]>();
+  starts.forEach((start, index) => {
+    const blocks: ChartBlock[] = [];
+    let depth = 0;
+    for (const r of records(start, starts[index + 1] ?? stream.byteLength)) {
+      // A chart drawn on the sheet is a substream of its own, BOF to EOF.
+      if (r.type === BIFF_BOF) depth++;
+      else if (r.type === BIFF_EOF && --depth <= 0) break;
+      else if (depth === 1 && (r.type === BIFF_HEADER || r.type === BIFF_FOOTER)) {
+        const line = sheetHeaderText(read(r.data, r.size, true));
+        const label = `[Page ${r.type === BIFF_HEADER ? "header" : "footer"}: ${line}]`;
+        if (line && !seen.has(label)) {
+          seen.add(label);
+          blocks.push({ label, rows: [] });
+        }
+      }
+    }
+    byStart.set(start, blocks);
+  });
+  for (const sheet of sheets) {
+    const blocks = byStart.get(sheet.at);
+    byStart.delete(sheet.at);
+    if (blocks?.length && !found.has(sheet.name)) found.set(sheet.name, blocks);
+  }
+  return found;
+}
+
+const ODF_FIELD = new Set([
+  "text:page-number",
+  "text:page-count",
+  "text:date",
+  "text:time",
+  "text:sheet-name",
+  "text:file-name",
+  "text:title",
+  "text:chapter",
+  "presentation:header",
+  "presentation:footer",
+  "presentation:date-time",
+]);
+const ODF_SECTION: Record<string, string> = { "style:region-left": "L", "style:region-center": "C", "style:region-right": "R" };
+
+/**
+ * An OpenDocument spreadsheet's print headers and footers by sheet name, as
+ * `[Page header: left | center | right]` lines like an xlsx's (Q27 O1), each
+ * written once across the workbook. A sheet prints its table style's master
+ * page, else the first one. Fields go: the file caches `???` for a sheet name
+ * and `1` for every page number, which is why officeparser skips these.
+ */
+export function odsSheetFurniture(bytes: Uint8Array): Map<string, string[]> {
+  const found = new Map<string, string[]>();
+  const parts = unpack(bytes, (name) => name === "styles.xml" || name === "content.xml");
+  const styles = text(parts?.["styles.xml"]);
+  if (!styles.includes("style:master-page")) return found;
+  const masters = new Map<string, string[]>();
+  let first: string | undefined;
+  let lines: string[] = [];
+  let kind = "";
+  let sections: Record<string, string> = {};
+  let section = "C";
+  let field = 0;
+  let after = 0;
+  for (const t of tagsOf(styles)) {
+    if (kind && field === 0) sections[section] += decodeXml(styles.slice(after, t.from));
+    after = t.to;
+    if (t.name === "style:master-page" && t.opens) {
+      const name = decodeXml(attr(t.tag, "style:name") ?? "");
+      lines = [];
+      if (!masters.has(name)) masters.set(name, lines);
+      first ??= name;
+    } else if (ODF_REGION.test(t.name)) {
+      if (t.opens && !t.closes && attr(t.tag, "style:display") !== "false") {
+        kind = t.name.startsWith("style:header") ? "header" : "footer";
+        sections = { L: "", C: "", R: "" };
+        section = "C";
+      } else if (!t.opens && kind) {
+        const line = ["L", "C", "R"]
+          .map((key) => fold(sections[key]))
+          .filter(Boolean)
+          .join(" | ");
+        if (line) lines.push(`[Page ${kind}: ${line}]`);
+        kind = "";
+      }
+    } else if (kind && t.opens && ODF_SECTION[t.name]) section = ODF_SECTION[t.name];
+    else if (ODF_FIELD.has(t.name)) {
+      if (!t.closes) field++;
+      else if (!t.opens) field = Math.max(0, field - 1);
+    } else if (kind && (ODF_SPACE.has(t.name) || (!t.opens && ODF_PARAGRAPH.has(t.name)))) sections[section] += " ";
+  }
+  const content = text(parts?.["content.xml"]);
+  const masterOf = new Map<string, string>();
+  const written = new Set<string>();
+  for (const t of tagsOf(content)) {
+    if (!t.opens) continue;
+    if (t.name === "style:style" && attr(t.tag, "style:family") === "table") {
+      masterOf.set(decodeXml(attr(t.tag, "style:name") ?? ""), decodeXml(attr(t.tag, "style:master-page-name") ?? ""));
+    } else if (t.name === "table:table") {
+      const name = decodeXml(attr(t.tag, "table:name") ?? "");
+      const master = masterOf.get(decodeXml(attr(t.tag, "table:style-name") ?? "")) || first || "";
+      const own = (masters.get(master) ?? []).filter((line) => !written.has(line) && !!written.add(line));
+      if (own.length && !found.has(name)) found.set(name, own);
+    }
+  }
+  return found;
+}
+
+/**
+ * The lines a pptx shape tree prints, from shapes that are no placeholder:
+ * a placeholder on a master or layout holds a prompt ("Click to add title")
+ * the slide replaces. A field (the slide number) and a hidden shape go.
+ */
+function slideShapeText(xml: string): string[] {
+  const out: string[] = [];
+  let shape: string[] | undefined;
+  let skip = false;
+  let line: string | undefined;
+  let field = false;
+  let textFrom = 0;
+  for (const t of tagsOf(xml)) {
+    if (t.local === "sp") {
+      if (t.opens && !t.closes) {
+        shape = [];
+        skip = false;
+      } else if (!t.opens) {
+        if (shape && !skip) out.push(...shape);
+        shape = undefined;
+      }
+    } else if (!shape) continue;
+    else if (t.local === "ph" && t.opens) skip = true;
+    else if (t.local === "cNvPr" && t.opens && isHidden(t.tag)) skip = true;
+    else if (t.local === "fld") field = t.opens && !t.closes;
+    else if (t.local === "p" && t.name !== t.local) {
+      if (t.opens && !t.closes) line = "";
+      else if (!t.opens && line !== undefined) {
+        if (fold(line)) shape.push(fold(line));
+        line = undefined;
+      }
+    } else if (line !== undefined && t.local === "br") line += " ";
+    else if (line !== undefined && t.local === "t" && !field) {
+      if (t.opens) textFrom = t.to;
+      else line += decodeXml(xml.slice(textFrom, t.from));
+    }
+  }
+  return out;
+}
+
+const isHidden = (tag: string) => ["1", "true"].includes(attr(tag, "hidden") ?? "");
+
+/**
+ * The text a deck's slide masters and layouts print on every slide that uses
+ * them, such as a company line or a confidentiality mark (Q28 O1): read once,
+ * each distinct line once, from the masters and layouts the slides use, in
+ * deck order, a master before its layout. An OpenDocument deck's master pages
+ * the same way, then the header, footer and date text its slides show.
+ * Placeholders and fields are left out. Tika reads the same shapes and skips
+ * placeholders too. Nothing for any other file.
+ */
+export function slideMasterText(bytes: Uint8Array): string[] {
+  const parts = unpack(
+    bytes,
+    (name) =>
+      /^ppt\/(?:presentation\.xml|_rels\/presentation\.xml\.rels|slides\/_rels\/[^/]+\.rels|(?:slideLayouts|slideMasters)\/(?:_rels\/)?[^/]+\.xml(?:\.rels)?)$/.test(
+        name,
+      ) ||
+      name === "styles.xml" ||
+      name === "content.xml",
+  );
+  const lines = new Set<string>();
+  if (!parts) return [];
+  if (parts["ppt/presentation.xml"]) {
+    const deck = relationships(parts, "ppt/presentation.xml");
+    const read = new Set<string>();
+    const target = (part: string, type: string) => [...relationships(parts, part).values()].find((rel) => rel.type.endsWith(type))?.part;
+    for (const t of tagsOf(text(parts["ppt/presentation.xml"]))) {
+      if (!t.opens || t.local !== "sldId") continue;
+      const slide = deck.get(attr(t.tag, "r:id") ?? "")?.part;
+      const layout = slide && target(slide, "/slideLayout");
+      if (!layout || read.has(layout)) continue;
+      read.add(layout);
+      const master = target(layout, "/slideMaster");
+      for (const part of [master, layout]) {
+        if (!part || (part === master && read.has(part))) continue;
+        read.add(part);
+        for (const line of slideShapeText(text(parts[part]))) lines.add(line);
+      }
+    }
+    return [...lines];
+  }
+  const content = text(parts["content.xml"]);
+  if (!content.includes("draw:page")) return [];
+  const used = new Set<string>();
+  const shown: string[] = [];
+  const decls = new Map<string, string>();
+  let decl: string | undefined;
+  let declText = "";
+  let after = 0;
+  for (const t of tagsOf(content)) {
+    if (decl !== undefined) declText += content.slice(after, t.from);
+    after = t.to;
+    if (t.name === "draw:page" && t.opens) {
+      used.add(decodeXml(attr(t.tag, "draw:master-page-name") ?? ""));
+      for (const kind of ["header", "footer", "date-time"]) {
+        const name = attr(t.tag, `presentation:use-${kind}-name`);
+        if (name) shown.push(`${kind}:${decodeXml(name)}`);
+      }
+    } else if (/^presentation:(?:header|footer|date-time)-decl$/.test(t.name)) {
+      if (t.opens && !t.closes) {
+        decl = `${t.local.replace(/-decl$/, "")}:${decodeXml(attr(t.tag, "presentation:name") ?? "")}`;
+        declText = "";
+      } else if (!t.opens && decl !== undefined) {
+        decls.set(decl, fold(decodeXml(declText)));
+        decl = undefined;
+      }
+    }
+  }
+  const styles = text(parts["styles.xml"]);
+  let take = false;
+  let depth = 0;
+  let skipAt = -1;
+  let field = 0;
+  let line: string | undefined;
+  after = 0;
+  for (const t of tagsOf(styles)) {
+    if (line !== undefined && field === 0) line += decodeXml(styles.slice(after, t.from));
+    after = t.to;
+    if (t.name === "style:master-page") {
+      take = t.opens && !t.closes && used.has(decodeXml(attr(t.tag, "style:name") ?? ""));
+      continue;
+    }
+    if (!take) continue;
+    // A placeholder (`presentation:class`) and the notes page are skipped whole.
+    if (t.opens && !t.closes) {
+      depth++;
+      if (skipAt < 0 && (t.name === "presentation:notes" || attr(t.tag, "presentation:class") !== undefined)) skipAt = depth;
+    } else if (!t.opens) {
+      if (depth === skipAt) skipAt = -1;
+      depth--;
+    }
+    if (skipAt >= 0) continue;
+    if (ODF_PARAGRAPH.has(t.name)) {
+      if (t.opens && !t.closes) line = "";
+      else if (!t.opens && line !== undefined) {
+        if (fold(line)) lines.add(fold(line));
+        line = undefined;
+      }
+    } else if (ODF_FIELD.has(t.name)) {
+      if (!t.closes) field++;
+      else if (!t.opens) field = Math.max(0, field - 1);
+    } else if (line !== undefined && ODF_SPACE.has(t.name) && t.opens) line += " ";
+  }
+  for (const name of shown) if (decls.get(name)) lines.add(decls.get(name)!);
+  return [...lines];
 }

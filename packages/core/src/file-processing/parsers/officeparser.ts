@@ -1,7 +1,7 @@
 import { strFromU8, unzipSync } from "fflate";
 import type { OfficeContentNode } from "officeparser";
 import { chartParts, withChartTables, workbookSheets, type ChartBlock } from "./office-charts";
-import { odfPageFurniture } from "./office-furniture";
+import { odfPageFurniture, odsSheetFurniture, slideMasterText } from "./office-furniture";
 import { withoutHiddenText } from "./office-hidden";
 import { noteLayersOff } from "./pdf-layers";
 import type { ExtractionNote, ExtractionNoteKind, ExtractionResult } from "./types";
@@ -1273,6 +1273,19 @@ export async function extractOfficeDocument(
     includePageFurniture(ast.content, ast.type === "odt" ? withOdfFurniture(ast.auxiliary, bytes) : ast.auxiliary);
   }
   if (isWorkbook(ast.content)) showWorkbookSheets(ast.content, bytes);
+  // An ODS sheet's print header and footer as rows after its own (Q27 O1).
+  if (ast.type === "ods") {
+    const furniture = odsSheetFurniture(readable);
+    for (const node of ast.content) {
+      const lines = node.type === "sheet" ? furniture.get((node.metadata as { sheetName?: string } | undefined)?.sheetName ?? "") : undefined;
+      if (lines) node.children = [...(node.children ?? []), ...lines.map((text) => row([text]))];
+    }
+  }
+  // What a deck's masters and layouts print on every slide, once at the top (Q28 O1).
+  if (ast.content.some((node) => node.type === "slide")) {
+    const master = slideMasterText(readable);
+    if (master.length) ast.content.unshift(line("--- Slide master ---"), ...master.map(line));
+  }
   // Each visitor restores one thing the text renderer drops. They are composed
   // rather than merged because they are independent of one another and of the
   // node types they act on.

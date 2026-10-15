@@ -242,7 +242,7 @@ function resolvePart(from: string, target: string): string {
 const relsOf = (part: string) => part.replace(/([^/]*)$/, "_rels/$1.rels");
 
 /** A part's relationships by id, each with its type and the part it points at; external targets are left out. */
-function relationships(parts: Record<string, Uint8Array>, part: string): Map<string, { type: string; part: string }> {
+export function relationships(parts: Record<string, Uint8Array>, part: string): Map<string, { type: string; part: string }> {
   const found = new Map<string, { type: string; part: string }>();
   for (const t of tagsOf(text(parts[relsOf(part)]))) {
     if (!t.opens || t.local !== "Relationship" || attr(t.tag, "TargetMode") === "External") continue;
@@ -341,8 +341,79 @@ export interface WorkbookSheet {
   state: number;
   part: string;
   chartsheet: boolean;
-  /** The charts and text boxes drawn on the sheet, in drawing order. */
+  /** The charts and text boxes drawn on the sheet, in drawing order, then its print header and footer. */
   blocks: ChartBlock[];
+}
+
+/**
+ * Excel's header and footer text with its codes (ECMA-376 18.3.1.36, MS-XLS
+ * 2.4.136) left out: `&L`, `&C` and `&R` start a section, `&&` is an
+ * ampersand, and every field (page, date, file), font, size, colour and
+ * toggle goes (Q27 O1). The sections that hold text, `left | center | right`.
+ * Text before any section code is centred, as Excel prints it.
+ */
+export function sheetHeaderText(code: string): string {
+  const sections: Record<string, string> = { L: "", C: "", R: "" };
+  const offset = /[+-]\d+/y;
+  let section = "C";
+  for (let i = 0; i < code.length; i++) {
+    if (code[i] !== "&") {
+      sections[section] += code[i];
+      continue;
+    }
+    const next = code[++i] ?? "";
+    if (next === "&") sections[section] += "&";
+    else if (next === "L" || next === "C" || next === "R") section = next;
+    else if (next === '"') {
+      const end = code.indexOf('"', i + 1);
+      i = end < 0 ? code.length : end;
+    } else if (/\d/.test(next)) while (/\d/.test(code[i + 1] ?? "")) i++;
+    // A colour is six hex digits, or a theme colour and tint: `&K01+50`.
+    else if (next === "K") i += /^\d\d[+-]/.test(code.slice(i + 1, i + 4)) ? 5 : 6;
+    else if (next === "P") {
+      // `&P+1` prints the page number plus one.
+      offset.lastIndex = i + 1;
+      if (offset.test(code)) i = offset.lastIndex - 1;
+    }
+  }
+  return ["L", "C", "R"]
+    .map((key) => fold(sections[key]))
+    .filter(Boolean)
+    .join(" | ");
+}
+
+const isOn = (tag: string, name: string) => ["1", "true"].includes(attr(tag, name) ?? "");
+
+/**
+ * A worksheet's print header and footer as `[Page header: ...]` and `[Page
+ * footer: ...]`: the odd-page pair, and the even-page and first-page ones when
+ * the sheet turns them on. A label already in `seen` is not written again, so
+ * a footer every sheet shares is written once (Q27 O1). Tika and POI print
+ * the same three, codes kept.
+ */
+function sheetHeaderBlocks(xml: string, seen: Set<string>): ChartBlock[] {
+  const from = xml.lastIndexOf("<headerFooter");
+  const end = xml.indexOf("</headerFooter>", from);
+  if (from < 0 || end < 0) return [];
+  const part = xml.slice(from, end);
+  const blocks: ChartBlock[] = [];
+  let flags = "";
+  let after = 0;
+  for (const t of tagsOf(part)) {
+    if (t.local === "headerFooter") flags = t.tag;
+    const kind = /^(odd|even|first)(Header|Footer)$/.exec(t.local);
+    if (kind && t.opens) after = t.to;
+    if (!kind || t.opens) continue;
+    if (kind[1] === "even" && !isOn(flags, "differentOddEven")) continue;
+    if (kind[1] === "first" && !isOn(flags, "differentFirst")) continue;
+    const line = sheetHeaderText(decodeXml(part.slice(after, t.from)));
+    const label = `[Page ${kind[2].toLowerCase()}: ${line}]`;
+    if (line && !seen.has(label)) {
+      seen.add(label);
+      blocks.push({ label, rows: [] });
+    }
+  }
+  return blocks;
 }
 
 /** officeparser's own test for a worksheet part, unanchored as it is. */
@@ -358,12 +429,15 @@ export function workbookSheets(bytes: Uint8Array): { sheets: WorkbookSheet[]; or
   const order: string[] = [];
   const parts = unpack(bytes, (name) => {
     if (WORKSHEET_PART.test(name)) order.push(name);
-    return /^xl\/(?:workbook\.xml|(?:[^/]+\/)?_rels\/[^/]+\.rels|drawings\/[^/]+\.xml|charts\/[^/]+\.xml)$/.test(name);
+    // ponytail: every sheet is unpacked again for its header, which sits at
+    // its end; read it in officeparser's own pass if large workbooks slow.
+    return /^xl\/(?:workbook\.xml|(?:[^/]+\/)?_rels\/[^/]+\.rels|(?:drawings|charts|worksheets|chartsheets)\/[^/]+\.xml)$/.test(name);
   });
   if (!parts?.["xl/workbook.xml"]) return { sheets: [], order: [] };
   const rels = relationships(parts, "xl/workbook.xml");
   const sheets: WorkbookSheet[] = [];
   const seen = new Set<string>();
+  const labels = new Set<string>();
   for (const t of tagsOf(text(parts["xl/workbook.xml"]))) {
     if (!t.opens || t.local !== "sheet") continue;
     const rel = rels.get(attr(t.tag, "r:id") ?? "");
@@ -374,7 +448,10 @@ export function workbookSheets(bytes: Uint8Array): { sheets: WorkbookSheet[]; or
       state: ({ hidden: 1, veryHidden: 2 } as Record<string, number>)[attr(t.tag, "state") ?? ""] ?? 0,
       part: rel.part,
       chartsheet: rel.type.endsWith("/chartsheet"),
-      blocks: drawings.flatMap((drawing) => drawingBlocks(parts, drawing.part, seen)),
+      blocks: [
+        ...drawings.flatMap((drawing) => drawingBlocks(parts, drawing.part, seen)),
+        ...sheetHeaderBlocks(text(parts[rel.part]), labels),
+      ],
     });
   }
   return { sheets, order };
