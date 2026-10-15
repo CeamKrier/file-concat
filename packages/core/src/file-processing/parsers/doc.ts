@@ -83,7 +83,7 @@ const HIDDEN = 0x10;
 function withoutDeletions(
   word: Uint8Array,
   table: Uint8Array,
-): { word: Uint8Array; hidden: [number, number][]; caps: [number, number][]; pictures: Picture[]; symbols: SymbolRun[] } {
+): { word: Uint8Array; hidden: [number, number][]; caps: [number, number][]; pictures: Picture[]; symbols: SymbolRun[]; styled: StyledRun[] } {
   const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
   const fcPlc = fib.getUint32(0x00fa, true);
   const lcbPlc = fib.getUint32(0x00fe, true);
@@ -91,7 +91,8 @@ function withoutDeletions(
   const caps: [number, number][] = [];
   const pictures: Picture[] = [];
   const symbols: SymbolRun[] = [];
-  if (lcbPlc < 8 || fcPlc + lcbPlc > table.byteLength) return { word, hidden, caps, pictures, symbols };
+  const styled: StyledRun[] = [];
+  if (lcbPlc < 8 || fcPlc + lcbPlc > table.byteLength) return { word, hidden, caps, pictures, symbols, styled };
   const plc = new DataView(table.buffer, table.byteOffset + fcPlc, lcbPlc);
   const pages = Math.floor((lcbPlc - 4) / 8);
   const seen = new Set<number>();
@@ -111,6 +112,8 @@ function withoutDeletions(
       let picture: number | undefined;
       let symbol: { font: number; code: number } | undefined;
       let vanished = false;
+      let operand: number | undefined;
+      let style: number | undefined;
       // A grpprl is a run of sprms: a 2-byte code whose top three bits say
       // how long the operand is (MS-DOC 2.2.5.1).
       for (let at = chpx + 1; at + 2 <= end; ) {
@@ -118,6 +121,8 @@ function withoutDeletions(
         at += 2;
         const size = [1, 1, 2, 4, 2, 2, -1, 3][sprm >>> 13];
         const on = at < end && (fkp.getUint8(at) === 1 || fkp.getUint8(at) === 0x81);
+        if (sprm === SPRM_HIDDEN && at < end) operand = fkp.getUint8(at);
+        else if (sprm === SPRM_CHAR_STYLE && at + 2 <= end) style = fkp.getUint16(at, true);
         if (sprm === SPRM_DELETED && on) {
           const from = Math.max(fkp.getUint32(run * 4, true), zeroed);
           const to = Math.min(fkp.getUint32((run + 1) * 4, true), word.byteLength);
@@ -144,9 +149,128 @@ function withoutDeletions(
         pictures.push({ from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), data: picture });
       }
       if (symbol) symbols.push({ from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), ...symbol });
+      if (operand !== undefined || style !== undefined) styled.push({ from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), operand, style });
     }
   }
-  return { word: out, hidden, caps, pictures: pictures.sort((a, b) => a.from - b.from), symbols: symbols.sort((a, b) => a.from - b.from) };
+  return {
+    word: out,
+    hidden,
+    caps,
+    pictures: pictures.sort((a, b) => a.from - b.from),
+    symbols: symbols.sort((a, b) => a.from - b.from),
+    styled: styled.sort((a, b) => a.from - b.from),
+  };
+}
+
+/** sprmCIstd (MS-DOC 2.6.1): the run's character style. */
+const SPRM_CHAR_STYLE = 0x4a30;
+
+/** A run that says how its hidden flag relates to its styles: its own sprmCFVanish operand, its character style. */
+interface StyledRun {
+  from: number;
+  to: number;
+  operand?: number;
+  style?: number;
+}
+
+/** A ToggleOperand (MS-DOC 2.9.329) over the value the style gives: 0 off, 1 on, 0x80 the style's, 0x81 its opposite. */
+const toggle = (operand: number | undefined, value: boolean): boolean => (operand === 0 ? false : operand === 1 ? true : operand === 0x81 ? !value : value);
+
+/**
+ * Each style's base and its own sprmCFVanish operand, by istd, from the STSH
+ * (MS-DOC 2.9.271): an STD is a StdfBase of `cbSTDBaseInFile` bytes, its name,
+ * then its UPXs, each padded to an even length. A paragraph style's character
+ * properties are its second UPX, a character style's its first. Nothing when
+ * no style sets the flag.
+ */
+function vanishStyles(word: Uint8Array, table: Uint8Array): Map<number, { base: number; operand?: number }> | undefined {
+  const stsh = listed(word, table, FC_STSHF);
+  // A Stshi too short to say how long a StdfBase is.
+  if (!stsh || stsh.byteLength < 6 || stsh.getUint16(0, true) < 4) return undefined;
+  const styles = new Map<number, { base: number; operand?: number }>();
+  const count = stsh.getUint16(2, true);
+  const stdBase = stsh.getUint16(4, true);
+  let any = false;
+  let next = 2 + stsh.getUint16(0, true);
+  for (let istd = 0; istd < count && next + 2 <= stsh.byteLength; istd++) {
+    const std = next + 2;
+    const end = Math.min(stsh.byteLength, std + stsh.getUint16(next, true));
+    next = std + stsh.getUint16(next, true);
+    if (std + Math.max(stdBase, 6) + 2 > end) continue;
+    const kind = stsh.getUint16(std + 2, true);
+    const stk = kind & 0x0f;
+    if (stk !== 1 && stk !== 2) continue;
+    // The name: a length, that many UTF-16 characters and a terminator.
+    let at = std + stdBase + 2 + (stsh.getUint16(std + stdBase, true) + 1) * 2;
+    for (let upx = stk === 1 ? 1 : 0; upx > 0 && at + 2 <= end; upx--) at += 2 + stsh.getUint16(at, true) + (stsh.getUint16(at, true) & 1);
+    let operand: number | undefined;
+    if (at + 2 <= end) {
+      const to = Math.min(end, at + 2 + stsh.getUint16(at, true));
+      for (let sprm = at + 2; sprm + 2 <= to; ) {
+        const code = stsh.getUint16(sprm, true);
+        sprm += 2;
+        const size = [1, 1, 2, 4, 2, 2, -1, 3][code >>> 13];
+        if (code === SPRM_HIDDEN && sprm < to) operand = stsh.getUint8(sprm);
+        sprm += size < 0 ? (sprm < to ? stsh.getUint8(sprm) + 1 : 1) : size;
+      }
+    }
+    any ||= operand !== undefined;
+    styles.set(istd, { base: kind >>> 4, operand });
+  }
+  return any ? styles : undefined;
+}
+
+/** Whether text in style `istd` is hidden, given the value under the style's root: each base applies its operand in turn. */
+function styleHides(styles: Map<number, { base: number; operand?: number }>, istd: number, value: boolean): boolean {
+  const operands: Array<number | undefined> = [];
+  // istdNil (0x0fff) ends a chain; the cap stops a forged loop.
+  for (let at = istd; at !== 0x0fff && operands.length < 16; ) {
+    const style = styles.get(at);
+    if (!style) break;
+    operands.push(style.operand);
+    at = style.base;
+  }
+  return operands.reduceRight((shown, operand) => toggle(operand, shown), value);
+}
+
+/**
+ * Hidden text by its styles as well as its own properties, as POI's
+ * `CharacterRun.isVanished()` reads it: the paragraph style's flag first,
+ * then the run's character style, then the run's own operand. Undefined when
+ * no style sets the flag, and the run-only ranges stand.
+ */
+function styledHidden(word: Uint8Array, table: Uint8Array, runs: StyledRun[]): [number, number][] | undefined {
+  const styles = vanishStyles(word, table);
+  if (!styles) return undefined;
+  const paragraphs = markedParagraphs(word, table, (istd) => styleHides(styles, istd, false));
+  const hide: [number, number][] = [];
+  const show: [number, number][] = [];
+  let paragraph = 0;
+  for (const run of runs) {
+    while (paragraph < paragraphs.length && paragraphs[paragraph]!.to <= run.from) paragraph++;
+    const inHidden = paragraph < paragraphs.length && paragraphs[paragraph]!.from <= run.from;
+    const style = run.style === undefined ? inHidden : styleHides(styles, run.style, inHidden);
+    (toggle(run.operand, style) ? hide : show).push([run.from, run.to]);
+  }
+  // A run's own properties win over its paragraph's style.
+  const kept: [number, number][] = [];
+  let cut = 0;
+  for (const { from, to } of paragraphs) {
+    let start = from;
+    while (cut < show.length && show[cut]![1] <= start) cut++;
+    for (let k = cut; k < show.length && show[k]![0] < to; k++) {
+      if (show[k]![0] > start) kept.push([start, show[k]![0]]);
+      start = Math.max(start, show[k]![1]);
+    }
+    if (start < to) kept.push([start, to]);
+  }
+  const merged: [number, number][] = [];
+  for (const [from, to] of [...kept, ...hide].sort((a, b) => a[0] - b[0])) {
+    const last = merged[merged.length - 1];
+    if (last && from <= last[1]) last[1] = Math.max(last[1], to);
+    else merged.push([from, to]);
+  }
+  return merged;
 }
 
 /** A run that draws a symbol-font character, by its byte range in `WordDocument`. */
@@ -220,7 +344,8 @@ interface Piece {
 }
 
 function readPieces(document: Uint8Array, table: Uint8Array): { text: string; pieces: Piece[]; pictures: Picture[] } {
-  const { word, hidden, caps, pictures, symbols } = withoutDeletions(document, table);
+  const { word, hidden: own, caps, pictures, symbols, styled } = withoutDeletions(document, table);
+  const hidden = styledHidden(word, table, styled) ?? own;
   const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
   const fonts = symbols.length > 0 ? fontNames(fib, table) : [];
   const fcClx = fib.getUint32(0x01a2, true);
@@ -647,7 +772,11 @@ function docListLabels(word: Uint8Array, table: Uint8Array): ((ilfo: number, ilv
  * stylesheet) is not followed; read the style's own properties when such files
  * turn up.
  */
-function markedParagraphs(word: Uint8Array, table: Uint8Array, headings: Map<number, number>): { from: number; to: number; ilfo: number; ilvl: number; istd: number }[] {
+function markedParagraphs(
+  word: Uint8Array,
+  table: Uint8Array,
+  keep: (istd: number, ilfo: number) => boolean,
+): { from: number; to: number; ilfo: number; ilvl: number; istd: number }[] {
   const plc = listed(word, table, FC_PLCF_BTE_PAPX);
   const runs: { from: number; to: number; ilfo: number; ilvl: number; istd: number }[] = [];
   if (!plc || plc.byteLength < 8) return runs;
@@ -678,7 +807,7 @@ function markedParagraphs(word: Uint8Array, table: Uint8Array, headings: Map<num
         else if (sprm === SPRM_ILVL && at < end) ilvl = fkp.getUint8(at);
         at += size < 0 ? (at < end ? fkp.getUint8(at) + 1 : 1) : size;
       }
-      if (ilfo > 0 || headings.has(istd)) runs.push({ from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), ilfo, ilvl: Math.min(ilvl, 8), istd });
+      if (keep(istd, ilfo)) runs.push({ from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), ilfo, ilvl: Math.min(ilvl, 8), istd });
     }
   }
   return runs.sort((a, b) => a.from - b.from);
@@ -693,7 +822,7 @@ function markedParagraphs(word: Uint8Array, table: Uint8Array, headings: Map<num
  */
 function paragraphInserts(word: Uint8Array, table: Uint8Array, body: string, pieces: Piece[]): { at: number; text: string }[] {
   const headings = headingStyles(word, table);
-  const runs = markedParagraphs(word, table, headings);
+  const runs = markedParagraphs(word, table, (istd, ilfo) => ilfo > 0 || headings.has(istd));
   if (!runs.length) return [];
   const label = runs.some((run) => run.ilfo > 0) ? docListLabels(word, table) : undefined;
   const inserts: { at: number; text: string }[] = [];

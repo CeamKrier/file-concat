@@ -269,7 +269,7 @@ function withLists(
   paragraphs: { text: string; ilfo?: number; ilvl?: number; istd?: number }[],
   lists: { lsid: number; levels: { nfc: number; text: string; start?: number }[] }[],
   lfos: { lsid: number; starts?: [number, number][] }[],
-  styles: number[] = [],
+  styles: Array<number | { base: number; vanish?: number }> = [],
 ): Map<string, Uint8Array> {
   const textAt = 0x400;
   const old = streams.get("WordDocument")!;
@@ -324,13 +324,28 @@ function withLists(
       bytes.push(ilvl | 0x10, 0, 0, 0);
     }
   }
-  // STSH: cbStshi 2 and the style count, then a 2-byte STD per style, its sti.
+  // STSH: a Stshi with the style count and a 10-byte StdfBase, then per style
+  // a 2-byte STD, its sti, or a whole paragraph style: StdfBase, an empty
+  // name, a PAPX UPX with the istd and a CHPX UPX with sprmCFVanish.
   const stshAt = old2.length + bytes.length;
-  u16(2);
+  u16(4);
   u16(styles.length);
-  for (const sti of styles) {
+  u16(10);
+  for (const style of styles) {
+    if (typeof style === "number") {
+      u16(2);
+      u16(style);
+      continue;
+    }
+    const chpx = style.vanish === undefined ? [] : [0x3c, 0x08, style.vanish];
+    u16(10 + 4 + 4 + 2 + chpx.length + (chpx.length & 1));
+    // sti, stk 1 and the base, cupx 2, bchUpe, grfstd; the name's length and terminator.
+    for (const n of [0x0ffe, 1 | (style.base << 4), 2, 0, 0, 0, 0]) u16(n);
+    // PAPX: cb 2 and the istd; CHPX: cb and its sprm.
     u16(2);
-    u16(sti);
+    u16(0);
+    u16(chpx.length);
+    bytes.push(...chpx, ...(chpx.length & 1 ? [0] : []));
   }
   const table = new Uint8Array(old2.length + bytes.length);
   table.set(old2);
@@ -390,5 +405,20 @@ describe("formatDoc and lists", () => {
     const styles = [0, 0x0ffe, 1, 8, 0x0ffe];
     const { text } = formatDoc(withLists(wordStreams([{ text: body }], { body: body.length }), paragraphs, lists, [{ lsid: 7 }], styles));
     expect(text).toBe("# Intro\nBody\n###### Deep\n# 1. Numbered\nCustom\nEnd");
+  });
+});
+
+describe("formatDoc and hidden styles", () => {
+  it("leaves out a paragraph whose style hides it, and a style based on it, but not a run shown again", () => {
+    const paragraphs = [{ text: "Shown\r" }, { text: "Secret kept\r", istd: 1 }, { text: "Also\r", istd: 2 }, { text: "Mine\r", istd: 3 }, { text: "End\r" }];
+    const pieces = [{ text: "Shown\r" }, { text: "Secret " }, { text: "kept", shown: true }, { text: "\rAlso\rMine\rEnd\r" }];
+    // Normal; "Hidden Text" with 0x81, the opposite of Normal's; a style
+    // based on it; and one based on it that turns the flag off again.
+    const styles = [0, { base: 0, vanish: 0x81 }, { base: 1 }, { base: 1, vanish: 0 }];
+    const body = pieces.map((p) => p.text).join("");
+    const { text, notes } = formatDoc(withLists(wordStreams(pieces, { body: body.length }), paragraphs, [], [], styles));
+    // A hidden paragraph mark still ends its paragraph, as a hidden run's does.
+    expect(text).toBe("Shown\nkept\n\nMine\nEnd");
+    expect(notes).toEqual([{ kind: "hidden-left-out", count: 2 }]);
   });
 });
