@@ -10,6 +10,9 @@ import type { ExtractionNote, ExtractionResult } from "./types";
  */
 export interface MessageFields {
   from?: Email["from"];
+  /** Who sent it for the author (RFC 5322 3.6.2), Outlook's "on behalf of". */
+  sender?: Email["sender"];
+  replyTo?: Email["replyTo"];
   to?: Email["to"];
   cc?: Email["cc"];
   bcc?: Email["bcc"];
@@ -19,7 +22,7 @@ export interface MessageFields {
   text?: string;
   /** Meetings already rendered as `Label: value` blocks, read as body. */
   events?: readonly string[];
-  attachments?: ReadonlyArray<{ filename: string | null; mimeType?: string; content?: ArrayBuffer | Uint8Array | string }>;
+  attachments?: ReadonlyArray<{ filename: string | null; mimeType?: string; contentId?: string; content?: ArrayBuffer | Uint8Array | string }>;
 }
 
 /**
@@ -36,8 +39,15 @@ export interface MessageFields {
  * can be satisfied by an `import` written in core. Core owns what comes out.
  */
 
-/** Headers worth carrying. Everything else is routing exhaust. */
-const KEPT_HEADERS = ["From", "To", "Cc", "Bcc", "Date", "Subject"] as const;
+/**
+ * Headers worth carrying. Everything else is routing exhaust. Sender and
+ * Reply-To only when they name someone From does not: a list or an assistant
+ * sending, or replies going elsewhere.
+ */
+const KEPT_HEADERS = ["From", "Sender", "Reply-To", "To", "Cc", "Bcc", "Date", "Subject"] as const;
+
+/** A detached signature (RFC 3156 PGP, RFC 8551 S/MIME): no reader's content, only proof of the sender. */
+const SIGNATURE = /^application\/(?:pgp-signature|(?:x-)?pkcs7-signature)$/i;
 
 function formatAddress(address: Email["from"]): string {
   if (!address) return "";
@@ -102,8 +112,12 @@ const QUOTE_CLOSE = "\uE001";
  * body and no header worth printing, so an empty entry never appears silently.
  */
 export function formatEmail(email: MessageFields): ExtractionResult {
+  const authors = new Set([email.from?.address?.toLowerCase()]);
+  const others = (addresses: Email["to"]) => (addresses ?? []).filter((address) => !address.address || !authors.has(address.address.toLowerCase()));
   const values: Record<(typeof KEPT_HEADERS)[number], string> = {
     From: formatAddress(email.from),
+    Sender: formatAddresses(others(email.sender ? [email.sender] : [])),
+    "Reply-To": formatAddresses(others(email.replyTo)),
     To: formatAddresses(email.to),
     Cc: formatAddresses(email.cc),
     // Only a sent copy carries Bcc; there it is the one record of who else got it.
@@ -130,7 +144,11 @@ export function formatEmail(email: MessageFields): ExtractionResult {
   // beside it. The events are read as body; Gmail sends each one twice
   // (inline and as invite.ics), so a block already written is not repeated.
   const events = new Set<string>(email.events);
+  // An image the HTML body draws by `cid:` is part of the body, not something
+  // attached (RFC 2387), and a signature proves the sender without adding content.
+  const drawn = (id: string | undefined) => !!id && !!email.html?.includes(`cid:${id.replace(/^<|>$/g, "")}`);
   const attachments = (email.attachments ?? []).filter((attachment) => {
+    if (SIGNATURE.test(attachment.mimeType ?? "") || drawn(attachment.contentId)) return false;
     if (!/^(text\/calendar|application\/ics)$/i.test(attachment.mimeType ?? "") || attachment.content === undefined) return true;
     const ics = typeof attachment.content === "string" ? attachment.content : new TextDecoder().decode(attachment.content);
     const blocks = formatCalendar(ics);

@@ -35,6 +35,10 @@ const RTF_COMPRESSED = "1009";
 const SENDER_NAME = "0C1A";
 const SENDER_ADDRESS = "0C1F";
 const SENDER_SMTP = "5D01";
+/** Whom the sender sent for (Outlook's "on behalf of"): name, SMTP address, address of any type. */
+const REPRESENTING_NAME = "0042";
+const REPRESENTING_SMTP = "5D02";
+const REPRESENTING_ADDRESS = "0065";
 const DISPLAY_TO = "0E04";
 const DISPLAY_CC = "0E03";
 const DISPLAY_BCC = "0E02";
@@ -204,7 +208,16 @@ export function formatMsg(streams: CfbStreams): ExtractionResult {
 
   const senderName = text(SENDER_NAME);
   const senderAddress = [text(SENDER_SMTP), text(SENDER_ADDRESS)].find((value) => value.includes("@")) ?? "";
-  const from = senderName || senderAddress ? { name: senderName, address: senderAddress } : undefined;
+  const sender = senderName || senderAddress ? { name: senderName, address: senderAddress } : undefined;
+  // Sent on behalf of someone: they are the author, From, and the sender is
+  // Sender, as RFC 5322 3.6.2 splits the two.
+  const representingName = text(REPRESENTING_NAME);
+  const representingAddress = [text(REPRESENTING_SMTP), text(REPRESENTING_ADDRESS)].find((value) => value.includes("@")) ?? "";
+  // An Exchange copy often gives one of the two only an X.500 address, so
+  // an address that is missing on either side proves nothing.
+  const differs = (a: string, b: string) => !!a && !!b && a.toLowerCase() !== b.toLowerCase();
+  const onBehalf = differs(representingName, senderName) || differs(representingAddress, senderAddress);
+  const from = onBehalf ? { name: representingName, address: representingAddress } : sender;
   const date = timeProperty(properties, DELIVERY_TIME) ?? timeProperty(properties, SUBMIT_TIME);
 
   // Plain text first, as the .eml path reads it. The new Outlook writes only
@@ -253,6 +266,7 @@ export function formatMsg(streams: CfbStreams): ExtractionResult {
 
   return formatEmail({
     from,
+    ...(onBehalf ? { sender } : {}),
     to: listed ? recipients[1] : displayNames(text(DISPLAY_TO)),
     cc: listed ? recipients[2] : displayNames(text(DISPLAY_CC)),
     bcc: listed ? recipients[3] : displayNames(text(DISPLAY_BCC)),

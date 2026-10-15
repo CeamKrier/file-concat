@@ -78,6 +78,16 @@ describe("formatMsg", () => {
     expect(notes).toEqual([{ kind: "attachments-skipped", count: 1 }]);
   });
 
+  it("names the author as From and the sender as Sender when sent on their behalf", () => {
+    const { text } = formatMsg(
+      message({ "__substg1.0_0042001F": utf16("Boss"), "__substg1.0_5D02001F": utf16("boss@example.com") }),
+    );
+    expect(text).toContain("From: Boss <boss@example.com>\nSender: Alice Example <alice@example.com>\nTo:");
+    // Outlook fills the same properties for a message sent in one's own name.
+    const own = formatMsg(message({ "__substg1.0_0042001F": utf16("Alice Example") })).text;
+    expect(own).toContain("From: Alice Example <alice@example.com>\nTo:");
+  });
+
   it("reads the 8-bit strings an older client writes, through the message's own code page", () => {
     const streams = message();
     streams.delete("__substg1.0_0037001F");

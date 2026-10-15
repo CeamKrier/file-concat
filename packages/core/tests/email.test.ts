@@ -255,6 +255,63 @@ describe("formatEmail", () => {
     expect(notes).toEqual([{ kind: "attachments-skipped", count: 1 }]);
   });
 
+  it("names who sent it and where replies go only when that is not the author", async () => {
+    const headers = (extra: string[]) =>
+      ["From: Ada <ada@example.com>", ...extra, "Subject: Hi", "MIME-Version: 1.0", "Content-Type: text/plain", "", "Hello", ""].join("\r\n");
+    const { text } = formatEmail(
+      await PostalMime.parse(headers(["Sender: Assistant <pa@example.com>", "Reply-To: Team <team@example.com>, ada@example.com"])),
+    );
+    expect(text).toContain("From: Ada <ada@example.com>\nSender: Assistant <pa@example.com>\nReply-To: Team <team@example.com>\n");
+    const same = formatEmail(await PostalMime.parse(headers(["Sender: ada@example.com", "Reply-To: ADA@example.com"]))).text;
+    expect(same).not.toContain("Sender:");
+    expect(same).not.toContain("Reply-To:");
+  });
+
+  it("leaves out the page title, the images the body draws and a detached signature", async () => {
+    const message = [
+      "From: Ada <ada@example.com>",
+      "Subject: Report",
+      "MIME-Version: 1.0",
+      'Content-Type: multipart/signed; protocol="application/pgp-signature"; boundary="S"',
+      "",
+      "--S",
+      'Content-Type: multipart/related; boundary="R"',
+      "",
+      "--R",
+      "Content-Type: text/html; charset=utf-8",
+      "",
+      '<html><head><title>QZTITLE</title></head><body><p>See the chart.</p><img src="cid:chart@x"></body></html>',
+      "--R",
+      'Content-Type: image/png; name="chart.png"',
+      "Content-ID: <chart@x>",
+      "Content-Transfer-Encoding: base64",
+      "",
+      "iVBORw0KGgo=",
+      "--R",
+      'Content-Type: image/png; name="unused.png"',
+      "Content-ID: <unused@x>",
+      "Content-Transfer-Encoding: base64",
+      "",
+      "iVBORw0KGgo=",
+      "--R--",
+      "--S",
+      'Content-Type: application/pgp-signature; name="signature.asc"',
+      "",
+      "-----BEGIN PGP SIGNATURE-----",
+      "-----END PGP SIGNATURE-----",
+      "--S--",
+      "",
+    ].join("\r\n");
+    const { text, notes } = formatEmail(await PostalMime.parse(message));
+    expect(text).toContain("See the chart.");
+    expect(text).not.toContain("QZTITLE");
+    expect(text).not.toContain("signature.asc");
+    expect(text).not.toContain("chart.png");
+    // An image the body never draws is still something attached.
+    expect(text).toContain("Attachments (1, not included): unused.png");
+    expect(notes).toEqual([{ kind: "attachments-skipped", count: 1 }]);
+  });
+
   it("answers 'couldn't extract' for a message with nothing in it", async () => {
     expect(formatEmail({ attachments: [] })).toEqual({ text: "" });
   });

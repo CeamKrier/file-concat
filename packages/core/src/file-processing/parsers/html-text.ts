@@ -154,8 +154,9 @@ export function withoutHiddenHtml(html: string): { html: string; hidden: number 
 /**
  * `html` with each tag replaced by what `visit` returns for it, or kept when it
  * returns nothing. With `strip`, comments, declarations and the bodies of
- * `script` and `style` go too, an unclosed one to the end as a browser reads
- * it. One pass over the tags in the way of a streaming tokenizer, such as
+ * `script`, `style` and `title` go too, an unclosed one to the end as a browser
+ * reads it: a title names the page in a tab and is never drawn in it. One
+ * pass over the tags in the way of a streaming tokenizer, such as
  * htmlparser2: the patterns this replaced (`<[^>]+>`, `<!--[\s\S]*?-->`) rescan
  * the rest of the body from every unclosed `<`, and 40,000 of them held a tab
  * for seconds (2026-10-15). A `<` that opens no tag, as in `a < b`, is text.
@@ -191,7 +192,7 @@ export function mapTags(
     const closing = tag[1] === "/";
     let end = close + 1;
     let text = visit(name, closing, html.slice(at, end));
-    if (strip && !closing && (name === "script" || name === "style")) {
+    if (strip && !closing && (name === "script" || name === "style" || name === "title")) {
       end = rawTextEnd(html, end, name);
       text = "";
     }
@@ -203,7 +204,7 @@ export function mapTags(
   return out.join("");
 }
 
-/** Past the end tag of a `script` or `style` body that starts at `from`, or the end of `html`. */
+/** Past the end tag of a `script`, `style` or `title` body that starts at `from`, or the end of `html`. */
 function rawTextEnd(html: string, from: number, name: string): number {
   for (let at = html.indexOf("</", from); at >= 0; at = html.indexOf("</", at + 2)) {
     const after = html[at + 2 + name.length];

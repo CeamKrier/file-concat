@@ -138,8 +138,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["eml", "msg"],
     formats: ["eml", "cfb"],
     how: "auto",
-    gives: "From, To, Cc, Date and Subject, then the decoded body, without text the message hides.",
-    loses: "Attachments are named, not read.",
+    gives: "From, To, Cc, Date and Subject, and the sender or reply address when it is someone else, then the decoded body, without text the message hides.",
+    loses: "Attachments are named, not read. Images the body shows and signature files are not listed.",
   },
   {
     group: "Notebooks",
