@@ -1,5 +1,5 @@
-import PostalMime from "postal-mime";
-import { formatEmail, type ExtractionResult } from "@fileconcat/core";
+import PostalMime, { decodeWords } from "postal-mime";
+import { readEmail, type ExtractionResult } from "@fileconcat/core";
 
 /**
  * Client-only message parsing. Reached solely through the guarded dynamic
@@ -11,5 +11,5 @@ import { formatEmail, type ExtractionResult } from "@fileconcat/core";
  * size. Nothing on the server ever parses a message.
  */
 export async function extractEmail(bytes: Uint8Array): Promise<ExtractionResult> {
-  return formatEmail(await PostalMime.parse(bytes));
+  return readEmail(bytes, { parse: (b, options) => PostalMime.parse(b, options), decodeWords });
 }

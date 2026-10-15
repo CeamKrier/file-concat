@@ -1,10 +1,10 @@
-import PostalMime from "postal-mime";
+import PostalMime, { decodeWords } from "postal-mime";
 import {
   createParserRegistry,
   extractNotebook,
   extractOfficeDocument,
   extractSubtitles,
-  formatEmail,
+  readEmail,
   type ParserRegistry,
 } from "@fileconcat/core";
 
@@ -27,7 +27,7 @@ import {
 export const parsers: ParserRegistry = createParserRegistry({
   office: (bytes, format) => extractOfficeDocument(bytes, { format }),
   epub: (bytes, format) => extractOfficeDocument(bytes, { format }),
-  email: async (bytes) => formatEmail(await PostalMime.parse(bytes)),
+  email: (bytes) => readEmail(bytes, { parse: (b, options) => PostalMime.parse(b, options), decodeWords }),
   notebook: async (bytes) => extractNotebook(bytes),
   subtitles: async (bytes) => extractSubtitles(bytes),
   // A saved web page stays the markup it was before the web build learned to
