@@ -267,13 +267,13 @@ describe("hidden rows, columns and very hidden sheets", () => {
     expect(found.get("One")?.map((block) => block.label)).toEqual(["[Hidden: row 3, column B]"]);
   });
 
-  it("reads an xls sheet's text boxes and its chart's title, series and cached values", () => {
+  it("reads an xls sheet's text boxes, buttons and its chart's title, series and cached values", () => {
     const record = (type: number, data: number[] = []) => [type & 0xff, type >> 8, data.length & 0xff, data.length >> 8, ...data];
     const u16 = (n: number) => [n & 0xff, n >> 8];
     const chars = (text: string) => Array.from(text, (c) => c.charCodeAt(0));
     const bof = (dt: number) => record(0x0809, [0x00, 0x06, ...u16(dt), ...new Array<number>(12).fill(0)]);
     const eof = record(0x000a);
-    // An Obj's ftCmo names its type: 6 a text box, 0x19 a note.
+    // An Obj's ftCmo names its type: 6 a text box, 7 a button, 0x19 a note.
     const box = (type: number, text: string) => [
       ...record(0x005d, [0x15, 0, 0x12, 0, ...u16(type), ...new Array<number>(16).fill(0)]),
       ...record(0x01b6, [...new Array<number>(10).fill(0), ...u16(text.length), 16, 0, 0, 0, 0, 0]),
@@ -298,13 +298,14 @@ describe("hidden rows, columns and very hidden sheets", () => {
       ...cell(0x0203, 1, [0, 0, 0, 0, 0, 0, 0x2c, 0x40]),
       ...eof,
     ];
-    const sheet = [...bof(0x0010), ...box(6, "Read me"), ...box(0x19, "A note"), ...box(6, "Read me"), ...chart, ...eof];
+    const sheet = [...bof(0x0010), ...box(6, "Read me"), ...box(0x19, "A note"), ...box(6, "Read me"), ...box(7, "Run"), ...chart, ...eof];
     const start = bof(0x0005).length + 4 + 8 + 3 + eof.length;
     const bound = record(0x0085, [start & 0xff, start >> 8, 0, 0, 0, 0, 3, 0, ...chars("One")]);
     const found = biffSheetFurniture(Uint8Array.from([...bof(0x0005), ...bound, ...eof, ...sheet]));
 
     expect(found.get("One")).toEqual([
       { label: "[Text box: Read me]", rows: [] },
+      { label: "[Button: Run]", rows: [] },
       { label: "[Chart, line: Revenue]", rows: [["Category", "Sales"], ["Q1", "12.5"], ["Q2", "14"]] },
     ]);
   });

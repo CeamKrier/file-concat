@@ -271,10 +271,10 @@ export function biffSheetFurniture(stream: Uint8Array): Map<string, ChartBlock[]
     let depth = 0;
     let chart: BiffChart | undefined;
     let object = 0;
-    let box: { left: number; text: string } | undefined;
+    let box: { left: number; text: string; kind: string } | undefined;
     const boxes = new Set<string>();
-    const addBox = (text: string) => {
-      const label = `[Text box: ${fold(text)}]`;
+    const addBox = ({ text, kind }: { text: string; kind: string }) => {
+      const label = `[${kind}: ${fold(text)}]`;
       if (fold(text) && !boxes.has(label)) {
         boxes.add(label);
         blocks.push({ label, rows: [] });
@@ -283,7 +283,7 @@ export function biffSheetFurniture(stream: Uint8Array): Map<string, ChartBlock[]
     for (const r of records(start, starts[index + 1] ?? stream.byteLength)) {
       // A text box's text is in the Continue records right after its Txo.
       if (box && r.type !== BIFF_CONTINUE) {
-        addBox(box.text);
+        addBox(box);
         box = undefined;
       }
       // A chart, drawn on the sheet or a chart sheet, is a substream of its own, BOF to EOF.
@@ -306,13 +306,14 @@ export function biffSheetFurniture(stream: Uint8Array): Map<string, ChartBlock[]
         box.text += wide ? utf16.decode(bytes) : strFromU8(bytes, true);
         box.left -= count;
         if (box.left <= 0 || count <= 0) {
-          addBox(box.text);
+          addBox(box);
           box = undefined;
         }
       } else if (depth === 1 && biff8 && r.type === BIFF_OBJ && r.size >= 6) object = view.getUint16(r.data + 4, true);
       // An Obj of type 0x19 is a note, which SheetJS reads with its author.
       else if (depth === 1 && biff8 && r.type === BIFF_TXO && r.size >= 14 && object !== 0x19) {
-        box = { left: view.getUint16(r.data + 10, true), text: "" };
+        // A form button's caption is a Txo too (Obj type 7).
+        box = { left: view.getUint16(r.data + 10, true), text: "", kind: object === 7 ? "Button" : "Text box" };
       } else if (depth === 1 && (r.type === BIFF_HEADER || r.type === BIFF_FOOTER)) {
         const line = sheetHeaderText(read(r.data, r.size, true));
         const label = `[Page ${r.type === BIFF_HEADER ? "header" : "footer"}: ${line}]`;
