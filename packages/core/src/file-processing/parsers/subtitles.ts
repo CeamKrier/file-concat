@@ -60,6 +60,8 @@ function isMetadataBlock(block: string): boolean {
  * index, not by pattern: `<[^>]*>` rescans the rest of the line from every
  * unclosed `<`, and the voice pattern this replaced backtracked exponentially
  * on `<v.a.a.a...` (2026-10-15). An unclosed tag or block stays as text.
+ * A ruby reading follows its base in parentheses, `base(reading)`, as HTML's
+ * `rp` fallback shows it; stripped, the two ran into one word (C8).
  */
 function cleanLine(line: string): string {
   let out = "";
@@ -67,6 +69,7 @@ function cleanLine(line: string): string {
   // The next `<` and `{\` past `at`, -1 once none can close.
   let tag = line.indexOf("<");
   let block = line.indexOf("{\\");
+  let reading = false;
   for (;;) {
     if (tag >= 0 && tag < at) tag = line.indexOf("<", at);
     if (block >= 0 && block < at) block = line.indexOf("{\\", at);
@@ -82,6 +85,15 @@ function cleanLine(line: string): string {
     if (start === tag) {
       const speaker = voice(line.slice(start + 1, end));
       if (speaker) out += `${speaker}: `;
+      // `</rt>` may be left out before `</ruby>` (WebVTT 4.2.2).
+      const name = /^\/?[a-z]+/.exec(line.slice(start + 1, end))?.[0];
+      if (name === "rt" && !reading) {
+        out += "(";
+        reading = true;
+      } else if ((name === "/rt" || name === "/ruby") && reading) {
+        out += ")";
+        reading = false;
+      }
     }
     at = end + 1;
   }

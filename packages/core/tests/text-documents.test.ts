@@ -256,6 +256,12 @@ describe("extractSubtitles", () => {
     expect(cue("<v>Nobody named</v> here")).toBe("Nobody named here");
   });
 
+  it("writes a ruby reading after its base in parentheses, closed or not", () => {
+    const cue = (line: string) => extractSubtitles(utf8(`WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n${line}\n`)).text;
+    expect(cue("<ruby>Kan<rt>kan</rt>Ji<rt>ji</rt></ruby> end")).toBe("Kan(kan)Ji(ji) end");
+    expect(cue("<ruby>Tokyo<rt.small>toukyou</ruby>")).toBe("Tokyo(toukyou)");
+  });
+
   it("reads crafted markup in one pass", () => {
     for (const line of ["<i ".repeat(40_000), "{\\".repeat(40_000), `<v${".a".repeat(40)}`, `<x>${"{\\".repeat(40_000)}`]) {
       const vtt = utf8(`1\n00:00:01,000 --> 00:00:02,000\n${line}\n`);
