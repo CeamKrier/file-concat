@@ -54,6 +54,15 @@ describe("extractOfficeDocument and hidden text", () => {
     expect(notes).toEqual([{ kind: "hidden-left-out", count: 1 }]);
   });
 
+  it("writes a ruby reading after its base in parentheses", async () => {
+    const ruby = (base: string, reading: string) =>
+      `<w:r><w:rPr><w:b/></w:rPr><w:ruby><w:rubyPr><w:hps w:val="10"/></w:rubyPr><w:rt><w:r><w:t>${reading}</w:t></w:r></w:rt>` +
+      `<w:rubyBase><w:r><w:t>${base}</w:t></w:r></w:rubyBase></w:ruby></w:r>`;
+    const docx = docxWithBody(`<w:p><w:r><w:t xml:space="preserve">Before </w:t></w:r>${ruby("Kan", "kan")}${ruby("Ji", "ji")}<w:r><w:t xml:space="preserve"> after</w:t></w:r></w:p>`);
+    const { text } = await extractOfficeDocument(docx);
+    expect(text).toContain("Before Kan(kan)Ji(ji) after");
+  });
+
   it("reads an absolute-position tab as a tab", async () => {
     const ptab = '<w:r><w:t>Left</w:t><w:ptab w:relativeTo="margin" w:alignment="right" w:leader="none"/><w:t>Right</w:t></w:r>';
     const { text } = await extractOfficeDocument(docxWithBody(`<w:p>${ptab}</w:p>`));

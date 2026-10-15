@@ -120,6 +120,31 @@ const MAX_REWRITE = 256 * 1024 * 1024;
 /** The parts of a docx that hold runs: the body, headers, footers, notes and comments. */
 const WORD_PART = /^word\/(?:document|header\d*|footer\d*|footnotes|endnotes|comments)\.xml$/;
 
+/**
+ * A ruby run as `base(reading)`, the way an ODT ruby and HTML's `rp` fallback
+ * read; officeparser drops both halves (C8). The ruby's own run is closed
+ * before and reopened after, so base and reading become runs of the
+ * paragraph. Read by index: an unclosed `<w:ruby>` stops the scan.
+ */
+function withRubyText(xml: string): string {
+  const inner = (from: string, open: string, close: string) => {
+    const start = from.indexOf(open);
+    const end = start < 0 ? -1 : from.indexOf(close, start);
+    return end < 0 ? "" : from.slice(start + open.length, end);
+  };
+  let out = "";
+  let at = 0;
+  for (;;) {
+    const start = xml.indexOf("<w:ruby>", at);
+    const end = start < 0 ? -1 : xml.indexOf("</w:ruby>", start);
+    if (end < 0) break;
+    const ruby = xml.slice(start, end);
+    out += `${xml.slice(at, start)}</w:r>${inner(ruby, "<w:rubyBase>", "</w:rubyBase>")}<w:r><w:t>(</w:t></w:r>${inner(ruby, "<w:rt>", "</w:rt>")}<w:r><w:t>)</w:t></w:r><w:r>`;
+    at = end + "</w:ruby>".length;
+  }
+  return at === 0 ? xml : out + xml.slice(at);
+}
+
 /** What an OpenDocument style hides: text, a sheet, or a slide. */
 interface OdfHiddenStyles {
   text: Set<string>;
@@ -298,7 +323,7 @@ export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidde
       const after = withoutHiddenRuns(before);
       // An absolute-position tab ("Left<ptab>Right" in a header) is a tab to
       // the reader, as POI's XWPFRun reads it; officeparser drops it, "LeftRight".
-      after.xml = after.xml.replace(/<w:ptab\b[^>]*?(?:\/>|>\s*<\/w:ptab>)/g, "<w:tab/>");
+      after.xml = withRubyText(after.xml.replace(/<w:ptab\b[^>]*?(?:\/>|>\s*<\/w:ptab>)/g, "<w:tab/>"));
       if (after.xml === before) continue;
       changed[name] = strToU8(after.xml);
       hidden += after.hidden;
