@@ -110,21 +110,54 @@ export function withWordAltText(xml: string): string {
 const LOOKAHEAD = 8192;
 
 /**
+ * Between a link's address and its title in `xlink:href`, for officeparser to
+ * carry through to `showLinkDestinations`, which writes `[text](url "title")`.
+ */
+export const LINK_TITLE = "\uE002";
+
+/**
  * An OpenDocument content part with each frame's `svg:desc` joined to its
  * `svg:title`, which is the one officeparser writes as `[Image: ...]`, and a
  * text document's table title and description in a paragraph above the table.
+ * Three more things officeparser drops are put where it reads: a link's
+ * `office:title` (after {@link LINK_TITLE} in its address), a footnote's
+ * custom mark (`text:label`, shown before the note as the reader sees it), and
+ * the text an image carries in its own paragraphs (after its frame).
  */
 export function withOdfAltText(xml: string): string {
-  if (!xml.includes("<svg:desc") && !xml.includes("<table:title") && !xml.includes("<table:desc")) return xml;
+  if (!/<svg:desc|<table:title|<table:desc|\soffice:title="|<text:note-citation [^>]*text:label="|<draw:image\b[^>]*[^/]>\s*<text:/.test(xml)) return xml;
   const edits: Array<{ from: number; to: number; text: string }> = [];
-  const frames: Array<{ depth: number; title?: Child; desc?: Child }> = [];
+  const frames: Array<{ depth: number; title?: Child; desc?: Child; image?: number; text?: string }> = [];
   const text = xml.includes("<office:text");
   let depth = 0;
+  let note = -1;
   let child: { name: "title" | "desc"; from: number; inner: number } | undefined;
   for (const t of tagsOf(xml)) {
     const frame = frames[frames.length - 1];
     if (t.opens && !t.closes) depth++;
-    if (t.name === "draw:frame" && t.opens && !t.closes) frames.push({ depth });
+    if (t.name === "text:a" && t.opens) {
+      const title = fold(decodeXml(attr(t.tag, "office:title") ?? "")).slice(0, MAX_ALT);
+      const href = /\sxlink:href="[^"]*/.exec(t.tag);
+      if (title && href) edits.push({ from: t.from + href.index + href[0].length, to: t.from + href.index + href[0].length, text: LINK_TITLE + escapeXml(title) });
+    } else if (t.name === "text:note" && t.opens) note = t.from;
+    else if (t.name === "text:note-citation" && t.opens && note >= 0) {
+      const label = fold(decodeXml(attr(t.tag, "text:label") ?? "")).slice(0, MAX_ALT);
+      if (label) edits.push({ from: note, to: note, text: `<text:span>${escapeXml(label)}</text:span>` });
+      note = -1;
+    } else if (t.name === "draw:image" && frame && t.opens !== t.closes) {
+      if (t.opens) frame.image = t.to;
+      else if (frame.image !== undefined) {
+        // Its paragraphs copied as spans after the frame (officeparser skips
+        // them where they are), only when flat: a nested frame, table or note
+        // could leave the copy unbalanced.
+        const inner = xml.slice(frame.image, t.from);
+        if (!/<(?:draw:|table:|text:note)/.test(inner)) {
+          const spans = [...inner.matchAll(/<text:(?:p|h)\b[^>]*>([\s\S]*?)<\/text:(?:p|h)>/g)].map((m) => `<text:span>${m[1]}</text:span>`);
+          if (spans.length) frame.text = spans.join("<text:s/>");
+        }
+        frame.image = undefined;
+      }
+    } else if (t.name === "draw:frame" && t.opens && !t.closes) frames.push({ depth });
     else if ((t.name === "svg:title" || t.name === "svg:desc") && frame && depth === frame.depth + 1) {
       if (t.opens && !t.closes) child = { name: t.name === "svg:title" ? "title" : "desc", from: t.from, inner: t.to };
       else if (!t.opens && child) {
@@ -133,6 +166,7 @@ export function withOdfAltText(xml: string): string {
       }
     } else if (t.name === "draw:frame" && !t.opens && frame) {
       frames.pop();
+      if (frame.text) edits.push({ from: t.to, to: t.to, text: frame.text });
       const { title, desc } = frame;
       const label = desc && altLabel("Image", [title?.text, desc.text]);
       if (label) {

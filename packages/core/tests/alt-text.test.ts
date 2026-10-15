@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { altLabel, withOdfAltText, withRtfAltText, withWordAltText } from "../src/file-processing/parsers/alt-text";
+import { extractOfficeDocument } from "../src/file-processing/parsers/officeparser";
 import { workbookSheets } from "../src/file-processing/parsers/office-charts";
 import { withoutHiddenText } from "../src/file-processing/parsers/office-hidden";
-import { chartedXlsx } from "./fixtures/containers";
+import { chartedXlsx, odfDocument } from "./fixtures/containers";
 
 describe("altLabel", () => {
   it("joins title and description, once each, on one line", () => {
@@ -93,6 +94,22 @@ describe("withOdfAltText", () => {
     expect(withOdfAltText(xml)).toBe(
       `<office:text><text:p>[Table: Prices; Per region]</text:p><table:table table:name="T1"><table:title>Prices</table:title><table:desc>Per region</table:desc></table:table></office:text>`,
     );
+  });
+
+  it("carries a link's title, a footnote's own mark and an image's text to where officeparser writes them", async () => {
+    const ns =
+      'xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"';
+    const odt = odfDocument(
+      "text",
+      `<text:p ${ns}>See <text:a xlink:type="simple" xlink:href="https://e.example/p" office:title="Say &quot;hi&quot;">docs</text:a>.</text:p>` +
+        `<text:p ${ns}>Claim<text:note text:id="n1" text:note-class="footnote"><text:note-citation text:label="*">*</text:note-citation><text:note-body><text:p>Source.</text:p></text:note-body></text:note> made.</text:p>` +
+        `<text:p ${ns}><draw:frame draw:name="Image1"><draw:image xlink:href="Pictures/a.png"><text:p>On the picture</text:p></draw:image><svg:title>Chart</svg:title></draw:frame></text:p>`,
+    );
+    const { text } = await extractOfficeDocument(odt);
+    expect(text).toContain('See [docs](https://e.example/p "Say \\"hi\\"").');
+    expect(text).toContain("Claim*[^1] made.");
+    expect(text).toMatch(/\[Image: Chart\]\s*On the picture/);
+    expect(text).not.toContain("\uE002");
   });
 });
 

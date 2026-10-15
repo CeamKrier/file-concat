@@ -1,6 +1,6 @@
 import { strFromU8, unzipSync } from "fflate";
 import type { OfficeContentNode } from "officeparser";
-import { altLabel } from "./alt-text";
+import { altLabel, LINK_TITLE } from "./alt-text";
 import { cellName, chartParts, withChartTables, workbookSheets, type ChartBlock } from "./office-charts";
 import { deckLabels, odfPageFurniture, odsHidden, odsSheetFurniture, odsValidations, slideMasterText, type DeckLabels } from "./office-furniture";
 import { withAuxiliaryMarked, withoutHiddenText } from "./office-hidden";
@@ -751,12 +751,15 @@ function showLinkDestinations(node: OfficeContentNode): void {
     runs.forEach((run) => wrapped.add(run));
     const text = runs.map((run) => run.text ?? "").join("");
     from = to;
-    if (!linkWorthWriting(text, target)) continue;
+    // An OpenDocument link's title rides after LINK_TITLE (withOdfAltText).
+    const [address, title] = target.split(LINK_TITLE);
+    if (!linkWorthWriting(text, address)) continue;
     // Folded like the renderer's own metadata header: the URL is document-supplied
     // and a line break in it would forge structure in a bundle a model reads as
     // one document. A real URL has no whitespace to lose.
     runs[0]!.text = `[${runs[0]!.text ?? ""}`;
-    runs[runs.length - 1]!.text = `${runs[runs.length - 1]!.text ?? ""}](${target.replace(/\s+/g, "")})`;
+    const titled = title ? ` "${title.replace(/\s+/g, " ").replace(/["\\]/g, "\\$&")}"` : "";
+    runs[runs.length - 1]!.text = `${runs[runs.length - 1]!.text ?? ""}](${address.replace(/\s+/g, "")}${titled})`;
   }
 }
 
