@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { extractOfficeDocument } from "../src/file-processing/parsers/officeparser";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
-import { withoutHiddenRuns, withoutHiddenText } from "../src/file-processing/parsers/office-hidden";
+import { withDeletedMarksJoined, withoutHiddenRuns, withoutHiddenText } from "../src/file-processing/parsers/office-hidden";
 import { docxWithBody } from "./fixtures/containers";
 
 const run = (text: string, props = "") => `<w:r>${props ? `<w:rPr>${props}</w:rPr>` : ""}<w:t xml:space="preserve">${text}</w:t></w:r>`;
@@ -42,6 +42,35 @@ describe("withoutHiddenRuns and tracked moves", () => {
     expect(out).not.toContain("QZFROM");
     for (const word of ["Between", "QZTO"]) expect(out).toContain(word);
     expect(hidden).toBe(0);
+  });
+});
+
+describe("withDeletedMarksJoined", () => {
+  const gone = `<w:pPr><w:pStyle w:val="A"/><w:rPr><w:del w:id="1" w:author="A"/></w:rPr></w:pPr>`;
+  const head = `<w:pPr><w:pStyle w:val="B"/></w:pPr>`;
+
+  it("moves a paragraph whose mark is deleted into the next one, which keeps its properties", () => {
+    expect(withDeletedMarksJoined(`<w:p>${gone}${run("One ")}</w:p>\n<w:p>${head}${run("Two")}</w:p>`)).toBe(`\n<w:p>${head}${run("One ")}${run("Two")}</w:p>`);
+  });
+
+  it("joins a chain into its last paragraph, once each", () => {
+    const out = withDeletedMarksJoined(`<w:p>${gone}${run("One ")}</w:p><w:p>${gone}${run("Two ")}</w:p><w:p>${run("Three")}</w:p>`);
+    expect(out).toBe(`<w:p>${run("One ")}${run("Two ")}${run("Three")}</w:p>`);
+  });
+
+  it("leaves a paragraph before a table, at the end of a cell or with a kept mark alone", () => {
+    for (const xml of [
+      `<w:p>${gone}${run("One")}</w:p><w:tbl/>`,
+      `<w:tc><w:p>${gone}${run("One")}</w:p></w:tc>`,
+      `<w:p><w:pPr><w:rPr><w:ins w:id="2"/></w:rPr></w:pPr>${run("One")}</w:p><w:p>${run("Two")}</w:p>`,
+    ]) {
+      expect(withDeletedMarksJoined(xml)).toBe(xml);
+    }
+  });
+
+  it("reads the two paragraphs as one", async () => {
+    const { text } = await extractOfficeDocument(docxWithBody(`<w:p>${gone}${run("Alpha ")}</w:p><w:p>${run("beta.")}</w:p>`));
+    expect(text).toContain("Alpha beta.");
   });
 });
 

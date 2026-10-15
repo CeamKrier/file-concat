@@ -112,6 +112,62 @@ export function withoutHiddenRuns(xml: string): { xml: string; hidden: number } 
 }
 
 /**
+ * A Word part with each paragraph whose mark is a tracked deletion
+ * (`w:pPr/w:rPr/w:del`) joined to the paragraph after it, as accepting the
+ * change does. pandoc does the same with changes accepted (`docxPrevPara`):
+ * the text moves into the next paragraph, which keeps its own properties.
+ * A paragraph followed by anything but another paragraph stays as it is.
+ */
+export function withDeletedMarksJoined(xml: string): string {
+  if (!xml.includes("<w:del ")) return xml;
+  type Edit = { from: number; to: number; text: string };
+  const open: string[] = [];
+  const paragraphs: Array<{ from: number; head: number; marked: boolean; carry: string }> = [];
+  const edits: Edit[] = [];
+  // A closed paragraph whose mark is deleted, joined if a paragraph comes next.
+  let pending: { from: number; to: number; text: string; inserted?: Edit } | undefined;
+  let carry = "";
+  for (const t of tagsOf(xml)) {
+    if (pending) {
+      if (t.name === "w:p" && t.opens && !t.closes && !xml.slice(pending.to, t.from).trim()) {
+        if (pending.inserted) pending.inserted.text = "";
+        edits.push({ from: pending.from, to: pending.to, text: "" });
+        carry = pending.text;
+      }
+      pending = undefined;
+    }
+    // Ancestors before this tag; for a closing tag the last is the element itself.
+    const up = (n: number) => open[open.length - n];
+    const paragraph = paragraphs[paragraphs.length - 1];
+    if (t.name === "w:p" && t.opens && !t.closes) {
+      paragraphs.push({ from: t.from, head: t.to, marked: false, carry });
+      carry = "";
+    } else if (paragraph && t.name === "w:pPr" && !t.opens && up(2) === "w:p") {
+      paragraph.head = t.to;
+    } else if (paragraph && t.name === "w:del" && t.opens && up(1) === "w:rPr" && up(2) === "w:pPr" && up(3) === "w:p") {
+      paragraph.marked = true;
+    } else if (paragraph && t.name === "w:p" && !t.opens) {
+      paragraphs.pop();
+      const inserted = paragraph.carry ? { from: paragraph.head, to: paragraph.head, text: paragraph.carry } : undefined;
+      if (inserted) edits.push(inserted);
+      if (paragraph.marked) pending = { from: paragraph.from, to: t.to, text: paragraph.carry + xml.slice(paragraph.head, t.from), inserted };
+    }
+    if (t.opens && !t.closes) open.push(t.name);
+    else if (!t.opens) open.pop();
+  }
+  // An insertion into a paragraph that was itself joined on is dropped.
+  const kept = edits.filter((edit) => edit.text || edit.to > edit.from).sort((a, b) => a.from - b.from);
+  if (!kept.length) return xml;
+  const out: string[] = [];
+  let at = 0;
+  for (const edit of kept) {
+    out.push(xml.slice(at, edit.from), edit.text);
+    at = edit.to;
+  }
+  return out.join("") + xml.slice(at);
+}
+
+/**
  * Past this many bytes unpacked the docx is read as it is, hidden text and
  * all: the rewrite unpacks every part, media included, which the reader
  * itself may never do.
@@ -406,7 +462,8 @@ export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidde
       // Pictures' and tables' alternative text, which officeparser drops (Q31 O1),
       // and a HYPERLINK field's address, which it drops with the field code (Q32 O1).
       // A form check box's state and a drop-down's choice, which it never had.
-      after.xml = withWordFormFields(withWordFieldLinks(withWordAltText(withRubyText(withWordSymbols(after.xml).replace(/<w:ptab\b[^>]*?(?:\/>|>\s*<\/w:ptab>)/g, "<w:tab/>")))));
+      // A paragraph whose mark is a tracked deletion joins the next one.
+      after.xml = withWordFormFields(withWordFieldLinks(withWordAltText(withRubyText(withWordSymbols(withDeletedMarksJoined(after.xml)).replace(/<w:ptab\b[^>]*?(?:\/>|>\s*<\/w:ptab>)/g, "<w:tab/>")))));
       if (after.xml === before) continue;
       changed[name] = strToU8(after.xml);
       hidden += after.hidden;
