@@ -90,7 +90,9 @@ const MAX_ADDRESS = 2048;
  * same field code (`doc.ts`).
  */
 export function hyperlinkAddress(code: string): string | undefined {
-  const parts = /^\s*HYPERLINK\b(.*)$/is.exec(code)?.[1];
+  // A .doc field code can carry a control character, an object's placeholder.
+  // eslint-disable-next-line no-control-regex -- dropping control characters is the point
+  const parts = /^\s*HYPERLINK\b(.*)$/is.exec(code.replace(/[\x00-\x1f]/g, " "))?.[1];
   if (parts === undefined) return undefined;
   let address = "";
   let location = "";
