@@ -243,6 +243,20 @@ describe("extractOfficeDocument — structure survives extraction", () => {
     expect(text).toContain("The quick brown chapter.");
   });
 
+  it("marks an epub's auxiliary spine item where it stands, and leaves the rest unmarked", async () => {
+    const parts = unzipSync(minimalEpub("Main text."));
+    const opf = strFromU8(parts["OEBPS/content.opf"]!);
+    parts["OEBPS/content.opf"] = strToU8(
+      opf
+        .replace("</manifest>", '<item id="aux" href="extra%20notes.xhtml" media-type="application/xhtml+xml"/></manifest>')
+        .replace("</spine>", '<itemref idref="aux" linear="no"/></spine>'),
+    );
+    parts["OEBPS/extra notes.xhtml"] = strToU8('<html xmlns="http://www.w3.org/1999/xhtml"><body class="x"><p>Aside text.</p></body></html>');
+    const { text } = await extractOfficeDocument(zipSync(parts), { format: "epub" });
+    expect(text).toMatch(/Main text\.\n\[Auxiliary content, outside the reading order\]\nAside text\.\n\[End of auxiliary content\]$/);
+    expect((await extractOfficeDocument(minimalEpub("Main text."), { format: "epub" })).text).not.toContain("Auxiliary");
+  });
+
   it("keeps a spreadsheet's sheets named and separate", async () => {
     const { text } = await extractOfficeDocument(twoSheetXlsx());
 

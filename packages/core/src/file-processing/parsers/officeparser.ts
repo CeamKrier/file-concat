@@ -3,7 +3,7 @@ import type { OfficeContentNode } from "officeparser";
 import { altLabel } from "./alt-text";
 import { cellName, chartParts, withChartTables, workbookSheets, type ChartBlock } from "./office-charts";
 import { deckLabels, odfPageFurniture, odsHidden, odsSheetFurniture, odsValidations, slideMasterText, type DeckLabels } from "./office-furniture";
-import { withoutHiddenText } from "./office-hidden";
+import { withAuxiliaryMarked, withoutHiddenText } from "./office-hidden";
 import { wordListLabels } from "./office-lists";
 import { linkWorthWriting } from "./office-links";
 import { noteLayersOff } from "./pdf-layers";
@@ -1352,7 +1352,7 @@ export async function extractOfficeDocument(
 ): Promise<ExtractionResult> {
   const { parseOffice } = await import("officeparser");
   const { bytes: readable, hidden: hiddenRuns, slides: hiddenSlides } = withoutHiddenText(bytes);
-  const ast = await parseOffice(withChartTables(readable).bytes, toLibraryConfig(options));
+  const ast = await parseOffice(withChartTables(withAuxiliaryMarked(readable)).bytes, toLibraryConfig(options));
   // Recognised image text reaches us as `[Image: …]` placeholders in the
   // rendered string, and csv has nowhere to write them. A workbook that carries
   // any is therefore rendered as text: its cells run together, exactly as they

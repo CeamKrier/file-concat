@@ -191,6 +191,25 @@ describe("extractNotebook", () => {
     expect(text).toContain("Output:\n```\nQZOUT\n```\n\nStderr:\n```\nQZERR\n```\n\nOutput:\n```\nQZMORE\n```");
   });
 
+  it("names an image by its repr, counted, and leaves an image output with markdown as before", () => {
+    const { text, notes } = extractNotebook(
+      outputs(
+        { output_type: "display_data", data: { "image/png": "iVBORw0KGgo=", "text/plain": ["<Figure size 640x480 with 1 Axes>"] } },
+        { output_type: "display_data", data: { "image/png": "iVBORw0KGgo=", "text/markdown": "**QZMD**", "text/plain": "<IPython.Markdown>" } },
+      ),
+    );
+    expect(text).toContain("Output:\n```\n[Image: <Figure size 640x480 with 1 Axes>]\n<IPython.Markdown>\n```");
+    expect(notes).toEqual([{ kind: "attachments-skipped", count: 1 }]);
+  });
+
+  it("fences a raw cell for another renderer under its format, and reads a markdown one as prose", () => {
+    const raw = (metadata: Record<string, string>, source: string) => ({ cell_type: "raw", metadata, source });
+    const { text } = extractNotebook(
+      utf8(JSON.stringify({ cells: [raw({ format: "text/latex" }, "\\section{QZRAW}"), raw({ raw_mimetype: "text/markdown" }, "QZPROSE"), raw({}, "QZPLAIN")] })),
+    );
+    expect(text).toBe("Raw (text/latex):\n```\n\\section{QZRAW}\n```\n\nQZPROSE\n\nQZPLAIN");
+  });
+
   it("answers 'couldn't extract' for JSON that is not a notebook", () => {
     expect(extractNotebook(utf8(`{"cells": "not an array"}`))).toEqual({ text: "" });
     expect(extractNotebook(utf8("not json at all"))).toEqual({ text: "" });

@@ -120,7 +120,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["epub"],
     formats: ["epub"],
     how: "auto",
-    gives: "The chapters as plain text, in reading order.",
+    gives: "The chapters as plain text, in reading order. A part the book keeps outside the reading order is marked where it stands.",
     loses: "Pictures are not described.",
   },
   {
@@ -147,8 +147,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["ipynb"],
     formats: ["ipynb"],
     how: "auto",
-    gives: "Markdown: the prose, the code in fences and the text output.",
-    loses: "Embedded images are dropped and counted.",
+    gives: "Markdown: the prose, the code in fences and the text output. A raw cell for another renderer, such as LaTeX, is fenced under its format.",
+    loses: "Embedded images are dropped and counted. An image with a text description, such as a plot, is named by it where it stood.",
   },
   {
     group: "Subtitles",

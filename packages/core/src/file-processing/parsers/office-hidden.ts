@@ -1,6 +1,6 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { withOdfAltText, withRtfAltText, withWordAltText } from "./alt-text";
-import { escapeXml, tagsOf } from "./office-charts";
+import { attr, decodeXml, escapeXml, tagsOf } from "./office-charts";
 import { withOdfFormValues, withWordFieldLinks, withWordFormFields } from "./office-links";
 import { withOdfListLabels } from "./office-lists";
 import { withoutHiddenRtf } from "./rtf-hidden";
@@ -415,4 +415,63 @@ export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidde
   if (Object.keys(changed).length === 0) return { ...none, slides };
   // Stored, not deflated: the zip is only read back by the next step.
   return { bytes: zipSync({ ...unzipSync(bytes), ...changed }, { level: 0 }), hidden, slides };
+}
+
+/**
+ * An EPUB with each spine item marked `linear="no"` (EPUB 3.3 5.6.2,
+ * auxiliary content) between a line that says so and a line that ends it.
+ * officeparser writes the spine in order, the item inline and unmarked as
+ * calibre's text output does; pandoc drops it and epub.js steps over it
+ * to the next item. The text stays, as hidden text does (Q18 O1), and the marks say it
+ * sits outside the reading order. Anything else comes back as the same bytes.
+ */
+export function withAuxiliaryMarked(bytes: Uint8Array): Uint8Array {
+  let parts: Record<string, Uint8Array>;
+  let unpacked = 0;
+  try {
+    parts = unzipSync(bytes, {
+      filter: (file) => {
+        unpacked += file.originalSize;
+        return file.name === "META-INF/container.xml" || /\.opf$/i.test(file.name);
+      },
+    });
+  } catch {
+    return bytes;
+  }
+  const container = parts["META-INF/container.xml"];
+  if (!container || unpacked > MAX_REWRITE) return bytes;
+  const root = Array.from(tagsOf(strFromU8(container))).find((t) => t.name === "rootfile" && t.opens);
+  const opf = decodeXml((root && attr(root.tag, "full-path")) ?? "");
+  if (!parts[opf]) return bytes;
+  const base = opf.slice(0, opf.lastIndexOf("/") + 1);
+  const hrefs = new Map<string, string>();
+  const auxiliary: string[] = [];
+  for (const t of tagsOf(strFromU8(parts[opf]))) {
+    if (!t.opens) continue;
+    if (t.local === "item") hrefs.set(attr(t.tag, "id") ?? "", decodeXml(attr(t.tag, "href") ?? ""));
+    else if (t.local === "itemref" && attr(t.tag, "linear") === "no") auxiliary.push(attr(t.tag, "idref") ?? "");
+  }
+  const files = new Set<string>();
+  for (const id of auxiliary) {
+    const href = hrefs.get(id)?.split("#")[0];
+    if (!href) continue;
+    try {
+      files.add(base + decodeURIComponent(href));
+    } catch {
+      files.add(base + href);
+    }
+  }
+  if (!files.size) return bytes;
+  const changed: Record<string, Uint8Array> = {};
+  for (const [name, data] of Object.entries(unzipSync(bytes, { filter: (file) => files.has(file.name) }))) {
+    const xml = strFromU8(data);
+    const open = Array.from(tagsOf(xml)).find((t) => t.local === "body" && t.opens && !t.closes);
+    const close = xml.lastIndexOf("</body>");
+    if (!open || close < open.to) continue;
+    changed[name] = strToU8(
+      `${xml.slice(0, open.to)}<p>[Auxiliary content, outside the reading order]</p>${xml.slice(open.to, close)}<p>[End of auxiliary content]</p>${xml.slice(close)}`,
+    );
+  }
+  if (!Object.keys(changed).length) return bytes;
+  return zipSync({ ...unzipSync(bytes), ...changed }, { level: 0 });
 }
