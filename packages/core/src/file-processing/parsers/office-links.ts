@@ -52,6 +52,103 @@ export function withWordFieldLinks(xml: string): string {
       }
     }
   }
+  return applyEdits(xml, edits);
+}
+
+/**
+ * A Word part with each legacy form field written as what it shows (ECMA-376
+ * 17.16.5.20, 17.16.5.21): a check box as `[x]` or `[ ]`, a drop-down as its
+ * selected entry. Word stores neither as text, only as `w:ffData` on the
+ * field's start, so the reader gave the label beside a box and no state. A
+ * box is checked by `w:checked`, else by `w:default`, as mammoth and
+ * docx2python read it (Tika reads neither); a drop-down shows entry
+ * `w:result`, the first when there is none (docx2python). A field whose
+ * start run is hidden, or that already shows a result, is left as it is.
+ */
+export function withWordFormFields(xml: string): string {
+  if (!xml.includes("w:ffData")) return xml;
+  const edits: Array<{ at: number; text: string }> = [];
+  const fields: Array<{ data: string; hidden: boolean; code: string; result?: string }> = [];
+  // One pass, no look-ahead: a part with many unclosed tags must not cost a
+  // scan to its end per tag.
+  let vanish = false;
+  let data = -1;
+  let code = -1;
+  let text = -1;
+  let shown: string | undefined;
+  for (const t of tagsOf(xml)) {
+    if (t.name === "w:r" && !t.closes) vanish = false;
+    else if (t.name === "w:r" && !t.opens && shown !== undefined) {
+      edits.push({ at: t.to, text: `<w:r><w:t xml:space="preserve">${escapeXml(shown)}</w:t></w:r>` });
+      shown = undefined;
+    } else if (t.name === "w:vanish" && t.opens) vanish = !/\sw:val="(?:0|false|off)"/.test(t.tag);
+    else if (t.name === "w:fldChar" && !t.opens) {
+      if (data >= 0 && fields.length) fields[fields.length - 1]!.data = xml.slice(data, t.from);
+      data = -1;
+    } else if (t.name === "w:fldChar") {
+      const type = attr(t.tag, "w:fldCharType");
+      if (type === "begin") {
+        fields.push({ data: "", hidden: vanish, code: "" });
+        if (!t.closes) data = t.to;
+      } else if (type === "separate" && fields.length) fields[fields.length - 1]!.result = "";
+      else if (type === "end") {
+        const field = fields.pop();
+        shown = field && !field.hidden && !field.result?.trim() ? formFieldText(field.code, field.data) : undefined;
+      }
+    } else if (t.name === "w:instrText") {
+      if (t.opens && !t.closes) code = t.to;
+      else if (!t.opens && code >= 0 && fields.length) fields[fields.length - 1]!.code += decodeXml(xml.slice(code, t.from));
+    } else if (t.name === "w:t") {
+      const field = fields[fields.length - 1];
+      if (t.opens && !t.closes) text = t.to;
+      else if (!t.opens && text >= 0 && field?.result !== undefined) field.result += decodeXml(xml.slice(text, t.from));
+    }
+  }
+  return applyEdits(xml, edits);
+}
+
+/**
+ * An OpenDocument text with each form control written where the page draws
+ * it (ODF 1.3 13.5): a field as its current value, else its default, and a
+ * check box as `[x]` or `[ ]`. The control is defined in `office:forms` and
+ * placed by a `draw:control` naming it, which the reader drops. A password,
+ * a hidden field and a button draw no value and are not read; neither are a
+ * list box and a radio button.
+ */
+export function withOdfFormValues(xml: string): string {
+  if (!xml.includes("<draw:control")) return xml;
+  const shown = new Map<string, string>();
+  for (const t of tagsOf(xml.slice(xml.indexOf("<office:forms"), xml.indexOf("</office:forms>") + 1))) {
+    if (!t.opens || !/^form:(?:text|textarea|formatted-text|combobox|date|time|checkbox)$/.test(t.name)) continue;
+    const id = attr(t.tag, "form:id") ?? attr(t.tag, "xml:id");
+    if (!id) continue;
+    const value =
+      t.name === "form:checkbox"
+        ? ({ checked: "[x]", unchecked: "[ ]" } as Record<string, string>)[attr(t.tag, "form:current-state") ?? attr(t.tag, "form:state") ?? "unchecked"]
+        : (attr(t.tag, "form:current-value") ?? attr(t.tag, "form:value"));
+    if (value !== undefined) shown.set(id, value);
+  }
+  if (!shown.size) return xml;
+  // The body stops at the next control, so an unclosed one is not read to the end per control.
+  return xml.replace(/<draw:control\b[^>]*?(?:\/>|>(?:(?!<draw:control\b)[\s\S])*?<\/draw:control>)/g, (control) => {
+    const value = shown.get(attr(control, "draw:control") ?? "");
+    return value === undefined ? control : value;
+  });
+}
+
+/** A form field's shown text from its code and the `w:ffData` its start carries. */
+function formFieldText(code: string, data: string): string | undefined {
+  const kind = /^\s*(FORMCHECKBOX|FORMDROPDOWN)\b/.exec(code)?.[1];
+  // A property is on unless its `w:val` says 0, false or off (ECMA-376 17.17.4).
+  const isOn = (tag: string | undefined) => tag !== undefined && !/\sw:val="(?:0|false|off)"/.test(tag);
+  if (kind === "FORMCHECKBOX") return isOn(/<w:checked\b[^>]*>/.exec(data)?.[0] ?? /<w:default\b[^>]*>/.exec(data)?.[0]) ? "[x]" : "[ ]";
+  if (kind !== "FORMDROPDOWN") return undefined;
+  const entries = Array.from(data.matchAll(/<w:listEntry\b[^>]*>/g), ([tag]) => decodeXml(attr(tag, "w:val") ?? ""));
+  return entries[Number(attr(/<w:result\b[^>]*>/.exec(data)?.[0] ?? "", "w:val")) || 0];
+}
+
+/** The part with each edit's text inserted at its offset. */
+function applyEdits(xml: string, edits: Array<{ at: number; text: string }>): string {
   if (!edits.length) return xml;
   edits.sort((a, b) => a.at - b.at);
   let out = "";

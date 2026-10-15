@@ -1,7 +1,7 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { withOdfAltText, withRtfAltText, withWordAltText } from "./alt-text";
 import { escapeXml } from "./office-charts";
-import { withWordFieldLinks } from "./office-links";
+import { withOdfFormValues, withWordFieldLinks, withWordFormFields } from "./office-links";
 import { withOdfListLabels } from "./office-lists";
 import { withoutHiddenRtf } from "./rtf-hidden";
 import { symbolFontChar } from "./symbol-font";
@@ -338,6 +338,8 @@ export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidde
     if (content.includes("<office:text")) after.xml = withOdfListLabels(after.xml, parts["styles.xml"] ? strFromU8(parts["styles.xml"]) : "");
     // Frames' and tables' alternative text, where officeparser reads it (Q31 O1).
     after.xml = withOdfAltText(after.xml);
+    // A form field's value where the text places it.
+    after.xml = withOdfFormValues(after.xml);
     if (after.xml !== content) changed["content.xml"] = strToU8(after.xml);
     hidden = after.hidden;
     slides = after.slides;
@@ -351,7 +353,8 @@ export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidde
       // Symbol characters and non-breaking hyphens, which it drops too.
       // Pictures' and tables' alternative text, which officeparser drops (Q31 O1),
       // and a HYPERLINK field's address, which it drops with the field code (Q32 O1).
-      after.xml = withWordFieldLinks(withWordAltText(withRubyText(withWordSymbols(after.xml).replace(/<w:ptab\b[^>]*?(?:\/>|>\s*<\/w:ptab>)/g, "<w:tab/>"))));
+      // A form check box's state and a drop-down's choice, which it never had.
+      after.xml = withWordFormFields(withWordFieldLinks(withWordAltText(withRubyText(withWordSymbols(after.xml).replace(/<w:ptab\b[^>]*?(?:\/>|>\s*<\/w:ptab>)/g, "<w:tab/>")))));
       if (after.xml === before) continue;
       changed[name] = strToU8(after.xml);
       hidden += after.hidden;
