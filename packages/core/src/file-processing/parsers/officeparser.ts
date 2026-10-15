@@ -1,8 +1,8 @@
 import { strFromU8, unzipSync } from "fflate";
 import type { OfficeContentNode } from "officeparser";
 import { altLabel } from "./alt-text";
-import { chartParts, withChartTables, workbookSheets, type ChartBlock } from "./office-charts";
-import { odfPageFurniture, odsSheetFurniture, slideMasterText } from "./office-furniture";
+import { cellName, chartParts, withChartTables, workbookSheets, type ChartBlock } from "./office-charts";
+import { odfPageFurniture, odsSheetFurniture, odsValidations, slideMasterText } from "./office-furniture";
 import { withoutHiddenText } from "./office-hidden";
 import { wordListLabels } from "./office-lists";
 import { linkWorthWriting } from "./office-links";
@@ -605,13 +605,6 @@ function threadEntries(raw: string): { kind: string; author: string; text: strin
   const entries: { kind: string; author: string; text: string }[] = [];
   for (let i = 1; i + 1 < parts.length; i += 2) entries.push({ kind: parts[i], author: "", text: parts[i + 1] });
   return entries;
-}
-
-/** `B3` for row 2, column 1, both counted from 0. */
-function cellName(row: number, col: number): string {
-  let name = "";
-  for (let n = col + 1; n > 0; n = Math.floor((n - 1) / 26)) name = String.fromCharCode(65 + ((n - 1) % 26)) + name;
-  return `${name}${row + 1}`;
 }
 
 /**
@@ -1366,12 +1359,14 @@ export async function extractOfficeDocument(
     includePageFurniture(ast.content, ast.type === "odt" ? withOdfFurniture(ast.auxiliary, bytes) : ast.auxiliary);
   }
   if (isWorkbook(ast.content)) showWorkbookSheets(ast.content, bytes);
-  // An ODS sheet's print header and footer as rows after its own (Q27 O1).
+  // An ODS sheet's validation rules, then its print header and footer, as rows after its own (Q27 O1).
   if (ast.type === "ods") {
+    const rules = odsValidations(readable);
     const furniture = odsSheetFurniture(readable);
     for (const node of ast.content) {
-      const lines = node.type === "sheet" ? furniture.get((node.metadata as { sheetName?: string } | undefined)?.sheetName ?? "") : undefined;
-      if (lines) node.children = [...(node.children ?? []), ...lines.map((text) => row([text]))];
+      const name = node.type === "sheet" ? ((node.metadata as { sheetName?: string } | undefined)?.sheetName ?? "") : undefined;
+      const lines = name === undefined ? [] : [...(rules.get(name) ?? []), ...(furniture.get(name) ?? [])];
+      if (lines.length) node.children = [...(node.children ?? []), ...lines.map((text) => row([text]))];
     }
   }
   // A Word list item opens with the label Word prints for it (C8).

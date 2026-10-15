@@ -4,6 +4,7 @@ import {
   formatMsg,
   formatPpt,
   linkWorthWriting,
+  nameBlocks,
   workbookSheets,
   type CfbStreams,
   type ExtractionResult,
@@ -83,9 +84,20 @@ export function extractWorkbook(bytes: Uint8Array, furniture?: ReturnType<typeof
   // them from the package (C6, C7). A BIFF workbook is no zip: its headers
   // come from the caller, and it has no drawing here.
   const drawn = new Map(workbookSheets(bytes).sheets.map((sheet) => [sheet.name, sheet.blocks]));
-  for (const [name, blocks] of furniture ?? []) drawn.set(name, [...(drawn.get(name) ?? []), ...blocks]);
-  let comments = 0;
   const zipped = bytes[0] === 0x50 && bytes[1] === 0x4b;
+  // A BIFF workbook's defined names come from SheetJS; a package's from core, with the rest.
+  const names = zipped
+    ? undefined
+    : nameBlocks(
+        (workbook.Workbook?.Names ?? [])
+          // SheetJS marks a hidden name Hidden, outside its type: seen on an
+          // xlsx, not checked on a BIFF Lbl record, which no writer here can make.
+          .filter((one) => !(one as { Hidden?: boolean }).Hidden)
+          .map((one) => ({ name: one.Name, ref: one.Ref, sheet: one.Sheet ?? undefined, comment: one.Comment })),
+        workbook.SheetNames,
+      );
+  for (const [name, blocks] of [...(furniture ?? []), ...(names ?? [])]) drawn.set(name, [...(drawn.get(name) ?? []), ...blocks]);
+  let comments = 0;
   const sheets = workbook.SheetNames.flatMap((name, index) => {
     const sheet = workbook.Sheets[name] as (XLSX.WorkSheet & { "!type"?: string }) | undefined;
     // SheetJS lists a sheet it failed to parse and leaves its entry out.

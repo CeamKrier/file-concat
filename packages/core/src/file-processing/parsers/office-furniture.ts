@@ -1,5 +1,17 @@
 import { strFromU8 } from "fflate";
-import { attr, decodeXml, fold, relationships, sheetHeaderText, tagsOf, text, unpack, type ChartBlock } from "./office-charts";
+import {
+  attr,
+  cellName,
+  decodeXml,
+  fold,
+  relationships,
+  sheetHeaderText,
+  tagsOf,
+  text,
+  unpack,
+  validationLabel,
+  type ChartBlock,
+} from "./office-charts";
 
 /** The lines of a document's page headers and footers, a paragraph each. */
 export interface PageFurniture {
@@ -65,13 +77,14 @@ const BIFF_FILEPASS = 0x002f;
 const BIFF_BOUNDSHEET = 0x0085;
 const BIFF_HEADER = 0x0014;
 const BIFF_FOOTER = 0x0015;
+const BIFF_DV = 0x01be;
 
 /**
  * An Excel 97-2003 or 5/95 workbook's print headers and footers by sheet
  * name, from its `Workbook` or `Book` stream: the Header and Footer records
- * each sheet carries (MS-XLS 2.4.136), labelled as an xlsx's are (Q27 O1).
- * SheetJS parses the records and keeps nothing of them. An encrypted stream
- * gives nothing.
+ * each sheet carries (MS-XLS 2.4.136), labelled as an xlsx's are (Q27 O1),
+ * and its data validation rules (Dv, 2.4.95). SheetJS parses neither and
+ * keeps nothing of them. An encrypted stream gives nothing.
  *
  * ponytail: the odd-page pair only; the even and first-page ones in a
  * HeaderFooter record (2.4.137) are left out. A BIFF5 name is read as
@@ -100,6 +113,44 @@ export function biffSheetFurniture(stream: Uint8Array): Map<string, ChartBlock[]
     const bytes = stream.subarray(at + head, Math.min(at + size, at + head + count * (high ? 2 : 1)));
     return high ? utf16.decode(bytes) : strFromU8(bytes, true);
   };
+  /**
+   * A Dv record: flags, the prompt and error titles and texts, two formulas,
+   * then the ranges it covers. A title or text Excel leaves unset is one NUL.
+   */
+  const biffValidation = (from: number, to: number): string | undefined => {
+    if (to - from < 4) return undefined;
+    const flags = view.getUint32(from, true);
+    let at = from + 4;
+    const strings: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      if (at + 3 > to) return undefined;
+      const count = view.getUint16(at, true);
+      strings.push(read(at, to - at, true).split("\0").join(""));
+      at += 3 + count * (view.getUint8(at + 2) & 1 ? 2 : 1);
+    }
+    const [promptTitle, errorTitle, prompt, error] = strings;
+    // An explicit list is formula 1 as one string token (ptgStr), values apart by NUL.
+    let allowed: string | undefined;
+    if (at + 6 <= to && (flags & 0x0f) === 3 && flags & 0x80 && view.getUint8(at + 4) === 0x17) {
+      allowed = read(at + 5, Math.min(to, at + 4 + view.getUint16(at, true)) - at - 5, false)
+        .split("\0")
+        .filter(Boolean)
+        .join(", ");
+    }
+    for (let i = 0; i < 2 && at + 4 <= to; i++) at += 4 + view.getUint16(at, true);
+    const ranges: string[] = [];
+    for (let i = 0, count = at + 2 <= to ? view.getUint16(at, true) : 0; i < count && at + 10 + i * 8 <= to; i++) {
+      const ref = at + 2 + i * 8;
+      const first = cellName(view.getUint16(ref, true), view.getUint16(ref + 4, true));
+      const last = cellName(view.getUint16(ref + 2, true), view.getUint16(ref + 6, true));
+      ranges.push(first === last ? first : `${first}:${last}`);
+    }
+    return validationLabel(ranges.join(" "), {
+      ...(flags & 0x40000 ? { promptTitle, prompt } : {}),
+      ...(allowed ? { allowed } : {}),
+      ...(flags & 0x80000 ? { errorTitle, error } : {}),
+    });
+  };
   const sheets: { at: number; name: string }[] = [];
   for (const r of records(0, stream.byteLength)) {
     if (r.type === BIFF_BOF && r.size >= 2 && sheets.length === 0) biff8 = view.getUint16(r.data, true) === 0x0600;
@@ -126,6 +177,9 @@ export function biffSheetFurniture(stream: Uint8Array): Map<string, ChartBlock[]
           seen.add(label);
           blocks.push({ label, rows: [] });
         }
+      } else if (depth === 1 && biff8 && r.type === BIFF_DV) {
+        const label = biffValidation(r.data, r.data + r.size);
+        if (label) blocks.push({ label, rows: [] });
       }
     }
     byStart.set(start, blocks);
@@ -212,6 +266,68 @@ export function odsSheetFurniture(bytes: Uint8Array): Map<string, string[]> {
       const master = masterOf.get(decodeXml(attr(t.tag, "table:style-name") ?? "")) || first || "";
       const own = (masters.get(master) ?? []).filter((line) => !written.has(line) && !!written.add(line));
       if (own.length && !found.has(name)) found.set(name, own);
+    }
+  }
+  return found;
+}
+
+/**
+ * An OpenDocument spreadsheet's validation rules as `[Validation: ...]` lines
+ * (as an xlsx's are), under each sheet with a cell that uses one, once per
+ * sheet: the help and error messages it shows (ODF 1.3 9.4.6, 9.4.7) and a
+ * list rule's values. Cells are not addressed: repeated rows and columns make
+ * a cell's address a count this pass does not keep.
+ */
+export function odsValidations(bytes: Uint8Array): Map<string, string[]> {
+  const found = new Map<string, string[]>();
+  const content = text(unpack(bytes, (name) => name === "content.xml")?.["content.xml"]);
+  if (!content.includes("table:content-validation")) return found;
+  const rules = new Map<string, string>();
+  let rule: { name: string; allowed?: string; parts: Record<string, string> } | undefined;
+  let message = "";
+  let body: string | undefined;
+  let after = 0;
+  let sheet = "";
+  for (const t of tagsOf(content)) {
+    if (body !== undefined) body += decodeXml(content.slice(after, t.from));
+    after = t.to;
+    if (t.name === "table:content-validation" && t.opens) {
+      const list = /cell-content-is-in-list\(([\s\S]*)\)/.exec(decodeXml(attr(t.tag, "table:condition") ?? ""))?.[1];
+      // `"a";"b"` is the list itself; a range reference is where it is read from.
+      const values = list?.split(";").map((one) => one.trim());
+      const allowed = values?.every((one) => /^"[\s\S]*"$/.test(one)) ? values.map((one) => one.slice(1, -1)).join(", ") : list && `values in ${list}`;
+      rule = { name: decodeXml(attr(t.tag, "table:name") ?? ""), ...(allowed ? { allowed } : {}), parts: {} };
+    }
+    if (rule && (t.name === "table:help-message" || t.name === "table:error-message")) {
+      if (t.opens && attr(t.tag, "table:display") !== "false") {
+        message = t.name;
+        rule.parts[`${t.name}:title`] = decodeXml(attr(t.tag, "table:title") ?? "");
+        rule.parts[t.name] = "";
+      }
+      if (!t.opens || t.closes) message = "";
+    } else if (message && t.name === "text:p") {
+      if (t.opens && !t.closes) body = "";
+      else if (!t.opens && body !== undefined) {
+        rule!.parts[message] = `${rule!.parts[message]} ${body}`;
+        body = undefined;
+      }
+    } else if (message && body !== undefined && ODF_SPACE.has(t.name) && t.opens) body += " ";
+    if (rule && t.name === "table:content-validation" && t.closes) {
+      const label = validationLabel("", {
+        promptTitle: rule.parts["table:help-message:title"],
+        prompt: rule.parts["table:help-message"],
+        allowed: rule.allowed,
+        errorTitle: rule.parts["table:error-message:title"],
+        error: rule.parts["table:error-message"],
+      });
+      if (label) rules.set(rule.name, label);
+      rule = undefined;
+    }
+    if (t.name === "table:table" && t.opens) sheet = decodeXml(attr(t.tag, "table:name") ?? "");
+    const used = t.opens && t.name === "table:table-cell" ? rules.get(decodeXml(attr(t.tag, "table:content-validation-name") ?? "")) : undefined;
+    if (used) {
+      const lines = found.get(sheet) ?? [];
+      if (!lines.includes(used)) found.set(sheet, [...lines, used]);
     }
   }
   return found;

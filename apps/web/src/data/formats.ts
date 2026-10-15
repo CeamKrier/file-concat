@@ -84,7 +84,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     formats: ["xlsx", "xlsm", "xlsb", "xltx", "xltm", "cfb"],
     how: "auto",
     gives:
-      "Every sheet under its name, rows as comma-separated cells, each cell as Excel shows it. Charts, text boxes and the print header and footer follow a sheet's rows, a chart as a table of its data. A hidden sheet is read and marked (hidden).",
+      "Every sheet under its name, rows as comma-separated cells, each cell as Excel shows it. Charts, text boxes, the print header and footer, a cell's input message and allowed values, and named ranges follow a sheet's rows, a chart as a table of its data. A hidden sheet is read and marked (hidden).",
     loses: "Formulas (their results come through), cell colours and conditional formatting. The charts in an .xls or .xlsb file.",
   },
   {
@@ -93,7 +93,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["ods"],
     formats: ["ods"],
     how: "auto",
-    gives: "Every sheet's cells as text, then its print header and footer, and its charts as tables of their data. A hidden sheet is read and marked (hidden).",
+    gives: "Every sheet's cells as text, then its validation messages and allowed values, its print header and footer, and its charts as tables of their data. A hidden sheet is read and marked (hidden).",
     loses: "Formulas (their results come through) and cell colours.",
   },
   {

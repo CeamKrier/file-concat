@@ -1,4 +1,6 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
 import { extractCfb, extractWorkbook } from "~/lib/extract-cfb-client";
@@ -63,6 +65,26 @@ describe("extractWorkbook comments", () => {
     const { text, notes } = extractWorkbook(bytes);
     expect(text).toBe('# Sheet: Budget\nItem,Cost\nRent,900\n"[Comment, B2, Cy: Too ""high""]"');
     expect(notes).toEqual([{ kind: "comments-included", count: 1 }]);
+  });
+});
+
+describe("extractWorkbook names", () => {
+  it("writes an xls workbook's defined names and validation rules after the sheet they belong to", () => {
+    // SheetJS writes no names into an .xls, so this is the coverage probe Excel's format came from.
+    const probe = readFileSync(join(__dirname, "../../../packages/cli/scripts/coverage/probes/xls/gen-xls-coverage.xls"));
+    const { text } = extractCfb(new Uint8Array(probe));
+    expect(text).toContain("[Validation, C3: QZDVPTITLE: QZDVPROMPT; allowed: QZLISTA, QZLISTB; error: QZDVERRTITLE: QZDVERROR]");
+    expect(text).toContain("[Name: QZDEFNAME = QZSHEETMAIN!$A$1]");
+  });
+
+  it("writes an xlsx workbook's names once, from the package rather than SheetJS", () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([["Rate"]]), "Inputs");
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([["Total"]]), "Sums");
+    workbook.Workbook = { Names: [{ Name: "Total", Ref: "Sums!$A$1" }] };
+    const { text } = extractWorkbook(new Uint8Array(XLSX.write(workbook, { bookType: "xlsx", type: "array" })));
+    expect(text).toContain("# Sheet: Sums\nTotal\n[Name: Total = Sums!$A$1]");
+    expect(text.match(/\[Name: Total/g)).toHaveLength(1);
   });
 });
 

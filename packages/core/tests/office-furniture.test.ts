@@ -1,8 +1,8 @@
 import { strToU8, unzipSync, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
 import { extractOfficeDocument } from "../src/file-processing/parsers/officeparser";
-import { sheetHeaderText, workbookSheets } from "../src/file-processing/parsers/office-charts";
-import { biffSheetFurniture, odsSheetFurniture, slideMasterText } from "../src/file-processing/parsers/office-furniture";
+import { nameBlocks, sheetHeaderText, workbookSheets } from "../src/file-processing/parsers/office-charts";
+import { biffSheetFurniture, odsSheetFurniture, odsValidations, slideMasterText } from "../src/file-processing/parsers/office-furniture";
 import { deckPptx, odfDocument, twoSheetXlsx } from "./fixtures/containers";
 
 describe("sheetHeaderText", () => {
@@ -88,6 +88,129 @@ describe("workbook print headers", () => {
     });
     const { text } = await extractOfficeDocument(odfDocument("spreadsheet", table("One"), masters));
     expect(text).toContain("One cell\n[Page header: Acme]\n[Page footer: Page]");
+  });
+});
+
+describe("validation rules and defined names", () => {
+  const xlsx = () => {
+    const parts = unzipSync(twoSheetXlsx());
+    const edit = (part: string, from: string, to: string) => {
+      parts[part] = strToU8(new TextDecoder().decode(parts[part]).replace(from, to));
+    };
+    edit(
+      "xl/worksheets/sheet1.xml",
+      "</worksheet>",
+      "<dataValidations>" +
+        '<dataValidation type="list" showInputMessage="1" showErrorMessage="1" promptTitle="Region" prompt="Pick one" errorTitle="No" error="Not a region" sqref="A2:A4 C1">' +
+        "<formula1>\"EMEA,APAC\"</formula1></dataValidation>" +
+        // A prompt Excel does not show, on a rule that is no list: nothing to say.
+        '<dataValidation type="whole" prompt="Switched off" sqref="B2"><formula1>0</formula1></dataValidation>' +
+        "</dataValidations>" +
+        '<extLst><ext><x14:dataValidations><x14:dataValidation type="list"><x14:formula1><xm:f>Headcount!$A$1:$A$3</xm:f></x14:formula1>' +
+        "<xm:sqref>D2</xm:sqref></x14:dataValidation></x14:dataValidations></ext></extLst></worksheet>",
+    );
+    edit(
+      "xl/workbook.xml",
+      "</sheets>",
+      "</sheets><definedNames>" +
+        '<definedName name="Total" comment="Sum of &amp; regions">Headcount!$B$2</definedName>' +
+        '<definedName name="Rate" localSheetId="0">0.2</definedName>' +
+        '<definedName name="_xlnm.Print_Area" localSheetId="0">Revenue!$A$1:$C$4</definedName>' +
+        '<definedName name="Secret" hidden="1">Revenue!$A$1</definedName>' +
+        "</definedNames>",
+    );
+    return zipSync(parts);
+  };
+
+  it("labels an xlsx sheet's validation rules and the names that point into it", async () => {
+    expect(workbookSheets(xlsx()).sheets.map((sheet) => sheet.blocks.map((block) => block.label))).toEqual([
+      [
+        "[Validation, A2:A4 C1: Region: Pick one; allowed: EMEA, APAC; error: No: Not a region]",
+        "[Validation, D2: allowed: values in Headcount!$A$1:$A$3]",
+        "[Name: Rate = 0.2]",
+      ],
+      ["[Name: Total = Headcount!$B$2; Sum of & regions]"],
+    ]);
+    const { text } = await extractOfficeDocument(xlsx());
+    expect(text).toContain('"[Validation, A2:A4 C1: Region: Pick one; allowed: EMEA, APAC; error: No: Not a region]"');
+    expect(text).not.toContain("Secret");
+    expect(text).not.toContain("Print_Area");
+  });
+
+  it("reads an xls sheet's Dv record, its explicit list and the ranges it covers", () => {
+    const record = (type: number, data: number[] = []) => [type & 0xff, type >> 8, data.length & 0xff, data.length >> 8, ...data];
+    const bof = record(0x0809, [0x00, 0x06, 0x10, 0x00, ...new Array<number>(12).fill(0)]);
+    const eof = record(0x000a);
+    const ansi = (s: string) => Array.from(s, (c) => c.charCodeAt(0));
+    const u16 = (n: number) => [n & 0xff, n >> 8];
+    const string = (s: string) => [...u16(s.length), 0, ...ansi(s)];
+    const list = [0x17, 9, 0, ...ansi("Yes\0No\0Na")];
+    // List type 3, explicit strings, prompt shown, error not raised.
+    const flags = [0x83, 0x00, 0x04, 0x00];
+    const dv = record(0x01be, [
+      ...flags,
+      ...string("Answer"),
+      ...string("\0"),
+      ...string("Yes or no"),
+      ...string("Wrong"),
+      ...u16(list.length),
+      0,
+      0,
+      ...list,
+      0,
+      0,
+      0,
+      0,
+      ...u16(1),
+      ...u16(1),
+      ...u16(3),
+      ...u16(2),
+      ...u16(2),
+    ]);
+    const sheet = [...bof, ...dv, ...eof];
+    const start = bof.length + 4 + 8 + 3 + eof.length;
+    const bound = record(0x0085, [start & 0xff, start >> 8, 0, 0, 0, 0, 3, 0, ...ansi("One")]);
+    const found = biffSheetFurniture(Uint8Array.from([...bof, ...bound, ...eof, ...sheet]));
+    expect(found.get("One")?.map((block) => block.label)).toEqual(["[Validation, C2:C4: Answer: Yes or no; allowed: Yes, No, Na]"]);
+  });
+
+  it("places names by their own sheet, the sheet their reference names, or the first", () => {
+    const labels = nameBlocks(
+      [
+        { name: "Local", ref: "1", sheet: 1 },
+        { name: "Quoted", ref: "'It''s'!$A$1" },
+        { name: "Elsewhere", ref: "Gone!$A$1" },
+        { name: "_xlnm._FilterDatabase", ref: "One!$A$1" },
+      ],
+      ["One", "It's"],
+    );
+    expect(Object.fromEntries(Array.from(labels).map(([sheet, blocks]) => [sheet, blocks.map((block) => block.label)]))).toEqual({
+      "It's": ["[Name: Local = 1]", "[Name: Quoted = 'It''s'!$A$1]"],
+      One: ["[Name: Elsewhere = Gone!$A$1]"],
+    });
+  });
+
+  it("writes an ODS rule's help and error messages under each sheet that uses it, once", async () => {
+    const rules =
+      '<table:content-validations><table:content-validation table:name="v1" table:condition="of:cell-content-is-in-list(&quot;Low&quot;;&quot;High&quot;)">' +
+      '<table:help-message table:title="Level" table:display="true"><text:p>Pick a</text:p><text:p>level</text:p></table:help-message>' +
+      '<table:error-message table:title="Off" table:display="false"><text:p>Not shown</text:p></table:error-message>' +
+      "</table:content-validation>" +
+      '<table:content-validation table:name="v2"><table:error-message table:title="Bad"/></table:content-validation></table:content-validations>';
+    const cell = (rule = "") => `<table:table-cell${rule ? ` table:content-validation-name="${rule}"` : ""} office:value-type="string"><text:p>x</text:p></table:table-cell>`;
+    const ods = odfDocument(
+      "spreadsheet",
+      rules +
+        `<table:table table:name="One"><table:table-row>${cell("v1")}${cell("v1")}</table:table-row></table:table>` +
+        `<table:table table:name="Two"><table:table-row>${cell("v2")}${cell()}</table:table-row></table:table>`,
+    );
+    expect(Object.fromEntries(odsValidations(ods))).toEqual({
+      One: ["[Validation: Level: Pick a level; allowed: Low, High]"],
+      Two: ["[Validation: error: Bad]"],
+    });
+    const { text } = await extractOfficeDocument(ods);
+    expect(text).toContain("[Validation: Level: Pick a level; allowed: Low, High]");
+    expect(text).not.toContain("Not shown");
   });
 });
 

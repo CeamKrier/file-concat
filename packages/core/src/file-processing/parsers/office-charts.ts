@@ -342,7 +342,7 @@ export interface WorkbookSheet {
   state: number;
   part: string;
   chartsheet: boolean;
-  /** The charts and text boxes drawn on the sheet, in drawing order, then its print header and footer. */
+  /** The charts and text boxes drawn on the sheet, in drawing order, then its validation rules, print header and footer, and defined names. */
   blocks: ChartBlock[];
 }
 
@@ -417,6 +417,137 @@ function sheetHeaderBlocks(xml: string, seen: Set<string>): ChartBlock[] {
   return blocks;
 }
 
+/** `B3` for row 2, column 1, both counted from 0. */
+export function cellName(row: number, col: number): string {
+  let name = "";
+  for (let n = col + 1; n > 0; n = Math.floor((n - 1) / 26)) name = String.fromCharCode(65 + ((n - 1) % 26)) + name;
+  return `${name}${row + 1}`;
+}
+
+/** What a data validation rule tells the person filling the cell. */
+export interface CellRule {
+  promptTitle?: string;
+  prompt?: string;
+  /** The allowed values, or the range they are read from. */
+  allowed?: string;
+  errorTitle?: string;
+  error?: string;
+}
+
+/**
+ * `[Validation, F3: title: prompt; allowed: a, b; error: title: text]`, each
+ * part only when there is one. The prompt and the error message are text the
+ * author wrote for whoever fills the cell, and the list is what the cell may
+ * hold. No reader surveyed writes them (Tika, POI, markitdown, docling,
+ * unstructured, 2026-10-15); a model asked to fill or check a template needs
+ * them, so they are carried as the comments are.
+ */
+export function validationLabel(where: string, rule: CellRule): string | undefined {
+  const pair = (title?: string, body?: string) => [title, body].map((one) => fold(one ?? "")).filter(Boolean).join(": ");
+  const parts = [
+    pair(rule.promptTitle, rule.prompt),
+    rule.allowed ? `allowed: ${fold(rule.allowed)}` : "",
+    pair(rule.errorTitle, rule.error) ? `error: ${pair(rule.errorTitle, rule.error)}` : "",
+  ].filter(Boolean);
+  return parts.length ? `[Validation${where ? `, ${where}` : ""}: ${parts.join("; ")}]` : undefined;
+}
+
+/** A list rule's values from its formula: a quoted literal is the list, anything else the range it is read from. */
+export function listValues(formula: string): string {
+  const literal = /^"([\s\S]*)"$/.exec(formula.trim());
+  return literal ? literal[1].split(",").map((one) => one.trim()).filter(Boolean).join(", ") : `values in ${formula.trim()}`;
+}
+
+/**
+ * A worksheet's data validation rules as label blocks: the `dataValidations`
+ * block and the Excel 2010 one in `extLst`, whose list may read another sheet.
+ * A prompt Excel does not show (`showInputMessage` off) or an error it does
+ * not raise is left out, as text the author switched off.
+ */
+function validationBlocks(xml: string): ChartBlock[] {
+  const blocks: ChartBlock[] = [];
+  for (const name of ["dataValidations", "x14:dataValidations"]) {
+    const from = xml.indexOf(`<${name}`);
+    const end = from < 0 ? -1 : xml.indexOf(`</${name}>`, from);
+    if (end < 0) continue;
+    const part = xml.slice(from, end);
+    let rule = "";
+    let formula = "";
+    let sqref = "";
+    let after = 0;
+    for (const t of tagsOf(part)) {
+      const inner = part.slice(after, t.from);
+      after = t.to;
+      if (t.local === "dataValidation" && t.opens) {
+        rule = t.tag;
+        formula = "";
+        sqref = attr(t.tag, "sqref") ?? "";
+      } else if (!t.opens && (t.local === "formula1" || t.local === "f") && !formula && !inner.includes("<")) formula = decodeXml(inner);
+      else if (!t.opens && t.local === "sqref") sqref = inner;
+      if (t.local !== "dataValidation" || !t.closes) continue;
+      const label = validationLabel(sqref.trim().replace(/\s+/g, " "), {
+        ...(isOn(rule, "showInputMessage") ? { promptTitle: decodeXml(attr(rule, "promptTitle") ?? ""), prompt: decodeXml(attr(rule, "prompt") ?? "") } : {}),
+        ...(attr(rule, "type") === "list" && formula ? { allowed: listValues(formula) } : {}),
+        ...(isOn(rule, "showErrorMessage") ? { errorTitle: decodeXml(attr(rule, "errorTitle") ?? ""), error: decodeXml(attr(rule, "error") ?? "") } : {}),
+      });
+      if (label) blocks.push({ label, rows: [] });
+    }
+  }
+  return blocks;
+}
+
+export interface DefinedName {
+  name: string;
+  ref: string;
+  /** The sheet a local name belongs to, by its place in the workbook. */
+  sheet?: number;
+  comment?: string;
+}
+
+/**
+ * Each defined name as `[Name: Revenue = Data!$B$2:$B$13; comment]`, by the
+ * sheet it belongs to: its own for a local name, else the sheet its reference
+ * starts with, else the first. Excel's own names (`_xlnm.Print_Area`, the
+ * filter range) and hidden ones are left out: the workbook's machinery, not
+ * the author's. No reader surveyed writes names (2026-10-15); a name is the
+ * author's own label for a range, which a formula elsewhere reads by.
+ */
+export function nameBlocks(names: readonly DefinedName[], sheets: readonly string[]): Map<string, ChartBlock[]> {
+  const found = new Map<string, ChartBlock[]>();
+  for (const one of names) {
+    if (!one.name || one.name.startsWith("_xlnm.") || !one.ref) continue;
+    const named = /^'?((?:[^'!]|'')+)'?!/.exec(one.ref)?.[1]?.replace(/''/g, "'");
+    const sheet = (one.sheet !== undefined ? sheets[one.sheet] : undefined) ?? (named && sheets.includes(named) ? named : sheets[0]);
+    if (sheet === undefined) continue;
+    const label = `[Name: ${fold(one.name)} = ${fold(one.ref)}${one.comment && fold(one.comment) ? `; ${fold(one.comment)}` : ""}]`;
+    found.set(sheet, [...(found.get(sheet) ?? []), { label, rows: [] }]);
+  }
+  return found;
+}
+
+/** A workbook part's defined names, hidden ones left out. */
+function definedNames(xml: string): DefinedName[] {
+  const names: DefinedName[] = [];
+  let open = "";
+  let after = 0;
+  for (const t of tagsOf(xml)) {
+    if (t.local !== "definedName") continue;
+    if (t.opens) {
+      open = t.tag;
+      after = t.to;
+    } else if (!isOn(open, "hidden")) {
+      const local = attr(open, "localSheetId");
+      names.push({
+        name: decodeXml(attr(open, "name") ?? ""),
+        ref: decodeXml(xml.slice(after, t.from)),
+        ...(local !== undefined ? { sheet: Number(local) } : {}),
+        comment: decodeXml(attr(open, "comment") ?? ""),
+      });
+    }
+  }
+  return names;
+}
+
 /** officeparser's own test for a worksheet part, unanchored as it is. */
 const WORKSHEET_PART = /xl\/worksheets\/sheet\d+.xml/;
 
@@ -436,14 +567,16 @@ export function workbookSheets(bytes: Uint8Array): { sheets: WorkbookSheet[]; or
   });
   if (!parts?.["xl/workbook.xml"]) return { sheets: [], order: [] };
   const rels = relationships(parts, "xl/workbook.xml");
+  const workbook = text(parts["xl/workbook.xml"]);
   const sheets: WorkbookSheet[] = [];
   const seen = new Set<string>();
   const labels = new Set<string>();
-  for (const t of tagsOf(text(parts["xl/workbook.xml"]))) {
+  for (const t of tagsOf(workbook)) {
     if (!t.opens || t.local !== "sheet") continue;
     const rel = rels.get(attr(t.tag, "r:id") ?? "");
     if (!rel) continue;
     const drawings = [...relationships(parts, rel.part).values()].filter((one) => one.type.endsWith("/drawing"));
+    const xml = text(parts[rel.part]);
     sheets.push({
       name: decodeXml(attr(t.tag, "name") ?? ""),
       state: ({ hidden: 1, veryHidden: 2 } as Record<string, number>)[attr(t.tag, "state") ?? ""] ?? 0,
@@ -451,10 +584,13 @@ export function workbookSheets(bytes: Uint8Array): { sheets: WorkbookSheet[]; or
       chartsheet: rel.type.endsWith("/chartsheet"),
       blocks: [
         ...drawings.flatMap((drawing) => drawingBlocks(parts, drawing.part, seen)),
-        ...sheetHeaderBlocks(text(parts[rel.part]), labels),
+        ...validationBlocks(xml),
+        ...sheetHeaderBlocks(xml, labels),
       ],
     });
   }
+  const names = nameBlocks(definedNames(workbook), sheets.map((sheet) => sheet.name));
+  for (const sheet of sheets) sheet.blocks.push(...(names.get(sheet.name) ?? []));
   return { sheets, order };
 }
 
