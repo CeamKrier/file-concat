@@ -461,6 +461,69 @@ function slideShapeText(xml: string): string[] {
 
 const isHidden = (tag: string) => ["1", "true"].includes(attr(tag, "hidden") ?? "");
 
+/** What a deck names over its slides, by the slide's position in the deck. */
+export interface DeckLabels {
+  /** The section that starts at a slide. */
+  sections: Map<number, string>;
+  /** A slide's own name. */
+  names: Map<number, string>;
+  /** Each custom show as a line naming its slides. */
+  shows: string[];
+}
+
+/**
+ * A deck's sections, slide names and custom shows, which officeparser reads
+ * none of; no reading of them was found in docling, Tika or markitdown. A pptx keeps its
+ * sections in PowerPoint 2010's `p14:sectionLst` and its custom shows in
+ * `p:custShowLst` (ECMA-376 19.2.1.5), both after `p:sldIdLst`, whose order
+ * numbers the slides as officeparser does. An OpenDocument deck names each
+ * `draw:page` (ODF 1.3 10.2.4); LibreOffice's own `page<n>` is left out,
+ * since no author typed it. Nothing for any other file.
+ */
+export function deckLabels(bytes: Uint8Array): DeckLabels {
+  const found: DeckLabels = { sections: new Map(), names: new Map(), shows: [] };
+  const parts = unpack(bytes, (name) => /^(?:ppt\/presentation\.xml|ppt\/_rels\/presentation\.xml\.rels|content\.xml)$/.test(name));
+  if (!parts) return found;
+  const presentation = parts["ppt/presentation.xml"];
+  if (!presentation) {
+    let page = 0;
+    for (const t of tagsOf(text(parts["content.xml"]))) {
+      if (t.name !== "draw:page" || !t.opens) continue;
+      page++;
+      const name = fold(decodeXml(attr(t.tag, "draw:name") ?? ""));
+      if (name && !/^page\d+$/.test(name)) found.names.set(page, name);
+    }
+    return found;
+  }
+  const deck = relationships(parts, "ppt/presentation.xml");
+  const byPart = new Map<string, number>();
+  const byId = new Map<string, number>();
+  let section: string | undefined;
+  let show: { name: string; slides: number[] } | undefined;
+  for (const t of tagsOf(text(presentation))) {
+    const part = deck.get(attr(t.tag, "r:id") ?? "")?.part ?? "";
+    if (t.name === "p:sldId" && t.opens) {
+      if (!part || byPart.has(part)) continue;
+      byPart.set(part, byPart.size + 1);
+      byId.set(attr(t.tag, "id") ?? "", byPart.size);
+    } else if (t.local === "section" && t.closes !== t.opens) {
+      section = t.opens ? fold(decodeXml(attr(t.tag, "name") ?? "")) : undefined;
+    } else if (t.local === "sldId" && t.opens && section) {
+      // A section is named once, at its first slide.
+      const at = byId.get(attr(t.tag, "id") ?? "");
+      if (!at) continue;
+      if (!found.sections.has(at)) found.sections.set(at, section);
+      section = "";
+    } else if (t.name === "p:custShow" && t.closes !== t.opens) {
+      if (t.opens) show = { name: fold(decodeXml(attr(t.tag, "name") ?? "")), slides: [] };
+      else if (show?.slides.length) found.shows.push(`[Custom show, ${show.name}: slides ${show.slides.join(", ")}]`);
+    } else if (t.name === "p:sld" && t.opens && show && byPart.has(part)) {
+      show.slides.push(byPart.get(part)!);
+    }
+  }
+  return found;
+}
+
 /**
  * The text a deck's slide masters and layouts print on every slide that uses
  * them, such as a company line or a confidentiality mark (Q28 O1): read once,

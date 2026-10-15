@@ -1,6 +1,6 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { withOdfAltText, withRtfAltText, withWordAltText } from "./alt-text";
-import { escapeXml } from "./office-charts";
+import { escapeXml, tagsOf } from "./office-charts";
 import { withOdfFormValues, withWordFieldLinks, withWordFormFields } from "./office-links";
 import { withOdfListLabels } from "./office-lists";
 import { withoutHiddenRtf } from "./rtf-hidden";
@@ -123,6 +123,50 @@ const MAX_REWRITE = 256 * 1024 * 1024;
 
 /** The parts of a docx that hold runs: the body, headers, footers, notes and comments. */
 const WORD_PART = /^word\/(?:document|header\d*|footer\d*|footnotes|endnotes|comments)\.xml$/;
+
+/** A deck's slides. */
+const SLIDE_PART = /^ppt\/slides\/slide\d+\.xml$/;
+
+/**
+ * A slide with the text of each table cell merged into the one before it
+ * taken out (ECMA-376 21.1.3.16, `hMerge` and `vMerge`), and how many such
+ * cells held text. PowerPoint draws a merged range from its first cell, but
+ * the others can still carry text, and docling, Tika and markitdown read
+ * them without checking either attribute. The cell stays, empty, so the
+ * columns after it keep their place.
+ */
+export function withoutMergedCells(xml: string): { xml: string; hidden: number } {
+  if (!/\s[hv]Merge="/.test(xml)) return { xml, hidden: 0 };
+  const cuts: Array<[number, number]> = [];
+  let hidden = 0;
+  let merged = false;
+  let held = false;
+  let text = -1;
+  for (const t of tagsOf(xml)) {
+    if (t.name === "a:tc" && !t.closes) {
+      merged = /\s[hv]Merge="(?:1|true)"/.test(t.tag);
+      held = false;
+    } else if (t.name === "a:tc" && !t.opens) {
+      if (merged && held) hidden++;
+      merged = false;
+    } else if (merged && t.name === "a:t") {
+      if (!t.closes) text = t.to;
+      else if (!t.opens && text >= 0) {
+        if (xml.slice(text, t.from).trim()) held = true;
+        cuts.push([text, t.from]);
+        text = -1;
+      }
+    }
+  }
+  if (!cuts.length) return { xml, hidden: 0 };
+  let out = "";
+  let kept = 0;
+  for (const [from, to] of cuts) {
+    out += xml.slice(kept, from);
+    kept = to;
+  }
+  return { xml: out + xml.slice(kept), hidden };
+}
 
 /**
  * A ruby run as `base(reading)`, the way an ODT ruby and HTML's `rp` fallback
@@ -301,8 +345,9 @@ export function withoutHiddenOdf(
 }
 
 /**
- * A docx, OpenDocument or RTF file with its hidden text taken out, how many
- * hidden runs or elements held text, and which slides are hidden. Anything
+ * A docx, pptx, OpenDocument or RTF file with its hidden text taken out, how
+ * many hidden runs, elements or merged-away cells held text, and which slides
+ * are hidden. Anything
  * else, or a file with nothing hidden, comes back as the same bytes.
  */
 export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidden: number; slides: Set<number> } {
@@ -318,7 +363,7 @@ export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidde
     parts = unzipSync(bytes, {
       filter: (file) => {
         unpacked += file.originalSize;
-        return WORD_PART.test(file.name) || file.name === "content.xml" || file.name === "styles.xml";
+        return WORD_PART.test(file.name) || SLIDE_PART.test(file.name) || file.name === "content.xml" || file.name === "styles.xml";
       },
     });
   } catch {
@@ -345,6 +390,13 @@ export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidde
     slides = after.slides;
   } else {
     for (const [name, data] of Object.entries(parts)) {
+      if (SLIDE_PART.test(name)) {
+        const before = strFromU8(data);
+        const after = withoutMergedCells(before);
+        if (after.xml !== before) changed[name] = strToU8(after.xml);
+        hidden += after.hidden;
+        continue;
+      }
       if (!WORD_PART.test(name)) continue;
       const before = strFromU8(data);
       const after = withoutHiddenRuns(before);

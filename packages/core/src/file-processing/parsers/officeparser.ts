@@ -2,7 +2,7 @@ import { strFromU8, unzipSync } from "fflate";
 import type { OfficeContentNode } from "officeparser";
 import { altLabel } from "./alt-text";
 import { cellName, chartParts, withChartTables, workbookSheets, type ChartBlock } from "./office-charts";
-import { odfPageFurniture, odsHidden, odsSheetFurniture, odsValidations, slideMasterText } from "./office-furniture";
+import { deckLabels, odfPageFurniture, odsHidden, odsSheetFurniture, odsValidations, slideMasterText, type DeckLabels } from "./office-furniture";
 import { withoutHiddenText } from "./office-hidden";
 import { wordListLabels } from "./office-lists";
 import { linkWorthWriting } from "./office-links";
@@ -228,25 +228,29 @@ function isWorkbook(content: ReadonlyArray<{ type: string }> | undefined): boole
 function markSectionStarts(
   markPages: boolean,
   hidden: ReadonlySet<number> = new Set(),
+  deck: Pick<DeckLabels, "sections" | "names"> = { sections: new Map(), names: new Map() },
 ): (node: OfficeContentNode) => void {
   const seen = { slide: 0, page: 0 };
 
   return (node) => {
     // The library's own number is the truthful one when it has it; the counters
     // cover a document whose sections carry no metadata.
-    let label;
+    const labels: string[] = [];
     if (node.type === "slide") {
       seen.slide += 1;
       const number = node.metadata?.slideNumber ?? seen.slide;
+      const section = deck.sections.get(number);
+      const name = deck.names.get(number);
+      if (section) labels.push(`[Section: ${section}]`);
       // A hidden slide is still the author's text, so it stays, and says so.
-      label = `# Slide ${number}${hidden.has(number) ? " (hidden)" : ""}`;
+      labels.push(`# Slide ${number}${hidden.has(number) ? " (hidden)" : ""}${name ? `: ${name}` : ""}`);
     } else if (node.type === "page" && markPages) {
       seen.page += 1;
-      label = `# Page ${node.metadata?.pageNumber ?? seen.page}`;
+      labels.push(`# Page ${node.metadata?.pageNumber ?? seen.page}`);
     } else return;
 
     node.children = [
-      { type: "paragraph", text: label, children: [{ type: "text", text: label }] },
+      ...labels.map((label): OfficeContentNode => ({ type: "paragraph", text: label, children: [{ type: "text", text: label }] })),
       ...(node.children ?? []),
     ];
   };
@@ -1384,9 +1388,12 @@ export async function extractOfficeDocument(
   // A Word list item opens with the label Word prints for it (C8).
   if (ast.type === "docx") labelWordLists(ast.content, readable);
   // What a deck's masters and layouts print on every slide, once at the top (Q28 O1).
-  if (ast.content.some((node) => node.type === "slide")) {
+  // Then its custom shows; its sections and slide names go on the slides (N9).
+  const deck = ast.content.some((node) => node.type === "slide") ? deckLabels(bytes) : undefined;
+  if (deck) {
     const master = slideMasterText(readable);
-    if (master.length) ast.content.unshift(line("--- Slide master ---"), ...master.map(line));
+    const top = [...(master.length ? ["--- Slide master ---", ...master] : []), ...deck.shows];
+    if (top.length) ast.content.unshift(...top.map(line));
   }
   // Each visitor restores one thing the text renderer drops. They are composed
   // rather than merged because they are independent of one another and of the
@@ -1398,7 +1405,7 @@ export async function extractOfficeDocument(
   const sheetVisitors = [expandMergedCells(), charts, comments.visit];
   const visitors = [
     dropSlideChrome(chrome),
-    markSectionStarts(anyPageHasText, hidden),
+    markSectionStarts(anyPageHasText, hidden, deck),
     dropSlideNumberFromNotes,
     labelSpeakerNotes,
     markHeadingLevels(),

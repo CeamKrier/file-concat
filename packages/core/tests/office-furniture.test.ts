@@ -2,7 +2,8 @@ import { strToU8, unzipSync, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
 import { extractOfficeDocument } from "../src/file-processing/parsers/officeparser";
 import { hiddenLabel, nameBlocks, sheetHeaderText, workbookSheets } from "../src/file-processing/parsers/office-charts";
-import { biffSheetFurniture, odsHidden, odsSheetFurniture, odsValidations, slideMasterText } from "../src/file-processing/parsers/office-furniture";
+import { biffSheetFurniture, deckLabels, odsHidden, odsSheetFurniture, odsValidations, slideMasterText } from "../src/file-processing/parsers/office-furniture";
+import { withoutMergedCells } from "../src/file-processing/parsers/office-hidden";
 import { deckPptx, odfDocument, twoSheetXlsx } from "./fixtures/containers";
 
 describe("sheetHeaderText", () => {
@@ -335,5 +336,61 @@ describe("slideMasterText", () => {
         `<style:master-page style:name="Unused">${frame("<text:p>Unused decor</text:p>")}</style:master-page>`,
     );
     expect(slideMasterText(odp)).toEqual(["Acme", "Draft v2"]);
+  });
+});
+
+describe("deck sections, custom shows, slide names and merged cells", () => {
+  const cell = (text: string, attrs = "") => `<a:tc${attrs}><a:txBody><a:p><a:r><a:t>${text}</a:t></a:r></a:p></a:txBody><a:tcPr/></a:tc>`;
+  const table =
+    `<p:graphicFrame><a:graphic><a:graphicData><a:tbl>` +
+    `<a:tr>${cell("Span", ' gridSpan="2"')}${cell("Ghost", ' hMerge="1"')}${cell("C")}</a:tr>` +
+    `<a:tr>${cell("Down", ' rowSpan="2"')}${cell("E")}${cell("F")}</a:tr>` +
+    `<a:tr>${cell("Under", ' vMerge="1"')}${cell("H")}${cell("I")}</a:tr>` +
+    `</a:tbl></a:graphicData></a:graphic></p:graphicFrame>`;
+  const pptx = () => {
+    const parts = unzipSync(deckPptx([1, 2, 3].map((n) => ({ shapes: [{ lines: [`Slide text ${n}`] }] }))));
+    const decl = new TextDecoder().decode(parts["ppt/presentation.xml"]);
+    parts["ppt/presentation.xml"] = strToU8(
+      decl.replace(
+        "</p:sldIdLst>",
+        '</p:sldIdLst><p:custShowLst><p:custShow name="Short &amp; sweet" id="0"><p:sldLst><p:sld r:id="rId3"/><p:sld r:id="rId1"/></p:sldLst></p:custShow></p:custShowLst>' +
+          '<p:extLst><p:ext uri="{521415D9-36F7-43E2-AB2F-B90AF26B5E84}"><p14:sectionLst xmlns:p14="http://schemas.microsoft.com/office/powerpoint/2010/main">' +
+          '<p14:section name="Intro" id="{1}"><p14:sldIdLst><p14:sldId id="256"/></p14:sldIdLst></p14:section>' +
+          '<p14:section name="Body" id="{2}"><p14:sldIdLst><p14:sldId id="257"/><p14:sldId id="258"/></p14:sldIdLst></p14:section>' +
+          "</p14:sectionLst></p:ext></p:extLst>",
+      ),
+    );
+    const slide = new TextDecoder().decode(parts["ppt/slides/slide2.xml"]);
+    parts["ppt/slides/slide2.xml"] = strToU8(slide.replace("</p:spTree>", `${table}</p:spTree>`));
+    return zipSync(parts);
+  };
+
+  it("names a pptx section at its first slide and lists a custom show's slides at the top", async () => {
+    expect(deckLabels(pptx())).toEqual({ sections: new Map([[1, "Intro"], [2, "Body"]]), names: new Map(), shows: ["[Custom show, Short & sweet: slides 3, 1]"] });
+    const { text } = await extractOfficeDocument(pptx());
+    expect(text).toMatch(/^\[Custom show, Short & sweet: slides 3, 1\]\n\[Section: Intro\]\n# Slide 1\n/);
+    expect(text).toContain("[Section: Body]\n# Slide 2\n");
+    expect(text).not.toContain("[Section: Body]\n# Slide 3");
+  });
+
+  it("empties a cell merged into another and counts it, keeping its column", async () => {
+    const { xml, hidden } = withoutMergedCells(table);
+    expect(hidden).toBe(2);
+    expect(xml).not.toMatch(/Ghost|Under/);
+    expect(xml).toContain("<a:t></a:t>");
+    const { text, notes } = await extractOfficeDocument(pptx());
+    expect(text).not.toMatch(/Ghost|Under/);
+    expect(text).toContain("| C |");
+    expect(notes).toContainEqual({ kind: "hidden-left-out", count: 2 });
+  });
+
+  it("names an ODP slide by its draw:name, not LibreOffice's page<n>", async () => {
+    const ns = 'xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0"';
+    const page = (name: string, text: string) => `<draw:page ${ns} draw:name="${name}"><draw:frame><draw:text-box><text:p>${text}</text:p></draw:text-box></draw:frame></draw:page>`;
+    const odp = odfDocument("presentation", page("Opening  remarks", "Hello") + page("page2", "World"));
+    expect(deckLabels(odp).names).toEqual(new Map([[1, "Opening remarks"]]));
+    const { text } = await extractOfficeDocument(odp);
+    expect(text).toContain("# Slide 1: Opening remarks\nHello");
+    expect(text).toContain("# Slide 2\nWorld");
   });
 });

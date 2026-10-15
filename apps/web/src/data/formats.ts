@@ -102,7 +102,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["pptx", "pptm", "potx", "potm", "ppsx", "ppsm", "ppt"],
     formats: ["pptx", "pptm", "potx", "potm", "ppsx", "ppsm", "cfb"],
     how: "auto",
-    gives: "The text of each slide, slide by slide, and a chart as a table of its data. Text the slide master prints on every slide comes once, at the top. A hidden slide is read and marked (hidden).",
+    gives: "The text of each slide, slide by slide, and a chart as a table of its data. Text the slide master prints on every slide comes once, at the top. A hidden slide is read and marked (hidden). In a .pptx, a section's name comes before its first slide, a custom show is listed with its slides, and a table cell merged into another is left empty.",
     loses: "A chart or diagram that exists only as a picture, and the charts and slide master text in a PowerPoint 97-2003 file.",
   },
   {
@@ -111,7 +111,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["odp"],
     formats: ["odp"],
     how: "auto",
-    gives: "The text of each slide, and a chart as a table of its data. Text the master page prints on every slide comes once, at the top. A hidden slide is read and marked (hidden).",
+    gives: "The text of each slide, and a chart as a table of its data. Text the master page prints on every slide comes once, at the top. A slide the author named carries its name. A hidden slide is read and marked (hidden).",
     loses: "A chart or diagram that exists only as a picture.",
   },
   {
