@@ -27,6 +27,7 @@ const LITEPARSE_OPTIONS = {
 
 interface LiteparsePage {
   pageNum: number;
+  pageLabel?: string;
   markdown: string;
   complexity?: { reasons?: string[] };
   textItems?: TextItem[];
@@ -184,6 +185,7 @@ function toPdfPages(pages: readonly LiteparsePage[]): PdfPage[] {
     const comments = pageComments(page);
     return {
       number: page.pageNum,
+      ...(page.pageLabel ? { label: page.pageLabel } : {}),
       text: withLinks(page),
       ...(figures.length ? { figures } : {}),
       ...(comments.length ? { comments } : {}),

@@ -46,7 +46,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     formats: ["pdf"],
     how: "auto",
     gives:
-      "The text, page by page under a page heading. Text on a layer a viewer hides comes through, with a line saying so. Review comments come through as [Comment, author: text], after the words a highlight covers or after the page.",
+      "The text, page by page under a page heading, which also gives the number the document prints on the page when that differs (iv in a preface). Text on a layer a viewer hides comes through, with a line saying so. Review comments come through as [Comment, author: text], after the words a highlight covers or after the page.",
     loses: "Pictures and charts are not described. A password-protected PDF is not opened.",
   },
   {

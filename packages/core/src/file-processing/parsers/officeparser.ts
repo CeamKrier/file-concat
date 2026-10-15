@@ -1129,7 +1129,7 @@ function dropUndecodableLines(text: string): { text: string; lost: number; pages
   let lost = 0;
   let page = 0;
   for (const line of text.split("\n")) {
-    const marker = /^# Page (\d+)$/.exec(line);
+    const marker = PAGE_MARKER.exec(line);
     if (marker) page = Number(marker[1]);
     const part = undecodable(line) ? decodedPart(line) : { kept: line, lost: 0 };
     if (part.lost > 0) lost++;
@@ -1176,6 +1176,9 @@ function decodedPart(line: string): { kept: string; lost: number } {
   return { kept: before && after ? `${before} ${after}` : before || after, lost: last + 1 - first };
 }
 
+/** A `# Page n` line, with the number the document prints on the page after it when that differs. */
+const PAGE_MARKER = /^# Page (\d+)(?: \(numbered [^\n]*\))?$/;
+
 /**
  * Put a re-read page back into an extraction, under the `# Page n` marker it
  * belongs to.
@@ -1194,7 +1197,7 @@ export function replacePages(text: string, replacements: ReadonlyMap<number, str
   const out: string[] = [];
   let dropping = false;
   for (const line of text.split("\n")) {
-    const marker = /^# Page (\d+)$/.exec(line);
+    const marker = PAGE_MARKER.exec(line);
     if (marker) {
       const replacement = replacements.get(Number(marker[1]));
       dropping = replacement !== undefined;
@@ -1219,6 +1222,8 @@ export interface PdfPage {
   scanned?: boolean;
   /** The alternative text of the page's tagged figures. */
   figures?: string[];
+  /** The number the document prints on the page (ISO 32000 12.4.2 page labels), such as `iv`. */
+  label?: string;
   /** Review comments on the page; `anchor` is the text a highlight or other text markup covers. */
   comments?: { author?: string; text: string; anchor?: string }[];
 }
@@ -1284,7 +1289,11 @@ export function assemblePdfPages(pages: readonly PdfPage[], skipped = 0): Extrac
       const figures = (page.figures ?? []).map((alt) => altLabel("Image", [alt])).filter(Boolean);
       const { text, after, count } = withPdfComments(page.text, page.comments ?? []);
       comments += count;
-      return [`# Page ${page.number}`, [text, [...figures, ...after].join("\n")].filter(Boolean).join("\n\n")].filter(Boolean).join("\n");
+      // The number the page is cited by, a front matter's `iv`, beside the
+      // count from 1. A label is the file's to choose: folded and cut.
+      const label = (page.label ?? "").replace(/\s+/g, " ").trim().slice(0, 64);
+      const heading = `# Page ${page.number}${label && label !== String(page.number) ? ` (numbered ${label})` : ""}`;
+      return [heading, [text, [...figures, ...after].join("\n")].filter(Boolean).join("\n\n")].filter(Boolean).join("\n");
     })
     .join("\n\n");
   if (comments > 0) notes.push({ kind: "comments-included", count: comments });

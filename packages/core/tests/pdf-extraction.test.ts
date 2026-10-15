@@ -254,6 +254,12 @@ describe("replacePages", () => {
     );
   });
 
+  it("finds a marker that carries the number the document prints", () => {
+    const numbered = ["# Page 1 (numbered iv)", "lost to a font", "# Page 2 (numbered v)", "ordinary prose"].join("\n");
+
+    expect(replacePages(numbered, new Map([[1, "read"]]))).toBe(["# Page 1 (numbered iv)", "read", "# Page 2 (numbered v)", "ordinary prose"].join("\n"));
+  });
+
   it("leaves a document alone when there is nothing to put back", () => {
     expect(replacePages(document, new Map())).toBe(document);
   });
@@ -319,6 +325,15 @@ describe("assemblePdfPages", () => {
       { kind: "comments-included", count: 4 },
       { kind: "pages-scanned", count: 1, pages: [2] },
     ]);
+  });
+
+  it("names the number the document prints on a page when it is not the page's count", () => {
+    const { text } = assemblePdfPages([
+      { number: 1, text: "Preface.", label: "iv" },
+      { number: 2, text: "Body.", label: "2" },
+      { number: 3, text: "More.", label: "A-\n3" },
+    ]);
+    expect(text).toBe("# Page 1 (numbered iv)\nPreface.\n\n# Page 2\nBody.\n\n# Page 3 (numbered A- 3)\nMore.");
   });
 
   it("keeps one copy of a title that shares its line with the page number", () => {
