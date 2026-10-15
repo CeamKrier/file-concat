@@ -76,8 +76,48 @@ export function turndown(base: string): TurndownService {
     },
   });
   addTableRules(service);
+  service.addRule("math", { filter: (node) => node.nodeName.toLowerCase() === "math", replacement: (_content, node) => math(node as Element) });
+  service.addRule("svg", { filter: (node) => node.nodeName.toLowerCase() === "svg", replacement: (_content, node) => svg(node as Element) });
   service.remove(["script", "style", "noscript", "iframe", "form", "button", "template"]);
   return service;
+}
+
+/**
+ * A formula as its TeX source, `$...$` (`$$` on its own lines for a block),
+ * the way Joplin's turndown rule and pandoc write it (Q29 O1): an LLM reads
+ * TeX, and the rendered symbols run together. Without a TeX annotation the
+ * author's `alttext`, else the drawn tokens spaced apart. The annotation is
+ * never printed beside the formula, which is what leaked before (C8).
+ */
+function math(node: Element): string {
+  // The outer formula reads the whole tree; a nested one's output is dropped.
+  if (node.parentElement?.closest("math")) return "";
+  const tex = [...node.querySelectorAll("annotation")].find((note) => /tex/i.test(note.getAttribute("encoding") ?? ""))?.textContent?.trim();
+  if (tex) return node.getAttribute("display") === "block" ? `\n\n$$${tex}$$\n\n` : `$${tex}$`;
+  const alt = node.getAttribute("alttext")?.trim();
+  if (alt) return alt;
+  const tokens = [...node.querySelectorAll("mi, mn, mo, mtext, ms")].filter((token) => !token.closest("annotation-xml"));
+  return tokens.map((token) => token.textContent?.trim()).filter(Boolean).join(" ");
+}
+
+/**
+ * An inline drawing: its title and description as a label, `[Image: title;
+ * desc]`, then the text it draws. Before, all three ran into one word (C8).
+ * An `aria-hidden` drawing is decoration, so its label goes; drawn text is on
+ * screen either way.
+ */
+function svg(node: Element): string {
+  if (node.parentElement?.closest("svg")) return "";
+  const own = (name: string) => [...node.children].find((child) => child.nodeName.toLowerCase() === name)?.textContent?.trim();
+  const label = node.getAttribute("aria-hidden") === "true" ? [] : [own("title"), own("desc")].filter(Boolean);
+  const drawn = [...node.querySelectorAll("text")].map((text) => text.textContent?.trim()).filter(Boolean);
+  const out = [label.length ? `[Image: ${label.join("; ")}]` : "", ...drawn].filter(Boolean).join(" ");
+  if (!out) return "";
+  // Spaced from the words beside it only where the source has no space.
+  const text = (sibling: ChildNode | null) => (sibling?.nodeType === 3 ? sibling.textContent ?? "" : "");
+  const before = /\S$/.test(text(node.previousSibling)) ? " " : "";
+  const after = /^\S/.test(text(node.nextSibling)) ? " " : "";
+  return before + out + after;
 }
 
 /**
