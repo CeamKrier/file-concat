@@ -1,8 +1,8 @@
 import { strToU8, unzipSync, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
 import { extractOfficeDocument } from "../src/file-processing/parsers/officeparser";
-import { numberText, wordListLabels } from "../src/file-processing/parsers/office-lists";
-import { docxWithBody } from "./fixtures/containers";
+import { numberText, withOdfListLabels, wordListLabels } from "../src/file-processing/parsers/office-lists";
+import { docxWithBody, odfDocument } from "./fixtures/containers";
 
 const lvl = (ilvl: number, format: string, text: string, extra = "") =>
   `<w:lvl w:ilvl="${ilvl}"><w:start w:val="1"/><w:numFmt w:val="${format}"/><w:lvlText w:val="${text}"/>${extra}</w:lvl>`;
@@ -53,5 +53,45 @@ describe("extractOfficeDocument and Word lists", () => {
     )["word/numbering.xml"];
     const { text } = await extractOfficeDocument(zipSync(parts));
     expect(text).toContain("Article 1. Scope\n    (a) Terms\nArticle 2. Fees");
+  });
+});
+
+describe("withOdfListLabels", () => {
+  const item = (text: string, nested = "", attrs = "") => `<text:list-item${attrs}><text:p>${text}</text:p>${nested}</text:list-item>`;
+  const paragraphs = (xml: string) => [...xml.matchAll(/<text:p>(.*?)<\/text:p>/g)].map((m) => m[1]);
+
+  it("counts from the list style: format, prefix, suffix, display levels, start values, restarts and continued lists", () => {
+    const styles =
+      '<text:list-style style:name="L1"><text:list-level-style-number text:level="1" style:num-format="A" style:num-prefix="(" style:num-suffix=")"/>' +
+      '<text:list-level-style-number text:level="2" style:num-format="i" style:num-suffix="." text:display-levels="2" text:start-value="2"/></text:list-style>' +
+      '<text:list-style style:name="B"><text:list-level-style-bullet text:level="1" text:bullet-char="*"/></text:list-style>';
+    const content =
+      `<text:list text:style-name="L1">${item("One", `<text:list>${item("Sub")}${item("Sub two")}</text:list>`)}${item("Two", `<text:list>${item("Again")}</text:list>`)}</text:list>` +
+      `<text:p>Between</text:p><text:list text:style-name="L1" text:continue-numbering="true">${item("Three")}${item("Seven", "", ' text:start-value="7"')}</text:list>` +
+      `<text:list text:style-name="L1">${item("Fresh")}</text:list><text:list text:style-name="B">${item("Dot")}</text:list><text:list>${item("Unstyled")}</text:list>`;
+    const out = withOdfListLabels(content, `<office:styles>${styles}</office:styles>`);
+    expect(out).not.toMatch(/text:list text:style-name/);
+    expect(paragraphs(out)).toEqual([
+      "(A) One", '<text:s text:c="4"/>A.ii. Sub', '<text:s text:c="4"/>A.iii. Sub two', "(B) Two", '<text:s text:c="4"/>B.ii. Again',
+      "Between", "(C) Three", "(G) Seven", "(A) Fresh", "- Dot", "- Unstyled",
+    ]);
+  });
+
+  it("stops indents and multi-level labels at ten levels however deep a list nests", () => {
+    const depth = 5000;
+    const styles = '<text:list-style style:name="L"><text:list-level-style-number text:level="1" style:num-format="1" text:display-levels="9999"/></text:list-style>';
+    const content = `${'<text:list text:style-name="L"><text:list-item><text:p>x</text:p>'.repeat(depth)}${"</text:list-item></text:list>".repeat(depth)}`;
+    const out = withOdfListLabels(content, styles);
+    expect(out.length).toBeLessThan(content.length + depth * 40);
+    expect(out).not.toMatch(/text:c="(?!40")\d{3,}"/);
+  });
+
+  it("prefers the number the writer cached, and reads it into the text an LLM gets", async () => {
+    const body =
+      '<text:list text:style-name="Undefined"><text:list-header><text:p>Steps</text:p></text:list-header>' +
+      `<text:list-item text:start-value="7"><text:number>7.</text:number><text:p>Seventh</text:p>` +
+      `<text:list><text:list-item><text:number>7.1.</text:number><text:p>Nested &amp; more</text:p></text:list-item></text:list></text:list-item></text:list>`;
+    const { text } = await extractOfficeDocument(odfDocument("text", body));
+    expect(text).toContain("Steps\n7. Seventh\n    7.1. Nested & more");
   });
 });

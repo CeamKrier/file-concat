@@ -163,3 +163,137 @@ export function numberText(n: number, format: string): string {
   }
   return String(n);
 }
+
+interface OdfLevel {
+  bullet: boolean;
+  format: string;
+  prefix: string;
+  suffix: string;
+  display: number;
+  start: number;
+}
+
+/** `style:num-format` to the Word format names above; anything else reads as decimal. */
+const ODF_FORMAT: Record<string, string> = { "1": "decimal", a: "lowerLetter", A: "upperLetter", i: "lowerRoman", I: "upperRoman", "": "none" };
+
+/** Every `text:list-style` of a part, by name, each level by its one-based number. */
+function odfListStyles(xml: string, into: Map<string, Map<number, OdfLevel>>): void {
+  let levels: Map<number, OdfLevel> | undefined;
+  for (const { name, tag, opens, closes } of tagsOf(xml)) {
+    if (name === "text:list-style" && opens) {
+      levels = new Map();
+      const style = attr(tag, "style:name");
+      if (style && !into.has(style)) into.set(style, levels);
+    } else if (levels && opens && /^text:list-level-style-(?:number|bullet|image)$/.test(name)) {
+      const number = name === "text:list-level-style-number";
+      levels.set(parseInt(attr(tag, "text:level") ?? "1", 10) || 1, {
+        bullet: !number,
+        format: ODF_FORMAT[attr(tag, "style:num-format") ?? ""] ?? "decimal",
+        prefix: decodeXml(attr(tag, "style:num-prefix") ?? ""),
+        suffix: decodeXml(attr(tag, "style:num-suffix") ?? ""),
+        display: parseInt(attr(tag, "text:display-levels") ?? "1", 10) || 1,
+        start: parseInt(attr(tag, "text:start-value") ?? "1", 10) || 1,
+      });
+    }
+    if (closes && name === "text:list-style") levels = undefined;
+  }
+}
+
+/**
+ * A list style defines ten levels (19.799). Indents and multi-level labels stop
+ * there, so a crafted list nested thousands deep cannot grow the text with the
+ * square of its depth.
+ */
+const MAX_ODF_LEVELS = 10;
+
+const escapeText = (text: string) => text.replace(/[&<>]/g, (c) => `&#${c.charCodeAt(0)};`);
+
+/**
+ * An OpenDocument text's `content.xml` with each list item's label written at
+ * the start of its first paragraph, indented four spaces a level (C8), and the
+ * list styles taken off so officeparser reads the items as the paragraphs they
+ * now are. officeparser numbered an item only when it found the list's style,
+ * by its own count and without the style's format, prefix or suffix; without
+ * the style the number was gone.
+ *
+ * The label is the `text:number` the writing application cached for the item
+ * when it is there ("the text of a formatted number which is present when a
+ * list style is applied", 6.1.10), which none of Tika, docling, pandoc and
+ * LibreOffice read. Otherwise it is counted from the list style as LibreOffice
+ * does: prefix, the counters of `display-levels` levels joined by ".", suffix.
+ * A bullet, or an item whose style is unknown, reads "-".
+ */
+export function withOdfListLabels(content: string, styles = ""): string {
+  if (!content.includes("<text:list")) return content;
+  const listStyles = new Map<string, Map<number, OdfLevel>>();
+  odfListStyles(content, listStyles);
+  odfListStyles(styles, listStyles);
+  const byId = new Map<string, (number | undefined)[]>();
+  let previous: (number | undefined)[] = [];
+  const lists: { style?: string; counts: (number | undefined)[] }[] = [];
+  // The item awaiting its first paragraph, and the cached number read for it.
+  let pending: { level: number; label: string } | undefined;
+  let cached: { from: number } | undefined;
+  const edits: { from: number; to: number; text: string }[] = [];
+  const label = (level: number, counts: (number | undefined)[], style?: string) => {
+    const levels = style ? listStyles.get(style) : undefined;
+    const own = levels?.get(level + 1);
+    if (!own || own.bullet) return "-";
+    const first = Math.max(0, level - Math.min(own.display, MAX_ODF_LEVELS) + 1);
+    const numbers = counts.slice(first, level + 1).map((n, i) => {
+      const at = levels?.get(first + i + 1);
+      return numberText(n ?? at?.start ?? 1, at && !at.bullet ? at.format : "decimal");
+    });
+    return `${own.prefix}${numbers.join(".")}${own.suffix}`;
+  };
+  for (const { name, tag, from, to, opens, closes } of tagsOf(content)) {
+    if (name === "text:list" && opens && !closes) {
+      const outer = lists[lists.length - 1];
+      let counts = outer?.counts;
+      if (!counts) {
+        const continued = attr(tag, "text:continue-list");
+        counts = continued ? (byId.get(continued) ?? []) : attr(tag, "text:continue-numbering") === "true" ? previous : [];
+        previous = counts;
+        const id = attr(tag, "xml:id");
+        if (id) byId.set(id, counts);
+      }
+      lists.push({ style: attr(tag, "text:style-name") ?? outer?.style, counts });
+      edits.push({ from, to, text: tag.replace(/\stext:style-name="[^"]*"/, "") });
+    } else if (name === "text:list" && !opens) {
+      lists.pop();
+      pending = undefined;
+    } else if (name === "text:list-item" && opens && lists.length) {
+      const list = lists[lists.length - 1]!;
+      const level = lists.length - 1;
+      const restart = parseInt(attr(tag, "text:start-value") ?? "", 10);
+      if (Number.isFinite(restart)) list.counts[level] = restart - 1;
+      const start = list.style ? (listStyles.get(list.style)?.get(level + 1)?.start ?? 1) : 1;
+      list.counts[level] = (list.counts[level] ?? start - 1) + 1;
+      list.counts.length = level + 1;
+      pending = closes ? undefined : { level, label: label(level, list.counts, list.style) };
+      edits.push({ from, to, text: tag.replace(/\stext:style-override="[^"]*"/, "") });
+    } else if (name === "text:number" && pending) {
+      if (opens && !closes) cached = { from: to };
+      else if (!opens && cached) {
+        const text = decodeXml(content.slice(cached.from, from).replace(/<[^>]*>/g, "")).trim();
+        if (text) pending.label = text;
+        cached = undefined;
+      }
+    } else if ((name === "text:p" || name === "text:h") && opens && pending) {
+      const indent = pending.level ? `<text:s text:c="${Math.min(pending.level, MAX_ODF_LEVELS) * 4}"/>` : "";
+      const text = `${indent}${pending.label ? `${escapeText(pending.label)} ` : ""}`;
+      if (closes) edits.push({ from, to, text: `${tag.slice(0, -2)}>${text}</${name}>` });
+      else edits.push({ from: to, to, text });
+      pending = undefined;
+    }
+  }
+  if (!edits.length) return content;
+  const out: string[] = [];
+  let kept = 0;
+  for (const edit of edits) {
+    out.push(content.slice(kept, edit.from), edit.text);
+    kept = edit.to;
+  }
+  out.push(content.slice(kept));
+  return out.join("");
+}

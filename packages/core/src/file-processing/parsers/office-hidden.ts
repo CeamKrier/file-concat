@@ -1,4 +1,5 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import { withOdfListLabels } from "./office-lists";
 import { withoutHiddenRtf } from "./rtf-hidden";
 
 /**
@@ -285,6 +286,8 @@ export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidde
     collectHiddenStyles(content, styles);
     if (parts["styles.xml"]) collectHiddenStyles(strFromU8(parts["styles.xml"]), styles);
     const after = withoutHiddenOdf(content, styles);
+    // A text document's list items get the labels its lists print (C8).
+    if (content.includes("<office:text")) after.xml = withOdfListLabels(after.xml, parts["styles.xml"] ? strFromU8(parts["styles.xml"]) : "");
     if (after.xml !== content) changed["content.xml"] = strToU8(after.xml);
     hidden = after.hidden;
     slides = after.slides;
