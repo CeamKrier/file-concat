@@ -111,7 +111,9 @@ export function extractWorkbook(bytes: Uint8Array, furniture?: ReturnType<typeof
       veryHidden++;
       return [];
     }
-    const state = hidden === 1 ? " (hidden)" : "";
+    // A macro sheet's cells are Excel 4 macro formulas and their results, not
+    // data. SheetJS marks one "macro", a value its types leave out.
+    const state = `${(sheet["!type"] as string | undefined) === "macro" ? " (macro)" : ""}${hidden === 1 ? " (hidden)" : ""}`;
     const drawing = (drawn.get(name) ?? []).flatMap((block) => [[block.label], ...block.rows]).map(csvRow);
     // A chartsheet holds no cells, so its csv is empty and the filter below
     // used to drop it, name and all. Tika, docling and openpyxl all keep every
