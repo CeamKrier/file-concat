@@ -1,4 +1,11 @@
-import { withoutHiddenText, withRtfComments, withRtfFurniture, type ExtractionNote, type ExtractionResult } from "@fileconcat/core";
+import {
+  rtfTitle,
+  withoutHiddenText,
+  withRtfComments,
+  withRtfFurniture,
+  type ExtractionNote,
+  type ExtractionResult,
+} from "@fileconcat/core";
 
 import { workerRunner } from "./worker-runner";
 
@@ -27,5 +34,7 @@ export async function extractAnydoc(bytes: Uint8Array): Promise<ExtractionResult
   const notes: ExtractionNote[] = [];
   if (hidden > 0) notes.push({ kind: "hidden-left-out", count: hidden });
   if (comments > 0) notes.push({ kind: "comments-included", count: comments });
-  return notes.length ? { text, notes } : { text };
+  // anydoc skips RTF's info group, where the title is (Q30 O2).
+  const title = rtfTitle(bytes);
+  return { text, ...(notes.length ? { notes } : {}), ...(title ? { title } : {}) };
 }

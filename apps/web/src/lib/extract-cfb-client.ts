@@ -104,7 +104,12 @@ export function extractWorkbook(bytes: Uint8Array, furniture?: ReturnType<typeof
     const body = [csv, ...drawing, ...notes].filter(Boolean).join("\n");
     return body ? [`# Sheet: ${name}${state}\n${body}`] : [];
   });
-  return { text: sheets.join("\n\n"), ...(comments ? { notes: [{ kind: "comments-included" as const, count: comments }] } : {}) };
+  const title = workbook.Props?.Title;
+  return {
+    text: sheets.join("\n\n"),
+    ...(comments ? { notes: [{ kind: "comments-included" as const, count: comments }] } : {}),
+    ...(title ? { title } : {}),
+  };
 }
 
 /**

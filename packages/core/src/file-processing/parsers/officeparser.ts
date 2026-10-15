@@ -5,6 +5,7 @@ import { odfPageFurniture, odsSheetFurniture, slideMasterText } from "./office-f
 import { withoutHiddenText } from "./office-hidden";
 import { wordListLabels } from "./office-lists";
 import { noteLayersOff } from "./pdf-layers";
+import { pdfTitle, rtfTitle } from "./title";
 import type { ExtractionNote, ExtractionNoteKind, ExtractionResult } from "./types";
 
 /**
@@ -1363,7 +1364,10 @@ export async function extractOfficeDocument(
   }
   if (hiddenRuns > 0) notes.push({ kind: "hidden-left-out", count: hiddenRuns });
   if (comments.count() > 0) notes.push({ kind: "comments-included", count: comments.count() });
-  const result = notes.length > 0 ? { text, notes } : { text };
+  // officeparser leaves RTF's info group unread, and a PDF's title is read
+  // the way the web's first PDF reader reads it, so both platforms agree.
+  const title = ast.type === "rtf" ? rtfTitle(bytes) : ((ast.type === "pdf" && pdfTitle(bytes)) || ast.metadata?.title);
+  const result: ExtractionResult = { text, ...(notes.length > 0 ? { notes } : {}), ...(title ? { title } : {}) };
   // Only a PDF has pages here.
   return ast.content.some((node) => node.type === "page") ? noteLayersOff(result, bytes) : result;
 }

@@ -82,7 +82,8 @@ const CODEPAGE_LABELS: Readonly<Record<number, string>> = {
   65001: "utf-8",
 };
 
-function decode(bytes: Uint8Array, codepage: number | undefined): string {
+/** 8-bit text in a Windows code page, 1252 when none is known. */
+export function decodeCodepage(bytes: Uint8Array, codepage: number | undefined): string {
   const iso = codepage !== undefined && codepage >= 28591 && codepage <= 28606 ? `iso-8859-${codepage - 28590}` : undefined;
   const label = codepage === undefined ? "windows-1252" : (CODEPAGE_LABELS[codepage] ?? iso ?? `windows-${codepage}`);
   try {
@@ -119,9 +120,9 @@ function timeProperty(properties: ReadonlyMap<number, DataView>, id: number): Da
 /** A string property from a storage, Unicode first, then the 8-bit stream. */
 function stringProperty(streams: CfbStreams, prefix: string, id: string, codepage: number | undefined): string {
   const unicode = streams.get(`${prefix}__substg1.0_${id}001F`);
-  if (unicode) return decode(unicode, 1200).replace(/\0+$/, "");
+  if (unicode) return decodeCodepage(unicode, 1200).replace(/\0+$/, "");
   const ansi = streams.get(`${prefix}__substg1.0_${id}001E`);
-  if (ansi) return decode(ansi, codepage).replace(/\0+$/, "");
+  if (ansi) return decodeCodepage(ansi, codepage).replace(/\0+$/, "");
   return "";
 }
 
@@ -211,11 +212,11 @@ export function formatMsg(streams: CfbStreams): ExtractionResult {
   // own rich-text mail, and HTML it wrapped in RTF, are only in the compressed RTF.
   let body = text(BODY).replace(/\r\n/g, "\n");
   const html = streams.get(`__substg1.0_${HTML_BODY}0102`);
-  let htmlBody = body ? "" : html ? decode(html, internet ?? codepage) : text(HTML_BODY);
+  let htmlBody = body ? "" : html ? decodeCodepage(html, internet ?? codepage) : text(HTML_BODY);
   const compressed = body || htmlBody ? undefined : streams.get(`__substg1.0_${RTF_COMPRESSED}0102`);
   const rtf = compressed && decompressRtf(compressed);
   if (rtf) {
-    const read = rtfBody(rtf, decode);
+    const read = rtfBody(rtf, decodeCodepage);
     if (read.html) htmlBody = read.text;
     else body = read.text.trim();
   }

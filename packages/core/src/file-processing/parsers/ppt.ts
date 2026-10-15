@@ -1,4 +1,5 @@
 import type { CfbStreams } from "./msg";
+import { SUMMARY_INFORMATION, summaryTitle } from "./title";
 import type { ExtractionResult } from "./types";
 
 /**
@@ -451,7 +452,8 @@ export function formatPpt(streams: CfbStreams): ExtractionResult {
   if (!doc || !currentUser || currentUser.byteLength < 28) return NOT_THIS_READER;
   if (u32(currentUser, 12) === ENCRYPTED_TOKEN) throw new Error("Password protected");
   try {
-    return { text: readDeck(doc, currentUser) };
+    const title = summaryTitle(streams.get(SUMMARY_INFORMATION));
+    return { text: readDeck(doc, currentUser), ...(title ? { title } : {}) };
   } catch (error) {
     if (error instanceof Unreadable) return NOT_THIS_READER;
     throw error;

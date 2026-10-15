@@ -71,7 +71,10 @@ import {
   extractWithFallback,
   isPasswordProtected,
   noteLayersOff,
+  pdfTitle,
   routeBytes,
+  rtfTitle,
+  withTitle,
   withoutHiddenText,
   withRtfComments,
   withRtfFurniture,
@@ -407,12 +410,14 @@ const anydoc: ParserLoader = async (bytes) => {
   const notes: ExtractionNote[] = [];
   if (hidden > 0) notes.push({ kind: "hidden-left-out", count: hidden });
   if (comments > 0) notes.push({ kind: "comments-included", count: comments });
-  return notes.length ? { text, notes } : { text };
+  const title = rtfTitle(bytes);
+  return { text, ...(notes.length ? { notes } : {}), ...(title ? { title } : {}) };
 };
 const webReaders: Record<FirstReaderId, ParserLoader> = {
   liteparse: async (bytes) => {
     const { pages, skipped } = await parsePdfPages((await liteparseModule()).LiteParse, bytes);
-    return noteLayersOff(assemblePdfPages(pages, skipped), bytes);
+    const title = pdfTitle(bytes);
+    return { ...noteLayersOff(assemblePdfPages(pages, skipped), bytes), ...(title ? { title } : {}) };
   },
   sheetjs: async (bytes) => extractWorkbook(bytes),
   anydoc,
@@ -533,7 +538,9 @@ async function extractOne(file: string, extract: Extract = cliExtract): Promise<
   base.parserId = route.parserId;
 
   try {
-    const { text, notes, reader } = await extract(route.parserId, bytes, route.format);
+    const { text: read, notes, reader, title } = await extract(route.parserId, bytes, route.format);
+    // As the product writes it: the title above the text (Q30 O2).
+    const text = withTitle(read, title, file);
     if (reader) base.parserId = `${route.parserId}:${reader}`;
     base.text = text;
     base.chars = text.length;

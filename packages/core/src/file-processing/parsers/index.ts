@@ -8,6 +8,7 @@ export {
 } from "./officeparser";
 export type { OcrOptions, OfficeParserOptions, PdfPage } from "./officeparser";
 export { noteLayersOff } from "./pdf-layers";
+export { pdfTitle, rtfTitle, withTitle } from "./title";
 export { withoutHiddenText } from "./office-hidden";
 export { withRtfComments } from "./rtf-comments";
 export { withRtfFurniture } from "./rtf-furniture";

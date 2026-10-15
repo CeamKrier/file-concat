@@ -1,5 +1,6 @@
 import { listLabels, type ListDefinition, type ListInstance, type ListLevel } from "./office-lists";
 import type { CfbStreams } from "./msg";
+import { SUMMARY_INFORMATION, summaryTitle } from "./title";
 import type { ExtractionNote, ExtractionResult } from "./types";
 
 /**
@@ -603,5 +604,6 @@ export function formatDoc(streams: CfbStreams): ExtractionResult {
   const notes: ExtractionNote[] = [];
   if (left.hidden > 0) notes.push({ kind: "hidden-left-out", count: left.hidden });
   if (labels.length > 0) notes.push({ kind: "comments-included", count: labels.length });
-  return notes.length ? { text, notes } : { text };
+  const title = summaryTitle(streams.get(SUMMARY_INFORMATION));
+  return { text, ...(notes.length ? { notes } : {}), ...(title ? { title } : {}) };
 }

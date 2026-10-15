@@ -32,7 +32,10 @@ export {
   formatMsg,
   formatPpt,
   isPasswordProtected,
+  pdfTitle,
   replacePages,
+  rtfTitle,
+  withTitle,
 } from "./parsers";
 export type {
   ExtractionNote,

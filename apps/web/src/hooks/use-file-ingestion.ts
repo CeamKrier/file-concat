@@ -16,6 +16,7 @@ import {
   unreadableReason,
   unreadableReasonText,
   validateFile,
+  withTitle,
 } from "@fileconcat/core";
 
 import { collectFromDataTransfer } from "~/lib/collect-from-drop";
@@ -770,7 +771,10 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           // a drop can take. Weight is reported after the fact instead.
           try {
             const bytes = new Uint8Array(await entry.file.arrayBuffer());
-            const { text, notes, reader } = await parsers.extract(route.parserId, bytes, route.format);
+            const extracted = await parsers.extract(route.parserId, bytes, route.format);
+            const { notes, reader } = extracted;
+            // The document's own title above its text, when it says something (Q30 O2).
+            const text = withTitle(extracted.text, extracted.title, path);
             // What the reader gave up on, counted once per document rather than
             // once per lost page: the question these answer is "how many drops
             // hit this", and a fifty-page PDF failing wholesale must not swamp

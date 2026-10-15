@@ -94,6 +94,11 @@ export interface ExtractionResult {
   notes?: ExtractionNote[];
   /** Which reader produced `text`, set by {@link ./chain} when a chain ran. */
   reader?: string;
+  /**
+   * The document's own title from its properties, for the caller to write
+   * above the text through `withTitle`, which knows the file's name (Q30 O2).
+   */
+  title?: string;
 }
 
 /**
