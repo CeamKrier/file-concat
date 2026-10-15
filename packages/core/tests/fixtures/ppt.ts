@@ -62,7 +62,12 @@ export interface ShapeSpec {
   shapeType?: number;
   /** Mark the group shape of a table. */
   table?: boolean;
+  /** StyleTextProp9Atom body, under the shape's `___PPT9` tag. */
+  pp9?: Uint8Array;
 }
+
+const binaryTag = (name: string, data: Uint8Array[]) =>
+  container(0x138a, [atom(0x0fba, utf16(name)), atom(0x138b, concat(...data))]);
 
 export function shape(spec: ShapeSpec): Uint8Array {
   return container(0xf004, [
@@ -70,7 +75,14 @@ export function shape(spec: ShapeSpec): Uint8Array {
     // tableProperties lives in the tertiary property table, one six-byte entry.
     ...(spec.table ? [atom(0xf122, concat(le(2, 0x039f), u32s(1)), 1)] : []),
     ...(spec.anchor ? [atom(0xf00f, u32s(spec.anchor[0], spec.anchor[1], spec.anchor[0] + 10, spec.anchor[1] + 10))] : []),
-    ...(spec.ph !== undefined ? [container(0xf011, [atom(0x0bc3, concat(u32s(0), Uint8Array.of(spec.ph, 0, 0, 0)))])] : []),
+    ...(spec.ph !== undefined || spec.pp9
+      ? [
+          container(0xf011, [
+            ...(spec.ph !== undefined ? [atom(0x0bc3, concat(u32s(0), Uint8Array.of(spec.ph, 0, 0, 0)))] : []),
+            ...(spec.pp9 ? [container(0x1388, [binaryTag("___PPT9", [atom(0x0fac, spec.pp9)])])] : []),
+          ]),
+        ]
+      : []),
     ...(spec.text ? [container(0xf00d, spec.text)] : []),
     ...(spec.outline !== undefined ? [container(0xf00d, [atom(0x0f9e, u32s(spec.outline))])] : []),
   ]);
@@ -108,9 +120,6 @@ export interface DeckSpec {
   /** Current User says the deck is encrypted. */
   encryptedToken?: boolean;
 }
-
-const binaryTag = (name: string, data: Uint8Array[]) =>
-  container(0x138a, [atom(0x0fba, utf16(name)), atom(0x138b, concat(...data))]);
 
 /**
  * A deck's two streams: the DocumentContainer (slide lists, footer settings),

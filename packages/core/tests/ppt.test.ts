@@ -1,13 +1,31 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { formatPpt } from "../src/file-processing/parsers/ppt";
-import { amend, deckStreams, group, shape, slideContainer, text, textLink } from "./fixtures/ppt";
+import { amend, atom, deckStreams, group, shape, slideContainer, text, textLink, u32s } from "./fixtures/ppt";
 
 const UNAVAILABLE = { text: "", notes: [{ kind: "parser-unavailable" }] };
 /** PlaceholderEnum (MS-PPT 2.13.21). */
 const PH = { masterTitle: 1, slideNumber: 8, footer: 9, header: 10, notesImage: 11, notesBody: 12, title: 13, body: 14 };
 
 describe("formatPpt", () => {
+  it("writes the automatic number PowerPoint shows before a numbered paragraph", () => {
+    const u16s = (...values: number[]) => Uint8Array.from(values.flatMap((v) => [v & 0xff, (v >> 8) & 0xff]));
+    const cat = (...parts: Uint8Array[]) => Uint8Array.from(parts.flatMap((part) => Array.from(part)));
+    // One paragraph run for the whole text, then a character run per paragraph naming its ___PPT9 entry.
+    const runs = (pp9rts: [number, number][]) =>
+      atom(0x0fa1, cat(u32s(13), u16s(0), u32s(0), ...pp9rts.map(([count, rt]) => cat(u32s(count, 0x3c00), u16s(rt << 10)))));
+    const pp9 = cat(
+      // Entry 0: alphaLcParenRight from 3. Entry 1: no number. Entry 2: numbered, no scheme.
+      u32s(0x3000000), u16s(1, 9, 3), u32s(0, 0),
+      u32s(0, 0, 0),
+      u32s(0x2000000), u16s(1), u32s(0, 0),
+    );
+    const body = [...text("A\rB\rC\rD\rE"), runs([[2, 0], [2, 0], [2, 1], [2, 0], [3, 2]])];
+    expect(formatPpt(deckStreams({ slides: [{ shapes: [shape({ text: body, pp9 })] }] })).text).toContain(
+      "c) A\nd) B\nC\nc) D\n1. E",
+    );
+  });
+
   it("marks each slide, labels a hidden one, keeps a table's rows and the master text and footer once", () => {
     const { text: out } = formatPpt(
       deckStreams({
