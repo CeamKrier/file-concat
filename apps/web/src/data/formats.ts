@@ -47,7 +47,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     how: "auto",
     gives:
       "The text, page by page under a page heading, which also gives the number the document prints on the page when that differs (iv in a preface). Text on a layer a viewer hides comes through, with a line saying so. Review comments come through as [Comment, author: text], after the words a highlight covers or after the page. A form's filled-in fields come through as [Form field, name: value], a check box as [x] or [ ]. Attached files are named, and a text file's contents come through.",
-    loses: "Pictures and charts are not described. A password-protected PDF is not opened.",
+    loses: "Pictures and charts are not described. Text set at an angle, such as a diagonal DRAFT watermark, is left out. A password-protected PDF is not opened.",
   },
   {
     group: "Documents",

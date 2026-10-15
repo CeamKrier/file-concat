@@ -12,7 +12,11 @@ import type { LiteParse } from "@llamaindex/liteparse-wasm";
  * `extractStructureTree` brings a tagged figure's alternative text: nothing on
  * an untagged PDF, about 1.7 ms a page on a tagged one of 42 elements a page
  * (300 pages, 2026-10-15). `extractAnnotations` brings a link's address and
- * a review comment's note.
+ * a review comment's note. `skipDiagonalText` leaves out text set at an angle
+ * before the layout is worked out: a diagonal watermark otherwise cost the page
+ * a body line and read short columns as a table (Q37 O1). On pdf.js's test
+ * files it changed 8 of 1834 pages, 8 words of diagonal text lost
+ * (2026-10-15); a watermark's own text was never written.
  */
 const LITEPARSE_OPTIONS = {
   ocrEnabled: false,
@@ -21,6 +25,7 @@ const LITEPARSE_OPTIONS = {
   includeComplexity: true,
   extractStructureTree: true,
   extractAnnotations: true,
+  skipDiagonalText: true,
   continueOnPageError: true,
   quiet: true,
 } as const;
