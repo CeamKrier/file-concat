@@ -1219,6 +1219,8 @@ export interface PdfPage {
   scanned?: boolean;
   /** The alternative text of the page's tagged figures. */
   figures?: string[];
+  /** Review comments on the page; `anchor` is the text a highlight or other text markup covers. */
+  comments?: { author?: string; text: string; anchor?: string }[];
 }
 
 /**
@@ -1276,12 +1278,16 @@ export function assemblePdfPages(pages: readonly PdfPage[], skipped = 0): Extrac
   // the readable test so it cannot stand in for a scanned page's text.
   // ponytail: not where the figure sits; liteparse's text items carry no
   // marked-content id to place it by.
+  let comments = 0;
   const marked = bodies
     .map((page) => {
       const figures = (page.figures ?? []).map((alt) => altLabel("Image", [alt])).filter(Boolean);
-      return [`# Page ${page.number}`, [page.text, figures.join("\n")].filter(Boolean).join("\n\n")].filter(Boolean).join("\n");
+      const { text, after, count } = withPdfComments(page.text, page.comments ?? []);
+      comments += count;
+      return [`# Page ${page.number}`, [text, [...figures, ...after].join("\n")].filter(Boolean).join("\n\n")].filter(Boolean).join("\n");
     })
     .join("\n\n");
+  if (comments > 0) notes.push({ kind: "comments-included", count: comments });
   const { text, lost, pages: lostPages } = dropUndecodableLines(marked);
   if (lost > 0) {
     notes.push({
@@ -1292,6 +1298,30 @@ export function assemblePdfPages(pages: readonly PdfPage[], skipped = 0): Extrac
   }
   scanned();
   return empty(text);
+}
+
+/**
+ * A PDF page's review comments as `[Comment, author: text]` (Q24 O1): right
+ * after the words a highlight covers when they occur once on the page, and
+ * after the page's text otherwise, where Tika writes every one and all a
+ * sticky note's margin icon gives to place it by.
+ */
+function withPdfComments(text: string, comments: NonNullable<PdfPage["comments"]>): { text: string; after: string[]; count: number } {
+  // An author name and a note are the file's to choose; a line break in either
+  // would forge structure in the bundle.
+  const fold = (value = "") => value.replace(/\s+/g, " ").trim();
+  const after: string[] = [];
+  let count = 0;
+  for (const comment of comments) {
+    if (!fold(comment.text)) continue;
+    count++;
+    const label = `[Comment${fold(comment.author) ? `, ${fold(comment.author)}` : ""}: ${fold(comment.text)}]`;
+    const anchor = fold(comment.anchor);
+    const at = anchor ? text.indexOf(anchor) : -1;
+    if (at >= 0 && at === text.lastIndexOf(anchor)) text = `${text.slice(0, at + anchor.length)} ${label}${text.slice(at + anchor.length)}`;
+    else after.push(label);
+  }
+  return { text, after, count };
 }
 
 /**

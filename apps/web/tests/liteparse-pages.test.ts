@@ -67,6 +67,31 @@ describe("parsePdfPages", () => {
 
     expect(pages[0]?.text).toBe("Read [our docs](https://x.example/docs) today\n\ndocs again docs\n\n[docs](https://x.example/again)");
   });
+
+  it("hands over review comments, with the words a highlight covers", async () => {
+    const item = (text: string, y: number) => ({ text, x: 0, y, width: text.length * 10, height: 10, rotation: 0 });
+    const rect = (x: number, y: number, width: number) => ({ x, y, width, height: 10 });
+    class Parser {
+      async parse() {
+        const textItems = [item("Net revenue rose", 0), item("Costs fell", 20)];
+        const annotations = [
+          { subtype: "highlight", contents: "Check", title: "Ann", rect: rect(0, 0, 160), quadpointRects: [rect(0, 0, 110), rect(0, 20, 50)] },
+          { subtype: "text", contents: "Margin note", rect: rect(300, 0, 20) },
+          { subtype: "popup", contents: "the popup's own", rect: rect(300, 0, 20) },
+          { subtype: "widget", title: "field name", rect: rect(0, 40, 20) },
+          { subtype: "square", contents: " ", rect: rect(0, 0, 20) },
+        ];
+        return { pages: [1, 2].map((pageNum) => ({ pageNum, markdown: "Net revenue rose\n\nCosts fell", textItems, annotations })), pageErrors: [] };
+      }
+      free() {}
+    }
+    const { pages } = await parsePdfPages(Parser as unknown as typeof LiteParse, new Uint8Array());
+
+    expect(pages[0]?.comments).toEqual([
+      { text: "Check", author: "Ann", anchor: "Net revenue Costs" },
+      { text: "Margin note" },
+    ]);
+  });
 });
 
 /**

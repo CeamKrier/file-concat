@@ -297,6 +297,30 @@ describe("assemblePdfPages", () => {
     expect(notes).toEqual([{ kind: "pages-scanned", count: 1, pages: [2] }]);
   });
 
+  it("writes a review comment after the words it highlights, or after its page", () => {
+    const { text, notes } = assemblePdfPages([
+      {
+        number: 1,
+        text: "Net revenue rose. Costs fell.",
+        comments: [
+          { author: "Ann\nLee", text: "Check\nthis", anchor: "Net revenue" },
+          { text: "Margin note" },
+          { text: "Twice", anchor: "e" },
+          { text: "  " },
+        ],
+      },
+      { number: 2, text: fence, scanned: true, comments: [{ author: "Bo", text: "On a scan" }] },
+    ]);
+    expect(text).toBe(
+      "# Page 1\nNet revenue [Comment, Ann Lee: Check this] rose. Costs fell.\n\n[Comment: Margin note]\n[Comment: Twice]\n\n# Page 2\n[Comment, Bo: On a scan]",
+    );
+    // A note does not make the scanned page readable: it still goes to recognition.
+    expect(notes).toEqual([
+      { kind: "comments-included", count: 4 },
+      { kind: "pages-scanned", count: 1, pages: [2] },
+    ]);
+  });
+
   it("keeps one copy of a title that shares its line with the page number", () => {
     const pages = [1, 2, 3, 4].map((number) => ({
       number,

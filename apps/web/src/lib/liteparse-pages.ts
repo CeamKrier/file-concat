@@ -11,7 +11,8 @@ import type { LiteParse } from "@llamaindex/liteparse-wasm";
  * a page (measured over 240 olmOCR-bench pages, 2026-10-05).
  * `extractStructureTree` brings a tagged figure's alternative text: nothing on
  * an untagged PDF, about 1.7 ms a page on a tagged one of 42 elements a page
- * (300 pages, 2026-10-15). `extractAnnotations` brings a link's address.
+ * (300 pages, 2026-10-15). `extractAnnotations` brings a link's address and
+ * a review comment's note.
  */
 const LITEPARSE_OPTIONS = {
   ocrEnabled: false,
@@ -30,7 +31,17 @@ interface LiteparsePage {
   complexity?: { reasons?: string[] };
   textItems?: TextItem[];
   structureTree?: { roots: StructureElement[] };
-  annotations?: { subtype: string; uri?: string; rect?: Rect }[];
+  annotations?: Annotation[];
+}
+
+interface Annotation {
+  subtype: string;
+  uri?: string;
+  rect?: Rect;
+  quadpointRects?: Rect[];
+  contents?: string;
+  /** The author, the annotation's `/T`. */
+  title?: string;
 }
 
 interface Rect {
@@ -139,6 +150,30 @@ function sidewaysPages(pages: readonly LiteparsePage[]): { page: number; angle: 
   });
 }
 
+/**
+ * ISO 32000 12.5.6.2's markup annotations, the ones a viewer lists as review
+ * comments, less sound and redaction (Tika writes every markup annotation's
+ * note after its page). A popup's own note is never shown (12.5.6.14).
+ */
+const COMMENTS = new Set(["text", "freetext", "line", "square", "circle", "polygon", "polyline", "highlight", "underline", "squiggly", "strikeout", "stamp", "caret", "ink", "fileattachment"]);
+const TEXT_MARKUP = new Set(["highlight", "underline", "squiggly", "strikeout"]);
+
+/**
+ * A page's review comments, each with the words a highlight covers.
+ *
+ * ponytail: liteparse gives no annotation flags, so a comment its author set
+ * Hidden (12.5.3) is read too, as Tika reads it; pdf.js's `getAnnotations`
+ * has the flags, at a second read of the file.
+ */
+function pageComments(page: LiteparsePage): NonNullable<PdfPage["comments"]> {
+  return (page.annotations ?? []).flatMap((note) => {
+    if (!COMMENTS.has(note.subtype) || !note.contents?.trim()) return [];
+    const boxes = note.quadpointRects?.length ? note.quadpointRects : note.rect ? [note.rect] : [];
+    const anchor = TEXT_MARKUP.has(note.subtype) ? boxes.map((box) => linkText(box, page.textItems ?? [])).join(" ") : "";
+    return [{ text: note.contents, ...(note.title ? { author: note.title } : {}), ...(anchor.trim() ? { anchor } : {}) }];
+  });
+}
+
 /** Each page's markdown and whether it holds a picture, which core needs to tell a scanned page from a blank one. */
 function toPdfPages(pages: readonly LiteparsePage[]): PdfPage[] {
   return pages.map((page) => {
@@ -146,10 +181,12 @@ function toPdfPages(pages: readonly LiteparsePage[]): PdfPage[] {
     // figure, so only the two reasons that mean "a picture" are read.
     const reasons = page.complexity?.reasons ?? [];
     const figures = figureAlts(page);
+    const comments = pageComments(page);
     return {
       number: page.pageNum,
       text: withLinks(page),
       ...(figures.length ? { figures } : {}),
+      ...(comments.length ? { comments } : {}),
       scanned: reasons.includes("scanned") || reasons.includes("embedded-images"),
     };
   });
