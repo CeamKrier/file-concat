@@ -10,6 +10,7 @@ export type { OcrOptions, OfficeParserOptions, PdfAttachment, PdfPage } from "./
 export { noteLayersOff, pdfMayHoldFormsOrFiles } from "./pdf-layers";
 export { pdfTitle, rtfTitle, withTitle } from "./title";
 export { withoutHiddenText } from "./office-hidden";
+export { withRtfChoices } from "./rtf-choices";
 export { withRtfComments } from "./rtf-comments";
 export { withRtfFurniture } from "./rtf-furniture";
 export { biffSheetFurniture } from "./office-furniture";

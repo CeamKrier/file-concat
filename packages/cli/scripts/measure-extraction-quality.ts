@@ -77,6 +77,7 @@ import {
   rtfTitle,
   withTitle,
   withoutHiddenText,
+  withRtfChoices,
   withRtfComments,
   withRtfFurniture,
   type ExtractionNote,
@@ -411,7 +412,7 @@ const officeparser: ParserLoader = (bytes, format) => parsers.extract("office", 
 const anydoc: ParserLoader = async (bytes) => {
   // officeparser reads an RTF comment itself; anydoc skips it, so it is
   // written into the text first, where hidden text inside it goes too.
-  const { bytes: commented, comments } = withRtfComments(bytes);
+  const { bytes: commented, comments } = withRtfComments(withRtfChoices(bytes));
   const { bytes: readable, hidden } = withoutHiddenText(withRtfFurniture(commented));
   const text = (await anydocModule()).toMarkdownBytes(readable).trim();
   if (!text) return { text };

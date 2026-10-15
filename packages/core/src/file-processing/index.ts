@@ -16,6 +16,7 @@ export {
   noteLayersOff,
   pdfMayHoldFormsOrFiles,
   withoutHiddenText,
+  withRtfChoices,
   withRtfComments,
   withRtfFurniture,
   biffSheetFurniture,
