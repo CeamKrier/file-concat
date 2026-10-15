@@ -43,7 +43,7 @@ export function wordStreams(
   comments: { ref: number; start: number; author: string; initials?: boolean }[] = [],
   stories: number[] = [],
 ): Map<string, Uint8Array> {
-  const fibLength = 0x0200;
+  const fibLength = 0x0400;
   let fc = fibLength;
   const encoded = pieces.map((piece) => {
     const bytes = piece.compressed ? ansi(piece.text) : utf16(piece.text);

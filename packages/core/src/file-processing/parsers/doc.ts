@@ -1,3 +1,4 @@
+import { listLabels, type ListDefinition, type ListInstance, type ListLevel } from "./office-lists";
 import type { CfbStreams } from "./msg";
 import type { ExtractionNote, ExtractionResult } from "./types";
 
@@ -15,7 +16,8 @@ import type { ExtractionNote, ExtractionResult } from "./types";
  * endnotes and text boxes, each of a length the FIB gives. The body, the
  * notes and the text boxes are kept. Headers and footers are written once
  * each, labelled, before and after the body as a docx's are (C7). Comments
- * are written into the body at the end of their paragraph (Q24 O1).
+ * are written into the body at the end of their paragraph (Q24 O1), and a
+ * list paragraph opens with the label Word prints for it (C8).
  *
  * Only the reading lives here, over streams already lifted out of the
  * container (ADR-0012); the browser opens it with the library that reads a
@@ -115,19 +117,27 @@ function withoutDeletions(word: Uint8Array, table: Uint8Array): { word: Uint8Arr
   return { word: out, hidden };
 }
 
-function readPieces(document: Uint8Array, table: Uint8Array): string {
+/** A run of characters and where its bytes sit in `WordDocument`, one or two per character. */
+interface Piece {
+  cp: number;
+  end: number;
+  offset: number;
+  width: number;
+}
+
+function readPieces(document: Uint8Array, table: Uint8Array): { text: string; pieces: Piece[] } {
   const { word, hidden } = withoutDeletions(document, table);
   const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
   const fcClx = fib.getUint32(0x01a2, true);
   const lcbClx = fib.getUint32(0x01a6, true);
-  if (fcClx + lcbClx > table.byteLength) return "";
+  if (fcClx + lcbClx > table.byteLength) return { text: "", pieces: [] };
   const clx = new DataView(table.buffer, table.byteOffset + fcClx, lcbClx);
 
   // The CLX is a run of property modifiers (0x01, then a 2-byte length) and
   // then the piece table itself (0x02, then a 4-byte length).
   let at = 0;
   while (at < lcbClx && clx.getUint8(at) === 0x01) at += 3 + clx.getUint16(at + 1, true);
-  if (at >= lcbClx || clx.getUint8(at) !== 0x02) return "";
+  if (at >= lcbClx || clx.getUint8(at) !== 0x02) return { text: "", pieces: [] };
   const lcbPlc = clx.getUint32(at + 1, true);
   const plc = at + 5;
   const count = Math.floor((lcbPlc - 4) / 12);
@@ -136,6 +146,7 @@ function readPieces(document: Uint8Array, table: Uint8Array): string {
   const utf16 = new TextDecoder("utf-16le", { ignoreBOM: true });
   const ansi = new TextDecoder("windows-1252");
   let text = "";
+  const pieces: Piece[] = [];
   for (let piece = 0; piece < count; piece++) {
     const start = clx.getUint32(plc + piece * 4, true);
     const end = clx.getUint32(plc + (piece + 1) * 4, true);
@@ -146,9 +157,10 @@ function readPieces(document: Uint8Array, table: Uint8Array): string {
     if (offset + length > word.byteLength) break;
     const bytes = word.subarray(offset, offset + length);
     const read = (compressed ? ansi.decode(bytes) : utf16.decode(bytes)).split(String.fromCharCode(HIDDEN)).join("\0");
+    pieces.push({ cp: text.length, end: text.length + read.length, offset, width: compressed ? 1 : 2 });
     text += hide(read, offset, compressed ? 1 : 2, hidden);
   }
-  return text;
+  return { text, pieces };
 }
 
 /**
@@ -336,13 +348,12 @@ function commentLabels(
 }
 
 /**
- * `body` with each label written before the first paragraph or cell mark at
- * or after its position, in order. Positions are character positions, which
+ * Each label moved to the first paragraph or cell mark at or after its
+ * position, to be written before it. Positions are character positions, which
  * the text's indices are, one per CP.
  */
-function atParagraphEnds(body: string, labels: { at: number; label: string }[]): string {
-  let out = "";
-  let cursor = 0;
+function atParagraphEnds(body: string, labels: { at: number; label: string }[]): { at: number; text: string }[] {
+  const out: { at: number; text: string }[] = [];
   let end = -1;
   for (const { at, label } of [...labels].sort((a, b) => a.at - b.at)) {
     if (at >= body.length) continue;
@@ -350,10 +361,197 @@ function atParagraphEnds(body: string, labels: { at: number; label: string }[]):
       end = at;
       while (end < body.length && body.charCodeAt(end) !== PARAGRAPH && body.charCodeAt(end) !== CELL_MARK) end++;
     }
-    out += `${body.slice(cursor, end)} ${label}`;
-    cursor = end;
+    out.push({ at: end, text: ` ${label}` });
+  }
+  return out;
+}
+
+/** `body` with each text written at its position; equal positions keep their order. */
+function insertAll(body: string, inserts: { at: number; text: string }[]): string {
+  let out = "";
+  let cursor = 0;
+  for (const { at, text } of [...inserts].sort((a, b) => a.at - b.at)) {
+    out += body.slice(cursor, at) + text;
+    cursor = at;
   }
   return out + body.slice(cursor);
+}
+
+/** FibRgFcLcb97: paragraph property pages, the list definitions, the list instances. */
+const FC_PLCF_BTE_PAPX = 0x0102;
+const FC_PLF_LST = 0x02e2;
+const FC_PLF_LFO = 0x02ea;
+/** sprmPIlvl and sprmPIlfo (MS-DOC 2.6.2): a paragraph's list level and list instance. */
+const SPRM_ILVL = 0x260a;
+const SPRM_ILFO = 0x460b;
+/** MS-DOC 2.9.158 nfc to the format names the docx reader uses; any other reads as decimal. */
+const NFC: Record<number, string> = {
+  0: "decimal", 1: "upperRoman", 2: "lowerRoman", 3: "upperLetter", 4: "lowerLetter",
+  5: "ordinal", 22: "decimalZero", 23: "bullet", 255: "none",
+};
+
+/**
+ * An LVL (MS-DOC 2.9.150) at `at`: the fixed LVLF, its two property runs, then
+ * the number text, where characters 0 to 8 stand for the counters of levels
+ * 1 to 9. Nothing when it does not fit.
+ */
+function readLvl(view: DataView, at: number): { level: ListLevel; next: number } | undefined {
+  if (at + 28 > view.byteLength) return undefined;
+  const flags = view.getUint8(at + 5);
+  const xst = at + 28 + view.getUint8(at + 24) + view.getUint8(at + 25);
+  if (xst + 2 > view.byteLength) return undefined;
+  const length = view.getUint16(xst, true);
+  if (xst + 2 + length * 2 > view.byteLength) return undefined;
+  let text = "";
+  for (let i = 0; i < length; i++) {
+    const code = view.getUint16(xst + 2 + i * 2, true);
+    text += code < 9 ? `%${code + 1}` : String.fromCharCode(code);
+  }
+  const level: ListLevel = {
+    format: NFC[view.getUint8(at + 4)] ?? "decimal",
+    text,
+    start: view.getInt32(at, true),
+    // fNoRestart: restart only after a level above ilvlRestartLim, 0 never.
+    restart: flags & 0x08 ? view.getUint8(at + 26) : undefined,
+    legal: (flags & 0x04) !== 0,
+  };
+  return { level, next: xst + 2 + length * 2 };
+}
+
+/**
+ * A labeller over a .doc's list tables, keyed by a paragraph's LFO index, as
+ * Tika's ListManager and POI's HWPFList read them: PlfLst gives each list's
+ * levels, appended LVLs after its LSTFs (9, or 1 for a simple list), and
+ * PlfLfo gives each instance its list and, in LFOLVLs, its start values and
+ * replaced levels. The counting is the docx reader's.
+ */
+function docListLabels(word: Uint8Array, table: Uint8Array): ((ilfo: number, ilvl: number) => string | undefined) | undefined {
+  const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
+  // The FIB says how many FcLcb pairs it holds; PlfLfo is pair 74.
+  if (fib.getUint16(0x98, true) < 75) return undefined;
+  const lst = listed(word, table, FC_PLF_LST);
+  const lfo = listed(word, table, FC_PLF_LFO);
+  if (!lst || !lfo || lst.byteLength < 2 || lfo.byteLength < 4) return undefined;
+  const whole = new DataView(table.buffer, table.byteOffset, table.byteLength);
+  const abstracts = new Map<string, ListDefinition>();
+  const lists = Math.min(Math.max(0, lst.getInt16(0, true)), Math.floor((lst.byteLength - 2) / 28));
+  let at = fib.getUint32(FC_PLF_LST, true) + 2 + lists * 28;
+  for (let i = 0; i < lists; i++) {
+    const levels = new Map<number, ListLevel>();
+    abstracts.set(String(lst.getInt32(2 + i * 28, true)), { levels });
+    const simple = (lst.getUint8(2 + i * 28 + 26) & 0x01) !== 0;
+    for (let n = 0; n < (simple ? 1 : 9); n++) {
+      const read = readLvl(whole, at);
+      if (!read) break;
+      levels.set(n, read.level);
+      at = read.next;
+    }
+  }
+  const instances = new Map<string, ListInstance>();
+  const count = Math.min(lfo.getUint32(0, true), Math.floor((lfo.byteLength - 4) / 16));
+  // Each LFO's LFOData follows the array: a CP, then one LFOLVL per override.
+  let data = 4 + count * 16;
+  for (let i = 0; i < count; i++) {
+    const instance: ListInstance = { abstract: String(lfo.getInt32(4 + i * 16, true)), starts: new Map(), levels: new Map() };
+    instances.set(String(i + 1), instance);
+    data += 4;
+    for (let n = lfo.getUint8(4 + i * 16 + 12); n > 0 && data + 8 <= lfo.byteLength; n--) {
+      const flags = lfo.getUint8(data + 4);
+      const ilvl = flags & 0x0f;
+      if (flags & 0x10) instance.starts.set(ilvl, lfo.getInt32(data, true));
+      data += 8;
+      if (flags & 0x20) {
+        const read = readLvl(lfo, data);
+        if (!read) break;
+        instance.levels.set(ilvl, read.level);
+        data = read.next;
+      }
+    }
+  }
+  const label = listLabels(abstracts, instances);
+  return (ilfo, ilvl) => label(String(ilfo), ilvl);
+}
+
+/**
+ * Each paragraph run that belongs to a list, by its byte range in
+ * `WordDocument`: PlcBtePapx names the paragraph property pages (PapxFkp,
+ * MS-DOC 2.9.175), each listing runs and their properties. Read from the
+ * paragraph's own properties.
+ *
+ * ponytail: a list applied through the paragraph's style (its istd in the
+ * stylesheet) is not followed; read STSH when such files turn up.
+ */
+function listParagraphs(word: Uint8Array, table: Uint8Array): { from: number; to: number; ilfo: number; ilvl: number }[] {
+  const plc = listed(word, table, FC_PLCF_BTE_PAPX);
+  const runs: { from: number; to: number; ilfo: number; ilvl: number }[] = [];
+  if (!plc || plc.byteLength < 8) return runs;
+  const pages = Math.floor((plc.byteLength - 4) / 8);
+  const seen = new Set<number>();
+  for (let page = 0; page < pages; page++) {
+    const base = (plc.getUint32((pages + 1) * 4 + page * 4, true) & 0x3fffff) * 512;
+    if (base + 512 > word.byteLength || seen.has(base)) continue;
+    seen.add(base);
+    const fkp = new DataView(word.buffer, word.byteOffset + base, 512);
+    const count = fkp.getUint8(511);
+    if ((count + 1) * 4 + count * 13 > 511) continue;
+    for (let run = 0; run < count; run++) {
+      const papx = fkp.getUint8((count + 1) * 4 + run * 13) * 2;
+      if (papx === 0 || papx + 2 >= 511) continue;
+      const cb = fkp.getUint8(papx);
+      const start = cb ? papx + 1 : papx + 2;
+      const end = Math.min(511, start + (cb ? cb * 2 - 1 : fkp.getUint8(papx + 1) * 2));
+      let ilfo = 0;
+      let ilvl = 0;
+      // The istd first, then sprms as in a ChpxFkp.
+      for (let at = start + 2; at + 2 <= end; ) {
+        const sprm = fkp.getUint16(at, true);
+        at += 2;
+        const size = [1, 1, 2, 4, 2, 2, -1, 3][sprm >>> 13];
+        if (sprm === SPRM_ILFO && at + 2 <= end) ilfo = fkp.getInt16(at, true);
+        else if (sprm === SPRM_ILVL && at < end) ilvl = fkp.getUint8(at);
+        at += size < 0 ? (at < end ? fkp.getUint8(at) + 1 : 1) : size;
+      }
+      if (ilfo > 0) runs.push({ from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), ilfo, ilvl: Math.min(ilvl, 8) });
+    }
+  }
+  return runs.sort((a, b) => a.from - b.from);
+}
+
+/**
+ * The label to write at the start of each list paragraph of the body, indented
+ * four spaces a level as the docx reader writes them. A paragraph with nothing
+ * visible (hidden or deleted text) is neither labelled nor counted.
+ */
+function listLabelInserts(word: Uint8Array, table: Uint8Array, body: string, pieces: Piece[]): { at: number; text: string }[] {
+  const runs = listParagraphs(word, table);
+  const label = runs.length ? docListLabels(word, table) : undefined;
+  if (!label) return [];
+  const inserts: { at: number; text: string }[] = [];
+  let piece = 0;
+  let start = 0;
+  for (let at = 0; at < body.length; at++) {
+    const code = body.charCodeAt(at);
+    if (code !== PARAGRAPH && code !== CELL_MARK) continue;
+    while (piece < pieces.length && pieces[piece]!.end <= at) piece++;
+    const holder = pieces[piece];
+    const paragraph = body.slice(start, at);
+    const from = start;
+    start = at + 1;
+    if (!holder || holder.cp > at || !paragraph.split("").some((c) => c >= " ")) continue;
+    const fc = holder.offset + (at - holder.cp) * holder.width;
+    // The last run that starts at or before the mark's byte.
+    let low = 0;
+    for (let high = runs.length; low < high; ) {
+      const middle = (low + high) >>> 1;
+      if (runs[middle]!.from <= fc) low = middle + 1;
+      else high = middle;
+    }
+    const run = runs[low - 1];
+    if (!run || fc >= run.to) continue;
+    const text = label(run.ilfo, run.ilvl);
+    if (text !== undefined) inserts.push({ at: from, text: `${"    ".repeat(run.ilvl)}${text ? `${text} ` : ""}` });
+  }
+  return inserts;
 }
 
 const NOT_THIS_READER: ExtractionResult = { text: "", notes: [{ kind: "parser-unavailable" }] };
@@ -373,7 +571,7 @@ export function formatDoc(streams: CfbStreams): ExtractionResult {
   const table = streams.get(flags & 0x0200 ? "1Table" : "0Table");
   if (!table) return NOT_THIS_READER;
 
-  const all = readPieces(word, table);
+  const { text: all, pieces } = readPieces(word, table);
   // Character counts of each part of the stream, in the order they are stored.
   const [body, footnotes, headers, macros, comments, endnotes, textboxes, headerBoxes] = [
     0x4c, 0x50, 0x54, 0x58, 0x5c, 0x60, 0x64, 0x68,
@@ -389,7 +587,7 @@ export function formatDoc(streams: CfbStreams): ExtractionResult {
   part(macros);
   const left = { hidden: 0 };
   const labels = commentLabels(word, table, part(comments), left).filter(({ at }) => at < kept[0].length);
-  kept[0] = atParagraphEnds(kept[0], labels);
+  kept[0] = insertAll(kept[0], [...listLabelInserts(word, table, kept[0], pieces), ...atParagraphEnds(kept[0], labels)]);
   kept.push(part(endnotes), part(textboxes));
   const furniture = pageFurniture(word, table, stories, part(headerBoxes), left);
   const block = (label: string, lines: string[]) => (lines.length ? [[label, ...lines].join("\n")] : []);

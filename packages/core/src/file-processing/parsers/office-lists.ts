@@ -88,6 +88,9 @@ export function listLabels(
       restarted.add(`${numId}:${ilvl}`);
       counts[ilvl] = override - 1;
     }
+    // A level the list skipped to get here counts as used once, as Word
+    // shows it: "a." straight under "1." makes the next level-2 item "2.".
+    for (let higher = 0; higher < ilvl; higher++) counts[higher] ??= level(higher)?.start ?? 0;
     counts[ilvl] = (counts[ilvl] ?? own.start - 1) + 1;
     for (let deeper = ilvl + 1; deeper < 9; deeper++) {
       const restart = level(deeper)?.restart;

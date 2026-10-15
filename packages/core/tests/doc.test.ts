@@ -136,3 +136,107 @@ describe("formatDoc", () => {
     expect(formatDoc(streams)).toEqual({ text: "", notes: [{ kind: "parser-unavailable" }] });
   });
 });
+
+/**
+ * `streams` (one UTF-16 piece at 0x400) given paragraph list properties and
+ * list tables: a PapxFkp page after the text, then PlcBtePapx, PlfLst with
+ * its LVLs and PlfLfo with its LFOData appended to the table stream.
+ */
+function withLists(
+  streams: Map<string, Uint8Array>,
+  paragraphs: { text: string; ilfo?: number; ilvl?: number }[],
+  lists: { lsid: number; levels: { nfc: number; text: string; start?: number }[] }[],
+  lfos: { lsid: number; starts?: [number, number][] }[],
+): Map<string, Uint8Array> {
+  const textAt = 0x400;
+  const old = streams.get("WordDocument")!;
+  const pageAt = Math.ceil(old.length / 512) * 512;
+  const word = new Uint8Array(pageAt + 512);
+  word.set(old);
+  const page = new DataView(word.buffer, pageAt, 512);
+  let cp = 0;
+  paragraphs.forEach((paragraph, run) => {
+    page.setUint32(run * 4, textAt + cp * 2, true);
+    cp += paragraph.text.length;
+    const papx = 400 + run * 12;
+    page.setUint8((paragraphs.length + 1) * 4 + run * 13, papx / 2);
+    // cb 5: istd, sprmPIlfo and sprmPIlvl, 9 bytes.
+    word.set([5, 0, 0, 0x0b, 0x46, paragraph.ilfo ?? 0, 0, 0x0a, 0x26, paragraph.ilvl ?? 0], pageAt + papx);
+  });
+  page.setUint32(paragraphs.length * 4, textAt + cp * 2, true);
+  page.setUint8(511, paragraphs.length);
+
+  const bytes: number[] = [];
+  const u16 = (n: number) => bytes.push(n & 0xff, (n >> 8) & 0xff);
+  const u32 = (n: number) => bytes.push(n & 0xff, (n >> 8) & 0xff, (n >> 16) & 0xff, (n >>> 24) & 0xff);
+  const old2 = streams.get("1Table")!;
+  const papxAt = old2.length;
+  u32(textAt);
+  u32(textAt + cp * 2);
+  u32(pageAt / 512);
+  const lstAt = old2.length + bytes.length;
+  u16(lists.length);
+  for (const list of lists) {
+    u32(list.lsid);
+    bytes.push(...new Array<number>(22).fill(0), list.levels.length === 1 ? 1 : 0, 0);
+  }
+  for (const list of lists) {
+    for (const level of list.levels) {
+      u32(level.start ?? 1);
+      bytes.push(level.nfc, 0, ...new Array<number>(22).fill(0));
+      u16(level.text.length);
+      for (const c of level.text) u16(c.charCodeAt(0));
+    }
+  }
+  const lfoAt = old2.length + bytes.length;
+  u32(lfos.length);
+  for (const lfo of lfos) {
+    u32(lfo.lsid);
+    bytes.push(...new Array<number>(8).fill(0), lfo.starts?.length ?? 0, 0, 0, 0);
+  }
+  for (const lfo of lfos) {
+    u32(0);
+    for (const [ilvl, start] of lfo.starts ?? []) {
+      u32(start);
+      bytes.push(ilvl | 0x10, 0, 0, 0);
+    }
+  }
+  const table = new Uint8Array(old2.length + bytes.length);
+  table.set(old2);
+  table.set(bytes, old2.length);
+  const fib = new DataView(word.buffer);
+  fib.setUint16(0x98, 93, true);
+  fib.setUint32(0x0102, papxAt, true);
+  fib.setUint32(0x0106, 12, true);
+  fib.setUint32(0x02e2, lstAt, true);
+  fib.setUint32(0x02e6, 2 + lists.length * 28, true);
+  fib.setUint32(0x02ea, lfoAt, true);
+  fib.setUint32(0x02ee, table.length - lfoAt, true);
+  return new Map([
+    ["WordDocument", word],
+    ["1Table", table],
+  ]);
+}
+
+describe("formatDoc and lists", () => {
+  it("opens each list paragraph with the label Word prints for it, from the list tables", () => {
+    const paragraphs = [
+      { text: "Terms\r" },
+      { text: "Scope\r", ilfo: 1 },
+      { text: "Parties\r", ilfo: 1, ilvl: 1 },
+      { text: "Fees\r", ilfo: 1 },
+      { text: "Again\r", ilfo: 1, ilvl: 1 },
+      { text: "Fresh\r", ilfo: 2 },
+      { text: "Dot\r", ilfo: 3 },
+      { text: "\x10\x10\r", ilfo: 1 },
+    ];
+    const body = paragraphs.map((p) => p.text).join("");
+    const lists = [
+      { lsid: 7, levels: [{ nfc: 0, text: "Article \x00." }, { nfc: 4, text: "(\x01)" }, ...new Array(7).fill({ nfc: 0, text: "" })] },
+      { lsid: 9, levels: [{ nfc: 23, text: "" }] },
+    ];
+    const lfos = [{ lsid: 7 }, { lsid: 7, starts: [[0, 5]] as [number, number][] }, { lsid: 9 }];
+    const { text } = formatDoc(withLists(wordStreams([{ text: body }], { body: body.length }), paragraphs, lists, lfos));
+    expect(text).toBe("Terms\nArticle 1. Scope\n    (a) Parties\nArticle 2. Fees\n    (a) Again\nArticle 5. Fresh\n- Dot");
+  });
+});
