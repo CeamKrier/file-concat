@@ -1,5 +1,6 @@
 import { strFromU8, unzipSync } from "fflate";
 import type { OfficeContentNode } from "officeparser";
+import { altLabel } from "./alt-text";
 import { chartParts, withChartTables, workbookSheets, type ChartBlock } from "./office-charts";
 import { odfPageFurniture, odsSheetFurniture, slideMasterText } from "./office-furniture";
 import { withoutHiddenText } from "./office-hidden";
@@ -1199,6 +1200,8 @@ export interface PdfPage {
   number: number;
   text: string;
   scanned?: boolean;
+  /** The alternative text of the page's tagged figures. */
+  figures?: string[];
 }
 
 /**
@@ -1252,8 +1255,15 @@ export function assemblePdfPages(pages: readonly PdfPage[], skipped = 0): Extrac
     return empty("");
   }
 
+  // A figure's alternative text after its page's text (Q31 O1), kept out of
+  // the readable test so it cannot stand in for a scanned page's text.
+  // ponytail: not where the figure sits; liteparse's text items carry no
+  // marked-content id to place it by.
   const marked = bodies
-    .map((page) => [`# Page ${page.number}`, page.text].filter(Boolean).join("\n"))
+    .map((page) => {
+      const figures = (page.figures ?? []).map((alt) => altLabel("Image", [alt])).filter(Boolean);
+      return [`# Page ${page.number}`, [page.text, figures.join("\n")].filter(Boolean).join("\n\n")].filter(Boolean).join("\n");
+    })
     .join("\n\n");
   const { text, lost, pages: lostPages } = dropUndecodableLines(marked);
   if (lost > 0) {

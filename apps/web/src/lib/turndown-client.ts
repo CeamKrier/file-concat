@@ -50,11 +50,17 @@ export function turndown(base: string): TurndownService {
     bulletListMarker: "-",
     emDelimiter: "_",
   });
+  // A figure's own content (its image, with the alt text, or a table) and
+  // then its caption; the caption alone dropped the image's alt (Q31 O1).
+  service.addRule("figcaption", {
+    filter: (node) => node.nodeName === "FIGCAPTION" && node.parentElement?.nodeName === "FIGURE",
+    replacement: () => "",
+  });
   service.addRule("figure", {
     filter: "figure",
-    replacement: (_content, node) => {
+    replacement: (content, node) => {
       const caption = (node as HTMLElement).querySelector("figcaption")?.textContent?.trim();
-      return caption ? `\n\n_${caption}_\n\n` : "\n\n";
+      return `\n\n${[content.trim(), caption ? `_${caption}_` : ""].filter(Boolean).join("\n\n")}\n\n`;
     },
   });
   // A same-origin link becomes its own text: its href is a path on the site

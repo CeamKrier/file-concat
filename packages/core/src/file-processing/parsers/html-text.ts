@@ -1,3 +1,5 @@
+import { altLabel } from "./alt-text";
+
 /** Block-level tags whose boundaries are the only structure flattened HTML keeps. */
 const HTML_BREAKS = new Set(["p", "div", "br", "tr", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "table"]);
 
@@ -157,7 +159,11 @@ export function withoutHiddenHtml(html: string): { html: string; hidden: number 
  * the rest of the body from every unclosed `<`, and 40,000 of them held a tab
  * for seconds (2026-10-15). A `<` that opens no tag, as in `a < b`, is text.
  */
-export function mapTags(html: string, visit: (name: string, closing: boolean) => string | undefined, strip = false): string {
+export function mapTags(
+  html: string,
+  visit: (name: string, closing: boolean, tag: string) => string | undefined,
+  strip = false,
+): string {
   const out: string[] = [];
   let kept = 0;
   const replace = (from: number, to: number, text: string) => {
@@ -183,7 +189,7 @@ export function mapTags(html: string, visit: (name: string, closing: boolean) =>
     const name = tag[2].toLowerCase();
     const closing = tag[1] === "/";
     let end = close + 1;
-    let text = visit(name, closing);
+    let text = visit(name, closing, html.slice(at, end));
     if (strip && !closing && (name === "script" || name === "style")) {
       end = rawTextEnd(html, end, name);
       text = "";
@@ -217,7 +223,14 @@ function rawTextEnd(html: string, from: number, name: string): number {
  */
 export function flattenHtml(html: string): string {
   const cell = (name: string, closing: boolean) => closing && (name === "td" || name === "th");
-  return mapTags(html, (name, closing) => (cell(name, closing) ? " | " : HTML_BREAKS.has(name) ? "\n" : ""), true)
+  // An image as its alt text where it sits, as Gmail's plain-text copy writes it (Q31 O1).
+  const image = (tag: string) => {
+    // A void tag escapes `withoutHiddenHtml`, so a hidden image is checked here.
+    if (hides(tag)) return "";
+    const label = altLabel("Image", [/\salt\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i.exec(tag)?.slice(1).find((value) => value !== undefined)]);
+    return label ? ` ${label} ` : "";
+  };
+  return mapTags(html, (name, closing, tag) => (cell(name, closing) ? " | " : HTML_BREAKS.has(name) ? "\n" : name === "img" ? image(tag) : ""), true)
     .replace(/&#(?:x([\da-f]+)|(\d+));/gi, (entity, hex: string | undefined, dec: string) => {
       const code = hex ? parseInt(hex, 16) : Number(dec);
       return code <= 0x10ffff ? String.fromCodePoint(code) : entity;

@@ -9,12 +9,16 @@ import type { LiteParse } from "@llamaindex/liteparse-wasm";
  * `imageMode: "off"` keeps `![](img_p1_1.jpg)` references to images nobody can
  * see out of the text. `includeComplexity` adds the picture signal at about 5 ms
  * a page (measured over 240 olmOCR-bench pages, 2026-10-05).
+ * `extractStructureTree` brings a tagged figure's alternative text: nothing on
+ * an untagged PDF, about 1.7 ms a page on a tagged one of 42 elements a page
+ * (300 pages, 2026-10-15).
  */
 const LITEPARSE_OPTIONS = {
   ocrEnabled: false,
   outputFormat: "markdown",
   imageMode: "off",
   includeComplexity: true,
+  extractStructureTree: true,
   continueOnPageError: true,
   quiet: true,
 } as const;
@@ -24,6 +28,24 @@ interface LiteparsePage {
   markdown: string;
   complexity?: { reasons?: string[] };
   textItems?: { rotation: number; text: string }[];
+  structureTree?: { roots: StructureElement[] };
+}
+
+interface StructureElement {
+  type: string;
+  altText?: string;
+  children: StructureElement[];
+}
+
+/** The `/Alt` of a tagged page's Figure elements (ISO 32000 14.9.3), which liteparse's markdown skips. */
+function figureAlts(page: LiteparsePage): string[] {
+  const alts: string[] = [];
+  const visit = (element: StructureElement) => {
+    if (element.type === "Figure" && element.altText) alts.push(element.altText);
+    element.children.forEach(visit);
+  };
+  page.structureTree?.roots.forEach(visit);
+  return alts;
 }
 
 /**
@@ -62,9 +84,11 @@ function toPdfPages(pages: readonly LiteparsePage[]): PdfPage[] {
     // liteparse's own `needsOcr` also fires on sparse text and on any
     // figure, so only the two reasons that mean "a picture" are read.
     const reasons = page.complexity?.reasons ?? [];
+    const figures = figureAlts(page);
     return {
       number: page.pageNum,
       text: page.markdown,
+      ...(figures.length ? { figures } : {}),
       scanned: reasons.includes("scanned") || reasons.includes("embedded-images"),
     };
   });

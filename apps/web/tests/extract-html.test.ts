@@ -96,6 +96,11 @@ describe("extractHtml", () => {
     expect(article.notes).toBeUndefined();
   });
 
+  it("keeps a figure's image, with its alt text, above its caption", () => {
+    const { text } = readHtml(`<html><body><ul><li>Milk</li></ul><figure><img src="https://cdn.example.org/f.png" alt="QZALT"><figcaption>QZCAP</figcaption></figure></body></html>`);
+    expect(text).toContain("![QZALT](https://cdn.example.org/f.png)\n\n_QZCAP_");
+  });
+
   it("drops hidden elements from any root it is handed, as the ebook reader does", () => {
     const doc = new DOMParser().parseFromString(`<body><p>Kept</p><p style="display: None">Gone</p></body>`, "text/html");
     expect(dropHidden(doc.body)).toBe(1);

@@ -3,7 +3,7 @@ import type { LiteParse } from "@llamaindex/liteparse-wasm";
 import { parsePdfPages } from "~/lib/liteparse-pages";
 
 /** A stand-in reader: `pages` pages, and a record of each read's header setting. */
-function fakeParser(pages: number) {
+function fakeParser(pages: number, tree?: unknown) {
   const reads: boolean[] = [];
   class Parser {
     constructor(private options: { keepHeadersFooters: boolean }) {}
@@ -11,7 +11,7 @@ function fakeParser(pages: number) {
       reads.push(this.options.keepHeadersFooters);
       const strip = !this.options.keepHeadersFooters;
       return {
-        pages: Array.from({ length: pages }, (_, i) => ({ pageNum: i + 1, markdown: strip ? "body" : "Header\n\nbody" })),
+        pages: Array.from({ length: pages }, (_, i) => ({ pageNum: i + 1, markdown: strip ? "body" : "Header\n\nbody", structureTree: tree })),
         pageErrors: [],
       };
     }
@@ -35,6 +35,15 @@ describe("parsePdfPages", () => {
 
     expect(reads).toEqual([true, false]);
     expect(pages).toEqual([{ number: 1, text: "body", scanned: false }]);
+  });
+
+  it("hands over each tagged figure's alternative text, nested ones included", async () => {
+    const element = (type: string, children: unknown[] = [], altText?: string) => ({ type, altText, children });
+    const tree = { roots: [element("Document", [element("Figure", [], "Chart"), element("P", [], "not a figure"), element("Sect", [element("Figure", [], "Map")])])] };
+    const { Parser } = fakeParser(1, tree);
+    const { pages } = await parsePdfPages(Parser, new Uint8Array());
+
+    expect(pages[0]?.figures).toEqual(["Chart", "Map"]);
   });
 });
 

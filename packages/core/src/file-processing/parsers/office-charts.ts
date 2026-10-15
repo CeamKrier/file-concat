@@ -1,4 +1,5 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import { altLabel } from "./alt-text";
 
 /**
  * Charts read from their own XML, so their text reaches the bundle where the
@@ -287,7 +288,7 @@ export function chartParts(bytes: Uint8Array): (name: string, alt?: string) => C
   };
 }
 
-const escapeXml = (value: string) => value.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+export const escapeXml = (value: string) => value.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
 /**
  * A docx with each chart in its body followed by its label and a table of its
@@ -463,16 +464,25 @@ function drawingBlocks(parts: Record<string, Uint8Array>, drawing: string, seen:
   const rels = relationships(parts, drawing);
   const blocks: ChartBlock[] = [];
   let alt = "";
+  let title = "";
   // The text of the shape being read, while inside its text body.
   let box: string | undefined;
   let textFrom = 0;
   for (const t of tagsOf(xml)) {
-    if (t.opens && t.local === "cNvPr") alt = decodeXml(attr(t.tag, "descr") ?? "");
-    else if (t.opens && t.local === "chart") {
+    if (t.opens && t.local === "cNvPr") {
+      // A hidden shape's alternative text is hidden with it.
+      const shown = !/^(1|true)$/.test(attr(t.tag, "hidden") ?? "");
+      alt = shown ? decodeXml(attr(t.tag, "descr") ?? "") : "";
+      title = shown ? decodeXml(attr(t.tag, "title") ?? "") : "";
+    } else if (t.opens && t.local === "chart") {
       const part = rels.get(attr(t.tag, "r:id") ?? "")?.part;
       const block = part && !seen.has(part) ? drawingChart(text(parts[part]), alt) : undefined;
       if (part) seen.add(part);
       if (block) blocks.push(block);
+    } else if (!t.opens && (t.local === "sp" || t.local === "pic")) {
+      // A shape's or picture's alternative text (Q31 O1), after its own text.
+      const label = altLabel("Image", [title, alt]);
+      if (label) blocks.push({ label, rows: [] });
     } else if (t.local === "txBody") {
       if (t.opens && !t.closes) box = "";
       else if (!t.opens && box !== undefined) {

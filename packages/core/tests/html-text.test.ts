@@ -12,6 +12,13 @@ describe("flattenHtml", () => {
     expect(flattenHtml("Kept<!-- never closed <p>Lost")).toBe("Kept");
   });
 
+  it("writes an image as its alt text where it sits", () => {
+    expect(flattenHtml(`<p>Logo<img src="cid:a" alt="Acme &amp; Co">here <img alt=Bare> <img alt="image1.png"><img src="x.gif"></p>`).trim()).toBe(
+      "Logo [Image: Acme & Co] here [Image: Bare]",
+    );
+    expect(flattenHtml(`<p>A<img hidden alt="Secret"><img style="display: none" alt="Secret">B</p>`).trim()).toBe("AB");
+  });
+
   it("flattens crafted markup in one pass", () => {
     for (const unit of ["<a ", "<!--", "<script ", "<script>", "<p ", "<blockquote ", "</script"]) {
       const html = unit.repeat(40_000);

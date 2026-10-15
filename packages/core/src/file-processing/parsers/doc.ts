@@ -1,3 +1,4 @@
+import { altLabel } from "./alt-text";
 import { listLabels, type ListDefinition, type ListInstance, type ListLevel } from "./office-lists";
 import type { CfbStreams } from "./msg";
 import { SUMMARY_INFORMATION, summaryTitle } from "./title";
@@ -43,6 +44,8 @@ const FIELD_END = 0x15;
 const SPRM_DELETED = 0x0800;
 /** sprmCFVanish (MS-DOC 2.6.1): the run is hidden text. */
 const SPRM_HIDDEN = 0x083c;
+/** sprmCPicLocation (MS-DOC 2.6.1): where a picture character's PICF sits in the `Data` stream. */
+const SPRM_PIC_LOCATION = 0x6a03;
 /**
  * Stands in for each character of hidden text, so the text keeps its length
  * and the FIB's part lengths still slice it. A 0x10 the file itself holds is
@@ -69,12 +72,13 @@ const HIDDEN = 0x10;
  * ponytail: the flag is read from the run's own properties only; a deletion
  * set through a character style (operand 0x80/0x81) is taken as on for 0x81.
  */
-function withoutDeletions(word: Uint8Array, table: Uint8Array): { word: Uint8Array; hidden: [number, number][] } {
+function withoutDeletions(word: Uint8Array, table: Uint8Array): { word: Uint8Array; hidden: [number, number][]; pictures: Picture[] } {
   const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
   const fcPlc = fib.getUint32(0x00fa, true);
   const lcbPlc = fib.getUint32(0x00fe, true);
   const hidden: [number, number][] = [];
-  if (lcbPlc < 8 || fcPlc + lcbPlc > table.byteLength) return { word, hidden };
+  const pictures: Picture[] = [];
+  if (lcbPlc < 8 || fcPlc + lcbPlc > table.byteLength) return { word, hidden, pictures };
   const plc = new DataView(table.buffer, table.byteOffset + fcPlc, lcbPlc);
   const pages = Math.floor((lcbPlc - 4) / 8);
   const seen = new Set<number>();
@@ -91,6 +95,8 @@ function withoutDeletions(word: Uint8Array, table: Uint8Array): { word: Uint8Arr
       const chpx = fkp.getUint8((runs + 1) * 4 + run) * 2;
       if (chpx === 0 || chpx >= 511) continue;
       const end = Math.min(511, chpx + 1 + fkp.getUint8(chpx));
+      let picture: number | undefined;
+      let vanished = false;
       // A grpprl is a run of sprms: a 2-byte code whose top three bits say
       // how long the operand is (MS-DOC 2.2.5.1).
       for (let at = chpx + 1; at + 2 <= end; ) {
@@ -107,15 +113,20 @@ function withoutDeletions(word: Uint8Array, table: Uint8Array): { word: Uint8Arr
             zeroed = to;
           }
         } else if (sprm === SPRM_HIDDEN && on) {
+          vanished = true;
           const from = Math.max(fkp.getUint32(run * 4, true), hidden[hidden.length - 1]?.[1] ?? 0);
           const to = Math.min(fkp.getUint32((run + 1) * 4, true), word.byteLength);
           if (from < to) hidden.push([from, to]);
-        }
+        } else if (sprm === SPRM_PIC_LOCATION && at + 4 <= end) picture = fkp.getUint32(at, true);
         at += size < 0 ? (at < end ? fkp.getUint8(at) + 1 : 1) : size;
+      }
+      // A hidden picture's alternative text is hidden text too.
+      if (picture !== undefined && !vanished) {
+        pictures.push({ from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), data: picture });
       }
     }
   }
-  return { word: out, hidden };
+  return { word: out, hidden, pictures: pictures.sort((a, b) => a.from - b.from) };
 }
 
 /** A run of characters and where its bytes sit in `WordDocument`, one or two per character. */
@@ -126,19 +137,19 @@ interface Piece {
   width: number;
 }
 
-function readPieces(document: Uint8Array, table: Uint8Array): { text: string; pieces: Piece[] } {
-  const { word, hidden } = withoutDeletions(document, table);
+function readPieces(document: Uint8Array, table: Uint8Array): { text: string; pieces: Piece[]; pictures: Picture[] } {
+  const { word, hidden, pictures } = withoutDeletions(document, table);
   const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
   const fcClx = fib.getUint32(0x01a2, true);
   const lcbClx = fib.getUint32(0x01a6, true);
-  if (fcClx + lcbClx > table.byteLength) return { text: "", pieces: [] };
+  if (fcClx + lcbClx > table.byteLength) return { text: "", pieces: [], pictures };
   const clx = new DataView(table.buffer, table.byteOffset + fcClx, lcbClx);
 
   // The CLX is a run of property modifiers (0x01, then a 2-byte length) and
   // then the piece table itself (0x02, then a 4-byte length).
   let at = 0;
   while (at < lcbClx && clx.getUint8(at) === 0x01) at += 3 + clx.getUint16(at + 1, true);
-  if (at >= lcbClx || clx.getUint8(at) !== 0x02) return { text: "", pieces: [] };
+  if (at >= lcbClx || clx.getUint8(at) !== 0x02) return { text: "", pieces: [], pictures };
   const lcbPlc = clx.getUint32(at + 1, true);
   const plc = at + 5;
   const count = Math.floor((lcbPlc - 4) / 12);
@@ -161,7 +172,7 @@ function readPieces(document: Uint8Array, table: Uint8Array): { text: string; pi
     pieces.push({ cp: text.length, end: text.length + read.length, offset, width: compressed ? 1 : 2 });
     text += hide(read, offset, compressed ? 1 : 2, hidden);
   }
-  return { text, pieces };
+  return { text, pieces, pictures };
 }
 
 /**
@@ -555,6 +566,81 @@ function listLabelInserts(word: Uint8Array, table: Uint8Array, body: string, pie
   return inserts;
 }
 
+/** A run of picture characters and the offset of their PICF in the `Data` stream. */
+interface Picture {
+  from: number;
+  to: number;
+  data: number;
+}
+
+/**
+ * Each inline picture of the body as its alternative text, `[Image: ...]`,
+ * where its character sits (Q31 O1). The text is the shape's wzDescription
+ * (MS-ODRAW property 0x0381), which POI reads as `Picture.getDescription()`.
+ *
+ * ponytail: inline pictures only; a floating one (character 0x08) is reached
+ * through the table stream's drawing records by shape id.
+ */
+function pictureInserts(body: string, pieces: Piece[], pictures: Picture[], data: Uint8Array | undefined): { at: number; text: string }[] {
+  const inserts: { at: number; text: string }[] = [];
+  if (!data || !pictures.length) return inserts;
+  const read = new Map<number, string>();
+  let piece = 0;
+  for (let at = body.indexOf("\x01"); at >= 0; at = body.indexOf("\x01", at + 1)) {
+    while (piece < pieces.length && pieces[piece]!.end <= at) piece++;
+    const holder = pieces[piece];
+    if (!holder || holder.cp > at) continue;
+    const fc = holder.offset + (at - holder.cp) * holder.width;
+    let low = 0;
+    for (let high = pictures.length; low < high; ) {
+      const middle = (low + high) >>> 1;
+      if (pictures[middle]!.from <= fc) low = middle + 1;
+      else high = middle;
+    }
+    const run = pictures[low - 1];
+    if (!run || fc >= run.to) continue;
+    if (!read.has(run.data)) read.set(run.data, altLabel("Image", [pictureAlt(data, run.data)]));
+    const label = read.get(run.data);
+    if (label) inserts.push({ at, text: label });
+  }
+  return inserts;
+}
+
+/**
+ * The wzDescription of the picture whose PICFAndOfficeArtData starts at `at`:
+ * a PICF, a linked picture's file name, then the shape's OfficeArt records,
+ * whose property table (OPT) lists simple values first and appends complex
+ * ones, such as this string, in the same order.
+ */
+function pictureAlt(data: Uint8Array, at: number): string {
+  if (at + 68 > data.byteLength) return "";
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const end = Math.min(data.byteLength, at + view.getUint32(at, true));
+  let record = at + view.getUint16(at + 4, true);
+  // MM_SHAPEFILE: a length byte and the file name come first.
+  if (view.getUint16(at + 6, true) === 0x66 && record < end) record += 1 + data[record]!;
+  // The OPT is the shape container's second or third record.
+  for (let seen = 0; seen < 8 && record + 8 <= end; seen++) {
+    const head = view.getUint16(record, true);
+    const type = view.getUint16(record + 2, true);
+    const body = record + 8;
+    record = (head & 0x0f) === 0x0f ? body : body + view.getUint32(record + 4, true);
+    if (type !== 0xf00b && type !== 0xf122) continue;
+    const count = head >>> 4;
+    let complex = body + count * 6;
+    for (let property = 0; property < count && body + property * 6 + 6 <= end; property++) {
+      const id = view.getUint16(body + property * 6, true);
+      if (!(id & 0x8000)) continue;
+      const length = view.getUint32(body + property * 6 + 2, true);
+      // Read no further than a label keeps, so a forged length costs nothing.
+      const to = Math.min(end, complex + length, complex + 8192);
+      if ((id & 0x3fff) === 0x0381) return new TextDecoder("utf-16le").decode(data.subarray(complex, to)).replace(/\0+$/, "");
+      complex += length;
+    }
+  }
+  return "";
+}
+
 const NOT_THIS_READER: ExtractionResult = { text: "", notes: [{ kind: "parser-unavailable" }] };
 
 /**
@@ -572,7 +658,7 @@ export function formatDoc(streams: CfbStreams): ExtractionResult {
   const table = streams.get(flags & 0x0200 ? "1Table" : "0Table");
   if (!table) return NOT_THIS_READER;
 
-  const { text: all, pieces } = readPieces(word, table);
+  const { text: all, pieces, pictures } = readPieces(word, table);
   // Character counts of each part of the stream, in the order they are stored.
   const [body, footnotes, headers, macros, comments, endnotes, textboxes, headerBoxes] = [
     0x4c, 0x50, 0x54, 0x58, 0x5c, 0x60, 0x64, 0x68,
@@ -588,7 +674,11 @@ export function formatDoc(streams: CfbStreams): ExtractionResult {
   part(macros);
   const left = { hidden: 0 };
   const labels = commentLabels(word, table, part(comments), left).filter(({ at }) => at < kept[0].length);
-  kept[0] = insertAll(kept[0], [...listLabelInserts(word, table, kept[0], pieces), ...atParagraphEnds(kept[0], labels)]);
+  kept[0] = insertAll(kept[0], [
+    ...listLabelInserts(word, table, kept[0], pieces),
+    ...pictureInserts(kept[0], pieces, pictures, streams.get("Data")),
+    ...atParagraphEnds(kept[0], labels),
+  ]);
   kept.push(part(endnotes), part(textboxes));
   const furniture = pageFurniture(word, table, stories, part(headerBoxes), left);
   const block = (label: string, lines: string[]) => (lines.length ? [[label, ...lines].join("\n")] : []);

@@ -120,6 +120,38 @@ describe("formatDoc", () => {
     });
   });
 
+  it("writes an inline picture as its alternative text where it sits", () => {
+    const pieces = [{ text: "Logo " }, { text: "\u0001", picture: true }, { text: " here.\r" }];
+    const streams = wordStreams(pieces, { body: 13 });
+    // A PICF, then the shape: its container, an FSP, and an OPT whose two
+    // complex properties, the name and the description, follow its table.
+    const name = "Picture 1\0";
+    const description = "Acme & Co\0";
+    const data = new Uint8Array(68 + 8 + 16 + 8 + 12 + (name.length + description.length) * 2);
+    const view = new DataView(data.buffer);
+    view.setUint32(0, data.length, true);
+    view.setUint16(4, 68, true);
+    view.setUint16(6, 0x64, true);
+    view.setUint32(68, 0xf004000f, true);
+    view.setUint32(76, 0xf00a0002, true);
+    view.setUint32(80, 8, true);
+    view.setUint32(92, 0xf00b0023, true);
+    view.setUint32(96, 12 + (name.length + description.length) * 2, true);
+    view.setUint16(100, 0x8380, true);
+    view.setUint32(102, name.length * 2, true);
+    view.setUint16(106, 0x8381, true);
+    view.setUint32(108, description.length * 2, true);
+    [...name + description].forEach((char, i) => view.setUint16(112 + i * 2, char.charCodeAt(0), true));
+    streams.set("Data", data);
+    expect(formatDoc(streams).text).toBe("Logo [Image: Acme & Co] here.");
+    // A hidden picture's alternative text is hidden text.
+    const hidden = wordStreams([pieces[0]!, { ...pieces[1]!, hidden: true }, pieces[2]!], { body: 13 });
+    hidden.set("Data", data);
+    expect(formatDoc(hidden).text).toBe("Logo  here.");
+    // Without its Data stream the picture is left out, as before.
+    expect(formatDoc(wordStreams(pieces, { body: 13 })).text).toBe("Logo  here.");
+  });
+
   it("writes a table's cells apart", () => {
     const body = "Region\x07Q1\x07\x07EMEA\x071200\x07\x07";
     const { text } = formatDoc(wordStreams([{ text: body }], { body: body.length }));

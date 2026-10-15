@@ -1,4 +1,5 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import { withOdfAltText, withRtfAltText, withWordAltText } from "./alt-text";
 import { withOdfListLabels } from "./office-lists";
 import { withoutHiddenRtf } from "./rtf-hidden";
 
@@ -288,7 +289,11 @@ export function withoutHiddenOdf(
  */
 export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidden: number; slides: Set<number> } {
   const none = { bytes, hidden: 0, slides: new Set<number>() };
-  if (strFromU8(bytes.subarray(0, 5), true) === "{\\rtf") return { ...withoutHiddenRtf(bytes), slides: none.slides };
+  if (strFromU8(bytes.subarray(0, 5), true) === "{\\rtf") {
+    // Pictures' alternative text, which both RTF readers skip (Q31 O1),
+    // written first so a hidden picture's goes with the rest of its text.
+    return { ...withoutHiddenRtf(withRtfAltText(bytes)), slides: none.slides };
+  }
   let parts: Record<string, Uint8Array>;
   let unpacked = 0;
   try {
@@ -313,6 +318,8 @@ export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidde
     const after = withoutHiddenOdf(content, styles);
     // A text document's list items get the labels its lists print (C8).
     if (content.includes("<office:text")) after.xml = withOdfListLabels(after.xml, parts["styles.xml"] ? strFromU8(parts["styles.xml"]) : "");
+    // Frames' and tables' alternative text, where officeparser reads it (Q31 O1).
+    after.xml = withOdfAltText(after.xml);
     if (after.xml !== content) changed["content.xml"] = strToU8(after.xml);
     hidden = after.hidden;
     slides = after.slides;
@@ -323,7 +330,8 @@ export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidde
       const after = withoutHiddenRuns(before);
       // An absolute-position tab ("Left<ptab>Right" in a header) is a tab to
       // the reader, as POI's XWPFRun reads it; officeparser drops it, "LeftRight".
-      after.xml = withRubyText(after.xml.replace(/<w:ptab\b[^>]*?(?:\/>|>\s*<\/w:ptab>)/g, "<w:tab/>"));
+      // Pictures' and tables' alternative text, which officeparser drops (Q31 O1).
+      after.xml = withWordAltText(withRubyText(after.xml.replace(/<w:ptab\b[^>]*?(?:\/>|>\s*<\/w:ptab>)/g, "<w:tab/>")));
       if (after.xml === before) continue;
       changed[name] = strToU8(after.xml);
       hidden += after.hidden;

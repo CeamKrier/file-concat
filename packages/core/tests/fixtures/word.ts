@@ -17,6 +17,8 @@ export interface Piece {
   deleted?: boolean;
   /** Hidden text, marked the same way. */
   hidden?: boolean;
+  /** A picture character, its PICF at offset 0 of the `Data` stream (sprmCPicLocation). */
+  picture?: boolean;
 }
 
 /**
@@ -54,7 +56,7 @@ export function wordStreams(
   // One ChpxFkp page after the text when any piece is deleted or hidden (MS-DOC
   // 2.9.44): a run per piece, the marked ones pointing at a CHPX holding
   // sprmCFRMarkDel or sprmCFVanish.
-  const fkpAt = pieces.some((piece) => piece.deleted || piece.hidden) ? Math.ceil(fc / 512) * 512 : -1;
+  const fkpAt = pieces.some((piece) => piece.deleted || piece.hidden || piece.picture) ? Math.ceil(fc / 512) * 512 : -1;
   const word = new Uint8Array(fkpAt < 0 ? fc : fkpAt + 512);
   const fib = new DataView(word.buffer);
   fib.setUint16(0, 0xa5ec, true);
@@ -72,11 +74,13 @@ export function wordStreams(
     const page = new DataView(word.buffer, fkpAt, 512);
     encoded.forEach((piece, run) => {
       page.setUint32(run * 4, piece.at, true);
-      page.setUint8((encoded.length + 1) * 4 + run, piece.deleted ? 240 : piece.hidden ? 244 : 0);
+      page.setUint8((encoded.length + 1) * 4 + run, piece.deleted ? 240 : piece.hidden && piece.picture ? 232 : piece.hidden ? 244 : piece.picture ? 248 : 0);
     });
     page.setUint32(encoded.length * 4, fc, true);
     word.set([3, 0x00, 0x08, 0x01], fkpAt + 480);
     word.set([3, 0x3c, 0x08, 0x01], fkpAt + 488);
+    word.set([6, 0x03, 0x6a, 0, 0, 0, 0], fkpAt + 496);
+    word.set([9, 0x3c, 0x08, 0x01, 0x03, 0x6a, 0, 0, 0, 0], fkpAt + 464);
     page.setUint8(511, encoded.length);
   }
 

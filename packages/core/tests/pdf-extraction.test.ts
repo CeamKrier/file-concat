@@ -287,6 +287,16 @@ describe("assemblePdfPages", () => {
     for (const number of [1, 2, 3]) expect(text).toContain(`Body ${number}.`);
   });
 
+  it("writes a tagged figure's alternative text after its page, never as the page's text", () => {
+    const { text, notes } = assemblePdfPages([
+      { number: 1, text: "Intro.", figures: ["Sales chart", "Picture 3"] },
+      { number: 2, text: fence, scanned: true, figures: ["Scanned letter"] },
+    ]);
+    expect(text).toBe("# Page 1\nIntro.\n\n[Image: Sales chart]\n\n# Page 2\n[Image: Scanned letter]");
+    // The alt text does not make the scanned page readable: it still goes to recognition.
+    expect(notes).toEqual([{ kind: "pages-scanned", count: 1, pages: [2] }]);
+  });
+
   it("keeps one copy of a title that shares its line with the page number", () => {
     const pages = [1, 2, 3, 4].map((number) => ({
       number,
