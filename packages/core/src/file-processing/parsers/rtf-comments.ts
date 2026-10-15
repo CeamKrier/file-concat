@@ -106,9 +106,9 @@ const FLATTENED: Readonly<Record<string, string>> = {
   par: " ", line: " ", sect: " ", page: " ", cell: " ", nestcell: " ", row: " ", nestrow: " ", tab: " ", pard: "",
 };
 
-const ascii = (text: string) => Uint8Array.from(text, (c) => c.charCodeAt(0));
+export const ascii = (text: string) => Uint8Array.from(text, (c) => c.charCodeAt(0));
 
-function concat(parts: Uint8Array[]): Uint8Array {
+export function concat(parts: Uint8Array[]): Uint8Array {
   const out = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
   let at = 0;
   for (const part of parts) {
@@ -119,7 +119,7 @@ function concat(parts: Uint8Array[]): Uint8Array {
 }
 
 /** A comment's RTF with its line-ending marks flattened, and whether it holds text or is a reply. */
-function flatten(rtf: Uint8Array): { bytes: Uint8Array; text: boolean; reply: boolean } {
+export function flatten(rtf: Uint8Array): { bytes: Uint8Array; text: boolean; reply: boolean } {
   const parts: Uint8Array[] = [];
   let text = false;
   let reply = false;
@@ -157,7 +157,7 @@ type Token =
  * RTF's tokens as `rtfBody` reads them: a control word is at most 32 letters
  * and its number at most 10 digits, and `\binN` skips N bytes.
  */
-function* tokens(rtf: Uint8Array): Generator<Token> {
+export function* tokens(rtf: Uint8Array): Generator<Token> {
   for (let i = 0; i < rtf.length; ) {
     const c = rtf[i];
     if (c === 0x7b || c === 0x7d) {

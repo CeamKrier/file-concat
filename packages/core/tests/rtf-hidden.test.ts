@@ -2,6 +2,7 @@ import { strFromU8, strToU8 } from "fflate";
 import { describe, expect, it } from "vitest";
 import { rtfBody } from "../src/file-processing/parsers/msg-rtf";
 import { withRtfComments } from "../src/file-processing/parsers/rtf-comments";
+import { withRtfFurniture } from "../src/file-processing/parsers/rtf-furniture";
 import { withoutHiddenRtf } from "../src/file-processing/parsers/rtf-hidden";
 
 const rtf = (body: string) => strToU8(`{\\rtf1\\ansi{\\fonttbl{\\f0 Arial;}}{\\stylesheet{\\s1\\v Hidden style;}}${body}}`);
@@ -66,5 +67,25 @@ describe("withRtfComments", () => {
     const started = performance.now();
     expect(withRtfComments(long).comments).toBe(1);
     expect(performance.now() - started).toBeLessThan(2000);
+  });
+});
+
+describe("withRtfFurniture", () => {
+  const read = (body: string) => rtfBody(withoutHiddenRtf(withRtfFurniture(rtf(body))).bytes, (b) => strFromU8(b, true)).text.trim();
+
+  it("writes each distinct header and footer once, labelled, headers first and footers last", () => {
+    const furniture =
+      "{\\header \\pard\\plain Head one\\par two\\par}{\\headerf \\pard Cover}{\\headerl \\pard\\b Head one\\b0  two}" +
+      "{\\footer \\pard Page {\\v QZHIDDEN}{\\field{\\*\\fldinst PAGE}{\\fldrslt 1}}}{\\footerr \\pard }";
+    expect(read(`\\sectd${furniture}\\pard Body\\par`)).toBe(
+      "--- Page header ---\nHead one two\nCover\nBody\n--- Page footer ---\nPage 1",
+    );
+  });
+
+  it("hands back the same bytes when there is none, or the file is no RTF", () => {
+    const plain = rtf("\\pard Plain\\par");
+    expect(withRtfFurniture(plain)).toBe(plain);
+    const binary = Uint8Array.from([0xd0, 0xcf, 0x7b, 0x5c, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x20, 0x78, 0x7d]);
+    expect(withRtfFurniture(binary)).toBe(binary);
   });
 });

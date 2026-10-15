@@ -16,6 +16,7 @@ export {
   noteLayersOff,
   withoutHiddenText,
   withRtfComments,
+  withRtfFurniture,
   workbookSheets,
   createParserRegistry,
   extractWithFallback,
