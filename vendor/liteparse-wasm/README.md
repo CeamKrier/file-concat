@@ -1,19 +1,26 @@
 # liteparse-wasm, patched build
 
-`llamaindex-liteparse-wasm-2.16.0-fc.1.tgz` is `@llamaindex/liteparse-wasm` 2.16.0
-built from liteparse commit `9f17a9d` (tag `wasm-v2.16.0`) with `rule-touch.patch`
-applied. The patch keeps a run of text that only touches a table rule in its own
-cell; upstream 2.16.0 cut the first word of each wrapped line into the column to
-its left. The commit message in the patch carries the measurements.
+`llamaindex-liteparse-wasm-2.16.0-fc.2.tgz` is `@llamaindex/liteparse-wasm` 2.16.0
+built from liteparse commit `9f17a9d` (tag `wasm-v2.16.0`) with two patches applied
+in this order:
 
-Built without the patch, the same steps produce output identical to the npm 2.16.0
+- `rule-touch.patch` keeps a run of text that only touches a table rule in its own
+  cell; upstream 2.16.0 cut the first word of each wrapped line into the column to
+  its left.
+- `prose-veto.patch` keeps a page-wide ruled table unless its cells read as prose;
+  upstream dropped it whenever one layout region tabled on its own, which lost
+  header rows and columns.
+
+Each patch's commit message carries its measurements.
+
+Built without the patches, the same steps produce output identical to the npm 2.16.0
 package on 383 PDFs (markdown and text items), so the build itself changes nothing.
 
-Rebuild (on a liteparse upgrade, re-apply the patch or drop it once upstream has
-the fix):
+Rebuild (on a liteparse upgrade, re-apply the patches or drop one once upstream has
+its fix):
 
     git clone https://github.com/run-llama/liteparse && cd liteparse
-    git checkout <wasm tag> && git am <this dir>/rule-touch.patch
+    git checkout <wasm tag> && git am <this dir>/rule-touch.patch <this dir>/prose-veto.patch
     rustup target add wasm32-unknown-unknown   # rust 1.95.0, as upstream CI
     cargo install wasm-pack --locked
     cd packages/wasm && npm run build && rm pkg/.gitignore
