@@ -1,3 +1,5 @@
+import { flattenHtml } from "./html-text";
+import { fold } from "./office-charts";
 import type { ExtractionNote, ExtractionResult } from "./types";
 
 /**
@@ -9,14 +11,16 @@ import type { ExtractionNote, ExtractionResult } from "./types";
  * to a model and routinely outweigh the code by an order of magnitude.
  *
  * What comes out here is markdown: prose cells verbatim, code cells fenced in
- * the notebook's own language, text outputs and tracebacks kept. Images and
- * other binary outputs are dropped and *counted*, never silently (ADR-0008).
+ * the notebook's own language, text outputs and tracebacks kept, stderr fenced
+ * apart. Images and other binary outputs are dropped and *counted*, never
+ * silently (ADR-0008).
  *
  * No dependency: the format is JSON and the rendering is ours.
  */
 
 interface NotebookOutput {
   output_type?: string;
+  name?: string;
   text?: string | string[];
   data?: Record<string, unknown>;
   ename?: string;
@@ -29,6 +33,7 @@ interface NotebookCell {
   source?: string | string[];
   outputs?: NotebookOutput[];
   attachments?: Record<string, unknown>;
+  metadata?: { format?: string; raw_mimetype?: string };
 }
 
 interface Notebook {
@@ -65,9 +70,24 @@ function languageOf(notebook: Notebook): string {
 }
 
 /**
+ * An image output whose only text is its plain repr, such as
+ * `<Figure size 640x480 with 1 Axes>`. Jupyter draws the image, and
+ * nbconvert's Markdown exporter writes the image and not the repr, since its
+ * display priority puts image/png before text/plain.
+ */
+function imageWithRepr(output: NotebookOutput): boolean {
+  const data = output.data ?? {};
+  return (
+    Object.keys(data).some((mime) => mime.startsWith("image/")) &&
+    !["text/markdown", "text/html"].some((mime) => joinSource(data[mime] as string | string[] | undefined).trim())
+  );
+}
+
+/**
  * The text a single output carries, or `null` when it carries none — an image,
- * a widget, an HTML-only view. `text/plain` is preferred over every richer
- * representation because it is the one already meant to be read.
+ * a widget, a chart drawn by a script. `text/plain` comes first, against
+ * nbconvert's display order, because it is the one already meant to be read and
+ * the compact form of a dataframe; markdown next, then HTML flattened to text.
  */
 function outputText(output: NotebookOutput): string | null {
   if (output.output_type === "stream") {
@@ -83,9 +103,16 @@ function outputText(output: NotebookOutput): string | null {
   }
 
   if (output.output_type === "execute_result" || output.output_type === "display_data") {
-    const plain = output.data?.["text/plain"];
-    const text = joinSource(plain as string | string[] | undefined);
-    return text.trim() ? text : null;
+    const data = (mime: string) => joinSource(output.data?.[mime] as string | string[] | undefined);
+    // The image is dropped and counted; its repr names it where it stood.
+    if (imageWithRepr(output)) return data("text/plain").trim() ? `[Image: ${data("text/plain").trim()}]` : null;
+    const html = flattenHtml(data("text/html"))
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join("\n");
+    const text = [data("text/plain"), data("text/markdown"), html].find((form) => form.trim());
+    return text ?? null;
   }
 
   return null;
@@ -101,19 +128,37 @@ function renderCell(cell: NotebookCell, language: string, parts: string[]): numb
     // Images pasted into a markdown cell live here too, base64 and all.
     dropped += Object.keys(cell.attachments ?? {}).length;
 
-    const rendered: string[] = [];
+    // Outputs stay in the order they were written; a new fence opens where
+    // stderr starts or stops, so a warning never reads as the program's result.
+    let label = "";
+    let run: string[] = [];
+    const flush = () => {
+      if (run.length > 0) parts.push(`${label}\n\`\`\`\n${run.join("\n")}\n\`\`\``);
+      run = [];
+    };
     for (const output of cell.outputs ?? []) {
       const text = outputText(output);
-      if (text === null) dropped++;
-      else rendered.push(text.replace(/\s+$/, ""));
+      if (text === null || imageWithRepr(output)) dropped++;
+      if (text === null) continue;
+      const next = output.output_type === "stream" && output.name === "stderr" ? "Stderr:" : "Output:";
+      if (next !== label) flush();
+      label = next;
+      run.push(text.replace(/\s+$/, ""));
     }
-    if (rendered.length > 0) {
-      parts.push(`Output:\n\`\`\`\n${rendered.join("\n")}\n\`\`\``);
-    }
+    flush();
     return dropped;
   }
 
   dropped += Object.keys(cell.attachments ?? {}).length;
+  // A raw cell for another renderer (LaTeX, reST) is source, not prose:
+  // nbconvert's Markdown exporter drops it without a trace, and here it is
+  // fenced under its format. Markdown, HTML and an unmarked raw cell read as
+  // prose, the ones nbconvert keeps.
+  const format = cell.cell_type === "raw" ? fold(cell.metadata?.format ?? cell.metadata?.raw_mimetype ?? "").toLowerCase() : "";
+  if (source && format && format !== "text/markdown" && format !== "text/html") {
+    parts.push(`Raw (${format}):\n\`\`\`\n${source}\n\`\`\``);
+    return dropped;
+  }
   // markdown and raw cells are already the prose the notebook is made of.
   if (source) parts.push(source);
   return dropped;

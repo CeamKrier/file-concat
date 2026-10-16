@@ -1,5 +1,13 @@
 import { strFromU8, unzipSync } from "fflate";
 import type { OfficeContentNode } from "officeparser";
+import { altLabel, LINK_TITLE } from "./alt-text";
+import { cellName, chartParts, withChartTables, workbookSheets, type ChartBlock } from "./office-charts";
+import { deckLabels, odfPageFurniture, odsHidden, odsSheetFurniture, odsValidations, slideMasterText, type DeckLabels } from "./office-furniture";
+import { withAuxiliaryMarked, withoutEmptyParts, withoutHiddenText } from "./office-hidden";
+import { wordListLabels } from "./office-lists";
+import { linkWorthWriting } from "./office-links";
+import { noteLayersOff } from "./pdf-layers";
+import { pdfTitle, rtfTitle } from "./title";
 import type { ExtractionNote, ExtractionNoteKind, ExtractionResult } from "./types";
 
 /**
@@ -108,13 +116,22 @@ const NOTE_BY_CODE: Readonly<Record<string, ExtractionNoteKind>> = {
 };
 
 /** Tally the library's per-document warnings into counted notes, in first-seen order. */
-function toNotes(messages: ReadonlyArray<{ code: string }>): ExtractionNote[] {
+function toNotes(messages: ReadonlyArray<{ code: string; details?: unknown }>): ExtractionNote[] {
   const counts = new Map<ExtractionNoteKind, number>();
   for (const message of messages) {
     const kind = NOTE_BY_CODE[message.code];
     if (kind) counts.set(kind, (counts.get(kind) ?? 0) + 1);
   }
-  return [...counts].map(([kind, count]) => ({ kind, count }));
+  const notes: ExtractionNote[] = [...counts].map(([kind, count]) => ({ kind, count }));
+  // pdf.js past its text or time budget (officeparser 8) leaves the rest of the
+  // PDF unread, which is a hole of unknown size: a note with no count. Past the
+  // operator budget only images and colours stop, and the text is all there.
+  const cut = messages.some(
+    ({ code, details }) =>
+      code === "PDF_CONTENT_LIMIT_EXCEEDED" && (details as { limit?: string } | undefined)?.limit !== "maxOperators",
+  );
+  if (cut) notes.push({ kind: "pages-skipped" });
+  return notes;
 }
 
 /**
@@ -211,25 +228,29 @@ function isWorkbook(content: ReadonlyArray<{ type: string }> | undefined): boole
 function markSectionStarts(
   markPages: boolean,
   hidden: ReadonlySet<number> = new Set(),
+  deck: Pick<DeckLabels, "sections" | "names"> = { sections: new Map(), names: new Map() },
 ): (node: OfficeContentNode) => void {
   const seen = { slide: 0, page: 0 };
 
   return (node) => {
     // The library's own number is the truthful one when it has it; the counters
     // cover a document whose sections carry no metadata.
-    let label;
+    const labels: string[] = [];
     if (node.type === "slide") {
       seen.slide += 1;
       const number = node.metadata?.slideNumber ?? seen.slide;
+      const section = deck.sections.get(number);
+      const name = deck.names.get(number);
+      if (section) labels.push(`[Section: ${section}]`);
       // A hidden slide is still the author's text, so it stays, and says so.
-      label = `# Slide ${number}${hidden.has(number) ? " (hidden)" : ""}`;
+      labels.push(`# Slide ${number}${hidden.has(number) ? " (hidden)" : ""}${name ? `: ${name}` : ""}`);
     } else if (node.type === "page" && markPages) {
       seen.page += 1;
-      label = `# Page ${node.metadata?.pageNumber ?? seen.page}`;
+      labels.push(`# Page ${node.metadata?.pageNumber ?? seen.page}`);
     } else return;
 
     node.children = [
-      { type: "paragraph", text: label, children: [{ type: "text", text: label }] },
+      ...labels.map((label): OfficeContentNode => ({ type: "paragraph", text: label, children: [{ type: "text", text: label }] })),
       ...(node.children ?? []),
     ];
   };
@@ -285,14 +306,18 @@ interface SlideChrome {
  * paragraphs fill a footer, date or slide-number placeholder, and which slides
  * are hidden (`show="0"`). officeparser reads `p:ph` only to find a title, so
  * those three placeholders reach the text as body lines, and it ignores `show`.
- * Keyed by the slide part's number, which is the number officeparser gives a
- * slide. Anything that is not a readable zip of slides gives an empty map.
+ * Keyed by the slide's position in the deck (`p:sldIdLst`), which is the
+ * number officeparser 8 gives a slide; a part's own number is only its file
+ * name, and a reordered deck no longer matches it. Anything that is not a
+ * readable zip of slides gives an empty map.
  */
 function slideChrome(bytes: Uint8Array): Map<number, SlideChrome> {
   const slides = new Map<number, SlideChrome>();
   let parts: Record<string, Uint8Array>;
   try {
-    parts = unzipSync(bytes, { filter: (file) => /^ppt\/slides\/slide\d+\.xml$/.test(file.name) });
+    parts = unzipSync(bytes, {
+      filter: (file) => /^ppt\/(?:slides\/slide\d+\.xml|presentation\.xml|_rels\/presentation\.xml\.rels)$/.test(file.name),
+    });
   } catch {
     return slides;
   }
@@ -306,7 +331,9 @@ function slideChrome(bytes: Uint8Array): Map<number, SlideChrome> {
   // The opening tag that starts at `from`, found by index rather than by a
   // pattern, so a crafted part cannot make the scan quadratic.
   const tagAt = (xml: string, from: number) => (from < 0 ? "" : xml.slice(from, xml.indexOf(">", from) + 1));
+  const position = deckOrder(parts, tagAt);
   for (const [name, data] of Object.entries(parts)) {
+    if (!name.startsWith("ppt/slides/")) continue;
     const xml = strFromU8(data);
     const chrome: SlideChrome = {
       hidden: /\sshow="(?:0|false)"/.test(tagAt(xml, xml.indexOf("<p:sld"))),
@@ -323,9 +350,44 @@ function slideChrome(bytes: Uint8Array): Map<number, SlideChrome> {
         if (text) (type === "sldNum" ? chrome.number : chrome.repeated).add(text);
       }
     }
-    slides.set(Number(name.match(/(\d+)\.xml$/)![1]), chrome);
+    slides.set(position.get(name) ?? Number(name.match(/(\d+)\.xml$/)![1]), chrome);
   }
   return slides;
+}
+
+/**
+ * Each slide part's position in the deck: `p:sldIdLst` in order, each entry's
+ * `r:id` resolved through the presentation's relationships. Empty when either
+ * part is missing, and the caller falls back to the part's own number.
+ */
+function deckOrder(parts: Record<string, Uint8Array>, tagAt: (xml: string, from: number) => string): Map<string, number> {
+  const order = new Map<string, number>();
+  const rels = parts["ppt/_rels/presentation.xml.rels"];
+  const presentation = parts["ppt/presentation.xml"];
+  if (!rels || !presentation) return order;
+  const targets = new Map<string, string>();
+  // Each scan resumes past the tag it read, so a part of opening tags that
+  // never close is still read once.
+  const tags = (xml: string, open: string) => {
+    const found: string[] = [];
+    for (let at = xml.indexOf(open); at >= 0; ) {
+      const tag = tagAt(xml, at);
+      if (!tag) break;
+      found.push(tag);
+      at = xml.indexOf(open, at + tag.length);
+    }
+    return found;
+  };
+  for (const tag of tags(strFromU8(rels), "<Relationship ")) {
+    const id = /\sId="([^"]*)"/.exec(tag)?.[1];
+    const target = /\sTarget="([^"]*)"/.exec(tag)?.[1];
+    if (id && target) targets.set(id, target.startsWith("/") ? target.slice(1) : `ppt/${target}`);
+  }
+  for (const tag of tags(strFromU8(presentation), "<p:sldId ")) {
+    const part = targets.get(/\sr:id="([^"]*)"/.exec(tag)?.[1] ?? "");
+    if (part && !order.has(part)) order.set(part, order.size + 1);
+  }
+  return order;
 }
 
 /**
@@ -394,6 +456,202 @@ function markHeadingLevels(): (node: OfficeContentNode) => void {
 }
 
 /**
+ * Review comments written into the text where they belong (Q24 O1), as
+ * `[Comment, author: text]`, and `[Reply, ...]` for an answer in a thread.
+ * officeparser keeps them on `node.comments` and its text and csv renderers
+ * drop them, as pandoc, docling's markdown and markitdown do by default; Tika,
+ * the one reader that keeps them, writes each after the paragraph it is on,
+ * after the slide, and with the cell in a sheet. So here: at the end of the
+ * paragraph its anchor is in, at the end of a slide, and in a sheet a row of
+ * its own after the sheet's last, naming the cell.
+ *
+ * Seen comments are remembered: a comment over several runs is on each of
+ * them, and the renderer visits a node more than once.
+ */
+function showComments(): { visit: (node: OfficeContentNode) => void; count: () => number } {
+  const seen = new Set<OfficeContentNode>();
+  const ids = new Set<string>();
+  let shown = 0;
+  const take = (comments: readonly OfficeContentNode[] | undefined, where = "") =>
+    (comments ?? []).flatMap((comment) => {
+      // By id too, so a copy of one comment on each run of its range counts once.
+      const id = (comment.metadata as { commentId?: string } | undefined)?.commentId;
+      if (seen.has(comment) || (id !== undefined && ids.has(id))) return [];
+      seen.add(comment);
+      if (id !== undefined) ids.add(id);
+      const meta = comment.metadata as { author?: string; parentId?: string } | undefined;
+      // Folded like a link destination: an author name is the file's to choose,
+      // and a line break in it would forge structure in the bundle.
+      const fold = (text: string) => text.replace(/\s+/g, " ").trim();
+      const author = fold(meta?.author ?? "");
+      const raw = comment.children?.length ? comment.children.map(plainText).join("\n") : (comment.text ?? "");
+      // Excel opens a note's own text with its author's name and a colon.
+      const own = author && raw.startsWith(`${author}:`) ? raw.slice(author.length + 1) : raw;
+      const entries = raw.startsWith("[Threaded comment]")
+        ? threadEntries(raw)
+        : [{ kind: meta?.parentId ? "Reply" : "Comment", author, text: own }];
+      return entries.flatMap(({ kind, author, text }) => {
+        const body = fold(text);
+        if (!body) return [];
+        shown++;
+        return [`[${[kind, where, author].filter(Boolean).join(", ")}: ${body}]`];
+      });
+    });
+  const below = (node: OfficeContentNode): OfficeContentNode[] =>
+    (node.children ?? []).flatMap((child) => [child, ...below(child)]);
+  const visit = (node: OfficeContentNode) => {
+    if (node.type === "paragraph" || node.type === "heading") {
+      const labels = [node, ...below(node)].flatMap((part) => take(part.comments));
+      if (labels.length) node.children = [...(node.children ?? []), { type: "text", text: ` ${labels.join(" ")}` }];
+    } else if (node.type === "sheet") {
+      const labels = below(node).flatMap((cell) => {
+        const at = cell.metadata as { row?: number; col?: number } | undefined;
+        const address = typeof at?.row === "number" && typeof at.col === "number" ? cellName(at.row, at.col) : "";
+        return take(cell.comments, address);
+      });
+      const rows = labels.map((text): OfficeContentNode => ({ type: "row", children: [{ type: "cell", text, children: [line(text)] }] }));
+      if (rows.length) node.children = [...(node.children ?? []), ...rows];
+    } else if (node.comments?.length) {
+      const labels = take(node.comments);
+      if (labels.length) node.children = [...(node.children ?? []), ...labels.map(line)];
+    }
+  };
+  return { visit, count: () => shown };
+}
+
+const line = (text: string): OfficeContentNode => ({ type: "paragraph", text, children: [{ type: "text", text }] });
+const row = (cells: readonly string[]): OfficeContentNode => ({
+  type: "row",
+  children: cells.map((text) => ({ type: "cell", text, children: [line(text)] })),
+});
+
+/**
+ * Put each chart where its node is, as its label line and a table of its data
+ * (C6). A deck's chart node names its part and is otherwise empty; an
+ * OpenDocument chart is an image or chart node naming its object. A sheet's
+ * cell holds an OpenDocument chart where the csv renderer writes no node, so
+ * a sheet's charts become rows after its last, as comments do.
+ *
+ * In an OOXML workbook the sheet pass below writes the charts, so a chart node
+ * there (only made when images are extracted) is emptied rather than written
+ * twice.
+ */
+function showCharts(bytes: Uint8Array, workbook: boolean): (node: OfficeContentNode) => void {
+  const chart = chartParts(bytes);
+  const taken = new WeakSet<OfficeContentNode>();
+  const blockOf = (node: OfficeContentNode) => {
+    const meta = node.metadata as { attachmentName?: string; altText?: string } | undefined;
+    if ((node.type !== "chart" && node.type !== "image") || !meta?.attachmentName || taken.has(node)) return undefined;
+    return chart(meta.attachmentName, meta.altText);
+  };
+  const empty = (node: OfficeContentNode) => {
+    taken.add(node);
+    Object.assign(node, { type: "drawing", text: "", children: [] });
+  };
+  const within = (node: OfficeContentNode): OfficeContentNode[] =>
+    (node.children ?? []).flatMap((child) => [child, ...within(child)]);
+  return (node) => {
+    if (node.type === "sheet") {
+      const rows = within(node).flatMap((inner) => {
+        const block = blockOf(inner);
+        if (!block) return [];
+        empty(inner);
+        return [row([block.label]), ...block.rows.map(row)];
+      });
+      if (rows.length) node.children = [...(node.children ?? []), ...rows];
+      return;
+    }
+    if (node.type === "chart" && workbook && !taken.has(node)) return empty(node);
+    const block = blockOf(node);
+    if (!block) return;
+    const table: OfficeContentNode[] = block.rows.length ? [{ type: "table", children: block.rows.map(row) }] : [];
+    Object.assign(node, { type: "drawing", text: "", children: [line(block.label), ...table] });
+  };
+}
+
+/**
+ * Each sheet's own name and state, and what is drawn on it as rows after its
+ * last (C6); a chartsheet, which officeparser gives no node, as a sheet of its
+ * own after the rest.
+ *
+ * officeparser names a sheet by its part's file name alone, so the
+ * chartsheet's `sheet1.xml` renamed the first worksheet. It reads worksheets
+ * in the package's order; a node whose name is not the one it would give
+ * that part is left as it is.
+ *
+ * A very hidden sheet is left out, and how many is returned for the bundle's
+ * note (Q34 O1): only a macro can show one, so it is the workbook's own
+ * machinery rather than a sheet the author keeps out of sight.
+ */
+function showWorkbookSheets(content: OfficeContentNode[], bytes: Uint8Array): number {
+  const { sheets, order } = workbookSheets(bytes);
+  const base = (part: string) => part.slice(part.lastIndexOf("/") + 1);
+  const given = new Map(sheets.map((sheet) => [base(sheet.part), sheet.name]));
+  const byPart = new Map(sheets.map((sheet) => [sheet.part, sheet]));
+  const state = (sheet: { state: number }) => (sheet.state === 1 ? " (hidden)" : "");
+  const rows = (blocks: readonly ChartBlock[]) => blocks.flatMap((block) => [row([block.label]), ...block.rows.map(row)]);
+  const dropped = new Set<OfficeContentNode>();
+  content
+    .filter((node) => node.type === "sheet")
+    .forEach((node, at) => {
+      const part = order[at] ?? "";
+      const sheet = byPart.get(part);
+      const meta = node.metadata as { sheetName?: string } | undefined;
+      if (!sheet || meta?.sheetName !== (given.get(base(part)) ?? base(part))) return;
+      if (sheet.state === 2) dropped.add(node);
+      node.metadata = { ...meta, sheetName: `${sheet.name}${state(sheet)}` };
+      node.children = [...(node.children ?? []), ...rows(sheet.blocks)];
+    });
+  for (let at = content.length - 1; at >= 0; at--) if (dropped.has(content[at])) content.splice(at, 1);
+  let left = dropped.size;
+  for (const sheet of sheets) {
+    if (!sheet.chartsheet) continue;
+    if (sheet.state === 2) left++;
+    else content.push({ type: "sheet", metadata: { sheetName: `${sheet.name} (chart)${state(sheet)}` }, children: rows(sheet.blocks) });
+  }
+  return left;
+}
+
+// A threaded comment reaches the legacy note part only as Excel's fallback
+// text: a boilerplate paragraph, then each message after a "Comment:" or
+// "Reply:" line. The note's author there is the thread id, never a person.
+function threadEntries(raw: string): { kind: string; author: string; text: string }[] {
+  const parts = raw.split(/\n[ \t]*(Comment|Reply):[ \t]*\r?\n/);
+  const entries: { kind: string; author: string; text: string }[] = [];
+  for (let i = 1; i + 1 < parts.length; i += 2) entries.push({ kind: parts[i], author: "", text: parts[i + 1] });
+  return entries;
+}
+
+/**
+ * A table inside a table cell, read as one line of that cell's text: rows
+ * apart by `; `, cells by ` / `. The text renderer otherwise writes the inner
+ * cells into the outer row as columns of their own, and every cell after them
+ * lands under the wrong header. Docling flattens a nested table into its
+ * cell's text the same way; a pipe table has no syntax for one inside another.
+ */
+function flattenNestedTables(node: OfficeContentNode): void {
+  if (node.type !== "cell" || !node.children?.some((child) => child.type === "table")) return;
+  node.children = node.children.map((child) => {
+    if (child.type !== "table") return child;
+    const text = plainText(child).trim();
+    return { type: "paragraph", text, children: [{ type: "text", text }] };
+  });
+}
+
+const PLAIN_SEPARATOR: Readonly<Record<string, string>> = { table: "; ", row: " / ", cell: " " };
+
+/** A node's text with a table's rows and cells kept apart, empty ones left out. */
+function plainText(node: OfficeContentNode): string {
+  if (!node.children?.length) return node.text ?? "";
+  const separator = PLAIN_SEPARATOR[node.type];
+  if (separator === undefined) return node.children.map(plainText).join("");
+  return node.children
+    .map((child) => plainText(child).trim())
+    .filter(Boolean)
+    .join(separator);
+}
+
+/**
  * Give a horizontally merged cell the columns it actually covers.
  *
  * A cell spanning three columns is a single child of its row, and the renderer
@@ -416,6 +674,38 @@ function markHeadingLevels(): (node: OfficeContentNode) => void {
  * walking the table's children, and again inside its own table layout pass —
  * and a second expansion would pad the row to five columns instead of three.
  */
+/**
+ * Give a PDF table row back the slots its empty cells held (pdf-1.2).
+ *
+ * A PDF has no cells, so officeparser recovers a table from positions and
+ * gives each cell the column it sits in (`metadata.col`); an empty cell has no
+ * glyphs and no node, and the renderer writes the cells there are in order.
+ * "APAC | 980 | (empty) | 980" then read as "| APAC | 980 | 980 |", the total
+ * taken for Q2. Only for a PDF: the office parsers number `col` their own way
+ * (RTF always 0) and write their empty cells as nodes.
+ *
+ * Runs before {@link expandMergedCells}, so a merged cell's span counts as the
+ * columns it covers. A row gets at most MAX_EMPTY_SLOTS of them, so crafted
+ * column numbers cannot make a row of millions of cells.
+ */
+function keepEmptyCellSlots(node: OfficeContentNode): void {
+  if (node.type !== "row" || !node.children) return;
+  const kept: OfficeContentNode[] = [];
+  let next = 0;
+  let padded = 0;
+  for (const cell of node.children) {
+    const col = cell.type === "cell" ? cell.metadata?.col : undefined;
+    for (let at = next; typeof col === "number" && at < col && padded < MAX_EMPTY_SLOTS; at++, padded++) {
+      kept.push({ type: "cell", text: "" });
+    }
+    kept.push(cell);
+    next = (typeof col === "number" ? Math.max(col, next) : next) + (cell.type === "cell" ? (cell.metadata?.colSpan ?? 1) : 1);
+  }
+  if (kept.length !== node.children.length) node.children = kept;
+}
+
+const MAX_EMPTY_SLOTS = 100;
+
 function expandMergedCells(): (node: OfficeContentNode) => void {
   const expandedRows = new WeakSet<OfficeContentNode>();
 
@@ -434,28 +724,47 @@ function expandMergedCells(): (node: OfficeContentNode) => void {
 }
 
 /**
- * Write each external link's destination after the text that carried it.
+ * Write each external link as `[text](url)`, the Markdown link the HTML and
+ * RTF readers already write (Q32 O1).
  *
- * The parsed tree keeps the URL on the run (`metadata.link`), and the text
+ * The parsed tree keeps the URL on each run (`metadata.link`), and the text
  * renderer emits only the run's characters, so `our documentation` reaches the
- * bundle with nothing saying it pointed anywhere. Every reference in a linked
- * document is then unrecoverable, and invisibly so: a model asked what a
- * document cites can only answer from the anchor text.
+ * bundle with nothing saying it pointed anywhere. A link of several runs (a
+ * bold word inside it) is one link: consecutive runs with the same address
+ * are wrapped together, at the node that holds them.
  *
- * A run whose text already contains its destination is left alone, since
- * repeating it adds nothing — which also makes this safe to run twice over the
- * same tree. Internal links (`#anchor`) are skipped: they name a position in
- * the same document, and flat text has nowhere to point.
+ * A link whose text already is its destination is left alone, since repeating
+ * it adds nothing; a run is wrapped once, so running this twice changes
+ * nothing. Internal links (`#anchor`) are skipped: they name a position in the
+ * same document, and flat text has nowhere to point.
  */
 function showLinkDestinations(node: OfficeContentNode): void {
-  if (node.type !== "text" || node.metadata?.linkType !== "external") return;
-  const link = node.metadata.link;
-  if (!link || !node.text || node.text.includes(link)) return;
-  // Folded like the renderer's own metadata header: the URL is document-supplied
-  // and a line break in it would forge structure in a bundle a model reads as
-  // one document. A real URL has no whitespace to lose.
-  node.text = `${node.text} (${link.replace(/\s+/g, "")})`;
+  const children = node.children ?? [];
+  const link = (child: OfficeContentNode | undefined) =>
+    child?.type === "text" && child.metadata?.linkType === "external" && !wrapped.has(child) ? child.metadata.link : undefined;
+  for (let from = 0; from < children.length; from++) {
+    const target = link(children[from]);
+    if (!target) continue;
+    let to = from;
+    while (link(children[to + 1]) === target) to++;
+    const runs = children.slice(from, to + 1);
+    runs.forEach((run) => wrapped.add(run));
+    const text = runs.map((run) => run.text ?? "").join("");
+    from = to;
+    // An OpenDocument link's title rides after LINK_TITLE (withOdfAltText).
+    const [address, title] = target.split(LINK_TITLE);
+    if (!linkWorthWriting(text, address)) continue;
+    // Folded like the renderer's own metadata header: the URL is document-supplied
+    // and a line break in it would forge structure in a bundle a model reads as
+    // one document. A real URL has no whitespace to lose.
+    runs[0]!.text = `[${runs[0]!.text ?? ""}`;
+    const titled = title ? ` "${title.replace(/\s+/g, " ").replace(/["\\]/g, "\\$&")}"` : "";
+    runs[runs.length - 1]!.text = `${runs[runs.length - 1]!.text ?? ""}](${address.replace(/\s+/g, "")}${titled})`;
+  }
 }
+
+/** Runs already written as part of a link. */
+const wrapped = new WeakSet<OfficeContentNode>();
 
 /**
  * Put a word processor document's page header and footer back into the text.
@@ -485,8 +794,10 @@ function includePageFurniture(
 ): void {
   const labelled = (label: string, nodes: readonly OfficeContentNode[]): OfficeContentNode[] => {
     const seen = new Set<string>();
+    // Compared with runs of whitespace folded, so a line read by officeparser
+    // and the same line read by `odfPageFurniture` are one.
     const lines = nodes.filter((node) => {
-      const text = node.text?.trim();
+      const text = node.text?.replace(/\s+/g, " ").trim();
       if (!text || seen.has(text)) return false;
       seen.add(text);
       return true;
@@ -500,6 +811,21 @@ function includePageFurniture(
 
   content.unshift(...labelled("--- Page header ---", auxiliary?.headers ?? []));
   content.push(...labelled("--- Page footer ---", auxiliary?.footers ?? []));
+}
+
+/**
+ * officeparser's ODT header and footer with every other one the file prints
+ * after them (C7): first-page, left-page and other master pages' ones.
+ */
+function withOdfFurniture(
+  auxiliary: { headers?: OfficeContentNode[]; footers?: OfficeContentNode[] } | undefined,
+  bytes: Uint8Array,
+): { headers: OfficeContentNode[]; footers: OfficeContentNode[] } {
+  const more = odfPageFurniture(bytes);
+  return {
+    headers: [...(auxiliary?.headers ?? []), ...more.headers.map(line)],
+    footers: [...(auxiliary?.footers ?? []), ...more.footers.map(line)],
+  };
 }
 
 /** How long a line may be and still be taken for a page-number footer. */
@@ -655,7 +981,14 @@ function numberFootnotes(): (node: OfficeContentNode) => void {
       const key = keys.get(node);
       if (!key) return;
       keys.delete(node);
-      node.children = [{ type: "text", text: `[^${key}] ` }, ...(node.children ?? [])];
+      // Inside the note's first paragraph, where officeparser 8 puts its text,
+      // so the label opens the line instead of standing on one of its own.
+      const first = node.children?.[0];
+      // Word opens a note's text with a space of its own.
+      const spaced = /^\s/.test(first?.children?.[0]?.text ?? first?.text ?? "");
+      const label: OfficeContentNode = { type: "text", text: spaced ? `[^${key}]` : `[^${key}] ` };
+      if (first && first.type !== "text" && first.children) first.children = [label, ...first.children];
+      else node.children = [label, ...(node.children ?? [])];
       return;
     }
 
@@ -676,8 +1009,36 @@ function numberFootnotes(): (node: OfficeContentNode) => void {
   };
 }
 
+/**
+ * Each docx list item as a line opening with its label, indented four spaces
+ * a level as officeparser indents it. officeparser's renderer writes its own
+ * "1." or "-" in front of a list node, so a labelled item becomes a paragraph.
+ * Walked once before rendering: the labels count items in document order, and
+ * the renderer visits a node more than once.
+ */
+function labelWordLists(content: readonly OfficeContentNode[], bytes: Uint8Array): void {
+  const label = wordListLabels(bytes);
+  if (!label) return;
+  const walk = (nodes: readonly OfficeContentNode[]) => {
+    for (const node of nodes) {
+      const meta = node.metadata as { listId?: string; indentation?: number } | undefined;
+      const level = meta?.indentation ?? 0;
+      const text = node.type === "list" && meta?.listId !== undefined ? label(meta.listId, level) : undefined;
+      if (text !== undefined) {
+        node.type = "paragraph";
+        node.children = [{ type: "text", text: `${"    ".repeat(level)}${text ? `${text} ` : ""}` }, ...(node.children ?? [])];
+      }
+      walk(node.children ?? []);
+    }
+  };
+  walk(content);
+}
+
 function toLibraryConfig(options: OfficeParserOptions): Record<string, unknown> {
-  const config: Record<string, unknown> = {};
+  // A PDF is read as a flow of pages, not laid out from its geometry (8.x's
+  // default): that layout drops the page nodes our passes key on, and the
+  // flow reader orders columns and recovers positioned tables on its own.
+  const config: Record<string, unknown> = { ignorePageGeometry: true };
   if (options.pdfWorkerSrc) config.pdfWorkerSrc = options.pdfWorkerSrc;
   // Only the variants need translating; a base format sniffs the same either
   // way, and leaving it to the library keeps that path exactly as it was.
@@ -740,7 +1101,8 @@ function undecodable(line: string): boolean {
 }
 
 /**
- * Leave out the lines that came back as characters nobody can read.
+ * Leave out the stretches of text that came back as characters nobody can
+ * read, keeping the readable words around them on the same line.
  *
  * A PDF stores a character as a number and leaves it to the font to say which
  * letter that number is. When the font carries no such map — no `/ToUnicode`,
@@ -763,35 +1125,35 @@ function undecodable(line: string): boolean {
  * ASCII a document's identifiers are written in.
  */
 function dropUndecodableLines(text: string): { text: string; lost: number; pages: number[] } {
-  const lines = text.split("\n");
-  const kept = lines.filter((line) => !undecodable(line));
-  const lost = lines.length - kept.length;
-  if (lost === 0) return { text, lost, pages: [] };
+  if (!undecodable(text)) return { text, lost: 0, pages: [] };
   // Which pages the loss landed on, so a caller that can read a page another way
   // re-reads those and leaves every other page at the exact text this extraction
-  // already produced. A page counts as past reading when its lost lines outnumber
-  // its surviving ones: below that the page still reads, and re-reading it would
-  // trade the document's own characters for a recogniser's near-miss.
+  // already produced. A page counts as past reading when it lost more characters
+  // than it kept: below that the page still reads, and re-reading it would trade
+  // the document's own characters for a recogniser's near-miss. Characters, not
+  // lines, since officeparser 8 hands a PDF back a paragraph to a line.
   // ponytail: a majority is the whole threshold. `extract_note` counts these per
   // document, so it can be moved once there is more than one broken document to
   // move it against.
   const tally = new Map<number, { kept: number; lost: number }>();
+  const kept: string[] = [];
+  let lost = 0;
   let page = 0;
-  for (const line of lines) {
-    const marker = /^# Page (\d+)$/.exec(line);
-    if (marker) {
-      page = Number(marker[1]);
-      continue;
-    }
+  for (const line of text.split("\n")) {
+    const marker = PAGE_MARKER.exec(line);
+    if (marker) page = Number(marker[1]);
+    const part = undecodable(line) ? decodedPart(line) : { kept: line, lost: 0 };
+    if (part.lost > 0) lost++;
+    if (part.lost === 0 || part.kept) kept.push(part.kept);
     // Blank lines and our own markers are neither evidence of reading nor of
     // loss, and a heading-only page must not read as a page that survived.
-    if (!line.trim() || line.startsWith("#")) continue;
+    // Page 0 is whatever preceded the first marker, which belongs to no page.
+    if (marker || !line.trim() || line.startsWith("#")) continue;
     const counts = tally.get(page) ?? { kept: 0, lost: 0 };
-    if (undecodable(line)) counts.lost += 1;
-    else counts.kept += 1;
+    counts.kept += part.kept.length;
+    counts.lost += part.lost;
     tally.set(page, counts);
   }
-  // Page 0 is whatever preceded the first marker, which belongs to no page.
   const pages = [...tally]
     .filter(([number, counts]) => number > 0 && counts.lost > counts.kept)
     .map(([number]) => number);
@@ -802,6 +1164,31 @@ function dropUndecodableLines(text: string): { text: string; lost: number; pages
   const survives = kept.some((line) => line.trim() && !line.startsWith("#"));
   return { text: survives ? kept.join("\n").trim() : "", lost, pages };
 }
+
+/**
+ * A line less its undecodable stretch: from the first word holding a control
+ * character to the last, so a decoded identifier beside it survives. A broken
+ * run's own spaces are control characters, so the stretch is one piece.
+ */
+function decodedPart(line: string): { kept: string; lost: number } {
+  let first = -1;
+  let last = -1;
+  for (let index = 0; index < line.length; index++) {
+    if (undecodable(line[index])) {
+      if (first < 0) first = index;
+      last = index;
+    }
+  }
+  const space = (char: string | undefined) => char === " " || char === "\t";
+  while (first > 0 && !space(line[first - 1])) first--;
+  while (last + 1 < line.length && !space(line[last + 1])) last++;
+  const before = line.slice(0, first).trimEnd();
+  const after = line.slice(last + 1).trimStart();
+  return { kept: before && after ? `${before} ${after}` : before || after, lost: last + 1 - first };
+}
+
+/** A `# Page n` line, with the number the document prints on the page after it when that differs. */
+const PAGE_MARKER = /^# Page (\d+)(?: \(numbered [^\n]*\))?$/;
 
 /**
  * Put a re-read page back into an extraction, under the `# Page n` marker it
@@ -821,7 +1208,7 @@ export function replacePages(text: string, replacements: ReadonlyMap<number, str
   const out: string[] = [];
   let dropping = false;
   for (const line of text.split("\n")) {
-    const marker = /^# Page (\d+)$/.exec(line);
+    const marker = PAGE_MARKER.exec(line);
     if (marker) {
       const replacement = replacements.get(Number(marker[1]));
       dropping = replacement !== undefined;
@@ -844,6 +1231,23 @@ export interface PdfPage {
   number: number;
   text: string;
   scanned?: boolean;
+  /** The alternative text of the page's tagged figures. */
+  figures?: string[];
+  /** The number the document prints on the page (ISO 32000 12.4.2 page labels), such as `iv`. */
+  label?: string;
+  /** Review comments on the page; `anchor` is the text a highlight or other text markup covers. */
+  comments?: { author?: string; text: string; anchor?: string }[];
+  /** The page's form fields: the name a viewer shows for each, its value, and a check box's state as a boolean. */
+  fields?: { name: string; value: string | boolean }[];
+  /** Files attached to the page by a file attachment annotation. */
+  attachments?: PdfAttachment[];
+}
+
+/** A file a PDF carries: its name, the author's description, and its text when it is a text file. */
+export interface PdfAttachment {
+  name: string;
+  description?: string;
+  text?: string;
 }
 
 /**
@@ -863,7 +1267,7 @@ export interface PdfPage {
  * decodes no JBIG2 or JPEG 2000 picture (38 of 181 olmOCR-bench scan pages read
  * nothing there), and liteparse's picture reasons missed 1 of those 181.
  */
-export function assemblePdfPages(pages: readonly PdfPage[], skipped = 0): ExtractionResult {
+export function assemblePdfPages(pages: readonly PdfPage[], skipped = 0, files: readonly PdfAttachment[] = []): ExtractionResult {
   const readable = (text: string) => /[\p{L}\p{N}]/u.test(text);
   // liteparse writes an empty ```text fence for a page with no text.
   const trimmed = pages.map((page) => ({
@@ -897,9 +1301,35 @@ export function assemblePdfPages(pages: readonly PdfPage[], skipped = 0): Extrac
     return empty("");
   }
 
-  const marked = bodies
-    .map((page) => [`# Page ${page.number}`, page.text].filter(Boolean).join("\n"))
-    .join("\n\n");
+  // A figure's alternative text after its page's text (Q31 O1), kept out of
+  // the readable test so it cannot stand in for a scanned page's text.
+  // ponytail: not where the figure sits; liteparse's text items carry no
+  // marked-content id to place it by.
+  let comments = 0;
+  let unread = 0;
+  const attached = (list: readonly PdfAttachment[]) => {
+    const { lines, skipped: left } = attachmentLines(list);
+    unread += left;
+    return lines;
+  };
+  const marked = [
+    ...bodies.map((page) => {
+      const figures = (page.figures ?? []).map((alt) => altLabel("Image", [alt])).filter(Boolean);
+      const commented = withPdfComments(page.text, page.comments ?? []);
+      comments += commented.count;
+      const { text, after } = withPdfFields(commented.text, page.fields ?? []);
+      // The number the page is cited by, a front matter's `iv`, beside the
+      // count from 1. A label is the file's to choose: folded and cut.
+      const label = (page.label ?? "").replace(/\s+/g, " ").trim().slice(0, 64);
+      const heading = `# Page ${page.number}${label && label !== String(page.number) ? ` (numbered ${label})` : ""}`;
+      const below = [...figures, ...commented.after, ...after, ...attached(page.attachments ?? [])].join("\n");
+      return [heading, [text, below].filter(Boolean).join("\n\n")].filter(Boolean).join("\n");
+    }),
+    // Files the document itself carries belong to no page.
+    ...(files.length ? [["# Attached files", ...attached(files)].join("\n")] : []),
+  ].join("\n\n");
+  if (comments > 0) notes.push({ kind: "comments-included", count: comments });
+  if (unread > 0) notes.push({ kind: "attachments-skipped", count: unread });
   const { text, lost, pages: lostPages } = dropUndecodableLines(marked);
   if (lost > 0) {
     notes.push({
@@ -913,6 +1343,92 @@ export function assemblePdfPages(pages: readonly PdfPage[], skipped = 0): Extrac
 }
 
 /**
+ * A PDF page's review comments as `[Comment, author: text]` (Q24 O1): right
+ * after the words a highlight covers when they occur once on the page, and
+ * after the page's text otherwise, where Tika writes every one and all a
+ * sticky note's margin icon gives to place it by.
+ */
+function withPdfComments(text: string, comments: NonNullable<PdfPage["comments"]>): { text: string; after: string[]; count: number } {
+  // An author name and a note are the file's to choose; a line break in either
+  // would forge structure in the bundle.
+  const fold = (value = "") => value.replace(/\s+/g, " ").trim();
+  const after: string[] = [];
+  let count = 0;
+  for (const comment of comments) {
+    if (!fold(comment.text)) continue;
+    count++;
+    const label = `[Comment${fold(comment.author) ? `, ${fold(comment.author)}` : ""}: ${fold(comment.text)}]`;
+    const anchor = fold(comment.anchor);
+    const at = anchor ? text.indexOf(anchor) : -1;
+    if (at >= 0 && at === text.lastIndexOf(anchor)) text = `${text.slice(0, at + anchor.length)} ${label}${text.slice(at + anchor.length)}`;
+    else after.push(label);
+  }
+  return { text, after, count };
+}
+
+/** How many of a page's fields are looked for in its text; the rest are written after it. */
+const FIELDS_PLACED = 100;
+/** A value longer than this is written after the page, never looked for. */
+const PLACED_VALUE = 200;
+
+/**
+ * A page's form fields as `[Form field, name: value]`, a check box's value as
+ * `[x]` or `[ ]`. A value the page already shows (the field's appearance, which
+ * the reader reads as text) is labelled where it stands when it occurs there
+ * once as whole words, as a link is; any other is written after the page,
+ * where Tika writes every field. An empty text field is left out.
+ */
+function withPdfFields(text: string, fields: NonNullable<PdfPage["fields"]>): { text: string; after: string[] } {
+  const fold = (value: string) => value.replace(/\s+/g, " ").trim();
+  const after: string[] = [];
+  fields.forEach((field, index) => {
+    const name = fold(field.name).slice(0, 255) || "unnamed";
+    if (typeof field.value === "boolean") {
+      after.push(`[Form field, ${name}: ${field.value ? "[x]" : "[ ]"}]`);
+      return;
+    }
+    const value = fold(field.value);
+    if (!value) return;
+    const label = `[Form field, ${name}: ${value}]`;
+    const at = index < FIELDS_PLACED && value.length <= PLACED_VALUE ? onceAsWords(text, value) : -1;
+    if (at >= 0) text = `${text.slice(0, at)}${label}${text.slice(at + value.length)}`;
+    else after.push(label);
+  });
+  return { text, after };
+}
+
+/** Where `value` occurs in `text` with no letter or digit on either side, when it does so exactly once; else -1. */
+function onceAsWords(text: string, value: string): number {
+  const word = /[\p{L}\p{N}]/u;
+  let found = -1;
+  for (let at = text.indexOf(value); at !== -1; at = text.indexOf(value, at + 1)) {
+    if (word.test(text[at - 1] ?? "") || word.test(text[at + value.length] ?? "")) continue;
+    if (found !== -1) return -1;
+    found = at;
+  }
+  return found;
+}
+
+/**
+ * Each attached file as `[Attachment, name: description]`, with its text and
+ * an end line when it is a text file, as an e-mail's attachments are named.
+ * Any other is named, marked "not included", and counted.
+ */
+function attachmentLines(files: readonly PdfAttachment[]): { lines: string[]; skipped: number } {
+  const fold = (value = "") => value.replace(/\s+/g, " ").trim();
+  let skipped = 0;
+  const lines = files.map((file) => {
+    const name = fold(file.name).slice(0, 255) || "unnamed";
+    const description = fold(file.description).slice(0, 1000);
+    const label = `[Attachment, ${name}${description ? `: ${description}` : ""}]`;
+    if (file.text !== undefined) return file.text.trim() ? `${label}\n${file.text.trim()}\n[End of attachment, ${name}]` : label;
+    skipped++;
+    return `${label} (not included)`;
+  });
+  return { lines, skipped };
+}
+
+/**
  * Extract the recoverable text from a document's bytes. Empty text means the
  * document carries none — a scanned image-only or encrypted PDF — and callers
  * surface that rather than silently dropping the file (ADR-0003).
@@ -922,7 +1438,8 @@ export async function extractOfficeDocument(
   options: OfficeParserOptions = {},
 ): Promise<ExtractionResult> {
   const { parseOffice } = await import("officeparser");
-  const ast = await parseOffice(bytes, toLibraryConfig(options));
+  const { bytes: readable, hidden: hiddenRuns, slides: hiddenSlides } = withoutHiddenText(withoutEmptyParts(bytes));
+  const ast = await parseOffice(withChartTables(withAuxiliaryMarked(readable)).bytes, toLibraryConfig(options));
   // Recognised image text reaches us as `[Image: …]` placeholders in the
   // rendered string, and csv has nowhere to write them. A workbook that carries
   // any is therefore rendered as text: its cells run together, exactly as they
@@ -941,27 +1458,63 @@ export async function extractOfficeDocument(
   // and the csv renderer would write a paragraph of ours as a row.
   if (!asWorkbook) {
     dropRunningFurniture(ast.content);
-    includePageFurniture(ast.content, ast.auxiliary);
+    includePageFurniture(ast.content, ast.type === "odt" ? withOdfFurniture(ast.auxiliary, bytes) : ast.auxiliary);
+  }
+  const veryHidden = isWorkbook(ast.content) ? showWorkbookSheets(ast.content, bytes) : 0;
+  // An ODS sheet's hidden rows and columns (Q34 O1), validation rules, then its print header and footer, as rows after its own (Q27 O1).
+  if (ast.type === "ods") {
+    const hidden = odsHidden(readable);
+    const rules = odsValidations(readable);
+    const furniture = odsSheetFurniture(readable);
+    for (const node of ast.content) {
+      const name = node.type === "sheet" ? ((node.metadata as { sheetName?: string } | undefined)?.sheetName ?? "") : undefined;
+      const lines = name === undefined ? [] : [...(hidden.has(name) ? [hidden.get(name)!] : []), ...(rules.get(name) ?? []), ...(furniture.get(name) ?? [])];
+      if (lines.length) node.children = [...(node.children ?? []), ...lines.map((text) => row([text]))];
+    }
+  }
+  // A Word list item opens with the label Word prints for it (C8).
+  if (ast.type === "docx") labelWordLists(ast.content, readable);
+  // What a deck's masters and layouts print on every slide, once at the top (Q28 O1).
+  // Then its custom shows; its sections and slide names go on the slides (N9).
+  const deck = ast.content.some((node) => node.type === "slide") ? deckLabels(bytes) : undefined;
+  if (deck) {
+    const master = slideMasterText(readable);
+    const top = [...(master.length ? ["--- Slide master ---", ...master] : []), ...deck.shows];
+    if (top.length) ast.content.unshift(...top.map(line));
   }
   // Each visitor restores one thing the text renderer drops. They are composed
   // rather than merged because they are independent of one another and of the
   // node types they act on.
   const chrome = ast.content.some((node) => node.type === "slide") ? slideChrome(bytes) : new Map<number, SlideChrome>();
-  const hidden = new Set([...chrome].flatMap(([number, slide]) => (slide.hidden ? [number] : [])));
+  const hidden = new Set([...hiddenSlides, ...[...chrome].flatMap(([number, slide]) => (slide.hidden ? [number] : []))]);
+  const comments = showComments();
+  const charts = showCharts(bytes, isWorkbook(ast.content));
+  const sheetVisitors = [expandMergedCells(), charts, comments.visit];
   const visitors = [
     dropSlideChrome(chrome),
-    markSectionStarts(anyPageHasText, hidden),
+    markSectionStarts(anyPageHasText, hidden, deck),
     dropSlideNumberFromNotes,
     labelSpeakerNotes,
     markHeadingLevels(),
     numberFootnotes(),
     showLinkDestinations,
+    flattenNestedTables,
+    ...(ast.type === "pdf" ? [keepEmptyCellSlots] : []),
     expandMergedCells(),
+    charts,
+    comments.visit,
   ];
-  // `.to(…)` replaces the deprecated `.toText()`, and hands back the
-  // per-document warnings that become our notes.
+  // The parse's own warnings (a page that failed, the CDN fallback) live on the
+  // AST, and `.to(…)` hands back only the renderer's; taken before rendering,
+  // as officeparser's own converter does, since the AST then collects the
+  // renderer's too.
+  const parsed = [...(ast.warnings ?? [])];
   const { value, messages } = asWorkbook
-    ? await ast.to("csv")
+    ? await ast.to("csv", {
+        onNode: (node) => {
+          for (const visit of sheetVisitors) visit(node);
+        },
+      })
     : await ast.to("text", {
         onNode: (node) => {
           for (const visit of visitors) visit(node);
@@ -972,9 +1525,16 @@ export async function extractOfficeDocument(
   const rendered = typeof value === "string" ? value : new TextDecoder().decode(value);
   const resolved = resolveImagePlaceholders(rendered, ast.attachments ?? []).trim();
   const { text, lost, pages } = dropUndecodableLines(resolved);
-  const notes = toNotes(messages);
+  const notes = toNotes([...parsed, ...messages]);
   if (lost > 0) {
     notes.push({ kind: "text-undecodable", count: lost, ...(pages.length > 0 ? { pages } : {}) });
   }
-  return notes.length > 0 ? { text, notes } : { text };
+  if (hiddenRuns + veryHidden > 0) notes.push({ kind: "hidden-left-out", count: hiddenRuns + veryHidden });
+  if (comments.count() > 0) notes.push({ kind: "comments-included", count: comments.count() });
+  // officeparser leaves RTF's info group unread, and a PDF's title is read
+  // the way the web's first PDF reader reads it, so both platforms agree.
+  const title = ast.type === "rtf" ? rtfTitle(bytes) : ((ast.type === "pdf" && pdfTitle(bytes)) || ast.metadata?.title);
+  const result: ExtractionResult = { text, ...(notes.length > 0 ? { notes } : {}), ...(title ? { title } : {}) };
+  // Only a PDF has pages here.
+  return ast.content.some((node) => node.type === "page") ? noteLayersOff(result, bytes) : result;
 }

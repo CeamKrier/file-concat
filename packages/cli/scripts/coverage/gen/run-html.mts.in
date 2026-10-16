@@ -1,0 +1,19 @@
+// Drives the web's browser-only HTML reader under jsdom.
+// Run from apps/web: node_modules/.bin/tsx <this> <probe.html>...
+import fs from "node:fs";
+import { createRequire } from "node:module";
+const { JSDOM } = createRequire("@REPO@/apps/web/package.json")("jsdom");
+import { routeBytes } from "@REPO@/packages/core/src/index.ts";
+
+const { window } = new JSDOM("");
+Object.assign(globalThis, { DOMParser: window.DOMParser, Node: window.Node, document: window.document, window });
+
+const { extractHtml } = await import("@REPO@/apps/web/src/lib/extract-html-client.ts");
+for (const file of process.argv.slice(2)) {
+  const bytes = new Uint8Array(fs.readFileSync(file));
+  const route = await routeBytes(bytes.subarray(0, 4096));
+  const r = extractHtml(bytes);
+  const out = `--- ${file.split("/").pop()} | ${route.kind}${"parserId" in route ? `/${route.parserId}` : ""}:${r.reader} | ${r.text.length} chars\n${r.text}\n`;
+  fs.writeFileSync(`${file}.out.txt`, out);
+  console.log(out);
+}

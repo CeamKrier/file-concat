@@ -129,7 +129,7 @@ describe("a document the reader only partly read", () => {
 
     const record = result.current.validations["partial.pdf"];
     expect(record.included).toBe(true);
-    expect(record.notes).toEqual(["pages-skipped"]);
+    expect(record.notes).toEqual([{ kind: "pages-skipped", count: 3 }]);
   });
 
   it("counts every note kind, including the one nobody is shown", async () => {
@@ -142,7 +142,7 @@ describe("a document the reader only partly read", () => {
     });
 
     expect(tallies.extract_note?.sort()).toEqual(["cdn-fallback", "pages-skipped"]);
-    expect(result.current.validations["cdn.pdf"].notes).toEqual(["cdn-fallback"]);
+    expect(result.current.validations["cdn.pdf"].notes).toEqual([{ kind: "cdn-fallback", count: 1 }]);
   });
 
   it("writes nothing when a document came through whole", async () => {

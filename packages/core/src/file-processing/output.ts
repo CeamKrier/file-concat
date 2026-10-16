@@ -1,6 +1,7 @@
 import { getLanguageFromPath } from "../path-utils/language";
 import { classifyBundleKind, type BundleKind } from "./bundle-kind";
 import type { ExcludedSummary } from "./exclusions";
+import type { ExtractionNote } from "./parsers/types";
 
 export type OutputStyle = "xml" | "markdown" | "plain";
 
@@ -75,6 +76,7 @@ function buildSummaryLines(options: AssembleOutputOptions, meta: KindMeta): stri
     source ? `Source: ${source}` : null,
     `File count: ${files.length}.`,
     ...renderRecognised(files),
+    ...renderComments(excluded),
     ...renderExclusions(excluded),
   ].filter((line): line is string => line !== null);
 }
@@ -91,6 +93,16 @@ function renderRecognised(files: OutputFile[]): string[] {
   return [
     `- text below was read by recognition, a guess at the characters rather than the file's own: ${listPaths(paths)}`,
   ];
+}
+
+/**
+ * Names the files whose review comments are in the text (Q24 O1). Comments are
+ * the part of a file its sender most often forgets is there, so the bundle
+ * says they came along and what they look like.
+ */
+function renderComments(excluded: ExcludedSummary | undefined): string[] {
+  const paths = (excluded?.partial ?? []).filter(({ notes }) => notes.some((n) => n.kind === "comments-included")).map(({ path }) => path);
+  return paths.length ? [`- review comments are included as [Comment, author: text]: ${listPaths(paths)}`] : [];
 }
 
 /** Format one category's path list, capping at {@link MAX_LISTED}. */
@@ -129,7 +141,52 @@ function renderExclusions(excluded: ExcludedSummary | undefined): string[] {
   if (excluded.unreadable?.length) {
     lines.push(`- couldn't be read: ${listPaths(excluded.unreadable)}`);
   }
+  const partial = (excluded.partial ?? []).flatMap(({ path, notes }) => {
+    const gaps = describeGaps(notes);
+    return gaps ? [`- ${path}: ${gaps}`] : [];
+  });
+  lines.push(...partial.slice(0, MAX_LISTED));
+  if (partial.length > MAX_LISTED) lines.push(`- +${partial.length - MAX_LISTED} more files read in part`);
   return lines.length ? ["Not included (content not shown):", ...lines] : [];
+}
+
+/**
+ * What a reader could not get from a file it did read, in words, or nothing.
+ * Only the kinds that leave a hole in the text. A skipped picture
+ * (`attachments-skipped`) is not one: no format's pictures are described, and
+ * the kind fires on most notebooks, so naming it would be noise on every line.
+ */
+function describeGaps(notes: readonly ExtractionNote[]): string | undefined {
+  const gaps = notes.flatMap(({ kind, count, pages }) => {
+    const on = pages?.length ? ` on ${pageList(pages)}` : "";
+    switch (kind) {
+      case "pages-scanned":
+        return pages?.length ? [`${pageList(pages)} scanned, not read`] : [];
+      case "text-undecodable":
+        return [`${count ? `${count} ` : ""}unreadable line${count === 1 ? "" : "s"} left out${on}`];
+      case "pages-skipped":
+        // No count: a reader stopped at its budget and the rest was not read.
+        return [count ? `${count} page${count === 1 ? "" : "s"} failed to load` : "the rest past a reading limit not read"];
+      case "hidden-left-out":
+        return ["text its author hid left out"];
+      default:
+        return [];
+    }
+  });
+  return gaps.length ? gaps.join("; ") : undefined;
+}
+
+/** `pages 4-6, 9`, at most twenty runs before "+N more". */
+function pageList(pages: readonly number[]): string {
+  const sorted = [...new Set(pages)].sort((a, b) => a - b);
+  const runs: string[] = [];
+  for (let at = 0; at < sorted.length; at++) {
+    const start = sorted[at];
+    while (sorted[at + 1] === sorted[at] + 1) at++;
+    runs.push(sorted[at] > start ? `${start}-${sorted[at]}` : `${start}`);
+  }
+  const rest = runs.length > 20 ? ` +${runs.length - 20} more` : "";
+  return `page${sorted.length === 1 ? "" : "s"} ${runs.slice(0, 20).join(", ")}${rest}`;
 }
 
 function assembleXml(options: AssembleOutputOptions, meta: KindMeta): string {

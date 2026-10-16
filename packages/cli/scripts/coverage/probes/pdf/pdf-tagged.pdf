@@ -1,0 +1,72 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 8 0 R /MarkInfo << /Marked true >> /Lang (en-US) >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 6 0 R /StructParents 0 >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 7 0 R /StructParents 1 >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<<  /Length 407 >>
+stream
+/Artifact << /Type /Pagination /Subtype /Header >> BDC BT /F1 10 Tf 72 750 Td (QZARTIFACTHEAD running header marked as a pagination artifact) Tj ET EMC
+/P << /MCID 0 >> BDC BT /F1 11 Tf 72 700 Td (QZTAGGEDBODYONE first page body paragraph.) Tj ET EMC
+/Figure << /MCID 1 >> BDC 0 0 1 rg 72 560 100 100 re f EMC
+/P << /MCID 2 >> BDC BT /F1 11 Tf 72 540 Td (QZAFTERFIGURE paragraph after the figure.) Tj ET EMC
+endstream
+endobj
+7 0 obj
+<<  /Length 251 >>
+stream
+/Artifact << /Type /Pagination /Subtype /Header >> BDC BT /F1 10 Tf 72 750 Td (QZARTIFACTHEAD running header marked as a pagination artifact) Tj ET EMC
+/P << /MCID 0 >> BDC BT /F1 11 Tf 72 700 Td (QZTAGGEDBODYTWO second page body paragraph.) Tj ET EMC
+endstream
+endobj
+8 0 obj
+<< /Type /StructTreeRoot /K 9 0 R /ParentTree << /Nums [0 [10 0 R 11 0 R 12 0 R] 1 [13 0 R]] >> /ParentTreeNextKey 2 >>
+endobj
+9 0 obj
+<< /Type /StructElem /S /Document /P 8 0 R /K [10 0 R 11 0 R 12 0 R 13 0 R] >>
+endobj
+10 0 obj
+<< /Type /StructElem /S /P /P 9 0 R /Pg 3 0 R /K 0 >>
+endobj
+11 0 obj
+<< /Type /StructElem /S /Figure /P 9 0 R /Pg 3 0 R /Alt (QZFIGUREALT a blue square) /K 1 >>
+endobj
+12 0 obj
+<< /Type /StructElem /S /P /P 9 0 R /Pg 3 0 R /K 2 >>
+endobj
+13 0 obj
+<< /Type /StructElem /S /P /P 9 0 R /Pg 4 0 R /K 0 >>
+endobj
+xref
+0 14
+0000000000 65535 f 
+0000000015 00000 n 
+0000000129 00000 n 
+0000000192 00000 n 
+0000000335 00000 n 
+0000000478 00000 n 
+0000000575 00000 n 
+0000001034 00000 n 
+0000001337 00000 n 
+0000001472 00000 n 
+0000001566 00000 n 
+0000001636 00000 n 
+0000001744 00000 n 
+0000001814 00000 n 
+trailer
+<< /Size 14 /Root 1 0 R /ID [<7064662d7461676765642e7064660000> <7064662d7461676765642e7064660000>] >>
+startxref
+1884
+%%EOF

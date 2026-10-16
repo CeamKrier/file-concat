@@ -60,9 +60,9 @@
  */
 
 import * as fs from "node:fs";
-import { createRequire } from "node:module";
+import { createRequire, findPackageJSON } from "node:module";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
   FIRST_READERS,
@@ -70,7 +70,17 @@ import {
   assemblePdfPages,
   extractWithFallback,
   isPasswordProtected,
+  noteLayersOff,
+  pdfMayHoldFormsOrFiles,
+  pdfTitle,
   routeBytes,
+  rtfTitle,
+  withTitle,
+  withoutHiddenText,
+  withRtfChoices,
+  withRtfComments,
+  withRtfFurniture,
+  type ExtractionNote,
   type ExtractionResult,
   type FirstReaderId,
   type ParserId,
@@ -79,10 +89,11 @@ import {
 
 import { extractCfb, extractWorkbook } from "../../../apps/web/src/lib/extract-cfb-client.js";
 import { parsePdfPages } from "../../../apps/web/src/lib/liteparse-pages.js";
+import { readPdfForms, withPdfForms, type PdfJs } from "../../../apps/web/src/lib/pdf-forms.js";
 import { parsers } from "../src/parsers.js";
 
 const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-const CORPUS = path.join(REPO_ROOT, "packages", "core", "tests", "fixtures", "real");
+const CORPUS = process.env.EXTRACTION_CORPUS ?? path.join(REPO_ROOT, "packages", "core", "tests", "fixtures", "real");
 
 /** Tracked companions of the corpus, and the generator's own dependencies. */
 const NOT_A_FIXTURE = new Set(["README.md", "generate.mjs", "manifest.json", "node_modules"]);
@@ -384,6 +395,12 @@ const liteparseModule = once(async () => {
   lite.initSync({ module: fs.readFileSync(require.resolve("@llamaindex/liteparse-wasm/liteparse_wasm_bg.wasm")) });
   return lite;
 });
+// The web's own pdf.js, in its node build, for a form's fields and attached files.
+const pdfjsModule = once(async (): Promise<PdfJs> => {
+  const manifest = findPackageJSON("pdfjs-dist", pathToFileURL(path.join(REPO_ROOT, "apps", "web", "package.json")));
+  if (!manifest) throw new Error("pdfjs-dist is not installed for apps/web");
+  return import(pathToFileURL(path.join(path.dirname(manifest), "legacy", "build", "pdf.mjs")).href);
+});
 const anydocModule = once(async () => {
   const anydoc = await import("@firecrawl/anydoc-wasm");
   anydoc.initSync({ module: fs.readFileSync(require.resolve("@firecrawl/anydoc-wasm/anydoc_wasm_bg.wasm")) });
@@ -391,11 +408,27 @@ const anydocModule = once(async () => {
 });
 
 const officeparser: ParserLoader = (bytes, format) => parsers.extract("office", bytes, format);
-const anydoc: ParserLoader = async (bytes) => ({ text: (await anydocModule()).toMarkdownBytes(bytes).trim() });
+// As `extract-anydoc-client.ts` reads: comments and page furniture in, hidden text out, then the notes.
+const anydoc: ParserLoader = async (bytes) => {
+  // officeparser reads an RTF comment itself; anydoc skips it, so it is
+  // written into the text first, where hidden text inside it goes too.
+  const { bytes: commented, comments } = withRtfComments(withRtfChoices(bytes));
+  const { bytes: readable, hidden } = withoutHiddenText(withRtfFurniture(commented));
+  const text = (await anydocModule()).toMarkdownBytes(readable).trim();
+  if (!text) return { text };
+  const notes: ExtractionNote[] = [];
+  if (hidden > 0) notes.push({ kind: "hidden-left-out", count: hidden });
+  if (comments > 0) notes.push({ kind: "comments-included", count: comments });
+  const title = rtfTitle(bytes);
+  return { text, ...(notes.length ? { notes } : {}), ...(title ? { title } : {}) };
+};
 const webReaders: Record<FirstReaderId, ParserLoader> = {
   liteparse: async (bytes) => {
     const { pages, skipped } = await parsePdfPages((await liteparseModule()).LiteParse, bytes);
-    return assemblePdfPages(pages, skipped);
+    const extra = pdfMayHoldFormsOrFiles(bytes) ? await readPdfForms(await pdfjsModule(), bytes).catch(() => undefined) : undefined;
+    const title = pdfTitle(bytes);
+    const assembled = extra ? assemblePdfPages(withPdfForms(pages, extra), skipped, extra.files) : assemblePdfPages(pages, skipped);
+    return { ...noteLayersOff(assembled, bytes), ...(title ? { title } : {}) };
   },
   sheetjs: async (bytes) => extractWorkbook(bytes),
   anydoc,
@@ -510,13 +543,22 @@ async function extractOne(file: string, extract: Extract = cliExtract): Promise<
     text: "",
   };
 
-  const route = await routeBytes(bytes.subarray(0, ROUTER_SNIFF_BYTES));
+  let route = await routeBytes(bytes.subarray(0, ROUTER_SNIFF_BYTES));
+  // The product re-routes a zip whose package tell sits past the sniff window
+  // on the whole file (prepare-batch-client); without it a document with its
+  // thumbnail first would count as declined here.
+  if (route.kind === "expand") {
+    const whole = await routeBytes(bytes);
+    if (whole.kind !== "expand") route = whole;
+  }
   base.route = route.kind;
   if (route.kind !== "extract") return base;
   base.parserId = route.parserId;
 
   try {
-    const { text, notes, reader } = await extract(route.parserId, bytes, route.format);
+    const { text: read, notes, reader, title } = await extract(route.parserId, bytes, route.format);
+    // As the product writes it: the title above the text (Q30 O2).
+    const text = withTitle(read, title, file);
     if (reader) base.parserId = `${route.parserId}:${reader}`;
     base.text = text;
     base.chars = text.length;

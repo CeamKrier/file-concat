@@ -1,0 +1,10 @@
+From: Ann Probe <ann@example.com>
+To: Bob <bob@example.com>
+Subject: cp1252
+Date: Tue, 13 Oct 2026 09:15:00 +0200
+Message-ID: <probe@example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8bit
+
+QZWINDOWS “quoted” costs 5€ naïve

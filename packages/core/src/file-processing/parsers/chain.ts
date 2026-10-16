@@ -7,10 +7,10 @@ import type { ExtractionResult, ParserLoader } from "./types";
  * (extraction router, step R1).
  *
  * Only formats the fallback was measured on are listed (POI test-data and the
- * converted legacy corpus, 2026-10-03 and 2026-10-05). anydoc is the only
- * browser reader for a 97-2003 `.ppt`, which reaches it through `cfb`: the
- * compound-file reader answers `parser-unavailable` for a deck, and anydoc read
- * 105 of 145 POI decks that today produce nothing.
+ * converted legacy corpus, 2026-10-03 and 2026-10-05). A 97-2003 `.ppt` reaches
+ * anydoc through `cfb` only when core's own deck reader answers
+ * `parser-unavailable` (PowerPoint 95, a broken edit chain) or nothing; anydoc
+ * scans the raw stream where the persist map is unusable.
  *
  * A PDF runs the other way round (step R3): liteparse first, which scored 49.5
  * against pdf.js's 26.3 on olmOCR-bench's text-layer pages (2026-10-03), and

@@ -1,0 +1,18 @@
+From: Org <org@example.com>
+To: Bob <bob@example.com>
+Subject: Invitation only
+Date: Tue, 13 Oct 2026 09:15:00 +0200
+Message-ID: <probe@example.com>
+MIME-Version: 1.0
+Content-Type: text/calendar; charset=utf-8; method=REQUEST
+
+BEGIN:VCALENDAR
+METHOD:REQUEST
+VERSION:2.0
+BEGIN:VEVENT
+UID:probe-2@example.com
+DTSTART:20261021T090000Z
+SUMMARY:QZCALONLYSUMMARY
+LOCATION:QZCALONLYLOCATION
+END:VEVENT
+END:VCALENDAR

@@ -1,0 +1,24 @@
+From: Ann Probe <ann@example.com>
+To: Bob <bob@example.com>
+Subject: Fwd: inline
+Date: Tue, 13 Oct 2026 09:15:00 +0200
+Message-ID: <probe@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="FWD"
+
+--FWD
+Content-Type: text/plain; charset=utf-8
+
+QZFWDINTRO see below.
+--FWD
+Content-Type: message/rfc822
+
+From: QZFWDFROM <ff@example.com>
+To: Ann <ann@example.com>
+Subject: QZFWDSUBJECT
+Date: Mon, 12 Oct 2026 08:00:00 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+QZFWDBODY inner words.
+--FWD--

@@ -1,7 +1,7 @@
 {
   "name": "@fileconcat/web",
   "private": true,
-  "version": "2.3.0",
+  "version": "2.4.0",
   "type": "module",
   "scripts": {
     "fetch-models": "tsx scripts/fetch-models.ts",
@@ -28,7 +28,7 @@
     "@firecrawl/anydoc-wasm": "^0.2.4",
     "@huggingface/transformers": "4.3.0",
     "@icons-pack/react-simple-icons": "^11.2.0",
-    "@llamaindex/liteparse-wasm": "^2.15.1",
+    "@llamaindex/liteparse-wasm": "file:../../vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.3.tgz",
     "@mdx-js/react": "^3.1.1",
     "@mdx-js/rollup": "^3.1.1",
     "@mozilla/readability": "0.6.0",
@@ -55,7 +55,7 @@
     "mp4box": "2.4.1",
     "onnxruntime-web": "1.31.0-dev.20260914-8d85527a0",
     "pdfjs-dist": "6.1.200",
-    "postal-mime": "^4.0.2",
+    "postal-mime": "^4.0.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "rehype-prism-plus": "^2.0.0",

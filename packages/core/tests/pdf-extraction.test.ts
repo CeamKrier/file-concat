@@ -9,6 +9,7 @@ import {
 } from "../src/file-processing/parsers/officeparser";
 import {
   imageOnlyPdf,
+  nestedFormsPdf,
   positionedTablePdf,
   tableWithEmptyCellPdf,
   textLayerPdf,
@@ -111,13 +112,10 @@ describe("extractOfficeDocument — PDFs with a text layer", () => {
 });
 
 /**
- * These guard `patches/officeparser@7.6.1.patch`, which is the only thing
- * making them pass: the library orders a page's glyphs by vertical position
- * alone, which merges the columns of a multi-column page line by line. The
- * patch is re-applied by pnpm on install and will stop applying the moment
- * officeparser changes those files, so these tests are the tripwire that says
- * the fix is gone. If they fail after a dependency bump, the patch needs
- * re-deriving, not deleting.
+ * Column order on a multi-column page. officeparser 7 ordered a page's glyphs
+ * by vertical position alone, which merged the columns line by line, and a
+ * local patch fixed it; since 8.0 the library orders columns itself (an XY-cut
+ * over the page). These are the tripwire if that ever regresses.
  *
  * Measured 2026-08-15: officeparser 7.2.1 and 7.6.1 both merge these columns,
  * while `pypdf` on the identical bytes reads them correctly, so the ordering
@@ -143,7 +141,8 @@ describe("extractOfficeDocument — multi-column PDFs", () => {
   });
 
   it("leaves a table drawn as positioned text reading across its rows", async () => {
-    const { text } = await extractOfficeDocument(positionedTablePdf());
+    // officeparser 8 pads each column to its widest cell; the padding is layout.
+    const text = (await extractOfficeDocument(positionedTablePdf())).text.replace(/ +/g, " ");
 
     // Reordered as columns this would read "Region EMEA APAC …", which is the
     // failure the width and fill guards exist to prevent.
@@ -154,27 +153,20 @@ describe("extractOfficeDocument — multi-column PDFs", () => {
 });
 
 /**
- * The second half of the same patch. A PDF has no cells, only glyphs at
- * positions, so a table arrives as lines whose values are separated by nothing
- * but a wider gap — and an empty cell is separated by nothing at all.
- *
- * Measured 2026-08-15: `pypdf` collapses these rows the same way on the same
- * bytes, so unlike the column ordering above there is no reader to swap to.
- * The geometry is all there is, and it is only still available inside the
- * parser, which is why this lives in the patch rather than in our own code.
+ * A PDF has no cells, only glyphs at positions, so a table arrives as runs
+ * separated by nothing but a wider gap, and an empty cell by nothing at all.
+ * officeparser 8 recovers such a table as a table, and gives each cell the
+ * column it sits in; the renderer writes only the cells there are, so the
+ * slot an empty cell held is restored from that column.
  */
 describe("extractOfficeDocument — tables drawn as positioned text", () => {
-  it("keeps the slot an empty cell left behind", async () => {
-    const { text } = await extractOfficeDocument(tableWithEmptyCellPdf());
+  it("reads a table with an empty cell as a table, keeping the empty cell's slot", async () => {
+    const text = (await extractOfficeDocument(tableWithEmptyCellPdf())).text.replace(/ +/g, " ");
 
-    // The defect this fixes: "APAC 980 980", where the total has moved into the
-    // Q2 column and reads as a plausible figure for it.
-    expect(text).toContain("| APAC | 980 | | 980 |");
-    expect(text).not.toContain("APAC 980 980");
-    // The rows either side are untouched, so the empty cell is the only thing
-    // the pass reacted to.
     expect(text).toContain("| EMEA | 1200 | 1350 | 2550 |");
     expect(text).toContain("| AMER | 1440 | 1510 | 2950 |");
+    // The defect: "| APAC | 980 | 980 |", the total read as Q2 (pdf-1.2).
+    expect(text).toContain("| APAC | 980 | | 980 |");
   });
 
   it("leaves prose alone", async () => {
@@ -262,6 +254,12 @@ describe("replacePages", () => {
     );
   });
 
+  it("finds a marker that carries the number the document prints", () => {
+    const numbered = ["# Page 1 (numbered iv)", "lost to a font", "# Page 2 (numbered v)", "ordinary prose"].join("\n");
+
+    expect(replacePages(numbered, new Map([[1, "read"]]))).toBe(["# Page 1 (numbered iv)", "read", "# Page 2 (numbered v)", "ordinary prose"].join("\n"));
+  });
+
   it("leaves a document alone when there is nothing to put back", () => {
     expect(replacePages(document, new Map())).toBe(document);
   });
@@ -280,6 +278,37 @@ describe("replacePages", () => {
 describe("assemblePdfPages", () => {
   const fence = "```text\n\n```";
 
+  it("labels a field's value where the page shows it once, and writes the rest and check boxes after the page", () => {
+    const { text } = assemblePdfPages([
+      {
+        number: 1,
+        text: "Name: Ada Lovelace\n\nCity: Ada",
+        fields: [
+          { name: "Full name", value: "Ada Lovelace" },
+          { name: "First", value: "Ada" },
+          { name: "Agree", value: true },
+          { name: "Opt out", value: false },
+          { name: "Notes", value: "  " },
+        ],
+      },
+    ]);
+    expect(text).toBe(
+      "# Page 1\nName: [Form field, Full name: Ada Lovelace]\n\nCity: Ada\n\n[Form field, First: Ada]\n[Form field, Agree: [x]]\n[Form field, Opt out: [ ]]",
+    );
+  });
+
+  it("writes a page's attached files after it and the document's under their own heading, counting the unread", () => {
+    const { text, notes } = assemblePdfPages(
+      [{ number: 1, text: "Body.", attachments: [{ name: "notes.txt", description: "Reviewer notes", text: "Line one.\n" }] }],
+      0,
+      [{ name: "data.bin" }, { name: "empty.txt", text: "" }],
+    );
+    expect(text).toBe(
+      "# Page 1\nBody.\n\n[Attachment, notes.txt: Reviewer notes]\nLine one.\n[End of attachment, notes.txt]\n\n# Attached files\n[Attachment, data.bin] (not included)\n[Attachment, empty.txt]",
+    );
+    expect(notes).toEqual([{ kind: "attachments-skipped", count: 1 }]);
+  });
+
   it("keeps the first copy of a running header and drops page-number footers", () => {
     // liteparse's own stripping drops every copy, title or marking included, so
     // the reader keeps them and the rule officeparser's PDFs get runs here.
@@ -293,6 +322,49 @@ describe("assemblePdfPages", () => {
     expect(text.indexOf("Acme Report")).toBeLessThan(text.indexOf("Body 1."));
     expect(text).not.toMatch(/Page \d of 3/);
     for (const number of [1, 2, 3]) expect(text).toContain(`Body ${number}.`);
+  });
+
+  it("writes a tagged figure's alternative text after its page, never as the page's text", () => {
+    const { text, notes } = assemblePdfPages([
+      { number: 1, text: "Intro.", figures: ["Sales chart", "Picture 3"] },
+      { number: 2, text: fence, scanned: true, figures: ["Scanned letter"] },
+    ]);
+    expect(text).toBe("# Page 1\nIntro.\n\n[Image: Sales chart]\n\n# Page 2\n[Image: Scanned letter]");
+    // The alt text does not make the scanned page readable: it still goes to recognition.
+    expect(notes).toEqual([{ kind: "pages-scanned", count: 1, pages: [2] }]);
+  });
+
+  it("writes a review comment after the words it highlights, or after its page", () => {
+    const { text, notes } = assemblePdfPages([
+      {
+        number: 1,
+        text: "Net revenue rose. Costs fell.",
+        comments: [
+          { author: "Ann\nLee", text: "Check\nthis", anchor: "Net revenue" },
+          { text: "Margin note" },
+          { text: "Twice", anchor: "e" },
+          { text: "  " },
+        ],
+      },
+      { number: 2, text: fence, scanned: true, comments: [{ author: "Bo", text: "On a scan" }] },
+    ]);
+    expect(text).toBe(
+      "# Page 1\nNet revenue [Comment, Ann Lee: Check this] rose. Costs fell.\n\n[Comment: Margin note]\n[Comment: Twice]\n\n# Page 2\n[Comment, Bo: On a scan]",
+    );
+    // A note does not make the scanned page readable: it still goes to recognition.
+    expect(notes).toEqual([
+      { kind: "comments-included", count: 4 },
+      { kind: "pages-scanned", count: 1, pages: [2] },
+    ]);
+  });
+
+  it("names the number the document prints on a page when it is not the page's count", () => {
+    const { text } = assemblePdfPages([
+      { number: 1, text: "Preface.", label: "iv" },
+      { number: 2, text: "Body.", label: "2" },
+      { number: 3, text: "More.", label: "A-\n3" },
+    ]);
+    expect(text).toBe("# Page 1 (numbered iv)\nPreface.\n\n# Page 2\nBody.\n\n# Page 3 (numbered A- 3)\nMore.");
   });
 
   it("keeps one copy of a title that shares its line with the page number", () => {
@@ -377,6 +449,15 @@ describe("assemblePdfPages", () => {
       { kind: "text-undecodable", count: 1, pages: [2] },
     ]);
   });
+});
+
+describe("extractOfficeDocument — a PDF past the reader's budget", () => {
+  it("says the rest was not read when pdf.js stops at its text budget", async () => {
+    const { text, notes } = await extractOfficeDocument(nestedFormsPdf());
+    expect(text).toContain("QZBEFORE");
+    expect(text).not.toContain("QZAFTER");
+    expect(notes).toContainEqual({ kind: "pages-skipped" });
+  }, 30_000);
 });
 
 describe("extractOfficeDocument — scanned PDFs", () => {

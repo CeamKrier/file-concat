@@ -352,6 +352,63 @@ describe("assembleOutput exclusions note", () => {
     expect(empty).not.toContain("Not included");
   });
 
+  it("says per file what a reader could not get from a file it read", () => {
+    const output = assembleOutput({
+      projectName: "demo",
+      files,
+      tree,
+      style: "markdown",
+      excluded: {
+        partial: [
+          {
+            path: "report.pdf",
+            notes: [
+              { kind: "pages-scanned", count: 4, pages: [6, 4, 5, 9] },
+              { kind: "text-undecodable", count: 1, pages: [2] },
+            ],
+          },
+          { path: "memo.docx", notes: [{ kind: "hidden-left-out", count: 2 }] },
+          { path: "deck.pptx", notes: [{ kind: "pages-skipped", count: 3 }] },
+          { path: "notebook.ipynb", notes: [{ kind: "attachments-skipped", count: 2 }] },
+        ],
+      },
+    });
+    expect(output).toContain("Not included (content not shown):");
+    expect(output).toContain("- report.pdf: pages 4-6, 9 scanned, not read; 1 unreadable line left out on page 2");
+    expect(output).toContain("- memo.docx: text its author hid left out");
+    expect(output).toContain("- deck.pptx: 3 pages failed to load");
+    expect(output).not.toContain("notebook.ipynb:");
+  });
+
+  it("leaves the note out when no partial file has a gap to name", () => {
+    const output = assembleOutput({
+      projectName: "demo",
+      files,
+      tree,
+      style: "xml",
+      excluded: { partial: [{ path: "a.ipynb", notes: [{ kind: "attachments-skipped" }] }] },
+    });
+    expect(output).not.toContain("Not included");
+  });
+
+  it("says which files bring their review comments, outside the not-included note", () => {
+    const output = assembleOutput({
+      projectName: "demo",
+      files,
+      tree,
+      style: "plain",
+      excluded: {
+        partial: [
+          { path: "draft.docx", notes: [{ kind: "comments-included", count: 3 }] },
+          { path: "plain.docx", notes: [{ kind: "attachments-skipped", count: 1 }] },
+        ],
+      },
+    });
+    expect(output).toContain("- review comments are included as [Comment, author: text]: draft.docx");
+    expect(output).not.toContain("plain.docx");
+    expect(output).not.toContain("Not included");
+  });
+
   it("lists paths per category with a count on the binary line", () => {
     const output = assembleOutput({
       projectName: "demo",

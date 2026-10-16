@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { strToU8 } from "fflate";
-import PostalMime from "postal-mime";
+import PostalMime, { decodeWords } from "postal-mime";
 import { routeBytes } from "../src/file-processing/routing";
-import { formatEmail } from "../src/file-processing/parsers/email";
+import { formatEmail, readEmail } from "../src/file-processing/parsers/email";
 
 const utf8 = (s: string) => strToU8(s);
 
@@ -123,6 +123,49 @@ describe("formatEmail", () => {
     expect(text).not.toMatch(/^> Fine by me/m);
   });
 
+  it("keeps an HTML table's cells apart, row by row", () => {
+    const { text } = formatEmail({
+      attachments: [],
+      html:
+        "<p>Totals:</p><table><tr><th>Item</th><th>Qty</th></tr><tr><td>Tea</td><td>3</td></tr>" +
+        "<tr><td></td><td></td></tr></table>",
+    });
+    expect(text).toContain("Item | Qty\n\nTea | 3");
+    expect(text).not.toContain("TeaQty");
+    expect(text).not.toMatch(/^\|/m);
+  });
+
+  it("leaves out what an HTML-only message hid, by tag and nesting, and counts it", () => {
+    const { text, notes } = formatEmail({
+      attachments: [],
+      html: [
+        // A preheader, the shape the hidden-prompt write-ups use.
+        '<div style="display:none;max-height:0">QZPREHEADER<div>QZINNER</div></div>',
+        '<p>Hello <span hidden>QZATTR</span><span style=visibility:hidden>QZUNQUOTED</span>Ada.</p>',
+        // A class or aria-hidden is not the attribute; until-found is shown.
+        '<p class="hidden">QZCLASS</p><p aria-hidden="true">QZARIA</p><p hidden="until-found">QZFOUND</p>',
+        // An unclosed paragraph ends where the next begins.
+        '<p style="display: none">QZUNCLOSED<p>QZAFTER</p>',
+        // A hidden cell ends at its own close, not at the inner table's cells.
+        '<table><tr><td style="display:none"><table><tr><td>QZNESTED</td></tr></table></td><td>QZCELL</td></tr></table>',
+        '<!-- <div style="display:none"> --><p>QZCOMMENTED</p>',
+        '<span style="display:none"></span><img hidden src="x.png">',
+      ].join(""),
+    });
+    for (const word of ["QZPREHEADER", "QZINNER", "QZATTR", "QZUNQUOTED", "QZUNCLOSED", "QZNESTED"]) expect(text).not.toContain(word);
+    for (const word of ["Hello Ada.", "QZCLASS", "QZARIA", "QZFOUND", "QZAFTER", "QZCELL", "QZCOMMENTED"]) expect(text).toContain(word);
+    expect(notes).toEqual([{ kind: "hidden-left-out", count: 5 }]);
+    // The plain part wins when there is one, and has nothing to hide.
+    expect(formatEmail({ attachments: [], text: "Plain", html: '<p hidden>x</p>' }).notes).toBeUndefined();
+  });
+
+  it("drops an unclosed hidden element in one pass, however many tags follow it", () => {
+    const html = `<p>Kept</p><div style="display:none">${"<b>x".repeat(200_000)}`;
+    const started = performance.now();
+    expect(formatEmail({ attachments: [], html }).text).toBe("Kept");
+    expect(performance.now() - started).toBeLessThan(2000);
+  });
+
   it("quotes only what sits inside the blockquote when text runs around it", () => {
     const { text } = formatEmail({ attachments: [], html: "Yes<blockquote>Ready?</blockquote>Ship it" });
     expect(text).toBe("Yes\n> Ready?\nShip it");
@@ -149,7 +192,196 @@ describe("formatEmail", () => {
     expect(text).toContain("The report is attached.");
   });
 
+  /** A message whose parts are the given `[content-type, body]` pairs, in a multipart/mixed. */
+  const multipart = (...parts: [string, string][]) =>
+    [
+      "From: org@example.com",
+      "Subject: Planning",
+      "MIME-Version: 1.0",
+      'Content-Type: multipart/mixed; boundary="B"',
+      "",
+      ...parts.flatMap(([type, body]) => ["--B", `Content-Type: ${type}`, "", body]),
+      "--B--",
+      "",
+    ].join("\r\n");
+
+  const INVITE = [
+    "BEGIN:VCALENDAR",
+    "METHOD:REQUEST",
+    "BEGIN:VEVENT",
+    "SUMMARY:Quarterly plan",
+    " ning review",
+    "DTSTART:20261020T090000Z",
+    "DTEND;TZID=Europe/Istanbul:20261020T130000",
+    "LOCATION:Room 4\\, second floor",
+    "ORGANIZER;CN=Org Person:mailto:org@example.com",
+    'ATTENDEE;CN="Doe, Jane";ROLE=REQ-PARTICIPANT:mailto:jane@example.com',
+    "ATTENDEE:mailto:bob@example.com",
+    "DESCRIPTION:line one\\nline two\\, with comma",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+
+  it("reads a meeting invite's calendar part as the body instead of listing it", async () => {
+    const { text, notes } = formatEmail(await PostalMime.parse(multipart(["text/calendar; method=REQUEST", INVITE])));
+    expect(text).toContain(
+      [
+        "Event: Quarterly planning review",
+        "Starts: 2026-10-20 09:00 UTC",
+        "Ends: 2026-10-20 13:00 Europe/Istanbul",
+        "Location: Room 4, second floor",
+        "Organizer: Org Person <org@example.com>",
+        "Attendees: Doe, Jane <jane@example.com>, bob@example.com",
+        "Description: line one\nline two, with comma",
+      ].join("\n"),
+    );
+    expect(text).not.toContain("Attachments");
+    expect(notes).toBeUndefined();
+  });
+
+  it("writes an invite sent twice once, and says when it is a cancellation", async () => {
+    const cancel = INVITE.replace("METHOD:REQUEST", "METHOD:CANCEL");
+    const { text } = formatEmail(
+      await PostalMime.parse(multipart(["text/plain", "Called off."], ["text/calendar", cancel], ["application/ics", cancel])),
+    );
+    expect(text).toContain("Called off.\n\nMethod: CANCEL\nEvent: Quarterly planning review");
+    expect(text.match(/Event:/g)).toHaveLength(1);
+  });
+
+  it("keeps a calendar part with no event in it listed as an attachment", async () => {
+    const todo = "BEGIN:VCALENDAR\r\nBEGIN:VTODO\r\nSUMMARY:File taxes\r\nEND:VTODO\r\nEND:VCALENDAR";
+    const { text, notes } = formatEmail(await PostalMime.parse(multipart(["text/plain", "See the task."], ["text/calendar", todo])));
+    expect(text).toContain("Attachments (1, not included): unnamed-1");
+    expect(notes).toEqual([{ kind: "attachments-skipped", count: 1 }]);
+  });
+
+  it("names who sent it and where replies go only when that is not the author", async () => {
+    const headers = (extra: string[]) =>
+      ["From: Ada <ada@example.com>", ...extra, "Subject: Hi", "MIME-Version: 1.0", "Content-Type: text/plain", "", "Hello", ""].join("\r\n");
+    const { text } = formatEmail(
+      await PostalMime.parse(headers(["Sender: Assistant <pa@example.com>", "Reply-To: Team <team@example.com>, ada@example.com"])),
+    );
+    expect(text).toContain("From: Ada <ada@example.com>\nSender: Assistant <pa@example.com>\nReply-To: Team <team@example.com>\n");
+    const same = formatEmail(await PostalMime.parse(headers(["Sender: ada@example.com", "Reply-To: ADA@example.com"]))).text;
+    expect(same).not.toContain("Sender:");
+    expect(same).not.toContain("Reply-To:");
+  });
+
+  it("leaves out the page title, the images the body draws and a detached signature", async () => {
+    const message = [
+      "From: Ada <ada@example.com>",
+      "Subject: Report",
+      "MIME-Version: 1.0",
+      'Content-Type: multipart/signed; protocol="application/pgp-signature"; boundary="S"',
+      "",
+      "--S",
+      'Content-Type: multipart/related; boundary="R"',
+      "",
+      "--R",
+      "Content-Type: text/html; charset=utf-8",
+      "",
+      '<html><head><title>QZTITLE</title></head><body><p>See the chart.</p><img src="cid:chart@x"></body></html>',
+      "--R",
+      'Content-Type: image/png; name="chart.png"',
+      "Content-ID: <chart@x>",
+      "Content-Transfer-Encoding: base64",
+      "",
+      "iVBORw0KGgo=",
+      "--R",
+      'Content-Type: image/png; name="unused.png"',
+      "Content-ID: <unused@x>",
+      "Content-Transfer-Encoding: base64",
+      "",
+      "iVBORw0KGgo=",
+      "--R--",
+      "--S",
+      'Content-Type: application/pgp-signature; name="signature.asc"',
+      "",
+      "-----BEGIN PGP SIGNATURE-----",
+      "-----END PGP SIGNATURE-----",
+      "--S--",
+      "",
+    ].join("\r\n");
+    const { text, notes } = formatEmail(await PostalMime.parse(message));
+    expect(text).toContain("See the chart.");
+    expect(text).not.toContain("QZTITLE");
+    expect(text).not.toContain("signature.asc");
+    expect(text).not.toContain("chart.png");
+    // An image the body never draws is still something attached.
+    expect(text).toContain("Attachments (1, not included): unused.png");
+    expect(notes).toEqual([{ kind: "attachments-skipped", count: 1 }]);
+  });
+
   it("answers 'couldn't extract' for a message with nothing in it", async () => {
     expect(formatEmail({ attachments: [] })).toEqual({ text: "" });
+  });
+});
+
+describe("readEmail", () => {
+  const mail = { parse: (b: ArrayBuffer | Uint8Array | string, options: object) => PostalMime.parse(b, options), decodeWords };
+  const message = (head: string[], body: string[]) => ["From: ada@example.com", "Subject: Report", "MIME-Version: 1.0", ...head, "", ...body, ""].join("\r\n");
+  const mixed = (type: string, parts: string[][]) =>
+    message([`Content-Type: ${type}; boundary="B"`], [...parts.flatMap((part) => ["--B", ...part]), "--B--"]);
+
+  it("decodes Comments and Keywords and keeps them with the headers", async () => {
+    const { text } = await readEmail(message(["Comments: =?UTF-8?Q?caf=C3=A9_notes?=", "Keywords: budget, q3", "Content-Type: text/plain"], ["Body."]), mail);
+    expect(text).toContain("Subject: Report\nComments: café notes\nKeywords: budget, q3\n\nBody.");
+  });
+
+  it("renders an inline forward like the outer message, its date in UTC, and leaves an attached one listed", async () => {
+    const inner = ["From: Bo <bo@example.com>", "Date: Mon, 12 Oct 2026 08:00:00 +0200", "Subject: Old", "", "Old words."];
+    const { text } = await readEmail(
+      mixed("multipart/mixed", [
+        ["Content-Type: text/plain", "", "See below."],
+        ["Content-Type: message/rfc822", "", ...inner],
+        ["Content-Type: message/rfc822", 'Content-Disposition: attachment; filename="old.eml"', "", ...inner],
+      ]),
+      mail,
+    );
+    expect(text).toContain(
+      "See below.\n\n--- Enclosed message ---\nFrom: Bo <bo@example.com>\nDate: 2026-10-12T06:00:00.000Z\nSubject: Old\n\nOld words.\n\nAttachments (1, not included): old.eml",
+    );
+  });
+
+  it("reads a bounce's delivery status and the headers of the message that bounced", async () => {
+    const { text, notes } = await readEmail(
+      mixed("multipart/report; report-type=delivery-status", [
+        ["Content-Type: text/plain", "", "Delivery failed."],
+        ["Content-Type: message/delivery-status", "", "Reporting-MTA: dns; mx.example.com", "", "Final-Recipient: rfc822; gone@example.com", "Action: failed", "Diagnostic-Code: smtp; 550 user unknown"],
+        ["Content-Type: text/rfc822-headers", "", "From: ada@example.com", "To: gone@example.com", "Subject: Lunch"],
+      ]),
+      mail,
+    );
+    expect(text).toContain("Delivery failed.\n\n--- Delivery status ---\nReporting-MTA: dns; mx.example.com\n\nFinal-Recipient: rfc822; gone@example.com");
+    expect(text).toContain("Diagnostic-Code: smtp; 550 user unknown\n\n--- Returned message ---\nFrom: ada@example.com\nTo: gone@example.com\nSubject: Lunch");
+    expect(notes).toBeUndefined();
+  });
+
+  it("reads a text/enriched body, and drops it as the alternative of a plain one", async () => {
+    const enriched = ["Content-Type: text/enriched", "", "<bold>Now</bold> <param>Times</param>here", "", "<excerpt>You asked</excerpt>", "a <<b>"];
+    expect((await readEmail(message(enriched.slice(0, 1), enriched.slice(2)), mail)).text).toContain("Now here\n> You asked\na <b>");
+    const both = await readEmail(mixed("multipart/alternative", [["Content-Type: text/plain", "", "Plain."], enriched]), mail);
+    expect(both.text).toContain("Plain.");
+    expect(both.text).not.toContain("Attachments");
+  });
+
+  it("names an attachment's Content-Description beside its filename", async () => {
+    const { text } = await readEmail(
+      mixed("multipart/mixed", [
+        ["Content-Type: text/plain", "", "Hi."],
+        ["Content-Type: text/plain", 'Content-Disposition: attachment; filename="n.txt"', "Content-Description: meeting notes", "", "x"],
+      ]),
+      mail,
+    );
+    expect(text).toContain("Attachments (1, not included): n.txt (meeting notes)");
+  });
+
+  it("stops unwrapping enclosed messages ten deep and lists what is left", async () => {
+    let nested = message(["Content-Type: text/plain"], ["Deepest."]);
+    for (let depth = 0; depth < 12; depth++) nested = message(["Content-Type: message/rfc822"], [nested]);
+    const { text } = await readEmail(nested, mail);
+    expect(text.match(/--- Enclosed message ---/g)).toHaveLength(10);
+    expect(text).not.toContain("Deepest.");
+    expect(text).toContain("Attachments (1, not included)");
   });
 });

@@ -16,6 +16,7 @@ import {
   routeBytes,
   ROUTER_SNIFF_BYTES,
   addLineNumbers,
+  withTitle,
   type OutputStyle,
   type ExcludedSummary,
 } from "@fileconcat/core";
@@ -193,6 +194,7 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
     readError: [] as string[],
     parseFailed: [] as string[],
   };
+  const partial: NonNullable<ExcludedSummary["partial"]> = [];
   let parsedCount = 0;
   let totalSize = 0;
   let routeFailureReported = false;
@@ -239,7 +241,10 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
     // agree on which formats qualify and how the text is pulled.
     if (extract && route.kind === "extract") {
       try {
-        const { text, notes } = await parsers.extract(route.parserId, readAll(source), route.format);
+        const extracted = await parsers.extract(route.parserId, readAll(source), route.format);
+        const { notes } = extracted;
+        // The document's own title above its text, when it says something (Q30 O2).
+        const text = withTitle(extracted.text, extracted.title, file);
         if (!text) {
           // A container this build carries no reader for (a 97-2003 Word file,
           // an Outlook message) is a binary skip, not a parse that failed.
@@ -252,6 +257,8 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
           continue;
         }
         processedFiles.push({ path: file, content: text, language: "text" });
+        // What the reader could not get from it, named in the bundle (Q7 O1).
+        if (notes?.length) partial.push({ path: file, notes });
         parsedCount++;
         totalSize += source.size;
       } catch (err) {
@@ -335,6 +342,7 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
   if (skipped.parseFailed.length) excluded.unextractable = skipped.parseFailed;
   if (skipped.binary.length) excluded.binary = skipped.binary;
   if (skipped.readError.length) excluded.unreadable = skipped.readError;
+  if (partial.length) excluded.partial = partial;
 
   const skippedBreakdown = {
     oversize: skipped.oversize.length,

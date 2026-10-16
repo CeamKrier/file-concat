@@ -149,6 +149,67 @@ describe("extractNotebook", () => {
     expect(text).not.toContain("\u001B");
   });
 
+  const outputs = (...items: Record<string, unknown>[]) =>
+    utf8(JSON.stringify({ cells: [{ cell_type: "code", source: "show()", outputs: items }], nbformat: 4 }));
+
+  it("reads an output that has only markdown or only HTML, as text", () => {
+    const { text, notes } = extractNotebook(
+      outputs(
+        { output_type: "display_data", data: { "text/markdown": ["**Total**: 42"] } },
+        {
+          output_type: "display_data",
+          data: {
+            "text/html": [
+              "<style>td { color: red }</style><table><tr><th>city</th><th>n</th></tr>",
+              "<tr><td>Paris &amp; Lyon</td><td>3</td></tr></table>",
+            ],
+          },
+        },
+      ),
+    );
+    expect(text).toContain("Output:\n```\n**Total**: 42\ncity | n\nParis & Lyon | 3\n```");
+    expect(text).not.toContain("color");
+    expect(notes).toBeUndefined();
+  });
+
+  it("counts an HTML output with no text in it, a script-drawn chart, as dropped", () => {
+    const { text, notes } = extractNotebook(
+      outputs({ output_type: "display_data", data: { "text/html": ['<div id="plot"></div><script>Plotly.newPlot("plot")</script>'] } }),
+    );
+    expect(text).not.toContain("Plotly");
+    expect(notes).toEqual([{ kind: "attachments-skipped", count: 1 }]);
+  });
+
+  it("fences stderr apart from stdout, in the order they were written", () => {
+    const { text } = extractNotebook(
+      outputs(
+        { output_type: "stream", name: "stdout", text: "QZOUT\n" },
+        { output_type: "stream", name: "stderr", text: "QZERR\n" },
+        { output_type: "stream", name: "stdout", text: "QZMORE\n" },
+      ),
+    );
+    expect(text).toContain("Output:\n```\nQZOUT\n```\n\nStderr:\n```\nQZERR\n```\n\nOutput:\n```\nQZMORE\n```");
+  });
+
+  it("names an image by its repr, counted, and leaves an image output with markdown as before", () => {
+    const { text, notes } = extractNotebook(
+      outputs(
+        { output_type: "display_data", data: { "image/png": "iVBORw0KGgo=", "text/plain": ["<Figure size 640x480 with 1 Axes>"] } },
+        { output_type: "display_data", data: { "image/png": "iVBORw0KGgo=", "text/markdown": "**QZMD**", "text/plain": "<IPython.Markdown>" } },
+      ),
+    );
+    expect(text).toContain("Output:\n```\n[Image: <Figure size 640x480 with 1 Axes>]\n<IPython.Markdown>\n```");
+    expect(notes).toEqual([{ kind: "attachments-skipped", count: 1 }]);
+  });
+
+  it("fences a raw cell for another renderer under its format, and reads a markdown one as prose", () => {
+    const raw = (metadata: Record<string, string>, source: string) => ({ cell_type: "raw", metadata, source });
+    const { text } = extractNotebook(
+      utf8(JSON.stringify({ cells: [raw({ format: "text/latex" }, "\\section{QZRAW}"), raw({ raw_mimetype: "text/markdown" }, "QZPROSE"), raw({}, "QZPLAIN")] })),
+    );
+    expect(text).toBe("Raw (text/latex):\n```\n\\section{QZRAW}\n```\n\nQZPROSE\n\nQZPLAIN");
+  });
+
   it("answers 'couldn't extract' for JSON that is not a notebook", () => {
     expect(extractNotebook(utf8(`{"cells": "not an array"}`))).toEqual({ text: "" });
     expect(extractNotebook(utf8("not json at all"))).toEqual({ text: "" });
@@ -206,6 +267,27 @@ describe("extractSubtitles", () => {
     expect(extractSubtitles(utf8(spoken.join("\n"))).text).toBe(
       "Roger Bingham: It is a lovely day.\nNeil deGrasse Tyson: It is indeed.",
     );
+  });
+
+  it("keeps an unclosed tag as text and still strips what follows it", () => {
+    const cue = (line: string) => extractSubtitles(utf8(`1\n00:00:01,000 --> 00:00:02,000\n${line}\n`)).text;
+    expect(cue("{\\an8}Top <i>line</i> a < b {\\b1}c")).toBe("Top line a < b c");
+    expect(cue("<v>Nobody named</v> here")).toBe("Nobody named here");
+  });
+
+  it("writes a ruby reading after its base in parentheses, closed or not", () => {
+    const cue = (line: string) => extractSubtitles(utf8(`WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n${line}\n`)).text;
+    expect(cue("<ruby>Kan<rt>kan</rt>Ji<rt>ji</rt></ruby> end")).toBe("Kan(kan)Ji(ji) end");
+    expect(cue("<ruby>Tokyo<rt.small>toukyou</ruby>")).toBe("Tokyo(toukyou)");
+  });
+
+  it("reads crafted markup in one pass", () => {
+    for (const line of ["<i ".repeat(40_000), "{\\".repeat(40_000), `<v${".a".repeat(40)}`, `<x>${"{\\".repeat(40_000)}`]) {
+      const vtt = utf8(`1\n00:00:01,000 --> 00:00:02,000\n${line}\n`);
+      const started = performance.now();
+      extractSubtitles(vtt);
+      expect(performance.now() - started).toBeLessThan(1000);
+    }
   });
 
   it("answers 'couldn't extract' for a track with cues but no words", () => {

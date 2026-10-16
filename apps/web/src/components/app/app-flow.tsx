@@ -217,10 +217,17 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
 
   // Real content gaps the model can't see in the tree (ADR-0008). Reported in
   // the bundle summary; noise and user-deselected files are never listed.
-  const excluded = useMemo(
-    () => summarizeExclusions(filter.fileStatuses),
-    [filter.fileStatuses],
-  );
+  // A document in the bundle that its reader got only part of is named with
+  // what is missing, so a question about page 5 is not answered as if page 5
+  // were blank (Q7 O1).
+  const excluded = useMemo(() => {
+    const summary = summarizeExclusions(filter.fileStatuses);
+    const included = new Set(filter.fileStatuses.filter((s) => s.included).map((s) => s.path));
+    const partial = Object.entries(ingestion.validations)
+      .filter(([path, v]) => included.has(path) && v.notes?.length)
+      .map(([path, v]) => ({ path, notes: v.notes ?? [] }));
+    return partial.length ? { ...summary, partial } : summary;
+  }, [filter.fileStatuses, ingestion.validations]);
 
   const [estimatorReady, setEstimatorReady] = useState(false);
   useEffect(() => {
@@ -331,7 +338,10 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // until now nobody read it, so a PDF missing three pages reached the bundle
   // looking exactly like one missing none.
   //
-  // Only this one kind, out of five. `ocr-failed` is what the scanned documents
+  // Hidden text the reader left out on purpose (Q18 O1) is listed the same
+  // way: what is in the bundle is real, and something the file holds is not.
+  //
+  // Only these two kinds, out of the rest. `ocr-failed` is what the scanned documents
   // card is already about, and `parser-unavailable` / `cdn-fallback` describe a
   // file that produced no text at all, which is not in the bundle to caveat.
   // `attachments-skipped` is the one deliberately left out: it is honest, but a
@@ -343,8 +353,11 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   const partialDocuments = useMemo(() => {
     const included = new Set(filter.fileStatuses.filter((s) => s.included).map((s) => s.path));
     return Object.entries(ingestion.validations)
-      .filter(([path, v]) => included.has(path) && v.notes?.includes("pages-skipped"))
-      .map(([path]) => ({ name: path.split("/").pop() ?? path, why: "pages missing" }));
+      .filter(([path, v]) => included.has(path) && v.notes?.some((n) => n.kind === "pages-skipped" || n.kind === "hidden-left-out"))
+      .map(([path, v]) => ({
+        name: path.split("/").pop() ?? path,
+        why: v.notes?.some((n) => n.kind === "pages-skipped") ? "pages missing" : "hidden text left out",
+      }));
   }, [ingestion.validations, filter.fileStatuses]);
   const bigBundle = SPLIT_OUTPUT_ENABLED && tokens > MULTI_OUTPUT_LIMIT;
   // What the removed 32 MB per-file cap used to decide silently, reported

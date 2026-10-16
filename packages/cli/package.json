@@ -8,7 +8,7 @@
     "file-concat": "./dist/index.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22.13"
   },
   "files": [
     "dist"
@@ -55,8 +55,8 @@
     "commander": "^12.0.0",
     "file-type": "^22.0.1",
     "glob": "^11.0.0",
-    "officeparser": "^7.6.1",
-    "postal-mime": "^4.0.2"
+    "officeparser": "^8.1.1",
+    "postal-mime": "^4.0.7"
   },
   "devDependencies": {
     "7z-wasm": "^1.2.0",
@@ -65,7 +65,7 @@
     "@fileconcat/core": "workspace:*",
     "@firecrawl/anydoc-wasm": "^0.2.4",
     "@huggingface/transformers": "4.3.0",
-    "@llamaindex/liteparse-wasm": "^2.15.1",
+    "@llamaindex/liteparse-wasm": "file:../../vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.3.tgz",
     "@mozilla/readability": "0.6.0",
     "@types/jsdom": "^30.0.0",
     "@types/node": "^22.0.0",

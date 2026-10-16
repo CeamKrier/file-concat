@@ -13,6 +13,16 @@ export {
 export type { ArchiveEntry, ArchiveKind } from "./archives";
 export {
   assemblePdfPages,
+  noteLayersOff,
+  pdfMayHoldFormsOrFiles,
+  withoutHiddenText,
+  withRtfChoices,
+  withRtfComments,
+  withRtfFurniture,
+  biffSheetFurniture,
+  workbookSheets,
+  nameBlocks,
+  linkWorthWriting,
   createParserRegistry,
   extractWithFallback,
   FIRST_READERS,
@@ -23,14 +33,20 @@ export {
   transcriptFromCues,
   formatDoc,
   formatEmail,
+  readEmail,
   formatMsg,
+  formatPpt,
   isPasswordProtected,
+  pdfTitle,
   replacePages,
+  rtfTitle,
+  withTitle,
 } from "./parsers";
 export type {
   ExtractionNote,
   ExtractionNoteKind,
   ExtractionResult,
+  MailLibrary,
   MessageFields,
   CfbStreams,
   OcrOptions,
@@ -38,6 +54,7 @@ export type {
   ParserId,
   ParserLoader,
   ParserRegistry,
+  PdfAttachment,
   PdfPage,
 } from "./parsers";
 export { validateFile } from "./validation";

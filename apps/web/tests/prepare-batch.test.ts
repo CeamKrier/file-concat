@@ -62,6 +62,25 @@ describe("prepareBatch", () => {
     expect(files[0]!.route).toEqual({ kind: "extract", parserId: "office", format: "docx" });
   });
 
+  it("keeps an EPUB whole when its mimetype part comes after a large first entry", async () => {
+    const cover = new Uint8Array(20_000);
+    for (let i = 0; i < cover.length; i++) cover[i] = (i * 7919) & 0xff;
+    const bytes = zipSync(
+      {
+        "META-INF/container.xml": strToU8(
+          `<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="book.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`,
+        ),
+        "cover.jpg": cover,
+        mimetype: strToU8("application/epub+zip"),
+      },
+      { level: 0 },
+    );
+    const { files, expandedCount } = await prepareBatch([{ file: new File([bytes], "book.epub"), path: "book.epub" }]);
+
+    expect(expandedCount).toBe(0);
+    expect(files.map((f) => [f.path, f.route.kind])).toEqual([["book.epub", "extract"]]);
+  });
+
   it("carries the classification it sniffed, so the read loop never reads the prefix twice", async () => {
     // Measured 2026-09-15: a file the router leaves as `unknown` cost two 8 KB
     // reads (router, then validation) at about 2.7 ms each for a binary that

@@ -1,0 +1,21 @@
+From: Ann Probe <ann@example.com>
+To: Bob <bob@example.com>
+Subject: related
+Date: Tue, 13 Oct 2026 09:15:00 +0200
+Message-ID: <probe@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/related; boundary="REL"; type="text/html"
+
+--REL
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>QZRELATEDHTML</p><img src="cid:logo@example.com" alt="QZCIDALT"></body></html>
+--REL
+Content-Type: image/png; name="QZINLINELOGO.png"
+Content-Disposition: inline; filename="QZINLINELOGO.png"
+Content-ID: <logo@example.com>
+Content-Transfer-Encoding: base64
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmM
+IQAAAABJRU5ErkJggg==
+--REL--

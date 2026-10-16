@@ -1,0 +1,841 @@
+##### 45537_Footer.ppt
+2026-10-14T18:08:24.997387830Z main ERROR Log4j API could not find a logging provider.
+SLIDE 1 hidden=false title=Power Point	
+
+  NOTES  | 
+SLIDE-HF footer=null visible=false header=null date=null
+NOTES-HF footer=testdoc test phrase header=null
+EXTRACTOR(all)
+Power Point	
+
+Header Footer
+
+
+testdoc test phrasetestdoc test phrase
+##### 45537_Header.ppt
+SLIDE 1 hidden=false title=Power Point
+  NOTES  | 
+SLIDE-HF footer=null visible=true header=null date=null
+NOTES-HF footer=null header=testdoc test phrase
+EXTRACTOR(all)
+Power Point
+Header Footer
+*
+testdoc test phrasetestdoc test phrase
+
+
+##### 45543.ppt
+SLIDE 1 hidden=false title=Removing financing obstacles through project structuring 
+  COMMENT author=XPVMWARE01 text=testdoc
+  NOTES * | * |  | 
+SLIDE 2 hidden=false title=Outline of the presentation
+  COMMENT author=XPVMWARE01 text=test phrase
+  NOTES * | * |  | 
+SLIDE 3 hidden=false title=null
+  NOTES * | * |  | 
+SLIDE 4 hidden=false title=Project preparation
+  NOTES * | * |  | 
+SLIDE 5 hidden=false title=Project preparation
+  NOTES * | * |  | 
+SLIDE 6 hidden=false title=Project structuring
+  NOTES * | * |  | 
+SLIDE 7 hidden=false title=Project structuring: local conditions
+  NOTES * | * |  | 
+SLIDE 8 hidden=false title=null
+  NOTES * | * |  | 
+SLIDE 9 hidden=false title=Water financing model
+  NOTES * | * |  | 
+SLIDE 10 hidden=false title=In summary
+  NOTES * | * |  | 
+SLIDE 11 hidden=false title=Removing financing obstacles through project structuring 
+  NOTES * | * |  | 
+SLIDE-HF footer=null visible=false header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+Removing financing obstacles through project structuring 
+
+
+
+
+			
+Antonio Vives
+
+Manager, a.i.
+
+Sustainable Development Department
+
+Inter-American Development Bank
+
+Access to Finance for Local Governments
+
+IV World Water Forum
+
+March 17, 2006
+XPVMWARE01 - testdoc*
+*
+
+
+Outline of the presentation
+
+
+Project preparation
+
+
+
+Project structuring
+XPVMWARE01 - test phrase*
+*
+
+
+
+
+
+
+NEEDS
+Preparation
+Structuring
+Financing
+Project finance cycle
+*
+*
+
+
+Project preparation
+One of the major obstacles to water and sanitation finance is project preparation
+
+Low institutional capacity
+
+A local affair, sometimes removed from decision making centers
+
+Difficult political and economic conditions
+
+Scarcity of financial resources: users, taxpayers, markets
+
+Project preparation not given the key role
+*
+*
+
+
+Project preparation
+Donors and multilaterals financial institutions must emphasize support for the early stage.
+
+We at the IDB hope to approve on Monday a Project Preparation Fund with grants for capacity building and project preparation
+
+Donors should consider “debt for water swaps” as part of their official assistance.
+
+Both would leverage other funds: “teach them how to fish instead of giving them fish”
+*
+*
+
+
+Project structuring
+Financial structures adapted to local realities
+
+Exploit all possibilities to maximize synergies between scarce resources: own labor, tariffs, donors, multilaterals, public and private resources
+
+At one extreme, cooperatives, water microenterprises, municipal utilities
+
+In the middle, management contracts, for operation, maintenance, collections, etc.
+
+At the other extreme, full-fledged concessions
+*
+*
+
+
+Project structuring: local conditions
+Willingness to pay/local views
+
+Tariff sustainability
+
+Site and location
+
+Institutional capacity
+
+Fiscal space
+
+Legal framework
+
+Political risk
+
+Macroeconomic conditions
+*
+*
+
+
+
+Local conditions
+*
+*
+
+
+Water financing model
+
+
+Sesión FT3.40, 
+
+Domingo 19 marzo, 11:00 am 
+
+Diezmo 4
+
+*
+*
+
+
+In summary
+Project preparation and structuring may not be a source of funds, but can help bring funds and enhance the long term sustainability of water projects
+
+
+
+All actors, all sources, all structures must be explored
+*
+*
+
+
+Removing financing obstacles through project structuring 
+
+
+
+
+			
+Antonio Vives
+
+Manager, a.i.
+
+Sustainable Development Department
+
+Inter-American Development Bank
+
+Access to Finance for Local Governments
+
+IV World Water Forum
+
+March 17, 2006
+*
+*
+
+
+
+##### 49541_symbol_map.ppt
+SLIDE 1 hidden=false title=null
+SLIDE-HF footer=null visible=true header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+75 years
+
+
+##### 54111.ppt
+SLIDE 1 hidden=false title=
+
+
+Table sample
+SLIDE-HF footer=null visible=false header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+
+
+
+Table sample
+Dummy text
+TH Cell 1	TH Cell 2	TH Cell 3	TH Cell 4
+Row 1, Cell 1	Row 1, Cell 2	Row 1, Cell 3	Row 1, Cell 4
+Row 2, Cell 1	Row 2, Cell 2	Row 2, Cell 3	Row 2, Cell 4
+Row 3, Cell 1	Row 3, Cell 2	Row 3, Cell 3	Row 3, Cell 4
+Row 4, Cell 1	Row 4, Cell 2	Row 4, Cell 3	Row 4, Cell 4
+Row 5, Cell 1	Row 5, Cell 2	Row 5, Cell 3	Row 5, Cell 4
+
+##### 54880_chinese.ppt
+SLIDE 1 hidden=false title=null
+SLIDE-HF footer=null visible=false header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+Single byte
+
+複数の文字
+
+カタカナ
+
+ﾊﾝｶｸ
+
+表十ソ
+
+𠮟
+
+表Mixパﾋﾟ𠮟
+
+##### 60003.ppt
+SLIDE 1 hidden=false title=null
+SLIDE 2 hidden=false title=null
+  LINK www.europerspectives.org -> http://www.europerspectives.org/
+  LINK info@europerspectives.org -> mailto:info@europerspectives.org
+  NOTES  | 
+SLIDE 3 hidden=false title=null
+SLIDE 4 hidden=false title=
+
+
+
+
+
+
+
+
+Методологичен подход & Инструменти
+
+Анализи – национални изследвания,  идентифициране на “добри практики”, на техники за “добро управление”, на административен капацитет, на адекватно портофолио на агенциите
+
+Оценка – в контекст на качествени и количествени критерии, препоръки и корективни мерки
+
+Прототипи – разработване на нов финансов инструмент & регулации, оперативни структури, набиране на финансови средства, селекция на пилотни структури
+
+Стартиране на пилотна фаза – разработване на бизнес планове, ръководства & наръчници, маркетингови проучвания , разработване на адекватно портофолио за финансовите институции
+
+Консултиране – на стартиращи финансови институции, интензивно обучение 
+
+ Национална подкрепа – създаване на Национална Група за подкрепа с цел гарантиране на устойчивост на  постигнатите резултати
+SLIDE 5 hidden=false title=
+
+
+
+
+
+
+
+ИНСТРУМЕНТИ & ФОНД
+
+ИНСТРУМЕНТИ – Разработване на финансови инструменти в  подкрепа на иновативни практики и внедряване на нови технологии от МСП – управление на знанието, улесняване на достъп до финансиране, разработване на нови финансови регулации
+
+ФОНД – Създаване на Трансграничен Фонд  за Патенти и Лицензи – разработаване на примерна законова рамка, на адекватно портофолио,  анализ на основните “потребители”, интегриране на частния сектор в  пилотна фаза  
+SLIDE 6 hidden=false title=
+
+
+
+
+
+
+АГЕНЦИЯТА
+
+Създаване на  Агенция за Иновации  и Финансиране – концепция и приложението й, програми и инструменти, обучение
+SLIDE-HF footer=Plan4all Kick-off Meeting, 14th May 2009, Prague visible=true header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+СЪТРУДНИЧЕСТВО В ЮГОИЗТОЧНА ЕВРОПА 
+
+ЗА ИНОВАЦИИ И ФИНАНСИРАНЕ
+
+SEE – IFA NETWORK
+
+11.03.2009 – 31.12.2011
+
+
+
+ Проектът “SEE IFA  Network” обединява 11 партньори от десет страни – Австрия, Италия, България, Хърватска,Гърция, Унгария, Романия Сърбия и Македония (догонващи страни на различни етапи от своя европейски процес)
+
+Водещ  партньор и Главен Координатор  – Австрия, AWS, Austria Wirtschaftsservice GmbH
+
+
+
+Plan4all Kick-off Meeting, 14th May 2009, Prague
+*
+
+
+
+Фондация Евро – Перспективи (ФЕП) е
+
+www.europerspectives.org      info@europerspectives.org 
+
+
+
+Българска организация със статут на  “Public Equivalent Body” –   (Директива 18/2004, 1л.1) нов тип институционална структура с капацитет за работа в подкрепа на публичния интерес, с амбиция за развитие като неутрален форум за насърчаване на сътрудничеството между България и страните от Юго-Източна Европа 
+
+
+
+Публични структури (Университети, регионални власти, бизнес-центрове) и частни лица  и сдружения основаха организацията с цел да разширят влиянието и приложението на принципите  на устойчивото развитие в региона
+
+
+
+ФЕП се ръководи от идеологията, принципите и работните методи на регионалните мрежи, които с  успех мобилизират
+
+	ресурси – човешки и финансови, за намаляване на различията в развитието на  Европа. 
+Plan4all Kick-off Meeting, 14th May 2009, Prague
+*
+
+
+Основна цел на  проекта:
+
+Укрепване на капацитета на организациите – партньори  за ефективно предоставяне на подкрепа на МСП в областта на иновациите  и трансфера на технологии  чрез изграждане на европейска платформа за трансфер на знания и умения и  чрез осъществяване на конкретни съвместни инициативи. 
+
+Специфични цели:
+
+ Идентифициране на нужди и дефицити -95% от МСП са изправени пред сериозни структурни проблеми;
+
+ Усъвършенстване на каналите за обмен и трансфер на знания и умения чрез анализ на съществуващите инструменти и чрез идентифициране  или разработване на преносими елементи;
+
+ Укрепване на съществуващата бизнес среда чрез създаване на нови  възможности за финансиране и чрез изграждане на Патентен и Лицензен Фонд;
+
+ Създаване на  Иновационни & Финансови Агенции, притежаващи адекватно портофолио за подкрепа на иновативни и технологични дейности
+
+ Усъвършенстване на  капацитета на местните актьори и експерти чрез консултантски дейности, обучение, обмен на готови схеми и специалисти
+
+Plan4all Kick-off Meeting, 14th May 2009, Prague
+*
+
+
+
+
+
+
+
+
+
+Методологичен подход & Инструменти
+
+Анализи – национални изследвания,  идентифициране на “добри практики”, на техники за “добро управление”, на административен капацитет, на адекватно портофолио на агенциите
+
+Оценка – в контекст на качествени и количествени критерии, препоръки и корективни мерки
+
+Прототипи – разработване на нов финансов инструмент & регулации, оперативни структури, набиране на финансови средства, селекция на пилотни структури
+
+Стартиране на пилотна фаза – разработване на бизнес планове, ръководства & наръчници, маркетингови проучвания , разработване на адекватно портофолио за финансовите институции
+
+Консултиране – на стартиращи финансови институции, интензивно обучение 
+
+ Национална подкрепа – създаване на Национална Група за подкрепа с цел гарантиране на устойчивост на  постигнатите резултати
+
+
+
+
+
+
+Plan4all Kick-off Meeting, 14th May 2009, Prague
+*
+
+
+
+
+
+
+
+
+ИНСТРУМЕНТИ & ФОНД
+
+ИНСТРУМЕНТИ – Разработване на финансови инструменти в  подкрепа на иновативни практики и внедряване на нови технологии от МСП – управление на знанието, улесняване на достъп до финансиране, разработване на нови финансови регулации
+
+ФОНД – Създаване на Трансграничен Фонд  за Патенти и Лицензи – разработаване на примерна законова рамка, на адекватно портофолио,  анализ на основните “потребители”, интегриране на частния сектор в  пилотна фаза  
+
+
+Plan4all Kick-off Meeting, 14th May 2009, Prague
+*
+
+
+
+
+
+
+
+АГЕНЦИЯТА
+
+Създаване на  Агенция за Иновации  и Финансиране – концепция и приложението й, програми и инструменти, обучение
+
+
+Plan4all Kick-off Meeting, 14th May 2009, Prague
+*
+
+##### PPT95.ppt
+ERROR org.apache.poi.hslf.exceptions.OldPowerPointFormatException: Based on the Current User stream, you seem to have supplied a PowerPoint95 file, which isn't supported
+##### Password_Protected-hello.ppt
+ERROR org.apache.poi.hslf.exceptions.EncryptedPowerPointFileException: PowerPoint file is encrypted. The correct password needs to be set via Biff8EncryptionKey.setCurrentUserPassword()
+##### WithComments.ppt
+SLIDE 1 hidden=false title=Test Slide
+  COMMENT author=Administrator text=This is a test comment
+
+It is on the first, only slide
+SLIDE-HF footer=null visible=false header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+Test Slide
+With a comment on it
+Administrator - This is a test comment
+
+It is on the first, only slide
+##### WithLinks.ppt
+SLIDE 1 hidden=false title=I am the title of the first page
+  LINK http://jakarta.apache.org/poi/ -> http://jakarta.apache.org/poi/
+  LINK http://slashdot.org/ -> http://slashdot.org/
+  NOTES I am the notes\n\nI link to http://jakarta.apache.org/hslf/\n | 
+SLIDE 2 hidden=false title=I am page two
+  LINK Jakarta HSSF -> http://jakarta.apache.org/poi/hssf/
+  NOTES  | 
+SLIDE-HF footer=null visible=true header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+I am the title of the first page
+This page has two links:
+
+http://jakarta.apache.org/poi/
+
+
+
+http://slashdot.org/
+
+
+
+In addition, its notes has one link
+*
+
+I am the notes
+
+
+
+I link to http://jakarta.apache.org/hslf/
+
+I am page two
+I have the one link:
+
+Jakarta HSSF
+*
+
+
+
+##### WithMaster.ppt
+SLIDE 1 hidden=false title=First page title
+SLIDE 2 hidden=false title=
+SLIDE-HF footer=null visible=false header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+First page title
+First page subtitle
+This text comes from the Master Slide
+
+2nd page subtitle
+Footer from the master slide
+This text comes from the Master Slide
+
+##### basic_test_ppt_file.ppt
+SLIDE 1 hidden=false title=This is a test title
+  NOTES These are the notes for page 1 | 
+SLIDE 2 hidden=false title=This is the title on page 2
+  NOTES These are the notes on page two, again lacking formatting | 
+SLIDE-HF footer=null visible=false header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+This is a test title
+This is a test subtitle
+
+This is on page 1
+
+These are the notes for page 1
+This is the title on page 2
+This is page two
+
+It has several blocks of text
+
+None of them have formatting
+
+These are the notes on page two, again lacking formatting
+
+##### bug62092.ppt
+SLIDE 1 hidden=false title=MyTitle
+SLIDE-HF footer=null visible=false header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+MyTitle
+			
+			
+			
+Text box3
+Text box1
+Text box2
+
+Text box4
+Text box5 tika link
+WordArt1
+WordArt2
+Ungrouped text box
+
+##### bullets.ppt
+SLIDE 1 hidden=false title=Title text
+SLIDE 2 hidden=false title=null
+SLIDE-HF footer=null visible=false header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+Title text
+This is a text placeholder that 
+
+follows the design pattern
+
+Defined in the slide master
+
+and has bullets by default
+I’m a text box
+
+With bullets
+
+That follow the design pattern
+
+From the slide master
+I’m a text box with user-defined
+
+bullet character
+
+##### datetime.ppt
+SLIDE 1 hidden=false title=null
+SLIDE-HF footer=null visible=false header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+
+##### gen-ppt-coverage.ppt
+SLIDE 1 hidden=false title=QZTITLE
+  LINK QZLINKTEXT -> https://example.com/QZLINKTARGET
+SLIDE 2 hidden=true title=QZHIDDENTITLE
+SLIDE 3 hidden=false title=QZTABLESLIDE
+SLIDE 4 hidden=false title=QZLASTSLIDE Ç日本€
+SLIDE-HF footer=QZFOOTER visible=true header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+QZTITLE
+QZBODYONE
+
+QZBODYTWO
+QZTEXTBOX
+QZLINKTEXT
+*
+QZMASTERTEXT
+QZHIDDENTITLE
+*
+QZMASTERTEXT
+QZTABLESLIDE
+QZCELLA	QZCELLB
+QZCELLC	QZCELLD
+*
+QZMASTERTEXT
+QZLASTSLIDE Ç日本€
+QZGROUPED
+*
+QZMASTERTEXT
+
+##### headers_footers.ppt
+SLIDE 1 hidden=false title=null
+  NOTES  | 
+SLIDE 2 hidden=false title=null
+  NOTES  | 
+SLIDE-HF footer=Global Slide Footer visible=true header=null date=null
+NOTES-HF footer=Notes Footer header=Notes Header
+EXTRACTOR(all)
+*
+*
+Notes HeaderNotes Header
+
+Notes FooterNotes Footer*
+*
+Notes HeaderNotes Header
+
+Notes FooterNotes Footer
+##### incorrect_slide_order.ppt
+SLIDE 1 hidden=false title=Slide 1
+SLIDE 2 hidden=false title=Slide 2
+SLIDE 3 hidden=false title=Slide 3
+SLIDE-HF footer=null visible=false header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+Slide 1
+First slide I added
+Slide 2
+Third slide I added
+Slide 3
+Second slide I added
+
+##### master_text.ppt
+SLIDE 1 hidden=false title=
+SLIDE-HF footer=null visible=false header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+
+
+Text that I added to the master slide
+
+##### numbers.ppt
+SLIDE 1 hidden=false title=titTe
+SLIDE 2 hidden=false title=Second Slide Title
+SLIDE-HF footer=null visible=false header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+titTe
+This is a text placeholder that 
+
+follows the design pattern
+
+Just a test
+
+Without any paragraph
+
+Second paragraph first line c) ;
+
+Second paragraph second line d) . 
+
+Second Slide Title
+This is a text placeholder that 
+
+follows the design pattern
+
+Just a test
+
+Without any paragraph
+
+Second paragraph first line c) ;
+
+Second paragraph second line d) . 
+
+
+##### testPPT.ppt
+SLIDE 1 hidden=false title=Sample Powerpoint Slide
+SLIDE-HF footer=null visible=true header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+Sample Powerpoint Slide
+Created with Microsoft 
+
+Powerpoint X for Mac
+
+Service Release 1
+*
+
+##### testPPT_autodate.ppt
+SLIDE 1 hidden=false title=Now
+  NOTES  | * | * | 
+SLIDE-HF footer= visible=true header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+Now
+*
+*
+
+*
+
+
+*
+*
+*
+*
+
+##### testPPT_comment.ppt
+SLIDE 1 hidden=false title=title
+  COMMENT author=Allison, Timothy B. text=I'm afraid I'm going to have to ask you to add some content to this tps deck
+SLIDE-HF footer=null visible=false header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+title
+subtitle
+Allison, Timothy B. - I'm afraid I'm going to have to ask you to add some content to this tps deck
+##### testPPT_masterFooter.ppt
+SLIDE 1 hidden=false title=
+SLIDE-HF footer=Master footer is here visible=true header=null date=null
+NOTES-HF footer=Master footer is here header=null
+EXTRACTOR(all)
+
+
+Master footer is here
+Master footer is hereMaster footer is here
+*
+
+##### testPPT_various.ppt
+SLIDE 1 hidden=false title=
+  LINK [1] -> _ftn1
+  LINK This is a hyperlink -> http://tika.apache.org/
+  LINK [1] -> _ftnref1
+  NOTES  | * | This is the footer text. | This is the header text. | 
+SLIDE-HF footer=null visible=false header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+
+
+Row 1 Col 1	Row 1 Col 2	Row 1 Col 3
+Row 2 Col 1	Row 2 Col 2	Row 2 Col 3
+
+Here is a text box
+
+
+Footnote appears here[1]
+
+Bold italic underline superscript subscript
+
+Here is a list:
+
+Bullet 1
+
+Bullet 2
+
+Bullet 3
+
+Here is a numbered list:
+
+Number bullet 1
+
+Number bullet 2
+
+Number bullet 3
+
+ Keyword1 Keyword2
+
+This is a hyperlink
+
+ Subject is here
+
+Suddenly some Japanese text:
+
+ゾルゲと尾崎、淡々と最期
+
+（ＧＨＱ）
+
+And then some Gothic text:
+
+𐌲𐌿𐍄𐌹𐍃𐌺
+
+Here is a citation:
+
+(Kramer)
+
+Figure 1 This is a caption for Figure 1
+
+ 
+
+Row 1 column 1
+
+Row 2 column 1
+
+Row 1 column 2
+
+Row 2 column 2
+
+ 
+
+ 
+
+[1] This is a footnote.
+
+
+*
+This is the footer text.
+This is the header text.
+
+##### with_textbox.ppt
+SLIDE 1 hidden=false title=null
+SLIDE-HF footer=null visible=false header=null date=null
+NOTES-HF footer=null header=null
+EXTRACTOR(all)
+Hello, World!!!
+I am just a poor boy
+This is Times New Roman
+Plain Text 
+

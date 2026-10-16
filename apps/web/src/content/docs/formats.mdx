@@ -14,6 +14,18 @@ still read. Most formats are read as soon as you drop them. Images and recording
 ask, because recognition and transcription take seconds to minutes. A recording also needs a
 speech model downloaded once, which the [privacy page](/privacy) describes.
 
+A document's own title, when its properties hold one, comes first as `[Title: ...]`. The author's
+name and the other properties are left out.
+
+A picture's alternative text, the words its author wrote for a reader who cannot see it, comes
+through as `[Image: ...]` where the picture sits (in a saved web page, as a Markdown image), and a table's caption and description as
+`[Table: ...]` above the table. In a PDF the figures' text follows the page it is on. A picture
+with no alternative text, or only a default name such as "Picture 3", is still left out.
+
+A link comes through as `[text](address)` where it sits, in documents, slides, PDFs and email. In a
+spreadsheet the cells come first, then each linked cell as `[Link, B2: address]`. A link to another
+place in the same file, or one whose text already is its address, is written as plain text.
+
 Each entry also says what is left out, so you know what the model will not see before you paste.
 How well each one reads, measured on public benchmarks against other tools, is in
 [the extraction benchmark](/blog/browser-text-extraction-benchmark).

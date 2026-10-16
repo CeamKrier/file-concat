@@ -116,6 +116,9 @@ export function unreadableReason(path: string, route?: FileRoute): UnreadableRea
   // The compound-file reader opened it and found no workbook inside (or the
   // build carries no such reader). The directory would say what it is; the
   // extension is the cheap proxy and has been right on every one counted.
+  // Core reads Word and PowerPoint 97-2003 itself, so a .doc or .ppt that
+  // lands here is one its reader declined: Word 6.0/95 or PowerPoint 95, or
+  // a file whose structure is broken.
   if (route?.kind === "extract" && route.format === "cfb") {
     switch (ext) {
       case "xls":
@@ -124,11 +127,11 @@ export function unreadableReason(path: string, route?: FileRoute): UnreadableRea
         return { label: "Excel 97-2003 workbook", remedy: "Save it as .xlsx and it will be read." };
       case "doc":
       case "dot":
-        return { label: "Word 97-2003 document", remedy: "Save it as .docx and it will be read." };
+        return { label: "Word 6.0/95 or damaged document", remedy: "Save it as .docx and it will be read." };
       case "ppt":
       case "pps":
       case "pot":
-        return { label: "PowerPoint 97-2003 file", remedy: "Save it as .pptx and it will be read." };
+        return { label: "PowerPoint 95 or damaged presentation", remedy: "Save it as .pptx and it will be read." };
       case "msg":
         return { label: "Outlook message", remedy: "Save it as .eml and it will be read." };
       default:

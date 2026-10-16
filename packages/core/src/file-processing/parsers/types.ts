@@ -49,7 +49,25 @@ export type ExtractionNoteKind =
    * pages read: scanned pages bound into a text PDF. `pages` names them so
    * recognition can read just those.
    */
-  | "pages-scanned";
+  | "pages-scanned"
+  /**
+   * Text the author hid was left out (Q18 O1): hidden runs, hidden sections,
+   * hidden HTML. `count` is how many pieces held text. Placeholder prompts and
+   * labelled hidden sheets or slides are not counted: nothing of the author's
+   * is missing for them.
+   */
+  | "hidden-left-out"
+  /**
+   * A PDF that opens with a layer switched off (Q18 O1). Its text is in the
+   * reading, which a viewer would not show, and a line over the text says so.
+   */
+  | "layers-off"
+  /**
+   * Review comments the reader wrote into the text as labelled lines (Q24
+   * O1), `count` of them. Not a gap: what the file holds is all there, and the
+   * bundle says so because comments are easy to forget when sharing a file.
+   */
+  | "comments-included";
 
 export interface ExtractionNote {
   kind: ExtractionNoteKind;
@@ -76,6 +94,11 @@ export interface ExtractionResult {
   notes?: ExtractionNote[];
   /** Which reader produced `text`, set by {@link ./chain} when a chain ran. */
   reader?: string;
+  /**
+   * The document's own title from its properties, for the caller to write
+   * above the text through `withTitle`, which knows the file's name (Q30 O2).
+   */
+  title?: string;
 }
 
 /**

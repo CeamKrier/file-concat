@@ -45,8 +45,9 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["pdf"],
     formats: ["pdf"],
     how: "auto",
-    gives: "The text, page by page under a page heading.",
-    loses: "Pictures and charts are not described. A password-protected PDF is not opened.",
+    gives:
+      "The text, page by page under a page heading, which also gives the number the document prints on the page when that differs (iv in a preface). Text on a layer a viewer hides comes through, with a line saying so. Review comments come through as [Comment, author: text], after the words a highlight covers or after the page. A form's filled-in fields come through as [Form field, name: value], a check box as [x] or [ ]. Attached files are named, and a text file's contents come through.",
+    loses: "Pictures and charts are not described. Text set at an angle, such as a diagonal DRAFT watermark, is left out. A password-protected PDF is not opened.",
   },
   {
     group: "Documents",
@@ -64,8 +65,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["docx", "docm", "dotx", "dotm", "doc"],
     formats: ["docx", "docm", "dotx", "dotm", "cfb"],
     how: "auto",
-    gives: "Text with headings, tables, footnotes and link addresses. Tracked deletions are left out.",
-    loses: "Pictures and charts are not described.",
+    gives: "Text with headings, tables, footnotes, page headers and footers, and link addresses. A list item keeps the number or bullet Word shows for it. A chart comes through as a table of its data. In a .docx, a form check box comes through as [x] or [ ] and a drop-down as its chosen entry. Tracked deletions and hidden text are left out.",
+    loses: "Pictures are not described. A chart in a Word 97-2003 file, or in a header or footer, is not read. A Word 97-2003 list numbered through a paragraph style loses its numbers.",
   },
   {
     group: "Documents",
@@ -73,8 +74,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["odt", "rtf"],
     formats: ["odt", "rtf"],
     how: "auto",
-    gives: "The text.",
-    loses: "Pictures and charts are not described.",
+    gives: "The text, with its page headers and footers. An OpenDocument list item keeps its number or bullet, and an OpenDocument chart comes through as a table of its data. An OpenDocument form field comes through as its value and a check box as [x] or [ ]. Hidden text is left out.",
+    loses: "Pictures and the charts in an RTF file are not described.",
   },
   {
     group: "Spreadsheets",
@@ -82,8 +83,9 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["xlsx", "xlsm", "xlsb", "xltx", "xltm", "xls"],
     formats: ["xlsx", "xlsm", "xlsb", "xltx", "xltm", "cfb"],
     how: "auto",
-    gives: "Every sheet under its name, rows as comma-separated cells, each cell as Excel shows it.",
-    loses: "Formulas (their results come through), charts, cell colours and conditional formatting.",
+    gives:
+      "Every sheet under its name, rows as comma-separated cells, each cell as Excel shows it. Charts, text boxes, the print header and footer, a cell's input message and allowed values, and named ranges follow a sheet's rows, a chart as a table of its data. A hidden sheet is read and marked (hidden), hidden rows and columns are read and, except in .xlsb, named in a line after the rows, and a very hidden sheet, which only a macro can show, is left out.",
+    loses: "Formulas (their results come through), cell colours and conditional formatting. The charts in an .xls or .xlsb file.",
   },
   {
     group: "Spreadsheets",
@@ -91,8 +93,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["ods"],
     formats: ["ods"],
     how: "auto",
-    gives: "Every sheet's cells as text.",
-    loses: "Formulas (their results come through), charts and cell colours.",
+    gives: "Every sheet's cells as text, then its validation messages and allowed values, its print header and footer, and its charts as tables of their data. A hidden sheet is read and marked (hidden), and hidden rows and columns are read and named in a line after the rows.",
+    loses: "Formulas (their results come through) and cell colours.",
   },
   {
     group: "Slides",
@@ -100,8 +102,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["pptx", "pptm", "potx", "potm", "ppsx", "ppsm", "ppt"],
     formats: ["pptx", "pptm", "potx", "potm", "ppsx", "ppsm", "cfb"],
     how: "auto",
-    gives: "The text of each slide, slide by slide.",
-    loses: "A chart or diagram that exists only as a picture is not described.",
+    gives: "The text of each slide, slide by slide, and a chart as a table of its data. Text the slide master prints on every slide comes once, at the top. A hidden slide is read and marked (hidden). In a .pptx, a section's name comes before its first slide, a custom show is listed with its slides, and a table cell merged into another is left empty.",
+    loses: "A chart or diagram that exists only as a picture, and the charts and slide master text in a PowerPoint 97-2003 file.",
   },
   {
     group: "Slides",
@@ -109,8 +111,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["odp"],
     formats: ["odp"],
     how: "auto",
-    gives: "The text of each slide.",
-    loses: "A chart or diagram that exists only as a picture is not described.",
+    gives: "The text of each slide, and a chart as a table of its data. Text the master page prints on every slide comes once, at the top. A slide the author named carries its name. A hidden slide is read and marked (hidden).",
+    loses: "A chart or diagram that exists only as a picture.",
   },
   {
     group: "Books",
@@ -118,7 +120,7 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["epub"],
     formats: ["epub"],
     how: "auto",
-    gives: "The chapters as plain text, in reading order.",
+    gives: "The chapters as plain text, in reading order. A part the book keeps outside the reading order is marked where it stands.",
     loses: "Pictures are not described.",
   },
   {
@@ -136,8 +138,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["eml", "msg"],
     formats: ["eml", "cfb"],
     how: "auto",
-    gives: "From, To, Cc, Date and Subject, then the decoded body.",
-    loses: "Attachments are named, not read.",
+    gives: "From, To, Cc, Date and Subject, and the sender or reply address when it is someone else, then the decoded body, without text the message hides.",
+    loses: "Attachments are named, not read. Images the body shows and signature files are not listed.",
   },
   {
     group: "Notebooks",
@@ -145,8 +147,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["ipynb"],
     formats: ["ipynb"],
     how: "auto",
-    gives: "Markdown: the prose, the code in fences and the text output.",
-    loses: "Embedded images are dropped and counted.",
+    gives: "Markdown: the prose, the code in fences and the text output. A raw cell for another renderer, such as LaTeX, is fenced under its format.",
+    loses: "Embedded images are dropped and counted. An image with a text description, such as a plot, is named by it where it stood.",
   },
   {
     group: "Subtitles",
@@ -172,8 +174,8 @@ export const READ_FORMATS: readonly ReadFormat[] = [
     extensions: ["html", "htm"],
     formats: ["html"],
     how: "auto",
-    gives: "The article as markdown.",
-    loses: "Menus, ads and everything else outside the article. HTML source code stays code.",
+    gives: "The article as markdown, a formula as its TeX source, and a form field as the value it shows.",
+    loses: "Menus, ads, text the page hides and everything else outside the article. HTML source code stays code.",
   },
   {
     group: "Archives",

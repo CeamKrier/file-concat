@@ -213,7 +213,7 @@ describe("useFileIngestion", () => {
     expect(TALLIES.unreadable_ext).toBeUndefined();
   });
 
-  it("says what a 97-2003 PowerPoint file is and how to get it read, instead of calling it binary", async () => {
+  it("says what a PowerPoint file core's reader declines is and how to get it read, instead of calling it binary", async () => {
     // The same signature as the workbook above, a different directory inside.
     // The reader declines it, and the file takes the unreadable path under its
     // own extension, so the counter that decides which reader comes next
@@ -231,7 +231,7 @@ describe("useFileIngestion", () => {
     const v = result.current.validations["pitch.ppt"];
     expect(v.included).toBe(false);
     expect(v.classification).toBe("binary");
-    expect(v.reason).toBe("PowerPoint 97-2003 file. Save it as .pptx and it will be read.");
+    expect(v.reason).toBe("PowerPoint 95 or damaged presentation. Save it as .pptx and it will be read.");
     expect(TALLIES.unreadable_ext).toEqual(["ppt"]);
     expect(TALLIES.extract_failed).toBeUndefined();
   });

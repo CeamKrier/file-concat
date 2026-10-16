@@ -1,5 +1,10 @@
+import { altLabel } from "./alt-text";
+import { listLabels, type ListDefinition, type ListInstance, type ListLevel } from "./office-lists";
+import { hyperlinkAddress, linkWorthWriting } from "./office-links";
 import type { CfbStreams } from "./msg";
-import type { ExtractionResult } from "./types";
+import { symbolFontChar } from "./symbol-font";
+import { SUMMARY_INFORMATION, summaryTitle } from "./title";
+import type { ExtractionNote, ExtractionResult } from "./types";
 
 /**
  * Word 97-2003 documents (`.doc`, MS-DOC), the text only.
@@ -13,8 +18,11 @@ import type { ExtractionResult } from "./types";
  *
  * The character stream is the main body, then footnotes, headers, comments,
  * endnotes and text boxes, each of a length the FIB gives. The body, the
- * notes and the text boxes are kept; headers and comments are not, for the
- * reason the office reader drops running furniture from a PDF.
+ * notes and the text boxes are kept. Headers and footers are written once
+ * each, labelled, before and after the body as a docx's are (C7). Comments
+ * are written into the body at the end of their paragraph (Q24 O1), a list
+ * paragraph opens with the label Word prints for it (C8), and notes are
+ * numbered at their marks and labelled as a docx's are.
  *
  * Only the reading lives here, over streams already lifted out of the
  * container (ADR-0012); the browser opens it with the library that reads a
@@ -35,25 +43,348 @@ const FIELD_BEGIN = 0x13;
 const FIELD_SEPARATOR = 0x14;
 const FIELD_END = 0x15;
 
-function readPieces(word: Uint8Array, table: Uint8Array): string {
+/** sprmCFRMarkDel (MS-DOC 2.6.1): the run is a tracked deletion. */
+const SPRM_DELETED = 0x0800;
+/** sprmCFVanish (MS-DOC 2.6.1): the run is hidden text. */
+const SPRM_HIDDEN = 0x083c;
+/** sprmCFCaps (MS-DOC 2.6.1): the run is shown in capitals. */
+const SPRM_CAPS = 0x083b;
+/** sprmCPicLocation (MS-DOC 2.6.1): where a picture character's PICF sits in the `Data` stream. */
+const SPRM_PIC_LOCATION = 0x6a03;
+/** sprmCSymbol (MS-DOC 2.6.1): the run draws one character of a symbol font, a font index and a code. */
+const SPRM_SYMBOL = 0x6a09;
+/**
+ * Stands in for each character of hidden text, so the text keeps its length
+ * and the FIB's part lengths still slice it. A 0x10 the file itself holds is
+ * read as NUL first; Word never writes one.
+ */
+const HIDDEN = 0x10;
+/**
+ * Stand in for a mark the paragraph properties say more about: a cell mark
+ * that ends a row, and a paragraph mark inside a table cell. Read as NUL when
+ * the file itself holds one, as HIDDEN is.
+ */
+const ROW_END = 0x11;
+const CELL_BREAK = 0x12;
+/** A mark that ends a paragraph: of the body, a cell, a row or a paragraph inside a cell. */
+const endsParagraph = (code: number): boolean => code === PARAGRAPH || code === CELL_MARK || code === ROW_END || code === CELL_BREAK;
+
+/**
+ * `WordDocument` with the bytes of its tracked deletions zeroed, read from the
+ * character property pages (PlcBteChpx, then each ChpxFkp). POI exposes the
+ * same flag as `CharacterRun.isMarkedDeleted()`, and Tika leaves those runs
+ * out unless asked for deleted content. A zeroed character reads as NUL, which
+ * `plain` drops, so the FIB's part lengths still slice the text.
+ *
+ * Pages and runs are in ascending order in a sound file, so a range is only
+ * zeroed past the last one: a forged file that repeats a page or overlaps its
+ * runs loses a deletion, never costs more than one pass over the stream.
+ *
+ * Hidden text (Q18 O1) comes back as byte ranges instead, kept in the same
+ * order, because only the piece that holds a range knows how wide its
+ * characters are, and a hidden paragraph or cell mark still has to end its
+ * paragraph or cell. POI calls the flag `CharacterRun.isVanished()`. Runs
+ * shown in capitals come back the same way.
+ *
+ * ponytail: the flag is read from the run's own properties only; a deletion
+ * set through a character style (operand 0x80/0x81) is taken as on for 0x81.
+ */
+function withoutDeletions(
+  word: Uint8Array,
+  table: Uint8Array,
+): { word: Uint8Array; hidden: [number, number][]; caps: [number, number][]; pictures: Picture[]; symbols: SymbolRun[]; styled: StyledRun[] } {
   const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
+  const fcPlc = fib.getUint32(0x00fa, true);
+  const lcbPlc = fib.getUint32(0x00fe, true);
+  const hidden: [number, number][] = [];
+  const caps: [number, number][] = [];
+  const pictures: Picture[] = [];
+  const symbols: SymbolRun[] = [];
+  const styled: StyledRun[] = [];
+  if (lcbPlc < 8 || fcPlc + lcbPlc > table.byteLength) return { word, hidden, caps, pictures, symbols, styled };
+  const plc = new DataView(table.buffer, table.byteOffset + fcPlc, lcbPlc);
+  const pages = Math.floor((lcbPlc - 4) / 8);
+  const seen = new Set<number>();
+  let out = word;
+  let zeroed = 0;
+  for (let page = 0; page < pages; page++) {
+    const base = (plc.getUint32((pages + 1) * 4 + page * 4, true) & 0x3fffff) * 512;
+    if (base + 512 > word.byteLength || seen.has(base)) continue;
+    seen.add(base);
+    const fkp = new DataView(word.buffer, word.byteOffset + base, 512);
+    const runs = fkp.getUint8(511);
+    if (runs * 5 + 4 > 511) continue;
+    for (let run = 0; run < runs; run++) {
+      const chpx = fkp.getUint8((runs + 1) * 4 + run) * 2;
+      if (chpx === 0 || chpx >= 511) continue;
+      const end = Math.min(511, chpx + 1 + fkp.getUint8(chpx));
+      let picture: number | undefined;
+      let symbol: { font: number; code: number } | undefined;
+      let vanished = false;
+      let operand: number | undefined;
+      let style: number | undefined;
+      // A grpprl is a run of sprms: a 2-byte code whose top three bits say
+      // how long the operand is (MS-DOC 2.2.5.1).
+      for (let at = chpx + 1; at + 2 <= end; ) {
+        const sprm = fkp.getUint16(at, true);
+        at += 2;
+        const size = [1, 1, 2, 4, 2, 2, -1, 3][sprm >>> 13];
+        const on = at < end && (fkp.getUint8(at) === 1 || fkp.getUint8(at) === 0x81);
+        if (sprm === SPRM_HIDDEN && at < end) operand = fkp.getUint8(at);
+        else if (sprm === SPRM_CHAR_STYLE && at + 2 <= end) style = fkp.getUint16(at, true);
+        if (sprm === SPRM_DELETED && on) {
+          const from = Math.max(fkp.getUint32(run * 4, true), zeroed);
+          const to = Math.min(fkp.getUint32((run + 1) * 4, true), word.byteLength);
+          if (from < to) {
+            if (out === word) out = word.slice();
+            out.fill(0, from, to);
+            zeroed = to;
+          }
+        } else if (sprm === SPRM_HIDDEN && on) {
+          vanished = true;
+          const from = Math.max(fkp.getUint32(run * 4, true), hidden[hidden.length - 1]?.[1] ?? 0);
+          const to = Math.min(fkp.getUint32((run + 1) * 4, true), word.byteLength);
+          if (from < to) hidden.push([from, to]);
+        } else if (sprm === SPRM_CAPS && on) {
+          const from = Math.max(fkp.getUint32(run * 4, true), caps[caps.length - 1]?.[1] ?? 0);
+          const to = Math.min(fkp.getUint32((run + 1) * 4, true), word.byteLength);
+          if (from < to) caps.push([from, to]);
+        } else if (sprm === SPRM_PIC_LOCATION && at + 4 <= end) picture = fkp.getUint32(at, true);
+        else if (sprm === SPRM_SYMBOL && at + 4 <= end) symbol = { font: fkp.getUint16(at, true), code: fkp.getUint16(at + 2, true) };
+        at += size < 0 ? (at < end ? fkp.getUint8(at) + 1 : 1) : size;
+      }
+      // A hidden picture's alternative text is hidden text too.
+      if (picture !== undefined && !vanished) {
+        pictures.push({ from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), data: picture });
+      }
+      if (symbol) symbols.push({ from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), ...symbol });
+      if (operand !== undefined || style !== undefined) styled.push({ from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), operand, style });
+    }
+  }
+  return {
+    word: out,
+    hidden,
+    caps,
+    pictures: pictures.sort((a, b) => a.from - b.from),
+    symbols: symbols.sort((a, b) => a.from - b.from),
+    styled: styled.sort((a, b) => a.from - b.from),
+  };
+}
+
+/** sprmCIstd (MS-DOC 2.6.1): the run's character style. */
+const SPRM_CHAR_STYLE = 0x4a30;
+
+/** A run that says how its hidden flag relates to its styles: its own sprmCFVanish operand, its character style. */
+interface StyledRun {
+  from: number;
+  to: number;
+  operand?: number;
+  style?: number;
+}
+
+/** A ToggleOperand (MS-DOC 2.9.329) over the value the style gives: 0 off, 1 on, 0x80 the style's, 0x81 its opposite. */
+const toggle = (operand: number | undefined, value: boolean): boolean => (operand === 0 ? false : operand === 1 ? true : operand === 0x81 ? !value : value);
+
+/**
+ * Each style's base and its own sprmCFVanish operand, by istd, from the STSH
+ * (MS-DOC 2.9.271): an STD is a StdfBase of `cbSTDBaseInFile` bytes, its name,
+ * then its UPXs, each padded to an even length. A paragraph style's character
+ * properties are its second UPX, a character style's its first. Nothing when
+ * no style sets the flag.
+ */
+function vanishStyles(word: Uint8Array, table: Uint8Array): Map<number, { base: number; operand?: number }> | undefined {
+  const stsh = listed(word, table, FC_STSHF);
+  // A Stshi too short to say how long a StdfBase is.
+  if (!stsh || stsh.byteLength < 6 || stsh.getUint16(0, true) < 4) return undefined;
+  const styles = new Map<number, { base: number; operand?: number }>();
+  const count = stsh.getUint16(2, true);
+  const stdBase = stsh.getUint16(4, true);
+  let any = false;
+  let next = 2 + stsh.getUint16(0, true);
+  for (let istd = 0; istd < count && next + 2 <= stsh.byteLength; istd++) {
+    const std = next + 2;
+    const end = Math.min(stsh.byteLength, std + stsh.getUint16(next, true));
+    next = std + stsh.getUint16(next, true);
+    if (std + Math.max(stdBase, 6) + 2 > end) continue;
+    const kind = stsh.getUint16(std + 2, true);
+    const stk = kind & 0x0f;
+    if (stk !== 1 && stk !== 2) continue;
+    // The name: a length, that many UTF-16 characters and a terminator.
+    let at = std + stdBase + 2 + (stsh.getUint16(std + stdBase, true) + 1) * 2;
+    for (let upx = stk === 1 ? 1 : 0; upx > 0 && at + 2 <= end; upx--) at += 2 + stsh.getUint16(at, true) + (stsh.getUint16(at, true) & 1);
+    let operand: number | undefined;
+    if (at + 2 <= end) {
+      const to = Math.min(end, at + 2 + stsh.getUint16(at, true));
+      for (let sprm = at + 2; sprm + 2 <= to; ) {
+        const code = stsh.getUint16(sprm, true);
+        sprm += 2;
+        const size = [1, 1, 2, 4, 2, 2, -1, 3][code >>> 13];
+        if (code === SPRM_HIDDEN && sprm < to) operand = stsh.getUint8(sprm);
+        sprm += size < 0 ? (sprm < to ? stsh.getUint8(sprm) + 1 : 1) : size;
+      }
+    }
+    any ||= operand !== undefined;
+    styles.set(istd, { base: kind >>> 4, operand });
+  }
+  return any ? styles : undefined;
+}
+
+/** Whether text in style `istd` is hidden, given the value under the style's root: each base applies its operand in turn. */
+function styleHides(styles: Map<number, { base: number; operand?: number }>, istd: number, value: boolean): boolean {
+  const operands: Array<number | undefined> = [];
+  // istdNil (0x0fff) ends a chain; the cap stops a forged loop.
+  for (let at = istd; at !== 0x0fff && operands.length < 16; ) {
+    const style = styles.get(at);
+    if (!style) break;
+    operands.push(style.operand);
+    at = style.base;
+  }
+  return operands.reduceRight((shown, operand) => toggle(operand, shown), value);
+}
+
+/**
+ * Hidden text by its styles as well as its own properties, as POI's
+ * `CharacterRun.isVanished()` reads it: the paragraph style's flag first,
+ * then the run's character style, then the run's own operand. Undefined when
+ * no style sets the flag, and the run-only ranges stand.
+ */
+function styledHidden(word: Uint8Array, table: Uint8Array, runs: StyledRun[]): [number, number][] | undefined {
+  const styles = vanishStyles(word, table);
+  if (!styles) return undefined;
+  const paragraphs = markedParagraphs(word, table, (paragraph) => styleHides(styles, paragraph.istd, false));
+  const hide: [number, number][] = [];
+  const show: [number, number][] = [];
+  let paragraph = 0;
+  for (const run of runs) {
+    while (paragraph < paragraphs.length && paragraphs[paragraph]!.to <= run.from) paragraph++;
+    const inHidden = paragraph < paragraphs.length && paragraphs[paragraph]!.from <= run.from;
+    const style = run.style === undefined ? inHidden : styleHides(styles, run.style, inHidden);
+    (toggle(run.operand, style) ? hide : show).push([run.from, run.to]);
+  }
+  // A run's own properties win over its paragraph's style.
+  const kept: [number, number][] = [];
+  let cut = 0;
+  for (const { from, to } of paragraphs) {
+    let start = from;
+    while (cut < show.length && show[cut]![1] <= start) cut++;
+    for (let k = cut; k < show.length && show[k]![0] < to; k++) {
+      if (show[k]![0] > start) kept.push([start, show[k]![0]]);
+      start = Math.max(start, show[k]![1]);
+    }
+    if (start < to) kept.push([start, to]);
+  }
+  const merged: [number, number][] = [];
+  for (const [from, to] of [...kept, ...hide].sort((a, b) => a[0] - b[0])) {
+    const last = merged[merged.length - 1];
+    if (last && from <= last[1]) last[1] = Math.max(last[1], to);
+    else merged.push([from, to]);
+  }
+  return merged;
+}
+
+/** A run that draws a symbol-font character, by its byte range in `WordDocument`. */
+interface SymbolRun {
+  from: number;
+  to: number;
+  font: number;
+  code: number;
+}
+
+/**
+ * The font names in SttbfFfn (MS-DOC 2.9.284), by font index: a count and a
+ * zero, then FFN records (2.9.82) of `cbFfnM1 + 1` bytes, each with its name
+ * as a NUL-terminated UTF-16 string 40 bytes into the record. POI's
+ * `FontTable` reads it the same way.
+ */
+function fontNames(fib: DataView, table: Uint8Array): string[] {
+  const fc = fib.getUint32(0x0112, true);
+  const lcb = fib.getUint32(0x0116, true);
+  if (lcb < 4 || fc + lcb > table.byteLength) return [];
+  const sttb = new DataView(table.buffer, table.byteOffset + fc, lcb);
+  const names: string[] = [];
+  let at = 4;
+  for (let font = 0; font < sttb.getUint16(0, true) && at < lcb; font++) {
+    const size = sttb.getUint8(at) + 1;
+    let name = "";
+    for (let char = at + 40; char + 2 <= Math.min(at + size, lcb) && sttb.getUint16(char, true) !== 0; char += 2) name += String.fromCharCode(sttb.getUint16(char, true));
+    names.push(name);
+    at += size;
+  }
+  return names;
+}
+
+/**
+ * A piece's text with each symbol-font character drawn as its own character
+ * (the stream holds a placeholder there, "(" for a degree sign), one for one so
+ * every offset after it still holds. A code no table knows is left as stored,
+ * and a deleted run's zeroed characters stay zeroed. Found and sliced the way
+ * {@link inRanges} does it, so a crafted file with many runs costs one pass.
+ */
+function withSymbols(text: string, offset: number, width: number, symbols: readonly SymbolRun[], fonts: readonly string[]): string {
+  const end = offset + text.length * width;
+  let low = 0;
+  for (let high = symbols.length; low < high; ) {
+    const middle = (low + high) >>> 1;
+    if (symbols[middle].to <= offset) low = middle + 1;
+    else high = middle;
+  }
+  let out = "";
+  let cursor = 0;
+  for (let index = low; index < symbols.length && symbols[index].from < end; index++) {
+    const run = symbols[index];
+    const char = symbolFontChar(fonts[run.font] ?? "", run.code);
+    const from = Math.max(cursor, Math.floor((run.from - offset) / width));
+    const to = Math.min(text.length, Math.ceil((run.to - offset) / width));
+    if (!char || char.length !== 1 || from >= to) continue;
+    // A paragraph or cell mark in the run still ends its paragraph or cell.
+    // eslint-disable-next-line no-control-regex
+    out += text.slice(cursor, from) + text.slice(from, to).replace(/[^\0\r\x07]/g, char);
+    cursor = to;
+  }
+  return out + text.slice(cursor);
+}
+
+/** A run of characters and where its bytes sit in `WordDocument`, one or two per character. */
+interface Piece {
+  cp: number;
+  end: number;
+  offset: number;
+  width: number;
+}
+
+function readPieces(document: Uint8Array, table: Uint8Array): { text: string; pieces: Piece[]; pictures: Picture[] } {
+  const { word, hidden: own, caps, pictures, symbols, styled } = withoutDeletions(document, table);
+  const hidden = styledHidden(word, table, styled) ?? own;
+  // The mark that ends each table paragraph: a row's end, or a break inside a
+  // cell (a paragraph, or a nested table's cell or row, MS-DOC 2.4.3).
+  const rowEnds: [number, number][] = [];
+  const inCells: [number, number][] = [];
+  for (const paragraph of markedParagraphs(word, table, (paragraph) => paragraph.inTable || paragraph.rowEnd)) {
+    (paragraph.rowEnd ? rowEnds : inCells).push([paragraph.to - 1, paragraph.to]);
+  }
+  const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
+  const fonts = symbols.length > 0 ? fontNames(fib, table) : [];
   const fcClx = fib.getUint32(0x01a2, true);
   const lcbClx = fib.getUint32(0x01a6, true);
-  if (fcClx + lcbClx > table.byteLength) return "";
+  // Past the end of a table stream cut short (a FAT chain shorter than its
+  // directory entry says): damaged, not empty, so the chain tries its fallback.
+  if (fcClx + lcbClx > table.byteLength) throw new Error("The document's piece table lies past the end of its table stream");
   const clx = new DataView(table.buffer, table.byteOffset + fcClx, lcbClx);
 
   // The CLX is a run of property modifiers (0x01, then a 2-byte length) and
   // then the piece table itself (0x02, then a 4-byte length).
   let at = 0;
   while (at < lcbClx && clx.getUint8(at) === 0x01) at += 3 + clx.getUint16(at + 1, true);
-  if (at >= lcbClx || clx.getUint8(at) !== 0x02) return "";
+  if (at >= lcbClx || clx.getUint8(at) !== 0x02) return { text: "", pieces: [], pictures };
   const lcbPlc = clx.getUint32(at + 1, true);
   const plc = at + 5;
   const count = Math.floor((lcbPlc - 4) / 12);
 
-  const utf16 = new TextDecoder("utf-16le");
+  // A leading U+FEFF is text here: dropped, it would shift every part after it.
+  const utf16 = new TextDecoder("utf-16le", { ignoreBOM: true });
   const ansi = new TextDecoder("windows-1252");
   let text = "";
+  const pieces: Piece[] = [];
   for (let piece = 0; piece < count; piece++) {
     const start = clx.getUint32(plc + piece * 4, true);
     const end = clx.getUint32(plc + (piece + 1) * 4, true);
@@ -63,9 +394,56 @@ function readPieces(word: Uint8Array, table: Uint8Array): string {
     const length = (end - start) * (compressed ? 1 : 2);
     if (offset + length > word.byteLength) break;
     const bytes = word.subarray(offset, offset + length);
-    text += compressed ? ansi.decode(bytes) : utf16.decode(bytes);
+    // eslint-disable-next-line no-control-regex
+    const read = (compressed ? ansi.decode(bytes) : utf16.decode(bytes)).replace(/[\x10-\x12]/g, "\0");
+    pieces.push({ cp: text.length, end: text.length + read.length, offset, width: compressed ? 1 : 2 });
+    const width = compressed ? 1 : 2;
+    const rows = inRanges(read, offset, width, rowEnds, (mark) => mark.split(String.fromCharCode(CELL_MARK)).join(String.fromCharCode(ROW_END)));
+    const marked = inRanges(rows, offset, width, inCells, (mark) => mark.replace(/\r/g, String.fromCharCode(CELL_BREAK)));
+    const shown = inRanges(withSymbols(marked, offset, width, symbols, fonts), offset, width, caps, capitals);
+    text += inRanges(shown, offset, width, hidden, hiddenText);
   }
-  return text;
+  return { text, pieces, pictures };
+}
+
+/**
+ * Each character of hidden text read as HIDDEN. Control characters stay, so a
+ * hidden paragraph mark still ends its paragraph and a hidden field keeps its
+ * structure.
+ */
+// eslint-disable-next-line no-control-regex
+const hiddenText = (slice: string): string => slice.replace(/[^\x00-\x1f]/g, String.fromCharCode(HIDDEN));
+
+/** Text shown in capitals as capitals, except a letter that becomes two ("ß"), so every offset still holds. */
+const capitals = (slice: string): string =>
+  Array.from(slice, (char) => (char.toUpperCase().length === char.length ? char.toUpperCase() : char)).join("");
+
+/**
+ * `text`, read from the bytes at `offset`, with each stretch inside one of
+ * `ranges` passed through `change`, which keeps its length. One index per
+ * UTF-16 code unit or 8-bit byte, so a range maps straight onto the string.
+ */
+function inRanges(text: string, offset: number, width: number, ranges: [number, number][], change: (slice: string) => string): string {
+  const end = offset + text.length * width;
+  // The ranges ascend without overlap: find the first that ends past `offset`.
+  let low = 0;
+  for (let high = ranges.length; low < high; ) {
+    const middle = (low + high) >>> 1;
+    if (ranges[middle][1] <= offset) low = middle + 1;
+    else high = middle;
+  }
+  // Sliced around the ranges, never split per character: a whole document is
+  // often one piece.
+  let out = "";
+  let cursor = 0;
+  for (let range = low; range < ranges.length && ranges[range][0] < end; range++) {
+    const from = Math.max(cursor, Math.floor((ranges[range][0] - offset) / width));
+    const to = Math.min(text.length, Math.ceil((ranges[range][1] - offset) / width));
+    if (from >= to) continue;
+    out += text.slice(cursor, from) + change(text.slice(from, to));
+    cursor = to;
+  }
+  return out + text.slice(cursor);
 }
 
 /**
@@ -75,29 +453,53 @@ function readPieces(word: Uint8Array, table: Uint8Array): string {
  * reaching a separator, and fields nest, so this is a stack of "still in the
  * code" flags rather than a counter.
  */
-function plain(text: string): string {
+/** Word's phonetic guide field code: `EQ ... \o\ad(\s\up 10(reading),base)`, any alignment. */
+const PHONETIC_GUIDE = /^\s*EQ\b[^(]*\\o\\a[dlcr]?\(\\s\\up\s*-?\d+\(([^()]*)\),([^()]*)\)/i;
+
+function plain(text: string, left: { hidden: number }): string {
   let out = "";
-  const fields: boolean[] = [];
+  const fields: Array<{ code: boolean; instr: string; result: number; address?: string }> = [];
+  let hiding = false;
+  const rows = text.includes(String.fromCharCode(ROW_END));
   for (const char of text) {
     const code = char.charCodeAt(0);
+    const field = fields[fields.length - 1];
     if (code === FIELD_BEGIN) {
-      fields.push(true);
+      fields.push({ code: true, instr: "", result: 0 });
       continue;
     }
     if (code === FIELD_SEPARATOR) {
-      if (fields.length > 0) fields[fields.length - 1] = false;
+      if (field) Object.assign(field, { code: false, result: out.length, address: hyperlinkAddress(field.instr) });
       continue;
     }
     if (code === FIELD_END) {
       fields.pop();
+      // A HYPERLINK field's result as [text](address), as a docx's (Q32 O1).
+      const result = field?.address ? out.slice(field.result) : "";
+      if (field?.address && linkWorthWriting(result, field.address)) out = `${out.slice(0, field.result)}[${result}](${field.address})`;
+      // A phonetic guide is an EQ field with no result: its base and reading
+      // sit in the code, written base(reading) as a docx's ruby is.
+      const ruby = field?.code && !fields.some((open) => open.code) ? PHONETIC_GUIDE.exec(field.instr) : null;
+      if (ruby) out += `${ruby[2]}(${ruby[1]})`;
       continue;
     }
-    if (fields.includes(true)) continue;
+    if (field?.code) field.instr += char;
+    if (fields.some((open) => open.code)) continue;
+    // A stretch of hidden characters outside any field code is one passage
+    // left out; a hidden XE index entry or TC entry is a field code anyway.
+    if (code === HIDDEN) {
+      if (!hiding) left.hidden++;
+      hiding = true;
+      continue;
+    }
+    hiding = false;
     if (code === PARAGRAPH || code === LINE_BREAK || code === PAGE_BREAK) out += "\n";
-    // ponytail: a row ends with a cell mark right after the last cell's, so two
-    // in a row is read as a row break; an empty cell reads the same way and
-    // splits its row. Telling them apart needs the paragraph properties.
-    else if (code === CELL_MARK) out += out.endsWith("\t") ? "\n" : "\t";
+    else if (code === ROW_END) out += "\n";
+    // A cell's paragraphs, and a table nested in it, stay on its row.
+    else if (code === CELL_BREAK) out += out.endsWith(" ") ? "" : " ";
+    // Without paragraph properties a row's end is the cell mark right after
+    // the last cell's, which an empty cell also is.
+    else if (code === CELL_MARK) out += rows || !out.endsWith("\t") ? "\t" : "\n";
     else if (code >= 0x20 || code === 0x09) out += char;
   }
   return out
@@ -105,6 +507,485 @@ function plain(text: string): string {
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+/** FibRgFcLcb97 (MS-DOC 2.5.6): the comment tables, the authors' names and the header stories. */
+const FC_PLCF_AND_REF = 0x00ba;
+const FC_PLCF_AND_TXT = 0x00c2;
+const FC_GRP_XST_ATN_OWNERS = 0x01ba;
+const FC_PLCF_HDD = 0x00f2;
+
+/** The table-stream structure an FcLcb pair at `offset` of the FIB names, if it fits. */
+function listed(word: Uint8Array, table: Uint8Array, offset: number): DataView | undefined {
+  if (offset + 8 > word.byteLength) return undefined;
+  const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
+  const fc = fib.getUint32(offset, true);
+  const lcb = fib.getUint32(offset + 4, true);
+  return lcb > 0 && fc + lcb <= table.byteLength ? new DataView(table.buffer, table.byteOffset + fc, lcb) : undefined;
+}
+
+/**
+ * The header part split into its stories by PlcfHdd (MS-DOC 2.3.3): six
+ * footnote and endnote separators, then six per section, in the order even
+ * header, odd header, even footer, odd footer, first-page header, first-page
+ * footer. Each distinct line once, as the docx path writes them; the header
+ * text boxes (2.3.7) count as header. POI reads the same table
+ * (`HeaderStories`), and Tika writes them before and after the body.
+ *
+ * ponytail: a WordArt watermark is a shape, not story text, and is left out.
+ */
+function pageFurniture(
+  word: Uint8Array,
+  table: Uint8Array,
+  stories: string,
+  boxes: string,
+  left: { hidden: number },
+): { headers: string[]; footers: string[] } {
+  const found = { headers: [] as string[], footers: [] as string[] };
+  const seen = new Set<string>();
+  const add = (into: string[], text: string) => {
+    for (const line of plain(text, left).split("\n")) {
+      const folded = line.replace(/\s+/g, " ").trim();
+      if (folded && !seen.has(folded)) {
+        seen.add(folded);
+        into.push(folded);
+      }
+    }
+  };
+  const plc = listed(word, table, FC_PLCF_HDD);
+  const count = plc ? Math.floor(plc.byteLength / 4) - 1 : 0;
+  // Read forward only, so a forged table whose stories overlap cannot read
+  // the part more than once.
+  let read = 0;
+  for (let story = 6; plc && story < count; story++) {
+    const from = Math.max(read, plc.getUint32(story * 4, true));
+    const to = Math.max(from, Math.min(stories.length, plc.getUint32((story + 1) * 4, true)));
+    read = to;
+    add([0, 1, 4].includes((story - 6) % 6) ? found.headers : found.footers, stories.slice(from, to));
+  }
+  add(found.headers, boxes);
+  return found;
+}
+
+/**
+ * Each comment (MS-DOC 2.3.4) as `[Comment, author: text]` with the position
+ * of its reference mark in the body. PlcfandRef lists the marks, each with an
+ * ATRDPre10 naming its author by index into GrpXstAtnOwners (else by
+ * initials); PlcfandTxt splits the comment part into one range per comment.
+ * POI reads the same three (`HWPFDocument.getCommentsRange`, `ATRD`).
+ */
+function commentLabels(
+  word: Uint8Array,
+  table: Uint8Array,
+  comments: string,
+  left: { hidden: number },
+): { at: number; label: string }[] {
+  const refs = listed(word, table, FC_PLCF_AND_REF);
+  const txt = listed(word, table, FC_PLCF_AND_TXT);
+  if (!refs || !txt) return [];
+  const utf16 = new TextDecoder("utf-16le");
+  const name = (view: DataView, at: number, length: number) =>
+    utf16.decode(new Uint8Array(view.buffer, view.byteOffset + at, Math.min(length * 2, view.byteLength - at)));
+  const owners: string[] = [];
+  const grp = listed(word, table, FC_GRP_XST_ATN_OWNERS);
+  for (let at = 0; grp && at + 2 <= grp.byteLength; ) {
+    const length = grp.getUint16(at, true);
+    owners.push(name(grp, at + 2, length));
+    at += 2 + length * 2;
+  }
+  const count = Math.min(Math.floor((refs.byteLength - 4) / 34), Math.floor(txt.byteLength / 4));
+  const labels: { at: number; label: string }[] = [];
+  // Ranges are read forward only, so a forged table whose ranges overlap
+  // cannot read the part more than once.
+  let read = 0;
+  for (let i = 0; i < count; i++) {
+    const from = Math.max(read, txt.getUint32(i * 4, true));
+    const to = Math.max(from, Math.min(comments.length, i + 1 < txt.byteLength / 4 ? txt.getUint32((i + 1) * 4, true) : comments.length));
+    read = to;
+    const body = plain(comments.slice(from, to), left).replace(/\s+/g, " ");
+    if (!body) continue;
+    const atrd = (count + 1) * 4 + i * 30;
+    const author = owners[refs.getUint16(atrd + 20, true)] ?? name(refs, atrd + 2, Math.min(9, refs.getUint16(atrd, true)));
+    // A name is the file's to choose: control characters would act on the
+    // body, and one long name named by every comment would multiply the text.
+    // Word caps an author's name at 255 characters.
+    const by = Array.from(author.slice(0, 255), (c) => (c < " " ? " " : c)).join("").replace(/\s+/g, " ").trim();
+    labels.push({ at: refs.getUint32(i * 4, true), label: `[Comment${by ? `, ${by}` : ""}: ${body}]` });
+  }
+  return labels;
+}
+
+/**
+ * Each label moved to the first paragraph or cell mark at or after its
+ * position, to be written before it. Positions are character positions, which
+ * the text's indices are, one per CP.
+ */
+function atParagraphEnds(body: string, labels: { at: number; label: string }[]): { at: number; text: string }[] {
+  const out: { at: number; text: string }[] = [];
+  let end = -1;
+  for (const { at, label } of [...labels].sort((a, b) => a.at - b.at)) {
+    if (at >= body.length) continue;
+    if (end < at) {
+      end = at;
+      while (end < body.length && !endsParagraph(body.charCodeAt(end))) end++;
+    }
+    out.push({ at: end, text: ` ${label}` });
+  }
+  return out;
+}
+
+/** `body` with each text written at its position; equal positions keep their order. */
+function insertAll(body: string, inserts: { at: number; text: string }[]): string {
+  let out = "";
+  let cursor = 0;
+  for (const { at, text } of [...inserts].sort((a, b) => a.at - b.at)) {
+    out += body.slice(cursor, at) + text;
+    cursor = at;
+  }
+  return out + body.slice(cursor);
+}
+
+/** FibRgFcLcb97: the footnote and endnote reference marks and text ranges. */
+const FC_PLCFFND_REF = 0x00aa;
+const FC_PLCFFND_TXT = 0x00b2;
+const FC_PLCFEND_REF = 0x020a;
+const FC_PLCFEND_TXT = 0x0212;
+
+/**
+ * Each footnote (MS-DOC 2.3.2) or endnote (2.3.5) with the position of its
+ * reference mark in the body: the Ref table lists the marks, the Txt table
+ * splits the note part into one range per note. Nothing when either table is
+ * missing.
+ */
+function noteRanges(word: Uint8Array, table: Uint8Array, part: string, refAt: number, txtAt: number): { at: number; text: string }[] | undefined {
+  const refs = listed(word, table, refAt);
+  const txt = listed(word, table, txtAt);
+  if (!refs || !txt) return undefined;
+  const count = Math.min(Math.floor((refs.byteLength - 4) / 6), Math.floor(txt.byteLength / 4) - 1);
+  const notes: { at: number; text: string }[] = [];
+  // Read forward only, as the comment ranges are.
+  let read = 0;
+  for (let i = 0; i < count; i++) {
+    const from = Math.max(read, txt.getUint32(i * 4, true));
+    const to = Math.max(from, Math.min(part.length, txt.getUint32((i + 1) * 4, true)));
+    read = to;
+    notes.push({ at: refs.getUint32(i * 4, true), text: part.slice(from, to) });
+  }
+  return notes;
+}
+
+/** FibRgFcLcb97: the stylesheet. */
+const FC_STSHF = 0x00a2;
+
+/**
+ * The level of each paragraph style that is one of Word's built-in Heading 1
+ * to 9, by istd. The STSH (MS-DOC 2.9.271) is a Stshi of `cbStshi` bytes, its
+ * style count first, then one LPStd per style: a length and an STD whose first
+ * 12 bits are the sti, 1 to 9 for the headings whatever their display name.
+ */
+function headingStyles(word: Uint8Array, table: Uint8Array): Map<number, number> {
+  const levels = new Map<number, number>();
+  const stsh = listed(word, table, FC_STSHF);
+  if (!stsh || stsh.byteLength < 4 || stsh.getUint16(0, true) < 2) return levels;
+  const count = stsh.getUint16(2, true);
+  let at = 2 + stsh.getUint16(0, true);
+  for (let istd = 0; istd < count && at + 2 <= stsh.byteLength; istd++) {
+    const size = stsh.getUint16(at, true);
+    const sti = size >= 2 && at + 4 <= stsh.byteLength ? stsh.getUint16(at + 2, true) & 0x0fff : 0;
+    if (sti >= 1 && sti <= 9) levels.set(istd, sti);
+    at += 2 + size;
+  }
+  return levels;
+}
+
+/** FibRgFcLcb97: paragraph property pages, the list definitions, the list instances. */
+const FC_PLCF_BTE_PAPX = 0x0102;
+const FC_PLF_LST = 0x02e2;
+const FC_PLF_LFO = 0x02ea;
+/** sprmPIlvl and sprmPIlfo (MS-DOC 2.6.2): a paragraph's list level and list instance. */
+const SPRM_ILVL = 0x260a;
+const SPRM_ILFO = 0x460b;
+/**
+ * sprmPFInTable, sprmPItap, sprmPFInnerTableCell and sprmPFInnerTtp (MS-DOC
+ * 2.6.2): the paragraph sits in a table, at a depth, or ends a nested cell or
+ * row. sprmPFTtp: its mark, a cell mark, ends a row of the outer table.
+ */
+const SPRM_IN_TABLE = 0x2416;
+const SPRM_ROW_END = 0x2417;
+const SPRM_INNER_CELL = 0x244b;
+const SPRM_INNER_ROW_END = 0x244c;
+const SPRM_TABLE_DEPTH = 0x6649;
+
+/** A paragraph run of a PapxFkp, by its byte range in `WordDocument`, and what it says. */
+interface Paragraph {
+  from: number;
+  to: number;
+  ilfo: number;
+  ilvl: number;
+  istd: number;
+  inTable: boolean;
+  rowEnd: boolean;
+}
+/** MS-DOC 2.9.158 nfc to the format names the docx reader uses; any other reads as decimal. */
+const NFC: Record<number, string> = {
+  0: "decimal", 1: "upperRoman", 2: "lowerRoman", 3: "upperLetter", 4: "lowerLetter",
+  5: "ordinal", 22: "decimalZero", 23: "bullet", 255: "none",
+};
+
+/**
+ * An LVL (MS-DOC 2.9.150) at `at`: the fixed LVLF, its two property runs, then
+ * the number text, where characters 0 to 8 stand for the counters of levels
+ * 1 to 9. Nothing when it does not fit.
+ */
+function readLvl(view: DataView, at: number): { level: ListLevel; next: number } | undefined {
+  if (at + 28 > view.byteLength) return undefined;
+  const flags = view.getUint8(at + 5);
+  const xst = at + 28 + view.getUint8(at + 24) + view.getUint8(at + 25);
+  if (xst + 2 > view.byteLength) return undefined;
+  const length = view.getUint16(xst, true);
+  if (xst + 2 + length * 2 > view.byteLength) return undefined;
+  let text = "";
+  for (let i = 0; i < length; i++) {
+    const code = view.getUint16(xst + 2 + i * 2, true);
+    text += code < 9 ? `%${code + 1}` : String.fromCharCode(code);
+  }
+  const level: ListLevel = {
+    format: NFC[view.getUint8(at + 4)] ?? "decimal",
+    text,
+    start: view.getInt32(at, true),
+    // fNoRestart: restart only after a level above ilvlRestartLim, 0 never.
+    restart: flags & 0x08 ? view.getUint8(at + 26) : undefined,
+    legal: (flags & 0x04) !== 0,
+  };
+  return { level, next: xst + 2 + length * 2 };
+}
+
+/**
+ * A labeller over a .doc's list tables, keyed by a paragraph's LFO index, as
+ * Tika's ListManager and POI's HWPFList read them: PlfLst gives each list's
+ * levels, appended LVLs after its LSTFs (9, or 1 for a simple list), and
+ * PlfLfo gives each instance its list and, in LFOLVLs, its start values and
+ * replaced levels. The counting is the docx reader's.
+ */
+function docListLabels(word: Uint8Array, table: Uint8Array): ((ilfo: number, ilvl: number) => string | undefined) | undefined {
+  const fib = new DataView(word.buffer, word.byteOffset, word.byteLength);
+  // The FIB says how many FcLcb pairs it holds; PlfLfo is pair 74.
+  if (fib.getUint16(0x98, true) < 75) return undefined;
+  const lst = listed(word, table, FC_PLF_LST);
+  const lfo = listed(word, table, FC_PLF_LFO);
+  if (!lst || !lfo || lst.byteLength < 2 || lfo.byteLength < 4) return undefined;
+  const whole = new DataView(table.buffer, table.byteOffset, table.byteLength);
+  const abstracts = new Map<string, ListDefinition>();
+  const lists = Math.min(Math.max(0, lst.getInt16(0, true)), Math.floor((lst.byteLength - 2) / 28));
+  let at = fib.getUint32(FC_PLF_LST, true) + 2 + lists * 28;
+  for (let i = 0; i < lists; i++) {
+    const levels = new Map<number, ListLevel>();
+    abstracts.set(String(lst.getInt32(2 + i * 28, true)), { levels });
+    const simple = (lst.getUint8(2 + i * 28 + 26) & 0x01) !== 0;
+    for (let n = 0; n < (simple ? 1 : 9); n++) {
+      const read = readLvl(whole, at);
+      if (!read) break;
+      levels.set(n, read.level);
+      at = read.next;
+    }
+  }
+  const instances = new Map<string, ListInstance>();
+  const count = Math.min(lfo.getUint32(0, true), Math.floor((lfo.byteLength - 4) / 16));
+  // Each LFO's LFOData follows the array: a CP, then one LFOLVL per override.
+  let data = 4 + count * 16;
+  for (let i = 0; i < count; i++) {
+    const instance: ListInstance = { abstract: String(lfo.getInt32(4 + i * 16, true)), starts: new Map(), levels: new Map() };
+    instances.set(String(i + 1), instance);
+    data += 4;
+    for (let n = lfo.getUint8(4 + i * 16 + 12); n > 0 && data + 8 <= lfo.byteLength; n--) {
+      const flags = lfo.getUint8(data + 4);
+      const ilvl = flags & 0x0f;
+      if (flags & 0x10) instance.starts.set(ilvl, lfo.getInt32(data, true));
+      data += 8;
+      if (flags & 0x20) {
+        const read = readLvl(lfo, data);
+        if (!read) break;
+        instance.levels.set(ilvl, read.level);
+        data = read.next;
+      }
+    }
+  }
+  const label = listLabels(abstracts, instances);
+  return (ilfo, ilvl) => label(String(ilfo), ilvl);
+}
+
+/**
+ * Each paragraph run `keep` accepts, by its byte range in `WordDocument`: PlcBtePapx names the paragraph property pages
+ * (PapxFkp, MS-DOC 2.9.175), each listing runs and their properties. Read from
+ * the paragraph's own properties.
+ *
+ * ponytail: a list applied through the paragraph's style (its istd in the
+ * stylesheet) is not followed; read the style's own properties when such files
+ * turn up.
+ */
+function markedParagraphs(
+  word: Uint8Array,
+  table: Uint8Array,
+  keep: (paragraph: Paragraph) => boolean,
+): Paragraph[] {
+  const plc = listed(word, table, FC_PLCF_BTE_PAPX);
+  const runs: Paragraph[] = [];
+  if (!plc || plc.byteLength < 8) return runs;
+  const pages = Math.floor((plc.byteLength - 4) / 8);
+  const seen = new Set<number>();
+  for (let page = 0; page < pages; page++) {
+    const base = (plc.getUint32((pages + 1) * 4 + page * 4, true) & 0x3fffff) * 512;
+    if (base + 512 > word.byteLength || seen.has(base)) continue;
+    seen.add(base);
+    const fkp = new DataView(word.buffer, word.byteOffset + base, 512);
+    const count = fkp.getUint8(511);
+    if ((count + 1) * 4 + count * 13 > 511) continue;
+    for (let run = 0; run < count; run++) {
+      const papx = fkp.getUint8((count + 1) * 4 + run * 13) * 2;
+      if (papx === 0 || papx + 2 >= 511) continue;
+      const cb = fkp.getUint8(papx);
+      const start = cb ? papx + 1 : papx + 2;
+      const end = Math.min(511, start + (cb ? cb * 2 - 1 : fkp.getUint8(papx + 1) * 2));
+      let ilfo = 0;
+      let ilvl = 0;
+      let inTable = false;
+      let rowEnd = false;
+      const istd = start + 2 <= end ? fkp.getUint16(start, true) : -1;
+      // The istd first, then sprms as in a ChpxFkp.
+      for (let at = start + 2; at + 2 <= end; ) {
+        const sprm = fkp.getUint16(at, true);
+        at += 2;
+        const size = [1, 1, 2, 4, 2, 2, -1, 3][sprm >>> 13];
+        if (sprm === SPRM_ILFO && at + 2 <= end) ilfo = fkp.getInt16(at, true);
+        else if (sprm === SPRM_ILVL && at < end) ilvl = fkp.getUint8(at);
+        else if ((sprm === SPRM_IN_TABLE || sprm === SPRM_INNER_CELL || sprm === SPRM_INNER_ROW_END) && at < end) inTable ||= fkp.getUint8(at) === 1;
+        else if (sprm === SPRM_TABLE_DEPTH && at + 4 <= end) inTable ||= fkp.getInt32(at, true) > 0;
+        else if (sprm === SPRM_ROW_END && at < end) rowEnd = fkp.getUint8(at) === 1;
+        at += size < 0 ? (at < end ? fkp.getUint8(at) + 1 : 1) : size;
+      }
+      const paragraph = { from: fkp.getUint32(run * 4, true), to: fkp.getUint32((run + 1) * 4, true), ilfo, ilvl: Math.min(ilvl, 8), istd, inTable, rowEnd };
+      if (keep(paragraph)) runs.push(paragraph);
+    }
+  }
+  return runs.sort((a, b) => a.from - b.from);
+}
+
+/**
+ * The label to write at the start of each list paragraph of the body, indented
+ * four spaces a level as the docx reader writes them, and a heading's `#`
+ * marks, one a level up to six as the docx reader writes them, with any list
+ * label after them unindented. A paragraph with nothing visible (hidden or
+ * deleted text) is neither labelled nor counted.
+ */
+function paragraphInserts(word: Uint8Array, table: Uint8Array, body: string, pieces: Piece[]): { at: number; text: string }[] {
+  const headings = headingStyles(word, table);
+  const runs = markedParagraphs(word, table, (paragraph) => paragraph.ilfo > 0 || headings.has(paragraph.istd));
+  if (!runs.length) return [];
+  const label = runs.some((run) => run.ilfo > 0) ? docListLabels(word, table) : undefined;
+  const inserts: { at: number; text: string }[] = [];
+  let piece = 0;
+  let start = 0;
+  for (let at = 0; at < body.length; at++) {
+    const code = body.charCodeAt(at);
+    if (!endsParagraph(code)) continue;
+    while (piece < pieces.length && pieces[piece]!.end <= at) piece++;
+    const holder = pieces[piece];
+    const paragraph = body.slice(start, at);
+    const from = start;
+    start = at + 1;
+    if (!holder || holder.cp > at || !paragraph.split("").some((c) => c >= " ")) continue;
+    const fc = holder.offset + (at - holder.cp) * holder.width;
+    // The last run that starts at or before the mark's byte.
+    let low = 0;
+    for (let high = runs.length; low < high; ) {
+      const middle = (low + high) >>> 1;
+      if (runs[middle]!.from <= fc) low = middle + 1;
+      else high = middle;
+    }
+    const run = runs[low - 1];
+    if (!run || fc >= run.to) continue;
+    const text = run.ilfo > 0 ? label?.(run.ilfo, run.ilvl) : undefined;
+    // A heading in a table cell stays a cell.
+    const level = code === PARAGRAPH ? headings.get(run.istd) : undefined;
+    if (level) inserts.push({ at: from, text: `${"#".repeat(Math.min(level, 6))} ${text ? `${text} ` : ""}` });
+    else if (text !== undefined) inserts.push({ at: from, text: `${"    ".repeat(run.ilvl)}${text ? `${text} ` : ""}` });
+  }
+  return inserts;
+}
+
+/** A run of picture characters and the offset of their PICF in the `Data` stream. */
+interface Picture {
+  from: number;
+  to: number;
+  data: number;
+}
+
+/**
+ * Each inline picture of the body as its alternative text, `[Image: ...]`,
+ * where its character sits (Q31 O1). The text is the shape's wzDescription
+ * (MS-ODRAW property 0x0381), which POI reads as `Picture.getDescription()`.
+ *
+ * ponytail: inline pictures only; a floating one (character 0x08) is reached
+ * through the table stream's drawing records by shape id.
+ */
+function pictureInserts(body: string, pieces: Piece[], pictures: Picture[], data: Uint8Array | undefined): { at: number; text: string }[] {
+  const inserts: { at: number; text: string }[] = [];
+  if (!data || !pictures.length) return inserts;
+  const read = new Map<number, string>();
+  let piece = 0;
+  for (let at = body.indexOf("\x01"); at >= 0; at = body.indexOf("\x01", at + 1)) {
+    while (piece < pieces.length && pieces[piece]!.end <= at) piece++;
+    const holder = pieces[piece];
+    if (!holder || holder.cp > at) continue;
+    const fc = holder.offset + (at - holder.cp) * holder.width;
+    let low = 0;
+    for (let high = pictures.length; low < high; ) {
+      const middle = (low + high) >>> 1;
+      if (pictures[middle]!.from <= fc) low = middle + 1;
+      else high = middle;
+    }
+    const run = pictures[low - 1];
+    if (!run || fc >= run.to) continue;
+    if (!read.has(run.data)) read.set(run.data, altLabel("Image", [pictureAlt(data, run.data)]));
+    const label = read.get(run.data);
+    if (label) inserts.push({ at, text: label });
+  }
+  return inserts;
+}
+
+/**
+ * The wzDescription of the picture whose PICFAndOfficeArtData starts at `at`:
+ * a PICF, a linked picture's file name, then the shape's OfficeArt records,
+ * whose property table (OPT) lists simple values first and appends complex
+ * ones, such as this string, in the same order.
+ */
+function pictureAlt(data: Uint8Array, at: number): string {
+  if (at + 68 > data.byteLength) return "";
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const end = Math.min(data.byteLength, at + view.getUint32(at, true));
+  let record = at + view.getUint16(at + 4, true);
+  // MM_SHAPEFILE: a length byte and the file name come first.
+  if (view.getUint16(at + 6, true) === 0x66 && record < end) record += 1 + data[record]!;
+  // The OPT is the shape container's second or third record.
+  for (let seen = 0; seen < 8 && record + 8 <= end; seen++) {
+    const head = view.getUint16(record, true);
+    const type = view.getUint16(record + 2, true);
+    const body = record + 8;
+    record = (head & 0x0f) === 0x0f ? body : body + view.getUint32(record + 4, true);
+    if (type !== 0xf00b && type !== 0xf122) continue;
+    const count = head >>> 4;
+    let complex = body + count * 6;
+    for (let property = 0; property < count && body + property * 6 + 6 <= end; property++) {
+      const id = view.getUint16(body + property * 6, true);
+      if (!(id & 0x8000)) continue;
+      const length = view.getUint32(body + property * 6 + 2, true);
+      // Read no further than a label keeps, so a forged length costs nothing.
+      const to = Math.min(end, complex + length, complex + 8192);
+      if ((id & 0x3fff) === 0x0381) return new TextDecoder("utf-16le").decode(data.subarray(complex, to)).replace(/\0+$/, "");
+      complex += length;
+    }
+  }
+  return "";
 }
 
 const NOT_THIS_READER: ExtractionResult = { text: "", notes: [{ kind: "parser-unavailable" }] };
@@ -124,10 +1005,10 @@ export function formatDoc(streams: CfbStreams): ExtractionResult {
   const table = streams.get(flags & 0x0200 ? "1Table" : "0Table");
   if (!table) return NOT_THIS_READER;
 
-  const all = readPieces(word, table);
+  const { text: all, pieces, pictures } = readPieces(word, table);
   // Character counts of each part of the stream, in the order they are stored.
-  const [body, footnotes, headers, macros, comments, endnotes, textboxes] = [
-    0x4c, 0x50, 0x54, 0x58, 0x5c, 0x60, 0x64,
+  const [body, footnotes, headers, macros, comments, endnotes, textboxes, headerBoxes] = [
+    0x4c, 0x50, 0x54, 0x58, 0x5c, 0x60, 0x64, 0x68,
   ].map((offset) => fib.getInt32(offset, true));
   let cursor = 0;
   const part = (length: number): string => {
@@ -135,11 +1016,52 @@ export function formatDoc(streams: CfbStreams): ExtractionResult {
     cursor += Math.max(0, length);
     return slice;
   };
-  const kept = [part(body), part(footnotes)];
-  part(headers);
+  const [main, foot, stories] = [part(body), part(footnotes), part(headers)];
   part(macros);
-  part(comments);
-  kept.push(part(endnotes), part(textboxes));
+  const [said, end, boxes, headerBoxText] = [part(comments), part(endnotes), part(textboxes), part(headerBoxes)];
+  const left = { hidden: 0 };
+  const labels = commentLabels(word, table, said, left).filter(({ at }) => at < main.length);
 
-  return { text: kept.map(plain).filter(Boolean).join("\n\n") };
+  // Each note numbered in the order its mark stands in the body, footnotes
+  // and endnotes in one sequence, as the docx reader numbers them: [^1] at
+  // the mark, its text after "[^1]" under the notes label.
+  const footnoteList = noteRanges(word, table, foot, FC_PLCFFND_REF, FC_PLCFFND_TXT);
+  const endnoteList = fib.getUint16(0x98, true) > 47 ? noteRanges(word, table, end, FC_PLCFEND_REF, FC_PLCFEND_TXT) : undefined;
+  const numbered = [...(footnoteList ?? []), ...(endnoteList ?? [])]
+    .filter(({ at }) => at < main.length)
+    .sort((a, b) => a.at - b.at)
+    .map(({ at, text }) => ({ at, text: plain(text, left) }))
+    .filter(({ text }) => text);
+  const noteLines = [
+    ...numbered.map(({ text }, i) => `[^${i + 1}] ${text}`),
+    // A note part without its tables is still notes, unnumbered.
+    ...(footnoteList ? [] : [plain(foot, left)]),
+    ...(endnoteList ? [] : [plain(end, left)]),
+  ].filter(Boolean);
+
+  const kept = insertAll(main, [
+    ...paragraphInserts(word, table, main, pieces),
+    ...pictureInserts(main, pieces, pictures, streams.get("Data")),
+    ...numbered.map(({ at }, i) => ({ at: at + 1, text: `[^${i + 1}]` })),
+    ...atParagraphEnds(main, labels),
+  ]);
+  const furniture = pageFurniture(word, table, stories, headerBoxText, left);
+  const block = (label: string, lines: string[]) => (lines.length ? [[label, ...lines].join("\n")] : []);
+
+  const text = [
+    ...block("--- Page header ---", furniture.headers),
+    // A heading paragraph that held only a field code or an object marks nothing.
+    plain(kept, left).replace(/^#{1,6}[ \t]*(?:\n|$)/gm, "").replace(/\n{3,}/g, "\n\n").trim(),
+    ...block("--- Notes ---", noteLines),
+    plain(boxes, left),
+    ...block("--- Page footer ---", furniture.footers),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  if (!text) return { text };
+  const notes: ExtractionNote[] = [];
+  if (left.hidden > 0) notes.push({ kind: "hidden-left-out", count: left.hidden });
+  if (labels.length > 0) notes.push({ kind: "comments-included", count: labels.length });
+  const title = summaryTitle(streams.get(SUMMARY_INFORMATION));
+  return { text, ...(notes.length ? { notes } : {}), ...(title ? { title } : {}) };
 }

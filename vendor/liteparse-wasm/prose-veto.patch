@@ -1,0 +1,234 @@
+From 8118219a083cf5dbc246ffc2d1b655cc1d4e05aa Mon Sep 17 00:00:00 2001
+From: ceamkrier <ceamkrier@gmail.com>
+Date: Fri, 16 Oct 2026 23:08:13 +0300
+Subject: [PATCH] fix: drop a page-wide ruled table only when its cells read as
+ prose
+
+The global ruled pass dropped its table whenever one layout leaf tabled on
+its own. On real pages that leaf is often one band of a table the page rules
+cut into regions, so the page lost its header row or a column. The veto
+exists for a frame around prose, so test that directly: the global table is
+dropped only when a leaf tables on its own and the table's cells read as
+prose (words split at cell ends, sentences running down a column, one
+dominant paragraph cell, or long sentence cells in two or more columns),
+after pdf-inspector's cell-content tests, without its English word lists.
+Han/kana/Hangul runs count one word per two characters.
+
+olmOCR-bench tables 549 -> 554 (+8, -3). 195 real PDFs: 27 change, most
+gain the missing header row or columns; one loses a sales table's rows
+to a page-wide grid, one moves a heading into a table row.
+---
+ .../liteparse/src/markdown_layout/classify.rs |  12 +-
+ .../liteparse/src/markdown_layout/tables.rs   | 154 ++++++++++++++++++
+ crates/liteparse/src/ocr_merge.rs             |   2 +-
+ 3 files changed, 166 insertions(+), 2 deletions(-)
+
+diff --git a/crates/liteparse/src/markdown_layout/classify.rs b/crates/liteparse/src/markdown_layout/classify.rs
+index fad8caf..6c135be 100644
+--- a/crates/liteparse/src/markdown_layout/classify.rs
++++ b/crates/liteparse/src/markdown_layout/classify.rs
+@@ -210,7 +210,17 @@ pub fn classify_page_with_filters(
+             .is_empty()
+                 || !super::tables::detect_tables(&sub).is_empty()
+         });
+-        if already_handled {
++        // A leaf tabling on its own is only a reason to drop the global
++        // table when the global table's cells read as prose (the frame case
++        // above). Otherwise the leaf is usually one band of a table the page
++        // rules cut into regions, and the global table is the whole of it.
++        let reads_as_prose = match &run.block {
++            Block::Table { header, rows } => super::tables::cells_read_as_prose(
++                &header.iter().chain(rows).cloned().collect::<Vec<_>>(),
++            ),
++            _ => false,
++        };
++        if already_handled && reads_as_prose {
+             continue;
+         }
+         // Single-column gate. A decorative banner/frame around a prose
+diff --git a/crates/liteparse/src/markdown_layout/tables.rs b/crates/liteparse/src/markdown_layout/tables.rs
+index 315da84..8835815 100644
+--- a/crates/liteparse/src/markdown_layout/tables.rs
++++ b/crates/liteparse/src/markdown_layout/tables.rs
+@@ -760,6 +760,92 @@ fn is_alpha_dominant(text: &str) -> bool {
+     letters > digits
+ }
+ 
++/// Whether a built grid's cells read as prose cut into columns rather than
++/// tabular data: a frame or rule set around running text, a multi-column
++/// article, a letter. Script-agnostic subset of pdf-inspector's tests
++/// (`is_paragraph_content`, the stacked-box continuation test,
++/// `has_dominant_prose_cell`, `row_stripe_cells_are_prose`); its English
++/// function-word lists are left out. A grid where data-like cells are common is
++/// never prose: rejecting a real table only degrades it to text, but keeping a
++/// phantom one scrambles the page, so every signal is a high bar.
++pub(super) fn cells_read_as_prose(rows: &[Vec<Cell>]) -> bool {
++    use super::paragraphs::{ends_hyphenated, ends_sentence_final};
++    let filled: Vec<(usize, &str)> = rows
++        .iter()
++        .flat_map(|r| r.iter().enumerate())
++        .map(|(c, cell)| (c, cell.text.trim()))
++        .filter(|(_, t)| !t.is_empty())
++        .collect();
++    if filled.is_empty() {
++        return false;
++    }
++    let n = filled.len() as f32;
++    // Words by whitespace, with a run of Han/kana/Hangul counted as one word
++    // per two characters, so unspaced Japanese or Chinese prose still weighs.
++    let words = |t: &str| {
++        t.split_whitespace()
++            .map(
++                |w| match w.chars().filter(|&c| crate::ocr_merge::is_cjk(c)).count() {
++                    0 | 1 => 1,
++                    k => k.div_ceil(2),
++                },
++            )
++            .sum::<usize>()
++    };
++    let data_like = filled
++        .iter()
++        .filter(|(_, t)| words(t) <= 4 && t.chars().any(|c| c.is_ascii_digit()))
++        .count();
++    if data_like as f32 >= 0.3 * n {
++        return false;
++    }
++    // Words split at a cell's end: text was cut by a column edge, not laid out
++    // in one.
++    if filled.len() >= 4
++        && filled.iter().filter(|(_, t)| ends_hyphenated(t)).count() as f32 > 0.03 * n
++    {
++        return true;
++    }
++    // A sentence running down a column: an open cell of a few words followed by
++    // a lowercase one. The 3-word floor keeps a units column ("kg", "kg") out.
++    let opens = |t: &str| {
++        words(t) >= 3 && !ends_sentence_final(t) && !t.ends_with([':', ';', ')', '"', '%'])
++    };
++    let starts_lower = |t: &str| t.chars().next().is_some_and(|c| c.is_lowercase());
++    let mut pairs = 0;
++    for (a, b) in rows.iter().zip(rows.iter().skip(1)) {
++        if a.iter()
++            .zip(b)
++            .any(|(x, y)| opens(x.text.trim()) && starts_lower(y.text.trim()))
++        {
++            pairs += 1;
++        }
++    }
++    if pairs >= 2 || (rows.len() > 1 && pairs * 4 >= rows.len() - 1 && pairs > 0) {
++        return true;
++    }
++    // One cell holding most of the text is a paragraph in a box.
++    let total: usize = filled.iter().map(|(_, t)| words(t)).sum();
++    let largest = filled.iter().map(|(_, t)| words(t)).max().unwrap_or(0);
++    if largest >= 60 && largest * 3 >= total {
++        return true;
++    }
++    // Long sentence cells in two or more columns: flowing text fills every
++    // column, a narrative table keeps its sentences in one description column.
++    let mean_len = filled.iter().map(|(_, t)| t.chars().count()).sum::<usize>() as f32 / n;
++    let sentence: Vec<usize> = filled
++        .iter()
++        .filter(|(_, t)| {
++            words(t) >= 10 && t.contains(['.', ',', '\u{3001}', '\u{3002}', '\u{FF0C}'])
++        })
++        .map(|(c, _)| *c)
++        .collect();
++    let mut sentence_cols = sentence.clone();
++    sentence_cols.sort_unstable();
++    sentence_cols.dedup();
++    mean_len > 90.0 && sentence.len() as f32 >= 0.5 * n && sentence_cols.len() >= 2
++}
++
+ /// Measurement-value shape: a decimal number ("2.28"), currency/percent,
+ /// comma-grouped number ("1,240"), or a dash placeholder ("--" / "—").
+ /// Bare integers (years, codes) deliberately do NOT match — they appear in
+@@ -6553,4 +6639,72 @@ mod tests {
+             "lettered list must not be detected as a description-list table"
+         );
+     }
++
++    fn grid(rows: &[&[&str]]) -> Vec<Vec<Cell>> {
++        rows.iter()
++            .map(|r| {
++                r.iter()
++                    .map(|t| Cell {
++                        text: t.to_string(),
++                        bbox: None,
++                    })
++                    .collect()
++            })
++            .collect()
++    }
++
++    #[test]
++    fn prose_cut_into_columns_reads_as_prose() {
++        // Two columns of running text sliced row by row by a page frame.
++        let rows = grid(&[
++            &[
++                "The program began as a pilot in the",
++                "Services are offered to recipients who",
++            ],
++            &[
++                "city and is designed to address the",
++                "face barriers to employment and need",
++            ],
++            &[
++                "barriers that keep recipients from",
++                "case management alongside job readi-",
++            ],
++            &[
++                "work for longer than six months.",
++                "ness classes and job development.",
++            ],
++        ]);
++        assert!(cells_read_as_prose(&rows));
++        // One dominant paragraph next to a short label.
++        let para = "word ".repeat(70);
++        assert!(cells_read_as_prose(&grid(&[
++            &[&para, "NMWorks"],
++            &["", ""]
++        ])));
++        // Unspaced Japanese prose counts by characters.
++        let ja = "事業報告及びその附属明細書は法令及び定款に従い会社の状況を正しく示しているものと認めます".repeat(3);
++        assert!(cells_read_as_prose(&grid(&[&[&ja, "以上"]])));
++    }
++
++    #[test]
++    fn data_and_description_tables_are_not_prose() {
++        let rows = grid(&[
++            &["Mode", "RMS (mA)", "Peak (mA)"],
++            &["Single twitch, 60 mA, 300 us", "0.46", "60"],
++            &["Train of four, 60 mA, 300 us", "0.54", "60"],
++        ]);
++        assert!(!cells_read_as_prose(&rows));
++        // A label column next to long descriptions: sentences in one column.
++        let rows = grid(&[
++            &[
++                "Rehabilitering",
++                "The resident can state their wishes and the staff meet them along the way, asking as they go.",
++            ],
++            &[
++                "Selvbestemmelse",
++                "The two residents could not take part in an interview because of their health, the staff said.",
++            ],
++        ]);
++        assert!(!cells_read_as_prose(&rows));
++    }
+ }
+diff --git a/crates/liteparse/src/ocr_merge.rs b/crates/liteparse/src/ocr_merge.rs
+index 65dcd15..4205089 100644
+--- a/crates/liteparse/src/ocr_merge.rs
++++ b/crates/liteparse/src/ocr_merge.rs
+@@ -1709,7 +1709,7 @@ fn is_chart_label(text: &str) -> bool {
+ 
+ /// Han ideographs, kana and Hangul: scripts written without spaces between
+ /// words, or with short syllable blocks, where OCR words are naturally short.
+-fn is_cjk(c: char) -> bool {
++pub(crate) fn is_cjk(c: char) -> bool {
+     matches!(c,
+         '\u{1100}'..='\u{11FF}'   // Hangul Jamo
+         | '\u{3040}'..='\u{30FF}' // Hiragana, Katakana
+-- 
+2.43.0
+

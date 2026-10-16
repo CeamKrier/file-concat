@@ -1,4 +1,6 @@
-import type { Email } from "postal-mime";
+import type { Email, PostalMimeOptions } from "postal-mime";
+import { formatCalendar } from "./calendar";
+import { flattenHtml, mapTags, withoutHiddenHtml } from "./html-text";
 import type { ExtractionNote, ExtractionResult } from "./types";
 
 /**
@@ -8,13 +10,31 @@ import type { ExtractionNote, ExtractionResult } from "./types";
  */
 export interface MessageFields {
   from?: Email["from"];
+  /** Who sent it for the author (RFC 5322 3.6.2), Outlook's "on behalf of". */
+  sender?: Email["sender"];
+  replyTo?: Email["replyTo"];
   to?: Email["to"];
   cc?: Email["cc"];
+  bcc?: Email["bcc"];
   date?: string;
   subject?: string;
+  /** Comments and Keywords (RFC 5322 3.6.5), decoded. */
+  comments?: string;
+  keywords?: string;
   html?: string;
   text?: string;
-  attachments?: ReadonlyArray<{ filename: string | null }>;
+  /** Meetings already rendered as `Label: value` blocks, read as body. */
+  events?: readonly string[];
+  /** Messages carried inside this one, already rendered with their label. */
+  enclosed?: readonly string[];
+  attachments?: ReadonlyArray<{
+    filename: string | null;
+    mimeType?: string;
+    disposition?: string | null;
+    description?: string;
+    contentId?: string;
+    content?: ArrayBuffer | Uint8Array | string;
+  }>;
 }
 
 /**
@@ -31,8 +51,18 @@ export interface MessageFields {
  * can be satisfied by an `import` written in core. Core owns what comes out.
  */
 
-/** Headers worth carrying. Everything else is routing exhaust. */
-const KEPT_HEADERS = ["From", "To", "Cc", "Date", "Subject"] as const;
+/**
+ * Headers worth carrying. Everything else is routing exhaust. Sender and
+ * Reply-To only when they name someone From does not: a list or an assistant
+ * sending, or replies going elsewhere.
+ */
+const KEPT_HEADERS = ["From", "Sender", "Reply-To", "To", "Cc", "Bcc", "Date", "Subject", "Comments", "Keywords"] as const;
+
+/** A delivery report's per-recipient fields (RFC 3464): who it failed for and why, meant to be read. */
+const DELIVERY_STATUS = /^message\/(?:global-)?delivery-status$/i;
+
+/** A detached signature (RFC 3156 PGP, RFC 8551 S/MIME): no reader's content, only proof of the sender. */
+const SIGNATURE = /^application\/(?:pgp-signature|(?:x-)?pkcs7-signature)$/i;
 
 function formatAddress(address: Email["from"]): string {
   if (!address) return "";
@@ -51,19 +81,6 @@ function formatAddresses(addresses: Email["to"]): string {
     .join(", ");
 }
 
-/** Block-level tags whose boundaries are the only structure HTML mail carries. */
-const HTML_BREAKS = /<\/?(p|div|br|tr|li|h[1-6]|blockquote|table)\b[^>]*>/gi;
-
-const HTML_ENTITIES: Readonly<Record<string, string>> = {
-  "&amp;": "&",
-  "&lt;": "<",
-  "&gt;": ">",
-  "&quot;": '"',
-  "&#39;": "'",
-  "&apos;": "'",
-  "&nbsp;": " ",
-};
-
 /**
  * The readable text of an HTML-only message. Deliberately crude: the goal is
  * the words in reading order, not a faithful rendering, and a message that has
@@ -77,21 +94,21 @@ const HTML_ENTITIES: Readonly<Record<string, string>> = {
  * the end, since Outlook writes the history as that block's siblings. A
  * forward carries neither and stays unmarked, as talon also leaves it.
  */
-function htmlToText(html: string): string {
-  const clean = html.replace(/[\uE000\uE001]/g, "").replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+function htmlToText(html: string): { text: string; hidden: number } {
+  const { html: clean, hidden } = withoutHiddenHtml(mapTags(html.replace(/[\uE000\uE001]/g, ""), () => undefined, true));
   const header = clean.search(/\bid=["']?divRplyFwdMsg\b/i);
   const outlook = header < 0 ? -1 : clean.lastIndexOf("<", header);
-  const flat = (outlook < 0 ? clean : `${clean.slice(0, outlook)}\n${QUOTE_OPEN}${clean.slice(outlook)}${QUOTE_CLOSE}\n`)
-    .replace(/<blockquote\b[^>]*>/gi, `\n${QUOTE_OPEN}`)
-    .replace(/<\/blockquote\s*>/gi, `${QUOTE_CLOSE}\n`)
-    .replace(HTML_BREAKS, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
-    .replace(/&[a-z#0-9]+;/gi, (entity) => HTML_ENTITIES[entity.toLowerCase()] ?? entity)
-    .replace(/[ \t]+/g, " ")
-    .replace(/ ?\n ?/g, "\n");
+  const flat = mapTags(
+    outlook < 0 ? clean : `${clean.slice(0, outlook)}\n${QUOTE_OPEN}${clean.slice(outlook)}${QUOTE_CLOSE}\n`,
+    (name, closing) => (name !== "blockquote" ? undefined : closing ? `${QUOTE_CLOSE}\n` : `\n${QUOTE_OPEN}`),
+  );
+  return { text: quoteLines(flattenHtml(flat)), hidden };
+}
+
+/** Lines between {@link QUOTE_OPEN} and {@link QUOTE_CLOSE} marked `> ` per level. */
+function quoteLines(marked: string): string {
   let depth = 0;
-  return flat
+  return marked
     .split("\n")
     .map((line) => {
       const level = depth + line.split(QUOTE_OPEN).length - 1;
@@ -104,6 +121,45 @@ function htmlToText(html: string): string {
     .trim();
 }
 
+/**
+ * A text/enriched body (RFC 1896) as plain text. Formatting commands are
+ * dropped (unknown ones are no-ops by the RFC), `<param>` text is never shown,
+ * `<<` is a `<`, and an excerpt is quoted with `> ` as mutt writes it. Outside
+ * `<nofill>`, one line break is a space and n of them are n-1.
+ */
+export function enrichedToText(source: string): string {
+  const src = source.replace(/[\uE000\uE001]/g, "").replace(/\r\n?/g, "\n");
+  let out = "";
+  let param = 0;
+  let nofill = 0;
+  for (let i = 0; i < src.length; ) {
+    if (src.startsWith("<<", i)) {
+      if (!param) out += "<";
+      i += 2;
+    } else if (src[i] === "<") {
+      const end = src.indexOf(">", i);
+      if (end < 0) break;
+      const tag = src.slice(i + 1, end).toLowerCase();
+      const step = tag.startsWith("/") ? -1 : 1;
+      const name = tag.replace(/^\//, "");
+      if (name === "param") param = Math.max(0, param + step);
+      else if (name === "nofill") nofill = Math.max(0, nofill + step);
+      // An excerpt starts and ends a line, unless one already does.
+      else if (name === "excerpt") out += step > 0 ? `${out.endsWith("\n") ? "" : "\n"}${QUOTE_OPEN}` : `${QUOTE_CLOSE}\n`;
+      i = end + 1;
+    } else if (src[i] === "\n" && !nofill) {
+      let n = 0;
+      while (src[i + n] === "\n") n++;
+      if (!param) out += n === 1 ? " " : "\n".repeat(n - 1);
+      i += n;
+    } else {
+      if (!param) out += src[i];
+      i++;
+    }
+  }
+  return quoteLines(out);
+}
+
 /** Where a quote opens and closes, between reading the markup and writing lines. */
 const QUOTE_OPEN = "\uE000";
 const QUOTE_CLOSE = "\uE001";
@@ -114,12 +170,20 @@ const QUOTE_CLOSE = "\uE001";
  * body and no header worth printing, so an empty entry never appears silently.
  */
 export function formatEmail(email: MessageFields): ExtractionResult {
+  const authors = new Set([email.from?.address?.toLowerCase()]);
+  const others = (addresses: Email["to"]) => (addresses ?? []).filter((address) => !address.address || !authors.has(address.address.toLowerCase()));
   const values: Record<(typeof KEPT_HEADERS)[number], string> = {
     From: formatAddress(email.from),
+    Sender: formatAddresses(others(email.sender ? [email.sender] : [])),
+    "Reply-To": formatAddresses(others(email.replyTo)),
     To: formatAddresses(email.to),
     Cc: formatAddresses(email.cc),
+    // Only a sent copy carries Bcc; there it is the one record of who else got it.
+    Bcc: formatAddresses(email.bcc),
     Date: email.date ?? "",
     Subject: email.subject ?? "",
+    Comments: email.comments ?? "",
+    Keywords: email.keywords ?? "",
   };
 
   const parts: string[] = [];
@@ -131,15 +195,42 @@ export function formatEmail(email: MessageFields): ExtractionResult {
   // `text` is the plain part when the message has one. HTML-only mail is
   // flattened rather than dropped, because that is most marketing and most
   // notification mail, and its words are the point.
-  const body = email.text?.trim() || (email.html ? htmlToText(email.html) : "");
+  const plain = email.text?.trim();
+  const flat = plain || !email.html ? undefined : htmlToText(email.html);
+  // A text/enriched part is a body postal-mime leaves as an attachment: the
+  // body when there is no other, otherwise the alternative of the one there is.
+  const enriched = (email.attachments ?? []).filter(
+    (a) => /^text\/enriched$/i.test(a.mimeType ?? "") && a.disposition !== "attachment" && a.content !== undefined,
+  );
+  const body = plain || flat?.text || enriched.map((a) => enrichedToText(textOf(a.content!))).join("\n\n");
   if (body) parts.push(body);
 
+  // A meeting invite's content is its calendar part, often with no body
+  // beside it. The events are read as body; Gmail sends each one twice
+  // (inline and as invite.ics), so a block already written is not repeated.
+  const events = new Set<string>(email.events);
+  // An image the HTML body draws by `cid:` is part of the body, not something
+  // attached (RFC 2387), and a signature proves the sender without adding content.
+  const drawn = (id: string | undefined) => !!id && !!email.html?.includes(`cid:${id.replace(/^<|>$/g, "")}`);
+  const attachments = (email.attachments ?? []).filter((attachment) => {
+    if (SIGNATURE.test(attachment.mimeType ?? "") || drawn(attachment.contentId) || enriched.includes(attachment)) return false;
+    if (DELIVERY_STATUS.test(attachment.mimeType ?? "") && attachment.content !== undefined) {
+      parts.push(`--- Delivery status ---\n${textOf(attachment.content).replace(/\r\n?/g, "\n").trim()}`);
+      return false;
+    }
+    if (!/^(text\/calendar|application\/ics)$/i.test(attachment.mimeType ?? "") || attachment.content === undefined) return true;
+    const blocks = formatCalendar(textOf(attachment.content));
+    for (const block of blocks) events.add(block);
+    return blocks.length === 0;
+  });
+  parts.push(...(email.enclosed ?? []), ...events);
+
   const notes: ExtractionNote[] = [];
-  const attachments = email.attachments ?? [];
+  if (flat?.hidden) notes.push({ kind: "hidden-left-out", count: flat.hidden });
   if (attachments.length > 0) {
     // Named in the text as well as counted in the notes: a message whose whole
     // content is "see attached" is unreadable without knowing what was attached.
-    const names = attachments.map((a, i) => a.filename || `unnamed-${i + 1}`);
+    const names = attachments.map((a, i) => (a.filename || `unnamed-${i + 1}`) + (a.description ? ` (${a.description})` : ""));
     parts.push(`Attachments (${names.length}, not included): ${names.join(", ")}`);
     notes.push({ kind: "attachments-skipped", count: names.length });
   }
@@ -147,4 +238,52 @@ export function formatEmail(email: MessageFields): ExtractionResult {
   const text = parts.join("\n\n").trim();
   if (!text) return { text: "" };
   return notes.length > 0 ? { text, notes } : { text };
+}
+
+const textOf = (content: ArrayBuffer | Uint8Array | string) => (typeof content === "string" ? content : new TextDecoder().decode(content));
+
+/** What a platform loader hands in, so the library import stays with the platform (ADR-0012). */
+export interface MailLibrary {
+  parse(bytes: ArrayBuffer | Uint8Array | string, options: PostalMimeOptions): Promise<Email>;
+  decodeWords(value: string): string;
+}
+
+/** postal-mime's own default for nested messages. */
+const MAX_ENCLOSED_DEPTH = 10;
+
+/**
+ * Parse a message and render it, with each message it carries inline (a
+ * forward, a digest's entries, a bounce's returned headers) parsed and
+ * rendered the same way under a label. postal-mime would write a forward's
+ * date in the machine's own time zone with no zone named; rendered here, it
+ * reads like the outer message's.
+ */
+export async function readEmail(bytes: ArrayBuffer | Uint8Array | string, mail: MailLibrary, depth = 0): Promise<ExtractionResult> {
+  const email = await mail.parse(bytes, { rfc822Attachments: true });
+  const field = (name: string) =>
+    email.headers
+      .filter((h) => h.key === name)
+      .map((h) => mail.decodeWords(h.value).trim())
+      .join("; ");
+  const enclosed: string[] = [];
+  const notes: ExtractionNote[] = [];
+  const attachments: Email["attachments"] = [];
+  for (const attachment of email.attachments) {
+    const type = attachment.mimeType.toLowerCase();
+    const label =
+      type === "text/rfc822-headers"
+        ? "Returned message"
+        : type === "message/rfc822" && attachment.disposition !== "attachment"
+          ? "Enclosed message"
+          : undefined;
+    if (!label || depth >= MAX_ENCLOSED_DEPTH) {
+      attachments.push(attachment);
+      continue;
+    }
+    const inner = await readEmail(attachment.content, mail, depth + 1);
+    if (inner.text) enclosed.push(`--- ${label} ---\n${inner.text}`);
+    notes.push(...(inner.notes ?? []));
+  }
+  const result = formatEmail({ ...email, comments: field("comments"), keywords: field("keywords"), enclosed, attachments });
+  return notes.length > 0 ? { ...result, notes: [...(result.notes ?? []), ...notes] } : result;
 }
