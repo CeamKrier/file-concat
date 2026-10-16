@@ -571,6 +571,12 @@ export interface DefinedName {
 }
 
 /**
+ * A name that points at an error points at nothing: a deleted range (`#REF!`, which
+ * POI's `Name.isDeleted` tests for) or a function the writer did not know.
+ */
+const BROKEN_NAME = /#REF!|^#(?:NAME\?|N\/A|VALUE!|DIV\/0!|NULL!|NUM!)$/;
+
+/**
  * Each defined name as `[Name: Revenue = Data!$B$2:$B$13; comment]`, by the
  * sheet it belongs to: its own for a local name, else the sheet its reference
  * starts with, else the first. Excel's own names (`_xlnm.Print_Area`, the
@@ -581,7 +587,7 @@ export interface DefinedName {
 export function nameBlocks(names: readonly DefinedName[], sheets: readonly string[]): Map<string, ChartBlock[]> {
   const found = new Map<string, ChartBlock[]>();
   for (const one of names) {
-    if (!one.name || one.name.startsWith("_xlnm.") || !one.ref) continue;
+    if (!one.name || one.name.startsWith("_xlnm.") || !one.ref || BROKEN_NAME.test(one.ref)) continue;
     const named = /^'?((?:[^'!]|'')+)'?!/.exec(one.ref)?.[1]?.replace(/''/g, "'");
     const sheet = (one.sheet !== undefined ? sheets[one.sheet] : undefined) ?? (named && sheets.includes(named) ? named : sheets[0]);
     if (sheet === undefined) continue;

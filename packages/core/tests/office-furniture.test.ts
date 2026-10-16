@@ -175,13 +175,15 @@ describe("validation rules and defined names", () => {
     expect(found.get("One")?.map((block) => block.label)).toEqual(["[Validation, C2:C4: Answer: Yes or no; allowed: Yes, No, Na]"]);
   });
 
-  it("places names by their own sheet, the sheet their reference names, or the first", () => {
+  it("places names by their own sheet, the sheet their reference names, or the first, and skips broken ones", () => {
     const labels = nameBlocks(
       [
         { name: "Local", ref: "1", sheet: 1 },
         { name: "Quoted", ref: "'It''s'!$A$1" },
         { name: "Elsewhere", ref: "Gone!$A$1" },
         { name: "_xlnm._FilterDatabase", ref: "One!$A$1" },
+        { name: "Deleted", ref: "One!#REF!" },
+        { name: "Unknown", ref: "#NAME?" },
       ],
       ["One", "It's"],
     );
