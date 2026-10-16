@@ -205,6 +205,7 @@ describe("trackEntrySurface", () => {
     expect(events).toEqual([
       { n: "entry_surface", v: "home" },
       { n: "entry_source", v: "none" },
+      { n: "entry_device", v: "desktop" },
     ]);
   });
 
@@ -218,6 +219,27 @@ describe("trackEntrySurface", () => {
 
     expect(body).toContain('"v":"bing"');
     expect(body).not.toContain("secret");
+  });
+});
+
+describe("deviceLabel", () => {
+  it.each([
+    [false, 1080, "desktop"],
+    [false, 390, "desktop"],
+    [true, 390, "mobile"],
+    [true, 430, "mobile"],
+    [true, 744, "tablet"],
+    [true, 1024, "tablet"],
+  ])("coarse %s, short side %i is %s", (coarse, shortSide, expected) => {
+    expect(metrics.deviceLabel(coarse, shortSide)).toBe(expected);
+  });
+
+  it("records a phone read from the page", async () => {
+    vi.stubGlobal("matchMedia", (q: string) => ({ matches: q === "(pointer: coarse)" }));
+    vi.stubGlobal("screen", { width: 844, height: 390 });
+    metrics.trackEntrySurface("/");
+    const events = await flush();
+    expect(events).toContainEqual({ n: "entry_device", v: "mobile" });
   });
 });
 

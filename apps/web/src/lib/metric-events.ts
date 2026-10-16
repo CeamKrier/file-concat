@@ -24,6 +24,14 @@ export const METRIC_EVENTS = [
    * are read in the tab and dropped.
    */
   "entry_source",
+  /**
+   * The device class of the visit: `mobile`, `tablet` or `desktop`, from
+   * `deviceLabel` in `./metrics`. Written under the same once-per-page-load guard
+   * as `entry_surface`, so the funnel splits by device through the page id. Only
+   * the label leaves the browser; the pointer and screen size it is read from
+   * do not.
+   */
+  "entry_device",
   /** Which remote source was imported: github | gitlab | bitbucket | gist | url. */
   "source_used",
   /**
