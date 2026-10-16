@@ -1,0 +1,127 @@
+From e0a77bd383f84cfa44d919d3e6fa4920cd55879c Mon Sep 17 00:00:00 2001
+From: ceamkrier <ceamkrier@gmail.com>
+Date: Fri, 16 Oct 2026 21:36:47 +0300
+Subject: [PATCH] fix: keep a run that only touches a rule in its own table
+ cell
+
+assign_cells bucketed a run's x extent against the ruled column edges with
+zero slack. Clustered rule edges land a fraction of a point either side of
+the text, so a cell starting at x=299.3 against a rule at 299.35 counted as
+spanning two columns, and split_span_at_anchors then cut it by character
+index: the first word of every wrapped line went to the left column
+("| S1 Er | treedt lekkage ..."), a "%" went to the next cell, a label lost
+its last word.
+
+Text placement now insets the run by 1pt (at most a quarter of its width)
+on each side before bucketing. The colspan grid (repl) and the
+alpha-spanner flag keep the raw extent: header-band flattening reads them
+to spread a group label over its sub-columns, and the inset there dropped
+station codes from flattened headers ("SUNRISE-OCOTILL0 (IMPSD) W/S" ->
+"SUNRISE-OCOTILL0 W/S").
+
+Rejected: bucketing each word by its centre. It fixed the same rows but
+lost 4 olmOCR-bench table tests, where a "#" sits across a mis-derived
+rule.
+
+Measured against v2.16.0, markdown, no OCR:
+- olmOCR-bench tables: 543 -> 549 table tests passed, none lost
+  (6 pages change).
+- opendataloader-bench: no output changes (TEDS 0.818 on 42 table docs).
+- 195 real-world PDFs (Common Crawl sample): 11 change, no word lost.
+  One document's scenario cards (one shaded box per line) now come out as
+  prose: their grid had passed the density gate only because the split
+  first words filled column 0.
+- ParseBench: not run.
+---
+ .../liteparse/src/markdown_layout/tables.rs   | 47 ++++++++++++++-----
+ 1 file changed, 34 insertions(+), 13 deletions(-)
+
+diff --git a/crates/liteparse/src/markdown_layout/tables.rs b/crates/liteparse/src/markdown_layout/tables.rs
+index ac7efe4..315da84 100644
+--- a/crates/liteparse/src/markdown_layout/tables.rs
++++ b/crates/liteparse/src/markdown_layout/tables.rs
+@@ -3659,6 +3659,7 @@ fn assign_cells(
+     // (the occasional PDFium merged run aside); decorative slide/layout boxes
+     // over flowing prose slice through most runs.
+     const STRADDLE_MARGIN_PT: f32 = 3.0;
++    const RULE_TOUCH_PT: f32 = 1.0;
+     let mut span_total = 0usize;
+     let mut span_straddle = 0usize;
+ 
+@@ -3732,8 +3733,17 @@ fn assign_cells(
+             let row = find_bucket(ys, span_cy.clamp(ys[0], ys[n_rows])).unwrap_or(row);
+             let sx0 = (span.x).clamp(xs[0], xs[n_cols]);
+             let sx1 = (span.x + span.width).clamp(xs[0], xs[n_cols]);
+-            let c_lo = find_bucket(xs, sx0).unwrap_or(0);
+-            let c_hi = find_bucket(xs, sx1).unwrap_or(n_cols - 1);
++            let r_lo = find_bucket(xs, sx0).unwrap_or(0);
++            let r_hi = find_bucket(xs, sx1).unwrap_or(n_cols - 1);
++            // Text placement ignores a run that only touches a rule (clustered
++            // rule edges land a fraction of a point either side of the text):
++            // without the inset, a cell starting at x=299.3 against a rule at
++            // 299.35 was split in two. The colspan grid keeps the raw extent,
++            // which header flattening reads to spread a group label.
++            let touch = RULE_TOUCH_PT.min(span.width * 0.25);
++            let c_lo = find_bucket(xs, (span.x + touch).clamp(xs[0], xs[n_cols])).unwrap_or(0);
++            let c_hi = find_bucket(xs, (span.x + span.width - touch).clamp(xs[0], xs[n_cols]))
++                .unwrap_or(n_cols - 1);
+             span_total += 1;
+             {
+                 let m0 = (span.x + STRADDLE_MARGIN_PT).clamp(xs[0], xs[n_cols]);
+@@ -3742,24 +3752,23 @@ fn assign_cells(
+                     span_straddle += 1;
+                 }
+             }
++            // Replicate the full text into every covered cell of the
++            // colspan-semantics grid, and flag the row when a multi-column
++            // label is alpha-dominant (group headers are words; merged data
++            // runs are mostly digits).
++            for col in r_lo..=r_hi {
++                grid.push_repl(row, col, &span.text);
++            }
++            if r_lo != r_hi && is_alpha_dominant(&span.text) {
++                grid.row_alpha_spanner[row] = true;
++            }
+             if c_lo == c_hi {
+                 grid.push_text(row, c_lo, &span.text);
+-                grid.push_repl(row, c_lo, &span.text);
+                 if !line.all_bold {
+                     grid.is_bold[row][c_lo] = false;
+                 }
+                 continue;
+             }
+-            // Multi-column span: replicate the full text into every covered
+-            // cell of the colspan-semantics grid, and flag the row when the
+-            // label is alpha-dominant (group headers are words; merged data
+-            // runs are mostly digits).
+-            for col in c_lo..=c_hi {
+-                grid.push_repl(row, col, &span.text);
+-            }
+-            if is_alpha_dominant(&span.text) {
+-                grid.row_alpha_spanner[row] = true;
+-            }
+             // Span crosses interior boundaries: split at the whitespace
+             // nearest each crossed boundary x (xs[k] is column k's left
+             // boundary, which is exactly the split target).
+@@ -5249,6 +5258,18 @@ mod tests {
+         assert_eq!(piece_texts(&span), ["Added Relative"]);
+     }
+ 
++    #[test]
++    fn run_touching_a_rule_stays_in_its_cell() {
++        // The run starts 0.4pt left of the rule at x=100: it belongs to the
++        // second column, not split across both. The colspan grid still sees
++        // the raw extent.
++        let l = line_with_spans(&[("Alpha", 10.0), ("Beta gamma", 99.6)], 5.0, 10.0);
++        let (grid, _) = assign_cells(&[l], &[0.0, 100.0, 200.0], &[0.0, 20.0], false).unwrap();
++        assert_eq!(grid.text[0][0].text, "Alpha");
++        assert_eq!(grid.text[0][1].text, "Beta gamma");
++        assert_eq!(grid.repl[0][0], "Alpha Beta gamma");
++    }
++
+     fn rows(v: &[&[&str]]) -> Vec<Vec<Cell>> {
+         v.iter()
+             .map(|r| r.iter().map(|s| Cell::from(*s)).collect())
+-- 
+2.43.0
+

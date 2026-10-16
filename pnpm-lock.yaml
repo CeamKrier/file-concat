@@ -91,8 +91,8 @@ importers:
         specifier: ^11.2.0
         version: 11.2.0(react@18.3.1)
       '@llamaindex/liteparse-wasm':
-        specifier: ^2.16.0
-        version: 2.16.0
+        specifier: file:../../vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.1.tgz
+        version: file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.1.tgz
       '@mdx-js/react':
         specifier: ^3.1.1
         version: 3.1.1(@types/react@18.3.27)(react@18.3.1)
@@ -324,8 +324,8 @@ importers:
         specifier: 4.3.0
         version: 4.3.0(@types/node@22.19.1)
       '@llamaindex/liteparse-wasm':
-        specifier: ^2.16.0
-        version: 2.16.0
+        specifier: file:../../vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.1.tgz
+        version: file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.1.tgz
       '@mozilla/readability':
         specifier: 0.6.0
         version: 0.6.0
@@ -1961,8 +1961,9 @@ packages:
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
 
-  '@llamaindex/liteparse-wasm@2.16.0':
-    resolution: {integrity: sha512-SwlTDv0qyeQ9Pof7s0H2q+Mnpd7cqssx9HhxbuaZjDwQOuSv+/sPk+eNyCQYdc1zno6LkmtnvUJD34kEs4cTzA==}
+  '@llamaindex/liteparse-wasm@file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.1.tgz':
+    resolution: {integrity: sha512-8tf9zYmShkqgKawEVqeiIpxVnj/6UDQJxUTIFbaCVfYV53lJKxtru61IFBRtyQjzS5XfNxH1lu9TxItBLLyyKQ==, tarball: file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.1.tgz}
+    version: 2.16.0-fc.1
     engines: {node: '>=18.0.0'}
 
   '@mdream/rust-android-arm-eabi@1.7.2':
@@ -7748,7 +7749,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@llamaindex/liteparse-wasm@2.16.0': {}
+  '@llamaindex/liteparse-wasm@file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.1.tgz': {}
 
   '@mdream/rust-android-arm-eabi@1.7.2':
     optional: true
