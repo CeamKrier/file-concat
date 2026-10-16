@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, ArrowUp, Check, Layers, Lock } from "lucide-react";
+import { ArrowRight, ArrowUp, Layers, Lock } from "lucide-react";
 
 import { AppFlow } from "~/components/app/app-flow";
 import type { DropZoneProps } from "~/components/app/drop-zone";
@@ -7,7 +7,7 @@ import { EntrySurface } from "~/components/app/entry-surface";
 import type { ImportState } from "~/components/app/import-panel";
 import { InfoCard } from "~/components/app/info-card";
 import { MarketingSection } from "~/components/app/marketing/section";
-import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
+import { FurtherReading, HeroFootnote, MockWindow, ProseLink } from "~/components/app/marketing";
 
 import { REPO_SAMPLE } from "~/components/how-to/github-repo-faq";
 
@@ -54,12 +54,6 @@ function NotebookLmLanding({ dropProps, linkImport }: LandingProps) {
   );
 }
 
-const TRUST = [
-  "A whole pile becomes one source",
-  "PDFs and Office docs read in your browser",
-  "No sign-up, files not uploaded to us",
-];
-
 function Hero({ dropProps, linkImport }: LandingProps) {
   return (
     <section className="mx-auto w-full max-w-[1040px] px-4 pb-4 pt-14 sm:px-6 md:pt-16">
@@ -73,33 +67,11 @@ function Hero({ dropProps, linkImport }: LandingProps) {
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
             NotebookLM source limit reached? Add the rest as one source.
           </h1>
-
-          <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
-            A notebook caps how many sources you can add, and a big research pile blows past it
-            fast. Drop the whole folder here instead, or paste a GitHub link. Everything, even the
-            PDFs, is read in your browser and packed into one file, so a stack of documents becomes
-            a single source.
-          </p>
-
-          <ul className="mt-6 space-y-2">
-            {TRUST.map((t) => (
-              <li key={t} className="text-ink-secondary flex items-center gap-2 text-[14px]">
-                <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
-                {t}
-              </li>
-            ))}
-          </ul>
-
-          <a
-            href="#example"
-            className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background mt-6 inline-flex rounded-sm text-[13px] underline decoration-[oklch(var(--border-strong))] underline-offset-[3px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-          >
-            See a worked example
-          </a>
         </div>
 
         <div className="min-w-0">
           <EntrySurface {...dropProps} linkImport={linkImport} />
+          <HeroFootnote />
         </div>
       </div>
     </section>

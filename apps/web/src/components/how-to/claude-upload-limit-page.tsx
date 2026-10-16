@@ -1,12 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, ArrowUp, Check, Hash, MonitorSmartphone } from "lucide-react";
+import { ArrowRight, ArrowUp, Hash, MonitorSmartphone } from "lucide-react";
 
 import { AppFlow } from "~/components/app/app-flow";
 import type { DropZoneProps } from "~/components/app/drop-zone";
 import { EntrySurface } from "~/components/app/entry-surface";
 import type { ImportState } from "~/components/app/import-panel";
 import { InfoCard } from "~/components/app/info-card";
-import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
+import { FurtherReading, HeroFootnote, MockWindow, ProseLink } from "~/components/app/marketing";
 import { MarketingSection } from "~/components/app/marketing/section";
 
 import { CLAUDE_UPLOAD_LIMIT_FAQ } from "./claude-upload-limit-faq";
@@ -47,19 +47,13 @@ function Landing({ dropProps, linkImport }: LandingProps) {
   );
 }
 
-/** Read at the Claude help center on 2026-09-24 and pinned in vendor-caps.json.
+/** Read at the Claude help center on 2026-10-17 and pinned in vendor-caps.json.
  * Move the date below only when the figures are checked again. */
-const CAPS_CHECKED = "September 2026";
+const CAPS_CHECKED = "October 2026";
 const CLAUDE_UPLOADS_HELP = "https://support.claude.com/en/articles/8241126-upload-files-to-claude";
 const CLAUDE_ERRORS_HELP =
   "https://support.claude.com/en/articles/12466728-troubleshoot-claude-error-messages";
 const CHAT_FILE_CAP = 20;
-
-const TRUST = [
-  "Hundreds of files become one attachment",
-  "PDFs and Office docs read in your browser",
-  "No sign-up, files not uploaded to us",
-];
 
 function Hero({ dropProps, linkImport }: LandingProps) {
   return (
@@ -75,32 +69,18 @@ function Hero({ dropProps, linkImport }: LandingProps) {
             Get past the Claude file upload limit per chat.
           </h1>
 
-          <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
-            Claude takes up to {CHAT_FILE_CAP} files per chat, according to its help center in{" "}
-            {CAPS_CHECKED}. It counts files, not what is in them. Drop the whole folder here or
-            paste a GitHub link. Everything is read in your browser and comes back as one file, one
-            of the {CHAT_FILE_CAP}, with its token count.
+          <p className="text-ink-secondary mt-5 max-w-[52ch] text-[17px] leading-relaxed">
+            Claude takes {CHAT_FILE_CAP} files per chat. A whole folder here is one of them.
           </p>
-
-          <ul className="mt-6 space-y-2">
-            {TRUST.map((t) => (
-              <li key={t} className="text-ink-secondary flex items-center gap-2 text-[14px]">
-                <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
-                {t}
-              </li>
-            ))}
-          </ul>
-
-          <a
-            href="#example"
-            className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background mt-6 inline-flex rounded-sm text-[13px] underline decoration-[oklch(var(--border-strong))] underline-offset-[3px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-          >
-            See a measured example
-          </a>
         </div>
 
         <div className="min-w-0">
           <EntrySurface {...dropProps} linkImport={linkImport} />
+          <HeroFootnote
+            source="Claude help center"
+            checked={CAPS_CHECKED}
+            example="See a measured example"
+          />
         </div>
       </div>
     </section>

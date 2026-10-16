@@ -1,11 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, ArrowUp, Check, FileStack, Lock } from "lucide-react";
+import { ArrowRight, ArrowUp, FileStack, Lock } from "lucide-react";
 
 import { AppFlow } from "~/components/app/app-flow";
 import { DropZone, type DropZoneProps } from "~/components/app/drop-zone";
 import { InfoCard } from "~/components/app/info-card";
 import { MarketingSection } from "~/components/app/marketing/section";
-import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
+import { FurtherReading, HeroFootnote, MockWindow, ProseLink } from "~/components/app/marketing";
 
 import { CHATGPT_UPLOAD_LIMIT_FAQ } from "./chatgpt-upload-limit-faq";
 
@@ -35,18 +35,14 @@ function UploadLimitLanding(dropProps: DropZoneProps) {
   );
 }
 
-/** Read at OPENAI_UPLOADS_HELP on 2026-09-24 and pinned in vendor-caps.json:
- * "Users can upload up to 80 files every 3 hours. Free users are limited to 3
- * file uploads per day. Note that we may lower these limits during peak hours."
+/** Read at OPENAI_UPLOADS_HELP on 2026-10-17 and pinned in vendor-caps.json:
+ * "You can upload up to 80 files every 3 hours. Free users are limited to 3
+ * file uploads per day. OpenAI may lower these limits during peak hours."
+ * The article was renamed from "File uploads FAQ"; the old URL redirects here.
  * Move the date below only when the figures are checked again. */
-const CAPS_CHECKED = "September 2026";
-const OPENAI_UPLOADS_HELP = "https://help.openai.com/en/articles/8555545-file-uploads-faq";
-
-const TRUST = [
-  "A whole folder becomes one upload",
-  "PDFs and Office docs read in your browser",
-  "No sign-up, files not uploaded to us",
-];
+const CAPS_CHECKED = "October 2026";
+const OPENAI_UPLOADS_HELP =
+  "https://help.openai.com/en/articles/8555545-uploading-files-and-audio-to-chatgpt";
 
 function Hero({ dropProps }: { dropProps: DropZoneProps }) {
   return (
@@ -62,28 +58,9 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
             Get past the ChatGPT file upload limit.
           </h1>
 
-          <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
-            ChatGPT lets you upload 80 files every 3 hours, and only 3 a day on the Free plan,
-            according to the OpenAI help center in {CAPS_CHECKED}. It counts files, not size. Drop
-            the whole folder here instead. Everything, even the PDFs, is read in your browser and
-            comes back as one file, so the whole set costs a single upload.
+          <p className="text-ink-secondary mt-5 max-w-[52ch] text-[17px] leading-relaxed">
+            Free: 3 files a day. Paid: 80 every 3 hours. One folder counts as one.
           </p>
-
-          <ul className="mt-6 space-y-2">
-            {TRUST.map((t) => (
-              <li key={t} className="text-ink-secondary flex items-center gap-2 text-[14px]">
-                <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
-                {t}
-              </li>
-            ))}
-          </ul>
-
-          <a
-            href="#example"
-            className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background mt-6 inline-flex rounded-sm text-[13px] underline decoration-[oklch(var(--border-strong))] underline-offset-[3px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-          >
-            See a worked example
-          </a>
         </div>
 
         <div className="min-w-0">
@@ -92,6 +69,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
             title="Drop your folder here"
             hint="Everything you meant to upload, read in your browser."
           />
+          <HeroFootnote source="OpenAI help center" checked={CAPS_CHECKED} />
         </div>
       </div>
     </section>

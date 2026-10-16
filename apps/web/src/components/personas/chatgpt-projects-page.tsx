@@ -1,11 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, ArrowUp, Check, FileStack, Lock } from "lucide-react";
+import { ArrowRight, ArrowUp, FileStack, Lock } from "lucide-react";
 
 import { AppFlow } from "~/components/app/app-flow";
 import { DropZone, type DropZoneProps } from "~/components/app/drop-zone";
 import { InfoCard } from "~/components/app/info-card";
 import { MarketingSection } from "~/components/app/marketing/section";
-import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
+import { FurtherReading, HeroFootnote, MockWindow, ProseLink } from "~/components/app/marketing";
 
 import { CHATGPT_PROJECTS_FAQ } from "./chatgpt-projects-faq";
 
@@ -37,12 +37,6 @@ function ChatGptProjectsLanding(dropProps: DropZoneProps) {
   );
 }
 
-const TRUST = [
-  "One file fills one Project slot",
-  "PDFs and Office docs read in your browser",
-  "No sign-up, files not uploaded to us",
-];
-
 function Hero({ dropProps }: { dropProps: DropZoneProps }) {
   return (
     <section className="mx-auto w-full max-w-[1040px] px-4 pb-4 pt-14 sm:px-6 md:pt-16">
@@ -57,28 +51,9 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
             Get past the ChatGPT Projects source limit.
           </h1>
 
-          <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
-            A Project holds {PROJECT_FILE_LIMITS}, checked at the OpenAI help center in{" "}
-            {CAPS_CHECKED} and measured. Drop the whole folder here instead. Everything, even the
-            PDFs, is read in your browser and comes back as one file, so all your documents
-            take a single Project slot.
+          <p className="text-ink-secondary mt-5 max-w-[52ch] text-[17px] leading-relaxed">
+            {PROJECT_FILE_LINE}
           </p>
-
-          <ul className="mt-6 space-y-2">
-            {TRUST.map((t) => (
-              <li key={t} className="text-ink-secondary flex items-center gap-2 text-[14px]">
-                <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
-                {t}
-              </li>
-            ))}
-          </ul>
-
-          <a
-            href="#example"
-            className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background mt-6 inline-flex rounded-sm text-[13px] underline decoration-[oklch(var(--border-strong))] underline-offset-[3px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-          >
-            See a worked example
-          </a>
         </div>
 
         <div className="min-w-0">
@@ -87,6 +62,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
             title="Drop your folder here"
             hint="Everything for your Project, read in your browser."
           />
+          <HeroFootnote source="OpenAI help center" checked={CAPS_CHECKED} />
         </div>
       </div>
     </section>
@@ -94,7 +70,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
 }
 
 /** The answer to the query this page ranks for, so the hero and the table below
- * cannot drift apart. Re-checked at OPENAI_PROJECTS_HELP on 2026-09-23: its
+ * cannot drift apart. Re-checked at OPENAI_PROJECTS_HELP on 2026-10-17: its
  * "Plans and limits" section states Free 5, Go and Plus 25,
  * Edu/Pro/Business/Enterprise 40 files per project. On 2026-09-14 a Plus
  * account took files 21 to 25 and refused the 26th, so the Plus figure is
@@ -105,7 +81,11 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
  * FAQ still says 10; we follow the builder article. Move the date whenever the
  * figures are checked again, not otherwise. */
 const PROJECT_FILE_LIMITS = "5 files on Free, 25 on Go and Plus, 40 on Pro and above";
-const CAPS_CHECKED = "September 2026";
+/** The same caps as the hero's one answer line, kept under 15 words: searchers
+ * arrive asking for the count, and a paragraph pushed the drop zone off a phone's
+ * first screen. Change it with PROJECT_FILE_LIMITS. */
+const PROJECT_FILE_LINE = "Free 5, Go and Plus 25, Pro 40 files. One folder here uses one slot.";
+const CAPS_CHECKED = "October 2026";
 const OPENAI_PROJECTS_HELP =
   "https://help.openai.com/en/articles/10169521-using-projects-in-chatgpt";
 
