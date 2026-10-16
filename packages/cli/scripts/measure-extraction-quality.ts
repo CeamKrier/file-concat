@@ -543,7 +543,14 @@ async function extractOne(file: string, extract: Extract = cliExtract): Promise<
     text: "",
   };
 
-  const route = await routeBytes(bytes.subarray(0, ROUTER_SNIFF_BYTES));
+  let route = await routeBytes(bytes.subarray(0, ROUTER_SNIFF_BYTES));
+  // The product re-routes a zip whose package tell sits past the sniff window
+  // on the whole file (prepare-batch-client); without it a document with its
+  // thumbnail first would count as declined here.
+  if (route.kind === "expand") {
+    const whole = await routeBytes(bytes);
+    if (whole.kind !== "expand") route = whole;
+  }
   base.route = route.kind;
   if (route.kind !== "extract") return base;
   base.parserId = route.parserId;
