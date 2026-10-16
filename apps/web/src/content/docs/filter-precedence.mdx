@@ -32,7 +32,10 @@ Two kinds of path are left out before a byte of them is read:
 - **A file whose extension never holds text**: fonts, audio and video,
   compiled code and libraries (`.o`, `.dll`, `.class`, `.pyc`, `.jar`),
   databases, and data or model files. Images are not on this list: a
-  dropped image gets the recognition offer instead.
+  dropped image gets the recognition offer instead. Neither is an
+  extension a text format also uses (`.dat`, `.mat`, `.nc`, `.obj`,
+  `.orc`, `.pdb`, `.pkl`, `.pt`, `.res`): those files are read, and their
+  bytes decide whether they are text.
 
 Until 2026-09-15 only `.git` and `node_modules` were pruned here, and
 everything else was read into memory first and hidden by the pattern
