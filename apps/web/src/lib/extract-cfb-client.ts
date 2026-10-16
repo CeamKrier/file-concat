@@ -93,7 +93,13 @@ export function extractWorkbook(bytes: Uint8Array, furniture?: ReturnType<typeof
           // SheetJS marks a hidden name Hidden, outside its type: seen on an
           // xlsx, not checked on a BIFF Lbl record, which no writer here can make.
           .filter((one) => !(one as { Hidden?: boolean }).Hidden)
-          .map((one) => ({ name: one.Name, ref: one.Ref, sheet: one.Sheet ?? undefined, comment: one.Comment })),
+          // A BIFF name whose formula is a constant comes back as that number or boolean, not a string.
+          .map((one) => ({
+            name: String(one.Name ?? ""),
+            ref: typeof one.Ref === "boolean" ? (one.Ref ? "TRUE" : "FALSE") : String(one.Ref ?? ""),
+            sheet: one.Sheet ?? undefined,
+            comment: typeof one.Comment === "string" ? one.Comment : undefined,
+          })),
         workbook.SheetNames,
       );
   for (const [name, blocks] of [...(furniture ?? []), ...(names ?? [])]) drawn.set(name, [...(drawn.get(name) ?? []), ...blocks]);

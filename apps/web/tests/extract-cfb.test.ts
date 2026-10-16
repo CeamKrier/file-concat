@@ -96,6 +96,30 @@ describe("extractWorkbook names", () => {
     expect(text).toContain("# Sheet: Sums\nTotal\n[Name: Total = Sums!$A$1]");
     expect(text.match(/\[Name: Total/g)).toHaveLength(1);
   });
+
+  it("writes a BIFF name whose formula is a constant, which SheetJS hands back as a number or boolean", () => {
+    const container = XLSX.CFB.read(biff8({ Inputs: [["Rate"]] }), { type: "array" });
+    const entry = XLSX.CFB.find(container, "/Workbook")!;
+    const stream = Uint8Array.from(entry.content as ArrayLike<number>);
+    // Lbl records (2.4.150) holding ptgInt 5 and ptgBool true, before the globals' EOF.
+    const lbl = (name: string, rgce: number[]) => {
+      const body = [0, 0, 0, name.length, rgce.length, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...Array.from(name, (c) => c.charCodeAt(0)), ...rgce];
+      return [0x18, 0, body.length, 0, ...body];
+    };
+    const added = [...lbl("Rate", [0x1e, 5, 0]), ...lbl("On", [0x1d, 1])];
+    const view = new DataView(stream.buffer);
+    let at = 0;
+    for (; ; at += 4 + view.getUint16(at + 2, true)) {
+      const type = view.getUint16(at, true);
+      if (type === 0x0085) view.setUint32(at + 4, view.getUint32(at + 4, true) + added.length, true);
+      if (type === 0x000a) break;
+    }
+    entry.content = Uint8Array.from([...stream.slice(0, at), ...added, ...stream.slice(at)]);
+    entry.size = entry.content.length;
+    const { text } = extractCfb(new Uint8Array(XLSX.CFB.write(container, { type: "array" })));
+    expect(text).toContain("[Name: Rate = 5]");
+    expect(text).toContain("[Name: On = TRUE]");
+  });
 });
 
 describe("extractWorkbook links", () => {
