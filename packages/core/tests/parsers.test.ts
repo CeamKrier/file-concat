@@ -191,6 +191,13 @@ describe("extractOfficeDocument — structure survives extraction", () => {
     expect(text).toContain("A2,B2,C2");
   });
 
+  it("reads a spreadsheet whose styles part is empty, as an export tool writes it", async () => {
+    const parts = unzipSync(spannedOds());
+    parts["styles.xml"] = new Uint8Array(0);
+    const { text } = await extractOfficeDocument(zipSync(parts), { format: "ods" });
+    expect(text).toContain("QZAFTER");
+  });
+
   it("keeps a merged workbook range one column wide per column, with or without the covered cell", async () => {
     for (const covered of ["", '<c r="B1" s="1"/>']) {
       const parts = unzipSync(twoSheetXlsx());

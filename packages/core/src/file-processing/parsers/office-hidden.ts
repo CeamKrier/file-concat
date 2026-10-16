@@ -556,6 +556,29 @@ export function withAuxiliaryMarked(bytes: Uint8Array): Uint8Array {
 }
 
 /**
+ * A package with its zero-byte XML parts left out. officeparser refuses the
+ * whole file over one ("missing root element"); an OpenDocument export tool
+ * (refbase) writes an empty `styles.xml`, and the content reads without it.
+ */
+export function withoutEmptyParts(bytes: Uint8Array): Uint8Array {
+  const empty = new Set<string>();
+  let unpacked = 0;
+  try {
+    unzipSync(bytes, {
+      filter: (file) => {
+        unpacked += file.originalSize;
+        if (file.originalSize === 0 && /\.xml$/i.test(file.name)) empty.add(file.name);
+        return false;
+      },
+    });
+  } catch {
+    return bytes;
+  }
+  if (!empty.size || unpacked > MAX_REWRITE) return bytes;
+  return zipSync(unzipSync(bytes, { filter: (file) => !empty.has(file.name) }), { level: 0 });
+}
+
+/**
  * An XML part whose root element `<p:root>` binds its own prefix, with that
  * prefix taken off every element and declared as the default namespace instead.
  * The prefix's declaration stays, for attributes such as `opf:role`.

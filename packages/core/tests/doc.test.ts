@@ -14,6 +14,13 @@ describe("formatDoc", () => {
     expect(text).toBe("The quick brown\nfox jumps over the lazy dog.");
   });
 
+  it("calls a piece table past the end of a cut-short table stream damaged, not empty", () => {
+    const streams = wordStreams([{ text: "Body text.\r" }], { body: 11 });
+    const name = streams.has("1Table") ? "1Table" : "0Table";
+    streams.set(name, streams.get(name)!.subarray(0, 8));
+    expect(() => formatDoc(streams)).toThrow(/piece table/);
+  });
+
   it("keeps a field's result and drops its code, including a field that shows nothing", () => {
     const body = "\x13 SEQ CHAPTER \\h \\r 1\x15Chapter \x13 PAGE \x147\x15 of the book.\r";
     const { text } = formatDoc(wordStreams([{ text: body }], { body: body.length }));

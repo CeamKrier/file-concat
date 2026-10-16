@@ -366,7 +366,9 @@ function readPieces(document: Uint8Array, table: Uint8Array): { text: string; pi
   const fonts = symbols.length > 0 ? fontNames(fib, table) : [];
   const fcClx = fib.getUint32(0x01a2, true);
   const lcbClx = fib.getUint32(0x01a6, true);
-  if (fcClx + lcbClx > table.byteLength) return { text: "", pieces: [], pictures };
+  // Past the end of a table stream cut short (a FAT chain shorter than its
+  // directory entry says): damaged, not empty, so the chain tries its fallback.
+  if (fcClx + lcbClx > table.byteLength) throw new Error("The document's piece table lies past the end of its table stream");
   const clx = new DataView(table.buffer, table.byteOffset + fcClx, lcbClx);
 
   // The CLX is a run of property modifiers (0x01, then a 2-byte length) and
