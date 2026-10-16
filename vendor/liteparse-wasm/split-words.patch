@@ -1,0 +1,166 @@
+From 34057c4b362a23e39129a4f30312abaa24e5d163 Mon Sep 17 00:00:00 2001
+From: ceamkrier <ceamkrier@gmail.com>
+Date: Fri, 16 Oct 2026 23:29:52 +0300
+Subject: [PATCH] fix: read a table candidate as text when its cells split
+ words
+
+A table candidate on any path (ruled, borderless, cross-region, page-wide)
+whose cells end in a word split by a hyphen (over 3% of cells, as
+pdf-inspector's is_paragraph_content) is prose cut into columns; its
+lines are now read as text. A cell holding a link does not count, since
+links break at hyphens. The other prose tests stay on the page-wide veto
+only: on every candidate they also fired on real tables (a long comment
+column, wrapped rows) and cost 17 olmOCR-bench table tests.
+
+olmOCR-bench tables unchanged (554). 195 real PDFs: 9 change; 4 read
+better (a framed report, a Russian curriculum, a Russian decree, an
+article), 4 multi-column pages stay interleaved but are no longer shown
+as a table, 1 country/description table becomes text.
+opendataloader-bench unchanged.
+---
+ .../liteparse/src/markdown_layout/classify.rs | 19 ++++---
+ .../liteparse/src/markdown_layout/tables.rs   | 51 ++++++++++++++-----
+ 2 files changed, 49 insertions(+), 21 deletions(-)
+
+diff --git a/crates/liteparse/src/markdown_layout/classify.rs b/crates/liteparse/src/markdown_layout/classify.rs
+index 6c135be..8741464 100644
+--- a/crates/liteparse/src/markdown_layout/classify.rs
++++ b/crates/liteparse/src/markdown_layout/classify.rs
+@@ -214,13 +214,11 @@ pub fn classify_page_with_filters(
+         // table when the global table's cells read as prose (the frame case
+         // above). Otherwise the leaf is usually one band of a table the page
+         // rules cut into regions, and the global table is the whole of it.
+-        let reads_as_prose = match &run.block {
+-            Block::Table { header, rows } => super::tables::cells_read_as_prose(
+-                &header.iter().chain(rows).cloned().collect::<Vec<_>>(),
+-            ),
+-            _ => false,
+-        };
+-        if already_handled && reads_as_prose {
++        // Words split at cell ends drop it whatever the leaves do, as on every
++        // other path (see `classify_region`).
++        if super::tables::run_reads_as_prose(&run, false)
++            || (already_handled && super::tables::run_reads_as_prose(&run, true))
++        {
+             continue;
+         }
+         // Single-column gate. A decorative banner/frame around a prose
+@@ -525,7 +523,12 @@ fn classify_region(
+     let ruled_runs = detect_ruled_tables(lines, rule_segments, page.page_width, page.page_height);
+     let borderless_runs = precomputed_tables
+         .unwrap_or_else(|| detect_tables_banded(lines, rule_segments, page.page_height));
+-    let table_runs = merge_table_runs(ruled_runs, borderless_runs);
++    // A candidate whose cells read as prose is prose cut into columns by
++    // gutters or rules; its lines are read as text instead.
++    let table_runs: Vec<_> = merge_table_runs(ruled_runs, borderless_runs)
++        .into_iter()
++        .filter(|run| !super::tables::run_reads_as_prose(run, false))
++        .collect();
+ 
+     // Region-wide pre-pass: which line indices carry a lettered/roman marker
+     // (`a.`, `i.`) that belongs to a confirmed sequential list run. Only these
+diff --git a/crates/liteparse/src/markdown_layout/tables.rs b/crates/liteparse/src/markdown_layout/tables.rs
+index 8835815..a091d1c 100644
+--- a/crates/liteparse/src/markdown_layout/tables.rs
++++ b/crates/liteparse/src/markdown_layout/tables.rs
+@@ -768,7 +768,11 @@ fn is_alpha_dominant(text: &str) -> bool {
+ /// function-word lists are left out. A grid where data-like cells are common is
+ /// never prose: rejecting a real table only degrades it to text, but keeping a
+ /// phantom one scrambles the page, so every signal is a high bar.
+-pub(super) fn cells_read_as_prose(rows: &[Vec<Cell>]) -> bool {
++///
++/// Without `full` only the word-split test runs: pdf-inspector applies it to
++/// every candidate, and the others to drawn grids only, since on their own
++/// they also fire on real tables (a long comment column, wrapped rows).
++pub(super) fn cells_read_as_prose(rows: &[Vec<Cell>], full: bool) -> bool {
+     use super::paragraphs::{ends_hyphenated, ends_sentence_final};
+     let filled: Vec<(usize, &str)> = rows
+         .iter()
+@@ -800,12 +804,17 @@ pub(super) fn cells_read_as_prose(rows: &[Vec<Cell>]) -> bool {
+         return false;
+     }
+     // Words split at a cell's end: text was cut by a column edge, not laid out
+-    // in one.
+-    if filled.len() >= 4
+-        && filled.iter().filter(|(_, t)| ends_hyphenated(t)).count() as f32 > 0.03 * n
+-    {
++    // in one. A cell holding a link is left out: links break at hyphens.
++    let split = filled
++        .iter()
++        .filter(|(_, t)| ends_hyphenated(t) && !t.contains("://") && !t.contains("www."))
++        .count();
++    if filled.len() >= 4 && split as f32 > 0.03 * n {
+         return true;
+     }
++    if !full {
++        return false;
++    }
+     // A sentence running down a column: an open cell of a few words followed by
+     // a lowercase one. The 3-word floor keeps a units column ("kg", "kg") out.
+     let opens = |t: &str| {
+@@ -846,6 +855,17 @@ pub(super) fn cells_read_as_prose(rows: &[Vec<Cell>]) -> bool {
+     mean_len > 90.0 && sentence.len() as f32 >= 0.5 * n && sentence_cols.len() >= 2
+ }
+ 
++/// [`cells_read_as_prose`] over a run's header and body rows.
++pub(super) fn run_reads_as_prose(run: &TableRun, full: bool) -> bool {
++    match &run.block {
++        Block::Table { header, rows } => cells_read_as_prose(
++            &header.iter().chain(rows).cloned().collect::<Vec<_>>(),
++            full,
++        ),
++        _ => false,
++    }
++}
++
+ /// Measurement-value shape: a decimal number ("2.28"), currency/percent,
+ /// comma-grouped number ("1,240"), or a dash placeholder ("--" / "—").
+ /// Bare integers (years, codes) deliberately do NOT match — they appear in
+@@ -6674,16 +6694,21 @@ mod tests {
+                 "ness classes and job development.",
+             ],
+         ]);
+-        assert!(cells_read_as_prose(&rows));
++        assert!(cells_read_as_prose(&rows, true));
++        assert!(cells_read_as_prose(&rows, false));
+         // One dominant paragraph next to a short label.
+         let para = "word ".repeat(70);
+-        assert!(cells_read_as_prose(&grid(&[
+-            &[&para, "NMWorks"],
+-            &["", ""]
+-        ])));
++        assert!(cells_read_as_prose(
++            &grid(&[&[&para, "NMWorks"], &["", ""]]),
++            true
++        ));
++        assert!(!cells_read_as_prose(
++            &grid(&[&[&para, "NMWorks"], &["", ""]]),
++            false
++        ));
+         // Unspaced Japanese prose counts by characters.
+         let ja = "事業報告及びその附属明細書は法令及び定款に従い会社の状況を正しく示しているものと認めます".repeat(3);
+-        assert!(cells_read_as_prose(&grid(&[&[&ja, "以上"]])));
++        assert!(cells_read_as_prose(&grid(&[&[&ja, "以上"]]), true));
+     }
+ 
+     #[test]
+@@ -6693,7 +6718,7 @@ mod tests {
+             &["Single twitch, 60 mA, 300 us", "0.46", "60"],
+             &["Train of four, 60 mA, 300 us", "0.54", "60"],
+         ]);
+-        assert!(!cells_read_as_prose(&rows));
++        assert!(!cells_read_as_prose(&rows, true));
+         // A label column next to long descriptions: sentences in one column.
+         let rows = grid(&[
+             &[
+@@ -6705,6 +6730,6 @@ mod tests {
+                 "The two residents could not take part in an interview because of their health, the staff said.",
+             ],
+         ]);
+-        assert!(!cells_read_as_prose(&rows));
++        assert!(!cells_read_as_prose(&rows, true));
+     }
+ }
+-- 
+2.43.0
+
