@@ -8,6 +8,7 @@ import { InfoCard } from "~/components/app/info-card";
 import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
 import { MarketingSection } from "~/components/app/marketing/section";
 import { STORE_URL } from "~/components/clipper/clipper-page";
+import { trackStoreClick } from "~/lib/metrics";
 
 import { CHATGPT_CONVERSATION_TOO_LONG_FAQ } from "./chatgpt-conversation-too-long-faq";
 
@@ -63,6 +64,7 @@ function StoreButton({ className = "" }: { className?: string }) {
       href={STORE_URL}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={trackStoreClick}
       className={`${className} bg-primary text-primary-foreground rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2`}
     >
       Add the Clipper to Chrome

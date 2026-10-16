@@ -256,6 +256,14 @@ export const METRIC_EVENTS = [
    */
   "output_style",
   /**
+   * A call to action that leaves the page: `clipper_store`, the Chrome Web
+   * Store link on /clipper and /how-to/chatgpt-conversation-too-long. That
+   * page's remedy is the extension, so a drop never shows that it worked and
+   * this click is the only visible step. The value set is closed; the store
+   * says nothing back about whether the install happened.
+   */
+  "cta_clicked",
+  /**
    * A format whose text recognition recovered: `n` files totalling `b` bytes.
    *
    * This used to say that recognition ran over exactly the `extract_failed` set

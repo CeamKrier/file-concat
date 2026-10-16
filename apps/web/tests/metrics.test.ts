@@ -187,6 +187,8 @@ describe("trackEntrySurface", () => {
     ["/", "home"],
     ["/for/legal", "for/legal"],
     ["/how-to/share-all-files-with-ai", "how-to/share-all-files-with-ai"],
+    // The blog try-it card; the server's 32-character value cap cuts a long slug.
+    ["/blog/how-many-tokens-is-a-codebase", "blog/how-many-tokens-is-a-codeba"],
   ])("records %s as %s", async (pathname, expected) => {
     metrics.trackEntrySurface(pathname);
     const events = await flush();
@@ -219,6 +221,13 @@ describe("trackEntrySurface", () => {
 
     expect(body).toContain('"v":"bing"');
     expect(body).not.toContain("secret");
+  });
+});
+
+describe("trackStoreClick", () => {
+  it("sends the one fixed label and nothing else", async () => {
+    metrics.trackStoreClick();
+    expect(await flush()).toEqual([{ n: "cta_clicked", v: "clipper_store" }]);
   });
 });
 

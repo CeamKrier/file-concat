@@ -163,6 +163,12 @@ function attachUnloadHook(): void {
   });
 }
 
+/** A click on a Chrome Web Store link for the Clipper. The link opens a new
+ * tab, so this page hides and the visibilitychange flush sends the row. */
+export function trackStoreClick(): void {
+  track("cta_clicked", "clipper_store");
+}
+
 /** Record one label-only event. Safe to call anywhere: a no-op during SSR. */
 export function track(name: MetricEvent, value?: string): void {
   if (import.meta.env.SSR) return;

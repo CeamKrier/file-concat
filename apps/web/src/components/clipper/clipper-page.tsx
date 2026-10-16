@@ -7,6 +7,7 @@ import { ProseLink, SiteFooter } from "~/components/app/marketing";
 import { MarketingSection } from "~/components/app/marketing/section";
 import { LabeledPoints } from "~/components/app/marketing/labeled-points";
 import { TopBar } from "~/components/app/top-bar";
+import { trackStoreClick } from "~/lib/metrics";
 import { cn } from "~/lib/utils";
 
 import { MixedBundle, OneBundle, ThreadClipping } from "./clipper-artifacts";
@@ -163,6 +164,7 @@ function Hero({ register }: { register: (node: HTMLElement | null) => void }) {
           href={STORE_URL}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={trackStoreClick}
           className="bg-primary text-primary-foreground rounded-card focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 px-5 py-2.5 text-[14.5px] font-semibold transition-opacity duration-150 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
         >
           Add to Chrome
@@ -575,6 +577,7 @@ function Close() {
           href={STORE_URL}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={trackStoreClick}
           className="bg-primary text-primary-foreground rounded-card focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 px-5 py-2.5 text-[14.5px] font-semibold transition-opacity duration-150 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
         >
           Add to Chrome

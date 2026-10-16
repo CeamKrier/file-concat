@@ -13,6 +13,7 @@ import { DropZone } from "~/components/app/drop-zone";
 import { useFileIngestion } from "~/hooks/use-file-ingestion";
 import { useFilterState } from "~/hooks/use-filter-state";
 import { useSelectedModel } from "~/hooks/use-selected-model";
+import { trackEntrySurface } from "~/lib/metrics";
 import { estimateTokenCount, preloadTokenEstimator } from "~/lib/tokens";
 
 import { ContextFunnel } from "./context-funnel";
@@ -69,6 +70,13 @@ export default function TryIt({
 
   useEffect(() => {
     void preloadTokenEstimator().then(() => setEstimatorReady(true));
+  }, []);
+
+  // Without this a post's runs carried no surface: 12 visits in 90 days dropped
+  // files with no entry row, most likely here. The label is blog/<slug>, and
+  // trackEntrySurface records only the first call of a page load.
+  useEffect(() => {
+    trackEntrySurface(window.location.pathname, document.referrer, window.location.search);
   }, []);
 
   const includedContents = useMemo(() => {
