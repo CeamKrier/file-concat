@@ -62,7 +62,7 @@ export { classifyBytes, readFileAsText } from "./text-classification";
 export type { DecodedText, TextClassification } from "./text-classification";
 export { formatSize, calculateTotalSize } from "./size";
 export { addLineNumbers } from "./transform";
-export { assembleOutput, fenceFor } from "./output";
+export { assembleOutput, assembleOutputHead, fenceFor } from "./output";
 export type { OutputStyle, OutputFile, OutputPart, AssembleOutputOptions } from "./output";
 export { summarizeExclusions } from "./exclusions";
 export { unreadableReason, unreadableReasonText, unreadableLabel, NEVER_TEXT_EXTENSIONS } from "./unreadable-reason";

@@ -63,6 +63,23 @@ export function assembleOutput(options: AssembleOutputOptions): string {
 }
 
 /**
+ * The bundle's first `chars` characters or more, without assembling the rest:
+ * files past the point where the head is filled are assembled empty, and
+ * nothing before them depends on their text, so the head is the same as the
+ * full bundle's. A preview of a 280 MB drop otherwise assembled 280 MB on every
+ * tree toggle. Not the bundle itself: everything past the head is wrong.
+ */
+export function assembleOutputHead(options: AssembleOutputOptions, chars: number): string {
+  let kept = 0;
+  const files = options.files.map((file) => {
+    if (kept >= chars) return { ...file, content: "" };
+    kept += file.content.length;
+    return file;
+  });
+  return assembleOutput({ ...options, files });
+}
+
+/**
  * The informational summary body, identical across all three styles (ADR-0008).
  * Only the wrapper (XML tags / markdown heading / plain rule) differs; the lines
  * themselves are the same everywhere so the same input yields the same context.

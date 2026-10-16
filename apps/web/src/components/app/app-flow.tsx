@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Archive } from "lucide-react";
 import {
   DEFAULT_CONFIG,
   MULTI_OUTPUT_LIMIT,
   SPLIT_OUTPUT_ENABLED,
   addLineNumbers,
-  assembleOutput,
+  assembleOutputHead,
   generateFileTree,
   generateProjectName,
   summarizeExclusions,
@@ -44,7 +44,7 @@ import { LandingHero } from "./landing-hero";
 import type { DropZoneProps } from "./drop-zone";
 import type { ImportState } from "./import-panel";
 import { ProcessingView, type ProcessingStep } from "./processing-view";
-import { ResultView } from "./result-view";
+import { PREVIEW_LIMIT, ResultView } from "./result-view";
 import { ResultEmpty } from "./result-empty";
 import { FeedbackDock } from "./feedback-dock";
 import { ReadingDialog } from "./reading-dialog";
@@ -203,8 +203,13 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   const importAbortRef = useRef<AbortController | null>(null);
 
   // --- engine derivations (mirrors the legacy orchestrator) -----------------
+  // The tree answers a toggle with the new selection at once; everything built
+  // from the whole bundle (contents, preview, token count) follows in a render
+  // React may interrupt, a step behind (useDeferredValue). On a big drop that
+  // work is most of a second, and it used to hold the click until it finished.
+  const settledStatuses = useDeferredValue(filter.fileStatuses);
   const includedContents = useMemo(() => {
-    const included = new Set(filter.fileStatuses.filter((s) => s.included).map((s) => s.path));
+    const included = new Set(settledStatuses.filter((s) => s.included).map((s) => s.path));
     const transform = config.showLineNumbers ? addLineNumbers : null;
     return ingestion.entries
       .filter((e) => included.has(e.path))
@@ -213,7 +218,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         content: transform ? transform(e.content) : e.content,
         recognised: e.recognised,
       }));
-  }, [ingestion.entries, filter.fileStatuses, config.showLineNumbers]);
+  }, [ingestion.entries, settledStatuses, config.showLineNumbers]);
 
   // Real content gaps the model can't see in the tree (ADR-0008). Reported in
   // the bundle summary; noise and user-deselected files are never listed.
@@ -221,13 +226,13 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // what is missing, so a question about page 5 is not answered as if page 5
   // were blank (Q7 O1).
   const excluded = useMemo(() => {
-    const summary = summarizeExclusions(filter.fileStatuses);
-    const included = new Set(filter.fileStatuses.filter((s) => s.included).map((s) => s.path));
+    const summary = summarizeExclusions(settledStatuses);
+    const included = new Set(settledStatuses.filter((s) => s.included).map((s) => s.path));
     const partial = Object.entries(ingestion.validations)
       .filter(([path, v]) => included.has(path) && v.notes?.length)
       .map(([path, v]) => ({ path, notes: v.notes ?? [] }));
     return partial.length ? { ...summary, partial } : summary;
-  }, [filter.fileStatuses, ingestion.validations]);
+  }, [settledStatuses, ingestion.validations]);
 
   const [estimatorReady, setEstimatorReady] = useState(false);
   useEffect(() => {
@@ -244,8 +249,10 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     [includedContents, config.outputStyle, ingestion.sourceUrl, excluded],
   );
 
+  // Only the head is shown, so only the head is assembled (see
+  // `assembleOutputHead`); its length is not the bundle's.
   const previewText = useMemo(
-    () => (includedContents.length === 0 ? "" : assembleOutput(bundle)),
+    () => (includedContents.length === 0 ? "" : assembleOutputHead(bundle, PREVIEW_LIMIT)),
     [bundle, includedContents],
   );
 
@@ -316,24 +323,24 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         .filter(([, v]) => !v.included)
         .map(([p]) => p),
     );
-    return filter.fileStatuses
+    return settledStatuses
       .filter((s) => !s.included && !rejected.has(s.path))
       .map((s) => s.path);
-  }, [filter.fileStatuses, ingestion.validations]);
+  }, [settledStatuses, ingestion.validations]);
   // Included files that decoded as "ambiguous" — kept in, flagged for a look.
   const flaggedFiles = useMemo(() => {
-    const included = new Set(filter.fileStatuses.filter((s) => s.included).map((s) => s.path));
+    const included = new Set(settledStatuses.filter((s) => s.included).map((s) => s.path));
     return Object.entries(ingestion.validations)
       .filter(([path, v]) => v.classification === "ambiguous" && included.has(path))
       .map(([path]) => path.split("/").pop() ?? path);
-  }, [ingestion.validations, filter.fileStatuses]);
+  }, [ingestion.validations, settledStatuses]);
   // Included files whose text was extracted from a document (PDF/Office/ODF).
   const extractedFiles = useMemo(() => {
-    const included = new Set(filter.fileStatuses.filter((s) => s.included).map((s) => s.path));
+    const included = new Set(settledStatuses.filter((s) => s.included).map((s) => s.path));
     return Object.entries(ingestion.validations)
       .filter(([path, v]) => v.extracted && included.has(path))
       .map(([path]) => path.split("/").pop() ?? path);
-  }, [ingestion.validations, filter.fileStatuses]);
+  }, [ingestion.validations, settledStatuses]);
   // Included documents that lost whole pages. The reader says so (ADR-0008) and
   // until now nobody read it, so a PDF missing three pages reached the bundle
   // looking exactly like one missing none.
@@ -351,14 +358,14 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // nobody reads on the day it matters. Every kind still reaches `extract_note`,
   // so nothing is lost, it just goes to the counters instead of the screen.
   const partialDocuments = useMemo(() => {
-    const included = new Set(filter.fileStatuses.filter((s) => s.included).map((s) => s.path));
+    const included = new Set(settledStatuses.filter((s) => s.included).map((s) => s.path));
     return Object.entries(ingestion.validations)
       .filter(([path, v]) => included.has(path) && v.notes?.some((n) => n.kind === "pages-skipped" || n.kind === "hidden-left-out"))
       .map(([path, v]) => ({
         name: path.split("/").pop() ?? path,
         why: v.notes?.some((n) => n.kind === "pages-skipped") ? "pages missing" : "hidden text left out",
       }));
-  }, [ingestion.validations, filter.fileStatuses]);
+  }, [ingestion.validations, settledStatuses]);
   const bigBundle = SPLIT_OUTPUT_ENABLED && tokens > MULTI_OUTPUT_LIMIT;
   // What the removed 32 MB per-file cap used to decide silently, reported
   // instead. Measured over the files that actually made the bundle, so
@@ -411,8 +418,8 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // curation (ADR-0009), so they never count.
   const adjustableCount = useMemo(
     () =>
-      filter.fileStatuses.filter((s) => !s.included && s.classification !== "binary").length,
-    [filter.fileStatuses],
+      settledStatuses.filter((s) => !s.included && s.classification !== "binary").length,
+    [settledStatuses],
   );
   /**
    * Whether an include pattern is what excluded anything, so the empty screen
@@ -426,10 +433,10 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
    */
   const excludedByInclude = useMemo(
     () =>
-      filter.fileStatuses.some(
+      settledStatuses.some(
         (s) => !s.included && emptyReasonSlug(s.reason) === "include",
       ),
-    [filter.fileStatuses],
+    [settledStatuses],
   );
   /**
    * The two populations recognition can read, told apart by format (ADR-0017).
@@ -508,14 +515,14 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     if (run === null || run === emptiedRun.current) return;
     emptiedRun.current = run;
 
-    const statuses = new Map(filter.fileStatuses.map((s) => [s.path, s]));
+    const statuses = new Map(settledStatuses.map((s) => [s.path, s]));
     const tally: Tally = new Map();
     for (const path of paths) {
       const reason = statuses.get(path)?.reason ?? ingestion.validations[path]?.reason;
       addToTally(tally, emptyReasonSlug(reason, ingestion.validations[path]?.classification));
     }
     trackTally("empty_reason", tally);
-  }, [phase, includedContents, filter.fileStatuses, ingestion.validations]);
+  }, [phase, includedContents, settledStatuses, ingestion.validations]);
 
   /**
    * Files someone moved by hand in the tree, recorded when the drawer closes.
@@ -900,7 +907,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               noteAction={resultNote?.action}
               noteIcon={!resultNote && ingestion.expandedArchive ? Archive : undefined}
               filesCombined={filesCombined}
-              totalFiles={filter.fileStatuses.length}
+              totalFiles={settledStatuses.length}
               tokens={tokens}
               noiseFiles={noiseFiles}
               pruned={ingestion.pruned}

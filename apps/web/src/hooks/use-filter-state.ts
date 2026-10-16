@@ -84,6 +84,18 @@ export function useFilterState({
     [validations, isExcludedPath],
   );
 
+  // What the patterns say about each path, apart from the manual layer: a tree
+  // toggle changes only `userToggled`, and matching every path against every
+  // pattern again on each one was most of a big drop's frozen toggle.
+  const patternReasons = useMemo(
+    () =>
+      entries.map((entry) => {
+        if (!(validations[entry.path]?.included ?? true)) return undefined;
+        return isExcludedPath(entry.path) ? excludeReason(entry.path) : null;
+      }),
+    [entries, validations, isExcludedPath, excludeReason],
+  );
+
   const fileStatuses = useMemo<FileStatus[]>(() => {
     return entries.map((entry, index) => {
       const validation = validations[entry.path];
@@ -92,6 +104,7 @@ export function useFilterState({
       const size = validation?.size ?? 0;
       const type = validation?.type ?? "text/plain";
       const override = userToggled[entry.path];
+      const patternReason = patternReasons[index];
 
       let included: boolean;
       let forceInclude = false;
@@ -103,9 +116,9 @@ export function useFilterState({
         included = false;
         reason = "Excluded manually";
       } else {
-        included = baseIncluded && !isExcludedPath(entry.path);
+        included = baseIncluded && patternReason === null;
         if (!included && baseIncluded) {
-          reason = excludeReason(entry.path);
+          reason = patternReason ?? undefined;
         }
       }
 
@@ -121,7 +134,7 @@ export function useFilterState({
         index,
       };
     });
-  }, [entries, validations, userToggled, isExcludedPath, excludeReason]);
+  }, [entries, validations, userToggled, patternReasons]);
 
   const toggleFile = useCallback(
     (index: number) => {

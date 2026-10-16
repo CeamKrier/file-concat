@@ -54,10 +54,13 @@ function estimateBySampling(enc: ReturnType<typeof encoding_for_model>, text: st
   return Math.ceil((text.length * sampledTokens) / sampledChars);
 }
 
+// Built once and kept: building it parses the whole BPE table, about 65 ms,
+// and a tree toggle used to pay that twice (contents and wrapper).
+let encoder: ReturnType<typeof encoding_for_model> | null = null;
+
 export function estimateTokenCount(text: string): number {
-  let enc: ReturnType<typeof encoding_for_model> | null = null;
   try {
-    enc = encoding_for_model(TOKEN_MODEL);
+    const enc = (encoder ??= encoding_for_model(TOKEN_MODEL));
     // Above the threshold, tokenizing the whole bundle is too slow and
     // memory-heavy in the browser, so the count is extrapolated from samples
     // rather than taken (ADR-0010).
@@ -66,7 +69,5 @@ export function estimateTokenCount(text: string): number {
   } catch (error) {
     console.warn("Token estimation failed (WASM error?), falling back to approximation", error);
     return Math.ceil(text.length / 4);
-  } finally {
-    enc?.free();
   }
 }

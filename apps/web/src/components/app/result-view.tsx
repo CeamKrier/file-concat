@@ -126,7 +126,8 @@ type ResultViewProps = {
 };
 
 const fmt = new Intl.NumberFormat("en-US");
-const PREVIEW_LIMIT = 4000;
+/** The preview shows this many characters; the flow assembles no more than it needs. */
+export const PREVIEW_LIMIT = 4000;
 const STYLE_LABEL: Record<OutputStyle, string> = {
   xml: "xml",
   markdown: "markdown",
@@ -769,7 +770,7 @@ export function ResultView({
           <span className="text-ink-muted font-mono text-[11px] sm:ml-auto">
             {STYLE_LABEL[outputStyle]} ·{" "}
             {truncated
-              ? `first ${fmt.format(PREVIEW_LIMIT)} of ${fmt.format(previewText.length)} characters`
+              ? `first ${fmt.format(PREVIEW_LIMIT)} characters`
               : `${fmt.format(previewText.length)} characters`}
           </span>
         </div>

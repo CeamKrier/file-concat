@@ -1,6 +1,22 @@
-import { minimatch } from "minimatch";
+import { Minimatch } from "minimatch";
 
 const MATCH_OPTIONS = { dot: true } as const;
+
+// Each pattern is compiled once. `minimatch(path, pattern)` compiles it on every
+// call, and the filter runs every path against every default pattern on each
+// tree toggle: on a 7,792-file drop that was 17 of the toggle's 19 seconds.
+// ponytail: unbounded, holds every pattern ever typed; a few hundred short strings.
+const compiled = new Map<string, Minimatch>();
+
+function matcher(pattern: string, matchBase: boolean): Minimatch {
+  const key = (matchBase ? "b:" : "p:") + pattern;
+  let mm = compiled.get(key);
+  if (!mm) {
+    mm = new Minimatch(pattern, { ...MATCH_OPTIONS, matchBase });
+    compiled.set(key, mm);
+  }
+  return mm;
+}
 
 /**
  * Match a file path against a single user-supplied glob pattern with
@@ -15,17 +31,19 @@ export function pathMatches(filePath: string, pattern: string): boolean {
   if (!pattern || !filePath) return false;
 
   if (!pattern.includes("/")) {
-    if (minimatch(filePath, pattern, { ...MATCH_OPTIONS, matchBase: true })) return true;
+    if (matcher(pattern, true).match(filePath)) return true;
     const segments = filePath.split("/").filter(Boolean);
-    return segments.some((segment) => minimatch(segment, pattern, MATCH_OPTIONS));
+    const mm = matcher(pattern, false);
+    return segments.some((segment) => mm.match(segment));
   }
 
-  if (minimatch(filePath, pattern, MATCH_OPTIONS)) return true;
+  const mm = matcher(pattern, false);
+  if (mm.match(filePath)) return true;
 
   const parts = filePath.split("/");
   for (let i = 1; i < parts.length; i++) {
     const suffix = parts.slice(i).join("/");
-    if (minimatch(suffix, pattern, MATCH_OPTIONS)) return true;
+    if (mm.match(suffix)) return true;
   }
   return false;
 }
