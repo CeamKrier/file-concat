@@ -65,7 +65,7 @@
     "@fileconcat/core": "workspace:*",
     "@firecrawl/anydoc-wasm": "^0.2.4",
     "@huggingface/transformers": "4.3.0",
-    "@llamaindex/liteparse-wasm": "^2.15.1",
+    "@llamaindex/liteparse-wasm": "^2.16.0",
     "@mozilla/readability": "0.6.0",
     "@types/jsdom": "^30.0.0",
     "@types/node": "^22.0.0",

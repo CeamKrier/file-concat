@@ -1,4 +1,4 @@
-@llamaindex/liteparse-wasm 2.15.1 (pkg/liteparse_wasm_bg.wasm). Rust crates from: cargo tree -p liteparse-wasm --target wasm32-unknown-unknown -e normal,no-proc-macro --locked at liteparse tag wasm-v2.15.1 (ab8879623ee45a0b7a775d12b42a9a7ae9dab16b). C/C++ libraries statically linked from run-llama/pdfium-binaries release chromium/8058 asset pdfium-wasi-wasm.tgz (sha256 e8a5b7851f3bbbd325dca9e9f5029fc56be1df0be40dd710051521cff1028f35), per crates/pdfium-sys/build.rs lines 6-7, 29-55. MPL-2.0 source: resvg 0.44.0 and usvg 0.44.0 at https://github.com/linebender/resvg/tree/v0.44.0 (commit ebb3984ef00afd9dc0b493a38f5b163baa41c4d5), also https://static.crates.io/crates/resvg/resvg-0.44.0.crate and https://static.crates.io/crates/usvg/usvg-0.44.0.crate ; these files are unmodified.
+@llamaindex/liteparse-wasm 2.16.0 (pkg/liteparse_wasm_bg.wasm). Rust crates from: cargo tree -p liteparse-wasm --target wasm32-unknown-unknown -e normal,no-proc-macro --locked at liteparse tag wasm-v2.16.0 (9f17a9d979a82eaeae5ab9e8f23fb160ed5d1b8e). C/C++ libraries statically linked from run-llama/pdfium-binaries release chromium/8058 asset pdfium-wasi-wasm.tgz (sha256 e8a5b7851f3bbbd325dca9e9f5029fc56be1df0be40dd710051521cff1028f35), per crates/pdfium-sys/build.rs lines 6-7, 29-55. MPL-2.0 source: resvg 0.44.0 and usvg 0.44.0 at https://github.com/linebender/resvg/tree/v0.44.0 (commit ebb3984ef00afd9dc0b493a38f5b163baa41c4d5), also https://static.crates.io/crates/resvg/resvg-0.44.0.crate and https://static.crates.io/crates/usvg/usvg-0.44.0.crate ; these files are unmodified.
 
 201 components. Licences elected where a component offers a choice.
 
@@ -3108,10 +3108,10 @@ Apache-2.0
 Used by:
   blake3 1.8.5 | SPDX: CC0-1.0 OR Apache-2.0 OR Apache-2.0 WITH LLVM-exception | https://github.com/BLAKE3-team/BLAKE3 | text from: SPDX canonical text, holder from Cargo.toml authors (crate ships no licence file)
   imgref 1.12.2 | SPDX: CC0-1.0 OR Apache-2.0 | https://github.com/kornelski/imgref | text from: LICENSE-APACHE
-  liteparse 2.15.1 | SPDX: Apache-2.0 | https://github.com/run-llama/liteparse | text from: LICENSE
-  liteparse-pdfium 1.11.0 | SPDX: Apache-2.0 | https://github.com/run-llama/liteparse | text from: LICENSE
-  liteparse-pdfium-sys 1.11.0 | SPDX: Apache-2.0 | https://github.com/run-llama/liteparse | text from: LICENSE
-  liteparse-wasm 2.15.1 | SPDX: Apache-2.0 | https://github.com/run-llama/liteparse | text from: LICENSE
+  liteparse 2.16.0 | SPDX: Apache-2.0 | https://github.com/run-llama/liteparse | text from: LICENSE
+  liteparse-pdfium 1.12.0 | SPDX: Apache-2.0 | https://github.com/run-llama/liteparse | text from: LICENSE
+  liteparse-pdfium-sys 1.12.0 | SPDX: Apache-2.0 | https://github.com/run-llama/liteparse | text from: LICENSE
+  liteparse-wasm 2.16.0 | SPDX: Apache-2.0 | https://github.com/run-llama/liteparse | text from: LICENSE
 ------------------------------------------------------------------------------
 Apache License
 Version 2.0, January 2004
