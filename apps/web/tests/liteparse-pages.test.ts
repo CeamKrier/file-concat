@@ -68,6 +68,21 @@ describe("parsePdfPages", () => {
     expect(pages[0]?.text).toBe("Read [our docs](https://x.example/docs) today\n\ndocs again docs\n\n[docs](https://x.example/again)");
   });
 
+  it("joins a word split at a line's end that liteparse left apart", async () => {
+    const item = (text: string, y: number) => ({ text, x: 0, y, width: text.length * 10, height: 10, rotation: 0 });
+    class Parser {
+      async parse() {
+        const markdown = "| samt tilsynets observa- tioner | Post- medieval |\n\nQZHARDHY- PHENB continues\n\nlow- and high, 5- 6\n\nPost-medieval wrecks";
+        const textItems = [item("samt tilsynets observa-", 0), item("tioner", 20), item("Post-", 0), item("medieval", 20), item("QZHARDHY-", 40), item("PHENB continues", 60), item("low- and high, 5-", 80), item("6", 100)];
+        return { pages: [1, 2].map((pageNum) => ({ pageNum, markdown, textItems })), pageErrors: [] };
+      }
+      free() {}
+    }
+    const { pages } = await parsePdfPages(Parser as unknown as typeof LiteParse, new Uint8Array());
+
+    expect(pages[0]?.text).toBe("| samt tilsynets observationer | Post-medieval |\n\nQZHARDHY-PHENB continues\n\nlow- and high, 5- 6\n\nPost-medieval wrecks");
+  });
+
   it("hands over review comments, with the words a highlight covers", async () => {
     const item = (text: string, y: number) => ({ text, x: 0, y, width: text.length * 10, height: 10, rotation: 0 });
     const rect = (x: number, y: number, width: number) => ({ x, y, width, height: 10 });

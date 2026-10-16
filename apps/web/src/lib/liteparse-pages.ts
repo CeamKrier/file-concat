@@ -107,6 +107,38 @@ function withLinks(page: LiteparsePage): string {
   return [markdown, ...after].join("\n\n");
 }
 
+/**
+ * A word a line's end split with a hyphen, joined where liteparse left it
+ * apart. liteparse joins one inside a paragraph (`splice_soft_hyphens`: a
+ * letter before the hyphen, a lowercase letter after, the hyphen dropped) but
+ * not inside a table cell, and it joins a capitalized continuation with a
+ * space. The line ends are the text items' ends. A lowercase continuation
+ * drops the hyphen, as liteparse, marker, docling, GROBID and pdf.js's find
+ * do, unless the document writes the word with its hyphen on one line
+ * elsewhere: a survey's table cut "Post-medieval" 368 times, and the rule
+ * alone wrote "Postmedieval". Any other keeps the hyphen and loses the space,
+ * as pdf.js's find does.
+ *
+ * ponytail: matched by the split word's text, so the same word written
+ * mid-line with a hyphen and a space ("low- and") on that page is joined too.
+ * The items' order would tell the two apart.
+ */
+function withLineEndHyphens(markdown: string, items: readonly TextItem[], compounds: ReadonlySet<string>): string {
+  const stems = new Set(items.map((item) => /(?:^|\s)(\S*\p{L})-\s*$/u.exec(item.text)?.[1]).filter(Boolean));
+  if (stems.size === 0) return markdown;
+  return markdown.replace(/(?<!\S)(\S*\p{L})- (\p{L}[\p{L}\p{M}]*)/gu, (whole, stem: string, next: string) => {
+    if (!stems.has(stem)) return whole;
+    return /^\p{Ll}/u.test(next) && !compounds.has(`${stem}-${next}`) ? stem + next : `${stem}-${next}`;
+  });
+}
+
+/** Every word a document writes with a hyphen inside one line, as `stem-next`. */
+function hyphenated(pages: readonly LiteparsePage[]): Set<string> {
+  const words = new Set<string>();
+  for (const page of pages) for (const [, stem, next] of page.markdown.matchAll(/(?<!\S)(\S*\p{L})-(\p{L}[\p{L}\p{M}]*)/gu)) words.add(`${stem}-${next}`);
+  return words;
+}
+
 /** The words of the upright lines under `rect`, each placed by its middle's share of its line's width. */
 function linkText(rect: Rect, items: readonly TextItem[]): string {
   const middle = rect.y + rect.height / 2;
@@ -212,6 +244,7 @@ function verticalLines(page: LiteparsePage, written: Set<string>): string[] {
 /** Each page's markdown and whether it holds a picture, which core needs to tell a scanned page from a blank one. */
 function toPdfPages(pages: readonly LiteparsePage[]): PdfPage[] {
   const written = new Set<string>();
+  const compounds = hyphenated(pages);
   return pages.map((page) => {
     // liteparse's own `needsOcr` also fires on sparse text and on any
     // figure, so only the two reasons that mean "a picture" are read.
@@ -221,7 +254,7 @@ function toPdfPages(pages: readonly LiteparsePage[]): PdfPage[] {
     return {
       number: page.pageNum,
       ...(page.pageLabel ? { label: page.pageLabel } : {}),
-      text: [withLinks(page), ...verticalLines(page, written)].filter(Boolean).join("\n\n"),
+      text: [withLinks({ ...page, markdown: withLineEndHyphens(page.markdown, page.textItems ?? [], compounds) }), ...verticalLines(page, written)].filter(Boolean).join("\n\n"),
       ...(figures.length ? { figures } : {}),
       ...(comments.length ? { comments } : {}),
       scanned: reasons.includes("scanned") || reasons.includes("embedded-images"),
