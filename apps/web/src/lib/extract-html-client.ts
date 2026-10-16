@@ -25,6 +25,9 @@ import { drawnControls, dropHidden, turndown, withStreamedSegments } from "./tur
  */
 const MIN_CHARS = 400;
 
+/** The base a page with no known address is read against; nothing is fetched from it. */
+const PLACEHOLDER = "https://localhost/";
+
 /**
  * Page chrome by tag and role: what Readability's own candidate filter skips,
  * and what trafilatura drops outright. A `header` inside `article` or `main` is
@@ -77,7 +80,7 @@ export function extractHtml(bytes: Uint8Array): ExtractionResult {
  */
 export function readHtml(html: string, fetchedFrom?: string): ExtractionResult {
   const saved = savedPageUrl(html);
-  const url = saved ?? fetchedFrom ?? "https://localhost/";
+  const url = saved ?? fetchedFrom ?? PLACEHOLDER;
   const doc = new DOMParser().parseFromString(html, "text/html");
   // Readability resolves relative links against the document's base, which
   // for a parsed string is this site, not the page that was saved.
@@ -90,26 +93,26 @@ export function readHtml(html: string, fetchedFrom?: string): ExtractionResult {
   if (doc.body) drawnControls(doc.body);
   const service = turndown(url);
   // A picture's address against the page it was saved from; the reader
-  // only resolves the copy it keeps, and a page with no known address has
-  // nothing to resolve against.
-  if (saved ?? fetchedFrom) {
-    service.addRule("image", {
-      filter: "img",
-      replacement: (_content, node) => {
-        const alt = ((node as HTMLElement).getAttribute("alt") ?? "").replace(/\s+/g, " ").trim();
-        // As the link rule does: only a web address is written. A `data:`
-        // picture is its whole file in base64, billed by the token.
-        const raw = (node as HTMLElement).getAttribute("src")?.trim();
-        if (!raw) return alt;
-        try {
-          const src = new URL(raw, url);
-          return /^https?:$/.test(src.protocol) ? `![${alt}](${src.href})` : alt;
-        } catch {
-          return alt;
-        }
-      },
-    });
-  }
+  // only resolves the copy it keeps. A page with no known address keeps the
+  // path it wrote, which the reader resolved against the placeholder.
+  service.addRule("image", {
+    filter: "img",
+    replacement: (_content, node) => {
+      const alt = ((node as HTMLElement).getAttribute("alt") ?? "").replace(/\s+/g, " ").trim();
+      // As the link rule does: only a web address is written. A `data:`
+      // picture is its whole file in base64, billed by the token.
+      const raw = (node as HTMLElement).getAttribute("src")?.trim();
+      if (!raw) return alt;
+      try {
+        const src = new URL(raw, url);
+        if (!/^https?:$/.test(src.protocol)) return alt;
+        const href = url === PLACEHOLDER && src.href.startsWith(PLACEHOLDER) ? src.href.slice(PLACEHOLDER.length) : src.href;
+        return `![${alt}](${href})`;
+      } catch {
+        return alt;
+      }
+    },
+  });
   const title = doc.title.trim();
 
   // Readability keeps no class but those named; a code block's language is one.
