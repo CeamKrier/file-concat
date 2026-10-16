@@ -35,7 +35,11 @@ import {
 import { tagSurface } from "~/lib/clarity-tags";
 import { cn } from "~/lib/utils";
 import { browserOcrLanguage, ocrLanguageName, ocrLanguageOptions } from "~/lib/ocr-language";
-import { flushTreeInteractions } from "~/components/file-tree/interaction-tally";
+import {
+  beginCurate,
+  endCurate,
+  flushTreeInteractions,
+} from "~/components/file-tree/interaction-tally";
 
 import { MarketingSections, SiteFooter } from "./marketing";
 
@@ -183,6 +187,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   const openSettings = (door: "adjust" | "empty" | "model" = "adjust") => {
     setSettingsFocusModel(door === "model");
     setSettingsOpen(true);
+    beginCurate();
     track("drawer_opened", door);
   };
   const [readingOpen, setReadingOpen] = useState(false);
@@ -525,7 +530,8 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   }, [phase, includedContents, settledStatuses, ingestion.validations]);
 
   /**
-   * Files someone moved by hand in the tree, recorded when the drawer closes.
+   * Files someone moved by hand in the tree, recorded when the drawer closes or
+   * the page is hidden with it open.
    *
    * Deliberately not a mirror of the effect above. That one fires as the result
    * phase opens, which is before anyone has touched anything, so the same shape
@@ -540,22 +546,40 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
    * nothing.
    */
   const trimmed = useRef({ run: -1, include: 0, exclude: 0 });
-  const onSettingsOpenChange = (open: boolean) => {
-    setSettingsOpen(open);
-    if (open) return;
+  // Read from the visibility listener, which outlives the render it was made in.
+  const overridesNow = useRef(filter.manualOverrides);
+  overridesNow.current = filter.manualOverrides;
+  const endEditing = useCallback((how: "closed" | "left") => {
     const run = currentRun();
-    if (run === null) return;
-    if (trimmed.current.run !== run) trimmed.current = { run, include: 0, exclude: 0 };
-    for (const side of ["include", "exclude"] as const) {
-      const delta = filter.manualOverrides[side] - trimmed.current[side];
-      if (delta <= 0) continue;
-      trimmed.current[side] = filter.manualOverrides[side];
-      trackAmount("tree_edit", { value: side, n: delta });
+    if (run !== null) {
+      if (trimmed.current.run !== run) trimmed.current = { run, include: 0, exclude: 0 };
+      for (const side of ["include", "exclude"] as const) {
+        const delta = overridesNow.current[side] - trimmed.current[side];
+        if (delta <= 0) continue;
+        trimmed.current[side] = overridesNow.current[side];
+        trackAmount("tree_edit", { value: side, n: delta });
+      }
     }
     // Which control did the moving, and whether a folder sweep was undone on
     // the spot. `tree_edit` counts files and cannot answer either.
     flushTreeInteractions();
+    endCurate(how);
+  }, []);
+  const onSettingsOpenChange = (open: boolean) => {
+    setSettingsOpen(open);
+    if (!open) endEditing("closed");
   };
+  // Closing the tab with the panel open is the session nobody finished, and it
+  // used to write nothing at all. Coming back starts a new one.
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") endEditing("left");
+      else beginCurate();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [settingsOpen, endEditing]);
 
   // --- flow control ---------------------------------------------------------
   // Runs `run`, showing the processing view driven by the engine's real

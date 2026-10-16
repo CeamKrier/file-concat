@@ -118,7 +118,10 @@ function enqueue(event: QueuedEvent): void {
   queue.push(event);
   attachUnloadHook();
 
-  if (queue.length >= MAX_EVENTS_PER_FLUSH) {
+  // An event written while the page is hidden (a session closed by leaving the
+  // tab) would otherwise wait on a timer a backgrounded page may never run.
+  const hidden = typeof document !== "undefined" && document.visibilityState === "hidden";
+  if (queue.length >= MAX_EVENTS_PER_FLUSH || hidden) {
     flush();
     return;
   }

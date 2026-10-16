@@ -431,7 +431,7 @@ export const METRIC_EVENTS = [
    * tree, not curating it. That is also the only evidence for whether
    * auto-expanding every folder on load is the right default.
    *
-   * Written at drawer close beside `tree_edit`, from a tally the tree keeps
+   * Written at drawer close (or page hidden, see `curate_end`) beside `tree_edit`, from a tally the tree keeps
    * itself, so a two-hundred-file sweep costs one row rather than one per file.
    */
   "tree_press",
@@ -459,6 +459,22 @@ export const METRIC_EVENTS = [
    * have reversed one.
    */
   "tree_reverted",
+  /**
+   * How an editing session in the file controls ended, and `n` the whole
+   * seconds it lasted: `closed` when the visitor closed the panel, `left` when
+   * the page was hidden while it was open (tab closed or switched away).
+   *
+   * **The difference between finishing and giving up.** `tree_edit`,
+   * `tree_press` and `tree_reverted` used to be written only on close, so a
+   * visitor who trimmed and then closed the tab wrote none of them and looked
+   * like somebody who never opened the panel. They are now written on `left`
+   * too. Read `left` with no later `output_taken` as gave up inside curation,
+   * `closed` with none as finished and still did not take the bundle.
+   *
+   * Coming back to the tab starts a new session, so one Run can carry several.
+   * Label and count only (ADR-0014): no path, no pattern, no file name.
+   */
+  "curate_end",
   /**
    * Someone changed what the filters do: `ignore` or `include` for a typed
    * pattern, `preset` for a quick-preset chip. The chip rewrites both lists in

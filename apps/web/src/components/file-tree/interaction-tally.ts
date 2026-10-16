@@ -72,3 +72,19 @@ export function flushTreeInteractions(): void {
   if (revertedFiles > 0) trackAmount("tree_reverted", { n: revertedFiles });
   reset();
 }
+
+/** When the open editing session started; outside `reset`, which only clears the tally. */
+let curateStarted: number | null = null;
+
+export function beginCurate(): void {
+  curateStarted = Date.now();
+}
+
+/** Writes `curate_end` once for the session `beginCurate` opened. */
+export function endCurate(how: "closed" | "left"): void {
+  if (curateStarted === null) return;
+  const seconds = Math.round((Date.now() - curateStarted) / 1000);
+  curateStarted = null;
+  if (sync() === null) return;
+  trackAmount("curate_end", { value: how, n: seconds });
+}

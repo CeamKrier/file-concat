@@ -277,3 +277,34 @@ describe("sourceLabel", () => {
     expect(metrics.sourceLabel(referrer, search)).toBe(expected);
   });
 });
+
+describe("curate session", () => {
+  it("sends an event written while the page is hidden without waiting on the timer", () => {
+    const state = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    metrics.track("output_taken", "copy");
+    // A backgrounded page may never run the debounce timer, so none may be left.
+    expect(vi.getTimerCount()).toBe(0);
+    state.mockRestore();
+  });
+
+  it("writes how the session ended and how long it lasted, once", async () => {
+    const tally = await import("~/components/file-tree/interaction-tally");
+    metrics.startRun();
+    tally.beginCurate();
+    await vi.advanceTimersByTimeAsync(7_000);
+    tally.endCurate("left");
+    tally.endCurate("closed");
+
+    const events = await flush();
+    expect(events.filter((e) => e.n === "curate_end")).toEqual([
+      { n: "curate_end", v: "left", q: 7, r: 1 },
+    ]);
+  });
+
+  it("writes nothing outside a Run", async () => {
+    const tally = await import("~/components/file-tree/interaction-tally");
+    tally.beginCurate();
+    tally.endCurate("closed");
+    expect(await flush()).toEqual([]);
+  });
+});
