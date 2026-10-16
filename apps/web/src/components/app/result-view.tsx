@@ -78,7 +78,7 @@ type ResultViewProps = {
   /** Readable text held back by a default rule. Hidden dotfiles, since the size cap went. */
   skippedByDefault: UnsupportedFile[];
   /** Included files that decoded as "ambiguous" — kept in, but worth a look. */
-  flaggedFiles: string[];
+  flaggedFiles: { name: string; why?: string; action?: ReactNode }[];
   /** Included files whose text was extracted from a document (PDF/Office/ODF). */
   extractedFiles: string[];
   /** Included documents that lost whole pages on the way out, and what is missing. */
@@ -500,8 +500,8 @@ export function ResultView({
         count: flaggedFiles.length,
         label: "flagged",
         tone: "warn",
-        lead: "In the bundle, but they did not decode cleanly. If the preview below looks garbled, drop them.",
-        items: flaggedFiles.map((name) => ({ name })),
+        lead: "In the bundle, read in an encoding nothing in them named, or cut where binary data starts. Each row says which. If the letters look wrong, pick another encoding.",
+        items: flaggedFiles,
       },
       {
         key: "left",
@@ -1158,7 +1158,7 @@ export function FileGroups({
 // list (scroll-capped) so a long list is never silently truncated.
 const PREVIEW_ROWS = 6;
 
-function FileRows({ items }: { items: { name: string; why?: string }[] }) {
+function FileRows({ items }: { items: { name: string; why?: string; action?: ReactNode }[] }) {
   const [expanded, setExpanded] = useState(false);
   const shown = expanded ? items : items.slice(0, PREVIEW_ROWS);
   return (
@@ -1176,6 +1176,7 @@ function FileRows({ items }: { items: { name: string; why?: string }[] }) {
           <li key={f.name} className="flex flex-wrap items-baseline gap-x-3.5 gap-y-0.5 font-mono text-xs">
             <span className="text-code min-w-0 flex-1 truncate">{f.name}</span>
             {f.why && <span className="text-ink-muted min-w-0">{f.why}</span>}
+            {f.action}
           </li>
         ))}
       </ul>

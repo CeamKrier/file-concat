@@ -23,6 +23,7 @@
     "officeparser": "^8.1.1"
   },
   "devDependencies": {
+    "chardetng-wasm": "1.0.2",
     "fast-check": "^4.8.0",
     "postal-mime": "^4.0.7",
     "saxes": "6.0.0",

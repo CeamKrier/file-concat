@@ -6,6 +6,7 @@ import {
   SPLIT_OUTPUT_ENABLED,
   addLineNumbers,
   assembleOutputHead,
+  formatSize,
   generateFileTree,
   generateProjectName,
   summarizeExclusions,
@@ -33,6 +34,7 @@ import {
   type Tally,
 } from "~/lib/metrics";
 import { tagSurface } from "~/lib/clarity-tags";
+import { encodingWhy } from "~/lib/encoding-guess";
 import { cn } from "~/lib/utils";
 import { browserOcrLanguage, ocrLanguageName, ocrLanguageOptions } from "~/lib/ocr-language";
 import {
@@ -50,6 +52,7 @@ import type { ImportState } from "./import-panel";
 import { ProcessingView, type ProcessingStep } from "./processing-view";
 import { PREVIEW_LIMIT, ResultView } from "./result-view";
 import { ResultEmpty } from "./result-empty";
+import { EncodingPicker } from "./encoding-picker";
 import { FeedbackDock } from "./feedback-dock";
 import { ReadingDialog } from "./reading-dialog";
 import { emptyKindFor, emptyReasonSlug } from "./empty-kind";
@@ -338,13 +341,33 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       .filter((s) => !s.included && !rejected.has(s.path))
       .map((s) => s.path);
   }, [settledStatuses, ingestion.validations]);
-  // Included files that decoded as "ambiguous" — kept in, flagged for a look.
+  // Included files read in an encoding nothing in them named, or cut where
+  // binary data starts: kept in, flagged for a look, each with its reason and,
+  // for the encoding, a picker to read it again in another.
+  const { decodeFileAs } = ingestion;
   const flaggedFiles = useMemo(() => {
     const included = new Set(settledStatuses.filter((s) => s.included).map((s) => s.path));
     return Object.entries(ingestion.validations)
-      .filter(([path, v]) => v.classification === "ambiguous" && included.has(path))
-      .map(([path]) => path.split("/").pop() ?? path);
-  }, [ingestion.validations, settledStatuses]);
+      .filter(
+        ([path, v]) =>
+          included.has(path) &&
+          (v.classification === "ambiguous" || v.guessed || v.notes?.some((n) => n.kind === "binary-tail")),
+      )
+      .map(([path, v]) => {
+        const name = path.split("/").pop() ?? path;
+        const cut = v.notes?.find((n) => n.kind === "binary-tail");
+        const why = [
+          cut && `Stopped at ${formatSize(cut.count ?? 0)}: binary data follows.`,
+          v.encoding && encodingWhy(v.encoding, v.guessed === "picked"),
+        ]
+          .filter(Boolean)
+          .join(" ");
+        const action = v.encoding ? (
+          <EncodingPicker name={name} value={v.encoding} onPick={(label) => void decodeFileAs(path, label)} />
+        ) : undefined;
+        return { name, why: why || undefined, action };
+      });
+  }, [ingestion.validations, settledStatuses, decodeFileAs]);
   // Included files whose text was extracted from a document (PDF/Office/ODF).
   const extractedFiles = useMemo(() => {
     const included = new Set(settledStatuses.filter((s) => s.included).map((s) => s.path));

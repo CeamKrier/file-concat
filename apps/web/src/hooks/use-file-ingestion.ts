@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
+  DecodedText,
   DownloadProgress,
   ExtractionNote,
   ProcessingConfig,
@@ -7,10 +8,11 @@ import type {
   TextClassification,
 } from "@fileconcat/core";
 import {
+  classifyBytes,
+  decodeAs,
   defaultSourceRegistry,
   isPasswordProtected,
   isPrunedDirectory,
-  readFileAsText,
   RECOGNISABLE_IMAGE_FORMATS,
   replacePages,
   unreadableReason,
@@ -20,6 +22,7 @@ import {
 } from "@fileconcat/core";
 
 import { collectFromDataTransfer } from "~/lib/collect-from-drop";
+import { encodingGuesser } from "~/lib/encoding-guess";
 import { markerFor } from "~/lib/ecosystem-markers";
 import { addToTally, startRun, track, trackAmount, trackTally, type Tally } from "~/lib/metrics";
 import { tagDrop, tagSource } from "~/lib/clarity-tags";
@@ -107,7 +110,26 @@ export type ValidationRecord = {
    * document did not.
    */
   notes?: ExtractionNote[];
+  /**
+   * The encoding a text file was read with, set only when nothing in its bytes
+   * named it: `guess` from the guesser, `fallback` windows-1252 when the
+   * guesser could not load, `picked` once the person chose another.
+   */
+  encoding?: string;
+  guessed?: "guess" | "fallback" | "picked";
 };
+
+/**
+ * A file's bytes as text. The encoding guesser is fetched only for a file that
+ * is neither UTF-8 nor says what it is, which most drops never hold.
+ */
+async function readText(file: File): Promise<DecodedText> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const read = classifyBytes(bytes);
+  if (read.guessed !== "fallback") return read;
+  const guess = await encodingGuesser();
+  return guess ? classifyBytes(bytes, guess) : read;
+}
 
 export type IncomingFile = {
   file: File;
@@ -305,6 +327,8 @@ export interface FileIngestion {
   readSelected: (paths: readonly string[], locale: string) => Promise<number>;
   /** Abandon the rest of a recognition pass. Whatever was read stays read. */
   stopReading: () => void;
+  /** Read a file whose encoding was guessed again in the one the person picked. */
+  decodeFileAs: (path: string, encoding: string) => Promise<void>;
   /**
    * True between the stop being asked for and the pass actually ending.
    *
@@ -381,6 +405,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   // rather than a dependency, so adding this does not re-create every ingest
   // callback on each entry change.
   const entryCountRef = useRef(0);
+  // The files read in a guessed encoding, kept so a pick can read them again.
+  // A File is a handle to bytes on disk, so holding one costs nothing.
+  const guessedFiles = useRef(new Map<string, File>());
   useEffect(() => {
     entryCountRef.current = entries.length;
   }, [entries.length]);
@@ -705,6 +732,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       const extensions: Tally = new Map();
       const unreadable: Tally = new Map();
       const readFailed: Tally = new Map();
+      const textEncoding: Tally = new Map();
       const extractFailed: Tally = new Map();
       const extractError: Tally = new Map();
       const extractNotes: Tally = new Map();
@@ -935,12 +963,35 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           nextEntries.push({ path, content: "" });
         } else {
           try {
-            // Decode through the core classifier so odd encodings (e.g. UTF-16)
-            // read as real text instead of UTF-8 mojibake. Remote sources already
-            // arrive decoded, so their content passes through untouched.
-            const content =
-              entry.content !== undefined ? entry.content : (await readFileAsText(entry.file)).text;
-            nextEntries.push({ path, content });
+            // Decode through the core classifier so odd encodings (UTF-16, a
+            // legacy code page) read as real text instead of UTF-8 mojibake.
+            // Remote sources already arrive decoded, so their content passes
+            // through untouched.
+            if (entry.content !== undefined) {
+              nextEntries.push({ path, content: entry.content });
+            } else {
+              const read = await readText(entry.file);
+              const record = nextValidations[path];
+              // The whole file overrules the 8 KB sniff: an encoding can turn
+              // out to be a guess past it, and padding can hide binary from it.
+              record.classification = read.classification;
+              if (read.classification === "binary" && config.excludeBinaryFiles) {
+                record.included = false;
+                record.reason = unreadableReasonText(unreadableReason(path, route));
+              }
+              if (read.guessed) {
+                record.encoding = read.encoding;
+                record.guessed = read.guessed;
+                guessedFiles.current.set(path, entry.file);
+              }
+              if (read.stoppedAt !== undefined) {
+                record.notes = [...(record.notes ?? []), { kind: "binary-tail", count: read.stoppedAt }];
+              }
+              if (read.classification !== "binary" && read.encoding !== "utf-8") {
+                addToTally(textEncoding, read.encoding, fileBytes);
+              }
+              nextEntries.push({ path, content: read.text });
+            }
           } catch (error) {
             console.error(`Failed to read file ${path}:`, error);
             nextFailed.push({ path, error: "File could not be read" });
@@ -1023,6 +1074,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       for (const marker of markers) track("marker", marker);
       trackTally("unreadable_ext", unreadable);
       trackTally("read_failed", readFailed);
+      trackTally("text_encoding", textEncoding);
       trackTally("extract_failed", extractFailed);
       trackTally("extract_error", extractError);
       trackTally("extract_note", extractNotes);
@@ -1324,6 +1376,17 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     abortRef.current.abort();
   }, []);
 
+  const decodeFileAs = useCallback(async (path: string, encoding: string) => {
+    const file = guessedFiles.current.get(path);
+    if (!file) return;
+    const text = decodeAs(new Uint8Array(await file.arrayBuffer()), encoding);
+    if (text === null) return;
+    setEntries((prev) => prev.map((e) => (e.path === path ? { ...e, content: text } : e)));
+    setValidations((prev) =>
+      prev[path] ? { ...prev, [path]: { ...prev[path], encoding, guessed: "picked" } } : prev,
+    );
+  }, []);
+
   /**
    * Keep the named paths, drop the rest, and give up the name the bundle went
    * by: pruned to a subset it is no longer that import, and the result header
@@ -1385,6 +1448,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     readUnreadDocuments,
     readSelected,
     stopReading,
+    decodeFileAs,
     isStopping,
     stoppedReading,
     readLanguage,

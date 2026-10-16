@@ -52,6 +52,7 @@
   },
   "homepage": "https://fileconcat.com",
   "dependencies": {
+    "chardetng-wasm": "1.0.2",
     "commander": "^12.0.0",
     "file-type": "^22.0.1",
     "glob": "^11.0.0",

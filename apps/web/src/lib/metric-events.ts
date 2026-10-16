@@ -168,6 +168,13 @@ export const METRIC_EVENTS = [
    * failure has never appeared in the data at all.
    */
   "read_failed",
+  /**
+   * Text files read in an encoding other than UTF-8, one row per encoding as
+   * `TextDecoder` names it (`windows-1251`, `shiftjis`, `utf-16le`): `n` files
+   * totalling `b` bytes. Says how often the encoding guesser and the per-file
+   * picker are needed at all, and for which languages.
+   */
+  "text_encoding",
   /** A format we do support whose reader returned nothing (scanned or encrypted). The OCR business case. */
   "extract_failed",
   /**

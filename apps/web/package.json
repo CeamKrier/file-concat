@@ -45,6 +45,7 @@
     "@tanstack/react-start-server": "^1.157.16",
     "@tanstack/router-core": "^1.157.16",
     "@visx/scale": "^4.0.0",
+    "chardetng-wasm": "1.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "fflate": "^0.8.3",

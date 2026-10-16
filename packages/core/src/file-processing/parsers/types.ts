@@ -67,7 +67,13 @@ export type ExtractionNoteKind =
    * O1), `count` of them. Not a gap: what the file holds is all there, and the
    * bundle says so because comments are easy to forget when sharing a file.
    */
-  | "comments-included";
+  | "comments-included"
+  /**
+   * A text file with binary data after its text (a log a crash finished with
+   * garbage, a dump): the text was kept and the rest cut off. `count` is the
+   * bytes kept.
+   */
+  | "binary-tail";
 
 export interface ExtractionNote {
   kind: ExtractionNoteKind;

@@ -2,6 +2,7 @@ import { getLanguageFromPath } from "../path-utils/language";
 import { classifyBundleKind, type BundleKind } from "./bundle-kind";
 import type { ExcludedSummary } from "./exclusions";
 import type { ExtractionNote } from "./parsers/types";
+import { formatSize } from "./size";
 
 export type OutputStyle = "xml" | "markdown" | "plain";
 
@@ -186,6 +187,8 @@ function describeGaps(notes: readonly ExtractionNote[]): string | undefined {
         return [count ? `${count} page${count === 1 ? "" : "s"} failed to load` : "the rest past a reading limit not read"];
       case "hidden-left-out":
         return ["text its author hid left out"];
+      case "binary-tail":
+        return [`binary data after ${formatSize(count ?? 0)} left out`];
       default:
         return [];
     }

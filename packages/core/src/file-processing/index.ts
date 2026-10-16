@@ -58,8 +58,10 @@ export type {
   PdfPage,
 } from "./parsers";
 export { validateFile } from "./validation";
-export { classifyBytes, readFileAsText } from "./text-classification";
+export { classifyBytes, decodeAs, readFileAsText } from "./text-classification";
 export type { DecodedText, TextClassification } from "./text-classification";
+export { createEncodingGuesser } from "./encoding-guess";
+export type { EncodingGuesser } from "./encoding-guess";
 export { formatSize, calculateTotalSize } from "./size";
 export { addLineNumbers } from "./transform";
 export { assembleOutput, assembleOutputHead, fenceFor } from "./output";

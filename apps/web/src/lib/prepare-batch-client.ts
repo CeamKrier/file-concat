@@ -63,7 +63,9 @@ export async function prepareBatch(
     const { route, sniffed } = await item.file
       .slice(0, ROUTER_SNIFF_BYTES)
       .arrayBuffer()
-      .then((buffer) => sniff(new Uint8Array(buffer)))
+      .then((buffer) =>
+        sniff(new Uint8Array(buffer), async () => new Uint8Array(await item.file.slice(0, CONFIRM_BYTES).arrayBuffer())),
+      )
       .catch(() => ({ route: { kind: "unknown" } as const, sniffed: undefined }));
     if (route.kind !== "expand") {
       files.push({ item, path, route, sniffed });
@@ -112,7 +114,7 @@ export async function prepareBatch(
           path: entryItem.path,
           // Routed from the bytes we already hold rather than re-reading the
           // synthetic File we just built.
-          ...(await sniff(entryBytes.subarray(0, ROUTER_SNIFF_BYTES))),
+          ...(await sniff(entryBytes.subarray(0, ROUTER_SNIFF_BYTES), async () => entryBytes.subarray(0, CONFIRM_BYTES))),
         });
       }
     } catch {
@@ -146,13 +148,23 @@ async function unpack(
   return { entries: await expandWithSevenZip(bytes, kind, name), reader: "7zip" };
 }
 
+/** The sniff window plus the 64 KB core reads past a binary-looking one before its verdict stands. */
+const CONFIRM_BYTES = ROUTER_SNIFF_BYTES + 65536;
+
 /**
  * Route a prefix and, where the route leaves the question open, classify the
- * same bytes. One read serves both; see `RoutedFile.sniffed`.
+ * same bytes. One read serves both; see `RoutedFile.sniffed`. A prefix that
+ * reads as binary in a longer file is classified again on `wider` bytes, the
+ * confirmation core's classifier makes on a whole file.
  */
-async function sniff(prefix: Uint8Array): Promise<{ route: FileRoute; sniffed?: TextClassification }> {
+async function sniff(
+  prefix: Uint8Array,
+  wider: () => Promise<Uint8Array>,
+): Promise<{ route: FileRoute; sniffed?: TextClassification }> {
   const route = await routeBytes(prefix);
   if (route.kind === "binary") return { route, sniffed: "binary" };
-  if (route.kind === "unknown") return { route, sniffed: classifyBytes(prefix).classification };
-  return { route };
+  if (route.kind !== "unknown") return { route };
+  const sniffed = classifyBytes(prefix).classification;
+  if (sniffed !== "binary" || prefix.length < ROUTER_SNIFF_BYTES) return { route, sniffed };
+  return { route, sniffed: classifyBytes(await wider()).classification };
 }
