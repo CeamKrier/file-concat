@@ -61,6 +61,7 @@ import {
   type IncomingFile,
 } from "~/hooks/use-file-ingestion";
 import { SettingsDrawer } from "./settings-drawer";
+import { FilesPane } from "./files-pane";
 
 type Phase = "landing" | "processing" | "result";
 
@@ -180,14 +181,19 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   }, []);
 
   const [phase, setPhase] = useState<Phase>("landing");
+  // The model sheet, opened from the model name in the fit line.
   const [settingsOpen, setSettingsOpen] = useState(false);
-  // Which part of the drawer the opener was asking for. Only the result's fit
-  // line asks for the model picker; every other door lands at the top.
-  const [settingsFocusModel, setSettingsFocusModel] = useState(false);
-  const openSettings = (door: "adjust" | "empty" | "model" = "adjust") => {
-    setSettingsFocusModel(door === "model");
+  // The Files pane: what goes in the bundle, beside the live result.
+  const [filesOpen, setFilesOpen] = useState(false);
+  // `drawer_opened` keeps its name and doors so its series stays continuous
+  // across the move from one drawer to the pane and the model sheet.
+  const openSettings = () => {
     setSettingsOpen(true);
-    beginCurate();
+    track("drawer_opened", "model");
+  };
+  const openFiles = (door: "adjust" | "empty") => {
+    if (!filesOpen) beginCurate();
+    setFilesOpen(true);
     track("drawer_opened", door);
   };
   const [readingOpen, setReadingOpen] = useState(false);
@@ -375,6 +381,13 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // What the removed 32 MB per-file cap used to decide silently, reported
   // instead. Measured over the files that actually made the bundle, so
   // deselecting the heavy one in the drawer visibly moves it.
+  // Text length per file, for the Files pane's shares. Aligned with
+  // `fileStatuses`, which is derived from `entries` index for index.
+  const entryChars = useMemo(
+    () => ingestion.entries.map((e) => e.content.length),
+    [ingestion.entries],
+  );
+  const showFiles = filesOpen && phase === "result";
   const weight = useMemo(
     () =>
       weighBundle({
@@ -530,14 +543,14 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   }, [phase, includedContents, settledStatuses, ingestion.validations]);
 
   /**
-   * Files someone moved by hand in the tree, recorded when the drawer closes or
-   * the page is hidden with it open.
+   * Files someone moved by hand in the tree, recorded when the Files pane
+   * closes or the page is hidden with it open.
    *
    * Deliberately not a mirror of the effect above. That one fires as the result
    * phase opens, which is before anyone has touched anything, so the same shape
    * here would read zero every time. Every curation control lives inside the
-   * settings drawer, which makes closing it the end of an editing session and
-   * the only honest Run-scoped boundary the flow offers.
+   * Files pane, which makes closing it the end of an editing session and the
+   * only honest Run-scoped boundary the flow offers.
    *
    * A reopen writes the increase since the last close rather than the whole
    * count again, so SUM(n) over a Run is the high-water mark of manual overrides
@@ -565,21 +578,21 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     flushTreeInteractions();
     endCurate(how);
   }, []);
-  const onSettingsOpenChange = (open: boolean) => {
-    setSettingsOpen(open);
-    if (!open) endEditing("closed");
-  };
+  const closeFiles = useCallback(() => {
+    setFilesOpen(false);
+    endEditing("closed");
+  }, [endEditing]);
   // Closing the tab with the panel open is the session nobody finished, and it
   // used to write nothing at all. Coming back starts a new one.
   useEffect(() => {
-    if (!settingsOpen) return;
+    if (!filesOpen) return;
     const onVisibility = () => {
       if (document.visibilityState === "hidden") endEditing("left");
       else beginCurate();
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [settingsOpen, endEditing]);
+  }, [filesOpen, endEditing]);
 
   // --- flow control ---------------------------------------------------------
   // Runs `run`, showing the processing view driven by the engine's real
@@ -718,6 +731,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     : undefined;
 
   const startOver = useCallback(() => {
+    if (filesOpen) closeFiles();
     importAbortRef.current?.abort();
     importAbortRef.current = null;
     ingestion.reset();
@@ -728,7 +742,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     setResultNote(null);
     setImportUrl("");
     setImportError(null);
-  }, [ingestion, filter, output]);
+  }, [ingestion, filter, output, filesOpen, closeFiles]);
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {
@@ -873,6 +887,9 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         className={cn(
           "ease-out-expo flex-1 transition-[padding] duration-300 motion-reduce:transition-none",
           feedbackOpen && "max-lg:pb-[448px] lg:pr-[400px]",
+          // Room for the Files pane on the left, the same way, so the result
+          // beside it stays readable and live.
+          showFiles && "lg:pl-[420px]",
         )}
       >
         {phase === "landing" &&
@@ -908,7 +925,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               kind={emptyKind}
               pruned={ingestion.pruned}
               onStartOver={startOver}
-              onAdjust={adjustableCount > 0 ? () => openSettings("empty") : undefined}
+              onAdjust={adjustableCount > 0 ? () => openFiles("empty") : undefined}
               byInclude={excludedByInclude}
               isReading={ingestion.isReading}
               readProgress={ingestion.readProgress}
@@ -974,8 +991,8 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               readDeferred={readDeferred}
               readLanguageNote={readLanguageNote}
               onCheckReading={() => setReadingOpen(true)}
-              onAdjust={() => openSettings("adjust")}
-              onChangeModel={() => openSettings("model")}
+              onAdjust={() => openFiles("adjust")}
+              onChangeModel={openSettings}
               bigBundle={bigBundle}
               weight={weight}
               splitMode={output.selectedFormat}
@@ -1010,18 +1027,27 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         onOpenChange={setFeedbackOpen}
       />
 
+      {showFiles && (
+        <FilesPane
+          fileStatuses={filter.fileStatuses}
+          chars={entryChars}
+          onToggleFile={filter.toggleFile}
+          onToggleMany={filter.toggleMany}
+          overrides={filter.overrides}
+          restoreOverrides={filter.restoreOverrides}
+          config={config}
+          setConfig={setConfig}
+          tokens={tokens}
+          fit={weight.fit}
+          onClose={closeFiles}
+        />
+      )}
+
       <SettingsDrawer
         open={settingsOpen}
-        onOpenChange={onSettingsOpenChange}
-        config={config}
-        setConfig={setConfig}
-        fileStatuses={filter.fileStatuses}
-        onToggleFile={filter.toggleFile}
-        onToggleMultipleFiles={filter.toggleMany}
-        includedFileCount={filter.includedFileCount}
+        onOpenChange={setSettingsOpen}
         tokens={tokens}
         modelPicker={modelPicker}
-        focusModel={settingsFocusModel}
       />
     </div>
   );

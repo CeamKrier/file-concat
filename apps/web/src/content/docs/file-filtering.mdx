@@ -1,11 +1,11 @@
 ---
 title: "File filtering - include and ignore patterns"
-description: "How the Adjust what's included drawer narrows your output: the Include and Ignore textareas, what the glob patterns mean, the presets, and per-file toggles. Everything applies live."
+description: "How the Files pane narrows your output: the filter box, the By type chips, the Include and Ignore patterns, what the glob patterns mean, and per-file toggles. Everything applies live."
 ---
 
 # File filtering
 
-The **Adjust what's included** drawer is the surface for narrowing your output
+The **Files** pane, opened by **Adjust what's included**, is the surface for narrowing your output
 to the files you want to share with an assistant. Everything you
 type here applies live: the file tree updates as you type, with no Apply
 button.
@@ -65,15 +65,22 @@ node_modules, dist, build, .git, *.lock, *.log
 src/**/*.ts, src/**/*.tsx, README.md
 ```
 
-## Presets
+## Filter box and By type chips
 
-Above the textareas, a row of preset chips covers common stacks. Each
-chip rewrites both textareas in one click: the Include patterns and the
-Ignore patterns are replaced, not added to. Click a chip you already
-have selected and the textareas return to whatever was in them before.
+The filter box at the top of the pane narrows the list as you type. Plain
+text matches anywhere in the path, ignoring case. Text with `*` or `?`
+is read as a glob, with the same rules as the textareas. Typing only
+changes what is shown. **Take out N** moves every match out of the
+bundle, **Keep only these N** moves everything else out, and **Undo**
+puts the previous state back.
 
-Presets are baked into the build, not user-saveable. They live in the
-**Adjust what's included** drawer alongside the pattern fields.
+The **By type** chips list each readable extension with its file count
+and its share of the text, heaviest first. A click takes the whole type
+out, or puts it back. **Reset to defaults** clears the manual choices
+and restores the default patterns, with an Undo too.
+
+The pattern textareas sit in a closed **Patterns** section at the bottom
+of the pane.
 
 ## Manual file toggles
 
@@ -82,8 +89,9 @@ decision for that one file. Manual toggles are sticky: if you tick a
 checkbox to include a file, then later edit your Ignore textarea, the
 file stays included.
 
-The drawer's file list is headed with a live count of how many files
-are going into the output. Auto-skipped noise (binaries and anything
+The pane's file list is headed with a live count of how many files
+are going into the output and their share of the readable text. Each
+row shows its own share. Rows sort largest first or A to Z. Auto-skipped noise (binaries and anything
 your patterns exclude) stays visible but dimmed, so
 you can see what was left out and re-check it by hand.
 
@@ -92,4 +100,4 @@ you can see what was left out and re-check it by hand.
 - [Filter precedence](/docs/filter-precedence) for the full ordering
   of pruning, validation, patterns, and overrides.
 - [Configuration](/docs/configuration) for the output format choice,
-  the drawer, and the settings that persist across reloads.
+  the Files pane, and the settings that persist across reloads.

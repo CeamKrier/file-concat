@@ -21,7 +21,7 @@ type ResultEmptyProps = {
   /** What the door turned away unread; the chips for the `pruned` variant. */
   pruned?: PrunedAtDoor | null;
   onStartOver: () => void;
-  /** Open the settings drawer. Only passed when something is there to re-include. */
+  /** Open the Files pane. Only passed when something is there to re-include. */
   onAdjust?: () => void;
   /**
    * True when an include pattern is what emptied the bundle. Only read for
@@ -138,7 +138,7 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
  * Worth its own sentence because the two are fixed in opposite directions —
  * one by removing a rule, the other by widening or clearing a list — and
  * because an include list survives in `fileconcat-config` between drops, so the
- * one doing this is often left over from a preset picked for something else.
+ * one doing this is often left over from an earlier drop.
  */
 const FILTERED_BY_INCLUDE =
   "These files are readable. An include pattern is on and none of them matched it, so there was nothing to pack. It stays set between drops, so it may be left over from an earlier one.";

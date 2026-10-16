@@ -12,7 +12,19 @@
 import { currentRun, trackAmount } from "~/lib/metrics";
 
 /** Which control a press landed on. Mirrors the `tree_press` value list. */
-export type TreePress = "row-file" | "row-folder" | "box-file" | "box-folder" | "arrow";
+export type TreePress =
+  | "row-file"
+  | "row-folder"
+  | "box-file"
+  | "box-folder"
+  | "arrow"
+  | "key"
+  | "search"
+  | "match-out"
+  | "match-keep"
+  | "type-chip"
+  | "reset"
+  | "undo";
 
 /** A folder flipped back inside this window reads as an accident, not a decision. */
 const UNDO_WINDOW_MS = 10_000;

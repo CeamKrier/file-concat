@@ -13,7 +13,7 @@ export const CLAUDE_PROJECTS_FAQ = [
   },
   {
     q: 'What does "Project knowledge exceeds maximum" mean in Claude?',
-    a: "The files in the project add up to more than it can hold. Claude limits a project by total size, not by how many files it has. The way out is to leave out what the project does not need. Drop the folder into FileConcat. Every file and folder shows its size, a click takes a row out, and the token count updates. You know the rest fits before you add it back as one file.",
+    a: "The files in the project add up to more than it can hold. Claude limits a project by total size, not by how many files it has. The way out is to leave out what the project does not need. Drop the folder into FileConcat. Every file and folder shows its share of the text, a click takes a row out, and the token count updates. You know the rest fits before you add it back as one file.",
   },
   {
     q: "Does combining files make them fit in a project?",

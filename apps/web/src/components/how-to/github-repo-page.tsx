@@ -238,7 +238,7 @@ const STEPS = [
   },
   {
     title: "Leave out what you do not need",
-    body: "Open Adjust what's included: every file and folder shows its size, and the token count updates as you click rows out.",
+    body: "Open Adjust what's included: every file and folder shows its share of the text, and the token count updates as you click rows out.",
   },
   {
     title: "Copy or download the one file",

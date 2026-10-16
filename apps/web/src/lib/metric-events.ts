@@ -383,8 +383,8 @@ export const METRIC_EVENTS = [
    * things about the default noise list, so one number for both would say
    * neither.
    *
-   * Written when the settings drawer closes, which is where every curation
-   * control lives and so the end of an editing session. A reopen writes the
+   * Written when the Files pane closes or the page is hidden with it open,
+   * the end of an editing session (`curate_end`). A reopen writes the
    * increase since the last close rather than the whole count again, so
    * `SUM(n)` over a Run is the high-water mark of overrides while the Run count
    * is "Runs where anyone trimmed at all". Nothing is written when the tree was
@@ -398,9 +398,11 @@ export const METRIC_EVENTS = [
    */
   "tree_edit",
   /**
-   * The settings drawer was opened, and by which door: `adjust` the result's
-   * "Adjust what's included", `empty` the same offer on the nothing-combined
-   * screen, `model` the result's context-fit line asking for the picker.
+   * A panel was opened, and by which door: `adjust` the result's "Adjust
+   * what's included", `empty` the same offer on the nothing-combined screen,
+   * both opening the Files pane, and `model` the result's context-fit line
+   * opening the model sheet. One settings drawer held all three until
+   * 2026-10-17; the name and doors were kept so the series stays continuous.
    *
    * **The denominator every other drawer counter was missing.** `tree_edit`,
    * `tree_press`, `filter_edited` and `model_picked` are all written from inside
@@ -415,7 +417,8 @@ export const METRIC_EVENTS = [
   "drawer_opened",
   /**
    * Which file-tree control a press landed on, `n` presses each: `row-file` /
-   * `row-folder` a click anywhere on the row, `box-file` / `box-folder` a click
+   * `row-folder` a click anywhere on the row, `key` Space on a focused row,
+   * `box-file` / `box-folder` a click
    * on the tri-state checkbox itself, `arrow` the chevron cluster that opens a
    * folder.
    *
@@ -431,8 +434,16 @@ export const METRIC_EVENTS = [
    * tree, not curating it. That is also the only evidence for whether
    * auto-expanding every folder on load is the right default.
    *
-   * Written at drawer close (or page hidden, see `curate_end`) beside `tree_edit`, from a tally the tree keeps
-   * itself, so a two-hundred-file sweep costs one row rather than one per file.
+   * The Files pane's other controls ride here too, one press each: `search` the
+   * first filter text of a session (typing is not a press, so once), `match-out`
+   * and `match-keep` "Take out N" and "Keep only these N" on the filter's
+   * matches, `type-chip` a By type chip, `reset` "Reset to defaults", `undo`
+   * the Undo after any of those. Like a folder press, one of them can move
+   * thousands of files.
+   *
+   * Written at pane close (or page hidden, see `curate_end`) beside
+   * `tree_edit`, from a tally the tree keeps itself, so a two-hundred-file
+   * sweep costs one row rather than one per file.
    */
   "tree_press",
   /**
@@ -477,9 +488,9 @@ export const METRIC_EVENTS = [
   "curate_end",
   /**
    * Someone changed what the filters do: `ignore` or `include` for a typed
-   * pattern, `preset` for a quick-preset chip. The chip rewrites both lists in
-   * one press and is a different act from typing, so it carries its own value or
-   * the two populations merge into one meaningless number.
+   * pattern. `preset` was a quick-preset chip, which rewrote both lists in one
+   * press; the chips were removed on 2026-10-17 (10 of the 24 Runs that used
+   * one left without exporting), so the value stops there.
    *
    * Once per Run per value. These are `onChange` handlers on text boxes and a
    * naive emit would write a row per character.

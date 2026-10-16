@@ -4,7 +4,7 @@ import { collectGitignoreSources, createGitignoreMatcher, matchesAnyPattern } fr
 
 import type { ContentEntry, ValidationRecord } from "./use-file-ingestion";
 
-type ManualOverride = "include" | "exclude";
+export type ManualOverride = "include" | "exclude";
 
 export interface FilterState {
   fileStatuses: FileStatus[];
@@ -17,6 +17,9 @@ export interface FilterState {
   toggleMany: (indices: number[], shouldInclude: boolean) => void;
   clearOverrides: () => void;
   reset: () => void;
+  /** The manual layer itself, for an Undo to hand back to `restoreOverrides`. */
+  overrides: Record<string, ManualOverride>;
+  restoreOverrides: (overrides: Record<string, ManualOverride>) => void;
 }
 
 export interface FilterStateInputs {
@@ -75,15 +78,6 @@ export function useFilterState({
     [hasIncludes, includePatterns, ignorePatterns, gitignore],
   );
 
-  const patternDecision = useCallback(
-    (path: string): boolean => {
-      const validation = validations[path];
-      if (!validation || !validation.included) return false;
-      return !isExcludedPath(path);
-    },
-    [validations, isExcludedPath],
-  );
-
   // What the patterns say about each path, apart from the manual layer: a tree
   // toggle changes only `userToggled`, and matching every path against every
   // pattern again on each one was most of a big drop's frozen toggle.
@@ -94,6 +88,13 @@ export function useFilterState({
         return isExcludedPath(entry.path) ? excludeReason(entry.path) : null;
       }),
     [entries, validations, isExcludedPath, excludeReason],
+  );
+  // Whether file `index` is in without a manual toggle, read from the cache
+  // above. Matching the patterns again here cost a 7,792-file folder sweep
+  // a third of a second.
+  const patternDecision = useCallback(
+    (index: number): boolean => patternReasons[index] === null,
+    [patternReasons],
   );
 
   const fileStatuses = useMemo<FileStatus[]>(() => {
@@ -146,7 +147,7 @@ export function useFilterState({
       const target = !status.included;
       setUserToggled((prev) => {
         const next = { ...prev };
-        if (target === patternDecision(status.path)) delete next[status.path];
+        if (target === patternDecision(index)) delete next[status.path];
         else next[status.path] = target ? "include" : "exclude";
         return next;
       });
@@ -164,7 +165,7 @@ export function useFilterState({
           // Never force-include a binary when a whole directory is toggled on
           // (ADR-0009); it stays locked out even inside an "include" sweep.
           if (shouldInclude && status.classification === "binary") continue;
-          if (shouldInclude === patternDecision(status.path)) delete next[status.path];
+          if (shouldInclude === patternDecision(i)) delete next[status.path];
           else next[status.path] = shouldInclude ? "include" : "exclude";
         }
         return next;
@@ -195,5 +196,7 @@ export function useFilterState({
     toggleMany,
     clearOverrides,
     reset,
+    overrides: userToggled,
+    restoreOverrides: setUserToggled,
   };
 }

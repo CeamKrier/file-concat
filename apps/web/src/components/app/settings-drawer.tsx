@@ -1,15 +1,11 @@
-import { useCallback, useRef, useState } from "react";
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { DEFAULT_IGNORE_STRING } from "@fileconcat/core";
-import type { FileStatus, UserConfig } from "@fileconcat/core";
 
-import FileTree from "~/components/file-tree";
 import { CostEstimate } from "~/components/cost-estimate";
 import { ModelSelector } from "~/components/model-selector";
 import type { ModelPicker } from "~/hooks/use-selected-model";
-import { currentRun, track, type MetricEvent } from "~/lib/metrics";
-import { cn } from "~/lib/utils";
+
+import { recordOncePerRun } from "./files-pane";
 
 import {
   Sheet,
@@ -21,139 +17,20 @@ import {
   SheetDescription,
 } from "~/components/ui/sheet";
 
-type Preset = { name: string; include: string; ignore: string };
-type PresetGroup = { label: string; presets: Preset[] };
-
-// Grouped quick presets. Applying one rewrites the include / ignore globs; the
-// bundle (tree, counts, tokens) updates live. The groups are static and shown to
-// everyone — the labels themselves do the persona differentiation, so a
-// non-developer sees a clearly-labelled "Documents" set instead of a wall of
-// framework chips, without any persona-detection logic in the surface.
-//
-// A function, not a module-scope literal. `DEFAULT_IGNORE_STRING` is an
-// imported binding, and capturing it at module scope froze `undefined` in the
-// production chunk layout, so four of these presets shipped an empty ignore
-// list and quietly turned noise filtering off when clicked. Same fix and same
-// reasoning as `defaultConfig()` in `use-config.ts`: read the binding at call
-// time, after every module body has run.
-function presetGroups(): PresetGroup[] {
-  return [
-    {
-      label: "General",
-      presets: [
-        // Resets to the honest default state: no include filter, standard noise
-        // still skipped. Matches the initial config, so it reads as active on load.
-        { name: "Everything readable", include: "", ignore: DEFAULT_IGNORE_STRING },
-        {
-          name: "Source only",
-          include: "src/**/*",
-          ignore: "**/*.test.*, **/*.spec.*, **/__tests__",
-        },
-      ],
-    },
-    {
-      label: "Code stacks",
-      presets: [
-        {
-          name: "React / Next",
-          include: "**/*.tsx, **/*.ts, **/*.jsx, **/*.js, **/*.css, **/*.json",
-          ignore:
-            "node_modules, .next, dist, build, coverage, **/*.test.*, **/*.spec.*, **/__tests__",
-        },
-        {
-          name: "Vue",
-          include: "**/*.vue, **/*.ts, **/*.js, **/*.css, **/*.json",
-          ignore: "node_modules, dist, .nuxt, coverage, **/*.test.*, **/*.spec.*",
-        },
-        {
-          name: "Python",
-          include: "**/*.py, **/*.pyi, **/*.toml, **/*.yaml, **/*.yml, **/*.json",
-          ignore: "__pycache__, .venv, venv, .pytest_cache, dist, build, *.egg-info, **/*_test.py",
-        },
-        {
-          name: "Go",
-          include: "**/*.go, **/*.mod, **/*.sum, **/*.yaml, **/*.yml",
-          ignore: "vendor, bin, **/*_test.go",
-        },
-        {
-          name: "Rust",
-          include: "**/*.rs, **/*.toml, **/*.md",
-          ignore: "target, **/*_test.rs",
-        },
-      ],
-    },
-    {
-      label: "Documents",
-      presets: [
-        {
-          name: "Documents",
-          include:
-            "**/*.pdf, **/*.docx, **/*.xlsx, **/*.pptx, **/*.odt, **/*.md, **/*.txt, **/*.rtf",
-          ignore: DEFAULT_IGNORE_STRING,
-        },
-        {
-          name: "Notes (markdown & text)",
-          include: "**/*.md, **/*.mdx, **/*.txt, **/*.rst",
-          ignore: DEFAULT_IGNORE_STRING,
-        },
-        {
-          name: "Papers (PDF)",
-          include: "**/*.pdf",
-          ignore: DEFAULT_IGNORE_STRING,
-        },
-      ],
-    },
-  ];
-}
-
-/**
- * Records a deliberate drawer action once per Run per value.
- *
- * Every control in here is an `onChange` on a text box or a picker, so a naive
- * emit would write a row per keystroke and the row count would measure typing
- * speed rather than what happened (ADR-0014). Keyed on the Run, so the next drop
- * starts counting again.
- */
-function useRecordOncePerRun() {
-  const seen = useRef(new Map<string, number | null>());
-  return useCallback((name: MetricEvent, value: string) => {
-    const key = `${name}/${value}`;
-    const run = currentRun();
-    if (seen.current.get(key) === run) return;
-    seen.current.set(key, run);
-    track(name, value);
-  }, []);
-}
-
 type SettingsDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  config: UserConfig;
-  setConfig: (updates: Partial<Omit<UserConfig, "version">>) => void;
-  fileStatuses: FileStatus[];
-  onToggleFile: (index: number) => void;
-  onToggleMultipleFiles: (indices: number[], shouldInclude: boolean) => void;
-  includedFileCount: number;
   tokens: number;
   /** Owned by `app-flow` so the result screen can measure fit against it too. */
   modelPicker: ModelPicker;
-  /** Opened from the result's fit line: land on the model picker, not the top. */
-  focusModel?: boolean;
 };
 
-export function SettingsDrawer({
-  open,
-  onOpenChange,
-  config,
-  setConfig,
-  fileStatuses,
-  onToggleFile,
-  onToggleMultipleFiles,
-  includedFileCount,
-  tokens,
-  modelPicker,
-  focusModel = false,
-}: SettingsDrawerProps) {
+/**
+ * The model the result's token share and cost are measured against, opened
+ * from the model name in the fit line. What goes in the bundle is the Files
+ * pane's job now (`files-pane.tsx`).
+ */
+export function SettingsDrawer({ open, onOpenChange, tokens, modelPicker }: SettingsDrawerProps) {
   const { models, selectedModel, setSelectedModel, isLoading, lastUpdated, refresh } = modelPicker;
   // The Sheet is a modal dialog, so it scroll-locks the page via
   // react-remove-scroll. Popovers portal to document.body by default, escaping
@@ -161,171 +38,42 @@ export function SettingsDrawer({
   // picker into the sheet content instead. setState ref keeps this reactive and
   // stable across renders.
   const [sheetContainer, setSheetContainer] = useState<HTMLDivElement | null>(null);
-  // Pattern textareas are a developer tool — collapsed by default so a regular
-  // user only meets the file tree. Programmers open this when they want globs.
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  // Someone typing a pattern is naming exactly where the defaults failed them.
-  // Only that it happened, and which control: a pattern is user data.
-  const recordOnce = useRecordOncePerRun();
-
-  // Arriving from the result's "x% of <model>" line, the drawer should already
-  // be showing the picker when it finishes sliding in. Instant, not smooth: the
-  // sheet is animating in at the same time, and a second motion on top of that
-  // reads as a glitch rather than as a scroll.
-  //
-  // A callback ref, not an effect on `open`: Radix's Portal gates its children
-  // behind a mounted state, so the sheet's body appears one commit *after*
-  // `open` flips and an effect here would run against a section that is not in
-  // the DOM yet. This fires exactly when the node lands.
-  const modelSection = useCallback(
-    (node: HTMLDivElement | null) => {
-      if (node && focusModel) node.scrollIntoView({ block: "center" });
-    },
-    [focusModel],
-  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent ref={setSheetContainer} aria-describedby="drawer-desc">
         <SheetHeader>
-          <SheetTitle>Fine-tune the output</SheetTitle>
+          <SheetTitle>Model</SheetTitle>
           <SheetDescription id="drawer-desc">
-            Everything updates live. You don&apos;t have to touch any of this.
+            The token share and the cost on the result are measured against this model.
           </SheetDescription>
         </SheetHeader>
 
         <SheetBody>
-          <div className="flex flex-col gap-6">
-            <Section label="Quick presets">
-              <div className="flex flex-col gap-3">
-                {presetGroups().map((group) => (
-                  <div key={group.label}>
-                    <p className="text-ink-faint mb-1.5 text-[11px]">{group.label}</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {group.presets.map((preset) => {
-                        const active =
-                          config.includePatterns === preset.include &&
-                          config.ignorePatterns === preset.ignore;
-                        return (
-                          <button
-                            key={preset.name}
-                            type="button"
-                            onClick={() => {
-                              // Its own value. A chip rewrites both lists in one
-                              // press, which is a different act from typing, and
-                              // merging the two makes one meaningless population.
-                              recordOnce("filter_edited", "preset");
-                              setConfig({
-                                includePatterns: preset.include,
-                                ignorePatterns: preset.ignore,
-                              });
-                            }}
-                            className={cn(
-                              "rounded-chip focus-visible:ring-ring focus-visible:ring-offset-surface-alt border px-2.5 py-1 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
-                              active
-                                ? "border-primary text-go-fg bg-[oklch(var(--primary)/0.12)]"
-                                : "border-border bg-surface text-ink-secondary hover:text-ink hover:border-border-strong",
-                            )}
-                          >
-                            {preset.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Section>
-
-            <Section
-              label={`Files, ${includedFileCount} in`}
-              hint="Click a row to put it in or out. The arrow opens a folder."
-            >
-              <div className="border-border bg-surface rounded-card max-h-[300px] overflow-y-auto border p-1.5">
-                <FileTree
-                  fileStatuses={fileStatuses}
-                  onToggleFile={onToggleFile}
-                  onToggleMultipleFiles={onToggleMultipleFiles}
-                  embedded
-                />
-              </div>
-            </Section>
-
-            <div>
-              <button
-                type="button"
-                onClick={() => setAdvancedOpen((v) => !v)}
-                aria-expanded={advancedOpen}
-                className="text-ink-faint hover:text-ink-secondary flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-colors"
-              >
-                {advancedOpen ? (
-                  <ChevronDown className="h-3.5 w-3.5" />
-                ) : (
-                  <ChevronRight className="h-3.5 w-3.5" />
-                )}
-                Advanced, ignore &amp; include patterns
-              </button>
-              {advancedOpen && (
-                <div className="mt-3 flex flex-col gap-4">
-                  <Section
-                    label="Ignore"
-                    hint="node_modules, lockfiles & binaries are skipped automatically."
-                  >
-                    <PatternArea
-                      value={config.ignorePatterns}
-                      onChange={(v) => {
-                        recordOnce("filter_edited", "ignore");
-                        setConfig({ ignorePatterns: v });
-                      }}
-                      rows={3}
-                      placeholder=".git, node_modules, dist, *.lock"
-                    />
-                  </Section>
-
-                  <Section label="Only include" hint="Empty = everything readable.">
-                    <PatternArea
-                      value={config.includePatterns}
-                      onChange={(v) => {
-                        recordOnce("filter_edited", "include");
-                        setConfig({ includePatterns: v });
-                      }}
-                      rows={2}
-                      placeholder="src/**/*, **/*.md"
-                    />
-                  </Section>
-                </div>
-              )}
-            </div>
-
-            <div ref={modelSection}>
-              <Section label="Cost estimate">
-                <div className="flex flex-col gap-3">
-                  <ModelSelector
-                    models={models}
-                    selectedModel={selectedModel}
-                    onSelect={(model) => {
-                      // Only a deliberate change is recorded - the default is
-                      // set by an effect that never comes through here, and
-                      // counting it would measure the default.
-                      //
-                      // The catalogue id prefix (`anthropic/claude-...`), not
-                      // `providerId`: the question is which vendor the hero and
-                      // the nine /for pages should aim at, which is who made the
-                      // model rather than who resells it cheapest. Model ids
-                      // would be high cardinality too, against a catalogue that
-                      // refreshes from models.dev on every build.
-                      recordOnce("model_picked", model.uid.split("/")[0]);
-                      setSelectedModel(model);
-                    }}
-                    isLoading={isLoading}
-                    onRefresh={refresh}
-                    lastUpdated={lastUpdated}
-                    portalContainer={sheetContainer}
-                  />
-                  <CostEstimate model={selectedModel} inputTokens={tokens} />
-                </div>
-              </Section>
-            </div>
+          <div className="flex flex-col gap-3">
+            <ModelSelector
+              models={models}
+              selectedModel={selectedModel}
+              onSelect={(model) => {
+                // Only a deliberate change is recorded - the default is set by
+                // an effect that never comes through here, and counting it
+                // would measure the default.
+                //
+                // The catalogue id prefix (`anthropic/claude-...`), not
+                // `providerId`: the question is which vendor the hero and the
+                // nine /for pages should aim at, which is who made the model
+                // rather than who resells it cheapest. Model ids would be high
+                // cardinality too, against a catalogue that refreshes from
+                // models.dev on every build.
+                recordOncePerRun("model_picked", model.uid.split("/")[0]);
+                setSelectedModel(model);
+              }}
+              isLoading={isLoading}
+              onRefresh={refresh}
+              lastUpdated={lastUpdated}
+              portalContainer={sheetContainer}
+            />
+            <CostEstimate model={selectedModel} inputTokens={tokens} />
           </div>
         </SheetBody>
 
@@ -340,48 +88,5 @@ export function SettingsDrawer({
         </SheetFooter>
       </SheetContent>
     </Sheet>
-  );
-}
-
-function Section({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <h3 className="text-ink-faint mb-2 font-mono text-[11px] uppercase tracking-[0.12em]">
-        {label}
-      </h3>
-      {children}
-      {hint && <p className="text-ink-muted mt-1.5 text-[11px]">{hint}</p>}
-    </section>
-  );
-}
-
-function PatternArea({
-  value,
-  onChange,
-  rows,
-  placeholder,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  rows: number;
-  placeholder: string;
-}) {
-  return (
-    <textarea
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      rows={rows}
-      placeholder={placeholder}
-      spellCheck={false}
-      className="border-border bg-surface-inset text-code focus-visible:ring-ring focus-visible:border-border-strong rounded-input w-full resize-none border px-3 py-2 font-mono text-xs leading-relaxed placeholder:text-[oklch(var(--text-faint))] focus-visible:outline-none focus-visible:ring-1"
-    />
   );
 }

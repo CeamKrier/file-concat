@@ -112,9 +112,9 @@ type ResultViewProps = {
   readLanguageNote: string | null;
   /** Open the reading dialog, where every recognition action lives. */
   onCheckReading: () => void;
-  /** Open the "Adjust what's included" drawer. */
+  /** Open the Files pane ("Adjust what's included"). */
   onAdjust: () => void;
-  /** Open the same drawer, scrolled to the model picker. */
+  /** Open the model sheet, where the picker and the cost estimate live. */
   onChangeModel: () => void;
   bigBundle: boolean;
   /** How heavy the bundle turned out, on both the model and browser axes. */
@@ -917,7 +917,7 @@ function usd(amount: number) {
 
 /** A real bundle that rounds to zero is not zero, and "0%" reads as a broken
  * readout rather than a small one. */
-function shareText(ratio: number) {
+export function shareText(ratio: number) {
   const percent = Math.round(ratio * 100);
   return `${percent < 1 ? "<1" : percent}%`;
 }

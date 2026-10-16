@@ -240,7 +240,7 @@ const STEPS = [
   },
   {
     title: "Leave out what it does not need",
-    body: "Open Adjust what's included: every file and folder shows its size. Click a row to take it out and the token count updates. Dependencies, lock files and build output are left out already.",
+    body: "Open Adjust what's included: every file and folder shows its share of the text. Click a row to take it out and the token count updates. Dependencies, lock files and build output are left out already.",
   },
   {
     title: "Add the one file once it fits",

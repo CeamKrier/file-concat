@@ -20,7 +20,7 @@ export function FilteringSection() {
         <CompositionBar />
         <div className="min-w-0">
           <p className="text-ink-secondary mb-3 text-[15px]">
-            Every default can be overridden, with presets.
+            Every default can be overridden, a file or a whole type at a time.
           </p>
           <TreeRows />
           <BandLinks className="mt-[22px] flex-col items-start gap-y-2.5">

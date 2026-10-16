@@ -1,13 +1,14 @@
 ---
 title: "Configuration - output format, filters and what persists"
-description: "Where FileConcat keeps its choices: the output format on the result screen, the filtering and cost controls in the Adjust what's included drawer, and the defaults that survive a page reload."
+description: "Where FileConcat keeps its choices: the output format on the result screen, the Files pane opened by Adjust what's included, the model sheet, and the defaults that survive a page reload."
 ---
 
 # Configuration
 
 FileConcat keeps its output and filtering choices in a few places: the
-result screen (the output format), the **Adjust what's included**
-drawer (filtering and cost knobs), and
+result screen (the output format), the **Files** pane opened by
+**Adjust what's included** (what goes in), the model sheet (the cost
+estimate), and
 `localStorage` (the defaults that survive a page reload). This page
 documents each one in the order you encounter it.
 
@@ -28,27 +29,36 @@ the choice is about what reads unambiguously rather than what it costs.
 sets out the measurements, what the prompt-format research does and does
 not support, and why there is no fourth option.
 
-## The Adjust what's included drawer
+## The Files pane
 
 The **Adjust what's included** button in the result screen's top bar
-opens a drawer titled "Fine-tune the output." Everything in it updates
-the bundle live. You never have to touch any of it.
+opens the **Files** pane. On a wide screen it sits beside the result,
+which stays live while you work. On a phone it covers the screen, with
+the token count and the context fit pinned to its bottom bar and a
+**Done** button. Everything in it updates the bundle live. You never
+have to touch any of it.
 
-- **Quick presets** rewrite both pattern fields in one click for a
-  common stack: React / Next, Vue, Python, Go, Rust, Source only, and
-  Docs only.
-- **Ignore** and **Only include** are the two glob textareas. Ignore
-  carries the default list (the same one the CLI uses); Only include is
-  empty by default and acts as an exclusive whitelist when filled. See
-  [File filtering](/docs/file-filtering) for the pattern syntax.
-- The **file tree** gives every file a checkbox. Auto-skipped noise
+- The **filter box** narrows the list by name or folder, or by a glob
+  when you type `*` or `?`. **Take out N** and **Keep only these N** act
+  on every match at once, and an **Undo** follows each.
+- **By type** chips put a whole extension in or out in one click.
+  **Reset to defaults** clears every manual choice and restores the
+  default patterns.
+- The **file tree** gives every file a checkbox and its share of the
+  readable text, sorted largest first or A to Z. Auto-skipped noise
   (binaries and pattern-excluded files) shows dimmed.
-- **Cost estimate** pairs a model selector with the dollar estimate for
-  the current token count. See
-  [Token estimation](/docs/token-estimation) for how the model list is
-  built.
+- **Patterns**, closed at the bottom, holds the **Ignore** and **Only
+  include** glob textareas. Ignore carries the default list (the same
+  one the CLI uses); Only include is empty by default and acts as an
+  exclusive whitelist when filled. See
+  [File filtering](/docs/file-filtering) for the pattern syntax.
 
-Line numbers are off, and the drawer does not expose a toggle for them.
+The model behind the context fit and the cost estimate is picked in a
+separate sheet, opened from the model name in the result's fit line.
+See [Token estimation](/docs/token-estimation) for how the model list
+is built.
+
+Line numbers are off, and no control exposes a toggle for them.
 The engine can prefix every line with its 1-based number
 (`addLineNumbers` in `packages/core/src/file-processing/transform.ts`),
 and the preference persists in your config. It is not currently a UI

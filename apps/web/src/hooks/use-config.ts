@@ -17,7 +17,7 @@ const STORAGE_KEY = "fileconcat-config";
  * A function reads the binding at call time, after every module is
  * initialised, which is correct under any chunking. **Never capture an
  * imported constant in a module-scope literal in this app** — see
- * `defaultIgnoreString()` below for the same reasoning applied to presets.
+ * `defaultIgnoreString()` below for the same reasoning.
  */
 function defaultConfig(): UserConfig {
   return {

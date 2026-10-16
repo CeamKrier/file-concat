@@ -2,25 +2,34 @@ import type { FileStatus } from "@fileconcat/core";
 
 export type InclusionState = "included" | "excluded" | "partial";
 
+/** `name` folders before files, A-Z; `size` heaviest first, folders and files mixed. */
+export type TreeOrder = "name" | "size";
+
 export interface TreeNode {
   name: string;
   path: string;
   type: "file" | "directory";
   children?: TreeNode[];
   status?: FileStatus;
-  /** Sum of file sizes under this directory. Files leave it undefined. */
-  totalSize?: number;
+  /** Characters of readable text at or under this node, from `chars`. */
+  weight: number;
 }
 
 /**
- * Build the displayable tree from a flat `FileStatus[]`. Directories sort
- * before files; within each kind, sorted alphabetically. Each directory's
- * `totalSize` is the recursive sum of its file sizes.
+ * Build the displayable tree from a flat `FileStatus[]`, which may be a filtered
+ * subset: each file keeps its own `status.index`, so a toggle still addresses
+ * the right file. `chars[index]` is that file's text length; binaries weigh 0.
  */
-export function buildFileTree(fileStatuses: FileStatus[]): TreeNode {
-  const root: TreeNode = { name: "root", path: "", type: "directory", children: [] };
+export function buildFileTree(
+  fileStatuses: FileStatus[],
+  chars: readonly number[] = [],
+  order: TreeOrder = "name",
+): TreeNode {
+  const root: TreeNode = { name: "root", path: "", type: "directory", children: [], weight: 0 };
+  // By path, so a folder of thousands of files is not a linear search per file.
+  const byPath = new Map<string, TreeNode>();
 
-  fileStatuses.forEach((status, index) => {
+  for (const status of fileStatuses) {
     const parts = status.path.split("/").filter((p) => p.length > 0);
     let current = root;
 
@@ -28,46 +37,49 @@ export function buildFileTree(fileStatuses: FileStatus[]): TreeNode {
       const currentPath = parts.slice(0, i + 1).join("/");
       const isFile = i === parts.length - 1;
 
-      current.children ??= [];
-      let existing = current.children.find((c) => c.name === part);
-
+      let existing = byPath.get(currentPath);
       if (!existing) {
         existing = {
           name: part,
           path: currentPath,
           type: isFile ? "file" : "directory",
           children: isFile ? undefined : [],
-          status: isFile ? { ...status, index } : undefined,
+          status: isFile ? status : undefined,
+          weight: 0,
         };
-        current.children.push(existing);
-      } else if (isFile && existing.status) {
-        existing.status.index = index;
+        byPath.set(currentPath, existing);
+        current.children!.push(existing);
+      } else if (isFile) {
+        existing.status = status;
       }
 
       current = existing;
     });
-  });
+  }
 
-  sortChildren(root);
-  computeTotalSize(root);
+  computeWeight(root, chars);
+  sortChildren(root, order);
   return root;
 }
 
-function sortChildren(node: TreeNode): void {
+function sortChildren(node: TreeNode, order: TreeOrder): void {
   if (!node.children) return;
   node.children.sort((a, b) => {
+    if (order === "size" && a.weight !== b.weight) return b.weight - a.weight;
     if (a.type !== b.type) return a.type === "directory" ? -1 : 1;
     return a.name.localeCompare(b.name);
   });
-  node.children.forEach(sortChildren);
+  for (const child of node.children) sortChildren(child, order);
 }
 
-function computeTotalSize(node: TreeNode): number {
-  if (node.type === "file") return node.status?.size ?? 0;
-  if (!node.children?.length) return 0;
-  const total = node.children.reduce((acc, child) => acc + computeTotalSize(child), 0);
-  node.totalSize = total;
-  return total;
+function computeWeight(node: TreeNode, chars: readonly number[]): number {
+  if (node.type === "file") {
+    const status = node.status;
+    node.weight = status && status.classification !== "binary" ? (chars[status.index] ?? 0) : 0;
+    return node.weight;
+  }
+  node.weight = (node.children ?? []).reduce((acc, child) => acc + computeWeight(child, chars), 0);
+  return node.weight;
 }
 
 /**
@@ -106,4 +118,64 @@ export function collectDirectoryPaths(node: TreeNode): string[] {
   };
   walk(node);
   return out;
+}
+
+/**
+ * Which files a filter-box query names. Plain text matches anywhere in the path,
+ * case-folded, so a folder's name brings everything under it (GitHub's changed-
+ * files filter). Text holding `*` or `?` is a glob, read by the same matcher the
+ * pattern fields use.
+ */
+export function queryMatcher(
+  query: string,
+  matchesGlob: (path: string, pattern: string) => boolean,
+): ((path: string) => boolean) | null {
+  const q = query.trim();
+  if (!q) return null;
+  if (/[*?]/.test(q)) return (path) => matchesGlob(path, q);
+  const folded = q.toLowerCase();
+  return (path) => path.toLowerCase().includes(folded);
+}
+
+/** The extension a type chip groups by: `.json`, or `""` for none. */
+export function extensionOf(path: string): string {
+  const name = path.slice(path.lastIndexOf("/") + 1);
+  const dot = name.lastIndexOf(".");
+  return dot > 0 ? name.slice(dot).toLowerCase() : "";
+}
+
+export interface TypeFacet {
+  ext: string;
+  /** Readable files of this type, and how many of them are in. */
+  count: number;
+  included: number;
+  weight: number;
+  indices: number[];
+}
+
+/** One facet per extension among readable files, heaviest first. */
+export function typeFacets(fileStatuses: FileStatus[], chars: readonly number[]): TypeFacet[] {
+  const byExt = new Map<string, TypeFacet>();
+  for (const status of fileStatuses) {
+    if (status.classification === "binary") continue;
+    const ext = extensionOf(status.path);
+    let facet = byExt.get(ext);
+    if (!facet) {
+      facet = { ext, count: 0, included: 0, weight: 0, indices: [] };
+      byExt.set(ext, facet);
+    }
+    facet.count += 1;
+    if (status.included) facet.included += 1;
+    facet.weight += chars[status.index] ?? 0;
+    facet.indices.push(status.index);
+  }
+  return [...byExt.values()].sort((a, b) => b.weight - a.weight || b.count - a.count);
+}
+
+/** A share as people read it: whole percents, one decimal under 10, never a bare 0. */
+export function shareLabel(part: number, total: number): string {
+  if (total <= 0 || part <= 0) return "0%";
+  const percent = (part / total) * 100;
+  if (percent < 0.1) return "<0.1%";
+  return percent < 10 ? `${percent.toFixed(1)}%` : `${Math.round(percent)}%`;
 }
