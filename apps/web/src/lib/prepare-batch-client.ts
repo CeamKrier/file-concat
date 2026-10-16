@@ -85,8 +85,10 @@ export async function prepareBatch(
       // plain zip on its prefix, and unpacking it would put forty XML parts in
       // the tree in place of one document. The part is the tell; the whole
       // file settles it, and a zip someone made of a folder never carries it.
-      // Entries come back rooted at a folder named after the archive.
-      if (entries.some((entry) => /^(?:[^/]+\/)?\[Content_Types\]\.xml$/.test(entry.path))) {
+      // ODF and EPUB carry a root `mimetype` part, which their specs put first
+      // but real writers do not always. Entries come back rooted at a folder
+      // named after the archive.
+      if (entries.some((entry) => /^(?:[^/]+\/)?(?:\[Content_Types\]\.xml|mimetype)$/.test(entry.path))) {
         const whole = await routeBytes(bytes);
         if (whole.kind !== "expand") {
           files.push({ item, path, route: whole });
