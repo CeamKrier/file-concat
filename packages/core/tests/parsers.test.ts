@@ -257,6 +257,30 @@ describe("extractOfficeDocument — structure survives extraction", () => {
     expect((await extractOfficeDocument(minimalEpub("Main text."), { format: "epub" })).text).not.toContain("Auxiliary");
   });
 
+  it("reads an epub whose container and package are written with prefixes, as calibre and JATS tools write them", async () => {
+    const parts = unzipSync(minimalEpub("Prefixed text."));
+    parts["META-INF/container.xml"] = strToU8(
+      strFromU8(parts["META-INF/container.xml"]!)
+        .replace(/<(\/?)(container|rootfiles|rootfile)\b/g, "<$1ns0:$2")
+        .replace('xmlns="', 'xmlns:ns0="'),
+    );
+    parts["OEBPS/content.opf"] = strToU8(
+      strFromU8(parts["OEBPS/content.opf"]!)
+        .replace(/<(\/?)(package|metadata|manifest|item|spine|itemref)\b/g, "<$1opf:$2")
+        .replace('xmlns="', 'xmlns:opf="')
+        .replace("<dc:title>", '<dc:creator opf:role="aut">A. Writer</dc:creator><dc:title>'),
+    );
+    expect((await extractOfficeDocument(zipSync(parts), { format: "epub" })).text).toContain("Prefixed text.");
+  });
+
+  it("reads an epub chapter whose href has no extension", async () => {
+    const parts = unzipSync(minimalEpub("Bare text."));
+    parts["OEBPS/content.opf"] = strToU8(strFromU8(parts["OEBPS/content.opf"]!).replace('href="chapter1.xhtml"', 'href="html"'));
+    parts["OEBPS/html"] = parts["OEBPS/chapter1.xhtml"]!;
+    delete parts["OEBPS/chapter1.xhtml"];
+    expect((await extractOfficeDocument(zipSync(parts), { format: "epub" })).text).toContain("Bare text.");
+  });
+
   it("keeps a spreadsheet's sheets named and separate", async () => {
     const { text } = await extractOfficeDocument(twoSheetXlsx());
 

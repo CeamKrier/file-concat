@@ -480,7 +480,13 @@ export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidde
  * officeparser writes the spine in order, the item inline and unmarked as
  * calibre's text output does; pandoc drops it and epub.js steps over it
  * to the next item. The text stays, as hidden text does (Q18 O1), and the marks say it
- * sits outside the reading order. Anything else comes back as the same bytes.
+ * sits outside the reading order.
+ *
+ * Two package documents officeparser reads as an empty book are rewritten into
+ * a shape it reads: elements written with a prefix (`<opf:package>`, calibre's
+ * `<ns0:package>`), which an XML reader such as calibre's or epub.js's takes as
+ * the same elements, and an XHTML item whose href has no extension, copied to
+ * one ending `.xhtml`. Anything else comes back as the same bytes.
  */
 export function withAuxiliaryMarked(bytes: Uint8Array): Uint8Array {
   let parts: Record<string, Uint8Array>;
@@ -497,17 +503,35 @@ export function withAuxiliaryMarked(bytes: Uint8Array): Uint8Array {
   }
   const container = parts["META-INF/container.xml"];
   if (!container || unpacked > MAX_REWRITE) return bytes;
-  const root = Array.from(tagsOf(strFromU8(container))).find((t) => t.name === "rootfile" && t.opens);
+  const root = Array.from(tagsOf(strFromU8(container))).find((t) => t.local === "rootfile" && t.opens);
   const opf = decodeXml((root && attr(root.tag, "full-path")) ?? "");
   if (!parts[opf]) return bytes;
+  const changed: Record<string, Uint8Array> = {};
+  const box = unprefixed(strFromU8(container), "container");
+  if (box !== strFromU8(container)) changed["META-INF/container.xml"] = strToU8(box);
   const base = opf.slice(0, opf.lastIndexOf("/") + 1);
   const hrefs = new Map<string, string>();
   const auxiliary: string[] = [];
-  for (const t of tagsOf(strFromU8(parts[opf]))) {
+  /** XHTML items whose href has no extension, by the href as written. */
+  const bare = new Map<string, string>();
+  const original = strFromU8(parts[opf]);
+  for (const t of tagsOf(original)) {
     if (!t.opens) continue;
-    if (t.local === "item") hrefs.set(attr(t.tag, "id") ?? "", decodeXml(attr(t.tag, "href") ?? ""));
-    else if (t.local === "itemref" && attr(t.tag, "linear") === "no") auxiliary.push(attr(t.tag, "idref") ?? "");
+    if (t.local === "item") {
+      const href = decodeXml(attr(t.tag, "href") ?? "");
+      hrefs.set(attr(t.tag, "id") ?? "", href);
+      if (attr(t.tag, "media-type") === "application/xhtml+xml" && /^[^.#?]+$/.test(href.split("/").pop() ?? ""))
+        bare.set(attr(t.tag, "href") ?? "", href);
+    } else if (t.local === "itemref" && attr(t.tag, "linear") === "no") auxiliary.push(attr(t.tag, "idref") ?? "");
   }
+  let pkg = unprefixed(original, "package");
+  if (bare.size) {
+    const named = new Set(Array.from(bare.values(), (href) => base + href));
+    for (const [name, data] of Object.entries(unzipSync(bytes, { filter: (file) => named.has(file.name) }))) changed[`${name}.xhtml`] = data;
+    for (const [written, href] of bare)
+      if (changed[`${base}${href}.xhtml`]) pkg = pkg.split(`href="${written}"`).join(`href="${written}.xhtml"`).split(`href='${written}'`).join(`href='${written}.xhtml'`);
+  }
+  if (pkg !== original) changed[opf] = strToU8(pkg);
   const files = new Set<string>();
   for (const id of auxiliary) {
     const href = hrefs.get(id)?.split("#")[0];
@@ -518,9 +542,7 @@ export function withAuxiliaryMarked(bytes: Uint8Array): Uint8Array {
       files.add(base + href);
     }
   }
-  if (!files.size) return bytes;
-  const changed: Record<string, Uint8Array> = {};
-  for (const [name, data] of Object.entries(unzipSync(bytes, { filter: (file) => files.has(file.name) }))) {
+  for (const [name, data] of Object.entries(files.size ? unzipSync(bytes, { filter: (file) => files.has(file.name) }) : {})) {
     const xml = strFromU8(data);
     const open = Array.from(tagsOf(xml)).find((t) => t.local === "body" && t.opens && !t.closes);
     const close = xml.lastIndexOf("</body>");
@@ -531,4 +553,16 @@ export function withAuxiliaryMarked(bytes: Uint8Array): Uint8Array {
   }
   if (!Object.keys(changed).length) return bytes;
   return zipSync({ ...unzipSync(bytes), ...changed }, { level: 0 });
+}
+
+/**
+ * An XML part whose root element `<p:root>` binds its own prefix, with that
+ * prefix taken off every element and declared as the default namespace instead.
+ * The prefix's declaration stays, for attributes such as `opf:role`.
+ */
+function unprefixed(xml: string, root: string): string {
+  const prefixed = new RegExp(`<([\\w-]+):${root}\\b([^>]*)>`).exec(xml);
+  const uri = prefixed && new RegExp(`\\sxmlns:${prefixed[1]}\\s*=\\s*["']([^"']+)`).exec(prefixed[2])?.[1];
+  if (!prefixed || !uri || /\sxmlns\s*=/.test(prefixed[2])) return xml;
+  return xml.replace(new RegExp(`(</?)${prefixed[1]}:`, "g"), "$1").replace(new RegExp(`<${root}\\b`), `<${root} xmlns="${uri}"`);
 }
