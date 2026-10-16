@@ -385,6 +385,18 @@ export const METRIC_EVENTS = [
    */
   "empty_reason",
   /**
+   * Which empty screen a Run reached, by title: the `EmptyKind` slug from
+   * `components/app/empty-kind.ts`, or `unreadable` when the generic screen
+   * listed files nobody could read. Once per Run, beside `empty_reason`.
+   */
+  "empty_kind",
+  /**
+   * On the `unreadable` empty screen, how many files each reason group held:
+   * value one of `UNREADABLE_CODES` (`encrypted`, `damaged`, `no-reader`,
+   * `compiled`, `no-text`, `binary`, `read-failed`), `n` files. Once per Run.
+   */
+  "unreadable_reason",
+  /**
    * Files someone moved by hand in the file tree: `n` of them, by which way they
    * moved - `include` forced back in, `exclude` taken out. The two say opposite
    * things about the default noise list, so one number for both would say

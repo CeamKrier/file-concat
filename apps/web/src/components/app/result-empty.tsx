@@ -11,15 +11,22 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useState } from "react";
 
-import type { EmptyKind } from "./empty-kind";
+import type { EmptyKind, UnreadableGroup } from "./empty-kind";
 import type { PrunedAtDoor } from "~/lib/prune-at-door";
+import { cn } from "~/lib/utils";
 
 type ResultEmptyProps = {
   droppedFiles: string[];
   kind?: EmptyKind;
   /** What the door turned away unread; the chips for the `pruned` variant. */
   pruned?: PrunedAtDoor | null;
+  /**
+   * The files nobody could read, grouped by why. Only read for `other`, where
+   * it replaces the extension chips and names the files in its title.
+   */
+  unreadable?: UnreadableGroup[];
   onStartOver: () => void;
   /** Open the Files pane. Only passed when something is there to re-include. */
   onAdjust?: () => void;
@@ -182,6 +189,7 @@ export function ResultEmpty({
   droppedFiles,
   kind = "image",
   pruned = null,
+  unreadable = [],
   onStartOver,
   onAdjust,
   byInclude = false,
@@ -194,7 +202,15 @@ export function ResultEmpty({
   onStopReading,
   onOfferRead,
 }: ResultEmptyProps) {
-  const { icon: Icon, title, cta } = COPY[kind];
+  const { icon: Icon, cta } = COPY[kind];
+  const groups = kind === "other" ? unreadable : [];
+  const unreadableCount = groups.reduce((n, g) => n + g.files.length, 0);
+  const title =
+    unreadableCount === 0
+      ? COPY[kind].title
+      : unreadableCount === 1
+        ? "This file could not be read as text"
+        : `None of these ${unreadableCount} files could be read as text`;
   const body = kind === "filtered" && byInclude ? FILTERED_BY_INCLUDE : COPY[kind].body;
   // `filtered` leads with the drawer and keeps starting over as the quiet way
   // out. Every other variant keeps its own CTA in front and offers the drawer
@@ -234,7 +250,9 @@ export function ResultEmpty({
         {body}
       </p>
 
-      {shownExts.length > 0 && (
+      {groups.length > 0 && <UnreadableList groups={groups} />}
+
+      {groups.length === 0 && shownExts.length > 0 && (
         <div className="mt-5 flex flex-wrap justify-center gap-1.5">
           {shownExts.map(({ ext, count }) => (
             <span
@@ -294,6 +312,69 @@ export function ResultEmpty({
         </div>
       )}
     </section>
+  );
+}
+
+/** Rows shown per group before a "Show all N" toggle, as in the result's file groups. */
+const PREVIEW_ROWS = 6;
+
+/**
+ * One group per reason. A reason every file in the group shares (encrypted,
+ * compiled) is said once under the group's name; one that differs per file
+ * (which format has no reader, how much of it is control bytes) sits under
+ * each name.
+ */
+function UnreadableList({ groups }: { groups: UnreadableGroup[] }) {
+  return (
+    <div className="border-border bg-surface-inset mt-6 rounded-[11px] border p-3.5 text-left">
+      {groups.map((group, i) => {
+        const shared = group.files.every((f) => f.why === group.files[0].why);
+        return (
+          <section
+            key={group.code}
+            className={cn(i > 0 && "mt-3.5 border-t border-[oklch(var(--hairline))] pt-3.5")}
+          >
+            <h3 className="text-ink flex items-baseline gap-2 text-[13px] font-semibold">
+              {group.label}
+              <span className="text-ink-faint font-mono text-[11.5px] font-normal">{group.files.length}</span>
+            </h3>
+            {shared && <p className="text-ink-muted mt-1 text-[12.5px] leading-[1.5]">{group.files[0].why}</p>}
+            <GroupFiles files={group.files} showWhy={!shared} />
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function GroupFiles({ files, showWhy }: { files: UnreadableGroup["files"]; showWhy: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? files : files.slice(0, PREVIEW_ROWS);
+  return (
+    <>
+      <ul
+        className={cn(
+          "mt-2 flex flex-col gap-[7px]",
+          expanded && files.length > 10 && "max-h-56 overflow-y-auto pr-1",
+        )}
+      >
+        {shown.map((f, i) => (
+          <li key={`${f.name}-${i}`} className="flex flex-wrap items-baseline gap-x-3.5 gap-y-0.5 font-mono text-xs">
+            <span className="text-code min-w-0 flex-1 truncate">{f.name}</span>
+            {showWhy && <span className="text-ink-muted min-w-0 font-sans text-[12.5px]">{f.why}</span>}
+          </li>
+        ))}
+      </ul>
+      {files.length > PREVIEW_ROWS && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="text-ink-faint hover:text-ink-secondary focus-visible:ring-ring focus-visible:ring-offset-surface-inset mt-2 rounded-sm font-mono text-[11px] underline decoration-[oklch(var(--hairline))] underline-offset-2 transition-colors hover:decoration-current focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+        >
+          {expanded ? "Show less" : `Show all ${files.length}`}
+        </button>
+      )}
+    </>
   );
 }
 

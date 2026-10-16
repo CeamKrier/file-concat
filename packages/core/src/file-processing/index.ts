@@ -67,7 +67,14 @@ export { addLineNumbers } from "./transform";
 export { assembleOutput, assembleOutputHead, fenceFor } from "./output";
 export type { OutputStyle, OutputFile, OutputPart, AssembleOutputOptions } from "./output";
 export { summarizeExclusions } from "./exclusions";
-export { unreadableReason, unreadableReasonText, unreadableLabel, NEVER_TEXT_EXTENSIONS } from "./unreadable-reason";
+export {
+  unreadableReason,
+  unreadableReasonText,
+  unreadableLabel,
+  NEVER_TEXT_EXTENSIONS,
+  COMPILED_LABEL,
+  GENERIC_UNREADABLE_LABEL,
+} from "./unreadable-reason";
 export type { UnreadableReason } from "./unreadable-reason";
 export type { ExcludedSummary, ExclusionInput } from "./exclusions";
 export { classifyBundleKind } from "./bundle-kind";

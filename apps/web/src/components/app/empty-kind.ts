@@ -1,3 +1,5 @@
+import { COMPILED_LABEL, GENERIC_UNREADABLE_LABEL, unreadableLabel } from "@fileconcat/core";
+
 export type EmptyKind = "image" | "recognisable" | "speech" | "archive" | "scanned" | "filtered" | "pruned" | "other";
 
 /**
@@ -83,4 +85,87 @@ export function emptyReasonSlug(reason: string | undefined, classification?: str
   if (classification === "binary") return "binary";
   if (reason === undefined) return "other";
   return REASON_SLUGS[reason] ?? "other";
+}
+
+/**
+ * Why a file nobody could read was left out, in the order the empty screen
+ * lists the groups: what the person can fix first, what nobody can last. The
+ * codes are also the `unreadable_reason` counter values.
+ */
+export const UNREADABLE_CODES = ["encrypted", "damaged", "no-reader", "compiled", "no-text", "binary", "read-failed"] as const;
+export type UnreadableCode = (typeof UNREADABLE_CODES)[number];
+
+export interface UnreadableGroup {
+  code: UnreadableCode;
+  label: string;
+  files: { name: string; why: string }[];
+}
+
+const GROUP_LABELS: Record<UnreadableCode, string> = {
+  encrypted: "Encrypted",
+  damaged: "Damaged",
+  "no-reader": "No reader here",
+  compiled: "Compiled",
+  "no-text": "No text inside",
+  binary: "Not text",
+  "read-failed": "Could not be read",
+};
+
+const READ_FAILED = "Your browser could not read it. It may have moved or be open in another program.";
+
+/**
+ * Every file left out because it could not be read, grouped by why, each with
+ * the line that says what it is and what would get it read. Files a filter
+ * left out are not here: they are readable, and the drawer is their way back.
+ */
+export function unreadableGroups(
+  validations: Record<string, { included: boolean; reason?: string; classification?: string; controlShare?: number }>,
+  failed: readonly { path: string }[],
+): UnreadableGroup[] {
+  const groups = new Map<UnreadableCode, { name: string; why: string }[]>();
+  const add = (code: UnreadableCode, path: string, why: string) => {
+    const name = path.split("/").pop() ?? path;
+    const files = groups.get(code) ?? [];
+    files.push({ name, why });
+    groups.set(code, files);
+  };
+  for (const [path, v] of Object.entries(validations)) {
+    const row = v.included ? null : describe(path, v);
+    if (row) add(row.code, path, row.why);
+  }
+  for (const { path } of failed) add("read-failed", path, READ_FAILED);
+  return UNREADABLE_CODES.filter((code) => groups.has(code)).map((code) => ({
+    code,
+    label: GROUP_LABELS[code],
+    files: groups.get(code)!,
+  }));
+}
+
+function describe(
+  path: string,
+  v: { reason?: string; classification?: string; controlShare?: number },
+): { code: UnreadableCode; why: string } | null {
+  const { reason } = v;
+  if (reason === "Password protected") {
+    return { code: "encrypted", why: "Encrypted or copy-protected. Remove the password or protection, then drop it again." };
+  }
+  if (reason === "Couldn't extract text") {
+    const dot = path.lastIndexOf(".");
+    const format = dot > path.lastIndexOf("/") + 1 ? `${path.slice(dot + 1).toUpperCase()} ` : "";
+    return { code: "damaged", why: `Damaged ${format}file. It would not open here or, most likely, anywhere.` };
+  }
+  if (reason === "No extractable text") return { code: "no-text", why: "It opened, but there is no text in it." };
+  if (v.classification !== "binary" || !reason) return null;
+  const label = unreadableLabel(reason);
+  if (label === COMPILED_LABEL) {
+    return { code: "compiled", why: "Compiled code or build output. Drop the source files instead." };
+  }
+  if (label === GENERIC_UNREADABLE_LABEL) {
+    const why =
+      v.controlShare === undefined
+        ? "Not text: its first 8 KB hold control bytes no text file contains."
+        : `Not text: ${Math.round(v.controlShare * 100)}% of its first 8 KB are control bytes no text file contains.`;
+    return { code: "binary", why };
+  }
+  return { code: "no-reader", why: reason };
 }

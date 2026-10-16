@@ -1,7 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ResultEmpty } from "~/components/app/result-empty";
-import { emptyKindFor, emptyReasonSlug } from "~/components/app/empty-kind";
+import { emptyKindFor, emptyReasonSlug, unreadableGroups } from "~/components/app/empty-kind";
 import { normalizeValue } from "~/lib/metrics";
 
 /**
@@ -246,5 +246,24 @@ describe("the empty-reason counter", () => {
       const slug = emptyReasonSlug(reason);
       expect(normalizeValue(slug)).toBe(slug);
     }
+  });
+});
+
+describe("the unreadable list", () => {
+  it("groups each left-out file by why, in a fixed order, and skips what a filter left out", () => {
+    const groups = unreadableGroups(
+      {
+        "a/report.pdf": { included: false, reason: "Password protected" },
+        "a/broken.docx": { included: false, reason: "Couldn't extract text" },
+        "a/blob": { included: false, reason: "Binary file", classification: "binary", controlShare: 0.314 },
+        "a/main.o": { included: false, reason: "Compiled code or library", classification: "binary" },
+        "a/notes.md": { included: false, reason: "Excluded by filter", classification: "text" },
+        "a/ok.ts": { included: true },
+      },
+      [{ path: "a/gone.txt" }],
+    );
+    expect(groups.map((g) => g.code)).toEqual(["encrypted", "damaged", "compiled", "binary", "read-failed"]);
+    expect(groups[1].files[0]).toEqual({ name: "broken.docx", why: "Damaged DOCX file. It would not open here or, most likely, anywhere." });
+    expect(groups[3].files[0].why).toBe("Not text: 31% of its first 8 KB are control bytes no text file contains.");
   });
 });

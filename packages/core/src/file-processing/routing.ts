@@ -33,9 +33,11 @@ export type FileRoute =
   /**
    * No container recognized. Not a verdict — the caller decodes the bytes and
    * lets {@link classifyBytes} decide text vs binary, which is where every
-   * plain source file, config and prose document ends up.
+   * plain source file, config and prose document ends up. `format` is the
+   * detector's name for it when it had one (`sqlite`, `elf`, `class`), so a
+   * file that then reads as binary can be described by what it is.
    */
-  | { kind: "unknown" };
+  | { kind: "unknown"; format?: string };
 
 /**
  * Detected format → the parser that reads it. `officeparser` covers all of the
@@ -184,7 +186,7 @@ export async function routeBytes(prefix: Uint8Array): Promise<FileRoute> {
   // odd headers, audio, executables) is left to the byte classifier rather than
   // being declared binary here — it already handles them, and it will not
   // mistake an `.xml` or `.svg`, which `file-type` also recognizes, for one.
-  return { kind: "unknown" };
+  return detected ? { kind: "unknown", format: detected.ext } : { kind: "unknown" };
 }
 
 /**

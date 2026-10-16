@@ -117,6 +117,8 @@ export type ValidationRecord = {
    */
   encoding?: string;
   guessed?: "guess" | "fallback" | "picked";
+  /** Share of the first 8 KB that is control bytes no text holds, on a file that read as binary. */
+  controlShare?: number;
 };
 
 /**
@@ -758,7 +760,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setProgress({ phase: "reading", done: 0, total, note: STAGE.read, stages });
 
       for (let i = 0; i < total; i++) {
-        const { item: entry, path, route, sniffed } = routed[i];
+        const { item: entry, path, route, sniffed, controlShare } = routed[i];
 
         // Composition of the drop, recorded for every file whatever happens to
         // it below. The extension and the size are the whole payload; the name
@@ -931,6 +933,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           classification: result.classification,
           size: entry.file.size,
           type: entry.file.type || "text/plain",
+          ...(controlShare !== undefined ? { controlShare } : {}),
         };
 
         if (result.classification === "binary") {
@@ -978,6 +981,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
               if (read.classification === "binary" && config.excludeBinaryFiles) {
                 record.included = false;
                 record.reason = unreadableReasonText(unreadableReason(path, route));
+                record.controlShare = read.controlShare;
               }
               if (read.guessed) {
                 record.encoding = read.encoding;

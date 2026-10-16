@@ -18,6 +18,8 @@ export interface RoutedFile {
    * is extracted, an archive expanded).
    */
   sniffed?: TextClassification;
+  /** Share of the sniffed bytes that are control bytes no text holds, set when they read as binary. */
+  controlShare?: number;
 }
 
 /** Called with files routed so far, so a slow batch can report live progress. */

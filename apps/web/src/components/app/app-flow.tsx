@@ -55,7 +55,7 @@ import { ResultEmpty } from "./result-empty";
 import { EncodingPicker } from "./encoding-picker";
 import { FeedbackDock } from "./feedback-dock";
 import { ReadingDialog } from "./reading-dialog";
-import { emptyKindFor, emptyReasonSlug } from "./empty-kind";
+import { emptyKindFor, emptyReasonSlug, unreadableGroups } from "./empty-kind";
 import {
   isRecognisableImage,
   isSpeechMedia,
@@ -535,6 +535,10 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       ),
     [droppedFiles, recognition, adjustableCount, ingestion.pruned],
   );
+  const unreadable = useMemo(
+    () => unreadableGroups(ingestion.validations, ingestion.failedFiles),
+    [ingestion.validations, ingestion.failedFiles],
+  );
 
   /**
    * Why the bundle came out empty, recorded once per Run. `bundle_size` is
@@ -563,7 +567,16 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       addToTally(tally, emptyReasonSlug(reason, ingestion.validations[path]?.classification));
     }
     trackTally("empty_reason", tally);
-  }, [phase, includedContents, settledStatuses, ingestion.validations]);
+    // The title the screen showed, and for a drop nothing could read, why
+    // each file could not be: the per-file list's own groups, counted.
+    const listed = emptyKind === "other" && unreadable.length > 0;
+    track("empty_kind", listed ? "unreadable" : emptyKind);
+    if (listed) {
+      const codes: Tally = new Map();
+      for (const group of unreadable) codes.set(group.code, { n: group.files.length });
+      trackTally("unreadable_reason", codes);
+    }
+  }, [phase, includedContents, settledStatuses, ingestion.validations, emptyKind, unreadable]);
 
   /**
    * Files someone moved by hand in the tree, recorded when the Files pane
@@ -947,6 +960,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               droppedFiles={droppedFiles}
               kind={emptyKind}
               pruned={ingestion.pruned}
+              unreadable={unreadable}
               onStartOver={startOver}
               onAdjust={adjustableCount > 0 ? () => openFiles("empty") : undefined}
               byInclude={excludedByInclude}

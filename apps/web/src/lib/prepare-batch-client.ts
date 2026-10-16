@@ -60,15 +60,15 @@ export async function prepareBatch(
     // took the whole drop down and the screen said "nothing text-like to
     // combine" about files it never opened. Route it as unknown instead and
     // let the ingest loop's own per-file handling record it as unreadable.
-    const { route, sniffed } = await item.file
+    const { route, sniffed, controlShare } = await item.file
       .slice(0, ROUTER_SNIFF_BYTES)
       .arrayBuffer()
       .then((buffer) =>
         sniff(new Uint8Array(buffer), async () => new Uint8Array(await item.file.slice(0, CONFIRM_BYTES).arrayBuffer())),
       )
-      .catch(() => ({ route: { kind: "unknown" } as const, sniffed: undefined }));
+      .catch(() => ({ route: { kind: "unknown" } as const, sniffed: undefined, controlShare: undefined }));
     if (route.kind !== "expand") {
-      files.push({ item, path, route, sniffed });
+      files.push({ item, path, route, sniffed, controlShare });
       continue;
     }
 
@@ -160,11 +160,11 @@ const CONFIRM_BYTES = ROUTER_SNIFF_BYTES + 65536;
 async function sniff(
   prefix: Uint8Array,
   wider: () => Promise<Uint8Array>,
-): Promise<{ route: FileRoute; sniffed?: TextClassification }> {
+): Promise<{ route: FileRoute; sniffed?: TextClassification; controlShare?: number }> {
   const route = await routeBytes(prefix);
   if (route.kind === "binary") return { route, sniffed: "binary" };
   if (route.kind !== "unknown") return { route };
-  const sniffed = classifyBytes(prefix).classification;
-  if (sniffed !== "binary" || prefix.length < ROUTER_SNIFF_BYTES) return { route, sniffed };
-  return { route, sniffed: classifyBytes(await wider()).classification };
+  const first = classifyBytes(prefix);
+  const read = first.classification !== "binary" || prefix.length < ROUTER_SNIFF_BYTES ? first : classifyBytes(await wider());
+  return { route, sniffed: read.classification, controlShare: read.controlShare };
 }

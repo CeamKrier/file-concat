@@ -27,6 +27,9 @@ export interface UnreadableReason {
 /** The catch-all. */
 export const GENERIC_UNREADABLE_LABEL = "Binary file";
 
+/** Bytecode, object files and executables: the source they came from is the readable copy. */
+export const COMPILED_LABEL = "Compiled code or library";
+
 /**
  * Labels the bundle note keeps under "image or binary": nothing to name, or an
  * image, which has its own recognition offer on screen and needs no line here.
@@ -43,8 +46,8 @@ const FAMILIES: ReadonlyArray<readonly [label: string, extensions: readonly stri
     ["mp3", "wav", "flac", "ogg", "oga", "m4a", "aac", "mp4", "m4v", "webm", "mkv", "avi", "mov", "wmv", "mid", "midi"],
   ],
   [
-    "Compiled code or library",
-    ["pyc", "pyo", "pyd", "o", "obj", "a", "lib", "so", "dll", "dylib", "exe", "pdb", "class", "jar", "dex", "apk", "aab", "arsc", "flat", "wasm", "node", "rlib", "rmeta", "ilk", "exp", "res"],
+    COMPILED_LABEL,
+    ["pyc", "pyo", "pyd", "o", "obj", "a", "lib", "so", "dll", "dylib", "exe", "pdb", "class", "jar", "dex", "apk", "aab", "arsc", "flat", "wasm", "node", "rlib", "rmeta", "ilk", "exp", "res", "elf", "macho"],
   ],
   ["Database file", ["db", "sqlite", "sqlite3", "db-wal", "db-shm", "sqlite-wal", "sqlite-shm", "mdb", "accdb", "ldb"]],
   [
@@ -199,8 +202,11 @@ export function unreadableReason(path: string, route?: FileRoute): UnreadableRea
       return { label: `.${ext} archive the browser can't open`, remedy: ARCHIVE_REMEDY };
   }
 
+  // The detector's own name for bytes the router left to the classifier
+  // (sqlite, elf, class), for a file whose extension says nothing.
+  const named = route?.kind === "unknown" ? route.format : undefined;
   for (const [label, extensions] of FAMILIES) {
-    if (extensions.includes(ext)) return { label };
+    if (extensions.includes(ext) || (named && extensions.includes(named))) return { label };
   }
   return { label: GENERIC_UNREADABLE_LABEL };
 }
