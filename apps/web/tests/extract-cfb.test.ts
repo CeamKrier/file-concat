@@ -193,6 +193,15 @@ describe("extractCfb", () => {
     expect(extractCfb(compound(deck))).toEqual({ text: "# Slide 1\nQuarterly review" });
   });
 
+  it("reads a compound file a server sent with a UTF-8 byte-order mark in front", () => {
+    expect(extractCfb(Uint8Array.from([0xef, 0xbb, 0xbf, ...wordContainer()]))).toEqual({ text: "Minutes of the meeting." });
+  });
+
+  it("names a compound file whose sector tables do not hold together as damaged", () => {
+    const bytes = wordContainer();
+    expect(() => extractCfb(Uint8Array.from([...bytes.subarray(0, 512), 0, 0, 0, ...bytes.subarray(512)]))).toThrow(/damaged/);
+  });
+
   it("answers a compound file nothing here reads with parser-unavailable, not a throw", () => {
     // A PowerPoint 95 deck shares the signature; the chain then tries anydoc,
     // and the ledger names it from there, under its own extension.

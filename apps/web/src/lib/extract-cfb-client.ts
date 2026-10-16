@@ -35,7 +35,15 @@ interface CfbContainer {
 }
 
 export function extractCfb(bytes: Uint8Array): ExtractionResult {
-  const container = XLSX.CFB.read(bytes, { type: "array" }) as CfbContainer;
+  // A UTF-8 byte-order mark before the signature, from a server that sent the
+  // file as text, is no part of the container; the sectors after it are whole.
+  if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf && bytes[3] === 0xd0) bytes = bytes.subarray(3);
+  let container: CfbContainer;
+  try {
+    container = XLSX.CFB.read(bytes, { type: "array" }) as CfbContainer;
+  } catch {
+    throw new Error("The compound file is damaged: its sector tables do not hold together");
+  }
   // Paths come back under the root storage's own name ("Root Entry/", or
   // whatever the writer called it); core's readers want them relative.
   const rootless = (path: string) => path.slice(path.indexOf("/") + 1);
