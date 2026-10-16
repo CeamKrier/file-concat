@@ -133,6 +133,29 @@ describe("extractHtml", () => {
     expect(readHtml('<html><body><p>Milk</p><img src="pic.png" alt="A cat"></body></html>').text).toContain("![A cat](pic.png)");
   });
 
+  it("moves React's streamed segments into place before reading", () => {
+    const { text } = extractHtml(
+      page(
+        `<main><!--$?--><template id="B:0"></template><p>Loading the post</p><!--/$--></main>` +
+          `<div hidden id="S:0"><article><h1>A post</h1><p>${prose}</p><template id="P:1"></template></article></div><div hidden id="S:1"><p>Late paragraph</p></div>` +
+          `<div hidden id="S:2"><p><template id="P:2"></template></p></div>` +
+          `<script>$RC("B:0","S:0")</script><script>$RS("S:1","P:1")</script><script>$RS("S:2","P:2")</script>`,
+      ),
+    );
+    expect(text).toContain(prose.trim());
+    expect(text).not.toContain("Loading the post");
+    expect(text).toContain("Late paragraph");
+  });
+
+  it("measures the article by its text, not its Markdown, against the floor", () => {
+    const link = `https://shop.example.net/${"category/".repeat(40)}item`;
+    const { text, reader } = extractHtml(
+      page(`<div><h2>Widget 3000</h2><span>In stock</span></div><article><p>Buy it${"\n".repeat(400)}<a href="${link}">here</a>.</p></article>`),
+    );
+    expect(reader).toBe("turndown");
+    expect(text).toContain("Widget 3000");
+  });
+
   it("drops hidden elements from any root it is handed, as the ebook reader does", () => {
     const doc = new DOMParser().parseFromString(`<body><p>Kept</p><p style="display: None">Gone</p></body>`, "text/html");
     expect(dropHidden(doc.body)).toBe(1);

@@ -1,6 +1,6 @@
 import { Readability } from "@mozilla/readability";
 import { savedPageUrl, type ExtractionResult } from "@fileconcat/core";
-import { drawnControls, dropHidden, turndown } from "./turndown-client";
+import { drawnControls, dropHidden, turndown, withStreamedSegments } from "./turndown-client";
 
 /**
  * Client-only reading of a page a browser saved (extraction router, step R5).
@@ -13,8 +13,12 @@ import { drawnControls, dropHidden, turndown } from "./turndown-client";
  */
 
 /**
- * Below this much Markdown the article is a claim the page does not support,
- * and the whole body is written instead. The clipper's floor. A ratio against
+ * Below this much text the article is a claim the page does not support, and
+ * the whole body is written instead. The clipper's floor. Counted on the
+ * article's text with its white space collapsed, as Readability's own
+ * `charThreshold` is, not its Markdown:
+ * a table's pipes and a link's address lifted a too-small article past it on
+ * real pages (a shop page that lost its product name). A ratio against
  * the full page (Jina keeps Readability at 30% or more) was measured on 180
  * pages of the Article Extraction Benchmark and would have thrown away a good
  * article on 106 of them: a page's chrome routinely outweighs its prose.
@@ -82,6 +86,7 @@ export function readHtml(html: string, fetchedFrom?: string): ExtractionResult {
     base.href = url;
     doc.head.insertBefore(base, doc.head.firstChild);
   }
+  withStreamedSegments(doc);
   if (doc.body) drawnControls(doc.body);
   const service = turndown(url);
   // A picture's address against the page it was saved from; the reader
@@ -115,7 +120,7 @@ export function readHtml(html: string, fetchedFrom?: string): ExtractionResult {
   let body = article?.content ? service.turndown(article.content).trim() : "";
   let reader = "readability";
   let hidden = 0;
-  if (body.length < MIN_CHARS) {
+  if ((article?.textContent?.replace(/\s+/g, " ").trim().length ?? 0) < MIN_CHARS) {
     // Readability skips hidden elements itself; the whole body kept them.
     hidden = doc.body ? dropHidden(doc.body) : 0;
     // A page that is all chrome by these rules still has its text read.

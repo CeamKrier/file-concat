@@ -37,6 +37,40 @@ export function dropHidden(root: Element): number {
   return dropped;
 }
 
+/**
+ * React's streamed server rendering, done the way the page's own script does
+ * it. Content that finished late is written as `<div hidden id="S:n">` near
+ * the end of the body, and an inline call moves it into place: `$RC(boundary,
+ * segment)` swaps it for a Suspense boundary's fallback (between `<!--$?-->`
+ * and `<!--/$-->`), `$RS(segment, placeholder)` for a `<template>`. Read as
+ * saved, the page shows only the fallbacks and the content counts as hidden.
+ * A call whose ids are not on the page, or whose segment holds its own
+ * target, is skipped, as React's would fail.
+ */
+export function withStreamedSegments(doc: Document): void {
+  const scripts = Array.from(doc.querySelectorAll("script"), (script) => script.textContent ?? "").join("\n");
+  for (const [, kind, first, second] of scripts.matchAll(/\$R([CS])\("([^"]+)","([^"]+)"\)/g)) {
+    const [target, segment] = kind === "C" ? [doc.getElementById(first), doc.getElementById(second)] : [doc.getElementById(second), doc.getElementById(first)];
+    if (!target || !segment?.hasAttribute("hidden") || segment.contains(target)) continue;
+    if (kind === "C") {
+      // The fallback runs from the boundary's template to its closing comment.
+      let depth = 0;
+      for (let node = target.nextSibling; node; ) {
+        const next = node.nextSibling;
+        if (node.nodeType === 8) {
+          const mark = (node as Comment).data;
+          if (mark === "/$" && depth-- === 0) break;
+          if (mark.startsWith("$")) depth++;
+        }
+        node.remove();
+        node = next;
+      }
+    }
+    target.replaceWith(...Array.from(segment.childNodes));
+    segment.remove();
+  }
+}
+
 /** Inputs that draw the text they hold. A password field draws dots, and its value stays out. */
 const TEXT_INPUTS = new Set(["", "text", "search", "email", "url", "tel", "number", "date", "datetime-local", "month", "week", "time"]);
 
