@@ -74,7 +74,7 @@ function encryptedZip(bytes: Uint8Array): boolean {
     if (flags & 1) return true;
     if (!hasEncryptionXml && String.fromCharCode(...name) === ENCRYPTION_XML) hasEncryptionXml = true;
   }
-  // No directory to read (truncated, zip64): the first local header's flags.
+  // No directory to read (truncated): the first local header's flags.
   if (records === 0) return bytes.length >= 8 && (bytes[6] & 1) === 1;
   if (!hasEncryptionXml) return false;
   try {
