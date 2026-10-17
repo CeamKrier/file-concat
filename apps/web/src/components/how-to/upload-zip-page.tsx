@@ -149,7 +149,7 @@ function WhatEachAiDoes() {
 
       <p className="text-ink-faint mx-auto mt-4 max-w-[760px] text-[12.5px] leading-relaxed">
         As of October 2026, from{" "}
-        <SourceLink href="https://help.openai.com/en/articles/8983675-what-types-of-files-are-supported">
+        <SourceLink href="https://help.openai.com/en/articles/8555545-uploading-files-and-audio-to-chatgpt">
           OpenAI's supported file types
         </SourceLink>{" "}
         and{" "}

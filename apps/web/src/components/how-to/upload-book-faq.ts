@@ -3,8 +3,8 @@
  * FAQPage JSON-LD from the route, so it lives in its own module.
  *
  * Vendor statements were read on 2026-09-24 and are pinned in
- * src/data/vendor-caps.json: OpenAI's supported-types article (8983675) and
- * File Uploads FAQ (8555545), Claude's upload article (8241126), and the
+ * src/data/vendor-caps.json: OpenAI's uploads article (8555545, which since
+ * 2026-10 also carries the supported-types table), Claude's upload article (8241126), and the
  * Gemini Notebook sources article (16215270). The Pride and Prejudice count is
  * our own run of this build on 2026-09-24, on Project Gutenberg's EPUB without
  * images (gutenberg.org/ebooks/1342), default settings.

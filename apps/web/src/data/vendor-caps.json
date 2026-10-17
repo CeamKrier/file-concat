@@ -37,7 +37,11 @@
         "OpenAI may lower these limits during peak hours",
         "Shared upload storage is capped at 25 GB per user",
         "Failed upload attempts can sometimes count toward the upload-rate limit",
-        "does not currently show how much of your rolling upload-rate quota has been used"
+        "does not currently show how much of your rolling upload-rate quota has been used",
+        "Choose a supported file type",
+        "Documents and text DOCX, PDF, TXT",
+        "Spreadsheets XLSX, XLS, CSV, TSV",
+        "Presentations PPTX"
       ],
       "used_by": [
         "apps/web/src/components/personas/chatgpt-projects-faq.ts",
@@ -50,27 +54,10 @@
         "apps/web/src/components/how-to/chatgpt-conversation-too-long-page.tsx",
         "apps/web/src/components/how-to/chatgpt-conversation-too-long-faq.ts",
         "apps/web/src/components/how-to/upload-zip-page.tsx",
-        "apps/web/src/components/how-to/upload-zip-faq.ts"
-      ]
-    },
-    {
-      "url": "https://help.openai.com/en/articles/8983675-what-types-of-files-are-supported",
-      "anchor": "What types of files are supported",
-      "checked": "2026-09-24",
-      "quotes": [
-        "Most common file extensions for text files, spreadsheets, presentations, and documents are supported, including XLSX, XLS, CSV, TSV, DOCX, PPTX, PDF, and TXT"
-      ],
-      "used_by": [
-        "apps/web/src/components/how-to/chatgpt-upload-limit-page.tsx",
+        "apps/web/src/components/how-to/upload-zip-faq.ts",
         "apps/web/src/components/how-to/upload-folder-page.tsx",
-        "apps/web/src/components/how-to/upload-folder-faq.ts",
-        "apps/web/src/components/how-to/share-all-files-page.tsx",
         "apps/web/src/components/how-to/upload-book-page.tsx",
-        "apps/web/src/components/how-to/upload-book-faq.ts",
-        "apps/web/src/content/blog/youtube-transcript-to-chatgpt.mdx",
-        "apps/web/src/components/how-to/chatgpt-conversation-too-long-page.tsx",
-        "apps/web/src/components/how-to/upload-zip-page.tsx",
-        "apps/web/src/components/how-to/upload-zip-faq.ts"
+        "apps/web/src/content/blog/youtube-transcript-to-chatgpt.mdx"
       ]
     },
     {
