@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.5.0](https://github.com/CeamKrier/file-concat/compare/v2.4.0...v2.5.0) (2026-10-17)
+
+### Features
+
+* **cli:** read by content, guess legacy encodings, cut binary tails ([f80486f](https://github.com/CeamKrier/file-concat/commit/f80486f7e152df43541f5b02d0e43f7746c1f579))
+* **core,web,cli:** name encrypted and DRM-protected files from their bytes ([33a584c](https://github.com/CeamKrier/file-concat/commit/33a584ca307bdd6869c8db20a379e6f4280faee1))
+* **core:** decide text by control bytes, guess legacy encodings ([02b063b](https://github.com/CeamKrier/file-concat/commit/02b063bfa54482d07e6a86155c775d63fff5ea40))
+* **web:** count Clipper store clicks and blog try-it entries ([143d454](https://github.com/CeamKrier/file-concat/commit/143d454879148a05e5cceed0eb1b58f0db651fe8))
+* **web:** count how a file-panel session ends, even when the tab closes ([d9fc454](https://github.com/CeamKrier/file-concat/commit/d9fc454e7000dfdb716f67a5c8c20324e5dd0f71))
+* **web:** count the visit's device class (mobile, tablet, desktop) ([e17bdfc](https://github.com/CeamKrier/file-concat/commit/e17bdfcfdfe030566f68a893dd18325d510e375e))
+* **web:** limit pages answer the cap in one line above the drop zone ([0638788](https://github.com/CeamKrier/file-concat/commit/06387881e3a0e8f1be76684f48563e3909081d86))
+* **web:** list each unreadable file by why on the empty screen ([832a9b6](https://github.com/CeamKrier/file-concat/commit/832a9b69748aef2d97346dc15ae1d715580caada))
+* **web:** pick files in a pane beside the live result ([8e0c19e](https://github.com/CeamKrier/file-concat/commit/8e0c19efeeeb3b8e94b1bfbcf518d035928778e1))
+* **web:** the long-conversation page leads with the Clipper ([7ac74a0](https://github.com/CeamKrier/file-concat/commit/7ac74a0f83062202517ada55d6fc439d8f2405ba))
+
+### Bug Fixes
+
+* **core:** files under extensions a text format shares are read, not pruned ([f00e67f](https://github.com/CeamKrier/file-concat/commit/f00e67fdfa55a9162b1d3981b74210f61215567d))
+* **core:** judge a binary-looking head with the window after it ([373900b](https://github.com/CeamKrier/file-concat/commit/373900b4342d74a22dfa82b76081899be37169a4))
+* **web:** a tree toggle on a big drop no longer freezes the page ([cfd8a88](https://github.com/CeamKrier/file-concat/commit/cfd8a88cb3fbf7ce887aa841165623290179e7fe))
+* **web:** cite OpenAI's supported file types where the page now lives ([c0cb53e](https://github.com/CeamKrier/file-concat/commit/c0cb53e3f1ba8f31463629cff6b6e0792d47f324))
+
 ## [2.4.0](https://github.com/CeamKrier/file-concat/compare/v2.3.0...v2.4.0) (2026-10-16)
 
 ### Features
