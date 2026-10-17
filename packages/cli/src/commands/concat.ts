@@ -10,6 +10,7 @@ import {
   createGitignoreMatcher,
   canExpandArchive,
   classifyBytes,
+  epubEncryptedPaths,
   expandArchive,
   isEncryptedContainer,
   isPasswordProtected,
@@ -66,6 +67,7 @@ function readPrefix(source: Source, bytes = ROUTER_SNIFF_BYTES): Uint8Array {
 
 /** Past the router's prefix, the bytes that confirm a binary verdict before a file is dropped. */
 const CONFIRM_BYTES = ROUTER_SNIFF_BYTES + 65536;
+const ENCRYPTION_XML = /(?:^|\/)META-INF\/encryption\.xml$/;
 
 function readAll(source: Source): Uint8Array {
   return source.origin === "archive" ? source.bytes : fs.readFileSync(source.fullPath);
@@ -213,12 +215,33 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
     size: fs.statSync(path.join(basePath, file)).size,
   }));
 
+  // An unpacked DRM book's encrypted chapters read as binary noise; its own
+  // encryption.xml names them, relative to the folder holding META-INF.
+  const drmParts = new Set<string>();
+  for (const source of queue) {
+    if (!ENCRYPTION_XML.test(source.path) || source.size > 1 << 20) continue;
+    const root = source.path.slice(0, source.path.length - "META-INF/encryption.xml".length);
+    let xml = "";
+    try {
+      xml = new TextDecoder().decode(readAll(source));
+    } catch {
+      // Unreadable here, so it is reported where the loop reads it.
+    }
+    for (const part of epubEncryptedPaths(xml)) drmParts.add(root + part);
+  }
+
   for (let i = 0; i < queue.length; i++) {
     const source = queue[i];
     const file = source.path;
 
     if (source.size > maxFileSizeMB * 1024 * 1024) {
       skipped.oversize.push(file);
+      continue;
+    }
+
+    if (drmParts.has(file)) {
+      log.warn(`Skipped (password protected): ${file}`);
+      skipped.parseFailed.push(file);
       continue;
     }
 

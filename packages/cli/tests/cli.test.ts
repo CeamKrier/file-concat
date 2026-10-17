@@ -252,6 +252,23 @@ describe("file-concat CLI", () => {
       expect(result.stderr).toContain("Skipped (password protected)");
     });
 
+    it("names the encrypted chapters of an unpacked DRM book from its encryption.xml", async () => {
+      const dir = makeTempDir("drm-book");
+      fs.mkdirSync(path.join(dir, "book", "META-INF"), { recursive: true });
+      fs.mkdirSync(path.join(dir, "book", "OEBPS"));
+      fs.writeFileSync(
+        path.join(dir, "book", "META-INF", "encryption.xml"),
+        `<encryption><EncryptedData><EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#aes128-cbc"/><CipherData><CipherReference URI="OEBPS/ch1.xhtml"/></CipherData></EncryptedData></encryption>`,
+      );
+      fs.writeFileSync(path.join(dir, "book", "OEBPS", "ch1.xhtml"), Buffer.from(Array.from({ length: 4000 }, (_, i) => (i * 37) % 256)));
+      fs.writeFileSync(path.join(dir, "book", "OEBPS", "ch2.xhtml"), "<html><body>Chapter two</body></html>");
+      const outFile = path.join(makeTempDir("drm-book-out"), "out.xml");
+      const result = await runCli([dir, "-o", outFile, "--json"]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stderr).toContain("Skipped (password protected): book/OEBPS/ch1.xhtml");
+      expect(fs.readFileSync(outFile, "utf-8")).toContain("Chapter two");
+    });
+
     it("a corrupt document falls back to skippedBreakdown.parseFailed (no crash)", async () => {
       const dir = copyFixture("parse-project");
       fs.rmSync(path.join(dir, "hello.pdf"));
