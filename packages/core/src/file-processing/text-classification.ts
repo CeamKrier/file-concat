@@ -238,8 +238,12 @@ export function classifyBytes(bytes: Uint8Array, guess?: EncodingGuesser): Decod
   const head = scan(bytes, 0, FIRST_WINDOW);
   const binaryHead = share(head) > CONTROL_LIMIT;
   if (binaryHead) {
+    // The verdict is taken on head and rest together, as on one larger
+    // sample. Judging the rest alone let a clean rest outvote a head of solid
+    // binary: an ELF library whose string tables follow its headers, a pickle
+    // that ends in names, both read as text (probe, 2026-10-17).
     const rest = scan(bytes, head.end, CONFIRM_WINDOW);
-    if (rest.counted === 0 || share(rest) > CONTROL_LIMIT) {
+    if (rest.counted === 0 || (head.bad + rest.bad) / (head.counted + rest.counted) > CONTROL_LIMIT) {
       return { classification: "binary", text: "", encoding: "binary", controlShare: share(head) };
     }
   }

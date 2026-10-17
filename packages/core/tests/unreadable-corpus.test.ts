@@ -69,6 +69,17 @@ describe("classifyBytes edge cases", () => {
     expect(classifyBytes(bytes).classification).not.toBe("binary");
   });
 
+  it("keeps a head of solid binary binary when printable tables follow it", () => {
+    // A shared library's headers and code, then its string tables: the shape
+    // that read as text when the rest was judged on its own.
+    const head = Uint8Array.from({ length: 8192 }, (_, i) => (i % 4 === 0 ? 1 : 0x41));
+    const body = new TextEncoder().encode("symbol_name_table\n".repeat(4000));
+    const bytes = new Uint8Array(head.length + body.length);
+    bytes.set(head);
+    bytes.set(body, head.length);
+    expect(classifyBytes(bytes).classification).toBe("binary");
+  });
+
   it("names the control-byte share of a binary verdict", () => {
     const bytes = Uint8Array.from({ length: 4000 }, (_, i) => (i % 10 === 0 ? 2 : 0x61));
     const result = classifyBytes(bytes);
