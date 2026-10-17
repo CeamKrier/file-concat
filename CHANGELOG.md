@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.7.0](https://github.com/CeamKrier/file-concat/compare/v2.6.0...v2.7.0) (2026-10-17)
+
+### Features
+
+* **web:** /benchmarks, every FileConcat benchmark on one page ([0e61d0e](https://github.com/CeamKrier/file-concat/commit/0e61d0e9e518f6188eabffaa8d57deb23a02154a))
+
 ## [2.6.0](https://github.com/CeamKrier/file-concat/compare/v2.5.0...v2.6.0) (2026-10-17)
 
 ### Features
