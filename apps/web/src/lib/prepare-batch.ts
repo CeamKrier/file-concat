@@ -18,6 +18,10 @@ export interface RoutedFile {
    * is extracted, an archive expanded).
    */
   sniffed?: TextClassification;
+  /** Share of the sniffed bytes that are control bytes no text holds, set when they read as binary. */
+  controlShare?: number;
+  /** Its own bytes say it is encrypted: a locked zip, or a part a DRM book's `encryption.xml` names. */
+  encrypted?: true;
 }
 
 /** Called with files routed so far, so a slow batch can report live progress. */

@@ -2,6 +2,7 @@ import { getLanguageFromPath } from "../path-utils/language";
 import { classifyBundleKind, type BundleKind } from "./bundle-kind";
 import type { ExcludedSummary } from "./exclusions";
 import type { ExtractionNote } from "./parsers/types";
+import { formatSize } from "./size";
 
 export type OutputStyle = "xml" | "markdown" | "plain";
 
@@ -60,6 +61,23 @@ export function assembleOutput(options: AssembleOutputOptions): string {
     case "plain":
       return assemblePlain(options, meta);
   }
+}
+
+/**
+ * The bundle's first `chars` characters or more, without assembling the rest:
+ * files past the point where the head is filled are assembled empty, and
+ * nothing before them depends on their text, so the head is the same as the
+ * full bundle's. A preview of a 280 MB drop otherwise assembled 280 MB on every
+ * tree toggle. Not the bundle itself: everything past the head is wrong.
+ */
+export function assembleOutputHead(options: AssembleOutputOptions, chars: number): string {
+  let kept = 0;
+  const files = options.files.map((file) => {
+    if (kept >= chars) return { ...file, content: "" };
+    kept += file.content.length;
+    return file;
+  });
+  return assembleOutput({ ...options, files });
 }
 
 /**
@@ -169,6 +187,8 @@ function describeGaps(notes: readonly ExtractionNote[]): string | undefined {
         return [count ? `${count} page${count === 1 ? "" : "s"} failed to load` : "the rest past a reading limit not read"];
       case "hidden-left-out":
         return ["text its author hid left out"];
+      case "binary-tail":
+        return [`binary data after ${formatSize(count ?? 0)} left out`];
       default:
         return [];
     }

@@ -1,8 +1,10 @@
 import {
   canExpandArchive,
   classifyBytes,
+  epubEncryptedPaths,
   type ArchiveEntry,
   expandArchive,
+  isEncryptedContainer,
   routeBytes,
   ROUTER_SNIFF_BYTES,
   type ArchiveKind,
@@ -60,18 +62,27 @@ export async function prepareBatch(
     // took the whole drop down and the screen said "nothing text-like to
     // combine" about files it never opened. Route it as unknown instead and
     // let the ingest loop's own per-file handling record it as unreadable.
-    const { route, sniffed } = await item.file
+    const { route, sniffed, controlShare } = await item.file
       .slice(0, ROUTER_SNIFF_BYTES)
       .arrayBuffer()
-      .then((buffer) => sniff(new Uint8Array(buffer)))
-      .catch(() => ({ route: { kind: "unknown" } as const, sniffed: undefined }));
+      .then((buffer) =>
+        sniff(new Uint8Array(buffer), async () => new Uint8Array(await item.file.slice(0, CONFIRM_BYTES).arrayBuffer())),
+      )
+      .catch(() => ({ route: { kind: "unknown" } as const, sniffed: undefined, controlShare: undefined }));
     if (route.kind !== "expand") {
-      files.push({ item, path, route, sniffed });
+      files.push({ item, path, route, sniffed, controlShare });
       continue;
     }
 
     try {
       const bytes = new Uint8Array(await item.file.arrayBuffer());
+      // A locked zip unpacks to ciphertext, or to nothing, so it stays whole
+      // and says it is locked.
+      if (isEncryptedContainer(bytes)) {
+        archiveReads.push(`${route.archive}/none`);
+        files.push({ item, path, route, encrypted: true });
+        continue;
+      }
       const { entries, reader } = await unpack(bytes, route.archive, item.file.name);
       archiveReads.push(`${route.archive}/${reader}`);
       // An empty or unreadable archive keeps its original entry and falls
@@ -112,7 +123,7 @@ export async function prepareBatch(
           path: entryItem.path,
           // Routed from the bytes we already hold rather than re-reading the
           // synthetic File we just built.
-          ...(await sniff(entryBytes.subarray(0, ROUTER_SNIFF_BYTES))),
+          ...(await sniff(entryBytes.subarray(0, ROUTER_SNIFF_BYTES), async () => entryBytes.subarray(0, CONFIRM_BYTES))),
         });
       }
     } catch {
@@ -121,7 +132,29 @@ export async function prepareBatch(
     }
   }
 
+  await markDrmParts(files);
   return { files, expandedCount, unsupported, archiveReads, pruned };
+}
+
+const ENCRYPTION_XML = /(?:^|\/)META-INF\/encryption\.xml$/;
+
+/**
+ * A DRM book dropped unpacked: its chapters are ciphertext that would read as
+ * binary noise. The book's own `encryption.xml` names them, relative to the
+ * folder that holds `META-INF`.
+ */
+async function markDrmParts(files: RoutedFile[]): Promise<void> {
+  const manifests = files.filter((f) => ENCRYPTION_XML.test(f.path) && f.item.file.size <= 1 << 20);
+  if (manifests.length === 0) return;
+  const byPath = new Map(files.map((f) => [f.path, f]));
+  for (const manifest of manifests) {
+    const root = manifest.path.slice(0, manifest.path.length - "META-INF/encryption.xml".length);
+    const xml = manifest.item.content ?? (await manifest.item.file.text().catch(() => ""));
+    for (const part of epubEncryptedPaths(xml)) {
+      const file = byPath.get(root + part);
+      if (file) file.encrypted = true;
+    }
+  }
 }
 
 /**
@@ -146,13 +179,23 @@ async function unpack(
   return { entries: await expandWithSevenZip(bytes, kind, name), reader: "7zip" };
 }
 
+/** The sniff window plus the 64 KB core reads past a binary-looking one before its verdict stands. */
+const CONFIRM_BYTES = ROUTER_SNIFF_BYTES + 65536;
+
 /**
  * Route a prefix and, where the route leaves the question open, classify the
- * same bytes. One read serves both; see `RoutedFile.sniffed`.
+ * same bytes. One read serves both; see `RoutedFile.sniffed`. A prefix that
+ * reads as binary in a longer file is classified again on `wider` bytes, the
+ * confirmation core's classifier makes on a whole file.
  */
-async function sniff(prefix: Uint8Array): Promise<{ route: FileRoute; sniffed?: TextClassification }> {
+async function sniff(
+  prefix: Uint8Array,
+  wider: () => Promise<Uint8Array>,
+): Promise<{ route: FileRoute; sniffed?: TextClassification; controlShare?: number }> {
   const route = await routeBytes(prefix);
   if (route.kind === "binary") return { route, sniffed: "binary" };
-  if (route.kind === "unknown") return { route, sniffed: classifyBytes(prefix).classification };
-  return { route };
+  if (route.kind !== "unknown") return { route };
+  const first = classifyBytes(prefix);
+  const read = first.classification !== "binary" || prefix.length < ROUTER_SNIFF_BYTES ? first : classifyBytes(await wider());
+  return { route, sniffed: read.classification, controlShare: read.controlShare };
 }

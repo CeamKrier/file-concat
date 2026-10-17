@@ -187,6 +187,8 @@ describe("trackEntrySurface", () => {
     ["/", "home"],
     ["/for/legal", "for/legal"],
     ["/how-to/share-all-files-with-ai", "how-to/share-all-files-with-ai"],
+    // The blog try-it card; the server's 32-character value cap cuts a long slug.
+    ["/blog/how-many-tokens-is-a-codebase", "blog/how-many-tokens-is-a-codeba"],
   ])("records %s as %s", async (pathname, expected) => {
     metrics.trackEntrySurface(pathname);
     const events = await flush();
@@ -205,6 +207,7 @@ describe("trackEntrySurface", () => {
     expect(events).toEqual([
       { n: "entry_surface", v: "home" },
       { n: "entry_source", v: "none" },
+      { n: "entry_device", v: "desktop" },
     ]);
   });
 
@@ -218,6 +221,34 @@ describe("trackEntrySurface", () => {
 
     expect(body).toContain('"v":"bing"');
     expect(body).not.toContain("secret");
+  });
+});
+
+describe("trackStoreClick", () => {
+  it("sends the one fixed label and nothing else", async () => {
+    metrics.trackStoreClick();
+    expect(await flush()).toEqual([{ n: "cta_clicked", v: "clipper_store" }]);
+  });
+});
+
+describe("deviceLabel", () => {
+  it.each([
+    [false, 1080, "desktop"],
+    [false, 390, "desktop"],
+    [true, 390, "mobile"],
+    [true, 430, "mobile"],
+    [true, 744, "tablet"],
+    [true, 1024, "tablet"],
+  ])("coarse %s, short side %i is %s", (coarse, shortSide, expected) => {
+    expect(metrics.deviceLabel(coarse, shortSide)).toBe(expected);
+  });
+
+  it("records a phone read from the page", async () => {
+    vi.stubGlobal("matchMedia", (q: string) => ({ matches: q === "(pointer: coarse)" }));
+    vi.stubGlobal("screen", { width: 844, height: 390 });
+    metrics.trackEntrySurface("/");
+    const events = await flush();
+    expect(events).toContainEqual({ n: "entry_device", v: "mobile" });
   });
 });
 
@@ -244,5 +275,36 @@ describe("sourceLabel", () => {
     ["not a url", "", "other"],
   ])("labels %s %s as %s", (referrer, search, expected) => {
     expect(metrics.sourceLabel(referrer, search)).toBe(expected);
+  });
+});
+
+describe("curate session", () => {
+  it("sends an event written while the page is hidden without waiting on the timer", () => {
+    const state = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    metrics.track("output_taken", "copy");
+    // A backgrounded page may never run the debounce timer, so none may be left.
+    expect(vi.getTimerCount()).toBe(0);
+    state.mockRestore();
+  });
+
+  it("writes how the session ended and how long it lasted, once", async () => {
+    const tally = await import("~/components/file-tree/interaction-tally");
+    metrics.startRun();
+    tally.beginCurate();
+    await vi.advanceTimersByTimeAsync(7_000);
+    tally.endCurate("left");
+    tally.endCurate("closed");
+
+    const events = await flush();
+    expect(events.filter((e) => e.n === "curate_end")).toEqual([
+      { n: "curate_end", v: "left", q: 7, r: 1 },
+    ]);
+  });
+
+  it("writes nothing outside a Run", async () => {
+    const tally = await import("~/components/file-tree/interaction-tally");
+    tally.beginCurate();
+    tally.endCurate("closed");
+    expect(await flush()).toEqual([]);
   });
 });

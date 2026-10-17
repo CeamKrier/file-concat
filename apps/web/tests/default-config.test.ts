@@ -24,7 +24,9 @@ const SRC = join(__dirname, "..", "src");
  * happens at call time rather than at module-evaluation time.
  */
 describe("default ignore patterns survive the production chunk layout", () => {
-  const files = ["hooks/use-config.ts", "components/app/settings-drawer.tsx"];
+  // The presets that read it left the drawer on 2026-10-17; the Files pane
+  // reads it now, for "Reset to defaults".
+  const files = ["hooks/use-config.ts", "components/app/files-pane.tsx"];
 
   it.each(files)("%s only reads DEFAULT_IGNORE_STRING inside a function", (rel) => {
     const path = join(SRC, rel);

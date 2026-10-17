@@ -1,4 +1,4 @@
-import { ArrowRight, Check, History } from "lucide-react";
+import { ArrowRight, History } from "lucide-react";
 
 import { AppFlow } from "~/components/app/app-flow";
 import type { DropZoneProps } from "~/components/app/drop-zone";
@@ -8,6 +8,7 @@ import { InfoCard } from "~/components/app/info-card";
 import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
 import { MarketingSection } from "~/components/app/marketing/section";
 import { STORE_URL } from "~/components/clipper/clipper-page";
+import { trackStoreClick } from "~/lib/metrics";
 
 import { CHATGPT_CONVERSATION_TOO_LONG_FAQ } from "./chatgpt-conversation-too-long-faq";
 
@@ -54,22 +55,17 @@ const MAX_LENGTH_THREAD =
 const WONT_OPEN_THREAD =
   "https://community.openai.com/t/can-no-longer-even-read-conversations-that-say-this-conversation-is-too-long-please-start-a-new-one/1380959";
 
-const TRUST = [
-  "Every turn, not only the few on screen",
-  "No Plus plan needed, and it works in Claude or Gemini",
-  "Free, and the chat is not uploaded to us",
-];
+const footLinkClass =
+  "hover:text-ink-secondary focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm underline decoration-[oklch(var(--border-strong))] underline-offset-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2";
 
-const linkClass =
-  "text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex rounded-sm text-[13px] underline decoration-[oklch(var(--border-strong))] underline-offset-[3px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2";
-
-function StoreButton() {
+function StoreButton({ className = "" }: { className?: string }) {
   return (
     <a
       href={STORE_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className="bg-primary text-primary-foreground rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+      onClick={trackStoreClick}
+      className={`${className} bg-primary text-primary-foreground rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2`}
     >
       Add the Clipper to Chrome
       <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
@@ -77,6 +73,12 @@ function StoreButton() {
   );
 }
 
+/**
+ * The hero's tool is the Clipper, not the drop zone: the searcher has a chat
+ * that is too long, not files. Until 2026-10-17 the drop zone filled the hero
+ * and none of 24 visits in 90 days dropped anything. The drop zone stays,
+ * below, for the reader who already has the conversation as a file.
+ */
 function Hero({ dropProps, linkImport }: LandingProps) {
   return (
     <section className="mx-auto w-full max-w-[1040px] px-4 pb-4 pt-14 sm:px-6 md:pt-16">
@@ -86,36 +88,39 @@ function Hero({ dropProps, linkImport }: LandingProps) {
             ChatGPT conversation too long? Carry all of it into a new chat.
           </h1>
 
-          <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
-            When ChatGPT says you have reached the maximum length for this conversation, the new
-            chat starts empty. FileConcat Clipper, a free Chrome side panel, reads the whole
-            conversation and hands it back as one file you attach to the new chat, with its token
-            count.
+          <p className="text-ink-secondary mt-5 max-w-[52ch] text-[17px] leading-relaxed">
+            Clip the whole chat into one file. Attach it to a new chat.
           </p>
-
-          <ul className="mt-6 space-y-2">
-            {TRUST.map((t) => (
-              <li key={t} className="text-ink-secondary flex items-center gap-2 text-[14px]">
-                <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
-                {t}
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
-            <StoreButton />
-            <a href="#example" className={linkClass}>
-              See a measured example
-            </a>
-          </div>
         </div>
 
         <div className="min-w-0">
-          <EntrySurface {...dropProps} linkImport={linkImport} />
-          <p className="text-ink-faint mt-3 text-center text-[12.5px] leading-relaxed">
-            Keep this tab open and Send in the panel brings the conversation here.
-          </p>
+          <div className="border-border bg-surface rounded-card border p-6">
+            <p className="font-display text-ink text-[16px] font-semibold">FileConcat Clipper</p>
+            <p className="text-ink-secondary mt-2 text-[14px] leading-relaxed">
+              A free Chrome side panel. It reads every turn, not only the ones on screen, and the
+              chat is not uploaded to us.
+            </p>
+            <StoreButton className="mt-5 w-full" />
+            <p className="text-ink-faint mt-3 text-center text-[12.5px] leading-relaxed">
+              Needs Chrome on a computer.{" "}
+              <a href="#example" className={`whitespace-nowrap ${footLinkClass}`}>
+                See a measured example
+              </a>
+            </p>
+          </div>
         </div>
+      </div>
+
+      <div className="mx-auto mt-14 max-w-[480px]">
+        <h2 className="font-display text-ink text-balance text-center text-[17px] font-semibold">
+          Already have the chat as a file? Drop it here.
+        </h2>
+        <div className="mt-4">
+          <EntrySurface {...dropProps} linkImport={linkImport} />
+        </div>
+        <p className="text-ink-faint mt-3 text-center text-[12.5px] leading-relaxed">
+          Keep this tab open and Send in the panel brings the conversation here.
+        </p>
       </div>
     </section>
   );

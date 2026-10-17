@@ -3,7 +3,7 @@
  * FAQPage JSON-LD from the route, so it lives in its own module.
  *
  * Vendor statements, read 2026-10-13 and pinned in src/data/vendor-caps.json:
- * OpenAI's supported-types article (8983675) and File Uploads FAQ (8555545),
+ * OpenAI's uploads article (8555545, supported types and quota),
  * the OpenAI_Support reply of 2026-09-16 on community thread 1381613 (a staff
  * forum reply, never stated as a help-center article), Anthropic's upload
  * article (8241126) and Google's Gemini upload article (14903178). Project

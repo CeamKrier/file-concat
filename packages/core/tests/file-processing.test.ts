@@ -59,13 +59,19 @@ describe("classifyBytes", () => {
     expect(result.text).toBe(source);
   });
 
-  it("flags partly-garbled text (middle band) as ambiguous, still decoded", () => {
+  it("calls text with over 2% control bytes binary, whatever else it holds", () => {
     const ascii = "function totals() { return sum; } // ".repeat(3);
     const control = "\x01\x02\x03\x04\x05\x06\x07\x08\x0e\x0f\x10\x11\x12\x13";
-    const source = ascii + control;
-    const result = classifyBytes(new TextEncoder().encode(source));
+    const result = classifyBytes(new TextEncoder().encode(ascii + control));
+    expect(result.classification).toBe("binary");
+  });
+
+  it("flags text whose encoding nothing names as ambiguous, still decoded", () => {
+    const bytes = new Uint8Array(Buffer.from("caf\u00e9 cr\u00e8me br\u00fbl\u00e9e\n".repeat(20), "latin1"));
+    const result = classifyBytes(bytes);
     expect(result.classification).toBe("ambiguous");
-    expect(result.text).toContain("function totals");
+    expect(result.guessed).toBe("fallback");
+    expect(result.text).toContain("caf\u00e9");
   });
 
   it("treats empty input as text", () => {
@@ -211,9 +217,8 @@ describe("validateFile", () => {
   });
 
   it("keeps an ambiguous-content file valid but flags its classification", async () => {
-    const ascii = "function totals() { return sum; } // ".repeat(3);
-    const control = "\x01\x02\x03\x04\x05\x06\x07\x08\x0e\x0f\x10\x11\x12\x13";
-    const file = new File([new TextEncoder().encode(ascii + control)], "app.log");
+    const bytes = new Uint8Array(Buffer.from("caf\u00e9 cr\u00e8me br\u00fbl\u00e9e\n".repeat(20), "latin1"));
+    const file = new File([bytes], "app.log");
     const result = await validateFile(file, {
       maxFileSizeMB: 10,
       excludeHiddenFiles: false,

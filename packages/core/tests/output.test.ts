@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SaxesParser } from "saxes";
-import { assembleOutput } from "../src/file-processing/output";
+import { assembleOutput, assembleOutputHead } from "../src/file-processing/output";
 import { generateFileTree } from "../src/path-utils/file-tree";
 
 const files = [
@@ -498,5 +498,25 @@ describe("assembleOutput recognition note", () => {
     expect(line).toContain("scans/9.pdf");
     expect(line).not.toContain("scans/10.pdf");
     expect(line).toContain("+3 more");
+  });
+});
+
+describe("assembleOutputHead", () => {
+  // Backticks and a CDATA end in the later files: the two places where a
+  // file's text changes its own wrapper (the fence, the CDATA split).
+  const many = Array.from({ length: 40 }, (_, i) => ({
+    path: `src/f${i}.ts`,
+    content: `const s${i} = "${"x".repeat(i * 7)}"; // \`\`\`\` ]]> ${i}\n`,
+  }));
+  const manyTree = generateFileTree(many.map((f) => f.path));
+
+  it.each(["xml", "markdown", "plain"] as const)("starts like the full %s bundle", (style) => {
+    const options = { projectName: "demo", files: many, tree: manyTree, style };
+    const full = assembleOutput(options);
+    for (const chars of [0, 50, 400, 2000]) {
+      const head = assembleOutputHead(options, chars);
+      expect(head.length).toBeGreaterThanOrEqual(Math.min(chars, full.length));
+      expect(full.startsWith(head.slice(0, chars))).toBe(true);
+    }
   });
 });

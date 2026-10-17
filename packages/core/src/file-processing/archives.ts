@@ -219,28 +219,38 @@ function unicodePath(extra: Uint8Array, name: Uint8Array): string | undefined {
  * Russian) still comes out as CP437 symbols; a locale-guessed code page if the
  * counters show such zips.
  */
-function zipNames(bytes: Uint8Array): Map<string, string> {
-  const names = new Map<string, string>();
+/**
+ * The central directory's records: each entry's general purpose flags (APPNOTE
+ * 4.4.4), raw name and extra field. Empty when there is no end record to find.
+ *
+ * ponytail: a zip64 directory yields nothing; callers fall back to fflate's view.
+ */
+export function* zipDirectory(bytes: Uint8Array): Generator<{ flags: number; name: Uint8Array; extra: Uint8Array }> {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let end = bytes.length - 22;
   const floor = Math.max(0, end - 0xffff);
   while (end >= floor && view.getUint32(end, true) !== 0x06054b50) end--;
-  if (end < floor) return names;
+  if (end < floor) return;
   let count = view.getUint16(end + 10, true);
   let at = view.getUint32(end + 16, true);
-  // ponytail: a zip64 directory keeps fflate's Latin-1 names.
-  if (count === 0xffff || at === 0xffffffff) return names;
-
-  const unflagged: { name: Uint8Array; unicode?: string }[] = [];
+  if (count === 0xffff || at === 0xffffffff) return;
   for (; count > 0 && at + 46 <= bytes.length && view.getUint32(at, true) === 0x02014b50; count--) {
     const nameEnd = at + 46 + view.getUint16(at + 28, true);
     const extraEnd = nameEnd + view.getUint16(at + 30, true);
-    const name = bytes.subarray(at + 46, nameEnd);
-    if (!(view.getUint16(at + 8, true) & 0x800)) {
-      const unicode = unicodePath(bytes.subarray(nameEnd, extraEnd), name);
+    if (extraEnd > bytes.length) return;
+    yield { flags: view.getUint16(at + 8, true), name: bytes.subarray(at + 46, nameEnd), extra: bytes.subarray(nameEnd, extraEnd) };
+    at = extraEnd + view.getUint16(at + 32, true);
+  }
+}
+
+function zipNames(bytes: Uint8Array): Map<string, string> {
+  const names = new Map<string, string>();
+  const unflagged: { name: Uint8Array; unicode?: string }[] = [];
+  for (const { flags, name, extra } of zipDirectory(bytes)) {
+    if (!(flags & 0x800)) {
+      const unicode = unicodePath(extra, name);
       if (unicode !== undefined || name.some((byte) => byte > 0x7f)) unflagged.push({ name, unicode });
     }
-    at = extraEnd + view.getUint16(at + 32, true);
   }
 
   const asUtf8 = unflagged.every((entry) => entry.unicode !== undefined || decodeUtf8(entry.name) !== undefined);

@@ -233,6 +233,25 @@ describe("file-concat CLI", () => {
       expect(written).toContain("notes.txt");
     });
 
+    it("names a password-protected Office file from its own bytes", async () => {
+      const dir = makeTempDir("locked");
+      // The OLE2 header, then the two stream names a password-protected .docx carries.
+      const utf16 = (name: string) => Buffer.from(`${name}\0`, "utf16le");
+      fs.writeFileSync(
+        path.join(dir, "report.docx"),
+        Buffer.concat([
+          Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]),
+          Buffer.alloc(504),
+          utf16("EncryptionInfo"),
+          utf16("EncryptedPackage"),
+        ]),
+      );
+      const result = await runCli([dir, "-o", path.join(makeTempDir("locked-out"), "out.xml"), "--json"]);
+      expect(result.exitCode).toBe(0);
+      expect(JSON.parse(result.stdout).skippedBreakdown.parseFailed).toBe(1);
+      expect(result.stderr).toContain("Skipped (password protected)");
+    });
+
     it("a corrupt document falls back to skippedBreakdown.parseFailed (no crash)", async () => {
       const dir = copyFixture("parse-project");
       fs.rmSync(path.join(dir, "hello.pdf"));
@@ -312,5 +331,28 @@ describe("file-concat CLI", () => {
       expect(written).toContain("public class Foo");
       expect(written).toContain("int x = 1");
     });
+  });
+});
+
+describe("reading by content, never the name", () => {
+  it("keeps text under a binary-sounding name, guesses a legacy encoding and cuts a binary tail", async () => {
+    const dir = makeTempDir("content");
+    const noise = Buffer.from(Array.from({ length: 6000 }, (_, i) => (i * 7919) % 256));
+    // "Привет, мир." in windows-1251, which nothing in the file names.
+    const cp1251 = Buffer.from([0xcf, 0xf0, 0xe8, 0xe2, 0xe5, 0xf2, 0x2c, 0x20, 0xec, 0xe8, 0xf0, 0x2e, 0x0a]);
+    fs.writeFileSync(path.join(dir, "levels.dat"), "level one\nlevel two\n");
+    fs.writeFileSync(path.join(dir, "privet.txt"), Buffer.concat(Array(40).fill(cp1251)));
+    fs.writeFileSync(path.join(dir, "noise.xyz"), noise);
+    fs.writeFileSync(path.join(dir, "log.txt"), Buffer.concat([Buffer.from("start of log\n".repeat(1000)), noise]));
+    const outFile = path.join(makeTempDir("content-out"), "out.xml");
+    const result = await runCli([dir, "-o", outFile, "--json"]);
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.stdout).skippedBreakdown.binary).toBe(1);
+    const written = fs.readFileSync(outFile, "utf-8");
+    expect(written).toContain("level two");
+    expect(written).toContain("Привет, мир.");
+    expect(written).toContain("start of log");
+    expect(written).toMatch(/binary data after .+ left out/);
+    expect(result.stderr).toContain("privet.txt");
   });
 });

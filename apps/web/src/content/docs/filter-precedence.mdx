@@ -32,7 +32,10 @@ Two kinds of path are left out before a byte of them is read:
 - **A file whose extension never holds text**: fonts, audio and video,
   compiled code and libraries (`.o`, `.dll`, `.class`, `.pyc`, `.jar`),
   databases, and data or model files. Images are not on this list: a
-  dropped image gets the recognition offer instead.
+  dropped image gets the recognition offer instead. Neither is an
+  extension a text format also uses (`.dat`, `.mat`, `.nc`, `.obj`,
+  `.orc`, `.pdb`, `.pkl`, `.pt`, `.res`): those files are read, and their
+  bytes decide whether they are text.
 
 Until 2026-09-15 only `.git` and `node_modules` were pruned here, and
 everything else was read into memory first and hidden by the pattern
@@ -89,7 +92,7 @@ is why pattern changes feel instantaneous even on large drops.
 
 ## Layer 3: pattern layer
 
-Two textareas in the **Adjust what's included** drawer drive this layer:
+Two textareas in the **Patterns** section of the Files pane drive this layer:
 
 - **Include** is a comma-separated list of glob patterns. Empty means
   every surviving file passes.
@@ -118,7 +121,7 @@ more detail.
 
 ## Layer 4: manual overrides
 
-Every checkbox in the drawer's file tree writes to a sticky map called
+Every checkbox in the pane's file tree writes to a sticky map called
 `userToggled`. An entry for a path can be `"include"` or `"exclude"`,
 and either value wins over whatever the pattern layer decided.
 
@@ -127,9 +130,12 @@ file's state matches the pattern decision anyway, the entry is removed
 instead of recorded. So the override map stays small and tracks only
 the deliberate exceptions.
 
-Pattern edits never touch this map, so a preset chip click or an
-include rewrite cannot accidentally lose your individual decisions.
-Starting over clears the bundle and the overrides together.
+The pane's bulk actions (**Take out N**, **Keep only these N** and the
+**By type** chips) write here too, one entry per file. Pattern edits
+never touch this map, so an include rewrite cannot accidentally lose
+your individual decisions. **Reset to defaults** clears it on purpose,
+with an Undo. Starting over clears the bundle and the overrides
+together.
 
 ## Worked example
 

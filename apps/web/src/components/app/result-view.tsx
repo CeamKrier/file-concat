@@ -78,7 +78,7 @@ type ResultViewProps = {
   /** Readable text held back by a default rule. Hidden dotfiles, since the size cap went. */
   skippedByDefault: UnsupportedFile[];
   /** Included files that decoded as "ambiguous" — kept in, but worth a look. */
-  flaggedFiles: string[];
+  flaggedFiles: { name: string; why?: string; action?: ReactNode }[];
   /** Included files whose text was extracted from a document (PDF/Office/ODF). */
   extractedFiles: string[];
   /** Included documents that lost whole pages on the way out, and what is missing. */
@@ -112,9 +112,9 @@ type ResultViewProps = {
   readLanguageNote: string | null;
   /** Open the reading dialog, where every recognition action lives. */
   onCheckReading: () => void;
-  /** Open the "Adjust what's included" drawer. */
+  /** Open the Files pane ("Adjust what's included"). */
   onAdjust: () => void;
-  /** Open the same drawer, scrolled to the model picker. */
+  /** Open the model sheet, where the picker and the cost estimate live. */
   onChangeModel: () => void;
   bigBundle: boolean;
   /** How heavy the bundle turned out, on both the model and browser axes. */
@@ -126,7 +126,8 @@ type ResultViewProps = {
 };
 
 const fmt = new Intl.NumberFormat("en-US");
-const PREVIEW_LIMIT = 4000;
+/** The preview shows this many characters; the flow assembles no more than it needs. */
+export const PREVIEW_LIMIT = 4000;
 const STYLE_LABEL: Record<OutputStyle, string> = {
   xml: "xml",
   markdown: "markdown",
@@ -499,8 +500,8 @@ export function ResultView({
         count: flaggedFiles.length,
         label: "flagged",
         tone: "warn",
-        lead: "In the bundle, but they did not decode cleanly. If the preview below looks garbled, drop them.",
-        items: flaggedFiles.map((name) => ({ name })),
+        lead: "In the bundle, read in an encoding nothing in them named, or cut where binary data starts. Each row says which. If the letters look wrong, pick another encoding.",
+        items: flaggedFiles,
       },
       {
         key: "left",
@@ -769,7 +770,7 @@ export function ResultView({
           <span className="text-ink-muted font-mono text-[11px] sm:ml-auto">
             {STYLE_LABEL[outputStyle]} ·{" "}
             {truncated
-              ? `first ${fmt.format(PREVIEW_LIMIT)} of ${fmt.format(previewText.length)} characters`
+              ? `first ${fmt.format(PREVIEW_LIMIT)} characters`
               : `${fmt.format(previewText.length)} characters`}
           </span>
         </div>
@@ -916,7 +917,7 @@ function usd(amount: number) {
 
 /** A real bundle that rounds to zero is not zero, and "0%" reads as a broken
  * readout rather than a small one. */
-function shareText(ratio: number) {
+export function shareText(ratio: number) {
   const percent = Math.round(ratio * 100);
   return `${percent < 1 ? "<1" : percent}%`;
 }
@@ -1157,7 +1158,7 @@ export function FileGroups({
 // list (scroll-capped) so a long list is never silently truncated.
 const PREVIEW_ROWS = 6;
 
-function FileRows({ items }: { items: { name: string; why?: string }[] }) {
+function FileRows({ items }: { items: { name: string; why?: string; action?: ReactNode }[] }) {
   const [expanded, setExpanded] = useState(false);
   const shown = expanded ? items : items.slice(0, PREVIEW_ROWS);
   return (
@@ -1175,6 +1176,7 @@ function FileRows({ items }: { items: { name: string; why?: string }[] }) {
           <li key={f.name} className="flex flex-wrap items-baseline gap-x-3.5 gap-y-0.5 font-mono text-xs">
             <span className="text-code min-w-0 flex-1 truncate">{f.name}</span>
             {f.why && <span className="text-ink-muted min-w-0">{f.why}</span>}
+            {f.action}
           </li>
         ))}
       </ul>

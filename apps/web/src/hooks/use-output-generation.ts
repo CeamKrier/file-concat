@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   ExcludedSummary,
   OutputFormat,
@@ -9,7 +9,6 @@ import {
   MULTI_OUTPUT_LIMIT,
   SPLIT_OUTPUT_ENABLED,
   assembleOutput,
-  formatSize,
   generateFileTree,
   generateProjectName,
 } from "@fileconcat/core";
@@ -43,7 +42,6 @@ export interface OutputGenerationInputs {
 export interface OutputGeneration {
   recommendedFormat: OutputFormat;
   selectedFormat: OutputFormat;
-  estimations: { single: string; multiple: string };
   isCopied: boolean;
   isGenerating: boolean;
   canEmit: boolean;
@@ -73,28 +71,6 @@ export function useOutputGeneration({
     : formatPreference === "auto"
       ? recommendedFormat
       : formatPreference;
-
-  const chunks = useMemo(
-    () => chunkContents(includedContents, chunkSizeKB * 1024),
-    [includedContents, chunkSizeKB],
-  );
-
-  const estimations = useMemo(() => {
-    const total = includedContents.reduce(
-      (acc, file) => acc + new TextEncoder().encode(file.content).length,
-      0,
-    );
-    const single = `~${formatSize(total)}`;
-
-    if (chunks.length === 0) return { single, multiple: "0 files" };
-    const sizes = chunks.map((chunk) =>
-      chunk.reduce((acc, file) => acc + new TextEncoder().encode(file.content).length, 0),
-    );
-    const avg = Math.ceil(sizes.reduce((a, b) => a + b, 0) / sizes.length);
-    const partWord = chunks.length === 1 ? "file" : "files";
-    const multiple = `${chunks.length} ${partWord}, ~${formatSize(avg)} each`;
-    return { single, multiple };
-  }, [includedContents, chunks]);
 
   /**
    * The bundle's size is recorded once, when the bundle first exists — not when
@@ -182,6 +158,9 @@ export function useOutputGeneration({
         return true;
       }
 
+      // Chunked here, not on every selection change: encoding every file to
+      // size it took a big drop's tree toggle into seconds of frozen screen.
+      const chunks = chunkContents(includedContents, chunkSizeKB * 1024);
       const total = chunks.length;
       for (let i = 0; i < total; i++) {
         const { projectName, text } = buildSingle(chunks[i], { index: i + 1, total });
@@ -205,7 +184,7 @@ export function useOutputGeneration({
     } finally {
       setIsGenerating(false);
     }
-  }, [selectedFormat, includedContents, chunks, buildSingle, outputStyle]);
+  }, [selectedFormat, includedContents, chunkSizeKB, buildSingle, outputStyle]);
 
   // Format and chunk size are persisted preferences (owned by useConfig), so a
   // fresh ingest only clears the transient emit state — not the user's choices.
@@ -217,7 +196,6 @@ export function useOutputGeneration({
   return {
     recommendedFormat,
     selectedFormat,
-    estimations,
     isCopied,
     isGenerating,
     canEmit: includedContents.length > 0,

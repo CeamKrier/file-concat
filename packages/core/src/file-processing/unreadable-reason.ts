@@ -27,6 +27,9 @@ export interface UnreadableReason {
 /** The catch-all. */
 export const GENERIC_UNREADABLE_LABEL = "Binary file";
 
+/** Bytecode, object files and executables: the source they came from is the readable copy. */
+export const COMPILED_LABEL = "Compiled code or library";
+
 /**
  * Labels the bundle note keeps under "image or binary": nothing to name, or an
  * image, which has its own recognition offer on screen and needs no line here.
@@ -43,8 +46,8 @@ const FAMILIES: ReadonlyArray<readonly [label: string, extensions: readonly stri
     ["mp3", "wav", "flac", "ogg", "oga", "m4a", "aac", "mp4", "m4v", "webm", "mkv", "avi", "mov", "wmv", "mid", "midi"],
   ],
   [
-    "Compiled code or library",
-    ["pyc", "pyo", "pyd", "o", "obj", "a", "lib", "so", "dll", "dylib", "exe", "pdb", "class", "jar", "dex", "apk", "aab", "arsc", "flat", "wasm", "node", "rlib", "rmeta", "ilk", "exp", "res"],
+    COMPILED_LABEL,
+    ["pyc", "pyo", "pyd", "o", "obj", "a", "lib", "so", "dll", "dylib", "exe", "pdb", "class", "jar", "dex", "apk", "aab", "arsc", "flat", "wasm", "node", "rlib", "rmeta", "ilk", "exp", "res", "elf", "macho"],
   ],
   ["Database file", ["db", "sqlite", "sqlite3", "db-wal", "db-shm", "sqlite-wal", "sqlite-shm", "mdb", "accdb", "ldb"]],
   [
@@ -64,13 +67,24 @@ const SUBTITLE_CONTAINERS: ReadonlySet<string> = new Set(["mp4", "m4v", "mov", "
 const SPEECH_AUDIO: ReadonlySet<string> = new Set(["mp3", "wav", "flac", "ogg", "oga", "m4a", "aac"]);
 
 /**
- * Every extension the families above name: a file that never holds text, so
- * the web walk drops it before its first byte is read (`prunedAtWalk`). Images
+ * Extensions above that a text format also uses, so their bytes decide: a
+ * GitHub linguist language lists each of mat, nc, obj, orc, pkl, pt and res,
+ * and the `unreadable_ext` counter showed text under dat and pdb. The families
+ * still name them when the bytes do turn out binary.
+ */
+const SHARED_WITH_TEXT: ReadonlySet<string> = new Set(["dat", "mat", "nc", "obj", "orc", "pdb", "pkl", "pt", "res"]);
+
+/**
+ * Every extension the families above name that no text format uses, so the
+ * web walk drops it before its first byte is read (`prunedAtWalk`): reading
+ * each one instead took a 10,000-file .pyc drop from 2.7 s to 15-19 s. Images
  * are deliberately not here, since a dropped image gets the recognition offer,
  * and neither is audio or a video that can carry speech, for the same reason.
  */
 export const NEVER_TEXT_EXTENSIONS: ReadonlySet<string> = new Set(
-  FAMILIES.flatMap(([, extensions]) => extensions).filter((ext) => !SUBTITLE_CONTAINERS.has(ext) && !SPEECH_AUDIO.has(ext)),
+  FAMILIES.flatMap(([, extensions]) => extensions).filter(
+    (ext) => !SUBTITLE_CONTAINERS.has(ext) && !SPEECH_AUDIO.has(ext) && !SHARED_WITH_TEXT.has(ext),
+  ),
 );
 
 // Every routed audio and video format is offered for speech to text on the web
@@ -199,8 +213,11 @@ export function unreadableReason(path: string, route?: FileRoute): UnreadableRea
       return { label: `.${ext} archive the browser can't open`, remedy: ARCHIVE_REMEDY };
   }
 
+  // The detector's own name for bytes the router left to the classifier
+  // (sqlite, elf, class), for a file whose extension says nothing.
+  const named = route?.kind === "unknown" ? route.format : undefined;
   for (const [label, extensions] of FAMILIES) {
-    if (extensions.includes(ext)) return { label };
+    if (extensions.includes(ext) || (named && extensions.includes(named))) return { label };
   }
   return { label: GENERIC_UNREADABLE_LABEL };
 }

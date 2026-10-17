@@ -118,7 +118,10 @@ function enqueue(event: QueuedEvent): void {
   queue.push(event);
   attachUnloadHook();
 
-  if (queue.length >= MAX_EVENTS_PER_FLUSH) {
+  // An event written while the page is hidden (a session closed by leaving the
+  // tab) would otherwise wait on a timer a backgrounded page may never run.
+  const hidden = typeof document !== "undefined" && document.visibilityState === "hidden";
+  if (queue.length >= MAX_EVENTS_PER_FLUSH || hidden) {
     flush();
     return;
   }
@@ -161,6 +164,12 @@ function attachUnloadHook(): void {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") flush();
   });
+}
+
+/** A click on a Chrome Web Store link for the Clipper. The link opens a new
+ * tab, so this page hides and the visibilitychange flush sends the row. */
+export function trackStoreClick(): void {
+  track("cta_clicked", "clipper_store");
 }
 
 /** Record one label-only event. Safe to call anywhere: a no-op during SSR. */
@@ -282,6 +291,26 @@ export function trackEntrySurface(pathname: string, referrer = "", search = ""):
   entrySurfaceRecorded = true;
   track("entry_surface", surfaceLabel(pathname));
   track("entry_source", sourceLabel(referrer, search));
+  track("entry_device", currentDevice());
+}
+
+/**
+ * Three classes from two signals the page already styles by: a touch-first
+ * primary pointer, and the screen's short side (a phone stays under 600 CSS px
+ * either way up; the smallest iPad is 744). No user-agent parsing, no new
+ * identifier: three values carry less than the referrer label beside it.
+ * Exported for its test.
+ */
+export function deviceLabel(coarse: boolean, shortSide: number): string {
+  if (!coarse) return "desktop";
+  return shortSide < 600 ? "mobile" : "tablet";
+}
+
+function currentDevice(): string {
+  const coarse =
+    typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+  const shortSide = typeof screen === "undefined" ? 0 : Math.min(screen.width, screen.height);
+  return deviceLabel(coarse, shortSide);
 }
 
 /**

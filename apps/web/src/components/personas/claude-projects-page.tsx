@@ -1,11 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, ArrowUp, Check, FileStack, Hash } from "lucide-react";
+import { ArrowRight, ArrowUp, FileStack, Hash } from "lucide-react";
 
 import { AppFlow } from "~/components/app/app-flow";
 import { DropZone, type DropZoneProps } from "~/components/app/drop-zone";
 import { InfoCard } from "~/components/app/info-card";
 import { MarketingSection } from "~/components/app/marketing/section";
-import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
+import { FurtherReading, HeroFootnote, MockWindow, ProseLink } from "~/components/app/marketing";
 
 import { CLAUDE_PROJECTS_FAQ } from "./claude-projects-faq";
 
@@ -38,11 +38,12 @@ function ClaudeProjectsLanding(dropProps: DropZoneProps) {
   );
 }
 
-const TRUST = [
-  "See the token count before you add it",
-  "PDFs and Office docs read in your browser",
-  "No sign-up, files not uploaded to us",
-];
+/** The hero's answer line, read on 2026-10-17 at the Claude help center's RAG
+ * article (pinned in vendor-caps.json): RAG is on Pro, Max, Team and Enterprise,
+ * and it switches on "when your project knowledge approaches the context window
+ * limit". Half of this page's named searches ask what happens near capacity, so
+ * the hero answers that first. Move the date when it is read again. */
+const RAG_CHECKED = "October 2026";
 
 function Hero({ dropProps }: { dropProps: DropZoneProps }) {
   return (
@@ -58,28 +59,9 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
             Fix "Project knowledge exceeds maximum" in Claude.
           </h1>
 
-          <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
-            Claude shows this when a project's files no longer fit. It limits a project by total
-            size, not by file count, so the fix is choosing what to leave out. Drop the folder here.
-            Every file and folder shows its size, and the token count updates as you take things
-            out. What remains comes back as one file you know fits.
+          <p className="text-ink-secondary mt-5 max-w-[52ch] text-[17px] leading-relaxed">
+            Paid plans switch to RAG near the limit. Past it, see which files to cut.
           </p>
-
-          <ul className="mt-6 space-y-2">
-            {TRUST.map((t) => (
-              <li key={t} className="text-ink-secondary flex items-center gap-2 text-[14px]">
-                <Check className="text-primary h-4 w-4 shrink-0" strokeWidth={2.5} />
-                {t}
-              </li>
-            ))}
-          </ul>
-
-          <a
-            href="#example"
-            className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background mt-6 inline-flex rounded-sm text-[13px] underline decoration-[oklch(var(--border-strong))] underline-offset-[3px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-          >
-            See a worked example
-          </a>
         </div>
 
         <div className="min-w-0">
@@ -88,6 +70,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
             title="Drop your folder here"
             hint="Everything for your Project, read in your browser."
           />
+          <HeroFootnote source="Claude help center" checked={RAG_CHECKED} />
         </div>
       </div>
     </section>
@@ -257,7 +240,7 @@ const STEPS = [
   },
   {
     title: "Leave out what it does not need",
-    body: "Open Adjust what's included: every file and folder shows its size. Click a row to take it out and the token count updates. Dependencies, lock files and build output are left out already.",
+    body: "Open Adjust what's included: every file and folder shows its share of the text. Click a row to take it out and the token count updates. Dependencies, lock files and build output are left out already.",
   },
   {
     title: "Add the one file once it fits",

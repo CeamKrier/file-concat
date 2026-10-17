@@ -12,7 +12,19 @@
 import { currentRun, trackAmount } from "~/lib/metrics";
 
 /** Which control a press landed on. Mirrors the `tree_press` value list. */
-export type TreePress = "row-file" | "row-folder" | "box-file" | "box-folder" | "arrow";
+export type TreePress =
+  | "row-file"
+  | "row-folder"
+  | "box-file"
+  | "box-folder"
+  | "arrow"
+  | "key"
+  | "search"
+  | "match-out"
+  | "match-keep"
+  | "type-chip"
+  | "reset"
+  | "undo";
 
 /** A folder flipped back inside this window reads as an accident, not a decision. */
 const UNDO_WINDOW_MS = 10_000;
@@ -71,4 +83,20 @@ export function flushTreeInteractions(): void {
   for (const [kind, n] of presses) trackAmount("tree_press", { value: kind, n });
   if (revertedFiles > 0) trackAmount("tree_reverted", { n: revertedFiles });
   reset();
+}
+
+/** When the open editing session started; outside `reset`, which only clears the tally. */
+let curateStarted: number | null = null;
+
+export function beginCurate(): void {
+  curateStarted = Date.now();
+}
+
+/** Writes `curate_end` once for the session `beginCurate` opened. */
+export function endCurate(how: "closed" | "left"): void {
+  if (curateStarted === null) return;
+  const seconds = Math.round((Date.now() - curateStarted) / 1000);
+  curateStarted = null;
+  if (sync() === null) return;
+  trackAmount("curate_end", { value: how, n: seconds });
 }

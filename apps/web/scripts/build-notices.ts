@@ -26,6 +26,7 @@ const OUT = "dist/client/third-party-notices.txt";
 const WASM_NOTICES: Record<string, string> = {
   "7zz": "licenses/7z-wasm.txt",
   anydoc_wasm_bg: "licenses/anydoc-wasm.txt",
+  chardetng_wasm_bg: "licenses/chardetng-wasm.txt",
   jbig2: "licenses/pdfjs-jbig2.txt",
   liteparse_wasm_bg: "licenses/liteparse-wasm.txt",
   openjpeg: "licenses/pdfjs-openjpeg.txt",

@@ -24,6 +24,14 @@ export const METRIC_EVENTS = [
    * are read in the tab and dropped.
    */
   "entry_source",
+  /**
+   * The device class of the visit: `mobile`, `tablet` or `desktop`, from
+   * `deviceLabel` in `./metrics`. Written under the same once-per-page-load guard
+   * as `entry_surface`, so the funnel splits by device through the page id. Only
+   * the label leaves the browser; the pointer and screen size it is read from
+   * do not.
+   */
+  "entry_device",
   /** Which remote source was imported: github | gitlab | bitbucket | gist | url. */
   "source_used",
   /**
@@ -160,6 +168,13 @@ export const METRIC_EVENTS = [
    * failure has never appeared in the data at all.
    */
   "read_failed",
+  /**
+   * Text files read in an encoding other than UTF-8, one row per encoding as
+   * `TextDecoder` names it (`windows-1251`, `shiftjis`, `utf-16le`): `n` files
+   * totalling `b` bytes. Says how often the encoding guesser and the per-file
+   * picker are needed at all, and for which languages.
+   */
+  "text_encoding",
   /** A format we do support whose reader returned nothing (scanned or encrypted). The OCR business case. */
   "extract_failed",
   /**
@@ -247,6 +262,14 @@ export const METRIC_EVENTS = [
    * the denominator for "how many Runs got as far as choosing".
    */
   "output_style",
+  /**
+   * A call to action that leaves the page: `clipper_store`, the Chrome Web
+   * Store link on /clipper and /how-to/chatgpt-conversation-too-long. That
+   * page's remedy is the extension, so a drop never shows that it worked and
+   * this click is the only visible step. The value set is closed; the store
+   * says nothing back about whether the install happened.
+   */
+  "cta_clicked",
   /**
    * A format whose text recognition recovered: `n` files totalling `b` bytes.
    *
@@ -362,13 +385,25 @@ export const METRIC_EVENTS = [
    */
   "empty_reason",
   /**
+   * Which empty screen a Run reached, by title: the `EmptyKind` slug from
+   * `components/app/empty-kind.ts`, or `unreadable` when the generic screen
+   * listed files nobody could read. Once per Run, beside `empty_reason`.
+   */
+  "empty_kind",
+  /**
+   * On the `unreadable` empty screen, how many files each reason group held:
+   * value one of `UNREADABLE_CODES` (`encrypted`, `damaged`, `no-reader`,
+   * `compiled`, `no-text`, `binary`, `read-failed`), `n` files. Once per Run.
+   */
+  "unreadable_reason",
+  /**
    * Files someone moved by hand in the file tree: `n` of them, by which way they
    * moved - `include` forced back in, `exclude` taken out. The two say opposite
    * things about the default noise list, so one number for both would say
    * neither.
    *
-   * Written when the settings drawer closes, which is where every curation
-   * control lives and so the end of an editing session. A reopen writes the
+   * Written when the Files pane closes or the page is hidden with it open,
+   * the end of an editing session (`curate_end`). A reopen writes the
    * increase since the last close rather than the whole count again, so
    * `SUM(n)` over a Run is the high-water mark of overrides while the Run count
    * is "Runs where anyone trimmed at all". Nothing is written when the tree was
@@ -382,9 +417,11 @@ export const METRIC_EVENTS = [
    */
   "tree_edit",
   /**
-   * The settings drawer was opened, and by which door: `adjust` the result's
-   * "Adjust what's included", `empty` the same offer on the nothing-combined
-   * screen, `model` the result's context-fit line asking for the picker.
+   * A panel was opened, and by which door: `adjust` the result's "Adjust
+   * what's included", `empty` the same offer on the nothing-combined screen,
+   * both opening the Files pane, and `model` the result's context-fit line
+   * opening the model sheet. One settings drawer held all three until
+   * 2026-10-17; the name and doors were kept so the series stays continuous.
    *
    * **The denominator every other drawer counter was missing.** `tree_edit`,
    * `tree_press`, `filter_edited` and `model_picked` are all written from inside
@@ -399,7 +436,8 @@ export const METRIC_EVENTS = [
   "drawer_opened",
   /**
    * Which file-tree control a press landed on, `n` presses each: `row-file` /
-   * `row-folder` a click anywhere on the row, `box-file` / `box-folder` a click
+   * `row-folder` a click anywhere on the row, `key` Space on a focused row,
+   * `box-file` / `box-folder` a click
    * on the tri-state checkbox itself, `arrow` the chevron cluster that opens a
    * folder.
    *
@@ -415,8 +453,16 @@ export const METRIC_EVENTS = [
    * tree, not curating it. That is also the only evidence for whether
    * auto-expanding every folder on load is the right default.
    *
-   * Written at drawer close beside `tree_edit`, from a tally the tree keeps
-   * itself, so a two-hundred-file sweep costs one row rather than one per file.
+   * The Files pane's other controls ride here too, one press each: `search` the
+   * first filter text of a session (typing is not a press, so once), `match-out`
+   * and `match-keep` "Take out N" and "Keep only these N" on the filter's
+   * matches, `type-chip` a By type chip, `reset` "Reset to defaults", `undo`
+   * the Undo after any of those. Like a folder press, one of them can move
+   * thousands of files.
+   *
+   * Written at pane close (or page hidden, see `curate_end`) beside
+   * `tree_edit`, from a tally the tree keeps itself, so a two-hundred-file
+   * sweep costs one row rather than one per file.
    */
   "tree_press",
   /**
@@ -444,10 +490,26 @@ export const METRIC_EVENTS = [
    */
   "tree_reverted",
   /**
+   * How an editing session in the file controls ended, and `n` the whole
+   * seconds it lasted: `closed` when the visitor closed the panel, `left` when
+   * the page was hidden while it was open (tab closed or switched away).
+   *
+   * **The difference between finishing and giving up.** `tree_edit`,
+   * `tree_press` and `tree_reverted` used to be written only on close, so a
+   * visitor who trimmed and then closed the tab wrote none of them and looked
+   * like somebody who never opened the panel. They are now written on `left`
+   * too. Read `left` with no later `output_taken` as gave up inside curation,
+   * `closed` with none as finished and still did not take the bundle.
+   *
+   * Coming back to the tab starts a new session, so one Run can carry several.
+   * Label and count only (ADR-0014): no path, no pattern, no file name.
+   */
+  "curate_end",
+  /**
    * Someone changed what the filters do: `ignore` or `include` for a typed
-   * pattern, `preset` for a quick-preset chip. The chip rewrites both lists in
-   * one press and is a different act from typing, so it carries its own value or
-   * the two populations merge into one meaningless number.
+   * pattern. `preset` was a quick-preset chip, which rewrote both lists in one
+   * press; the chips were removed on 2026-10-17 (10 of the 24 Runs that used
+   * one left without exporting), so the value stops there.
    *
    * Once per Run per value. These are `onChange` handlers on text boxes and a
    * naive emit would write a row per character.

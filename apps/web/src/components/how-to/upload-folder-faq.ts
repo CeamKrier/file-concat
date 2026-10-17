@@ -3,8 +3,8 @@
  * FAQPage JSON-LD from the route, so it lives in its own module.
  *
  * Vendor statements are from OpenAI's help center, read on 2026-09-24 and
- * pinned in src/data/vendor-caps.json: the supported-types article
- * (8983675), the Projects article (10169521, Drive folder links), the Library
+ * pinned in src/data/vendor-caps.json: the supported-types table (now in
+ * the uploads article, 8555545), the Projects article (10169521, Drive folder links), the Library
  * article (20001052) and the File Uploads FAQ (8555545, the upload quota).
  * The Drive-folder behaviour is our own 2026-09-14 test, the same one
  * /for/chatgpt-projects cites. ZIP questions live in upload-zip-faq.ts since

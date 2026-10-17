@@ -10,6 +10,7 @@ import { ResearchSection } from "./research-section";
 export { SiteFooter } from "./site-footer";
 export { MockWindow } from "./mock-window";
 export { FurtherReading, ProseLink } from "./further-reading";
+export { HeroFootnote } from "./hero-footnote";
 
 /**
  * The marketing stack below the hero, landing view only. The order is the

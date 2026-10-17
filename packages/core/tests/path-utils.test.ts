@@ -167,6 +167,10 @@ describe("prunedAtWalk", () => {
     expect(prunedAtWalk("proj/package-lock.json")).toBe(false);
     expect(prunedAtWalk("proj/src/api.test.ts")).toBe(false);
     expect(prunedAtWalk("proj/server.log")).toBe(false);
+    // A text format shares each of these, so the bytes decide, never the name.
+    for (const ext of ["dat", "mat", "nc", "obj", "orc", "pdb", "pkl", "pt", "res"]) {
+      expect(prunedAtWalk(`data/file.${ext}`)).toBe(false);
+    }
     // A file named like a pruned directory is a file, not a directory.
     expect(prunedAtWalk("scripts/build")).toBe(false);
     expect(prunedAtWalk(".gitignore")).toBe(false);

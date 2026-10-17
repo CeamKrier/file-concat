@@ -173,7 +173,7 @@ describe("routeBytes", () => {
     expect(await routeBytes(new Uint8Array([...strToU8("OggS"), 0x00, 0x02, ...Array(32).fill(0)]))).toEqual({ kind: "binary", format: "ogg" });
     const utf16 = new Uint8Array([0xff, 0xfe, ...new Uint8Array(new Uint16Array([...("plain text\n")].map((c) => c.charCodeAt(0))).buffer)]);
     expect((await routeBytes(utf16)).kind).not.toBe("binary");
-    expect(await routeBytes(utf8("ID3 tags hold the title of a song.\n"))).toEqual({ kind: "unknown" });
+    expect(await routeBytes(utf8("ID3 tags hold the title of a song.\n"))).toMatchObject({ kind: "unknown" });
   });
 
   it("names Matroska and WebM, which share the EBML header", async () => {
@@ -189,10 +189,10 @@ describe("routeBytes", () => {
 
   it("abstains on XML and SVG rather than calling recognized-but-textual binary", async () => {
     const xml = utf8(`<?xml version="1.0"?><root><item>text</item></root>`);
-    expect(await routeBytes(xml)).toEqual({ kind: "unknown" });
+    expect(await routeBytes(xml)).toMatchObject({ kind: "unknown" });
 
     const svg = utf8(`<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>`);
-    expect(await routeBytes(svg)).toEqual({ kind: "unknown" });
+    expect(await routeBytes(svg)).toMatchObject({ kind: "unknown" });
   });
 
   it("routes a page a browser saved, and leaves HTML source alone", async () => {

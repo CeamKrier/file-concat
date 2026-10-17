@@ -8,11 +8,12 @@ import {
   generateProjectName,
   assembleOutput,
   createGitignoreMatcher,
-  BINARY_EXTENSIONS,
   canExpandArchive,
   classifyBytes,
   expandArchive,
+  isEncryptedContainer,
   isPasswordProtected,
+  matchTextualSignature,
   routeBytes,
   ROUTER_SNIFF_BYTES,
   addLineNumbers,
@@ -21,6 +22,7 @@ import {
   type ExcludedSummary,
 } from "@fileconcat/core";
 import { loadConfig, type FileConcatConfig } from "../config.js";
+import { encodingGuesser } from "../encoding-guess.js";
 import { parsers } from "../parsers.js";
 
 interface ConcatOptions {
@@ -49,9 +51,9 @@ type Source =
   | { origin: "disk"; path: string; fullPath: string; size: number }
   | { origin: "archive"; path: string; bytes: Uint8Array; size: number };
 
-function readPrefix(source: Source): Uint8Array {
-  if (source.origin === "archive") return source.bytes.subarray(0, ROUTER_SNIFF_BYTES);
-  const length = Math.min(ROUTER_SNIFF_BYTES, source.size);
+function readPrefix(source: Source, bytes = ROUTER_SNIFF_BYTES): Uint8Array {
+  if (source.origin === "archive") return source.bytes.subarray(0, bytes);
+  const length = Math.min(bytes, source.size);
   const buffer = Buffer.alloc(length);
   const fd = fs.openSync(source.fullPath, "r");
   try {
@@ -61,6 +63,9 @@ function readPrefix(source: Source): Uint8Array {
   }
   return buffer;
 }
+
+/** Past the router's prefix, the bytes that confirm a binary verdict before a file is dropped. */
+const CONFIRM_BYTES = ROUTER_SNIFF_BYTES + 65536;
 
 function readAll(source: Source): Uint8Array {
   return source.origin === "archive" ? source.bytes : fs.readFileSync(source.fullPath);
@@ -241,7 +246,11 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
     // agree on which formats qualify and how the text is pulled.
     if (extract && route.kind === "extract") {
       try {
-        const extracted = await parsers.extract(route.parserId, readAll(source), route.format);
+        const bytes = readAll(source);
+        // A password-protected or rights-managed Office file, a DRM book: named
+        // from its own bytes, before a reader fails on it or reads noise.
+        if (isEncryptedContainer(bytes)) throw new Error("Password protected");
+        const extracted = await parsers.extract(route.parserId, bytes, route.format);
         const { notes } = extracted;
         // The document's own title above its text, when it says something (Q30 O2).
         const text = withTitle(extracted.text, extracted.title, file);
@@ -285,8 +294,14 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
       source.origin === "disk" &&
       canExpandArchive(route.archive)
     ) {
+      const bytes = readAll(source);
+      if (isEncryptedContainer(bytes)) {
+        log.warn(`Skipped (password protected): ${file}`);
+        skipped.parseFailed.push(file);
+        continue;
+      }
       try {
-        const entries = expandArchive(readAll(source), route.archive, path.basename(file));
+        const entries = expandArchive(bytes, route.archive, path.basename(file));
         if (entries.length > 0) {
           const dir = path.dirname(file);
           for (const entry of entries) {
@@ -305,28 +320,42 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
       }
     }
 
-    const ext = path.extname(file).slice(1).toLowerCase();
-    if (excludeBinary && BINARY_EXTENSIONS.includes(ext)) {
-      skipped.binary.push(file);
-      continue;
-    }
     // A media container the router recognized by signature. Skipping here means
-    // a renamed .png is never read whole just to be thrown away.
-    if (excludeBinary && route.kind === "binary") {
+    // a renamed .png is never read whole just to be thrown away. A document or
+    // archive nothing above opened (--no-parse, archives left packed) is not
+    // text either, even when its bytes read as text; a text-shaped one (a
+    // notebook, subtitles, an email) still is.
+    const unopened = route.kind === "expand" || (route.kind === "extract" && !matchTextualSignature(readPrefix(source)));
+    if (excludeBinary && (route.kind === "binary" || unopened)) {
       skipped.binary.push(file);
       continue;
     }
 
     try {
-      // Classify by content, not extension: decodes odd encodings (e.g. UTF-16)
-      // correctly and catches a mislabeled binary the extension list missed.
-      const decoded = classifyBytes(readAll(source));
+      // Classify by content, never the name. A prefix that reads as binary is
+      // confirmed on the next 64 KB, so a binary is dropped without a full read
+      // and a text file with one bad patch near the top is not.
+      if (excludeBinary && classifyBytes(readPrefix(source)).classification === "binary") {
+        if (source.size <= ROUTER_SNIFF_BYTES || classifyBytes(readPrefix(source, CONFIRM_BYTES)).classification === "binary") {
+          skipped.binary.push(file);
+          continue;
+        }
+      }
+      const bytes = readAll(source);
+      let decoded = classifyBytes(bytes);
+      if (decoded.guessed === "fallback") {
+        const guess = await encodingGuesser();
+        if (guess) decoded = classifyBytes(bytes, guess);
+      }
       if (excludeBinary && decoded.classification === "binary") {
         skipped.binary.push(file);
         continue;
       }
-      if (decoded.classification === "ambiguous") {
-        log.warn(`Kept (might be binary): ${file}`);
+      if (decoded.guessed) {
+        log.warn(`Read as ${decoded.encoding} (guessed, nothing in the file named it): ${file}`);
+      }
+      if (decoded.stoppedAt !== undefined) {
+        partial.push({ path: file, notes: [{ kind: "binary-tail", count: decoded.stoppedAt }] });
       }
       processedFiles.push({ path: file, content: decoded.text });
       totalSize += source.size;

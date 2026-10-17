@@ -2,7 +2,7 @@ export { BINARY_EXTENSIONS } from "./binary-extensions";
 export { RECOGNISABLE_IMAGE_FORMATS } from "./binary-signatures";
 export { routeBytes, routeFile, ROUTER_SNIFF_BYTES, EXTRACTED_FORMATS } from "./routing";
 export type { FileRoute } from "./routing";
-export { savedPageUrl } from "./text-signatures";
+export { matchTextualSignature, savedPageUrl } from "./text-signatures";
 export {
   canExpandArchive,
   expandArchive,
@@ -58,15 +58,25 @@ export type {
   PdfPage,
 } from "./parsers";
 export { validateFile } from "./validation";
-export { classifyBytes, readFileAsText } from "./text-classification";
+export { classifyBytes, decodeAs, readFileAsText } from "./text-classification";
 export type { DecodedText, TextClassification } from "./text-classification";
+export { createEncodingGuesser } from "./encoding-guess";
+export type { EncodingGuesser } from "./encoding-guess";
 export { formatSize, calculateTotalSize } from "./size";
 export { addLineNumbers } from "./transform";
-export { assembleOutput, fenceFor } from "./output";
+export { assembleOutput, assembleOutputHead, fenceFor } from "./output";
 export type { OutputStyle, OutputFile, OutputPart, AssembleOutputOptions } from "./output";
 export { summarizeExclusions } from "./exclusions";
-export { unreadableReason, unreadableReasonText, unreadableLabel, NEVER_TEXT_EXTENSIONS } from "./unreadable-reason";
+export {
+  unreadableReason,
+  unreadableReasonText,
+  unreadableLabel,
+  NEVER_TEXT_EXTENSIONS,
+  COMPILED_LABEL,
+  GENERIC_UNREADABLE_LABEL,
+} from "./unreadable-reason";
 export type { UnreadableReason } from "./unreadable-reason";
 export type { ExcludedSummary, ExclusionInput } from "./exclusions";
 export { classifyBundleKind } from "./bundle-kind";
+export { isEncryptedContainer, epubEncryptedPaths } from "./encrypted";
 export type { BundleKind } from "./bundle-kind";

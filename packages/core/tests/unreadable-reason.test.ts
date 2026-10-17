@@ -52,6 +52,11 @@ describe("unreadableReason", () => {
     expect(unreadableReason("no-extension")).toEqual({ label: "Binary file" });
   });
 
+  it("names a binary by the format its bytes carry when the name says nothing", () => {
+    expect(unreadableReason("server", { kind: "unknown", format: "elf" }).label).toBe("Compiled code or library");
+    expect(unreadableReason("server", { kind: "unknown" })).toEqual({ label: "Binary file" });
+  });
+
   it("labels a routed image as an image and the ones recognition cannot read by kind", () => {
     expect(unreadableReason("shot.png", { kind: "binary", format: "png" })).toEqual({ label: "Image" });
     expect(unreadableReason("favicon.ico", { kind: "binary", format: "ico" }).label).toBe("Icon file");
