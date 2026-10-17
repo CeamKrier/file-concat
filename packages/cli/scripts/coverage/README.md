@@ -4,7 +4,7 @@ One file per format, with a unique `QZ...` marker in every construct the format 
 (a footnote, a hidden sheet, a speaker note, a form field). A probe goes through the
 web chain and the output shows, marker by marker, what came through, what was lost and
 what came through wrong. The scored map built from these outputs is kept outside the
-repository; these are its inputs.
+repository; these are its inputs, and `compare/rows.json` holds its auto-scorable rows.
 
 ```bash
 bash packages/cli/scripts/coverage/run.sh <repo root> <outdir>
@@ -42,3 +42,39 @@ Not probed: MOBI/AZW3, PDF AES encryption, Type 3 fonts, Identity-V.
 [Apache Tika](https://github.com/apache/tika) (14), both under the Apache License 2.0.
 `SOURCES.tsv` lists each one with its upstream URL and SHA-256. Every other probe was
 written for this map.
+
+## Against Tika and markitdown
+
+`compare/` scores other extractors on the same probes, for the 2026-10-17 comparison.
+Versions: Apache Tika app 3.3.2 (`--text`, one JVM per file), markitdown 0.1.5, file
+5.45, git 2.43.0, rg 15.2.0.
+
+```bash
+D=packages/cli/scripts/coverage/compare
+git worktree add ../fc-v2.3.0 v2.3.0 && (cd ../fc-v2.3.0 && pnpm install)
+bash packages/cli/scripts/coverage/run.sh . out/fc-HEAD
+bash packages/cli/scripts/coverage/run.sh ../fc-v2.3.0 out/fc-v2.3.0
+TIKA_JAR=tika-app-3.3.2.jar bash $D/run-tools.sh tika packages/cli/scripts/coverage/probes out/tika
+bash $D/run-tools.sh markitdown packages/cli/scripts/coverage/probes out/markitdown
+RULE=2 python3 -I $D/score.py $D/rows.json packages/cli/scripts/coverage/probes out $D/prevalence-2026-10-16 report.json
+python3 -I $D/tables.py report.json
+```
+
+`score.py` credits a show or label row when every marker of the row is in the output, and
+a hide row when its marker is absent while the probe still gave QZ output. `tables.py`
+prints the raw and the prevalence-weighted tables and counts raw-source passthrough as not
+read: markitdown printing `.eml` and `.rtf` as their own source, Tika printing `.ipynb` as
+JSON. `prevalence-2026-10-16/` holds, per real file of a format, the map rows it carries
+(from `prevalence/run.mjs` over a Common Crawl sample); a row's weight is its share of
+those files.
+
+The 45 hard files of `packages/core/tests/fixtures/unreadable-corpus.ts`:
+
+```bash
+tsx $D/dump-corpus.mts c45
+TIKA_JAR=tika-app-3.3.2.jar bash $D/run-corpus45.sh c45 out45
+tsx $D/fc-corpus.mts . c45 fc-head.json
+tsx $D/fc-corpus.mts ../fc-v2.3.0 c45 fc-v230.json
+python3 -I $D/score45.py c45 out45 report45.json fc-HEAD=fc-head.json fc-v2.3.0=fc-v230.json
+python3 -I $D/tables.py report.json --json figures.json report45.json
+```

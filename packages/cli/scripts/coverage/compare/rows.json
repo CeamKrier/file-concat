@@ -1,0 +1,8987 @@
+[
+{
+"key": "Word .docx#1",
+"fmt": "Word .docx",
+"id": "1",
+"construct": "body paragraph run (w:p/w:r/w:t)",
+"markers": [
+"QZBODYRUN"
+],
+"marker": "QZBODYRUN",
+"ideal": "show: literal text \"shall be displayed\"",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#2",
+"fmt": "Word .docx",
+"id": "2",
+"construct": "heading paragraph (pStyle Heading1, outlineLvl 0)",
+"markers": [
+"QZHEADING"
+],
+"marker": "QZHEADING",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#3",
+"fmt": "Word .docx",
+"id": "3",
+"construct": "w:tab between two runs",
+"markers": [
+"QZTABLEFT",
+"QZTABRIGHT"
+],
+"marker": "QZTABLEFT / QZTABRIGHT",
+"ideal": "show, with a tab or space between",
+"verdict": "garbled"
+},
+{
+"key": "Word .docx#4",
+"fmt": "Word .docx",
+"id": "4",
+"construct": "w:br (text wrapping break)",
+"markers": [
+"QZBREAKLEFT",
+"QZBREAKRIGHT"
+],
+"marker": "QZBREAKLEFT / QZBREAKRIGHT",
+"ideal": "show, with a line break between",
+"verdict": "garbled"
+},
+{
+"key": "Word .docx#5",
+"fmt": "Word .docx",
+"id": "5",
+"construct": "w:cr (carriage return)",
+"markers": [
+"QZCRLEFT",
+"QZCRRIGHT"
+],
+"marker": "QZCRLEFT / QZCRRIGHT",
+"ideal": "show, with a line break between",
+"verdict": "garbled"
+},
+{
+"key": "Word .docx#6",
+"fmt": "Word .docx",
+"id": "6",
+"construct": "w:sym (Symbol font, char F061 = alpha)",
+"markers": [
+"QZSYMLEFT",
+"QZSYMRIGHT"
+],
+"marker": "QZSYMLEFT / QZSYMRIGHT, expect U+03B1 between",
+"ideal": "show the symbol",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#7",
+"fmt": "Word .docx",
+"id": "7",
+"construct": "w:noBreakHyphen",
+"markers": [
+"QZNBHLEFT",
+"QZNBHRIGHT"
+],
+"marker": "QZNBHLEFT / QZNBHRIGHT",
+"ideal": "show a hyphen between",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#8",
+"fmt": "Word .docx",
+"id": "8",
+"construct": "w:softHyphen",
+"markers": [
+"QZSOFTLEFT",
+"QZSOFTRIGHT"
+],
+"marker": "QZSOFTLEFT / QZSOFTRIGHT",
+"ideal": "show joined (optional hyphen is invisible mid-line)",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#9",
+"fmt": "Word .docx",
+"id": "9",
+"construct": "w:ptab (absolute position tab)",
+"markers": [
+"QZPTABLEFT",
+"QZPTABRIGHT"
+],
+"marker": "QZPTABLEFT / QZPTABRIGHT",
+"ideal": "show, with a tab or space between",
+"verdict": "garbled"
+},
+{
+"key": "Word .docx#10",
+"fmt": "Word .docx",
+"id": "10",
+"construct": "table cells (w:tbl/w:tr/w:tc)",
+"markers": [
+"QZCELLONE",
+"QZCELLTWO",
+"QZCELLTHREE"
+],
+"marker": "QZCELLONE, QZCELLTWO, QZCELLTHREE",
+"ideal": "show as a table",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#11",
+"fmt": "Word .docx",
+"id": "11",
+"construct": "w:gridSpan=\"2\"",
+"markers": [
+"QZGRIDSPAN"
+],
+"marker": "QZGRIDSPAN",
+"ideal": "show, spanned columns kept aligned",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#12",
+"fmt": "Word .docx",
+"id": "12",
+"construct": "w:vMerge restart + continuation (empty continuation cell)",
+"markers": [
+"QZVMERGESTART"
+],
+"marker": "QZVMERGESTART (row 3 continuation)",
+"ideal": "show restart text once, rows aligned",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#13",
+"fmt": "Word .docx",
+"id": "13",
+"construct": "nested table inside a cell",
+"markers": [
+"QZOUTERCELL",
+"QZNESTEDCELL",
+"QZROWFOURC"
+],
+"marker": "QZOUTERCELL, QZNESTEDCELL, QZROWFOURC",
+"ideal": "show nested content inside its cell",
+"verdict": "garbled"
+},
+{
+"key": "Word .docx#14",
+"fmt": "Word .docx",
+"id": "14",
+"construct": "w:tblCaption",
+"markers": [
+"QZTBLCAPTION"
+],
+"marker": "QZTBLCAPTION",
+"ideal": "label: \"specifies the caption for the table\"",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#15",
+"fmt": "Word .docx",
+"id": "15",
+"construct": "w:tblDescription",
+"markers": [
+"QZTBLDESC"
+],
+"marker": "QZTBLDESC",
+"ideal": "label: table alt text",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#16",
+"fmt": "Word .docx",
+"id": "16",
+"construct": "cell-level SDT (w:sdt wrapping w:tc)",
+"markers": [
+"QZSDTCELL"
+],
+"marker": "QZSDTCELL",
+"ideal": "show: sdtContent is the cell",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#17",
+"fmt": "Word .docx",
+"id": "17",
+"construct": "row-level SDT (w:sdt wrapping w:tr)",
+"markers": [
+"QZSDTROWA",
+"QZSDTROWB",
+"QZSDTROWC"
+],
+"marker": "QZSDTROWA, QZSDTROWB, QZSDTROWC",
+"ideal": "show: sdtContent is the row",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#18",
+"fmt": "Word .docx",
+"id": "18",
+"construct": "numbered list, level 0, lvlText \"%1.\" decimal",
+"markers": [
+"QZLISTONE",
+"QZLISTTWO"
+],
+"marker": "QZLISTONE, QZLISTTWO",
+"ideal": "show with label \"1.\" / \"2.\"",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#19",
+"fmt": "Word .docx",
+"id": "19",
+"construct": "numbered list, level 1, lvlText \"%2)\" lowerLetter",
+"markers": [
+"QZLISTSUBA",
+"QZLISTSUBB"
+],
+"marker": "QZLISTSUBA, QZLISTSUBB",
+"ideal": "show with label \"a)\" / \"b)\"",
+"verdict": "garbled"
+},
+{
+"key": "Word .docx#20",
+"fmt": "Word .docx",
+"id": "20",
+"construct": "numbered list, level 2, lvlText \"%3.\" lowerRoman",
+"markers": [
+"QZLISTDEEP"
+],
+"marker": "QZLISTDEEP",
+"ideal": "show with label \"i.\"",
+"verdict": "garbled"
+},
+{
+"key": "Word .docx#21",
+"fmt": "Word .docx",
+"id": "21",
+"construct": "bulleted list (Symbol F0B7 bullet)",
+"markers": [
+"QZBULLETONE",
+"QZBULLETTWO"
+],
+"marker": "QZBULLETONE, QZBULLETTWO",
+"ideal": "show as bullets",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#22",
+"fmt": "Word .docx",
+"id": "22",
+"construct": "literal lvlText \"Article %1.\"",
+"markers": [
+"QZARTICLEONE"
+],
+"marker": "QZARTICLEONE",
+"ideal": "show with label \"Article 1.\"",
+"verdict": "garbled"
+},
+{
+"key": "Word .docx#23",
+"fmt": "Word .docx",
+"id": "23",
+"construct": "multi-level lvlText \"%1.%2\"",
+"markers": [
+"QZARTICLESUB"
+],
+"marker": "QZARTICLESUB",
+"ideal": "show with label \"1.1\"",
+"verdict": "garbled"
+},
+{
+"key": "Word .docx#24",
+"fmt": "Word .docx",
+"id": "24",
+"construct": "header, type default",
+"markers": [
+"QZHEADERDEFAULT"
+],
+"marker": "QZHEADERDEFAULT",
+"ideal": "label (page furniture)",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#25",
+"fmt": "Word .docx",
+"id": "25",
+"construct": "header, type first (titlePg set)",
+"markers": [
+"QZHEADERFIRST"
+],
+"marker": "QZHEADERFIRST",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#26",
+"fmt": "Word .docx",
+"id": "26",
+"construct": "header, type even (evenAndOddHeaders set)",
+"markers": [
+"QZHEADEREVEN"
+],
+"marker": "QZHEADEREVEN",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#27",
+"fmt": "Word .docx",
+"id": "27",
+"construct": "footer, type default",
+"markers": [
+"QZFOOTERDEFAULT"
+],
+"marker": "QZFOOTERDEFAULT",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#28",
+"fmt": "Word .docx",
+"id": "28",
+"construct": "footer, type first",
+"markers": [
+"QZFOOTERFIRST"
+],
+"marker": "QZFOOTERFIRST",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#29",
+"fmt": "Word .docx",
+"id": "29",
+"construct": "footnote (reference + content)",
+"markers": [
+"QZFOOTNOTE"
+],
+"marker": "QZFOOTNOTE",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#30",
+"fmt": "Word .docx",
+"id": "30",
+"construct": "endnote (reference + content)",
+"markers": [
+"QZENDNOTE"
+],
+"marker": "QZENDNOTE",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#31",
+"fmt": "Word .docx",
+"id": "31",
+"construct": "separator and continuationSeparator notes (footnotes and endnotes)",
+"markers": [
+"QZFNSEPARATOR",
+"QZFNCONTSEP",
+"QZENSEPARATOR",
+"QZENCONTSEP"
+],
+"marker": "QZFNSEPARATOR, QZFNCONTSEP, QZENSEPARATOR, QZENCONTSEP",
+"ideal": "hide: separator marks, not content",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#32",
+"fmt": "Word .docx",
+"id": "32",
+"construct": "comment content and author",
+"markers": [
+"QZCOMMENTBODY",
+"QZCOMMENTAUTHOR"
+],
+"marker": "QZCOMMENTBODY, QZCOMMENTAUTHOR",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#33",
+"fmt": "Word .docx",
+"id": "33",
+"construct": "w:ins inserted run",
+"markers": [
+"QZINSERTED"
+],
+"marker": "QZINSERTED",
+"ideal": "show (accepted view)",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#34",
+"fmt": "Word .docx",
+"id": "34",
+"construct": "w:del / w:delText deleted run",
+"markers": [
+"QZDELETED"
+],
+"marker": "QZDELETED",
+"ideal": "hide (deleted revision)",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#35",
+"fmt": "Word .docx",
+"id": "35",
+"construct": "w:moveFrom (move source run content)",
+"markers": [
+"QZMOVEDFROM"
+],
+"marker": "QZMOVEDFROM",
+"ideal": "hide (source of a move; text lives at moveTo)",
+"verdict": "leaked"
+},
+{
+"key": "Word .docx#36",
+"fmt": "Word .docx",
+"id": "36",
+"construct": "w:moveTo (move destination run content)",
+"markers": [
+"QZMOVEDTO"
+],
+"marker": "QZMOVEDTO",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#37",
+"fmt": "Word .docx",
+"id": "37",
+"construct": "deleted paragraph mark (w:pPr/w:rPr/w:del)",
+"markers": [
+"QZPARAMARKA",
+"QZPARAMARKB"
+],
+"marker": "QZPARAMARKA, QZPARAMARKB",
+"ideal": "show joined into one paragraph",
+"verdict": "garbled"
+},
+{
+"key": "Word .docx#38",
+"fmt": "Word .docx",
+"id": "38",
+"construct": "w:fldSimple result",
+"markers": [
+"QZFLDSIMPLE"
+],
+"marker": "QZFLDSIMPLE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#39",
+"fmt": "Word .docx",
+"id": "39",
+"construct": "w:fldSimple instr (field code)",
+"markers": [
+"QZSIMPLECODE"
+],
+"marker": "QZSIMPLECODE",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#40",
+"fmt": "Word .docx",
+"id": "40",
+"construct": "complex field result (fldChar separate..end)",
+"markers": [
+"QZCOMPLEXRESULT"
+],
+"marker": "QZCOMPLEXRESULT",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#41",
+"fmt": "Word .docx",
+"id": "41",
+"construct": "complex field instrText (field code)",
+"markers": [
+"QZCOMPLEXCODE"
+],
+"marker": "QZCOMPLEXCODE",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#42",
+"fmt": "Word .docx",
+"id": "42",
+"construct": "PAGE field (result \"7\")",
+"markers": [
+"QZPAGELABEL",
+"QZPAGEEND"
+],
+"marker": "QZPAGELABEL / QZPAGEEND",
+"ideal": "show result, hide \"PAGE\"",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#43",
+"fmt": "Word .docx",
+"id": "43",
+"construct": "TOC field result (entry, tab, nested PAGEREF \"3\")",
+"markers": [
+"QZTOCENTRY"
+],
+"marker": "QZTOCENTRY",
+"ideal": "show entry and page number apart",
+"verdict": "garbled"
+},
+{
+"key": "Word .docx#44",
+"fmt": "Word .docx",
+"id": "44",
+"construct": "bookmark (bookmarked text, bookmark name)",
+"markers": [
+"QZBOOKMARKED",
+"QZBMNAME"
+],
+"marker": "QZBOOKMARKED (show), QZBMNAME (hide)",
+"ideal": "show text, hide name",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#45",
+"fmt": "Word .docx",
+"id": "45",
+"construct": "REF field result",
+"markers": [
+"QZREFRESULT"
+],
+"marker": "QZREFRESULT",
+"ideal": "show result, hide \"REF QZBMNAME\"",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#46",
+"fmt": "Word .docx",
+"id": "46",
+"construct": "HYPERLINK field display text",
+"markers": [
+"QZHYPERFIELDTEXT"
+],
+"marker": "QZHYPERFIELDTEXT",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#47",
+"fmt": "Word .docx",
+"id": "47",
+"construct": "HYPERLINK field address",
+"markers": [],
+"marker": "`qzhyperfield.example`",
+"ideal": "label (address next to the text, as w:hyperlink gets)",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#48",
+"fmt": "Word .docx",
+"id": "48",
+"construct": "FORMTEXT result (ffData default differs)",
+"markers": [
+"QZFORMTEXT",
+"QZFORMDEFAULT"
+],
+"marker": "QZFORMTEXT (show), QZFORMDEFAULT (hide)",
+"ideal": "show result, hide default",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#49",
+"fmt": "Word .docx",
+"id": "49",
+"construct": "w:hyperlink display text + external address",
+"markers": [
+"QZLINKTEXT"
+],
+"marker": "QZLINKTEXT, `qzlinkaddr.example`",
+"ideal": "show text, label address",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#50",
+"fmt": "Word .docx",
+"id": "50",
+"construct": "FORMCHECKBOX state (checked)",
+"markers": [
+"QZFFCHECKLABEL"
+],
+"marker": "QZFFCHECKLABEL, expect a checked mark before it",
+"ideal": "show state",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#51",
+"fmt": "Word .docx",
+"id": "51",
+"construct": "FORMDROPDOWN selected entry (result=1)",
+"markers": [
+"QZDDSECOND",
+"QZDDFIRST",
+"QZDDTHIRD"
+],
+"marker": "QZDDSECOND (show); QZDDFIRST, QZDDTHIRD (hide)",
+"ideal": "show selected entry only",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#52",
+"fmt": "Word .docx",
+"id": "52",
+"construct": "block-level SDT with alias and tag",
+"markers": [
+"QZSDTBLOCK"
+],
+"marker": "QZSDTBLOCK",
+"ideal": "show: sdtContent is the cached content",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#53",
+"fmt": "Word .docx",
+"id": "53",
+"construct": "block-level SDT, bare (only w:id)",
+"markers": [
+"QZSDTBARE"
+],
+"marker": "QZSDTBARE",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#54",
+"fmt": "Word .docx",
+"id": "54",
+"construct": "SDT alias and tag properties",
+"markers": [
+"QZSDTALIAS",
+"QZSDTTAG"
+],
+"marker": "QZSDTALIAS, QZSDTTAG",
+"ideal": "hide (control metadata, not displayed text)",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#55",
+"fmt": "Word .docx",
+"id": "55",
+"construct": "inline SDT",
+"markers": [
+"QZSDTINLINE"
+],
+"marker": "QZSDTINLINE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#56",
+"fmt": "Word .docx",
+"id": "56",
+"construct": "SDT showing placeholder (showingPlcHdr)",
+"markers": [
+"QZPLACEHOLDER"
+],
+"marker": "QZPLACEHOLDER",
+"ideal": "hide: contents are placeholder prompt",
+"verdict": "leaked"
+},
+{
+"key": "Word .docx#57",
+"fmt": "Word .docx",
+"id": "57",
+"construct": "glossary document part (placeholder docPart body)",
+"markers": [
+"QZGLOSSARY"
+],
+"marker": "QZGLOSSARY",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#58",
+"fmt": "Word .docx",
+"id": "58",
+"construct": "plain-text SDT (w:text)",
+"markers": [
+"QZPLAINTEXTSDT"
+],
+"marker": "QZPLAINTEXTSDT",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#59",
+"fmt": "Word .docx",
+"id": "59",
+"construct": "dropDownList SDT (selected B shown, list A, B)",
+"markers": [
+"QZSDTDDOPTB",
+"QZSDTDDOPTA"
+],
+"marker": "QZSDTDDOPTB (show once), QZSDTDDOPTA (hide)",
+"ideal": "show selected once",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#60",
+"fmt": "Word .docx",
+"id": "60",
+"construct": "w14:checkbox SDT (checked, U+2612 in content)",
+"markers": [
+"QZCHECKSDTLABEL"
+],
+"marker": "QZCHECKSDTLABEL",
+"ideal": "show state",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#61",
+"fmt": "Word .docx",
+"id": "61",
+"construct": "wps:txbx in mc:Choice with v:textbox mc:Fallback (same text in both, as Word writes)",
+"markers": [
+"QZTEXTBOX"
+],
+"marker": "QZTEXTBOX",
+"ideal": "show once",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#62",
+"fmt": "Word .docx",
+"id": "62",
+"construct": "VML-only text box (w:pict/v:shape/v:textbox)",
+"markers": [
+"QZVMLTEXTBOX"
+],
+"marker": "QZVMLTEXTBOX",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#63",
+"fmt": "Word .docx",
+"id": "63",
+"construct": "ruby base text (w:rubyBase)",
+"markers": [
+"QZRUBYBASE"
+],
+"marker": "QZRUBYBASE",
+"ideal": "show (the base text itself)",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#64",
+"fmt": "Word .docx",
+"id": "64",
+"construct": "ruby guide text (w:rt)",
+"markers": [
+"QZRUBYTEXT"
+],
+"marker": "QZRUBYTEXT",
+"ideal": "label (reading aid after its base)",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#65",
+"fmt": "Word .docx",
+"id": "65",
+"construct": "w:vanish hidden run",
+"markers": [
+"QZVANISHED"
+],
+"marker": "QZVANISHED",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "Word .docx#66",
+"fmt": "Word .docx",
+"id": "66",
+"construct": "w:specVanish run in a vanish+specVanish paragraph",
+"markers": [
+"QZSPECVANISH"
+],
+"marker": "QZSPECVANISH",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "Word .docx#67",
+"fmt": "Word .docx",
+"id": "67",
+"construct": "w:webHidden run",
+"markers": [
+"QZWEBHIDDEN"
+],
+"marker": "QZWEBHIDDEN",
+"ideal": "show (visible in normal and print view)",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#68",
+"fmt": "Word .docx",
+"id": "68",
+"construct": "w:smartTag wrapped run",
+"markers": [
+"QZSMARTTAG"
+],
+"marker": "QZSMARTTAG",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#69",
+"fmt": "Word .docx",
+"id": "69",
+"construct": "w:customXml inline wrapped run",
+"markers": [
+"QZCUSTOMXMLRUN"
+],
+"marker": "QZCUSTOMXMLRUN",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#70",
+"fmt": "Word .docx",
+"id": "70",
+"construct": "w:customXml block wrapping a paragraph",
+"markers": [
+"QZCUSTOMXMLBLOCK"
+],
+"marker": "QZCUSTOMXMLBLOCK",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#71",
+"fmt": "Word .docx",
+"id": "71",
+"construct": "w:altChunk with an HTML part",
+"markers": [
+"QZALTCHUNK"
+],
+"marker": "QZALTCHUNK",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#72",
+"fmt": "Word .docx",
+"id": "72",
+"construct": "OMML inline m:oMath / m:t",
+"markers": [
+"QZMATHINLINE"
+],
+"marker": "QZMATHINLINE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#73",
+"fmt": "Word .docx",
+"id": "73",
+"construct": "OMML fraction m:f num/den",
+"markers": [
+"QZNUMER",
+"QZDENOM"
+],
+"marker": "QZNUMER, QZDENOM",
+"ideal": "show in order",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#74",
+"fmt": "Word .docx",
+"id": "74",
+"construct": "OMML display m:oMathPara",
+"markers": [
+"QZMATHPARA"
+],
+"marker": "QZMATHPARA",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word .docx#75",
+"fmt": "Word .docx",
+"id": "75",
+"construct": "picture alt text wp:docPr descr",
+"markers": [
+"QZPICALT"
+],
+"marker": "QZPICALT",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#76",
+"fmt": "Word .docx",
+"id": "76",
+"construct": "picture wp:docPr title attribute",
+"markers": [
+"QZPICTITLE"
+],
+"marker": "QZPICTITLE",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#77",
+"fmt": "Word .docx",
+"id": "77",
+"construct": "chart title (c:title/c:tx/c:rich)",
+"markers": [
+"QZCHARTTITLE"
+],
+"marker": "QZCHARTTITLE",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#78",
+"fmt": "Word .docx",
+"id": "78",
+"construct": "chart series name (c:ser/c:tx/c:strRef/c:strCache)",
+"markers": [
+"QZSERIESNAME"
+],
+"marker": "QZSERIESNAME",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#79",
+"fmt": "Word .docx",
+"id": "79",
+"construct": "chart category labels (c:cat/c:strCache)",
+"markers": [
+"QZCATONE",
+"QZCATTWO"
+],
+"marker": "QZCATONE, QZCATTWO",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#80",
+"fmt": "Word .docx",
+"id": "80",
+"construct": "chart values (c:val/c:numCache)",
+"markers": [],
+"marker": "`98761`, `98762` (numeric, not capital letters)",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#81",
+"fmt": "Word .docx",
+"id": "81",
+"construct": "chart drawing alt text (docPr descr)",
+"markers": [
+"QZCHARTALT"
+],
+"marker": "QZCHARTALT",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#82",
+"fmt": "Word .docx",
+"id": "82",
+"construct": "SmartArt node text (dgm:pt/dgm:t in data part; same text in dsp drawing part, as Word writes)",
+"markers": [
+"QZSMARTNODE"
+],
+"marker": "QZSMARTNODE",
+"ideal": "label, once",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#83",
+"fmt": "Word .docx",
+"id": "83",
+"construct": "SmartArt drawing alt text (docPr descr)",
+"markers": [
+"QZDGMALT"
+],
+"marker": "QZDGMALT",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#84",
+"fmt": "Word .docx",
+"id": "84",
+"construct": "core property dc:title",
+"markers": [
+"QZCORETITLE"
+],
+"marker": "QZCORETITLE",
+"ideal": "label (document context, not body text)",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#85",
+"fmt": "Word .docx",
+"id": "85",
+"construct": "core property dc:subject",
+"markers": [
+"QZCORESUBJECT"
+],
+"marker": "QZCORESUBJECT",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#86",
+"fmt": "Word .docx",
+"id": "86",
+"construct": "core property dc:creator, cp:lastModifiedBy",
+"markers": [
+"QZCORECREATOR",
+"QZCOREMODIFIER"
+],
+"marker": "QZCORECREATOR, QZCOREMODIFIER",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#87",
+"fmt": "Word .docx",
+"id": "87",
+"construct": "core property cp:keywords, dc:description",
+"markers": [
+"QZCOREKEYWORDS",
+"QZCOREDESC"
+],
+"marker": "QZCOREKEYWORDS, QZCOREDESC",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#88",
+"fmt": "Word .docx",
+"id": "88",
+"construct": "app.xml Company, Manager",
+"markers": [
+"QZAPPCOMPANY",
+"QZAPPMANAGER"
+],
+"marker": "QZAPPCOMPANY, QZAPPMANAGER",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Word .docx#89",
+"fmt": "Word .docx",
+"id": "89",
+"construct": "custom.xml property (lpwstr value)",
+"markers": [
+"QZCUSTOMPROP"
+],
+"marker": "QZCUSTOMPROP",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#1",
+"fmt": "Email .eml",
+"id": "1",
+"construct": "From display name, RFC 2047 B encoded-word, UTF-8",
+"markers": [
+"QZFROMNAME"
+],
+"marker": "QZFROMNAME",
+"ideal": "show: who wrote it",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#2",
+"fmt": "Email .eml",
+"id": "2",
+"construct": "To display name, Q encoded-word, ISO-8859-1",
+"markers": [
+"QZTONAME"
+],
+"marker": "QZTONAME",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#3",
+"fmt": "Email .eml",
+"id": "3",
+"construct": "Cc display name, Q encoded-word, UTF-8",
+"markers": [
+"QZCCNAME"
+],
+"marker": "QZCCNAME",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#4",
+"fmt": "Email .eml",
+"id": "4",
+"construct": "Group address in Cc (`name: a, b;`)",
+"markers": [
+"QZGROUPNAME"
+],
+"marker": "QZGROUPNAME",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#5",
+"fmt": "Email .eml",
+"id": "5",
+"construct": "Bcc, B encoded-word in ISO-8859-2",
+"markers": [
+"QZBCCNAME"
+],
+"marker": "QZBCCNAME",
+"ideal": "show: a saved sent message is the only record of who was blind-copied",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#6",
+"fmt": "Email .eml",
+"id": "6",
+"construct": "Reply-To",
+"markers": [
+"QZREPLYTONAME"
+],
+"marker": "QZREPLYTONAME",
+"ideal": "show: where replies go, differs from From",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#7",
+"fmt": "Email .eml",
+"id": "7",
+"construct": "Sender",
+"markers": [
+"QZSENDERNAME"
+],
+"marker": "QZSENDERNAME",
+"ideal": "show: on-behalf-of sending",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#8",
+"fmt": "Email .eml",
+"id": "8",
+"construct": "Subject as two adjacent encoded-words across a fold",
+"markers": [
+"QZSUBJECTSPLIT"
+],
+"marker": "QZSUBJECTSPLIT",
+"ideal": "show, joined",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#9",
+"fmt": "Email .eml",
+"id": "9",
+"construct": "Date with +0200 offset",
+"markers": [],
+"marker": "(value)",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#10",
+"fmt": "Email .eml",
+"id": "10",
+"construct": "Comments header, folded",
+"markers": [
+"QZCOMMENTSHEADER"
+],
+"marker": "QZCOMMENTSHEADER",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#11",
+"fmt": "Email .eml",
+"id": "11",
+"construct": "Keywords header",
+"markers": [
+"QZKEYWORDONE",
+"QZKEYWORDTWO"
+],
+"marker": "QZKEYWORDONE, QZKEYWORDTWO",
+"ideal": "show: human keyword phrases",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#12",
+"fmt": "Email .eml",
+"id": "12",
+"construct": "Message-ID",
+"markers": [
+"QZMESSAGEID"
+],
+"marker": "QZMESSAGEID",
+"ideal": "hide: identifier, no display text",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#13",
+"fmt": "Email .eml",
+"id": "13",
+"construct": "In-Reply-To",
+"markers": [
+"QZINREPLYTO"
+],
+"marker": "QZINREPLYTO",
+"ideal": "hide: identifier",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#14",
+"fmt": "Email .eml",
+"id": "14",
+"construct": "Received trace field",
+"markers": [
+"QZRECEIVED"
+],
+"marker": "QZRECEIVED",
+"ideal": "hide: routing",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#15",
+"fmt": "Email .eml",
+"id": "15",
+"construct": "X-Mailer optional field",
+"markers": [
+"QZXMAILER"
+],
+"marker": "QZXMAILER",
+"ideal": "hide: client exhaust",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#16",
+"fmt": "Email .eml",
+"id": "16",
+"construct": "Thread-Topic",
+"markers": [
+"QZTHREADTOPIC"
+],
+"marker": "QZTHREADTOPIC",
+"ideal": "hide: duplicates Subject",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#17",
+"fmt": "Email .eml",
+"id": "17",
+"construct": "text/plain, no charset parameter",
+"markers": [
+"QZPLAINNOCHARSET"
+],
+"marker": "QZPLAINNOCHARSET",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#18",
+"fmt": "Email .eml",
+"id": "18",
+"construct": "text/plain charset=windows-1252, 8bit (0x93 0x94 0x80 0xEF)",
+"markers": [
+"QZWINDOWS"
+],
+"marker": "QZWINDOWS",
+"ideal": "show, decoded",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#19",
+"fmt": "Email .eml",
+"id": "19",
+"construct": "quoted-printable, soft line break inside a word, =C3=A9, =E2=80=94",
+"markers": [
+"QZQUOTEDPRINTABLE"
+],
+"marker": "QZQUOTEDPRINTABLE",
+"ideal": "show, decoded",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#20",
+"fmt": "Email .eml",
+"id": "20",
+"construct": "base64 body",
+"markers": [
+"QZBASE64BODY"
+],
+"marker": "QZBASE64BODY",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#21",
+"fmt": "Email .eml",
+"id": "21",
+"construct": "format=flowed DelSp=yes soft break inside a word",
+"markers": [
+"QZFLOWED"
+],
+"marker": "QZFLOWED",
+"ideal": "show, joined",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#22",
+"fmt": "Email .eml",
+"id": "22",
+"construct": "format=flowed quoted flowed line (`> a SP SP CRLF > b`)",
+"markers": [
+"QZFLOWQUOTE"
+],
+"marker": "QZFLOWQUOTE",
+"ideal": "label: one quoted line",
+"verdict": "garbled"
+},
+{
+"key": "Email .eml#23",
+"fmt": "Email .eml",
+"id": "23",
+"construct": "multipart/alternative plain + html, same text",
+"markers": [
+"QZALTBODY"
+],
+"marker": "QZALTBODY",
+"ideal": "show once",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#24",
+"fmt": "Email .eml",
+"id": "24",
+"construct": "HTML-only, Gmail `blockquote.gmail_quote` reply history",
+"markers": [
+"QZGMAILQUOTED"
+],
+"marker": "QZGMAILQUOTED",
+"ideal": "label: earlier sender's words",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#25",
+"fmt": "Email .eml",
+"id": "25",
+"construct": "Gmail nested quote (level 2)",
+"markers": [
+"QZGMAILNESTED"
+],
+"marker": "QZGMAILNESTED",
+"ideal": "label, depth 2",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#26",
+"fmt": "Email .eml",
+"id": "26",
+"construct": "Outlook `divRplyFwdMsg` reply history",
+"markers": [
+"QZOUTLOOKQUOTED"
+],
+"marker": "QZOUTLOOKQUOTED",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#27",
+"fmt": "Email .eml",
+"id": "27",
+"construct": "HTML `<head><title>`",
+"markers": [
+"QZHTMLTITLE"
+],
+"marker": "QZHTMLTITLE",
+"ideal": "hide: mail clients do not render it in the body",
+"verdict": "leaked"
+},
+{
+"key": "Email .eml#28",
+"fmt": "Email .eml",
+"id": "28",
+"construct": "HTML `<style>` contents",
+"markers": [
+"QZSTYLECSS"
+],
+"marker": "QZSTYLECSS",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#29",
+"fmt": "Email .eml",
+"id": "29",
+"construct": "HTML comment",
+"markers": [
+"QZHTMLCOMMENT"
+],
+"marker": "QZHTMLCOMMENT",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#30",
+"fmt": "Email .eml",
+"id": "30",
+"construct": "Gmail forward (`---------- Forwarded message ---------`, no blockquote)",
+"markers": [
+"QZGMAILFWDBODY"
+],
+"marker": "QZGMAILFWDBODY",
+"ideal": "label: attributed by the forward header block",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#31",
+"fmt": "Email .eml",
+"id": "31",
+"construct": "Outlook forward (same `divRplyFwdMsg` block)",
+"markers": [
+"QZOUTLOOKFWDBODY"
+],
+"marker": "QZOUTLOOKFWDBODY",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#32",
+"fmt": "Email .eml",
+"id": "32",
+"construct": "`display:none` preheader span",
+"markers": [
+"QZHIDDENPREHEADER"
+],
+"marker": "QZHIDDENPREHEADER",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "Email .eml#33",
+"fmt": "Email .eml",
+"id": "33",
+"construct": "Named entity `&rsquo;`",
+"markers": [
+"QZENTNAMED"
+],
+"marker": "QZENTNAMED",
+"ideal": "show as \u2019",
+"verdict": "garbled"
+},
+{
+"key": "Email .eml#34",
+"fmt": "Email .eml",
+"id": "34",
+"construct": "Hex numeric reference `&#x2019;`",
+"markers": [
+"QZENTHEX"
+],
+"marker": "QZENTHEX",
+"ideal": "show as \u2019",
+"verdict": "garbled"
+},
+{
+"key": "Email .eml#35",
+"fmt": "Email .eml",
+"id": "35",
+"construct": "Decimal numeric reference `&#8217;`",
+"markers": [
+"QZENTDEC"
+],
+"marker": "QZENTDEC",
+"ideal": "show as \u2019",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#36",
+"fmt": "Email .eml",
+"id": "36",
+"construct": "Adjacent table cells `<td>A</td><td>B</td>`",
+"markers": [
+"QZCELLA",
+"QZCELLB"
+],
+"marker": "QZCELLA, QZCELLB",
+"ideal": "show, separated",
+"verdict": "garbled"
+},
+{
+"key": "Email .eml#37",
+"fmt": "Email .eml",
+"id": "37",
+"construct": "Link target `<a href>`",
+"markers": [
+"QZLINKHREF"
+],
+"marker": "QZLINKHREF",
+"ideal": "label: the URL is often the content (links, unsubscribe, docs)",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#38",
+"fmt": "Email .eml",
+"id": "38",
+"construct": "`<img alt>` (remote image)",
+"markers": [
+"QZIMGALT"
+],
+"marker": "QZIMGALT",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#39",
+"fmt": "Email .eml",
+"id": "39",
+"construct": "List items",
+"markers": [
+"QZLISTONE",
+"QZLISTTWO"
+],
+"marker": "QZLISTONE, QZLISTTWO",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#40",
+"fmt": "Email .eml",
+"id": "40",
+"construct": "multipart/related root text/html",
+"markers": [
+"QZRELATEDHTML"
+],
+"marker": "QZRELATEDHTML",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#41",
+"fmt": "Email .eml",
+"id": "41",
+"construct": "Alt text of a `cid:` inline image",
+"markers": [
+"QZCIDALT"
+],
+"marker": "QZCIDALT",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#42",
+"fmt": "Email .eml",
+"id": "42",
+"construct": "Inline `cid:` image part (Content-ID, disposition inline)",
+"markers": [
+"QZINLINELOGO"
+],
+"marker": "QZINLINELOGO",
+"ideal": "hide from the attachment list: part of the body, not an attachment",
+"verdict": "leaked"
+},
+{
+"key": "Email .eml#43",
+"fmt": "Email .eml",
+"id": "43",
+"construct": "Second text/plain part, disposition inline, in multipart/mixed",
+"markers": [
+"QZINLINETEXTPART"
+],
+"marker": "QZINLINETEXTPART",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#44",
+"fmt": "Email .eml",
+"id": "44",
+"construct": "text/plain part, disposition attachment: filename",
+"markers": [
+"QZATTACHNAME"
+],
+"marker": "QZATTACHNAME",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#45",
+"fmt": "Email .eml",
+"id": "45",
+"construct": "same part: its body",
+"markers": [
+"QZATTACHCONTENT"
+],
+"marker": "QZATTACHCONTENT",
+"ideal": "hide (product: names only)",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#46",
+"fmt": "Email .eml",
+"id": "46",
+"construct": "Content-Description on that part",
+"markers": [
+"QZCONTENTDESC"
+],
+"marker": "QZCONTENTDESC",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#47",
+"fmt": "Email .eml",
+"id": "47",
+"construct": "RFC 2231 `filename*=UTF-8''...%C3%A9`",
+"markers": [
+"QZPARAMENC"
+],
+"marker": "QZPARAMENC",
+"ideal": "label, decoded",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#48",
+"fmt": "Email .eml",
+"id": "48",
+"construct": "RFC 2231 continuation `filename*0*` / `filename*1*`",
+"markers": [
+"QZCONTINUED"
+],
+"marker": "QZCONTINUED",
+"ideal": "label, joined",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#49",
+"fmt": "Email .eml",
+"id": "49",
+"construct": "RFC 2047 encoded-word inside `name=` parameter (non-standard, common)",
+"markers": [
+"QZEWPARAM"
+],
+"marker": "QZEWPARAM",
+"ideal": "label, decoded",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#50",
+"fmt": "Email .eml",
+"id": "50",
+"construct": "Attachment with no name",
+"markers": [],
+"marker": "(none)",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#51",
+"fmt": "Email .eml",
+"id": "51",
+"construct": "message/rfc822 inline (forward): its headers",
+"markers": [
+"QZFWDFROM",
+"QZFWDSUBJECT"
+],
+"marker": "QZFWDFROM, QZFWDSUBJECT",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#52",
+"fmt": "Email .eml",
+"id": "52",
+"construct": "same: its body",
+"markers": [
+"QZFWDBODY"
+],
+"marker": "QZFWDBODY",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#53",
+"fmt": "Email .eml",
+"id": "53",
+"construct": "same: its Date (`Mon, 12 Oct 2026 08:00:00 +0000`)",
+"markers": [],
+"marker": "(value)",
+"ideal": "show, unambiguous",
+"verdict": "garbled"
+},
+{
+"key": "Email .eml#54",
+"fmt": "Email .eml",
+"id": "54",
+"construct": "message/rfc822, disposition attachment: filename",
+"markers": [
+"QZFWDATTACHED"
+],
+"marker": "QZFWDATTACHED",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#55",
+"fmt": "Email .eml",
+"id": "55",
+"construct": "same: inner headers and body",
+"markers": [
+"QZATTSUBJECT",
+"QZATTBODY"
+],
+"marker": "QZATTSUBJECT, QZATTBODY",
+"ideal": "hide (judgment: treated like any attachment; flips to missing if attached mail should be read)",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#56",
+"fmt": "Email .eml",
+"id": "56",
+"construct": "multipart/digest (parts default to message/rfc822)",
+"markers": [
+"QZDIGESTONE",
+"QZDIGESTTWO",
+"QZDIGESTSUBJONE"
+],
+"marker": "QZDIGESTONE, QZDIGESTTWO, QZDIGESTSUBJONE",
+"ideal": "label each message",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#57",
+"fmt": "Email .eml",
+"id": "57",
+"construct": "multipart/report part 1, human-readable",
+"markers": [
+"QZDSNHUMAN"
+],
+"marker": "QZDSNHUMAN",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#58",
+"fmt": "Email .eml",
+"id": "58",
+"construct": "message/delivery-status Diagnostic-Code",
+"markers": [
+"QZDIAGCODE"
+],
+"marker": "QZDIAGCODE",
+"ideal": "label: the bounce reason",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#59",
+"fmt": "Email .eml",
+"id": "59",
+"construct": "text/rfc822-headers of the returned message",
+"markers": [
+"QZDSNORIGSUBJECT"
+],
+"marker": "QZDSNORIGSUBJECT",
+"ideal": "label: which message bounced",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#60",
+"fmt": "Email .eml",
+"id": "60",
+"construct": "S/MIME multipart/signed, first part",
+"markers": [
+"QZSMIMESIGNED"
+],
+"marker": "QZSMIMESIGNED",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#61",
+"fmt": "Email .eml",
+"id": "61",
+"construct": "S/MIME signature part `smime.p7s`",
+"markers": [],
+"marker": "smime.p7s",
+"ideal": "hide: not content",
+"verdict": "leaked"
+},
+{
+"key": "Email .eml#62",
+"fmt": "Email .eml",
+"id": "62",
+"construct": "PGP/MIME multipart/signed, first part",
+"markers": [
+"QZPGPSIGNED"
+],
+"marker": "QZPGPSIGNED",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#63",
+"fmt": "Email .eml",
+"id": "63",
+"construct": "PGP signature part `signature.asc`",
+"markers": [
+"QZPGPSIGBLOCK"
+],
+"marker": "QZPGPSIGBLOCK / signature.asc",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "Email .eml#64",
+"fmt": "Email .eml",
+"id": "64",
+"construct": "Invite (Outlook shape, alternative plain + text/calendar): plain part",
+"markers": [
+"QZCALPLAIN"
+],
+"marker": "QZCALPLAIN",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#65",
+"fmt": "Email .eml",
+"id": "65",
+"construct": "text/calendar SUMMARY",
+"markers": [
+"QZCALSUMMARY"
+],
+"marker": "QZCALSUMMARY",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#66",
+"fmt": "Email .eml",
+"id": "66",
+"construct": "text/calendar LOCATION",
+"markers": [
+"QZCALLOCATION"
+],
+"marker": "QZCALLOCATION",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#67",
+"fmt": "Email .eml",
+"id": "67",
+"construct": "text/calendar DESCRIPTION with `\\n` and `\\,` escapes",
+"markers": [
+"QZCALDESC"
+],
+"marker": "QZCALDESC",
+"ideal": "show, unescaped",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#68",
+"fmt": "Email .eml",
+"id": "68",
+"construct": "ORGANIZER CN",
+"markers": [
+"QZCALORGANIZER"
+],
+"marker": "QZCALORGANIZER",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#69",
+"fmt": "Email .eml",
+"id": "69",
+"construct": "ATTENDEE CN",
+"markers": [
+"QZCALATTENDEE"
+],
+"marker": "QZCALATTENDEE",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#70",
+"fmt": "Email .eml",
+"id": "70",
+"construct": "DTSTART",
+"markers": [],
+"marker": "20261020T090000Z",
+"ideal": "show: when the meeting is",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#71",
+"fmt": "Email .eml",
+"id": "71",
+"construct": "Message whose only body is text/calendar",
+"markers": [
+"QZCALONLYSUMMARY",
+"QZCALONLYLOCATION"
+],
+"marker": "QZCALONLYSUMMARY, QZCALONLYLOCATION",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#72",
+"fmt": "Email .eml",
+"id": "72",
+"construct": "text/enriched body, `<bold>`",
+"markers": [
+"QZENRICHBOLD"
+],
+"marker": "QZENRICHBOLD",
+"ideal": "show without markup",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#73",
+"fmt": "Email .eml",
+"id": "73",
+"construct": "text/enriched `<excerpt>`",
+"markers": [
+"QZENRICHEXCERPT"
+],
+"marker": "QZENRICHEXCERPT",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#74",
+"fmt": "Email .eml",
+"id": "74",
+"construct": "text/enriched `<<` literal",
+"markers": [
+"QZENRICHLT"
+],
+"marker": "QZENRICHLT",
+"ideal": "show as `<`",
+"verdict": "missing"
+},
+{
+"key": "Email .eml#75",
+"fmt": "Email .eml",
+"id": "75",
+"construct": "Raw UTF-8 display name in From",
+"markers": [
+"QZUTFFROM"
+],
+"marker": "QZUTFFROM",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Email .eml#76",
+"fmt": "Email .eml",
+"id": "76",
+"construct": "Raw UTF-8 Subject",
+"markers": [
+"QZUTFSUBJECT"
+],
+"marker": "QZUTFSUBJECT",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#1",
+"fmt": "Outlook .msg",
+"id": "1",
+"construct": "PidTagSubject 0x0037001F",
+"markers": [
+"QZMSGSUBJECT"
+],
+"marker": "QZMSGSUBJECT",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#2",
+"fmt": "Outlook .msg",
+"id": "2",
+"construct": "PidTagBody 0x1000001F, CRLF lines",
+"markers": [
+"QZMSGBODY"
+],
+"marker": "QZMSGBODY",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#3",
+"fmt": "Outlook .msg",
+"id": "3",
+"construct": "PidTagSenderName 0x0C1A",
+"markers": [
+"QZMSGSENDER"
+],
+"marker": "QZMSGSENDER",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#4",
+"fmt": "Outlook .msg",
+"id": "4",
+"construct": "PidTagSenderEmailAddress 0x0C1F (SMTP form)",
+"markers": [
+"QZMSGSENDERADDR"
+],
+"marker": "QZMSGSENDERADDR",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#5",
+"fmt": "Outlook .msg",
+"id": "5",
+"construct": "PidTagDisplayTo 0x0E04, two names",
+"markers": [
+"QZMSGTOONE",
+"QZMSGTOTWO"
+],
+"marker": "QZMSGTOONE, QZMSGTOTWO",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#6",
+"fmt": "Outlook .msg",
+"id": "6",
+"construct": "PidTagDisplayCc 0x0E03",
+"markers": [
+"QZMSGCC"
+],
+"marker": "QZMSGCC",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#7",
+"fmt": "Outlook .msg",
+"id": "7",
+"construct": "PidTagDisplayBcc 0x0E02",
+"markers": [
+"QZMSGBCC"
+],
+"marker": "QZMSGBCC",
+"ideal": "show: a sent item's only Bcc record",
+"verdict": "missing"
+},
+{
+"key": "Outlook .msg#8",
+"fmt": "Outlook .msg",
+"id": "8",
+"construct": "Recipient storage SMTP address (PidTagSmtpAddress 0x39FE, PidTagEmailAddress 0x3003)",
+"markers": [
+"QZRECIPADDRONE"
+],
+"marker": "QZRECIPADDRONE",
+"ideal": "show: the `.eml` path prints recipient addresses",
+"verdict": "missing"
+},
+{
+"key": "Outlook .msg#9",
+"fmt": "Outlook .msg",
+"id": "9",
+"construct": "PidTagSentRepresentingName 0x0042",
+"markers": [
+"QZMSGREPRESENTING"
+],
+"marker": "QZMSGREPRESENTING",
+"ideal": "label: \"on behalf of\"",
+"verdict": "missing"
+},
+{
+"key": "Outlook .msg#10",
+"fmt": "Outlook .msg",
+"id": "10",
+"construct": "PidTagMessageDeliveryTime 0x0E06",
+"markers": [],
+"marker": "(value)",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#11",
+"fmt": "Outlook .msg",
+"id": "11",
+"construct": "PidTagTransportMessageHeaders 0x007D",
+"markers": [
+"QZMSGTRANSPORT"
+],
+"marker": "QZMSGTRANSPORT",
+"ideal": "hide: routing",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#12",
+"fmt": "Outlook .msg",
+"id": "12",
+"construct": "PidTagConversationTopic 0x0070",
+"markers": [
+"QZMSGTOPIC"
+],
+"marker": "QZMSGTOPIC",
+"ideal": "hide: duplicates subject",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#13",
+"fmt": "Outlook .msg",
+"id": "13",
+"construct": "PidTagInternetMessageId 0x1035",
+"markers": [
+"QZMSGMSGID"
+],
+"marker": "QZMSGMSGID",
+"ideal": "hide: identifier",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#14",
+"fmt": "Outlook .msg",
+"id": "14",
+"construct": "Attachment storage, PidTagAttachLongFilename 0x3707",
+"markers": [
+"QZMSGATTACH"
+],
+"marker": "QZMSGATTACH",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#15",
+"fmt": "Outlook .msg",
+"id": "15",
+"construct": "PidTagAttachDataBinary 0x37010102",
+"markers": [
+"QZMSGATTACHDATA"
+],
+"marker": "QZMSGATTACHDATA",
+"ideal": "hide (product: names only)",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#16",
+"fmt": "Outlook .msg",
+"id": "16",
+"construct": "Embedded message attachment (afEmbeddedMessage 5): display name 0x3001",
+"markers": [
+"QZEMBEDDISPLAY"
+],
+"marker": "QZEMBEDDISPLAY",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#17",
+"fmt": "Outlook .msg",
+"id": "17",
+"construct": "Embedded message `__substg1.0_3701000D`: its subject, sender, body",
+"markers": [
+"QZEMBEDSUBJECT",
+"QZEMBEDSENDER",
+"QZEMBEDBODY"
+],
+"marker": "QZEMBEDSUBJECT, QZEMBEDSENDER, QZEMBEDBODY",
+"ideal": "hide (judgment, same as EML row 55; flips to missing if attached mail should be read)",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#18",
+"fmt": "Outlook .msg",
+"id": "18",
+"construct": "PtypString8 0x001E subject under PidTagMessageCodepage 1251",
+"markers": [
+"QZANSISUBJECT"
+],
+"marker": "QZANSISUBJECT",
+"ideal": "show, decoded",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#19",
+"fmt": "Outlook .msg",
+"id": "19",
+"construct": "PtypString8 body, same code page",
+"markers": [
+"QZANSIBODY"
+],
+"marker": "QZANSIBODY",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#20",
+"fmt": "Outlook .msg",
+"id": "20",
+"construct": "Body only in PidTagRtfCompressed 0x1009 (MELA, uncompressed)",
+"markers": [
+"QZRTFONLYBODY",
+"QZRTFSECOND"
+],
+"marker": "QZRTFONLYBODY, QZRTFSECOND",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Outlook .msg#21",
+"fmt": "Outlook .msg",
+"id": "21",
+"construct": "HTML-only body, PidTagHtml as PtypBinary 0x10130102, internet code page 65001",
+"markers": [
+"QZHTMLBINBODY"
+],
+"marker": "QZHTMLBINBODY",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#22",
+"fmt": "Outlook .msg",
+"id": "22",
+"construct": "Blockquote in that HTML body",
+"markers": [
+"QZMSGQUOTED"
+],
+"marker": "QZMSGQUOTED",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#23",
+"fmt": "Outlook .msg",
+"id": "23",
+"construct": "HTML-only body, PidTagBodyHtml as PtypString 0x1013001F",
+"markers": [
+"QZHTMLSTRBODY"
+],
+"marker": "QZHTMLSTRBODY",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Outlook .msg#24",
+"fmt": "Outlook .msg",
+"id": "24",
+"construct": "IPM.Appointment subject and body",
+"markers": [
+"QZAPPTSUBJECT",
+"QZAPPTBODY"
+],
+"marker": "QZAPPTSUBJECT, QZAPPTBODY",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Outlook .msg#25",
+"fmt": "Outlook .msg",
+"id": "25",
+"construct": "PidLidLocation (named property via `__nameid_version1.0`, stored as 0x8000001F)",
+"markers": [
+"QZAPPTLOCATION"
+],
+"marker": "QZAPPTLOCATION",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Outlook .msg#26",
+"fmt": "Outlook .msg",
+"id": "26",
+"construct": "PidLidAppointmentStartWhole (named, 0x80010040)",
+"markers": [],
+"marker": "2026-10-20 09:00",
+"ideal": "show: when the meeting is",
+"verdict": "missing"
+},
+{
+"key": "Outlook .msg#27",
+"fmt": "Outlook .msg",
+"id": "27",
+"construct": "Message class IPM.Appointment",
+"markers": [],
+"marker": "IPM.Appointment",
+"ideal": "label: a meeting, not a mail (judgment)",
+"verdict": "missing"
+},
+{
+"key": "Word 97 .doc#1",
+"fmt": "Word 97 .doc",
+"id": "1",
+"construct": "Main document text",
+"markers": [],
+"marker": "test2.doc body",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word 97 .doc#2",
+"fmt": "Word 97 .doc",
+"id": "2",
+"construct": "8-bit compressed pieces",
+"markers": [],
+"marker": "test2, ThreeColHeadFoot, 64132 accented text, testWORD_2006ml right quote",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word 97 .doc#3",
+"fmt": "Word 97 .doc",
+"id": "3",
+"construct": "UTF-16 pieces incl. surrogate pairs",
+"markers": [],
+"marker": "HeaderFooterUnicode euro sign, testWORD_various Japanese",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word 97 .doc#4",
+"fmt": "Word 97 .doc",
+"id": "4",
+"construct": "Fast-saved file, pieces out of fc order",
+"markers": [],
+"marker": "rasp.doc (34 pieces, fComplex=1)",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word 97 .doc#5",
+"fmt": "Word 97 .doc",
+"id": "5",
+"construct": "Footnotes",
+"markers": [],
+"marker": "footnote.doc \"TestFootnote\"; testWORD_various \"This is a footnote.\"",
+"ideal": "label",
+"verdict": "unlabelled"
+},
+{
+"key": "Word 97 .doc#6",
+"fmt": "Word 97 .doc",
+"id": "6",
+"construct": "Endnotes",
+"markers": [],
+"marker": "\"TestEndnote\"; test-fields \"Field in EndNote. File size: 0\"",
+"ideal": "label",
+"verdict": "unlabelled"
+},
+{
+"key": "Word 97 .doc#7",
+"fmt": "Word 97 .doc",
+"id": "7",
+"construct": "Comments (annotations) and author",
+"markers": [],
+"marker": "footnote.doc \"TestComment\"; testWORD_features \"This is a comment\"; testWORD_2006ml \"This is a comment\"",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Word 97 .doc#8",
+"fmt": "Word 97 .doc",
+"id": "8",
+"construct": "Headers and footers",
+"markers": [],
+"marker": "ThreeColHeadFoot \"First header column!\"; HeaderFooterUnicode header/footer; Bug47958 address header; testWORD_header_hyperlink",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Word 97 .doc#9",
+"fmt": "Word 97 .doc",
+"id": "9",
+"construct": "Footnote/endnote separator stories (header stories 0-5)",
+"markers": [],
+"marker": "0x03/0x04 separator chars POI TestHeaderStories asserts",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "Word 97 .doc#10",
+"fmt": "Word 97 .doc",
+"id": "10",
+"construct": "Main-document textboxes",
+"markers": [],
+"marker": "Bug41898; testWORD_various \"Here is a text box\"; testWORD_2006ml cover page \"My Document Title\", \"This is the Author\"",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word 97 .doc#11",
+"fmt": "Word 97 .doc",
+"id": "11",
+"construct": "Header textboxes",
+"markers": [],
+"marker": "test-fields \"Textbox in header with field: 3:18 PM\"; 64132 \"Pagina 1\" (accented a)",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Word 97 .doc#12",
+"fmt": "Word 97 .doc",
+"id": "12",
+"construct": "Field instructions",
+"markers": [],
+"marker": "CREATEDATE, AUTHOR, HYPERLINK, PAGEREF codes in test-fields, hyperlink, pageref",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "Word 97 .doc#13",
+"fmt": "Word 97 .doc",
+"id": "13",
+"construct": "Field results",
+"markers": [],
+"marker": "test-fields \"19/11/2010 14:49:00\", \"Fridrich Strba\"; pageref \"1\"; TOC lines; SEQ \"Figure 1\"",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word 97 .doc#14",
+"fmt": "Word 97 .doc",
+"id": "14",
+"construct": "Field with no separator (EQ phonetic guide)",
+"markers": [],
+"marker": "testWORD_phonetic Tokyo kanji with furigana",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Word 97 .doc#15",
+"fmt": "Word 97 .doc",
+"id": "15",
+"construct": "HYPERLINK target URL",
+"markers": [],
+"marker": "hyperlink.doc \"http://testuri.org/\"; testWORD_2006ml \"tika.apache.org\"",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Word 97 .doc#16",
+"fmt": "Word 97 .doc",
+"id": "16",
+"construct": "Bookmark names",
+"markers": [],
+"marker": "2006ml bookmark \"userref\"",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "Word 97 .doc#17",
+"fmt": "Word 97 .doc",
+"id": "17",
+"construct": "Hidden text",
+"markers": [],
+"marker": "testWORD_features \"This is hidden text.\" and \"inceptos\"; 53379 hidden section \"the section would be deleted\" (5 runs)",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "Word 97 .doc#18",
+"fmt": "Word 97 .doc",
+"id": "18",
+"construct": "Tracked deletions",
+"markers": [],
+"marker": "testWORD_features \"bibendum\", \"Donec\", \"ad litora\"; testWORD_2006ml \"frog\", \"Deleted paragraph1/2\", deleted table row \"Del r1c1\"",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "Word 97 .doc#19",
+"fmt": "Word 97 .doc",
+"id": "19",
+"construct": "Move-from revision text",
+"markers": [],
+"marker": "testWORD_2006ml \"Second paragraph here\"",
+"ideal": "hide",
+"verdict": "duplicated"
+},
+{
+"key": "Word 97 .doc#20",
+"fmt": "Word 97 .doc",
+"id": "20",
+"construct": "Tracked insertions",
+"markers": [],
+"marker": "testWORD_2006ml, testWORD_features insertions",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word 97 .doc#21",
+"fmt": "Word 97 .doc",
+"id": "21",
+"construct": "List numbers and bullets",
+"markers": [],
+"marker": "Lists.doc \"1. Ordered list 1\"; testWORD_numbered_list \"1) This\", \"a) Is\", \"II. bar\"",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Word 97 .doc#22",
+"fmt": "Word 97 .doc",
+"id": "22",
+"construct": "Heading styles",
+"markers": [],
+"marker": "testWORD_various \"Heading Level 1\"; Bug47958 \"HEADING TEXT\" (POI style \"Heading 1\")",
+"ideal": "label",
+"verdict": "unlabelled"
+},
+{
+"key": "Word 97 .doc#23",
+"fmt": "Word 97 .doc",
+"id": "23",
+"construct": "Table, every cell filled",
+"markers": [],
+"marker": "testWORD_various table",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Word 97 .doc#24",
+"fmt": "Word 97 .doc",
+"id": "24",
+"construct": "Table row with an empty cell",
+"markers": [],
+"marker": "Bug47958 address table",
+"ideal": "show",
+"verdict": "garbled"
+},
+{
+"key": "Word 97 .doc#25",
+"fmt": "Word 97 .doc",
+"id": "25",
+"construct": "Nested table",
+"markers": [],
+"marker": "innertable.doc inner 2x2 \"1\",\"2\",\"3\",\"4\"",
+"ideal": "show",
+"verdict": "garbled"
+},
+{
+"key": "Word 97 .doc#26",
+"fmt": "Word 97 .doc",
+"id": "26",
+"construct": "Symbol-font characters",
+"markers": [],
+"marker": "53379: U+F0B0 (Symbol degree) x23, alpha, mu",
+"ideal": "show",
+"verdict": "garbled"
+},
+{
+"key": "Word 97 .doc#27",
+"fmt": "Word 97 .doc",
+"id": "27",
+"construct": "All caps formatting",
+"markers": [],
+"marker": "capitalized.doc",
+"ideal": "show",
+"verdict": "garbled"
+},
+{
+"key": "Word 97 .doc#28",
+"fmt": "Word 97 .doc",
+"id": "28",
+"construct": "Picture and object anchors",
+"markers": [],
+"marker": "Picture_Alternative_Text, watermark",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "Word 97 .doc#29",
+"fmt": "Word 97 .doc",
+"id": "29",
+"construct": "Picture alt text",
+"markers": [],
+"marker": "Picture_Alternative_Text.doc alt text",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Word 97 .doc#30",
+"fmt": "Word 97 .doc",
+"id": "30",
+"construct": "WordArt watermark in header",
+"markers": [],
+"marker": "watermark.doc \"DRAFT CONTRACT\"",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Word 97 .doc#31",
+"fmt": "Word 97 .doc",
+"id": "31",
+"construct": "Document title",
+"markers": [],
+"marker": "testWORD_custom_props \"My Title\"",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Word 97 .doc#32",
+"fmt": "Word 97 .doc",
+"id": "32",
+"construct": "Word 6.0/95 file",
+"markers": [],
+"marker": "Word95.doc",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Word 97 .doc#33",
+"fmt": "Word 97 .doc",
+"id": "33",
+"construct": "Encrypted file",
+"markers": [],
+"marker": "PasswordProtected.doc",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "Excel 97 .xls#1",
+"fmt": "Excel 97 .xls",
+"id": "1",
+"construct": "Shared strings",
+"markers": [
+"QZSHAREDSTR"
+],
+"marker": "QZSHAREDSTR",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Excel 97 .xls#2",
+"fmt": "Excel 97 .xls",
+"id": "2",
+"construct": "Rich text string",
+"markers": [
+"QZRICHA",
+"QZRICHB"
+],
+"marker": "QZRICHA QZRICHB",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Excel 97 .xls#3",
+"fmt": "Excel 97 .xls",
+"id": "3",
+"construct": "Unicode string",
+"markers": [
+"QZUNICODE"
+],
+"marker": "\"QZUNICODE\" + C-cedilla, Japanese, euro",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Excel 97 .xls#4",
+"fmt": "Excel 97 .xls",
+"id": "4",
+"construct": "String spanning SST CONTINUE records",
+"markers": [
+"QZLONGSTART",
+"QZLONGEND"
+],
+"marker": "9020-char QZLONGSTART...QZLONGEND; StringContinueRecords.xls",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Excel 97 .xls#5",
+"fmt": "Excel 97 .xls",
+"id": "5",
+"construct": "String formula cached result",
+"markers": [
+"QZFORMULASTR"
+],
+"marker": "QZFORMULASTR; StringFormulas.xls \"XYZ\"",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Excel 97 .xls#6",
+"fmt": "Excel 97 .xls",
+"id": "6",
+"construct": "Formula expression",
+"markers": [
+"QZFORMCODE"
+],
+"marker": "QZFORMCODE (only inside the IF expression)",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "Excel 97 .xls#7",
+"fmt": "Excel 97 .xls",
+"id": "7",
+"construct": "Numeric, error and boolean formula results",
+"markers": [],
+"marker": "12345, #DIV/0!, TRUE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Excel 97 .xls#8",
+"fmt": "Excel 97 .xls",
+"id": "8",
+"construct": "Number formats",
+"markers": [
+"QZUNITS"
+],
+"marker": "43.21%, 3/15/23, 2023-03-15, \"42 QZUNITS\", \"$1,234.50\"; Formatting.xls 2006/11/24, 2006-11-24, 24-11-06, 10.52, 10.520, pound 10.52",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Excel 97 .xls#9",
+"fmt": "Excel 97 .xls",
+"id": "9",
+"construct": "Format \";;;\" (value displayed as nothing)",
+"markers": [],
+"marker": "13579",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "Excel 97 .xls#10",
+"fmt": "Excel 97 .xls",
+"id": "10",
+"construct": "Merged cells",
+"markers": [
+"QZMERGED",
+"QZAFTERMERGE"
+],
+"marker": "QZMERGED A4:C5, QZAFTERMERGE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Excel 97 .xls#11",
+"fmt": "Excel 97 .xls",
+"id": "11",
+"construct": "Hidden sheet",
+"markers": [
+"QZHIDDENSHEET"
+],
+"marker": "QZHIDDENSHEET; TwoSheetsOneHidden \"Sheet1\"; 45761 HiddenSheet",
+"ideal": "label",
+"verdict": "unlabelled"
+},
+{
+"key": "Excel 97 .xls#12",
+"fmt": "Excel 97 .xls",
+"id": "12",
+"construct": "Very hidden sheet",
+"markers": [
+"QZVHIDDENSHEET",
+"QZVHIDDENCELL"
+],
+"marker": "QZVHIDDENSHEET/QZVHIDDENCELL; 45761 \"Very Hidden\"",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "Excel 97 .xls#13",
+"fmt": "Excel 97 .xls",
+"id": "13",
+"construct": "Hidden row",
+"markers": [
+"QZHIDDENROW"
+],
+"marker": "QZHIDDENROW",
+"ideal": "label",
+"verdict": "unlabelled"
+},
+{
+"key": "Excel 97 .xls#14",
+"fmt": "Excel 97 .xls",
+"id": "14",
+"construct": "Hidden column",
+"markers": [
+"QZHIDDENCOL"
+],
+"marker": "QZHIDDENCOL (column J)",
+"ideal": "label",
+"verdict": "unlabelled"
+},
+{
+"key": "Excel 97 .xls#15",
+"fmt": "Excel 97 .xls",
+"id": "15",
+"construct": "Cell comment (Note) and author",
+"markers": [
+"QZCOMMENT",
+"QZAUTHOR"
+],
+"marker": "QZCOMMENT by QZAUTHOR; SimpleWithComments \"first cell\" (POI asserts \"Comment by Yegor Kozlov: Yegor Kozlov: first cell\")",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel 97 .xls#16",
+"fmt": "Excel 97 .xls",
+"id": "16",
+"construct": "Sheet header",
+"markers": [
+"QZHDRLEFT",
+"QZHDRRIGHT"
+],
+"marker": "QZHDRLEFT, QZHDRRIGHT; 45538_classic_Header \"testdoc\", \"test phrase\"",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel 97 .xls#17",
+"fmt": "Excel 97 .xls",
+"id": "17",
+"construct": "Sheet footer",
+"markers": [
+"QZFOOTER"
+],
+"marker": "\"QZFOOTER &D\"; 45538_classic_Footer \"testdoc\", \"test phrase\"",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel 97 .xls#18",
+"fmt": "Excel 97 .xls",
+"id": "18",
+"construct": "Hyperlink target",
+"markers": [
+"QZLINKDISPLAY",
+"QZLINKTARGET"
+],
+"marker": "QZLINKDISPLAY -> https://example.com/QZLINKTARGET; WithHyperlink A5 -> poi.apache.org",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Excel 97 .xls#19",
+"fmt": "Excel 97 .xls",
+"id": "19",
+"construct": "Defined name",
+"markers": [
+"QZDEFNAME"
+],
+"marker": "QZDEFNAME; 60405 \"TableName\"",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel 97 .xls#20",
+"fmt": "Excel 97 .xls",
+"id": "20",
+"construct": "Data validation prompt, error text and list items",
+"markers": [
+"QZDVPTITLE",
+"QZDVPROMPT",
+"QZDVERRTITLE",
+"QZDVERROR",
+"QZLISTA",
+"QZLISTB"
+],
+"marker": "QZDVPTITLE, QZDVPROMPT, QZDVERRTITLE, QZDVERROR, QZLISTA, QZLISTB",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel 97 .xls#21",
+"fmt": "Excel 97 .xls",
+"id": "21",
+"construct": "Text box shape",
+"markers": [
+"QZTEXTBOX"
+],
+"marker": "QZTEXTBOX; 44010-SingleChart \"Les calculs d'allongement...\"",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "Excel 97 .xls#22",
+"fmt": "Excel 97 .xls",
+"id": "22",
+"construct": "Chart title",
+"markers": [],
+"marker": "44010-SingleChart \"TEST\"",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel 97 .xls#23",
+"fmt": "Excel 97 .xls",
+"id": "23",
+"construct": "Chart series names",
+"markers": [],
+"marker": "44010 \"Nombre de cycles\", \"taux\"; WithChart \"1st Column\"",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel 97 .xls#24",
+"fmt": "Excel 97 .xls",
+"id": "24",
+"construct": "Sheet holding only an embedded chart",
+"markers": [],
+"marker": "WithChart.xls Sheet2",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel 97 .xls#25",
+"fmt": "Excel 97 .xls",
+"id": "25",
+"construct": "Chart sheet data cache",
+"markers": [],
+"marker": "44010-SingleChart \"Graph2\"",
+"ideal": "label",
+"verdict": "unlabelled"
+},
+{
+"key": "Excel 97 .xls#26",
+"fmt": "Excel 97 .xls",
+"id": "26",
+"construct": "Macro sheet",
+"markers": [],
+"marker": "60405 \"Macro1\"",
+"ideal": "label",
+"verdict": "unlabelled"
+},
+{
+"key": "Excel 97 .xls#27",
+"fmt": "Excel 97 .xls",
+"id": "27",
+"construct": "Workbook title",
+"markers": [
+"QZDOCTITLE"
+],
+"marker": "QZDOCTITLE; testEXCEL (Tika) \"Simple Excel document\"",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel 97 .xls#28",
+"fmt": "Excel 97 .xls",
+"id": "28",
+"construct": "BIFF5 workbook (Book stream)",
+"markers": [],
+"marker": "testEXCEL_95.xls",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Excel 97 .xls#29",
+"fmt": "Excel 97 .xls",
+"id": "29",
+"construct": "Encrypted workbook (RC4 and XOR)",
+"markers": [],
+"marker": "password.xls (RC4), xor-encryption-abc.xls",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint 97 .ppt#1",
+"fmt": "PowerPoint 97 .ppt",
+"id": "1",
+"construct": "Slide text, 8-bit and UTF-16 atoms",
+"markers": [],
+"marker": "54880_chinese \"Single byte\", halfwidth katakana, CJK, U+20B9F",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint 97 .ppt#2",
+"fmt": "PowerPoint 97 .ppt",
+"id": "2",
+"construct": "Title and body placeholders",
+"markers": [
+"QZTITLE",
+"QZBODYONE",
+"QZBODYTWO"
+],
+"marker": "QZTITLE, QZBODYONE, QZBODYTWO",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint 97 .ppt#3",
+"fmt": "PowerPoint 97 .ppt",
+"id": "3",
+"construct": "Text box and grouped shapes",
+"markers": [
+"QZTEXTBOX",
+"QZGROUPED"
+],
+"marker": "QZTEXTBOX, QZGROUPED; bug62092 \"Text box1\"..\"Text box5\"",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint 97 .ppt#4",
+"fmt": "PowerPoint 97 .ppt",
+"id": "4",
+"construct": "Slide order",
+"markers": [],
+"marker": "incorrect_slide_order.ppt",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint 97 .ppt#5",
+"fmt": "PowerPoint 97 .ppt",
+"id": "5",
+"construct": "Slide boundaries",
+"markers": [],
+"marker": "60003.ppt (4 slides, POI titles null); with_textbox",
+"ideal": "label",
+"verdict": "garbled"
+},
+{
+"key": "PowerPoint 97 .ppt#6",
+"fmt": "PowerPoint 97 .ppt",
+"id": "6",
+"construct": "Speaker notes",
+"markers": [],
+"marker": "testPPT, WithComments, testPPT_various notes",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint 97 .ppt#7",
+"fmt": "PowerPoint 97 .ppt",
+"id": "7",
+"construct": "Bullets",
+"markers": [],
+"marker": "bullets.ppt",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint 97 .ppt#8",
+"fmt": "PowerPoint 97 .ppt",
+"id": "8",
+"construct": "Automatic numbering",
+"markers": [],
+"marker": "numbers.ppt arabicPeriod starting at 4 (POI TestNumberedList); testPPT_various \"Number bullet\"",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint 97 .ppt#9",
+"fmt": "PowerPoint 97 .ppt",
+"id": "9",
+"construct": "Table",
+"markers": [
+"QZCELLA",
+"QZCELLD"
+],
+"marker": "54111 \"TH Cell 1\\tTH Cell 2...\" (POI asserts tab-joined rows); QZCELLA..QZCELLD",
+"ideal": "show",
+"verdict": "garbled"
+},
+{
+"key": "PowerPoint 97 .ppt#10",
+"fmt": "PowerPoint 97 .ppt",
+"id": "10",
+"construct": "Hyperlink display text",
+"markers": [
+"QZLINKTEXT"
+],
+"marker": "QZLINKTEXT; WithLinks \"Jakarta HSSF\"",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint 97 .ppt#11",
+"fmt": "PowerPoint 97 .ppt",
+"id": "11",
+"construct": "Hyperlink target",
+"markers": [
+"QZLINKTARGET"
+],
+"marker": "https://example.com/QZLINKTARGET; WithLinks jakarta.apache.org/poi/hssf/",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint 97 .ppt#12",
+"fmt": "PowerPoint 97 .ppt",
+"id": "12",
+"construct": "Hidden slide",
+"markers": [
+"QZHIDDENTITLE"
+],
+"marker": "QZHIDDENTITLE (slide 2)",
+"ideal": "label",
+"verdict": "unlabelled"
+},
+{
+"key": "PowerPoint 97 .ppt#13",
+"fmt": "PowerPoint 97 .ppt",
+"id": "13",
+"construct": "Comments and author",
+"markers": [],
+"marker": "WithComments \"This is a test comment\"; testPPT_comment \"Allison, Timothy B.\"; 45543 \"testdoc\"",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint 97 .ppt#14",
+"fmt": "PowerPoint 97 .ppt",
+"id": "14",
+"construct": "Slide footer text held only in HeadersFooters",
+"markers": [
+"QZFOOTER"
+],
+"marker": "headers_footers \"Global Slide Footer\"; QZFOOTER",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint 97 .ppt#15",
+"fmt": "PowerPoint 97 .ppt",
+"id": "15",
+"construct": "Notes header/footer",
+"markers": [],
+"marker": "45537_Header/Footer \"testdoc\", \"test phrase\"",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint 97 .ppt#16",
+"fmt": "PowerPoint 97 .ppt",
+"id": "16",
+"construct": "Master footer placeholder text",
+"markers": [],
+"marker": "testPPT_masterFooter; WithMaster \"Footer from the master slide\"",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint 97 .ppt#17",
+"fmt": "PowerPoint 97 .ppt",
+"id": "17",
+"construct": "Master title/body prompts",
+"markers": [],
+"marker": "WithMaster \"This is the Master Title\"",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint 97 .ppt#18",
+"fmt": "PowerPoint 97 .ppt",
+"id": "18",
+"construct": "Master non-placeholder text",
+"markers": [
+"QZMASTERTEXT"
+],
+"marker": "QZMASTERTEXT; WithMaster \"This text comes from the Master Slide\"; master_text.ppt",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint 97 .ppt#19",
+"fmt": "PowerPoint 97 .ppt",
+"id": "19",
+"construct": "Slide number / date metacharacters",
+"markers": [],
+"marker": "testPPT_autodate (2 on slide, 2 in notes); testPPT_various notes",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "PowerPoint 97 .ppt#20",
+"fmt": "PowerPoint 97 .ppt",
+"id": "20",
+"construct": "PowerPoint 95 file",
+"markers": [],
+"marker": "PPT95.ppt",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint 97 .ppt#21",
+"fmt": "PowerPoint 97 .ppt",
+"id": "21",
+"construct": "Encrypted deck",
+"markers": [],
+"marker": "Password_Protected-hello",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "ODT#T1",
+"fmt": "ODT",
+"id": "T1",
+"construct": "dc:title in meta.xml",
+"markers": [
+"QZMETATITLE"
+],
+"marker": "QZMETATITLE",
+"ideal": "label: the document's own title",
+"verdict": "missing"
+},
+{
+"key": "ODT#T2",
+"fmt": "ODT",
+"id": "T2",
+"construct": "dc:subject",
+"markers": [
+"QZMETASUBJECT"
+],
+"marker": "QZMETASUBJECT",
+"ideal": "label: author-written metadata",
+"verdict": "missing"
+},
+{
+"key": "ODT#T3",
+"fmt": "ODT",
+"id": "T3",
+"construct": "dc:description",
+"markers": [
+"QZMETADESC"
+],
+"marker": "QZMETADESC",
+"ideal": "label: author-written metadata",
+"verdict": "missing"
+},
+{
+"key": "ODT#T4",
+"fmt": "ODT",
+"id": "T4",
+"construct": "meta:keyword",
+"markers": [
+"QZMETAKEYWORD"
+],
+"marker": "QZMETAKEYWORD",
+"ideal": "label: author-written metadata",
+"verdict": "missing"
+},
+{
+"key": "ODT#T5",
+"fmt": "ODT",
+"id": "T5",
+"construct": "meta:initial-creator",
+"markers": [
+"QZMETACREATOR"
+],
+"marker": "QZMETACREATOR",
+"ideal": "hide: a person's name, not content",
+"verdict": "covered"
+},
+{
+"key": "ODT#T6",
+"fmt": "ODT",
+"id": "T6",
+"construct": "text:h outline-level 1",
+"markers": [
+"QZHEADONE"
+],
+"marker": "QZHEADONE",
+"ideal": "show as level-1 heading",
+"verdict": "covered"
+},
+{
+"key": "ODT#T7",
+"fmt": "ODT",
+"id": "T7",
+"construct": "text:h outline-level 2",
+"markers": [
+"QZHEADTWO"
+],
+"marker": "QZHEADTWO",
+"ideal": "show as level-2 heading",
+"verdict": "covered"
+},
+{
+"key": "ODT#T8",
+"fmt": "ODT",
+"id": "T8",
+"construct": "text:p",
+"markers": [
+"QZPARA"
+],
+"marker": "QZPARA",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODT#T9",
+"fmt": "ODT",
+"id": "T9",
+"construct": "text:span splitting a word",
+"markers": [
+"QZSP"
+],
+"marker": "QZSP+LITWORD",
+"ideal": "show as one word",
+"verdict": "covered"
+},
+{
+"key": "ODT#T10",
+"fmt": "ODT",
+"id": "T10",
+"construct": "text:line-break",
+"markers": [
+"QZLINEA",
+"QZLINEB"
+],
+"marker": "QZLINEA / QZLINEB",
+"ideal": "show on two lines",
+"verdict": "covered"
+},
+{
+"key": "ODT#T11",
+"fmt": "ODT",
+"id": "T11",
+"construct": "text:tab",
+"markers": [
+"QZTABA",
+"QZTABB"
+],
+"marker": "QZTABA / QZTABB",
+"ideal": "show separated",
+"verdict": "covered"
+},
+{
+"key": "ODT#T12",
+"fmt": "ODT",
+"id": "T12",
+"construct": "text:s text:c=\"3\"",
+"markers": [
+"QZSPACEA",
+"QZSPACEB"
+],
+"marker": "QZSPACEA / QZSPACEB",
+"ideal": "show with spaces",
+"verdict": "covered"
+},
+{
+"key": "ODT#T13",
+"fmt": "ODT",
+"id": "T13",
+"construct": "text:bookmark name",
+"markers": [
+"QZBOOKMARKNAME"
+],
+"marker": "QZBOOKMARKNAME",
+"ideal": "hide: name is not displayed",
+"verdict": "covered"
+},
+{
+"key": "ODT#T14",
+"fmt": "ODT",
+"id": "T14",
+"construct": "text:list-header",
+"markers": [
+"QZLISTHEADER"
+],
+"marker": "QZLISTHEADER",
+"ideal": "show: paragraph before the list",
+"verdict": "missing"
+},
+{
+"key": "ODT#T15",
+"fmt": "ODT",
+"id": "T15",
+"construct": "text:number (formatted number \"7.\", \"8.\", \"8.1.\")",
+"markers": [],
+"marker": "`7.` / `8.` / `8.1.`",
+"ideal": "show: \"the text of a formatted number which is present when a list style is applied\"",
+"verdict": "missing"
+},
+{
+"key": "ODT#T16",
+"fmt": "ODT",
+"id": "T16",
+"construct": "list item text",
+"markers": [
+"QZNUMITEMONE",
+"QZNUMITEMTWO"
+],
+"marker": "QZNUMITEMONE / QZNUMITEMTWO",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODT#T17",
+"fmt": "ODT",
+"id": "T17",
+"construct": "nested list item",
+"markers": [
+"QZNUMNESTED"
+],
+"marker": "QZNUMNESTED",
+"ideal": "show, nested",
+"verdict": "covered"
+},
+{
+"key": "ODT#T18",
+"fmt": "ODT",
+"id": "T18",
+"construct": "bullet list item marker",
+"markers": [
+"QZBULLETITEM"
+],
+"marker": "QZBULLETITEM",
+"ideal": "show as a list item",
+"verdict": "missing (marker)"
+},
+{
+"key": "ODT#T19",
+"fmt": "ODT",
+"id": "T19",
+"construct": "text:a anchor text",
+"markers": [
+"QZLINKTEXT"
+],
+"marker": "QZLINKTEXT",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODT#T20",
+"fmt": "ODT",
+"id": "T20",
+"construct": "text:a xlink:href",
+"markers": [
+"QZLINKHREF"
+],
+"marker": "QZLINKHREF",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODT#T21",
+"fmt": "ODT",
+"id": "T21",
+"construct": "text:a office:title",
+"markers": [
+"QZLINKTITLE"
+],
+"marker": "QZLINKTITLE",
+"ideal": "label: author's link description",
+"verdict": "missing"
+},
+{
+"key": "ODT#T22",
+"fmt": "ODT",
+"id": "T22",
+"construct": "footnote text:note-citation (custom label)",
+"markers": [
+"QZFNCITE"
+],
+"marker": "QZFNCITE",
+"ideal": "show: \"a citation, either as a formatted number or a string\"",
+"verdict": "missing"
+},
+{
+"key": "ODT#T23",
+"fmt": "ODT",
+"id": "T23",
+"construct": "footnote text:note-body",
+"markers": [
+"QZFNBODY"
+],
+"marker": "QZFNBODY",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "ODT#T24",
+"fmt": "ODT",
+"id": "T24",
+"construct": "endnote text:note-body",
+"markers": [
+"QZENBODY"
+],
+"marker": "QZENBODY",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "ODT#T25",
+"fmt": "ODT",
+"id": "T25",
+"construct": "office:annotation body",
+"markers": [
+"QZANNBODY"
+],
+"marker": "QZANNBODY",
+"ideal": "label: comment",
+"verdict": "missing"
+},
+{
+"key": "ODT#T26",
+"fmt": "ODT",
+"id": "T26",
+"construct": "office:annotation dc:creator (and meta:creator-initials QZANNINITIALS)",
+"markers": [
+"QZANNAUTHOR"
+],
+"marker": "QZANNAUTHOR",
+"ideal": "label with the comment",
+"verdict": "missing"
+},
+{
+"key": "ODT#T27",
+"fmt": "ODT",
+"id": "T27",
+"construct": "text range commented (between annotation and annotation-end)",
+"markers": [
+"QZANNRANGE"
+],
+"marker": "QZANNRANGE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODT#T28",
+"fmt": "ODT",
+"id": "T28",
+"construct": "tracked insertion (change-start/end)",
+"markers": [
+"QZINSERTED"
+],
+"marker": "QZINSERTED",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODT#T29",
+"fmt": "ODT",
+"id": "T29",
+"construct": "tracked deletion content in text:deletion",
+"markers": [
+"QZDELETED"
+],
+"marker": "QZDELETED",
+"ideal": "hide: deleted text",
+"verdict": "leaked"
+},
+{
+"key": "ODT#T30",
+"fmt": "ODT",
+"id": "T30",
+"construct": "office:change-info dc:creator",
+"markers": [
+"QZCHGAUTHOR",
+"QZDELAUTHOR"
+],
+"marker": "QZCHGAUTHOR / QZDELAUTHOR",
+"ideal": "hide: revision metadata",
+"verdict": "covered"
+},
+{
+"key": "ODT#T31",
+"fmt": "ODT",
+"id": "T31",
+"construct": "text:section",
+"markers": [
+"QZSECTION"
+],
+"marker": "QZSECTION",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODT#T32",
+"fmt": "ODT",
+"id": "T32",
+"construct": "hidden section, text:display=\"none\" (RNG text-section-attlist: true / none / condition)",
+"markers": [
+"QZHIDDENSECTION"
+],
+"marker": "QZHIDDENSECTION",
+"ideal": "hide: hidden by the author",
+"verdict": "leaked"
+},
+{
+"key": "ODT#T33",
+"fmt": "ODT",
+"id": "T33",
+"construct": "text:hidden-text, is-hidden=\"true\"",
+"markers": [
+"QZHIDDENTEXT"
+],
+"marker": "QZHIDDENTEXT",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "ODT#T34",
+"fmt": "ODT",
+"id": "T34",
+"construct": "text:hidden-paragraph, is-hidden=\"true\"",
+"markers": [
+"QZHIDDENPARA"
+],
+"marker": "QZHIDDENPARA",
+"ideal": "hide: hides the enclosing paragraph",
+"verdict": "leaked"
+},
+{
+"key": "ODT#T35",
+"fmt": "ODT",
+"id": "T35",
+"construct": "text:conditional-text current value",
+"markers": [
+"QZCONDTRUE"
+],
+"marker": "QZCONDTRUE",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "ODT#T36",
+"fmt": "ODT",
+"id": "T36",
+"construct": "conditional-text false branch",
+"markers": [
+"QZCONDFALSE"
+],
+"marker": "QZCONDFALSE",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "ODT#T37",
+"fmt": "ODT",
+"id": "T37",
+"construct": "text:page-number cached text",
+"markers": [
+"QZPAGENUM"
+],
+"marker": "QZPAGENUM",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "ODT#T38",
+"fmt": "ODT",
+"id": "T38",
+"construct": "text:date cached text",
+"markers": [
+"QZDATEFIELD"
+],
+"marker": "QZDATEFIELD",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "ODT#T39",
+"fmt": "ODT",
+"id": "T39",
+"construct": "text:title field cached text",
+"markers": [
+"QZTITLEFIELD"
+],
+"marker": "QZTITLEFIELD",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "ODT#T40",
+"fmt": "ODT",
+"id": "T40",
+"construct": "text:sequence cached text",
+"markers": [
+"QZSEQ"
+],
+"marker": "QZSEQ",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "ODT#T41",
+"fmt": "ODT",
+"id": "T41",
+"construct": "text:variable-set cached text",
+"markers": [
+"QZVARSET"
+],
+"marker": "QZVARSET",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "ODT#T42",
+"fmt": "ODT",
+"id": "T42",
+"construct": "text:variable-set text:display=\"none\"",
+"markers": [
+"QZVARNONE"
+],
+"marker": "QZVARNONE",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "ODT#T43",
+"fmt": "ODT",
+"id": "T43",
+"construct": "text:ruby-base",
+"markers": [
+"QZRUBYBASE"
+],
+"marker": "QZRUBYBASE",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "ODT#T44",
+"fmt": "ODT",
+"id": "T44",
+"construct": "text:ruby-text",
+"markers": [
+"QZRUBYTEXT"
+],
+"marker": "QZRUBYTEXT",
+"ideal": "show after the base",
+"verdict": "missing"
+},
+{
+"key": "ODT#T45",
+"fmt": "ODT",
+"id": "T45",
+"construct": "table:name",
+"markers": [
+"QZTABLENAME"
+],
+"marker": "QZTABLENAME",
+"ideal": "hide: not displayed on the page",
+"verdict": "covered"
+},
+{
+"key": "ODT#T46",
+"fmt": "ODT",
+"id": "T46",
+"construct": "table:title",
+"markers": [
+"QZTABLETITLE"
+],
+"marker": "QZTABLETITLE",
+"ideal": "label: accessibility title",
+"verdict": "missing"
+},
+{
+"key": "ODT#T47",
+"fmt": "ODT",
+"id": "T47",
+"construct": "table:desc",
+"markers": [
+"QZTABLEDESC"
+],
+"marker": "QZTABLEDESC",
+"ideal": "label: accessibility description",
+"verdict": "missing"
+},
+{
+"key": "ODT#T48",
+"fmt": "ODT",
+"id": "T48",
+"construct": "table:table-header-rows row",
+"markers": [
+"QZTHA",
+"QZTHB",
+"QZTHC"
+],
+"marker": "QZTHA / QZTHB / QZTHC",
+"ideal": "show (the header row)",
+"verdict": "missing"
+},
+{
+"key": "ODT#T49",
+"fmt": "ODT",
+"id": "T49",
+"construct": "cell with number-columns-spanned=\"2\"",
+"markers": [
+"QZSPANCELL"
+],
+"marker": "QZSPANCELL",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODT#T50",
+"fmt": "ODT",
+"id": "T50",
+"construct": "table:covered-table-cell content",
+"markers": [
+"QZCOVEREDCELL"
+],
+"marker": "QZCOVEREDCELL",
+"ideal": "hide: covered by the span",
+"verdict": "covered"
+},
+{
+"key": "ODT#T51",
+"fmt": "ODT",
+"id": "T51",
+"construct": "nested table in a cell",
+"markers": [
+"QZNESTEDA",
+"QZNESTEDB"
+],
+"marker": "QZNESTEDA / QZNESTEDB",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODT#T52",
+"fmt": "ODT",
+"id": "T52",
+"construct": "cell with two text:p",
+"markers": [
+"QZCELLC2A",
+"QZCELLC2B"
+],
+"marker": "QZCELLC2A / QZCELLC2B",
+"ideal": "show, separated",
+"verdict": "covered"
+},
+{
+"key": "ODT#T53",
+"fmt": "ODT",
+"id": "T53",
+"construct": "draw:frame / draw:text-box",
+"markers": [
+"QZTEXTBOX"
+],
+"marker": "QZTEXTBOX",
+"ideal": "show as its own block: \"outside of the flow of the document\"",
+"verdict": "garbled"
+},
+{
+"key": "ODT#T54",
+"fmt": "ODT",
+"id": "T54",
+"construct": "image frame svg:title",
+"markers": [
+"QZALTTITLE"
+],
+"marker": "QZALTTITLE",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "ODT#T55",
+"fmt": "ODT",
+"id": "T55",
+"construct": "image frame svg:desc",
+"markers": [
+"QZALTDESC"
+],
+"marker": "QZALTDESC",
+"ideal": "label: \"prose description ... to support accessibility\"",
+"verdict": "missing"
+},
+{
+"key": "ODT#T56",
+"fmt": "ODT",
+"id": "T56",
+"construct": "draw:image own text:p",
+"markers": [
+"QZIMAGETEXT"
+],
+"marker": "QZIMAGETEXT",
+"ideal": "show: \"Text content is displayed in addition to the image data\"",
+"verdict": "missing"
+},
+{
+"key": "ODT#T57",
+"fmt": "ODT",
+"id": "T57",
+"construct": "style:header (styles.xml master page)",
+"markers": [
+"QZHEADER"
+],
+"marker": "QZHEADER",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "ODT#T58",
+"fmt": "ODT",
+"id": "T58",
+"construct": "style:header-first",
+"markers": [
+"QZHEADERFIRST"
+],
+"marker": "QZHEADERFIRST",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "ODT#T59",
+"fmt": "ODT",
+"id": "T59",
+"construct": "style:footer",
+"markers": [
+"QZFOOTER"
+],
+"marker": "QZFOOTER",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "ODT#T60",
+"fmt": "ODT",
+"id": "T60",
+"construct": "style:footer-left",
+"markers": [
+"QZFOOTERLEFT"
+],
+"marker": "QZFOOTERLEFT",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "ODT#T61",
+"fmt": "ODT",
+"id": "T61",
+"construct": "TOC text:index-title",
+"markers": [
+"QZTOCTITLE"
+],
+"marker": "QZTOCTITLE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODT#T62",
+"fmt": "ODT",
+"id": "T62",
+"construct": "TOC text:index-body entry",
+"markers": [
+"QZTOCENTRY"
+],
+"marker": "QZTOCENTRY",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODT#T63",
+"fmt": "ODT",
+"id": "T63",
+"construct": "TOC text:index-title-template",
+"markers": [
+"QZTOCTEMPLATE"
+],
+"marker": "QZTOCTEMPLATE",
+"ideal": "hide: template, not displayed",
+"verdict": "covered"
+},
+{
+"key": "ODT#T64",
+"fmt": "ODT",
+"id": "T64",
+"construct": "form:text value / current-value (placed by draw:control)",
+"markers": [
+"QZFORMVALUE",
+"QZFORMCURRENT"
+],
+"marker": "QZFORMVALUE / QZFORMCURRENT",
+"ideal": "show (the current value)",
+"verdict": "missing"
+},
+{
+"key": "ODS#S1",
+"fmt": "ODS",
+"id": "S1",
+"construct": "dc:title in meta.xml",
+"markers": [
+"QZODSMETATITLE"
+],
+"marker": "QZODSMETATITLE",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "ODS#S2",
+"fmt": "ODS",
+"id": "S2",
+"construct": "sheet name (table:name)",
+"markers": [
+"QZSHEETONE"
+],
+"marker": "QZSHEETONE",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "ODS#S3",
+"fmt": "ODS",
+"id": "S3",
+"construct": "second sheet name and cells",
+"markers": [
+"QZSHEETTWO",
+"QZSHEETTWOCELL"
+],
+"marker": "QZSHEETTWO / QZSHEETTWOCELL",
+"ideal": "label / show",
+"verdict": "covered"
+},
+{
+"key": "ODS#S4",
+"fmt": "ODS",
+"id": "S4",
+"construct": "hidden sheet: table:display=\"false\" on style:table-properties",
+"markers": [
+"QZHIDDENSHEET",
+"QZHIDDENSHEETCELL"
+],
+"marker": "QZHIDDENSHEET / QZHIDDENSHEETCELL",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "ODS#S5",
+"fmt": "ODS",
+"id": "S5",
+"construct": "hidden column: table:visibility=\"collapse\" on table:table-column",
+"markers": [
+"QZHIDDENCOL"
+],
+"marker": "QZHIDDENCOL",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "ODS#S6",
+"fmt": "ODS",
+"id": "S6",
+"construct": "hidden row: table:visibility=\"collapse\" on table:table-row",
+"markers": [
+"QZHIDDENROW"
+],
+"marker": "QZHIDDENROW",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "ODS#S7",
+"fmt": "ODS",
+"id": "S7",
+"construct": "string cell",
+"markers": [
+"QZSTRING"
+],
+"marker": "QZSTRING",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODS#S8",
+"fmt": "ODS",
+"id": "S8",
+"construct": "float cell, shown `98,765.43` vs office:value 98765.4321",
+"markers": [],
+"marker": "`98,765.43`",
+"ideal": "show the shown value",
+"verdict": "covered"
+},
+{
+"key": "ODS#S9",
+"fmt": "ODS",
+"id": "S9",
+"construct": "date cell, shown `19.07.31` vs date-value 2031-07-19",
+"markers": [],
+"marker": "`19.07.31`",
+"ideal": "show the shown value",
+"verdict": "covered"
+},
+{
+"key": "ODS#S10",
+"fmt": "ODS",
+"id": "S10",
+"construct": "currency cell, shown `4.321,50 \u20ac` vs value 4321.5",
+"markers": [],
+"marker": "`4.321,50 \u20ac`",
+"ideal": "show the shown value",
+"verdict": "covered"
+},
+{
+"key": "ODS#S11",
+"fmt": "ODS",
+"id": "S11",
+"construct": "percentage cell, shown `37.12%` vs value 0.3712",
+"markers": [],
+"marker": "`37.12%`",
+"ideal": "show the shown value",
+"verdict": "covered"
+},
+{
+"key": "ODS#S12",
+"fmt": "ODS",
+"id": "S12",
+"construct": "formula cell, cached string result",
+"markers": [
+"QZFORMULACACHE"
+],
+"marker": "QZFORMULACACHE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODS#S13",
+"fmt": "ODS",
+"id": "S13",
+"construct": "formula source (table:formula)",
+"markers": [
+"QZFORMULASRC"
+],
+"marker": "QZFORMULASRC",
+"ideal": "hide: formula, not the shown value",
+"verdict": "covered"
+},
+{
+"key": "ODS#S14",
+"fmt": "ODS",
+"id": "S14",
+"construct": "numeric formula cached result `31,337`",
+"markers": [],
+"marker": "`31,337`",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODS#S15",
+"fmt": "ODS",
+"id": "S15",
+"construct": "office:annotation in a cell",
+"markers": [
+"QZCELLANNBODY"
+],
+"marker": "QZCELLANNBODY",
+"ideal": "label: comment",
+"verdict": "garbled"
+},
+{
+"key": "ODS#S16",
+"fmt": "ODS",
+"id": "S16",
+"construct": "cell annotation dc:creator",
+"markers": [
+"QZCELLANNAUTHOR"
+],
+"marker": "QZCELLANNAUTHOR",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "ODS#S17",
+"fmt": "ODS",
+"id": "S17",
+"construct": "cell number-columns-spanned=\"2\"",
+"markers": [
+"QZMERGED"
+],
+"marker": "QZMERGED",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODS#S18",
+"fmt": "ODS",
+"id": "S18",
+"construct": "table:covered-table-cell content",
+"markers": [
+"QZCOVERED"
+],
+"marker": "QZCOVERED",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "ODS#S19",
+"fmt": "ODS",
+"id": "S19",
+"construct": "cell after the spanned range (column C)",
+"markers": [
+"QZAFTERMERGE"
+],
+"marker": "QZAFTERMERGE",
+"ideal": "show in column C",
+"verdict": "garbled"
+},
+{
+"key": "ODS#S20",
+"fmt": "ODS",
+"id": "S20",
+"construct": "cell with two text:p",
+"markers": [
+"QZCELLPARAA",
+"QZCELLPARAB"
+],
+"marker": "QZCELLPARAA / QZCELLPARAB",
+"ideal": "show, separated",
+"verdict": "garbled"
+},
+{
+"key": "ODS#S21",
+"fmt": "ODS",
+"id": "S21",
+"construct": "number-columns-repeated=\"3\" on a filled cell",
+"markers": [
+"QZREPEAT"
+],
+"marker": "QZREPEAT",
+"ideal": "show three times (three cells)",
+"verdict": "covered"
+},
+{
+"key": "ODS#S22",
+"fmt": "ODS",
+"id": "S22",
+"construct": "trailing repeated empty cells (1020 columns) and rows (1,048,567)",
+"markers": [],
+"marker": "none",
+"ideal": "hide: no padding",
+"verdict": "covered"
+},
+{
+"key": "ODS#S23",
+"fmt": "ODS",
+"id": "S23",
+"construct": "validation help message (title + text:p)",
+"markers": [
+"QZHELPTITLE",
+"QZHELPMSG"
+],
+"marker": "QZHELPTITLE / QZHELPMSG",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "ODS#S24",
+"fmt": "ODS",
+"id": "S24",
+"construct": "validation error message (title + text:p)",
+"markers": [
+"QZERRTITLE",
+"QZERRMSG"
+],
+"marker": "QZERRTITLE / QZERRMSG",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "ODS#S25",
+"fmt": "ODS",
+"id": "S25",
+"construct": "style:header region-left (styles.xml)",
+"markers": [
+"QZSHEADERLEFT"
+],
+"marker": "QZSHEADERLEFT",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "ODS#S26",
+"fmt": "ODS",
+"id": "S26",
+"construct": "style:footer",
+"markers": [
+"QZSFOOTER"
+],
+"marker": "QZSFOOTER",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "ODS#S27",
+"fmt": "ODS",
+"id": "S27",
+"construct": "named range name",
+"markers": [
+"QZNAMEDRANGE"
+],
+"marker": "QZNAMEDRANGE",
+"ideal": "hide: structure",
+"verdict": "covered"
+},
+{
+"key": "ODP#P1",
+"fmt": "ODP",
+"id": "P1",
+"construct": "dc:title in meta.xml",
+"markers": [
+"QZODPMETATITLE"
+],
+"marker": "QZODPMETATITLE",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "ODP#P2",
+"fmt": "ODP",
+"id": "P2",
+"construct": "draw:page draw:name",
+"markers": [
+"QZPAGENAMEONE",
+"QZPAGENAMETWO"
+],
+"marker": "QZPAGENAMEONE / QZPAGENAMETWO",
+"ideal": "label: author-set slide name",
+"verdict": "missing"
+},
+{
+"key": "ODP#P3",
+"fmt": "ODP",
+"id": "P3",
+"construct": "title placeholder (presentation:class=\"title\")",
+"markers": [
+"QZTITLE"
+],
+"marker": "QZTITLE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODP#P4",
+"fmt": "ODP",
+"id": "P4",
+"construct": "subtitle placeholder",
+"markers": [
+"QZSUBTITLE"
+],
+"marker": "QZSUBTITLE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODP#P5",
+"fmt": "ODP",
+"id": "P5",
+"construct": "outline placeholder, level 1 item",
+"markers": [
+"QZOUTLINEONE"
+],
+"marker": "QZOUTLINEONE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODP#P6",
+"fmt": "ODP",
+"id": "P6",
+"construct": "outline placeholder, level 2 item",
+"markers": [
+"QZOUTLINETWO"
+],
+"marker": "QZOUTLINETWO",
+"ideal": "show, nested",
+"verdict": "covered"
+},
+{
+"key": "ODP#P7",
+"fmt": "ODP",
+"id": "P7",
+"construct": "plain text box (draw:frame / draw:text-box, no class)",
+"markers": [
+"QZTEXTBOX"
+],
+"marker": "QZTEXTBOX",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODP#P8",
+"fmt": "ODP",
+"id": "P8",
+"construct": "draw:custom-shape text",
+"markers": [
+"QZSHAPETEXT"
+],
+"marker": "QZSHAPETEXT",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODP#P9",
+"fmt": "ODP",
+"id": "P9",
+"construct": "text box inside draw:g",
+"markers": [
+"QZGROUPED"
+],
+"marker": "QZGROUPED",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODP#P10",
+"fmt": "ODP",
+"id": "P10",
+"construct": "table in draw:frame",
+"markers": [
+"QZODPCELLA"
+],
+"marker": "QZODPCELLA..D",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "ODP#P11",
+"fmt": "ODP",
+"id": "P11",
+"construct": "presentation:notes text",
+"markers": [
+"QZNOTES"
+],
+"marker": "QZNOTES",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "ODP#P12",
+"fmt": "ODP",
+"id": "P12",
+"construct": "hidden slide: presentation:visibility=\"hidden\" on style:drawing-page-properties (RNG define style-drawing-page-properties-attlist: visible / hidden)",
+"markers": [
+"QZHIDDENSLIDE"
+],
+"marker": "QZHIDDENSLIDE",
+"ideal": "hide: hidden by the author",
+"verdict": "leaked"
+},
+{
+"key": "ODP#P13",
+"fmt": "ODP",
+"id": "P13",
+"construct": "notes of the hidden slide",
+"markers": [
+"QZHIDDENSLIDENOTES"
+],
+"marker": "QZHIDDENSLIDENOTES",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "ODP#P14",
+"fmt": "ODP",
+"id": "P14",
+"construct": "master title placeholder prompt (presentation:placeholder=\"true\")",
+"markers": [
+"QZMASTERTITLEPROMPT"
+],
+"marker": "QZMASTERTITLEPROMPT",
+"ideal": "hide: prompt",
+"verdict": "covered"
+},
+{
+"key": "ODP#P15",
+"fmt": "ODP",
+"id": "P15",
+"construct": "master-page decorative text box",
+"markers": [
+"QZMASTERDECOR"
+],
+"marker": "QZMASTERDECOR",
+"ideal": "show once",
+"verdict": "missing"
+},
+{
+"key": "ODP#P16",
+"fmt": "ODP",
+"id": "P16",
+"construct": "footer text: presentation:footer-decl used via master footer field",
+"markers": [
+"QZFOOTERDECL"
+],
+"marker": "QZFOOTERDECL",
+"ideal": "show once",
+"verdict": "missing"
+},
+{
+"key": "ODP#P17",
+"fmt": "ODP",
+"id": "P17",
+"construct": "master notes placeholder prompt",
+"markers": [
+"QZMASTERNOTESPROMPT"
+],
+"marker": "QZMASTERNOTESPROMPT",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "ODP#P18",
+"fmt": "ODP",
+"id": "P18",
+"construct": "chart:title (embedded \"Object 1/content.xml\")",
+"markers": [
+"QZCHARTTITLE"
+],
+"marker": "QZCHARTTITLE",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "ODP#P19",
+"fmt": "ODP",
+"id": "P19",
+"construct": "chart:subtitle",
+"markers": [
+"QZCHARTSUBTITLE"
+],
+"marker": "QZCHARTSUBTITLE",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "ODP#P20",
+"fmt": "ODP",
+"id": "P20",
+"construct": "chart axis title",
+"markers": [
+"QZCHARTAXISTITLE"
+],
+"marker": "QZCHARTAXISTITLE",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "ODP#P21",
+"fmt": "ODP",
+"id": "P21",
+"construct": "chart local-table series name and categories (values 11, 22)",
+"markers": [
+"QZCHARTSERIES",
+"QZCHARTCATA",
+"QZCHARTCATB"
+],
+"marker": "QZCHARTSERIES / QZCHARTCATA / QZCHARTCATB",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "ODP#P22",
+"fmt": "ODP",
+"id": "P22",
+"construct": "chart frame svg:title",
+"markers": [
+"QZCHARTALT"
+],
+"marker": "QZCHARTALT",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "ODP#P23",
+"fmt": "ODP",
+"id": "P23",
+"construct": "image frame svg:title",
+"markers": [
+"QZODPALTTITLE"
+],
+"marker": "QZODPALTTITLE",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "ODP#P24",
+"fmt": "ODP",
+"id": "P24",
+"construct": "image frame svg:desc",
+"markers": [
+"QZODPALTDESC"
+],
+"marker": "QZODPALTDESC",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "ODP#P25",
+"fmt": "ODP",
+"id": "P25",
+"construct": "office:annotation on a slide",
+"markers": [
+"QZSLIDECOMMENT"
+],
+"marker": "QZSLIDECOMMENT",
+"ideal": "label: comment",
+"verdict": "unlabelled"
+},
+{
+"key": "ODP#P26",
+"fmt": "ODP",
+"id": "P26",
+"construct": "slide annotation dc:creator",
+"markers": [
+"QZSLIDECOMMENTAUTHOR"
+],
+"marker": "QZSLIDECOMMENTAUTHOR",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PDF#1",
+"fmt": "PDF",
+"id": "1",
+"construct": "Tj text, one string per line (main p1)",
+"markers": [
+"QZPLAINTJ"
+],
+"marker": "QZPLAINTJ",
+"ideal": "show: page text",
+"verdict": "covered"
+},
+{
+"key": "PDF#2",
+"fmt": "PDF",
+"id": "2",
+"construct": "TJ with a -300 gap between words (no space glyph)",
+"markers": [
+"QZTJWORD",
+"QZTJGAP"
+],
+"marker": "QZTJWORD / QZTJGAP",
+"ideal": "show, with the word space rebuilt",
+"verdict": "covered"
+},
+{
+"key": "PDF#3",
+"fmt": "PDF",
+"id": "3",
+"construct": "TJ with small kerning moves inside one word",
+"markers": [
+"QZKERNINSIDE"
+],
+"marker": "QZKERNINSIDE",
+"ideal": "show as one word",
+"verdict": "covered"
+},
+{
+"key": "PDF#4",
+"fmt": "PDF",
+"id": "4",
+"construct": "Two words placed by Td with a gap, no space glyph",
+"markers": [
+"QZPOSA",
+"QZPOSB"
+],
+"marker": "QZPOSA / QZPOSB",
+"ideal": "show, space rebuilt",
+"verdict": "covered"
+},
+{
+"key": "PDF#5",
+"fmt": "PDF",
+"id": "5",
+"construct": "Two columns, right column written first in the stream (main p1)",
+"markers": [
+"QZLEFTCOLONE",
+"QZLEFTCOLEND",
+"QZRIGHTCOLONE",
+"QZRIGHTCOLEND"
+],
+"marker": "QZLEFTCOLONE..QZLEFTCOLEND, QZRIGHTCOLONE..QZRIGHTCOLEND",
+"ideal": "show, left column then right column",
+"verdict": "garbled"
+},
+{
+"key": "PDF#6",
+"fmt": "PDF",
+"id": "6",
+"construct": "Control: same two columns written left column first (pdf-columns-control, 2 pages)",
+"markers": [
+"QZCTLLEFTONE",
+"QZCTLRIGHTONE"
+],
+"marker": "QZCTLLEFTONE, QZCTLRIGHTONE",
+"ideal": "show, left then right",
+"verdict": "covered"
+},
+{
+"key": "PDF#7",
+"fmt": "PDF",
+"id": "7",
+"construct": "Table drawn as positioned text, 3x3",
+"markers": [
+"QZTABLEQTY"
+],
+"marker": "QZTABLEQTY",
+"ideal": "show, columns kept apart",
+"verdict": "covered"
+},
+{
+"key": "PDF#8",
+"fmt": "PDF",
+"id": "8",
+"construct": "Tr 3 invisible line on a page of ordinary text (main p2)",
+"markers": [
+"QZINVISIBLE"
+],
+"marker": "QZINVISIBLE",
+"ideal": "show (it is the page's text layer); noted as invisible",
+"verdict": "missing"
+},
+{
+"key": "PDF#9",
+"fmt": "PDF",
+"id": "9",
+"construct": "Tr 3 OCR text layer over a full-page picture, 2 pages (pdf-ocrlayer)",
+"markers": [
+"QZOCRLAYERONE",
+"QZOCRLAYERTWO"
+],
+"marker": "QZOCRLAYERONE / QZOCRLAYERTWO",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PDF#10",
+"fmt": "PDF",
+"id": "10",
+"construct": "Tr 7 clip text with a fill through it",
+"markers": [
+"QZCLIPTEXT"
+],
+"marker": "QZCLIPTEXT",
+"ideal": "show (visible through the fill)",
+"verdict": "covered"
+},
+{
+"key": "PDF#11",
+"fmt": "PDF",
+"id": "11",
+"construct": "White text on the white page",
+"markers": [
+"QZWHITEONWHITE"
+],
+"marker": "QZWHITEONWHITE",
+"ideal": "show (spec: hidden text is page content); invisible to a human reader",
+"verdict": "covered"
+},
+{
+"key": "PDF#12",
+"fmt": "PDF",
+"id": "12",
+"construct": "Text in an OCG listed in /OFF",
+"markers": [
+"QZOCGOFF"
+],
+"marker": "QZOCGOFF",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "PDF#13",
+"fmt": "PDF",
+"id": "13",
+"construct": "Text in an OCG listed in /ON",
+"markers": [
+"QZOCGON"
+],
+"marker": "QZOCGON",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PDF#14",
+"fmt": "PDF",
+"id": "14",
+"construct": "Text inside a Form XObject (Do)",
+"markers": [
+"QZFORMXOBJECT"
+],
+"marker": "QZFORMXOBJECT",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PDF#15",
+"fmt": "PDF",
+"id": "15",
+"construct": "ToUnicode CMap that differs from the glyph codes (codes `abcdefghijklmn`)",
+"markers": [
+"QZTOUNICODEMAP"
+],
+"marker": "QZTOUNICODEMAP",
+"ideal": "show the ToUnicode text",
+"verdict": "covered"
+},
+{
+"key": "PDF#16",
+"fmt": "PDF",
+"id": "16",
+"construct": "/Differences mapping code 1 to /fi",
+"markers": [
+"QZDIFFLIGA"
+],
+"marker": "QZDIFFLIGA",
+"ideal": "show `office`",
+"verdict": "covered"
+},
+{
+"key": "PDF#17",
+"fmt": "PDF",
+"id": "17",
+"construct": "/Span ActualText replacing the drawn glyphs",
+"markers": [
+"QZACTUALTEXT",
+"QZGLYPHRUN"
+],
+"marker": "QZACTUALTEXT (glyphs QZGLYPHRUN)",
+"ideal": "show ActualText only",
+"verdict": "covered"
+},
+{
+"key": "PDF#18",
+"fmt": "PDF",
+"id": "18",
+"construct": "Type0 / Identity-H, embedded DejaVuSans TrueType, ToUnicode",
+"markers": [
+"QZTYPEZEROFONT"
+],
+"marker": "QZTYPEZEROFONT",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PDF#19",
+"fmt": "PDF",
+"id": "19",
+"construct": "Soft hyphen (WinAnsi 0xAD) at line end",
+"markers": [
+"QZSOFTHY"
+],
+"marker": "QZSOFTHY + PHENA",
+"ideal": "show rejoined `QZSOFTHYPHENA`",
+"verdict": "garbled"
+},
+{
+"key": "PDF#20",
+"fmt": "PDF",
+"id": "20",
+"construct": "Hard hyphen (0x2D) at line end",
+"markers": [
+"QZHARDHY"
+],
+"marker": "QZHARDHY + PHENB",
+"ideal": "show `QZHARDHY-PHENB` (hyphen kept, no space)",
+"verdict": "covered"
+},
+{
+"key": "PDF#21",
+"fmt": "PDF",
+"id": "21",
+"construct": "Running header, same line on 4 pages",
+"markers": [
+"QZRUNHEAD"
+],
+"marker": "QZRUNHEAD",
+"ideal": "hide or once",
+"verdict": "covered"
+},
+{
+"key": "PDF#22",
+"fmt": "PDF",
+"id": "22",
+"construct": "Folio footer `QZFOLIO n` on 4 pages",
+"markers": [
+"QZFOLIO"
+],
+"marker": "QZFOLIO",
+"ideal": "hide or once",
+"verdict": "covered"
+},
+{
+"key": "PDF#23",
+"fmt": "PDF",
+"id": "23",
+"construct": "/Artifact /Pagination /Header marked content, 2-page tagged doc (pdf-tagged)",
+"markers": [
+"QZARTIFACTHEAD"
+],
+"marker": "QZARTIFACTHEAD",
+"ideal": "hide or once",
+"verdict": "duplicated"
+},
+{
+"key": "PDF#24",
+"fmt": "PDF",
+"id": "24",
+"construct": "Figure struct element /Alt (tagged)",
+"markers": [
+"QZFIGUREALT"
+],
+"marker": "QZFIGUREALT",
+"ideal": "label as alt text",
+"verdict": "missing"
+},
+{
+"key": "PDF#25",
+"fmt": "PDF",
+"id": "25",
+"construct": "Diagonal watermark (45 deg Tm) on all 4 pages",
+"markers": [
+"QZWATERMARK"
+],
+"marker": "QZWATERMARK",
+"ideal": "hide or once",
+"verdict": "covered"
+},
+{
+"key": "PDF#26",
+"fmt": "PDF",
+"id": "26",
+"construct": "Page with /Rotate 90, upright text in its own space (pdf-rotate p1)",
+"markers": [
+"QZROTATEDPAGE"
+],
+"marker": "QZROTATEDPAGE",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "PDF#27",
+"fmt": "PDF",
+"id": "27",
+"construct": "Vertical text (Tm rotated 90 deg) on an upright page",
+"markers": [
+"QZVERTICALTEXT"
+],
+"marker": "QZVERTICALTEXT",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "PDF#28",
+"fmt": "PDF",
+"id": "28",
+"construct": "Page labels: `/r` on pages 1-2, prefix `QZPAGELABEL` decimal on 3-4",
+"markers": [
+"QZPAGELABEL"
+],
+"marker": "QZPAGELABEL",
+"ideal": "label (the page numbers the document cites)",
+"verdict": "missing"
+},
+{
+"key": "PDF#29",
+"fmt": "PDF",
+"id": "29",
+"construct": "Outline item titles (bookmarks), parent and child",
+"markers": [
+"QZOUTLINEONE",
+"QZOUTLINECHILD"
+],
+"marker": "QZOUTLINEONE / QZOUTLINECHILD",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "PDF#30",
+"fmt": "PDF",
+"id": "30",
+"construct": "Info /Title",
+"markers": [
+"QZINFOTITLE"
+],
+"marker": "QZINFOTITLE",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PDF#31",
+"fmt": "PDF",
+"id": "31",
+"construct": "Info /Author",
+"markers": [
+"QZINFOAUTHOR"
+],
+"marker": "QZINFOAUTHOR",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PDF#32",
+"fmt": "PDF",
+"id": "32",
+"construct": "Info /Subject",
+"markers": [
+"QZINFOSUBJECT"
+],
+"marker": "QZINFOSUBJECT",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PDF#33",
+"fmt": "PDF",
+"id": "33",
+"construct": "Info /Keywords",
+"markers": [
+"QZINFOKEYWORDS"
+],
+"marker": "QZINFOKEYWORDS",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PDF#34",
+"fmt": "PDF",
+"id": "34",
+"construct": "XMP dc:title, uncompressed metadata stream",
+"markers": [
+"QZXMPTITLE"
+],
+"marker": "QZXMPTITLE",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PDF#35",
+"fmt": "PDF",
+"id": "35",
+"construct": "Text (sticky note) annotation /Contents",
+"markers": [
+"QZSTICKYNOTE"
+],
+"marker": "QZSTICKYNOTE",
+"ideal": "label as a comment",
+"verdict": "missing"
+},
+{
+"key": "PDF#36",
+"fmt": "PDF",
+"id": "36",
+"construct": "Popup annotation's own /Contents (parent's overrides)",
+"markers": [
+"QZPOPUPOWN"
+],
+"marker": "QZPOPUPOWN",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "PDF#37",
+"fmt": "PDF",
+"id": "37",
+"construct": "FreeText annotation with an /AP appearance stream",
+"markers": [
+"QZFREETEXT"
+],
+"marker": "QZFREETEXT",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "PDF#38",
+"fmt": "PDF",
+"id": "38",
+"construct": "Highlight annotation /Contents note",
+"markers": [
+"QZHIGHLIGHTNOTE"
+],
+"marker": "QZHIGHLIGHTNOTE",
+"ideal": "label as a comment",
+"verdict": "missing"
+},
+{
+"key": "PDF#39",
+"fmt": "PDF",
+"id": "39",
+"construct": "Link annotation /URI",
+"markers": [
+"QZLINKURI"
+],
+"marker": "QZLINKURI",
+"ideal": "label (address beside the link text)",
+"verdict": "missing"
+},
+{
+"key": "PDF#40",
+"fmt": "PDF",
+"id": "40",
+"construct": "FileAttachment annotation /Contents",
+"markers": [
+"QZATTACHNOTE"
+],
+"marker": "QZATTACHNOTE",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PDF#41",
+"fmt": "PDF",
+"id": "41",
+"construct": "FileAttachment file spec /Desc and /UF name",
+"markers": [
+"QZATTACHDESC",
+"QZATTACHNAME"
+],
+"marker": "QZATTACHDESC / QZATTACHNAME",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PDF#42",
+"fmt": "PDF",
+"id": "42",
+"construct": "FileAttachment embedded file body",
+"markers": [
+"QZATTACHBODY"
+],
+"marker": "QZATTACHBODY",
+"ideal": "label (attached content)",
+"verdict": "missing"
+},
+{
+"key": "PDF#43",
+"fmt": "PDF",
+"id": "43",
+"construct": "Text annotation with Hidden flag (F 2)",
+"markers": [
+"QZHIDDENANNOT"
+],
+"marker": "QZHIDDENANNOT",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "PDF#44",
+"fmt": "PDF",
+"id": "44",
+"construct": "AcroForm text field /V with appearance stream",
+"markers": [
+"QZFIELDVALUE"
+],
+"marker": "QZFIELDVALUE",
+"ideal": "show (value with its field name)",
+"verdict": "covered"
+},
+{
+"key": "PDF#45",
+"fmt": "PDF",
+"id": "45",
+"construct": "AcroForm field /TU alternate name",
+"markers": [
+"QZFIELDTOOLTIP"
+],
+"marker": "QZFIELDTOOLTIP",
+"ideal": "label (the field's user-facing name)",
+"verdict": "missing"
+},
+{
+"key": "PDF#46",
+"fmt": "PDF",
+"id": "46",
+"construct": "Checkbox, /V /Yes, /TU name",
+"markers": [
+"QZCHECKBOXTU"
+],
+"marker": "QZCHECKBOXTU",
+"ideal": "show name and state",
+"verdict": "missing"
+},
+{
+"key": "PDF#47",
+"fmt": "PDF",
+"id": "47",
+"construct": "Combo choice field, /Opt with /V selected",
+"markers": [
+"QZCHOICEB",
+"QZCHOICEA"
+],
+"marker": "QZCHOICEB (unselected QZCHOICEA)",
+"ideal": "show the selected value",
+"verdict": "covered"
+},
+{
+"key": "PDF#48",
+"fmt": "PDF",
+"id": "48",
+"construct": "Text field /V with NeedAppearances true and no /AP",
+"markers": [
+"QZNOAPVALUE"
+],
+"marker": "QZNOAPVALUE",
+"ideal": "show (viewer draws it at view time)",
+"verdict": "missing"
+},
+{
+"key": "PDF#49",
+"fmt": "PDF",
+"id": "49",
+"construct": "Document-level EmbeddedFiles name and /Desc",
+"markers": [
+"QZEMBEDNAME",
+"QZEMBEDDESC"
+],
+"marker": "QZEMBEDNAME / QZEMBEDDESC",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PDF#50",
+"fmt": "PDF",
+"id": "50",
+"construct": "Document-level embedded file body",
+"markers": [
+"QZEMBEDBODY"
+],
+"marker": "QZEMBEDBODY",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PDF#51",
+"fmt": "PDF",
+"id": "51",
+"construct": "Document-level JavaScript name tree",
+"markers": [
+"QZJAVASCRIPT"
+],
+"marker": "QZJAVASCRIPT",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "PDF#52",
+"fmt": "PDF",
+"id": "52",
+"construct": "RC4-128 encryption (V2 R3), empty user password",
+"markers": [
+"QZENCRYPTEDBODY"
+],
+"marker": "QZENCRYPTEDBODY",
+"ideal": "show (opens without a password)",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#1",
+"fmt": "PowerPoint .pptx",
+"id": "1",
+"construct": "Slide order from p:sldIdLst, differing from part names",
+"markers": [
+"QZCTRTITLE",
+"QZTITLE",
+"QZHIDDENTITLE",
+"QZSMARTSLIDE"
+],
+"marker": "QZCTRTITLE (slide2.xml, listed 1st), QZTITLE (slide1.xml, listed 2nd), QZHIDDENTITLE (slide5.xml, listed 4th), QZSMARTSLIDE (slide4.xml, listed 5th)",
+"ideal": "show, in sldIdLst order: the list is the deck's order, part names carry none",
+"verdict": "garbled"
+},
+{
+"key": "PowerPoint .pptx#2",
+"fmt": "PowerPoint .pptx",
+"id": "2",
+"construct": "Centered title placeholder (ctrTitle)",
+"markers": [
+"QZCTRTITLE"
+],
+"marker": "QZCTRTITLE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#3",
+"fmt": "PowerPoint .pptx",
+"id": "3",
+"construct": "Subtitle placeholder (subTitle)",
+"markers": [
+"QZSUBTITLE"
+],
+"marker": "QZSUBTITLE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#4",
+"fmt": "PowerPoint .pptx",
+"id": "4",
+"construct": "Title placeholder (title)",
+"markers": [
+"QZTITLE"
+],
+"marker": "QZTITLE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#5",
+"fmt": "PowerPoint .pptx",
+"id": "5",
+"construct": "Body placeholder, two paragraphs, second at lvl=1",
+"markers": [
+"QZBODYONE",
+"QZBODYTWO"
+],
+"marker": "QZBODYONE, QZBODYTWO",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#6",
+"fmt": "PowerPoint .pptx",
+"id": "6",
+"construct": "Non-placeholder text box (txBox=\"1\")",
+"markers": [
+"QZTEXTBOX"
+],
+"marker": "QZTEXTBOX",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#7",
+"fmt": "PowerPoint .pptx",
+"id": "7",
+"construct": "Group shape (p:grpSp) child text",
+"markers": [
+"QZGROUPOUTER"
+],
+"marker": "QZGROUPOUTER",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#8",
+"fmt": "PowerPoint .pptx",
+"id": "8",
+"construct": "Nested group (grpSp inside grpSp)",
+"markers": [
+"QZGROUPINNER"
+],
+"marker": "QZGROUPINNER",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#9",
+"fmt": "PowerPoint .pptx",
+"id": "9",
+"construct": "Picture alt text (p:cNvPr/@descr)",
+"markers": [
+"QZALTTEXT"
+],
+"marker": "QZALTTEXT",
+"ideal": "label: not visible on the slide, describes the picture",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#10",
+"fmt": "PowerPoint .pptx",
+"id": "10",
+"construct": "a:hlinkClick run, display text",
+"markers": [
+"QZLINKTEXT"
+],
+"marker": "QZLINKTEXT",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#11",
+"fmt": "PowerPoint .pptx",
+"id": "11",
+"construct": "a:hlinkClick target (external relationship)",
+"markers": [
+"QZLINKTARGET"
+],
+"marker": "QZLINKTARGET",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#12",
+"fmt": "PowerPoint .pptx",
+"id": "12",
+"construct": "a:fld type=\"slidenum\" cached text in a text box",
+"markers": [
+"QZFLDSLIDENUM"
+],
+"marker": "QZFLDSLIDENUM",
+"ideal": "show: the cached text is what the slide displays",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#13",
+"fmt": "PowerPoint .pptx",
+"id": "13",
+"construct": "a:fld type=\"datetime1\" cached text",
+"markers": [
+"QZFLDDATETIME"
+],
+"marker": "QZFLDDATETIME",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#14",
+"fmt": "PowerPoint .pptx",
+"id": "14",
+"construct": "Table cell gridSpan=\"2\" (merge origin)",
+"markers": [
+"QZSPANH"
+],
+"marker": "QZSPANH",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#15",
+"fmt": "PowerPoint .pptx",
+"id": "15",
+"construct": "Table cell hMerge=\"1\" with text",
+"markers": [
+"QZHMERGEGHOST"
+],
+"marker": "QZHMERGEGHOST",
+"ideal": "hide: a merged-away cell is not displayed",
+"verdict": "leaked"
+},
+{
+"key": "PowerPoint .pptx#16",
+"fmt": "PowerPoint .pptx",
+"id": "16",
+"construct": "Table cell rowSpan=\"2\" (merge origin)",
+"markers": [
+"QZSPANV"
+],
+"marker": "QZSPANV",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#17",
+"fmt": "PowerPoint .pptx",
+"id": "17",
+"construct": "Table cell vMerge=\"1\" with text",
+"markers": [
+"QZVMERGEGHOST"
+],
+"marker": "QZVMERGEGHOST",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "PowerPoint .pptx#18",
+"fmt": "PowerPoint .pptx",
+"id": "18",
+"construct": "Plain table cells",
+"markers": [
+"QZCELLC",
+"QZCELLE",
+"QZCELLF",
+"QZCELLH",
+"QZCELLI"
+],
+"marker": "QZCELLC, QZCELLE, QZCELLF, QZCELLH, QZCELLI",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#19",
+"fmt": "PowerPoint .pptx",
+"id": "19",
+"construct": "Chart title (c:title/c:tx/c:rich)",
+"markers": [
+"QZCHARTTITLE"
+],
+"marker": "QZCHARTTITLE",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint .pptx#20",
+"fmt": "PowerPoint .pptx",
+"id": "20",
+"construct": "Chart series name (c:ser/c:tx/c:strRef/c:strCache)",
+"markers": [
+"QZSERIESNAME"
+],
+"marker": "QZSERIESNAME",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint .pptx#21",
+"fmt": "PowerPoint .pptx",
+"id": "21",
+"construct": "Chart categories (c:cat strCache)",
+"markers": [
+"QZCATONE",
+"QZCATTWO"
+],
+"marker": "QZCATONE, QZCATTWO",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint .pptx#22",
+"fmt": "PowerPoint .pptx",
+"id": "22",
+"construct": "Chart values (c:val numCache)",
+"markers": [],
+"marker": "4242.5, 7373.25",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint .pptx#23",
+"fmt": "PowerPoint .pptx",
+"id": "23",
+"construct": "Chart custom data label (c:dLbl/c:tx/c:rich)",
+"markers": [
+"QZDATALABEL"
+],
+"marker": "QZDATALABEL",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint .pptx#24",
+"fmt": "PowerPoint .pptx",
+"id": "24",
+"construct": "Chart axis title (c:catAx/c:title)",
+"markers": [
+"QZAXISTITLE"
+],
+"marker": "QZAXISTITLE",
+"ideal": "show",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint .pptx#25",
+"fmt": "PowerPoint .pptx",
+"id": "25",
+"construct": "SmartArt node text, dgm:pt/dgm:t in the data part plus the same text in the dsp drawing part",
+"markers": [
+"QZSMARTONE",
+"QZSMARTTWO"
+],
+"marker": "QZSMARTONE, QZSMARTTWO",
+"ideal": "show once (data part and drawing part hold the same text)",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint .pptx#26",
+"fmt": "PowerPoint .pptx",
+"id": "26",
+"construct": "Slide-number placeholder (ph type=\"sldNum\", a:fld slidenum cached 1, 2, 3, 4, 5)",
+"markers": [],
+"marker": "digits 1-5",
+"ideal": "hide: `# Slide n` already says it",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#27",
+"fmt": "PowerPoint .pptx",
+"id": "27",
+"construct": "Footer placeholder (ph type=\"ftr\") on slides 1, 2, 3",
+"markers": [
+"QZFOOTER"
+],
+"marker": "QZFOOTER",
+"ideal": "show once",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#28",
+"fmt": "PowerPoint .pptx",
+"id": "28",
+"construct": "Date placeholder (ph type=\"dt\", a:fld datetime1) on slides 1, 2",
+"markers": [
+"QZDATEPH"
+],
+"marker": "QZDATEPH",
+"ideal": "show once",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#29",
+"fmt": "PowerPoint .pptx",
+"id": "29",
+"construct": "Speaker notes body placeholder",
+"markers": [
+"QZNOTESBODY"
+],
+"marker": "QZNOTESBODY",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#30",
+"fmt": "PowerPoint .pptx",
+"id": "30",
+"construct": "Notes slide's sldNum placeholder (cached \"2\", the slide's sldIdLst position)",
+"markers": [],
+"marker": "`2`",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "PowerPoint .pptx#31",
+"fmt": "PowerPoint .pptx",
+"id": "31",
+"construct": "Notes master body prompt",
+"markers": [
+"QZNOTESMASTERPROMPT"
+],
+"marker": "QZNOTESMASTERPROMPT",
+"ideal": "hide: master prompt text",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#32",
+"fmt": "PowerPoint .pptx",
+"id": "32",
+"construct": "Notes master header placeholder (hdr)",
+"markers": [
+"QZNOTESMASTERHDR"
+],
+"marker": "QZNOTESMASTERHDR",
+"ideal": "hide: printed-notes chrome",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#33",
+"fmt": "PowerPoint .pptx",
+"id": "33",
+"construct": "Legacy comment text (p:cm/p:text)",
+"markers": [
+"QZLEGACYCOMMENT"
+],
+"marker": "QZLEGACYCOMMENT",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint .pptx#34",
+"fmt": "PowerPoint .pptx",
+"id": "34",
+"construct": "Legacy comment author (p:cmAuthor/@name)",
+"markers": [
+"QZLEGACYAUTHOR"
+],
+"marker": "QZLEGACYAUTHOR",
+"ideal": "label (with the comment)",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint .pptx#35",
+"fmt": "PowerPoint .pptx",
+"id": "35",
+"construct": "Modern comment text (p188:cm/p188:txBody)",
+"markers": [
+"QZMODERNCOMMENT"
+],
+"marker": "QZMODERNCOMMENT",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint .pptx#36",
+"fmt": "PowerPoint .pptx",
+"id": "36",
+"construct": "Modern comment reply (p188:replyLst/p188:reply)",
+"markers": [
+"QZMODERNREPLY"
+],
+"marker": "QZMODERNREPLY",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint .pptx#37",
+"fmt": "PowerPoint .pptx",
+"id": "37",
+"construct": "Modern comment author (p188:author/@name, ppt/authors.xml)",
+"markers": [
+"QZMODERNAUTHOR"
+],
+"marker": "QZMODERNAUTHOR",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint .pptx#38",
+"fmt": "PowerPoint .pptx",
+"id": "38",
+"construct": "Hidden slide (p:sld show=\"0\")",
+"markers": [
+"QZHIDDENTITLE",
+"QZHIDDENBODY"
+],
+"marker": "QZHIDDENTITLE, QZHIDDENBODY",
+"ideal": "label: still the author's text, not shown in the show",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#39",
+"fmt": "PowerPoint .pptx",
+"id": "39",
+"construct": "Layout body placeholder prompt, slide has an empty idx=1 placeholder (slide4) or a filled one",
+"markers": [
+"QZLAYOUTPROMPT"
+],
+"marker": "QZLAYOUTPROMPT",
+"ideal": "hide: prompt text shows only in edit view",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#40",
+"fmt": "PowerPoint .pptx",
+"id": "40",
+"construct": "Layout ctrTitle/subTitle prompts overridden by the slide",
+"markers": [
+"QZLAYOUTTITLEPROMPT",
+"QZLAYOUTSUBPROMPT"
+],
+"marker": "QZLAYOUTTITLEPROMPT, QZLAYOUTSUBPROMPT",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#41",
+"fmt": "PowerPoint .pptx",
+"id": "41",
+"construct": "Master placeholder prompts and master date cache",
+"markers": [
+"QZMASTERTITLEPROMPT",
+"QZMASTERBODYPROMPT",
+"QZMASTERDATE"
+],
+"marker": "QZMASTERTITLEPROMPT, QZMASTERBODYPROMPT, QZMASTERDATE",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#42",
+"fmt": "PowerPoint .pptx",
+"id": "42",
+"construct": "Master decorative non-placeholder text box (renders on all 5 slides)",
+"markers": [
+"QZMASTERDECOR"
+],
+"marker": "QZMASTERDECOR",
+"ideal": "show once (my call: it is visible text on every slide, one copy carries it, a label is optional)",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint .pptx#43",
+"fmt": "PowerPoint .pptx",
+"id": "43",
+"construct": "Layout decorative non-placeholder text box (renders on the 4 slides using that layout)",
+"markers": [
+"QZLAYOUTDECOR"
+],
+"marker": "QZLAYOUTDECOR",
+"ideal": "show once (same call)",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint .pptx#44",
+"fmt": "PowerPoint .pptx",
+"id": "44",
+"construct": "Custom show name (p:custShow/@name)",
+"markers": [
+"QZCUSTSHOW"
+],
+"marker": "QZCUSTSHOW",
+"ideal": "label: deck structure, not slide text",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint .pptx#45",
+"fmt": "PowerPoint .pptx",
+"id": "45",
+"construct": "Section names (p14:sectionLst/p14:section/@name)",
+"markers": [
+"QZSECTIONONE",
+"QZSECTIONTWO"
+],
+"marker": "QZSECTIONONE, QZSECTIONTWO",
+"ideal": "label: structural headings over slide ranges",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint .pptx#46",
+"fmt": "PowerPoint .pptx",
+"id": "46",
+"construct": "Core properties title (dc:title)",
+"markers": [
+"QZDOCTITLE"
+],
+"marker": "QZDOCTITLE",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "PowerPoint .pptx#47",
+"fmt": "PowerPoint .pptx",
+"id": "47",
+"construct": "Core properties creator (dc:creator)",
+"markers": [
+"QZDOCCREATOR"
+],
+"marker": "QZDOCCREATOR",
+"ideal": "hide: a person's name, not content",
+"verdict": "covered"
+},
+{
+"key": "PowerPoint .pptx#48",
+"fmt": "PowerPoint .pptx",
+"id": "48",
+"construct": "Extended properties Company",
+"markers": [
+"QZCOMPANY"
+],
+"marker": "QZCOMPANY",
+"ideal": "hide: metadata, not content",
+"verdict": "covered"
+},
+{
+"key": "RTF#1",
+"fmt": "RTF",
+"id": "1",
+"construct": "Plain paragraphs",
+"markers": [
+"QZPLAINONE",
+"QZPLAINTWO"
+],
+"marker": "QZPLAINONE, QZPLAINTWO",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#2",
+"fmt": "RTF",
+"id": "2",
+"construct": "Escapes `\\\\ \\{ \\}`",
+"markers": [
+"QZESCAPE"
+],
+"marker": "QZESCAPE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#3",
+"fmt": "RTF",
+"id": "3",
+"construct": "`\\'hh` under `\\ansicpg1252`",
+"markers": [
+"QZCPANSI"
+],
+"marker": "QZCPANSI",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#4",
+"fmt": "RTF",
+"id": "4",
+"construct": "`\\'hh` under `\\ansicpg1254` (Turkish)",
+"markers": [
+"QZTURKISH"
+],
+"marker": "QZTURKISH",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#5",
+"fmt": "RTF",
+"id": "5",
+"construct": "`\\'hh` in a `\\fcharset204` font",
+"markers": [
+"QZCYRIL"
+],
+"marker": "QZCYRIL",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#6",
+"fmt": "RTF",
+"id": "6",
+"construct": "`\\uN` with `\\uc1` fallback",
+"markers": [
+"QZUNIONE"
+],
+"marker": "QZUNIONE",
+"ideal": "show, fallback hidden",
+"verdict": "covered"
+},
+{
+"key": "RTF#7",
+"fmt": "RTF",
+"id": "7",
+"construct": "`\\uN` with `\\uc2` fallback",
+"markers": [
+"QZUNITWO"
+],
+"marker": "QZUNITWO",
+"ideal": "show, fallback hidden",
+"verdict": "covered"
+},
+{
+"key": "RTF#8",
+"fmt": "RTF",
+"id": "8",
+"construct": "`\\uN` in the Symbol-font range (`\\u-3913?` = U+F0B7)",
+"markers": [
+"QZUCTWONEG"
+],
+"marker": "QZUCTWONEG",
+"ideal": "show as the Symbol glyph",
+"verdict": "garbled"
+},
+{
+"key": "RTF#9",
+"fmt": "RTF",
+"id": "9",
+"construct": "`\\upr` / `\\*\\ud` pair",
+"markers": [
+"QZUPRANSI",
+"QZUPRUNI"
+],
+"marker": "QZUPRANSI (ansi), QZUPRUNI (ud)",
+"ideal": "show the `\\ud` copy once",
+"verdict": "missing"
+},
+{
+"key": "RTF#10",
+"fmt": "RTF",
+"id": "10",
+"construct": "`\\bullet \\endash \\emdash \\lquote \\rquote \\ldblquote \\rdblquote`",
+"markers": [
+"QZSPECIAL"
+],
+"marker": "QZSPECIAL",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#11",
+"fmt": "RTF",
+"id": "11",
+"construct": "`\\~` non-breaking space",
+"markers": [
+"QZNBSPA",
+"QZNBSPB"
+],
+"marker": "QZNBSPA/QZNBSPB",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#12",
+"fmt": "RTF",
+"id": "12",
+"construct": "`\\_` non-breaking hyphen",
+"markers": [
+"QZNBHYA",
+"QZNBHYB"
+],
+"marker": "QZNBHYA/QZNBHYB",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#13",
+"fmt": "RTF",
+"id": "13",
+"construct": "`\\-` optional hyphen",
+"markers": [
+"QZOPTHYA",
+"QZOPTHYB"
+],
+"marker": "QZOPTHYA/QZOPTHYB",
+"ideal": "hide (no visible char)",
+"verdict": "covered"
+},
+{
+"key": "RTF#14",
+"fmt": "RTF",
+"id": "14",
+"construct": "`\\tab`",
+"markers": [
+"QZTABA",
+"QZTABB"
+],
+"marker": "QZTABA/QZTABB",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#15",
+"fmt": "RTF",
+"id": "15",
+"construct": "`\\line`",
+"markers": [
+"QZLINEB"
+],
+"marker": "QZLINEB",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#16",
+"fmt": "RTF",
+"id": "16",
+"construct": "`\\par`",
+"markers": [],
+"marker": "(all paragraphs)",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#17",
+"fmt": "RTF",
+"id": "17",
+"construct": "`\\page`",
+"markers": [
+"QZPAGEBEFORE",
+"QZPAGEAFTER"
+],
+"marker": "QZPAGEBEFORE/QZPAGEAFTER",
+"ideal": "show (break)",
+"verdict": "covered"
+},
+{
+"key": "RTF#18",
+"fmt": "RTF",
+"id": "18",
+"construct": "`\\chdate`, `\\chpgn` in body",
+"markers": [
+"QZCHDATE"
+],
+"marker": "QZCHDATE",
+"ideal": "hide (value exists only at render time)",
+"verdict": "covered"
+},
+{
+"key": "RTF#19",
+"fmt": "RTF",
+"id": "19",
+"construct": "`\\header` (all pages) incl. `\\chpgn`",
+"markers": [
+"QZHEADERALL"
+],
+"marker": "QZHEADERALL",
+"ideal": "show (spec: shown) or label",
+"verdict": "missing"
+},
+{
+"key": "RTF#20",
+"fmt": "RTF",
+"id": "20",
+"construct": "`\\footer`",
+"markers": [
+"QZFOOTERALL"
+],
+"marker": "QZFOOTERALL",
+"ideal": "show or label",
+"verdict": "missing"
+},
+{
+"key": "RTF#21",
+"fmt": "RTF",
+"id": "21",
+"construct": "`\\headerf` (with `\\titlepg`)",
+"markers": [
+"QZHEADERFIRST"
+],
+"marker": "QZHEADERFIRST",
+"ideal": "show or label",
+"verdict": "missing"
+},
+{
+"key": "RTF#22",
+"fmt": "RTF",
+"id": "22",
+"construct": "`\\footerl` (with `\\facingp`)",
+"markers": [
+"QZFOOTERLEFT"
+],
+"marker": "QZFOOTERLEFT",
+"ideal": "show or label",
+"verdict": "missing"
+},
+{
+"key": "RTF#23",
+"fmt": "RTF",
+"id": "23",
+"construct": "`\\footnote` body",
+"markers": [
+"QZFOOTNOTE"
+],
+"marker": "QZFOOTNOTE",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "RTF#24",
+"fmt": "RTF",
+"id": "24",
+"construct": "`\\chftn` reference mark",
+"markers": [
+"QZFTNANCHOR"
+],
+"marker": "QZFTNANCHOR",
+"ideal": "label once at anchor",
+"verdict": "covered"
+},
+{
+"key": "RTF#25",
+"fmt": "RTF",
+"id": "25",
+"construct": "Endnote `\\footnote\\ftnalt`",
+"markers": [
+"QZENDNOTE"
+],
+"marker": "QZENDNOTE",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "RTF#26",
+"fmt": "RTF",
+"id": "26",
+"construct": "`\\annotation` comment body",
+"markers": [
+"QZANNOTATION"
+],
+"marker": "QZANNOTATION",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "RTF#27",
+"fmt": "RTF",
+"id": "27",
+"construct": "`\\atnauthor` comment author",
+"markers": [
+"QZATNAUTHOR"
+],
+"marker": "QZATNAUTHOR",
+"ideal": "label (with the comment)",
+"verdict": "missing"
+},
+{
+"key": "RTF#28",
+"fmt": "RTF",
+"id": "28",
+"construct": "`\\deleted` text",
+"markers": [
+"QZDELETED"
+],
+"marker": "QZDELETED",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "RTF#29",
+"fmt": "RTF",
+"id": "29",
+"construct": "`\\revised` text",
+"markers": [
+"QZREVISED"
+],
+"marker": "QZREVISED",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#30",
+"fmt": "RTF",
+"id": "30",
+"construct": "`\\*\\revtbl` author name",
+"markers": [
+"QZREVAUTHOR"
+],
+"marker": "QZREVAUTHOR",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "RTF#31",
+"fmt": "RTF",
+"id": "31",
+"construct": "`\\*\\fldinst`",
+"markers": [
+"QZFLDINST"
+],
+"marker": "QZFLDINST",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "RTF#32",
+"fmt": "RTF",
+"id": "32",
+"construct": "`\\fldrslt`",
+"markers": [
+"QZFLDRSLT"
+],
+"marker": "QZFLDRSLT",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#33",
+"fmt": "RTF",
+"id": "33",
+"construct": "HYPERLINK field, text and URL",
+"markers": [
+"QZHYPERTEXT",
+"QZHYPERURL"
+],
+"marker": "QZHYPERTEXT, QZHYPERURL",
+"ideal": "show both",
+"verdict": "covered"
+},
+{
+"key": "RTF#34",
+"fmt": "RTF",
+"id": "34",
+"construct": "FORMTEXT field result",
+"markers": [
+"QZFFRESULT"
+],
+"marker": "QZFFRESULT",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#35",
+"fmt": "RTF",
+"id": "35",
+"construct": "`\\*\\ffname`, `\\*\\ffdeftext`, `\\*\\ffhelptext`",
+"markers": [
+"QZFFNAME",
+"QZFFDEFTEXT",
+"QZFFHELP"
+],
+"marker": "QZFFNAME, QZFFDEFTEXT, QZFFHELP",
+"ideal": "hide (result holds the shown text)",
+"verdict": "covered"
+},
+{
+"key": "RTF#36",
+"fmt": "RTF",
+"id": "36",
+"construct": "FORMDROPDOWN selected item (`\\ffres1` picks the second `\\*\\ffl`)",
+"markers": [
+"QZFFLTWO"
+],
+"marker": "QZFFLTWO",
+"ideal": "show (Word displays the selected item; `\\fldrslt` is empty as Word writes it)",
+"verdict": "missing"
+},
+{
+"key": "RTF#37",
+"fmt": "RTF",
+"id": "37",
+"construct": "FORMDROPDOWN unselected item",
+"markers": [
+"QZFFLONE"
+],
+"marker": "QZFFLONE",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "RTF#38",
+"fmt": "RTF",
+"id": "38",
+"construct": "`\\xe` index entry, not hidden",
+"markers": [
+"QZXEVISIBLE"
+],
+"marker": "QZXEVISIBLE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#39",
+"fmt": "RTF",
+"id": "39",
+"construct": "`\\xe` with `\\v` hidden text",
+"markers": [
+"QZXEHIDDEN"
+],
+"marker": "QZXEHIDDEN",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "RTF#40",
+"fmt": "RTF",
+"id": "40",
+"construct": "`\\tc` TOC entry, not hidden",
+"markers": [
+"QZTCENTRY"
+],
+"marker": "QZTCENTRY",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#41",
+"fmt": "RTF",
+"id": "41",
+"construct": "Bookmark `\\*\\bkmkstart`/`\\*\\bkmkend`",
+"markers": [
+"QZBKMKNAME",
+"QZBKMKTEXT"
+],
+"marker": "QZBKMKNAME (name), QZBKMKTEXT (text)",
+"ideal": "name hide, text show",
+"verdict": "covered"
+},
+{
+"key": "RTF#42",
+"fmt": "RTF",
+"id": "42",
+"construct": "`\\*\\docvar`",
+"markers": [
+"QZDOCVARNAME",
+"QZDOCVARVALUE"
+],
+"marker": "QZDOCVARNAME, QZDOCVARVALUE",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "RTF#43",
+"fmt": "RTF",
+"id": "43",
+"construct": "`\\info \\title`",
+"markers": [
+"QZINFOTITLE"
+],
+"marker": "QZINFOTITLE",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "RTF#44",
+"fmt": "RTF",
+"id": "44",
+"construct": "`\\info \\subject`",
+"markers": [
+"QZINFOSUBJECT"
+],
+"marker": "QZINFOSUBJECT",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "RTF#45",
+"fmt": "RTF",
+"id": "45",
+"construct": "`\\info \\author`",
+"markers": [
+"QZINFOAUTHOR"
+],
+"marker": "QZINFOAUTHOR",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "RTF#46",
+"fmt": "RTF",
+"id": "46",
+"construct": "`\\info \\keywords`",
+"markers": [
+"QZINFOKEYWORDS"
+],
+"marker": "QZINFOKEYWORDS",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "RTF#47",
+"fmt": "RTF",
+"id": "47",
+"construct": "`\\info \\doccomm`",
+"markers": [
+"QZINFODOCCOMM"
+],
+"marker": "QZINFODOCCOMM",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "RTF#48",
+"fmt": "RTF",
+"id": "48",
+"construct": "`\\info \\comment`",
+"markers": [
+"QZINFOCOMMENT"
+],
+"marker": "QZINFOCOMMENT",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "RTF#49",
+"fmt": "RTF",
+"id": "49",
+"construct": "Table `\\cell`/`\\row`",
+"markers": [
+"QZCELLAONE",
+"QZCELLBTWO"
+],
+"marker": "QZCELLAONE..QZCELLBTWO",
+"ideal": "show, cells separable",
+"verdict": "covered"
+},
+{
+"key": "RTF#50",
+"fmt": "RTF",
+"id": "50",
+"construct": "Nested table `\\nestcell`/`\\nestrow`",
+"markers": [
+"QZOUTERCELL",
+"QZNESTA",
+"QZNESTB"
+],
+"marker": "QZOUTERCELL, QZNESTA, QZNESTB",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#51",
+"fmt": "RTF",
+"id": "51",
+"construct": "`\\nonesttables` fallback",
+"markers": [
+"QZNONESTONE",
+"QZNONESTTWO",
+"QZNONESTROW"
+],
+"marker": "QZNONESTONE, QZNONESTTWO, QZNONESTROW",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "RTF#52",
+"fmt": "RTF",
+"id": "52",
+"construct": "Legacy `\\pntext` number label",
+"markers": [
+"QZPNITEM"
+],
+"marker": "QZPNITEM, label `7.`",
+"ideal": "number once",
+"verdict": "covered"
+},
+{
+"key": "RTF#53",
+"fmt": "RTF",
+"id": "53",
+"construct": "`\\listtext` with `\\leveltext` template",
+"markers": [
+"QZLVLT",
+"QZLISTITEM"
+],
+"marker": "QZLVLT (template and label), QZLISTITEM",
+"ideal": "label once, template hidden",
+"verdict": "covered"
+},
+{
+"key": "RTF#54",
+"fmt": "RTF",
+"id": "54",
+"construct": "`\\listname`",
+"markers": [
+"QZLISTNAME"
+],
+"marker": "QZLISTNAME",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "RTF#55",
+"fmt": "RTF",
+"id": "55",
+"construct": "`\\v` hidden text",
+"markers": [
+"QZHIDDENV"
+],
+"marker": "QZHIDDENV",
+"ideal": "hide",
+"verdict": "leaked"
+},
+{
+"key": "RTF#56",
+"fmt": "RTF",
+"id": "56",
+"construct": "`\\webhidden`",
+"markers": [
+"QZWEBHIDDEN"
+],
+"marker": "QZWEBHIDDEN",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#57",
+"fmt": "RTF",
+"id": "57",
+"construct": "`\\shptxt` text box in `\\shp`",
+"markers": [
+"QZSHPTXT"
+],
+"marker": "QZSHPTXT",
+"ideal": "show once",
+"verdict": "covered"
+},
+{
+"key": "RTF#58",
+"fmt": "RTF",
+"id": "58",
+"construct": "`\\shprslt` fallback beside `\\shptxt`",
+"markers": [
+"QZSHPRSLT"
+],
+"marker": "QZSHPRSLT",
+"ideal": "hide (duplicate of the shape)",
+"verdict": "covered"
+},
+{
+"key": "RTF#59",
+"fmt": "RTF",
+"id": "59",
+"construct": "`\\dptxbxtext` in a standalone `\\do`",
+"markers": [
+"QZDPTXBX"
+],
+"marker": "QZDPTXBX",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#60",
+"fmt": "RTF",
+"id": "60",
+"construct": "`\\object` with `\\result` (`\\rsltrtf`)",
+"markers": [
+"QZOBJRESULT"
+],
+"marker": "QZOBJRESULT",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#61",
+"fmt": "RTF",
+"id": "61",
+"construct": "`\\pict` data (`\\shppict` + `\\nonshppict`)",
+"markers": [],
+"marker": "(hex)",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "RTF#62",
+"fmt": "RTF",
+"id": "62",
+"construct": "Picture alt text `\\*\\picprop` `wzDescription`",
+"markers": [
+"QZPICTALT"
+],
+"marker": "QZPICTALT",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "RTF#63",
+"fmt": "RTF",
+"id": "63",
+"construct": "`\\mmath` run `\\mr`",
+"markers": [
+"QZMATHRUN"
+],
+"marker": "QZMATHRUN",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#64",
+"fmt": "RTF",
+"id": "64",
+"construct": "`\\*\\xmlopen` custom XML around a paragraph",
+"markers": [
+"QZXMLBODY",
+"QZXMLTAGNAME"
+],
+"marker": "QZXMLBODY (text), QZXMLTAGNAME (`\\xmlname`)",
+"ideal": "text show, tag name hide",
+"verdict": "covered"
+},
+{
+"key": "RTF#65",
+"fmt": "RTF",
+"id": "65",
+"construct": "Unknown `\\*\\destination`",
+"markers": [
+"QZUNKNOWNDEST"
+],
+"marker": "QZUNKNOWNDEST",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "RTF#66",
+"fmt": "RTF",
+"id": "66",
+"construct": "Unknown non-starred control word",
+"markers": [
+"QZUNKNOWNWORD"
+],
+"marker": "QZUNKNOWNWORD",
+"ideal": "show (word ignored, text kept)",
+"verdict": "covered"
+},
+{
+"key": "RTF#67",
+"fmt": "RTF",
+"id": "67",
+"construct": "Outlook `\\fromhtml1`: `\\*\\htmltag` holding `<style>` CSS",
+"markers": [
+"QZHTMLSTYLE"
+],
+"marker": "QZHTMLSTYLE",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "RTF#68",
+"fmt": "RTF",
+"id": "68",
+"construct": "Outlook `\\*\\htmltag` holding `<title>`",
+"markers": [
+"QZHTMLTITLE"
+],
+"marker": "QZHTMLTITLE",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "RTF#69",
+"fmt": "RTF",
+"id": "69",
+"construct": "Outlook body text outside tags",
+"markers": [
+"QZHTMLBODY"
+],
+"marker": "QZHTMLBODY",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "RTF#70",
+"fmt": "RTF",
+"id": "70",
+"construct": "`\\htmlrtf` RTF-only text vs HTML-only text in `\\*\\htmltag`",
+"markers": [
+"QZHTMLRTFONLY",
+"QZHTMLONLY"
+],
+"marker": "QZHTMLRTFONLY, QZHTMLONLY",
+"ideal": "exactly one of the pair",
+"verdict": "covered"
+},
+{
+"key": "RTF#71",
+"fmt": "RTF",
+"id": "71",
+"construct": "Outlook `<li>` with `\\pntext` inside `\\htmlrtf`",
+"markers": [
+"QZPNBULLET",
+"QZHTMLLI"
+],
+"marker": "QZPNBULLET, QZHTMLLI",
+"ideal": "bullet once",
+"verdict": "covered"
+},
+{
+"key": "HTML#H1",
+"fmt": "HTML",
+"id": "H1",
+"construct": "`<title>`",
+"markers": [
+"QZATITLE",
+"QZBTITLE"
+],
+"marker": "QZATITLE / QZBTITLE",
+"ideal": "label (page title, shown in tab)",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H2",
+"fmt": "HTML",
+"id": "H2",
+"construct": "`meta name=description`",
+"markers": [
+"QZAMETADESC",
+"QZBMETADESC"
+],
+"marker": "QZAMETADESC / QZBMETADESC",
+"ideal": "hide (not rendered) (judgment)",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H3",
+"fmt": "HTML",
+"id": "H3",
+"construct": "\"saved from url\" comment",
+"markers": [],
+"marker": "(URL)",
+"ideal": "label",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H4",
+"fmt": "HTML",
+"id": "H4",
+"construct": "`h1` in body",
+"markers": [
+"QZAHONE",
+"QZBHONE"
+],
+"marker": "QZAHONE / QZBHONE",
+"ideal": "show as heading",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H5",
+"fmt": "HTML",
+"id": "H5",
+"construct": "`h2`-`h6`",
+"markers": [
+"QZAHTWO",
+"QZAHSIX"
+],
+"marker": "QZAHTWO..QZAHSIX",
+"ideal": "show as headings",
+"verdict": "covered"
+},
+{
+"key": "HTML#H6",
+"fmt": "HTML",
+"id": "H6",
+"construct": "`p`",
+"markers": [
+"QZAPARA"
+],
+"marker": "QZAPARA",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "HTML#H7",
+"fmt": "HTML",
+"id": "H7",
+"construct": "`ul`, nested `ul`, `ol`",
+"markers": [
+"QZAULITEM",
+"QZANESTEDITEM",
+"QZAOLITEM"
+],
+"marker": "QZAULITEM, QZANESTEDITEM, QZAOLITEM",
+"ideal": "show as lists",
+"verdict": "covered"
+},
+{
+"key": "HTML#H8",
+"fmt": "HTML",
+"id": "H8",
+"construct": "`dl` / `dt` / `dd`",
+"markers": [
+"QZADTTERM",
+"QZADDDEF"
+],
+"marker": "QZADTTERM, QZADDDEF",
+"ideal": "show, term tied to definition",
+"verdict": "covered"
+},
+{
+"key": "HTML#H9",
+"fmt": "HTML",
+"id": "H9",
+"construct": "table `caption`",
+"markers": [
+"QZATCAPTION",
+"QZBTCAPTION"
+],
+"marker": "QZATCAPTION / QZBTCAPTION",
+"ideal": "show",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H10",
+"fmt": "HTML",
+"id": "H10",
+"construct": "table `th` header cells",
+"markers": [
+"QZATHONE",
+"QZATHTWO",
+"QZBTHONE",
+"QZBTHTWO"
+],
+"marker": "QZATHONE, QZATHTWO / QZBTHONE, QZBTHTWO",
+"ideal": "show as a table header",
+"verdict": "garbled (both)"
+},
+{
+"key": "HTML#H11",
+"fmt": "HTML",
+"id": "H11",
+"construct": "`td colspan=2` and body cells",
+"markers": [
+"QZACOLSPAN",
+"QZATDONE",
+"QZATDTWO",
+"QZBCOLSPAN"
+],
+"marker": "QZACOLSPAN, QZATDONE, QZATDTWO / QZBCOLSPAN",
+"ideal": "show in rows",
+"verdict": "garbled (both)"
+},
+{
+"key": "HTML#H12",
+"fmt": "HTML",
+"id": "H12",
+"construct": "`figcaption`",
+"markers": [
+"QZAFIGCAPTION"
+],
+"marker": "QZAFIGCAPTION",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "HTML#H13",
+"fmt": "HTML",
+"id": "H13",
+"construct": "`img alt` inside `figure`",
+"markers": [
+"QZAFIGALT"
+],
+"marker": "QZAFIGALT",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "HTML#H14",
+"fmt": "HTML",
+"id": "H14",
+"construct": "`img alt` + `title`, not in figure",
+"markers": [
+"QZAIMGALT",
+"QZAIMGTITLE",
+"QZBIMGALT"
+],
+"marker": "QZAIMGALT, QZAIMGTITLE / QZBIMGALT",
+"ideal": "label",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H15",
+"fmt": "HTML",
+"id": "H15",
+"construct": "relative `img src` resolved against saved URL",
+"markers": [],
+"marker": "pic.png",
+"ideal": "resolve to absolute",
+"verdict": "covered (readability) / garbled (turndown)"
+},
+{
+"key": "HTML#H16",
+"fmt": "HTML",
+"id": "H16",
+"construct": "`abbr title`",
+"markers": [
+"QZAABBRTITLE"
+],
+"marker": "QZAABBRTITLE",
+"ideal": "hide (not drawn)",
+"verdict": "covered"
+},
+{
+"key": "HTML#H17",
+"fmt": "HTML",
+"id": "H17",
+"construct": "`time datetime`",
+"markers": [
+"QZATIMETEXT"
+],
+"marker": "(attr) / QZATIMETEXT",
+"ideal": "text show, attr hide",
+"verdict": "covered"
+},
+{
+"key": "HTML#H18",
+"fmt": "HTML",
+"id": "H18",
+"construct": "inline `code`",
+"markers": [
+"QZAINLINECODE"
+],
+"marker": "QZAINLINECODE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "HTML#H19",
+"fmt": "HTML",
+"id": "H19",
+"construct": "same-origin relative link",
+"markers": [
+"QZARELTEXT"
+],
+"marker": "QZARELTEXT",
+"ideal": "text only",
+"verdict": "covered"
+},
+{
+"key": "HTML#H20",
+"fmt": "HTML",
+"id": "H20",
+"construct": "protocol-relative cross-origin link",
+"markers": [
+"QZAPROTOREL"
+],
+"marker": "QZAPROTOREL",
+"ideal": "show resolved",
+"verdict": "covered"
+},
+{
+"key": "HTML#H21",
+"fmt": "HTML",
+"id": "H21",
+"construct": "external absolute link",
+"markers": [
+"QZAEXTHREF"
+],
+"marker": "QZAEXTHREF",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "HTML#H22",
+"fmt": "HTML",
+"id": "H22",
+"construct": "HTML comment",
+"markers": [
+"QZACOMMENT",
+"QZBCOMMENT"
+],
+"marker": "QZACOMMENT / QZBCOMMENT",
+"ideal": "hide",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H23",
+"fmt": "HTML",
+"id": "H23",
+"construct": "`details` (closed) `summary`",
+"markers": [
+"QZASUMMARY",
+"QZBSUMMARY"
+],
+"marker": "QZASUMMARY / QZBSUMMARY",
+"ideal": "show",
+"verdict": "covered (readability) / garbled (turndown)"
+},
+{
+"key": "HTML#H24",
+"fmt": "HTML",
+"id": "H24",
+"construct": "`details` (closed) body",
+"markers": [
+"QZADETAILSBODY",
+"QZBDETAILSBODY"
+],
+"marker": "QZADETAILSBODY / QZBDETAILSBODY",
+"ideal": "show (judgment)",
+"verdict": "covered (readability) / garbled (turndown)"
+},
+{
+"key": "HTML#H25",
+"fmt": "HTML",
+"id": "H25",
+"construct": "`template`",
+"markers": [
+"QZATEMPLATE",
+"QZBTEMPLATE"
+],
+"marker": "QZATEMPLATE / QZBTEMPLATE",
+"ideal": "hide",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H26",
+"fmt": "HTML",
+"id": "H26",
+"construct": "`noscript`",
+"markers": [
+"QZANOSCRIPT",
+"QZBNOSCRIPT"
+],
+"marker": "QZANOSCRIPT / QZBNOSCRIPT",
+"ideal": "hide",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H27",
+"fmt": "HTML",
+"id": "H27",
+"construct": "`script`, `style`",
+"markers": [
+"QZASCRIPT",
+"QZASTYLE",
+"QZB"
+],
+"marker": "QZASCRIPT, QZASTYLE / QZB...",
+"ideal": "hide",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H28",
+"fmt": "HTML",
+"id": "H28",
+"construct": "`hidden` attribute",
+"markers": [
+"QZAHIDDENATTR",
+"QZBHIDDENATTR"
+],
+"marker": "QZAHIDDENATTR / QZBHIDDENATTR",
+"ideal": "hide",
+"verdict": "covered (readability) / leaked (turndown)"
+},
+{
+"key": "HTML#H29",
+"fmt": "HTML",
+"id": "H29",
+"construct": "`aria-hidden=\"true\"`",
+"markers": [
+"QZAARIAHIDDEN",
+"QZBARIAHIDDEN"
+],
+"marker": "QZAARIAHIDDEN / QZBARIAHIDDEN",
+"ideal": "hide (judgment: a reader without sight, as assistive tech)",
+"verdict": "covered (readability) / leaked (turndown)"
+},
+{
+"key": "HTML#H30",
+"fmt": "HTML",
+"id": "H30",
+"construct": "`label`",
+"markers": [
+"QZALABEL",
+"QZBLABEL"
+],
+"marker": "QZALABEL / QZBLABEL",
+"ideal": "show",
+"verdict": "missing (readability) / covered (turndown)"
+},
+{
+"key": "HTML#H31",
+"fmt": "HTML",
+"id": "H31",
+"construct": "text `input` value",
+"markers": [
+"QZAINPUTVALUE",
+"QZBINPUTVALUE"
+],
+"marker": "QZAINPUTVALUE / QZBINPUTVALUE",
+"ideal": "show (drawn in the field)",
+"verdict": "missing (both)"
+},
+{
+"key": "HTML#H32",
+"fmt": "HTML",
+"id": "H32",
+"construct": "`input placeholder` with a value set",
+"markers": [
+"QZAPLACEHOLDER",
+"QZBPLACEHOLDER"
+],
+"marker": "QZAPLACEHOLDER / QZBPLACEHOLDER",
+"ideal": "hide (not drawn when a value is present)",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H33",
+"fmt": "HTML",
+"id": "H33",
+"construct": "`input type=hidden`",
+"markers": [
+"QZAHIDDENINPUT"
+],
+"marker": "QZAHIDDENINPUT",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "HTML#H34",
+"fmt": "HTML",
+"id": "H34",
+"construct": "submit `input value`, `button`",
+"markers": [
+"QZASUBMITVALUE",
+"QZABUTTON",
+"QZBBUTTON"
+],
+"marker": "QZASUBMITVALUE, QZABUTTON / QZBBUTTON",
+"ideal": "hide (control chrome) (product rule: turndown removes `button`)",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H35",
+"fmt": "HTML",
+"id": "H35",
+"construct": "`select` selected option",
+"markers": [
+"QZAOPTIONSELECTED",
+"QZBOPTIONSELECTED"
+],
+"marker": "QZAOPTIONSELECTED / QZBOPTIONSELECTED",
+"ideal": "show",
+"verdict": "missing (readability) / garbled (turndown)"
+},
+{
+"key": "HTML#H36",
+"fmt": "HTML",
+"id": "H36",
+"construct": "`select` unselected option",
+"markers": [
+"QZAOPTIONONE",
+"QZBOPTIONONE"
+],
+"marker": "QZAOPTIONONE / QZBOPTIONONE",
+"ideal": "hide (closed select draws the selected one)",
+"verdict": "covered (readability) / leaked (turndown)"
+},
+{
+"key": "HTML#H37",
+"fmt": "HTML",
+"id": "H37",
+"construct": "`textarea` default value",
+"markers": [
+"QZATEXTAREA",
+"QZBTEXTAREA"
+],
+"marker": "QZATEXTAREA / QZBTEXTAREA",
+"ideal": "show",
+"verdict": "missing (readability) / covered (turndown)"
+},
+{
+"key": "HTML#H38",
+"fmt": "HTML",
+"id": "H38",
+"construct": "`iframe srcdoc` document",
+"markers": [
+"QZASRCDOC",
+"QZBSRCDOC"
+],
+"marker": "QZASRCDOC / QZBSRCDOC",
+"ideal": "show (rendered in the frame) (judgment)",
+"verdict": "missing (both)"
+},
+{
+"key": "HTML#H39",
+"fmt": "HTML",
+"id": "H39",
+"construct": "`iframe` child text (parsed as raw text)",
+"markers": [
+"QZAIFRAMEFALLBACK"
+],
+"marker": "QZAIFRAMEFALLBACK",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "HTML#H40",
+"fmt": "HTML",
+"id": "H40",
+"construct": "`ruby` / `rt` / `rp`",
+"markers": [
+"QZARUBYBASE",
+"QZARUBYRT"
+],
+"marker": "QZARUBYBASE, QZARUBYRT",
+"ideal": "label (reading tied to base)",
+"verdict": "covered"
+},
+{
+"key": "HTML#H41",
+"fmt": "HTML",
+"id": "H41",
+"construct": "SVG `text`",
+"markers": [
+"QZASVGTEXT",
+"QZBSVGTEXT"
+],
+"marker": "QZASVGTEXT / QZBSVGTEXT",
+"ideal": "show",
+"verdict": "garbled (both)"
+},
+{
+"key": "HTML#H42",
+"fmt": "HTML",
+"id": "H42",
+"construct": "SVG `title`, `desc`",
+"markers": [
+"QZASVGTITLE",
+"QZASVGDESC",
+"QZBSVGTITLE"
+],
+"marker": "QZASVGTITLE, QZASVGDESC / QZBSVGTITLE",
+"ideal": "label (accessible name/description)",
+"verdict": "garbled (both)"
+},
+{
+"key": "HTML#H43",
+"fmt": "HTML",
+"id": "H43",
+"construct": "MathML `mtext`",
+"markers": [
+"QZAMTEXT",
+"QZBMTEXT"
+],
+"marker": "QZAMTEXT / QZBMTEXT",
+"ideal": "show",
+"verdict": "garbled (both)"
+},
+{
+"key": "HTML#H44",
+"fmt": "HTML",
+"id": "H44",
+"construct": "MathML `annotation`",
+"markers": [
+"QZAANNOTATION",
+"QZBANNOTATION"
+],
+"marker": "QZAANNOTATION / QZBANNOTATION",
+"ideal": "hide",
+"verdict": "leaked (both)"
+},
+{
+"key": "HTML#H45",
+"fmt": "HTML",
+"id": "H45",
+"construct": "`pre > code` block text and indent",
+"markers": [
+"QZAPRECODE",
+"QZBPRECODE"
+],
+"marker": "QZAPRECODE / QZBPRECODE",
+"ideal": "show",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H46",
+"fmt": "HTML",
+"id": "H46",
+"construct": "`code class=\"language-python\"` fence language",
+"markers": [],
+"marker": "(python)",
+"ideal": "show",
+"verdict": "missing (readability) / covered (turndown)"
+},
+{
+"key": "HTML#H47",
+"fmt": "HTML",
+"id": "H47",
+"construct": "`blockquote`",
+"markers": [
+"QZABLOCKQUOTE"
+],
+"marker": "QZABLOCKQUOTE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "HTML#H48",
+"fmt": "HTML",
+"id": "H48",
+"construct": "cookie banner (`id=\"cookie-banner\"`)",
+"markers": [
+"QZACOOKIE",
+"QZBCOOKIE"
+],
+"marker": "QZACOOKIE / QZBCOOKIE",
+"ideal": "hide",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H49",
+"fmt": "HTML",
+"id": "H49",
+"construct": "site `header` outside article",
+"markers": [
+"QZASITEHEADER",
+"QZBSITEHEADER"
+],
+"marker": "QZASITEHEADER / QZBSITEHEADER",
+"ideal": "hide",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H50",
+"fmt": "HTML",
+"id": "H50",
+"construct": "`nav`",
+"markers": [
+"QZANAVLINK",
+"QZBNAVLINK"
+],
+"marker": "QZANAVLINK / QZBNAVLINK",
+"ideal": "hide",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H51",
+"fmt": "HTML",
+"id": "H51",
+"construct": "`role=dialog aria-modal`",
+"markers": [
+"QZAMODAL",
+"QZBMODAL"
+],
+"marker": "QZAMODAL / QZBMODAL",
+"ideal": "hide",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H52",
+"fmt": "HTML",
+"id": "H52",
+"construct": "`aside`",
+"markers": [
+"QZAASIDE",
+"QZBASIDE"
+],
+"marker": "QZAASIDE / QZBASIDE",
+"ideal": "hide",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H53",
+"fmt": "HTML",
+"id": "H53",
+"construct": "`footer`",
+"markers": [
+"QZAFOOTER",
+"QZBFOOTER"
+],
+"marker": "QZAFOOTER / QZBFOOTER",
+"ideal": "hide",
+"verdict": "covered (both)"
+},
+{
+"key": "HTML#H54",
+"fmt": "HTML",
+"id": "H54",
+"construct": "two-column flex layout, DOM order right-then-left, CSS `order` draws left first",
+"markers": [
+"QZBCOLLEFT",
+"QZBCOLRIGHT"
+],
+"marker": "QZBCOLLEFT, QZBCOLRIGHT",
+"ideal": "show in drawn order",
+"verdict": "garbled (turndown)"
+},
+{
+"key": "Notebook .ipynb#N1",
+"fmt": "Notebook .ipynb",
+"id": "N1",
+"construct": "markdown cell heading and prose",
+"markers": [
+"QZMDHEADING",
+"QZMDPROSE"
+],
+"marker": "QZMDHEADING, QZMDPROSE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Notebook .ipynb#N2",
+"fmt": "Notebook .ipynb",
+"id": "N2",
+"construct": "markdown cell attachment (`attachment:pic.png`)",
+"markers": [],
+"marker": "(image)",
+"ideal": "label (dropped and counted, formats page)",
+"verdict": "covered"
+},
+{
+"key": "Notebook .ipynb#N3",
+"fmt": "Notebook .ipynb",
+"id": "N3",
+"construct": "code cell source",
+"markers": [
+"QZCODESRC"
+],
+"marker": "QZCODESRC",
+"ideal": "show fenced",
+"verdict": "covered"
+},
+{
+"key": "Notebook .ipynb#N4",
+"fmt": "Notebook .ipynb",
+"id": "N4",
+"construct": "fence language from `language_info.name`",
+"markers": [],
+"marker": "(python)",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Notebook .ipynb#N5",
+"fmt": "Notebook .ipynb",
+"id": "N5",
+"construct": "unexecuted code cell (`execution_count: null`)",
+"markers": [
+"QZUNRUN"
+],
+"marker": "QZUNRUN",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Notebook .ipynb#N6",
+"fmt": "Notebook .ipynb",
+"id": "N6",
+"construct": "stream `stdout`",
+"markers": [
+"QZSTDOUT"
+],
+"marker": "QZSTDOUT",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Notebook .ipynb#N7",
+"fmt": "Notebook .ipynb",
+"id": "N7",
+"construct": "stream `stderr`",
+"markers": [
+"QZSTDERR"
+],
+"marker": "QZSTDERR",
+"ideal": "label (diagnostic stream; Jupyter draws it on a red background) (judgment)",
+"verdict": "unlabelled"
+},
+{
+"key": "Notebook .ipynb#N8",
+"fmt": "Notebook .ipynb",
+"id": "N8",
+"construct": "`execute_result` text/plain",
+"markers": [
+"QZEXECPLAIN"
+],
+"marker": "QZEXECPLAIN",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Notebook .ipynb#N9",
+"fmt": "Notebook .ipynb",
+"id": "N9",
+"construct": "`execute_result` text/html beside text/plain",
+"markers": [
+"QZEXECHTML"
+],
+"marker": "QZEXECHTML",
+"ideal": "hide (second representation of N8)",
+"verdict": "covered"
+},
+{
+"key": "Notebook .ipynb#N10",
+"fmt": "Notebook .ipynb",
+"id": "N10",
+"construct": "`display_data` text/markdown only",
+"markers": [
+"QZDISPMDONLY"
+],
+"marker": "QZDISPMDONLY",
+"ideal": "show (it is text)",
+"verdict": "missing"
+},
+{
+"key": "Notebook .ipynb#N11",
+"fmt": "Notebook .ipynb",
+"id": "N11",
+"construct": "`display_data` text/html only",
+"markers": [
+"QZDISPHTMLONLY"
+],
+"marker": "QZDISPHTMLONLY",
+"ideal": "show (it is text)",
+"verdict": "missing"
+},
+{
+"key": "Notebook .ipynb#N12",
+"fmt": "Notebook .ipynb",
+"id": "N12",
+"construct": "`display_data` image/png with a text/plain repr",
+"markers": [],
+"marker": "(image)",
+"ideal": "label (dropped and counted, formats page)",
+"verdict": "unlabelled"
+},
+{
+"key": "Notebook .ipynb#N13",
+"fmt": "Notebook .ipynb",
+"id": "N13",
+"construct": "`display_data` image/png only",
+"markers": [],
+"marker": "(image)",
+"ideal": "label (dropped and counted)",
+"verdict": "covered"
+},
+{
+"key": "Notebook .ipynb#N14",
+"fmt": "Notebook .ipynb",
+"id": "N14",
+"construct": "`error` ename / evalue",
+"markers": [
+"QZERRVALUE"
+],
+"marker": "QZERRVALUE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Notebook .ipynb#N15",
+"fmt": "Notebook .ipynb",
+"id": "N15",
+"construct": "`error` traceback with ANSI colour codes",
+"markers": [
+"QZTRACEBACK"
+],
+"marker": "QZTRACEBACK",
+"ideal": "show, ANSI stripped",
+"verdict": "covered"
+},
+{
+"key": "Notebook .ipynb#N16",
+"fmt": "Notebook .ipynb",
+"id": "N16",
+"construct": "raw cell (`metadata.format: text/latex`)",
+"markers": [
+"QZRAWCELL"
+],
+"marker": "QZRAWCELL",
+"ideal": "label (raw target-format source, not prose) (judgment)",
+"verdict": "unlabelled"
+},
+{
+"key": "Notebook .ipynb#N17",
+"fmt": "Notebook .ipynb",
+"id": "N17",
+"construct": "cell `metadata.tags`",
+"markers": [
+"QZCELLTAG"
+],
+"marker": "QZCELLTAG",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "Notebook .ipynb#N18",
+"fmt": "Notebook .ipynb",
+"id": "N18",
+"construct": "cell `metadata.name`",
+"markers": [
+"QZCELLNAME"
+],
+"marker": "QZCELLNAME",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "Notebook .ipynb#N19",
+"fmt": "Notebook .ipynb",
+"id": "N19",
+"construct": "`kernelspec.display_name`",
+"markers": [
+"QZKERNELDISPLAY"
+],
+"marker": "QZKERNELDISPLAY",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "Notebook .ipynb#N20",
+"fmt": "Notebook .ipynb",
+"id": "N20",
+"construct": "notebook `metadata.authors`",
+"markers": [
+"QZAUTHOR"
+],
+"marker": "QZAUTHOR",
+"ideal": "label (document author) (judgment)",
+"verdict": "missing"
+},
+{
+"key": "WebVTT#V1",
+"fmt": "WebVTT",
+"id": "V1",
+"construct": "header text after `WEBVTT` (and a `Kind:` line)",
+"markers": [
+"QZVTTHEADER"
+],
+"marker": "QZVTTHEADER",
+"ideal": "hide (file metadata) (judgment)",
+"verdict": "covered"
+},
+{
+"key": "WebVTT#V2",
+"fmt": "WebVTT",
+"id": "V2",
+"construct": "REGION block",
+"markers": [
+"QZREGIONID"
+],
+"marker": "QZREGIONID",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "WebVTT#V3",
+"fmt": "WebVTT",
+"id": "V3",
+"construct": "STYLE block",
+"markers": [
+"QZSTYLECLASS"
+],
+"marker": "QZSTYLECLASS",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "WebVTT#V4",
+"fmt": "WebVTT",
+"id": "V4",
+"construct": "NOTE block, two lines",
+"markers": [
+"QZNOTECOMMENT"
+],
+"marker": "QZNOTECOMMENT",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "WebVTT#V5",
+"fmt": "WebVTT",
+"id": "V5",
+"construct": "cue identifier (non-numeric)",
+"markers": [
+"QZCUEIDENT"
+],
+"marker": "QZCUEIDENT",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "WebVTT#V6",
+"fmt": "WebVTT",
+"id": "V6",
+"construct": "cue settings incl. `region:`",
+"markers": [],
+"marker": "(settings)",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "WebVTT#V7",
+"fmt": "WebVTT",
+"id": "V7",
+"construct": "plain cue payload",
+"markers": [
+"QZPLAINCUE"
+],
+"marker": "QZPLAINCUE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "WebVTT#V8",
+"fmt": "WebVTT",
+"id": "V8",
+"construct": "voice span `<v Roger Bingham>`",
+"markers": [
+"QZVOICETEXT"
+],
+"marker": "QZVOICETEXT",
+"ideal": "label (speaker, formats.ts \"unless the captions say so\")",
+"verdict": "covered"
+},
+{
+"key": "WebVTT#V9",
+"fmt": "WebVTT",
+"id": "V9",
+"construct": "voice span with class, end tag omitted",
+"markers": [
+"QZSPEAKERTWO",
+"QZVOICECLASSTEXT"
+],
+"marker": "QZSPEAKERTWO, QZVOICECLASSTEXT",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "WebVTT#V10",
+"fmt": "WebVTT",
+"id": "V10",
+"construct": "class span `<c.name>`",
+"markers": [
+"QZCLASSSPAN",
+"QZCLASSNAME"
+],
+"marker": "QZCLASSSPAN (text), QZCLASSNAME (class)",
+"ideal": "text show, class hide",
+"verdict": "covered"
+},
+{
+"key": "WebVTT#V11",
+"fmt": "WebVTT",
+"id": "V11",
+"construct": "`b`, `i`, `u` spans",
+"markers": [
+"QZBOLDSPAN",
+"QZITALICSPAN",
+"QZUNDERSPAN"
+],
+"marker": "QZBOLDSPAN, QZITALICSPAN, QZUNDERSPAN",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "WebVTT#V12",
+"fmt": "WebVTT",
+"id": "V12",
+"construct": "`lang` span",
+"markers": [
+"QZLANGSPAN"
+],
+"marker": "QZLANGSPAN",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "WebVTT#V13",
+"fmt": "WebVTT",
+"id": "V13",
+"construct": "`ruby` / `rt`",
+"markers": [
+"QZRUBYBASE",
+"QZRUBYTEXT"
+],
+"marker": "QZRUBYBASE, QZRUBYTEXT",
+"ideal": "label (reading tied to base)",
+"verdict": "garbled"
+},
+{
+"key": "WebVTT#V14",
+"fmt": "WebVTT",
+"id": "V14",
+"construct": "timestamp tag inside cue",
+"markers": [
+"QZKARAOKEONE",
+"QZKARAOKETWO"
+],
+"marker": "QZKARAOKEONE, QZKARAOKETWO",
+"ideal": "show text, hide tag",
+"verdict": "covered"
+},
+{
+"key": "WebVTT#V15",
+"fmt": "WebVTT",
+"id": "V15",
+"construct": "HTML character references `&amp; &lt; &gt; &nbsp;`",
+"markers": [
+"QZENTITY"
+],
+"marker": "QZENTITY",
+"ideal": "show decoded",
+"verdict": "covered"
+},
+{
+"key": "WebVTT#V16",
+"fmt": "WebVTT",
+"id": "V16",
+"construct": "multi-line cue",
+"markers": [
+"QZMULTIONE",
+"QZMULTITWO"
+],
+"marker": "QZMULTIONE, QZMULTITWO",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "WebVTT#V17",
+"fmt": "WebVTT",
+"id": "V17",
+"construct": "rolling caption (line repeated from the previous cue)",
+"markers": [
+"QZROLLTWO",
+"QZROLLTHREE"
+],
+"marker": "QZROLLTWO, QZROLLTHREE",
+"ideal": "show once",
+"verdict": "covered"
+},
+{
+"key": "WebVTT#V18",
+"fmt": "WebVTT",
+"id": "V18",
+"construct": "the same line spoken in two consecutive single-line cues",
+"markers": [
+"QZREPEATSAID"
+],
+"marker": "QZREPEATSAID",
+"ideal": "show twice (two cues) (judgment)",
+"verdict": "missing (one of two)"
+},
+{
+"key": "WebVTT#V19",
+"fmt": "WebVTT",
+"id": "V19",
+"construct": "cue whose whole text is a number",
+"markers": [],
+"marker": "`42`",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "WebVTT#V20",
+"fmt": "WebVTT",
+"id": "V20",
+"construct": "chapter cues (`chapters.vtt`, numeric ids)",
+"markers": [
+"QZCHAPTERONE",
+"QZCHAPTERTWO"
+],
+"marker": "QZCHAPTERONE, QZCHAPTERTWO",
+"ideal": "show (the file carries no kind; 3.1 says kind is set by the track, not the file)",
+"verdict": "covered"
+},
+{
+"key": "SRT#S1",
+"fmt": "SRT",
+"id": "S1",
+"construct": "BOM + CRLF file",
+"markers": [],
+"marker": "-",
+"ideal": "read",
+"verdict": "covered"
+},
+{
+"key": "SRT#S2",
+"fmt": "SRT",
+"id": "S2",
+"construct": "sequence numbers",
+"markers": [],
+"marker": "1..9",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "SRT#S3",
+"fmt": "SRT",
+"id": "S3",
+"construct": "timing line, incl. `X1:.. Y2:..` coordinates",
+"markers": [],
+"marker": "-",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "SRT#S4",
+"fmt": "SRT",
+"id": "S4",
+"construct": "single-line cue",
+"markers": [
+"QZSRTPLAIN"
+],
+"marker": "QZSRTPLAIN",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "SRT#S5",
+"fmt": "SRT",
+"id": "S5",
+"construct": "multi-line cue",
+"markers": [
+"QZSRTMULTIONE",
+"QZSRTMULTITWO"
+],
+"marker": "QZSRTMULTIONE, QZSRTMULTITWO",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "SRT#S6",
+"fmt": "SRT",
+"id": "S6",
+"construct": "`<i>`, `<b>`, `<font color>`",
+"markers": [
+"QZSRTITALIC",
+"QZSRTFONT",
+"QZSRTBOLD"
+],
+"marker": "QZSRTITALIC, QZSRTFONT, QZSRTBOLD",
+"ideal": "show, tags stripped",
+"verdict": "covered"
+},
+{
+"key": "SRT#S7",
+"fmt": "SRT",
+"id": "S7",
+"construct": "`{\\an8}` override",
+"markers": [
+"QZSRTAN8"
+],
+"marker": "QZSRTAN8",
+"ideal": "show, code stripped",
+"verdict": "covered"
+},
+{
+"key": "SRT#S8",
+"fmt": "SRT",
+"id": "S8",
+"construct": "rolling duplicate line",
+"markers": [
+"QZSRTROLLB"
+],
+"marker": "QZSRTROLLB",
+"ideal": "show once",
+"verdict": "covered"
+},
+{
+"key": "SRT#S9",
+"fmt": "SRT",
+"id": "S9",
+"construct": "cue whose text is a number",
+"markers": [],
+"marker": "`1984`",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "SRT#S10",
+"fmt": "SRT",
+"id": "S10",
+"construct": "dialogue dashes (two speakers in one cue)",
+"markers": [
+"QZSRTDASHONE",
+"QZSRTDASHTWO"
+],
+"marker": "QZSRTDASHONE, QZSRTDASHTWO",
+"ideal": "show with dashes",
+"verdict": "covered"
+},
+{
+"key": "SRT#S11",
+"fmt": "SRT",
+"id": "S11",
+"construct": "non-ASCII UTF-8",
+"markers": [
+"QZSRTUTF8"
+],
+"marker": "QZSRTUTF8",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "EPUB#E1",
+"fmt": "EPUB",
+"id": "E1",
+"construct": "spine order differing from manifest order",
+"markers": [
+"QZCH1HEADING",
+"QZCH3PARA"
+],
+"marker": "QZCH1HEADING .. QZCH3PARA",
+"ideal": "show in spine order",
+"verdict": "covered"
+},
+{
+"key": "EPUB#E2",
+"fmt": "EPUB",
+"id": "E2",
+"construct": "`linear=\"no\"` spine item",
+"markers": [
+"QZLINEARNO"
+],
+"marker": "QZLINEARNO",
+"ideal": "label (auxiliary, out of the primary reading order)",
+"verdict": "unlabelled"
+},
+{
+"key": "EPUB#E3",
+"fmt": "EPUB",
+"id": "E3",
+"construct": "nav document (`properties=\"nav\"`, not in spine)",
+"markers": [
+"QZNAVTOCENTRY",
+"QZNAVHEADING",
+"QZNAVLANDMARK"
+],
+"marker": "QZNAVTOCENTRY, QZNAVHEADING, QZNAVLANDMARK",
+"ideal": "hide (not body text)",
+"verdict": "covered"
+},
+{
+"key": "EPUB#E4",
+"fmt": "EPUB",
+"id": "E4",
+"construct": "NCX",
+"markers": [
+"QZNCXDOCTITLE",
+"QZNCXLABEL"
+],
+"marker": "QZNCXDOCTITLE, QZNCXLABEL",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "EPUB#E5",
+"fmt": "EPUB",
+"id": "E5",
+"construct": "manifest XHTML not in spine",
+"markers": [
+"QZNOTINSPINE"
+],
+"marker": "QZNOTINSPINE",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "EPUB#E6",
+"fmt": "EPUB",
+"id": "E6",
+"construct": "cover page image alt",
+"markers": [
+"QZCOVERALT"
+],
+"marker": "QZCOVERALT",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "EPUB#E7",
+"fmt": "EPUB",
+"id": "E7",
+"construct": "chapter heading",
+"markers": [
+"QZCH1HEADING"
+],
+"marker": "QZCH1HEADING",
+"ideal": "show as heading",
+"verdict": "covered (text)"
+},
+{
+"key": "EPUB#E8",
+"fmt": "EPUB",
+"id": "E8",
+"construct": "chapter paragraph",
+"markers": [
+"QZCH1PARA",
+"QZCH2PARA",
+"QZCH3PARA"
+],
+"marker": "QZCH1PARA, QZCH2PARA, QZCH3PARA",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "EPUB#E9",
+"fmt": "EPUB",
+"id": "E9",
+"construct": "`aside epub:type=\"footnote\"`",
+"markers": [
+"QZFOOTNOTEASIDE"
+],
+"marker": "QZFOOTNOTEASIDE",
+"ideal": "label",
+"verdict": "unlabelled"
+},
+{
+"key": "EPUB#E10",
+"fmt": "EPUB",
+"id": "E10",
+"construct": "noteref `<a epub:type=\"noteref\">1</a>`",
+"markers": [],
+"marker": "`1`",
+"ideal": "label",
+"verdict": "garbled"
+},
+{
+"key": "EPUB#E11",
+"fmt": "EPUB",
+"id": "E11",
+"construct": "in-chapter `img alt`",
+"markers": [
+"QZCH1IMGALT"
+],
+"marker": "QZCH1IMGALT",
+"ideal": "label",
+"verdict": "covered"
+},
+{
+"key": "EPUB#E12",
+"fmt": "EPUB",
+"id": "E12",
+"construct": "chapter `<head><title>`",
+"markers": [
+"QZCH1HEADTITLE"
+],
+"marker": "QZCH1HEADTITLE",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "EPUB#E13",
+"fmt": "EPUB",
+"id": "E13",
+"construct": "chapter `<style>`",
+"markers": [
+"QZEPSTYLE"
+],
+"marker": "QZEPSTYLE",
+"ideal": "hide",
+"verdict": "covered"
+},
+{
+"key": "EPUB#E14",
+"fmt": "EPUB",
+"id": "E14",
+"construct": "`dc:title`",
+"markers": [
+"QZEPTITLE"
+],
+"marker": "QZEPTITLE",
+"ideal": "label (the book's title)",
+"verdict": "missing"
+},
+{
+"key": "EPUB#E15",
+"fmt": "EPUB",
+"id": "E15",
+"construct": "`dc:creator`",
+"markers": [
+"QZEPCREATOR"
+],
+"marker": "QZEPCREATOR",
+"ideal": "label (judgment)",
+"verdict": "missing"
+},
+{
+"key": "EPUB#E16",
+"fmt": "EPUB",
+"id": "E16",
+"construct": "`dc:description`",
+"markers": [
+"QZEPDESCRIPTION"
+],
+"marker": "QZEPDESCRIPTION",
+"ideal": "hide (not rendered) (judgment)",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#1",
+"fmt": "Excel .xlsx",
+"id": "1",
+"construct": "Sheet name (visible worksheet)",
+"markers": [
+"QZSHEETMAIN",
+"QZSHEETOFFSET",
+"QZSHEETPIVOT"
+],
+"marker": "QZSHEETMAIN, QZSHEETOFFSET, QZSHEETPIVOT",
+"ideal": "show: sheet names are content",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#2",
+"fmt": "Excel .xlsx",
+"id": "2",
+"construct": "Shared string cell (t=\"s\")",
+"markers": [
+"QZSHAREDSTR"
+],
+"marker": "QZSHAREDSTR",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#3",
+"fmt": "Excel .xlsx",
+"id": "3",
+"construct": "Inline string (t=\"inlineStr\", is/t)",
+"markers": [
+"QZINLINESTR"
+],
+"marker": "QZINLINESTR",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#4",
+"fmt": "Excel .xlsx",
+"id": "4",
+"construct": "str formula cached result (t=\"str\", v)",
+"markers": [
+"QZSTRRESULT"
+],
+"marker": "QZSTRRESULT",
+"ideal": "show: the result is what the cell shows",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#5",
+"fmt": "Excel .xlsx",
+"id": "5",
+"construct": "Formula text (f)",
+"markers": [
+"QZFORMULATEXT"
+],
+"marker": "QZFORMULATEXT",
+"ideal": "hide: Excel shows the result, not the formula",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#6",
+"fmt": "Excel .xlsx",
+"id": "6",
+"construct": "Rich text runs in a shared string (si/r/t)",
+"markers": [
+"QZRICHA",
+"QZRICHB"
+],
+"marker": "QZRICHA, QZRICHB",
+"ideal": "show, runs joined in order",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#7",
+"fmt": "Excel .xlsx",
+"id": "7",
+"construct": "Phonetic run base text",
+"markers": [
+"QZPHONBASE"
+],
+"marker": "QZPHONBASE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#8",
+"fmt": "Excel .xlsx",
+"id": "8",
+"construct": "Phonetic reading (rPh/t), cell ph=\"1\"",
+"markers": [
+"QZPHONREADING"
+],
+"marker": "QZPHONREADING",
+"ideal": "hide: a reading aid over the base text, would duplicate it",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#9",
+"fmt": "Excel .xlsx",
+"id": "9",
+"construct": "Percent format (numFmtId 10)",
+"markers": [],
+"marker": "0.4321 -> 43.21%",
+"ideal": "show as formatted",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#10",
+"fmt": "Excel .xlsx",
+"id": "10",
+"construct": "Currency custom format `\"$\"#,##0.00`",
+"markers": [],
+"marker": "98765.4",
+"ideal": "show as formatted, CSV-quoted for the comma",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#11",
+"fmt": "Excel .xlsx",
+"id": "11",
+"construct": "Date serial with numFmtId 14",
+"markers": [],
+"marker": "45000",
+"ideal": "show as a date",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#12",
+"fmt": "Excel .xlsx",
+"id": "12",
+"construct": "Custom format with literal text `0\" QZUNITLIT\"`",
+"markers": [
+"QZUNITLIT"
+],
+"marker": "QZUNITLIT",
+"ideal": "show as formatted",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#13",
+"fmt": "Excel .xlsx",
+"id": "13",
+"construct": "`;;;` hidden-section format on a number",
+"markers": [],
+"marker": "13579",
+"ideal": "hide: Excel shows an empty cell",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#14",
+"fmt": "Excel .xlsx",
+"id": "14",
+"construct": "`;;;` format on a string",
+"markers": [
+"QZTRIPLESEMI"
+],
+"marker": "QZTRIPLESEMI",
+"ideal": "hide: Excel shows an empty cell",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#15",
+"fmt": "Excel .xlsx",
+"id": "15",
+"construct": "Numeric formula cached value",
+"markers": [],
+"marker": "24680",
+"ideal": "show result",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#16",
+"fmt": "Excel .xlsx",
+"id": "16",
+"construct": "Error cell t=\"e\"",
+"markers": [],
+"marker": "#N/A",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#17",
+"fmt": "Excel .xlsx",
+"id": "17",
+"construct": "Boolean cell t=\"b\"",
+"markers": [],
+"marker": "TRUE",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#18",
+"fmt": "Excel .xlsx",
+"id": "18",
+"construct": "Merged cell A5:C6",
+"markers": [
+"QZMERGED"
+],
+"marker": "QZMERGED",
+"ideal": "show once",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#19",
+"fmt": "Excel .xlsx",
+"id": "19",
+"construct": "Hidden column E",
+"markers": [
+"QZHIDDENCOL"
+],
+"marker": "QZHIDDENCOL",
+"ideal": "label",
+"verdict": "unlabelled"
+},
+{
+"key": "Excel .xlsx#20",
+"fmt": "Excel .xlsx",
+"id": "20",
+"construct": "Hidden row 7",
+"markers": [
+"QZHIDDENROW"
+],
+"marker": "QZHIDDENROW",
+"ideal": "label",
+"verdict": "unlabelled"
+},
+{
+"key": "Excel .xlsx#21",
+"fmt": "Excel .xlsx",
+"id": "21",
+"construct": "Outline-collapsed rows 8-9 (outlineLevel 1, hidden)",
+"markers": [
+"QZOUTLINEA",
+"QZOUTLINEB"
+],
+"marker": "QZOUTLINEA, QZOUTLINEB",
+"ideal": "label",
+"verdict": "unlabelled"
+},
+{
+"key": "Excel .xlsx#22",
+"fmt": "Excel .xlsx",
+"id": "22",
+"construct": "Hidden sheet state=\"hidden\"",
+"markers": [
+"QZHIDDENSHEET",
+"QZHIDDENCELL"
+],
+"marker": "QZHIDDENSHEET, QZHIDDENCELL",
+"ideal": "label",
+"verdict": "unlabelled"
+},
+{
+"key": "Excel .xlsx#23",
+"fmt": "Excel .xlsx",
+"id": "23",
+"construct": "Very hidden sheet state=\"veryHidden\"",
+"markers": [
+"QZVHIDDENSHEET",
+"QZVHIDDENCELL"
+],
+"marker": "QZVHIDDENSHEET, QZVHIDDENCELL",
+"ideal": "hide: not reachable in the UI",
+"verdict": "leaked"
+},
+{
+"key": "Excel .xlsx#24",
+"fmt": "Excel .xlsx",
+"id": "24",
+"construct": "Header text with &L/&C/&R and &P/&N",
+"markers": [
+"QZHDRLEFT",
+"QZHDRRIGHT"
+],
+"marker": "QZHDRLEFT, QZHDRRIGHT",
+"ideal": "label: stored once, may carry a report title; &-codes must not leak",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#25",
+"fmt": "Excel .xlsx",
+"id": "25",
+"construct": "Footer text with &D",
+"markers": [
+"QZFOOTER"
+],
+"marker": "QZFOOTER",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#26",
+"fmt": "Excel .xlsx",
+"id": "26",
+"construct": "Legacy comment text",
+"markers": [
+"QZCOMMENT"
+],
+"marker": "QZCOMMENT",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#27",
+"fmt": "Excel .xlsx",
+"id": "27",
+"construct": "Legacy comment author",
+"markers": [
+"QZAUTHOR"
+],
+"marker": "QZAUTHOR",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#28",
+"fmt": "Excel .xlsx",
+"id": "28",
+"construct": "Threaded comment and reply (threadedComments part, plus the legacy placeholder Excel writes)",
+"markers": [
+"QZTHREADTEXT",
+"QZTHREADREPLY"
+],
+"marker": "QZTHREADTEXT, QZTHREADREPLY",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#29",
+"fmt": "Excel .xlsx",
+"id": "29",
+"construct": "Threaded comment person displayName (persons part)",
+"markers": [
+"QZPERSON"
+],
+"marker": "QZPERSON",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#30",
+"fmt": "Excel .xlsx",
+"id": "30",
+"construct": "Data validation prompt and prompt title",
+"markers": [
+"QZDVPROMPT",
+"QZDVPTITLE"
+],
+"marker": "QZDVPROMPT, QZDVPTITLE",
+"ideal": "label: instruction text the author wrote for the cell",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#31",
+"fmt": "Excel .xlsx",
+"id": "31",
+"construct": "Data validation error and error title",
+"markers": [
+"QZDVERROR",
+"QZDVERRTITLE"
+],
+"marker": "QZDVERROR, QZDVERRTITLE",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#32",
+"fmt": "Excel .xlsx",
+"id": "32",
+"construct": "List validation items (formula1 `\"QZLISTA,QZLISTB\"`)",
+"markers": [
+"QZLISTA",
+"QZLISTB"
+],
+"marker": "QZLISTA, QZLISTB",
+"ideal": "label: the allowed values of the cell",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#33",
+"fmt": "Excel .xlsx",
+"id": "33",
+"construct": "Hyperlink display text (cell value + display attr)",
+"markers": [
+"QZLINKDISPLAY"
+],
+"marker": "QZLINKDISPLAY",
+"ideal": "show once",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#34",
+"fmt": "Excel .xlsx",
+"id": "34",
+"construct": "Hyperlink target (r:id external URL)",
+"markers": [
+"QZLINKTARGET"
+],
+"marker": "QZLINKTARGET",
+"ideal": "show: the URL is content, as a markdown link would carry it",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#35",
+"fmt": "Excel .xlsx",
+"id": "35",
+"construct": "Hyperlink tooltip",
+"markers": [
+"QZLINKTIP"
+],
+"marker": "QZLINKTIP",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#36",
+"fmt": "Excel .xlsx",
+"id": "36",
+"construct": "Defined name and its comment",
+"markers": [
+"QZDEFNAME",
+"QZDEFCOMMENT"
+],
+"marker": "QZDEFNAME, QZDEFCOMMENT",
+"ideal": "label: names a range with meaning",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#37",
+"fmt": "Excel .xlsx",
+"id": "37",
+"construct": "Table header row (cells)",
+"markers": [
+"QZTBLHEADA"
+],
+"marker": "QZTBLHEADA",
+"ideal": "show once",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#38",
+"fmt": "Excel .xlsx",
+"id": "38",
+"construct": "Table data rows",
+"markers": [
+"QZTBLROWA"
+],
+"marker": "QZTBLROWA",
+"ideal": "show",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#39",
+"fmt": "Excel .xlsx",
+"id": "39",
+"construct": "Table totals row label (cell value + tableColumn totalsRowLabel)",
+"markers": [
+"QZTOTALLABEL"
+],
+"marker": "QZTOTALLABEL",
+"ideal": "show once",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#40",
+"fmt": "Excel .xlsx",
+"id": "40",
+"construct": "Table name / displayName",
+"markers": [
+"QZTABLENAME"
+],
+"marker": "QZTABLENAME",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#41",
+"fmt": "Excel .xlsx",
+"id": "41",
+"construct": "Drawing text box (xdr:sp txBody)",
+"markers": [
+"QZTEXTBOX"
+],
+"marker": "QZTEXTBOX",
+"ideal": "show: author-visible text on the sheet",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#42",
+"fmt": "Excel .xlsx",
+"id": "42",
+"construct": "Shape alt text (cNvPr descr)",
+"markers": [
+"QZALTTEXT"
+],
+"marker": "QZALTTEXT",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#43",
+"fmt": "Excel .xlsx",
+"id": "43",
+"construct": "Embedded chart title",
+"markers": [
+"QZCHARTTITLE"
+],
+"marker": "QZCHARTTITLE",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#44",
+"fmt": "Excel .xlsx",
+"id": "44",
+"construct": "Chart series name (strCache)",
+"markers": [
+"QZSERIESNAME"
+],
+"marker": "QZSERIESNAME",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#45",
+"fmt": "Excel .xlsx",
+"id": "45",
+"construct": "Chart category cache (strCache)",
+"markers": [
+"QZCATA",
+"QZCATB"
+],
+"marker": "QZCATA, QZCATB",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#46",
+"fmt": "Excel .xlsx",
+"id": "46",
+"construct": "Chart value cache (numCache)",
+"markers": [],
+"marker": "31415",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#47",
+"fmt": "Excel .xlsx",
+"id": "47",
+"construct": "Chart axis title",
+"markers": [
+"QZAXISTITLE"
+],
+"marker": "QZAXISTITLE",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#48",
+"fmt": "Excel .xlsx",
+"id": "48",
+"construct": "Chartsheet (sheet name)",
+"markers": [
+"QZCHARTSHEET"
+],
+"marker": "QZCHARTSHEET",
+"ideal": "show: the formats page promises every sheet under its name",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#49",
+"fmt": "Excel .xlsx",
+"id": "49",
+"construct": "Chartsheet chart title",
+"markers": [
+"QZCSTITLE"
+],
+"marker": "QZCSTITLE",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#50",
+"fmt": "Excel .xlsx",
+"id": "50",
+"construct": "Pivot rendered cells (row items, values)",
+"markers": [
+"QZPSRCA",
+"QZPSRCB"
+],
+"marker": "QZPSRCA, QZPSRCB",
+"ideal": "show as cells",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#51",
+"fmt": "Excel .xlsx",
+"id": "51",
+"construct": "Pivot grand total custom caption (cell + grandTotalCaption)",
+"markers": [
+"QZGRANDTOTAL"
+],
+"marker": "QZGRANDTOTAL",
+"ideal": "show once",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#52",
+"fmt": "Excel .xlsx",
+"id": "52",
+"construct": "Pivot cache item not on any sheet (sharedItems s)",
+"markers": [
+"QZCACHEONLY"
+],
+"marker": "QZCACHEONLY",
+"ideal": "hide: a cache entry, not displayed",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#53",
+"fmt": "Excel .xlsx",
+"id": "53",
+"construct": "Pivot cache field name (also a source header cell)",
+"markers": [
+"QZPSRCHEAD"
+],
+"marker": "QZPSRCHEAD",
+"ideal": "show once",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#54",
+"fmt": "Excel .xlsx",
+"id": "54",
+"construct": "Pivot table name",
+"markers": [
+"QZPIVOTNAME"
+],
+"marker": "QZPIVOTNAME",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#55",
+"fmt": "Excel .xlsx",
+"id": "55",
+"construct": "Pivot cache refreshedBy",
+"markers": [
+"QZREFRESHEDBY"
+],
+"marker": "QZREFRESHEDBY",
+"ideal": "hide: metadata",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#56",
+"fmt": "Excel .xlsx",
+"id": "56",
+"construct": "External-reference formula cached result",
+"markers": [
+"QZEXTRESULT"
+],
+"marker": "QZEXTRESULT",
+"ideal": "show once",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#57",
+"fmt": "Excel .xlsx",
+"id": "57",
+"construct": "External link cached cell not used by any formula",
+"markers": [
+"QZEXTCACHEONLY"
+],
+"marker": "QZEXTCACHEONLY",
+"ideal": "hide: not displayed",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#58",
+"fmt": "Excel .xlsx",
+"id": "58",
+"construct": "External book path",
+"markers": [
+"QZEXTBOOK"
+],
+"marker": "QZEXTBOOK",
+"ideal": "hide: plumbing behind a hidden formula",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#59",
+"fmt": "Excel .xlsx",
+"id": "59",
+"construct": "Cell with comma, doubled quotes and newline",
+"markers": [
+"QZCSVA",
+"QZCSVB",
+"QZCSVC"
+],
+"marker": "QZCSVA, QZCSVB, QZCSVC",
+"ideal": "show, valid CSV",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#60",
+"fmt": "Excel .xlsx",
+"id": "60",
+"construct": "Very long string (31,881 chars)",
+"markers": [
+"QZLONGSTART",
+"QZLONGEND"
+],
+"marker": "QZLONGSTART, QZLONGEND",
+"ideal": "show whole",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#61",
+"fmt": "Excel .xlsx",
+"id": "61",
+"construct": "Used range starting at C5, gap row, D7",
+"markers": [
+"QZOFFA",
+"QZOFFB",
+"QZOFFD"
+],
+"marker": "QZOFFA, QZOFFB, QZOFFD",
+"ideal": "show with column alignment",
+"verdict": "covered"
+},
+{
+"key": "Excel .xlsx#62",
+"fmt": "Excel .xlsx",
+"id": "62",
+"construct": "docProps core title",
+"markers": [
+"QZDOCTITLE"
+],
+"marker": "QZDOCTITLE",
+"ideal": "label",
+"verdict": "missing"
+},
+{
+"key": "Excel .xlsx#63",
+"fmt": "Excel .xlsx",
+"id": "63",
+"construct": "docProps creator, subject, keywords, description; app Company",
+"markers": [
+"QZCREATOR",
+"QZDOCSUBJECT",
+"QZKEYWORDS",
+"QZDOCDESC",
+"QZCOMPANY"
+],
+"marker": "QZCREATOR, QZDOCSUBJECT, QZKEYWORDS, QZDOCDESC, QZCOMPANY",
+"ideal": "label (creator: hide is also defensible)",
+"verdict": "missing"
+}
+]

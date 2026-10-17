@@ -1,0 +1,77 @@
+{
+ "weighted": {
+  "title": "Coverage weighted by real files, mean of 11 formats",
+  "rows": [
+   {
+    "label": "FileConcat 2.6",
+    "value": 90.4
+   },
+   {
+    "label": "FileConcat 2.3",
+    "value": 79.3
+   },
+   {
+    "label": "Tika 3.3.2",
+    "value": 72.9
+   },
+   {
+    "label": "markitdown 0.1.5",
+    "value": 41.5
+   }
+  ]
+ },
+ "raw": {
+  "title": "Constructs read, 648 rows over 17 formats",
+  "rows": [
+   {
+    "label": "FileConcat 2.6",
+    "value": 92.6
+   },
+   {
+    "label": "Tika 3.3.2",
+    "value": 67.7
+   },
+   {
+    "label": "FileConcat 2.3",
+    "value": 63.7
+   },
+   {
+    "label": "markitdown 0.1.5",
+    "value": 35.0
+   }
+  ]
+ },
+ "corpus": {
+  "title": "Hard files handled, of 45",
+  "rows": [
+   {
+    "label": "FileConcat 2.6",
+    "value": 45
+   },
+   {
+    "label": "markitdown 0.1.5",
+    "value": 41
+   },
+   {
+    "label": "file 5.45",
+    "value": 39
+   },
+   {
+    "label": "Tika 3.3.2",
+    "value": 38
+   },
+   {
+    "label": "rg 15.2.0",
+    "value": 38
+   },
+   {
+    "label": "git 2.43.0",
+    "value": 35
+   },
+   {
+    "label": "FileConcat 2.3",
+    "value": 28
+   }
+  ]
+ }
+}
