@@ -48,6 +48,18 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    // The current benchmark numbers, updated in place each release. lastmod
+    // follows the data file, which only moves when a benchmark is rerun.
+    url: "/benchmarks",
+    sourceFile: [
+      "apps/web/src/routes/benchmarks.tsx",
+      "apps/web/src/components/benchmarks-page.tsx",
+      "apps/web/src/data/benchmarks.json",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
     url: "/privacy",
     sourceFile: ["apps/web/src/routes/privacy.tsx", "apps/web/src/components/privacy-page.tsx"],
     changefreq: "yearly",

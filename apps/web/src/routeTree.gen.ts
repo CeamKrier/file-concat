@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LicensesRouteImport } from './routes/licenses'
 import { Route as ClipperRouteImport } from './routes/clipper'
+import { Route as BenchmarksRouteImport } from './routes/benchmarks'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
@@ -55,6 +56,11 @@ const LicensesRoute = LicensesRouteImport.update({
 const ClipperRoute = ClipperRouteImport.update({
   id: '/clipper',
   path: '/clipper',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BenchmarksRoute = BenchmarksRouteImport.update({
+  id: '/benchmarks',
+  path: '/benchmarks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -214,6 +220,7 @@ const ApiERoute = ApiERouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/benchmarks': typeof BenchmarksRoute
   '/clipper': typeof ClipperRoute
   '/licenses': typeof LicensesRoute
   '/privacy': typeof PrivacyRoute
@@ -248,6 +255,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/benchmarks': typeof BenchmarksRoute
   '/clipper': typeof ClipperRoute
   '/licenses': typeof LicensesRoute
   '/privacy': typeof PrivacyRoute
@@ -283,6 +291,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/benchmarks': typeof BenchmarksRoute
   '/clipper': typeof ClipperRoute
   '/licenses': typeof LicensesRoute
   '/privacy': typeof PrivacyRoute
@@ -319,6 +328,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/benchmarks'
     | '/clipper'
     | '/licenses'
     | '/privacy'
@@ -353,6 +363,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app'
+    | '/benchmarks'
     | '/clipper'
     | '/licenses'
     | '/privacy'
@@ -387,6 +398,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/benchmarks'
     | '/clipper'
     | '/licenses'
     | '/privacy'
@@ -422,6 +434,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRoute
+  BenchmarksRoute: typeof BenchmarksRoute
   ClipperRoute: typeof ClipperRoute
   LicensesRoute: typeof LicensesRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -475,6 +488,13 @@ declare module '@tanstack/react-router' {
       path: '/clipper'
       fullPath: '/clipper'
       preLoaderRoute: typeof ClipperRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/benchmarks': {
+      id: '/benchmarks'
+      path: '/benchmarks'
+      fullPath: '/benchmarks'
+      preLoaderRoute: typeof BenchmarksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -686,6 +706,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRoute,
+  BenchmarksRoute: BenchmarksRoute,
   ClipperRoute: ClipperRoute,
   LicensesRoute: LicensesRoute,
   PrivacyRoute: PrivacyRoute,

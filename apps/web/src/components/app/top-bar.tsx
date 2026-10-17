@@ -42,6 +42,9 @@ export function TopBar({ onStartOver }: TopBarProps) {
           <Link to="/docs" className={`hidden sm:inline-flex ${navLink}`}>
             Docs
           </Link>
+          <Link to="/benchmarks" className={`hidden sm:inline-flex ${navLink}`}>
+            Benchmarks
+          </Link>
           {hasPublishedPosts() && (
             <Link to="/blog" className={`hidden sm:inline-flex ${navLink}`}>
               Blog

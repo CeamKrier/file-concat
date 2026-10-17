@@ -1,8 +1,9 @@
 # Both probe tables from one score.py report (RULE=2), raw-source passthrough zeroed.
-# usage: python3 -I tables.py <score report.json>
+# usage: python3 -I tables.py <score report.json> [--json <out> <score45.json> [<rows.json>]]
+# FC_LABEL names fc-HEAD's rows in the JSON ("FileConcat 2.6"); /benchmarks reads them.
 # Passthrough: the tool printed the file's own source (MIME and base64, RTF control
 # words, notebook JSON) instead of extracting it, so every row of that format is missed.
-import json, sys, collections
+import json, os, sys, collections
 
 TOOLS = ["fc-HEAD", "fc-v2.3.0", "tika", "markitdown"]
 NAMES = ["FileConcat HEAD", "FileConcat 2.3.0", "Tika 3.3.2", "markitdown 0.1.5"]
@@ -10,6 +11,7 @@ PASSTHROUGH = {("markitdown", "Email .eml"), ("markitdown", "RTF"), ("tika", "No
 
 rep = json.load(open(sys.argv[1]))
 v, weights = rep["verdicts"], rep["weights"]
+pct_by_fmt = collections.defaultdict(dict)
 by_fmt = collections.defaultdict(list)
 for key in v["fc-HEAD"]:
     by_fmt[key.rsplit("#", 1)[0]].append(key)
@@ -47,15 +49,17 @@ for fmt, w in weights.items():
     for t in TOOLS:
         pct = 100 * sum(w[k] for k in scored if ok(t, fmt, k)) / total
         means[t].append(pct)
+        pct_by_fmt[fmt][t] = pct
         cells.append(f"{pct:.1f}{star(t, fmt)}")
     print(f"| {fmt} | {len(scored)}/{len(w)} | " + " | ".join(cells) + " |")
 print(f"| **Mean of {len(weights)} formats** | | " + " | ".join(f"**{sum(means[t]) / len(means[t]):.1f}**" for t in TOOLS) + " |")
 
 # --json <out> <score45.json>: the figures the blog post draws, from the same numbers.
 if len(sys.argv) > 3 and sys.argv[2] == "--json":
-    label = {"fc-HEAD": "FileConcat 2.6", "fc-v2.3.0": "FileConcat 2.3", "tika": "Tika 3.3.2", "markitdown": "markitdown 0.1.5"}
+    head = os.environ.get("FC_LABEL", "FileConcat 2.6")
+    label = {"fc-HEAD": head, "fc-v2.3.0": "FileConcat 2.3", "tika": "Tika 3.3.2", "markitdown": "markitdown 0.1.5"}
     corpus = json.load(open(sys.argv[4]))
-    tools45 = {"fc-HEAD": "FileConcat 2.6", "fc-v2.3.0": "FileConcat 2.3", "tika": "Tika 3.3.2", "markitdown": "markitdown 0.1.5", "file": "file 5.45", "rg": "rg 15.2.0", "git": "git 2.43.0"}
+    tools45 = {"fc-HEAD": head, "fc-v2.3.0": "FileConcat 2.3", "tika": "Tika 3.3.2", "markitdown": "markitdown 0.1.5", "file": "file 5.45", "rg": "rg 15.2.0", "git": "git 2.43.0"}
     corpus_rows = [{"label": n, "value": sum(bool(x) for x in corpus[t].values())} for t, n in tools45.items()]
     out = {
         "weighted": {
@@ -71,5 +75,11 @@ if len(sys.argv) > 3 and sys.argv[2] == "--json":
             "rows": sorted(corpus_rows, key=lambda r: -r["value"]),
         },
     }
+    # The weighted score per format, the per-format charts.
+    out["formats"] = {fmt: [{"label": label[t], "value": round(p, 1)} for t, p in by_tool.items()] for fmt, by_tool in pct_by_fmt.items()}
+    if len(sys.argv) > 5:
+        # Hidden content kept out: the rows whose ideal is to hide, passed per tool.
+        hide = [r["key"] for r in json.load(open(sys.argv[5])) if r["markers"] and r["ideal"].lower().startswith("hide")]
+        out["hidden"] = {"of": len(hide), "rows": [{"label": label[t], "value": sum(bool(v[t].get(k)) for k in hide)} for t in TOOLS]}
     json.dump(out, open(sys.argv[3], "w"), indent=1)
     open(sys.argv[3], "a").write("\n")

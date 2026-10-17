@@ -143,6 +143,13 @@ function buildIndex(pages: Map<string, PageRecord>, posts: PageRecord[]): string
     lines.push("");
   }
 
+  lines.push("## Benchmarks");
+  lines.push("");
+  lines.push(
+    `- [FileConcat benchmarks](${BASE_URL}/benchmarks): the latest score of every benchmark, FileConcat against Tika, markitdown, Repomix, gitingest and others, each row labelled with the version it measured.`,
+  );
+  lines.push("");
+
   if (posts.length > 0) {
     lines.push("## Blog");
     lines.push("");
