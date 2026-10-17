@@ -18,6 +18,8 @@ import { AppFlow } from "~/components/app/app-flow";
 import { DropZone, type DropZoneProps } from "~/components/app/drop-zone";
 import { MarketingSection } from "~/components/app/marketing/section";
 import { ProseLink } from "~/components/app/marketing";
+import { Columns } from "~/components/benchmark-charts";
+import { benchmarksForConvert } from "~/lib/benchmarks";
 import whiteboardUrl from "../../../scripts/convert-samples/whiteboard.jpg";
 
 import {
@@ -399,6 +401,20 @@ function Reads({ format }: { format: ConvertFormat }) {
           <ReadList icon={Check} title="In the text" rows={gives} tone="text-go-fg" />
           <ReadList icon={CircleMinus} title="Not read" rows={loses} tone="text-ink-secondary" />
         </div>
+        {benchmarksForConvert(format.slug).map((b) => (
+          <div key={b.id} className="border-border mt-10 rounded-lg border p-5">
+            <Columns b={b} />
+            <p className="text-ink-secondary mt-4 text-[15px]">
+              {/* A plain anchor: the router's `to` takes no #fragment. */}
+              <a
+                href={`/benchmarks#${b.id}`}
+                className="hover:text-ink-secondary underline decoration-[oklch(var(--border-strong))] underline-offset-2 transition-colors duration-150"
+              >
+                Every FileConcat benchmark
+              </a>
+            </p>
+          </div>
+        ))}
         <p className={linkLine}>
           <ProseLink to="/blog/what-gets-lost-converting-documents-to-text">
             What gets lost converting documents to text

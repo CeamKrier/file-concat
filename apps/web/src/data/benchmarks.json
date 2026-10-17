@@ -1,0 +1,821 @@
+{
+  "sections": [
+    {
+      "id": "documents",
+      "title": "Documents",
+      "intro": "Office files, PDFs, email, ebooks and web pages, against Apache Tika and Microsoft markitdown.",
+      "charts": [
+        {
+          "id": "document-coverage",
+          "headline": "Document coverage",
+          "title": "Document coverage",
+          "metric": "Weighted by real files, mean of 11 formats",
+          "unit": "percent",
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "markitdown-vs-tika-text-extraction",
+          "note": "648 constructs in 129 probe files, each weighted by its share of 1,973 real files. All run by us.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 90.9
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 90.9
+            },
+            {
+              "label": "FileConcat 2.3",
+              "value": 79.3
+            },
+            {
+              "label": "Tika 3.3.2",
+              "value": 72.9
+            },
+            {
+              "label": "markitdown 0.1.5",
+              "value": 41.5
+            }
+          ]
+        },
+        {
+          "id": "constructs-read",
+          "title": "Constructs read",
+          "metric": "Of 648 over 17 formats, unweighted",
+          "unit": "percent",
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "markitdown-vs-tika-text-extraction",
+          "note": "Every construct counts once, however rare it is in real files. All run by us.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 92.7
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 92.7
+            },
+            {
+              "label": "Tika 3.3.2",
+              "value": 67.7
+            },
+            {
+              "label": "FileConcat 2.3",
+              "value": 63.7
+            },
+            {
+              "label": "markitdown 0.1.5",
+              "value": 35
+            }
+          ]
+        },
+        {
+          "id": "hidden-kept-out",
+          "title": "Hidden text kept out",
+          "metric": "Of 130 hidden or deleted constructs",
+          "unit": "count",
+          "of": 130,
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "markitdown-vs-tika-text-extraction",
+          "note": "Tracked deletions, hidden sheets, cookie banners. A format a tool does not read earns nothing here.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 115
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 115
+            },
+            {
+              "label": "FileConcat 2.3",
+              "value": 97
+            },
+            {
+              "label": "Tika 3.3.2",
+              "value": 62
+            },
+            {
+              "label": "markitdown 0.1.5",
+              "value": 45
+            }
+          ]
+        },
+        {
+          "id": "hard-files",
+          "headline": "Hard files",
+          "title": "Hard files",
+          "metric": "Handled, of 45",
+          "unit": "count",
+          "of": 45,
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "markitdown-vs-tika-text-extraction",
+          "note": "Files hard to tell apart or hard to decode: legacy encodings, binaries that look like text. All run by us.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 45
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 45
+            },
+            {
+              "label": "markitdown 0.1.5",
+              "value": 41
+            },
+            {
+              "label": "file 5.45",
+              "value": 39
+            },
+            {
+              "label": "Tika 3.3.2",
+              "value": 38
+            },
+            {
+              "label": "rg 15.2.0",
+              "value": 38
+            },
+            {
+              "label": "git 2.43.0",
+              "value": 35
+            },
+            {
+              "label": "FileConcat 2.3",
+              "value": 28
+            }
+          ]
+        },
+        {
+          "id": "document-defects",
+          "headline": "Document defects",
+          "title": "Document defects closed",
+          "metric": "Of the 16 found in August",
+          "unit": "count",
+          "of": 16,
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "what-gets-lost-converting-documents-to-text",
+          "note": "27 test documents in 12 formats, one structure each: merged cells, spreadsheet dates, scanned pages.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 16
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 16
+            },
+            {
+              "label": "FileConcat 2.2",
+              "value": 16
+            },
+            {
+              "label": "FileConcat 2.0",
+              "value": 13
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "formats",
+      "title": "Coverage by format",
+      "intro": "The document coverage score above, one format at a time.",
+      "charts": [
+        {
+          "id": "docx",
+          "convert": "docx-to-text",
+          "title": "Word (docx)",
+          "metric": "Weighted coverage",
+          "unit": "percent",
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "markitdown-vs-tika-text-extraction",
+          "note": "200 real files.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 81.5
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 81.5
+            },
+            {
+              "label": "FileConcat 2.3",
+              "value": 72.7
+            },
+            {
+              "label": "Tika 3.3.2",
+              "value": 75.6
+            },
+            {
+              "label": "markitdown 0.1.5",
+              "value": 72.3
+            }
+          ]
+        },
+        {
+          "id": "xlsx",
+          "convert": "excel-to-text",
+          "title": "Excel (xlsx)",
+          "metric": "Weighted coverage",
+          "unit": "percent",
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "markitdown-vs-tika-text-extraction",
+          "note": "200 real files.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 86.9
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 86.9
+            },
+            {
+              "label": "FileConcat 2.3",
+              "value": 74.9
+            },
+            {
+              "label": "Tika 3.3.2",
+              "value": 81.4
+            },
+            {
+              "label": "markitdown 0.1.5",
+              "value": 74.1
+            }
+          ]
+        },
+        {
+          "id": "pptx",
+          "convert": "pptx-to-text",
+          "title": "PowerPoint (pptx)",
+          "metric": "Weighted coverage",
+          "unit": "percent",
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "markitdown-vs-tika-text-extraction",
+          "note": "198 real files.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 100
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 100
+            },
+            {
+              "label": "FileConcat 2.3",
+              "value": 85.4
+            },
+            {
+              "label": "Tika 3.3.2",
+              "value": 81.9
+            },
+            {
+              "label": "markitdown 0.1.5",
+              "value": 84.1
+            }
+          ]
+        },
+        {
+          "id": "pdf-coverage",
+          "convert": "pdf-to-text",
+          "title": "PDF",
+          "metric": "Weighted coverage",
+          "unit": "percent",
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "markitdown-vs-tika-text-extraction",
+          "note": "195 real files.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 72.6
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 72.6
+            },
+            {
+              "label": "FileConcat 2.3",
+              "value": 62.6
+            },
+            {
+              "label": "Tika 3.3.2",
+              "value": 63.8
+            },
+            {
+              "label": "markitdown 0.1.5",
+              "value": 62.3
+            }
+          ]
+        },
+        {
+          "id": "eml",
+          "title": "Email (eml)",
+          "metric": "Weighted coverage",
+          "unit": "percent",
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "markitdown-vs-tika-text-extraction",
+          "note": "124 real files. markitdown printed the raw MIME source, scored 0.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 100
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 100
+            },
+            {
+              "label": "FileConcat 2.3",
+              "value": 85.6
+            },
+            {
+              "label": "Tika 3.3.2",
+              "value": 80.4
+            },
+            {
+              "label": "markitdown 0.1.5",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": "html",
+          "title": "Web page (HTML)",
+          "metric": "Weighted coverage",
+          "unit": "percent",
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "markitdown-vs-tika-text-extraction",
+          "note": "198 real files.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 98.3
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 98.3
+            },
+            {
+              "label": "FileConcat 2.3",
+              "value": 91.7
+            },
+            {
+              "label": "Tika 3.3.2",
+              "value": 54.7
+            },
+            {
+              "label": "markitdown 0.1.5",
+              "value": 66.4
+            }
+          ]
+        },
+        {
+          "id": "epub",
+          "title": "Ebook (EPUB)",
+          "metric": "Weighted coverage",
+          "unit": "percent",
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "markitdown-vs-tika-text-extraction",
+          "note": "200 real files. The one format where FileConcat is not first: it misses the author.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 88.4
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 88.4
+            },
+            {
+              "label": "FileConcat 2.3",
+              "value": 73.4
+            },
+            {
+              "label": "Tika 3.3.2",
+              "value": 59.1
+            },
+            {
+              "label": "markitdown 0.1.5",
+              "value": 97.6
+            }
+          ]
+        },
+        {
+          "id": "rtf",
+          "title": "RTF",
+          "metric": "Weighted coverage",
+          "unit": "percent",
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "markitdown-vs-tika-text-extraction",
+          "note": "198 real files. markitdown printed the raw control words, scored 0.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 85.6
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 85.6
+            },
+            {
+              "label": "FileConcat 2.3",
+              "value": 73.1
+            },
+            {
+              "label": "Tika 3.3.2",
+              "value": 76.2
+            },
+            {
+              "label": "markitdown 0.1.5",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": "odt",
+          "title": "OpenDocument text (odt)",
+          "metric": "Weighted coverage",
+          "unit": "percent",
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "markitdown-vs-tika-text-extraction",
+          "note": "199 real files. markitdown does not read it.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 90.6
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 90.6
+            },
+            {
+              "label": "FileConcat 2.3",
+              "value": 79.4
+            },
+            {
+              "label": "Tika 3.3.2",
+              "value": 84.8
+            },
+            {
+              "label": "markitdown 0.1.5",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": "ods",
+          "title": "OpenDocument sheet (ods)",
+          "metric": "Weighted coverage",
+          "unit": "percent",
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "markitdown-vs-tika-text-extraction",
+          "note": "196 real files. markitdown does not read it.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 96.5
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 96.5
+            },
+            {
+              "label": "FileConcat 2.3",
+              "value": 89.5
+            },
+            {
+              "label": "Tika 3.3.2",
+              "value": 63.7
+            },
+            {
+              "label": "markitdown 0.1.5",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": "odp",
+          "title": "OpenDocument slides (odp)",
+          "metric": "Weighted coverage",
+          "unit": "percent",
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "markitdown-vs-tika-text-extraction",
+          "note": "65 real files. markitdown does not read it.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 99.7
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 99.7
+            },
+            {
+              "label": "FileConcat 2.3",
+              "value": 83.8
+            },
+            {
+              "label": "Tika 3.3.2",
+              "value": 79.9
+            },
+            {
+              "label": "markitdown 0.1.5",
+              "value": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "public-benchmarks",
+      "title": "PDF, web pages and archives",
+      "intro": "Public test sets, FileConcat running in the browser without a GPU.",
+      "charts": [
+        {
+          "id": "pdf",
+          "headline": "PDF",
+          "title": "PDF",
+          "metric": "olmOCR-bench, 1,403 pages",
+          "unit": "percent",
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "browser-text-extraction-benchmark",
+          "note": "Tests passed, mean of 8 parts. GPU and API rows from allenai's table, Marker from its README, the rest run by us.",
+          "rows": [
+            {
+              "label": "FileConcat 2.6",
+              "value": 40.1
+            },
+            {
+              "label": "Chandra 0.1.0, GPU",
+              "value": 83.1
+            },
+            {
+              "label": "olmOCR 2, GPU",
+              "value": 82.4
+            },
+            {
+              "label": "Mistral OCR, API",
+              "value": 72
+            },
+            {
+              "label": "Marker 1.10.1, CPU",
+              "value": 43.6
+            },
+            {
+              "label": "FileConcat 2.1",
+              "value": 40
+            },
+            {
+              "label": "LiteParse",
+              "value": 38.9
+            },
+            {
+              "label": "anydoc",
+              "value": 30.9
+            },
+            {
+              "label": "FileConcat 2.0",
+              "value": 25.7
+            }
+          ]
+        },
+        {
+          "id": "web-pages",
+          "headline": "Saved web pages",
+          "title": "Saved web pages",
+          "metric": "Article text F1, 181 pages",
+          "unit": "percent",
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "browser-text-extraction-benchmark",
+          "note": "Zyte's article extraction benchmark at commit 4a3bc97. Other readers: their published outputs.",
+          "rows": [
+            {
+              "label": "FileConcat 2.6",
+              "value": 93.6
+            },
+            {
+              "label": "rs-trafilatura",
+              "value": 97
+            },
+            {
+              "label": "AutoExtract",
+              "value": 97
+            },
+            {
+              "label": "Trafilatura 2.0.0",
+              "value": 95.8
+            },
+            {
+              "label": "Readability",
+              "value": 94.7
+            },
+            {
+              "label": "FileConcat 2.1",
+              "value": 93.7
+            },
+            {
+              "label": "all page text",
+              "value": 66.5
+            },
+            {
+              "label": "FileConcat 2.0",
+              "value": 8.8
+            }
+          ]
+        },
+        {
+          "id": "archives",
+          "headline": "Archives",
+          "title": "Archives",
+          "metric": "Every text file exact, of 26",
+          "unit": "count",
+          "of": 26,
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "browser-text-extraction-benchmark",
+          "note": "One archive per case readers get wrong: zip64, non-ASCII names, tar dialects, 7z. All run by us.",
+          "rows": [
+            {
+              "label": "FileConcat 2.6",
+              "value": 25
+            },
+            {
+              "label": "FileConcat 2.1",
+              "value": 25
+            },
+            {
+              "label": "7-Zip wasm",
+              "value": 24
+            },
+            {
+              "label": "libarchive",
+              "value": 21
+            },
+            {
+              "label": "FileConcat 2.0",
+              "value": 8
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "repositories",
+      "title": "Code repositories",
+      "intro": "60 public repositories, each tool at its own defaults, one tokenizer.",
+      "charts": [
+        {
+          "id": "repository-density",
+          "headline": "Repository bundles",
+          "title": "Your own code in the bundle",
+          "metric": "Median share of 60 repositories",
+          "unit": "percent",
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "repomix-vs-gitingest-vs-code2prompt",
+          "note": "Source code as a share of the bundle's tokens. The rest is tests, lockfiles and vendored code. FileConcat runs as its command line tool built from the same release, which skips dot folders the web app keeps.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 67.5
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 67.5
+            },
+            {
+              "label": "FileConcat 2.0",
+              "value": 68
+            },
+            {
+              "label": "gitingest 0.3.1",
+              "value": 51.1
+            },
+            {
+              "label": "Repomix 1.18.0",
+              "value": 49.6
+            },
+            {
+              "label": "code2prompt 4.2.0",
+              "value": 38.8
+            }
+          ]
+        },
+        {
+          "id": "repository-size",
+          "title": "Bundle size",
+          "metric": "Median tokens over 60 repositories",
+          "unit": "tokens",
+          "better": "lower",
+          "measured": "2026-10-17",
+          "post": "repomix-vs-gitingest-vs-code2prompt",
+          "note": "Fewer tokens only helps if the files left out did not matter.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 236665
+            },
+            {
+              "label": "FileConcat 2.6",
+              "value": 236665
+            },
+            {
+              "label": "FileConcat 2.0",
+              "value": 235672
+            },
+            {
+              "label": "Repomix 1.18.0",
+              "value": 239861
+            },
+            {
+              "label": "gitingest 0.3.1",
+              "value": 258790
+            },
+            {
+              "label": "code2prompt 4.2.0",
+              "value": 432539
+            }
+          ]
+        },
+        {
+          "id": "repository-densest",
+          "title": "Densest bundle",
+          "metric": "Repositories won, of 60",
+          "unit": "count",
+          "of": 60,
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "repomix-vs-gitingest-vs-code2prompt",
+          "note": "The tool whose bundle had the highest share of source code on that repository.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 35
+            },
+            {
+              "label": "gitingest 0.3.1",
+              "value": 16
+            },
+            {
+              "label": "code2prompt 4.2.0",
+              "value": 5
+            },
+            {
+              "label": "Repomix 1.18.0",
+              "value": 4
+            }
+          ]
+        },
+        {
+          "id": "repository-cheapest",
+          "title": "Cheapest bundle",
+          "metric": "Repositories won, of 60",
+          "unit": "count",
+          "of": 60,
+          "better": "higher",
+          "measured": "2026-10-17",
+          "post": "repomix-vs-gitingest-vs-code2prompt",
+          "note": "The tool with the fewest tokens on that repository.",
+          "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 30
+            },
+            {
+              "label": "gitingest 0.3.1",
+              "value": 20
+            },
+            {
+              "label": "code2prompt 4.2.0",
+              "value": 6
+            },
+            {
+              "label": "Repomix 1.18.0",
+              "value": 4
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

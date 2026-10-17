@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { BlogShell } from "~/components/blog/blog-shell";
 import { BlogMDXProviderWrapper } from "~/components/blog/blog-mdx-provider";
+import { benchmarksFromPost } from "~/lib/benchmarks";
 import { formatPostDate, getPostBySlug } from "~/lib/blog";
 import { generateSEOMeta } from "~/lib/seo";
 
@@ -96,6 +97,19 @@ function BlogPostPage() {
                 the formats list
               </Link>
               .
+              {benchmarksFromPost(slug).length > 0 && (
+                <>
+                  {" "}
+                  The latest run of these benchmarks is on{" "}
+                  <Link
+                    to="/benchmarks"
+                    className="text-ink focus-visible:ring-ring focus-visible:ring-offset-background rounded-sm underline decoration-1 underline-offset-[3px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                  >
+                    the benchmarks page
+                  </Link>
+                  .
+                </>
+              )}
             </p>
           )}
         </header>

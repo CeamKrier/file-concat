@@ -15,6 +15,7 @@ import {
   isEncryptedContainer,
   isPasswordProtected,
   matchTextualSignature,
+  prunedAtWalk,
   routeBytes,
   ROUTER_SNIFF_BYTES,
   addLineNumbers,
@@ -236,6 +237,14 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
 
     if (source.size > maxFileSizeMB * 1024 * 1024) {
       skipped.oversize.push(file);
+      continue;
+    }
+
+    // The web walk's rule (prunedAtWalk): an extension no text format uses (a
+    // font, media, compiled code) is left out unread. Content alone let fonts
+    // whose tables happen to sniff as text into the bundle as garbage.
+    if (excludeBinary && prunedAtWalk(file)) {
+      skipped.binary.push(file);
       continue;
     }
 

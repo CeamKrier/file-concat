@@ -136,6 +136,9 @@ export function SiteFooter() {
 
           <div className={columnClass}>
             <h2 className={headingClass}>Project</h2>
+            <Link to="/benchmarks" className={linkClass}>
+              Benchmarks
+            </Link>
             {hasPublishedPosts() && (
               <Link to="/blog" className={linkClass}>
                 Blog

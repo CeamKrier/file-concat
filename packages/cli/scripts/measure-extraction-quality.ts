@@ -617,6 +617,8 @@ async function main(): Promise<void> {
   }
 
   const checks: { id: string; web: string; status: string; readers: Record<string, string> }[] = [];
+  /** The August tally per surface, the figure /benchmarks charts as "document-defects". */
+  const closed: Record<string, { closed: number; of: number }> = {};
   if (CHECKS.length > 0) {
     const tally = { web: { broken: 0, fixed: 0, missing: 0, absent: 0 }, cli: { broken: 0, fixed: 0, missing: 0, absent: 0 } };
     const pypdfFile = pypdf ?? path.join(REPO_ROOT, "docs", "measurements", "extraction-pypdf.json");
@@ -662,6 +664,7 @@ async function main(): Promise<void> {
     const august = CHECKS.filter((c) => !c.since).length;
     const later = checks.filter((row) => CHECKS.find((c) => c.id === row.id)?.since);
     for (const [surface, t] of Object.entries(tally)) {
+      closed[surface] = { closed: t.fixed - guards, of: august - guards };
       console.log(
         `\n${surface}: ${t.fixed - guards} of ${august - guards} defects from 2026-08-15 closed, ${t.broken} still broken, ` +
           `${t.absent} signal absent, ${t.missing} missing fixture. ` +
@@ -682,7 +685,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  fs.writeFileSync(outPath, JSON.stringify({ date, corpus: CORPUS, results, webResults, checks }, null, 2));
+  fs.writeFileSync(outPath, JSON.stringify({ date, corpus: CORPUS, closed, results, webResults, checks }, null, 2));
   console.log(`\nWrote ${outPath}`);
 }
 

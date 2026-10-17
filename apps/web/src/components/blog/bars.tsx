@@ -13,7 +13,7 @@ import { cn } from "~/lib/utils";
  */
 
 export type BarsProps = {
-  title: string;
+  title: ReactNode;
   rows: { label: string; value: number }[];
   /** "tokens" renders 235,672; "percent" renders 66.7%. */
   unit?: "tokens" | "percent";
@@ -25,6 +25,8 @@ export type BarsProps = {
   note?: ReactNode;
   /** The row drawn in the primary colour, when a figure carries two versions of ours. */
   ours?: string;
+  /** Room for labels that carry a version, "markitdown 0.1.5", on one line. */
+  wideLabels?: boolean;
   className?: string;
 };
 
@@ -39,6 +41,7 @@ export function Bars({
   children,
   note,
   ours: oursLabel = "FileConcat",
+  wideLabels,
   className,
 }: BarsProps) {
   const max = Math.max(...rows.map((r) => r.value));
@@ -56,7 +59,12 @@ export function Bars({
           return (
             <div
               key={r.label}
-              className="grid grid-cols-[minmax(72px,112px)_minmax(0,1fr)_auto] items-center gap-3"
+              className={cn(
+                "grid items-center gap-3",
+                wideLabels
+                  ? "grid-cols-[minmax(72px,150px)_minmax(0,1fr)_auto]"
+                  : "grid-cols-[minmax(72px,112px)_minmax(0,1fr)_auto]",
+              )}
             >
               <span className={cn("font-mono text-[13px]", ours ? "text-primary" : "text-ink-secondary")}>
                 {r.label}

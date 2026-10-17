@@ -16,8 +16,8 @@ import { ChevronRight } from "lucide-react";
  */
 const ANNOUNCEMENT = {
   label: "New",
-  body: "FileConcat 2.1 benchmarked on 9 file types, against 2.0 and the best server tools",
-  to: "/blog/browser-text-extraction-benchmark",
+  body: "Every FileConcat benchmark on one page, against Tika, markitdown and the best server tools",
+  to: "/benchmarks",
 } satisfies { label: string; body: string; to: string } | null;
 
 export function HeroAnnouncement() {

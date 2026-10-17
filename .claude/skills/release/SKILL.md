@@ -52,6 +52,34 @@ gh run watch <id> --exit-status
 - **Any other failure:** stop and report the failing step and its log lines. Do not re-run
   blindly. A half-done cut pushes nothing, because the push is atomic and comes last.
 
+## 2b. Rerun the benchmarks at the new version
+
+Only when step 2 cut a version. The scripts label their rows from `apps/web/package.json`,
+which now holds the new version, and the code they measure is the code the cut just tagged.
+
+```bash
+git pull -q --ff-only origin development
+bash packages/cli/scripts/bench/rerun-documents.sh          # every release, about 3 min
+TAG=$(git describe --tags --abbrev=0 HEAD^)                 # the previous release
+git diff --quiet "$TAG" HEAD -- packages/core/src/file-processing apps/web/src/lib vendor \
+  ':!apps/web/src/lib/benchmarks.ts' \
+  || bash packages/cli/scripts/bench/rerun-browser.sh       # PDF, web pages, archives: about an hour
+git diff --quiet "$TAG" HEAD -- packages/core/src packages/cli/src \
+  || bash packages/cli/scripts/bench/rerun-repos.sh --clones ~/.cache/fileconcat-bench-repos   # 60 clones, 5-25 min
+node packages/cli/scripts/bench/add-rows.mjs docs/measurements/bench-*-X.Y.json
+```
+
+- `apps/web/tests/benchmarks.test.ts` fails until the document charts carry the new version,
+  so a skipped rerun turns the next CI run red.
+- A chart that was not rerun keeps its older row and moves to "Not rerun at X.Y" on
+  `/benchmarks` by itself. Name those charts in the report.
+- A number that dropped is a finding: report it with its cause. Never adjust a script or a
+  corpus to restore it.
+- Commit only `apps/web/src/data/benchmarks.json` (`chore(web): benchmarks rerun at X.Y`). The
+  owner pushes it to `development` before the PR opens, so the data reaches `master` with the
+  release.
+  The `docs/measurements/` outputs are gitignored.
+
 ## 3. Open the PR
 
 Title: `Release X.Y.Z` when a version was cut. Otherwise use a plain-words title for what

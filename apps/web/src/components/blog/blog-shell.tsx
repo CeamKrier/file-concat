@@ -7,13 +7,17 @@ import { SiteFooter } from "~/components/app/marketing";
 
 interface BlogShellProps {
   children: React.ReactNode;
+  /** A page of charts rather than prose: the header's width instead of the reading column. */
+  wide?: boolean;
 }
 
-export function BlogShell({ children }: BlogShellProps) {
+export function BlogShell({ children, wide }: BlogShellProps) {
   return (
     <div className="bg-background flex min-h-screen flex-col">
       <BlogHeader />
-      <main className="mx-auto w-full max-w-[720px] flex-1 px-4 py-12 sm:px-6 md:py-16">
+      <main
+        className={`mx-auto w-full flex-1 px-4 py-12 sm:px-6 md:py-16 ${wide ? "max-w-[1040px]" : "max-w-[720px]"}`}
+      >
         {children}
       </main>
       <SiteFooter />

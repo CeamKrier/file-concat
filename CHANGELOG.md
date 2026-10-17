@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.7.0](https://github.com/CeamKrier/file-concat/compare/v2.6.0...v2.7.0) (2026-10-17)
+
+### Features
+
+* **web:** /benchmarks, every FileConcat benchmark on one page ([0e61d0e](https://github.com/CeamKrier/file-concat/commit/0e61d0e9e518f6188eabffaa8d57deb23a02154a))
+
 ## [2.6.0](https://github.com/CeamKrier/file-concat/compare/v2.5.0...v2.6.0) (2026-10-17)
 
 ### Features
@@ -11,7 +17,7 @@
 
 * **core:** binary from the first bytes is named binary, not cut to a stub ([d3cdbb7](https://github.com/CeamKrier/file-concat/commit/d3cdbb712d4da8025b3977e2689609beb41d767d))
 * **core:** read zip64 central directories for flags and names ([97a8445](https://github.com/CeamKrier/file-concat/commit/97a8445b92f54d708af035f9870b6e71f270b798))
-* **web:** a web page's image keeps its hover title ([75d8fd8](https://github.com/CeamKrier/file-concat/commit/75d8fd89a464818cdc2065143e5a68893642cff7)), references [HTML#H14](https://github.com/CeamKrier/file-concat/issues/H14)
+* **web:** a web page's image keeps its hover title ([75d8fd8](https://github.com/CeamKrier/file-concat/commit/75d8fd89a464818cdc2065143e5a68893642cff7))
 * **web:** markitdown vs Tika post measured at the image-title fix ([6a198ac](https://github.com/CeamKrier/file-concat/commit/6a198ac7f81b69b69f376c260b23e9fb430caa28))
 
 ## [2.5.0](https://github.com/CeamKrier/file-concat/compare/v2.4.0...v2.5.0) (2026-10-17)
