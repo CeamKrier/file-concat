@@ -62,6 +62,7 @@ git pull -q --ff-only origin development
 bash packages/cli/scripts/bench/rerun-documents.sh          # every release, about 3 min
 TAG=$(git describe --tags --abbrev=0 HEAD^)                 # the previous release
 git diff --quiet "$TAG" HEAD -- packages/core/src/file-processing apps/web/src/lib vendor \
+  ':!apps/web/src/lib/benchmarks.ts' \
   || bash packages/cli/scripts/bench/rerun-browser.sh       # PDF, web pages, archives: about an hour
 git diff --quiet "$TAG" HEAD -- packages/core/src packages/cli/src \
   || bash packages/cli/scripts/bench/rerun-repos.sh --clones ~/.cache/fileconcat-bench-repos   # 60 clones, 5-25 min
