@@ -44,6 +44,7 @@ export function DropZone({
 }: DropZoneProps) {
   const filesInput = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);
+  const zipInput = useRef<HTMLInputElement>(null);
   const compact = variant === "compact";
 
   // A dashed upload box reads as "click to browse", so a click that did nothing
@@ -69,6 +70,11 @@ export function DropZone({
     compact ? "focus-visible:ring-offset-surface-inset" : "focus-visible:ring-offset-surface-alt",
   );
 
+  // A phone has no drag and, on most versions in use, no folder picker
+  // (webkitdirectory: iOS Safari 18.4+, Chrome Android 132+). There the target
+  // is one full-width "Choose files", with a .zip as the way to bring a folder.
+  const quietOnPhone =
+    "max-sm:flex-1 max-sm:border-0 max-sm:bg-transparent max-sm:px-2 max-sm:text-ink-secondary max-sm:underline max-sm:underline-offset-4";
   const buttons = (
     <>
       <button
@@ -76,10 +82,18 @@ export function DropZone({
         onClick={() => filesInput.current?.click()}
         className={cn(
           buttonBase,
-          "bg-primary text-primary-foreground font-semibold transition-[filter] hover:brightness-110",
+          "bg-primary text-primary-foreground font-semibold transition-[filter] hover:brightness-110 max-sm:w-full max-sm:py-3.5 max-sm:text-[15px]",
         )}
       >
-        Browse files
+        <span className="max-sm:hidden">Browse files</span>
+        <span className="sm:hidden">Choose files</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => zipInput.current?.click()}
+        className={cn(buttonBase, "font-medium sm:hidden", quietOnPhone)}
+      >
+        Choose a .zip
       </button>
       <button
         type="button"
@@ -87,9 +101,11 @@ export function DropZone({
         className={cn(
           buttonBase,
           "bg-secondary text-ink border-border-strong hover:bg-accent border font-medium",
+          quietOnPhone,
         )}
       >
-        Browse folder
+        <span className="max-sm:hidden">Browse folder</span>
+        <span className="sm:hidden">Choose folder</span>
       </button>
     </>
   );
@@ -115,16 +131,16 @@ export function DropZone({
     >
       {compact ? (
         <>
-          <div className="rounded-input border-border bg-secondary flex h-[34px] w-[34px] flex-none items-center justify-center border">
+          <div className="rounded-input border-border bg-secondary flex h-[34px] w-[34px] flex-none items-center justify-center border max-sm:hidden">
             <Upload className="text-primary h-[17px] w-[17px]" strokeWidth={2} />
           </div>
-          <div className="min-w-0 flex-1 basis-[190px]">
+          <div className="min-w-0 flex-1 basis-[190px] max-sm:hidden">
             <h2 className="font-display text-ink text-[16.5px] font-semibold tracking-[-0.01em]">
               {isDragging ? "Let go to start" : title}
             </h2>
             <p className="text-ink-muted mt-[3px] text-[13px]">{hint}</p>
           </div>
-          <div className="flex flex-none gap-2">{buttons}</div>
+          <div className="flex flex-none gap-2 max-sm:w-full max-sm:flex-wrap">{buttons}</div>
         </>
       ) : (
         <>
@@ -140,7 +156,9 @@ export function DropZone({
           </h2>
           <p className="text-ink-muted mt-1.5 text-sm">{hint}</p>
 
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">{buttons}</div>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5 max-sm:w-full">
+            {buttons}
+          </div>
         </>
       )}
 
@@ -151,6 +169,14 @@ export function DropZone({
         className="hidden"
         onChange={onFileInput}
         aria-label="Browse files"
+      />
+      <input
+        ref={zipInput}
+        type="file"
+        accept=".zip,application/zip"
+        className="hidden"
+        onChange={onFileInput}
+        aria-label="Choose a .zip"
       />
       <input
         ref={folderInput}

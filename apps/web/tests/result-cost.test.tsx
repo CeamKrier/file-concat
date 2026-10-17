@@ -115,3 +115,24 @@ describe("the price of one send", () => {
     expect(screen.getByText("$0.30")).toBeInTheDocument();
   });
 });
+
+/**
+ * Under 640px the export row is a bar pinned to the bottom of the screen. Share
+ * leads it only when the browser can share a file, and Download then moves to
+ * the quiet row, so it is still one tap away.
+ */
+describe("the phone bar", () => {
+  it("offers Share and moves Download when the browser can share a file", () => {
+    const onShare = vi.fn();
+    render(<ResultView {...props({ onShare })} />);
+    screen.getByRole("button", { name: /share/i }).click();
+    expect(onShare).toHaveBeenCalledOnce();
+    expect(screen.getAllByRole("button", { name: /download/i })).toHaveLength(2);
+  });
+
+  it("has no Share without file sharing", () => {
+    render(<ResultView {...props()} />);
+    expect(screen.queryByRole("button", { name: /share/i })).toBeNull();
+    expect(screen.getAllByRole("button", { name: /download/i })).toHaveLength(1);
+  });
+});

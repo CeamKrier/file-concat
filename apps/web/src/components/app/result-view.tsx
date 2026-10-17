@@ -19,6 +19,7 @@ import {
   MessageSquare,
   RotateCcw,
   ScanText,
+  Share,
   SlidersHorizontal,
   Weight,
   type LucideIcon,
@@ -68,6 +69,9 @@ type ResultViewProps = {
   isGenerating: boolean;
   onCopy: () => void;
   onDownload: () => void;
+  /** Present when the browser can share a file: phones then get Share in the
+   * bottom bar, with Download moved to the quiet row. */
+  onShare?: () => void;
   /** Clear all state and return to the landing drop zone. */
   onStartOver: () => void;
   /** Add files to this bundle instead of replacing it. */
@@ -175,6 +179,7 @@ export function ResultView({
   isGenerating,
   onCopy,
   onDownload,
+  onShare,
   onStartOver,
   onAddFiles,
   previewText,
@@ -534,7 +539,7 @@ export function ResultView({
   const noteCount = itemCount - gapCount;
 
   return (
-    <section className="animate-fade-up mx-auto w-full max-w-[720px] text-pretty px-4 pt-12 motion-reduce:animate-none">
+    <section className="animate-fade-up mx-auto w-full max-w-[720px] text-pretty px-4 pt-12 motion-reduce:animate-none max-sm:animate-none max-sm:pb-24">
       <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
         <Check className="text-primary h-[17px] w-[17px] shrink-0" strokeWidth={2.8} />
         <h2 className="font-display text-ink text-xl font-semibold tracking-[-0.02em]">
@@ -689,20 +694,40 @@ export function ResultView({
               </div>
             </>
           ) : (
-            <div className="flex flex-wrap gap-2.5">
+            // On a phone the row leaves the card for a bar pinned to the bottom
+            // of the screen, where the thumb is, and stays there while the
+            // preview scrolls. Share leads it when the browser can hand the
+            // bundle to another app as a file; Copy then steps down to second.
+            // The section skips its entrance on a phone for this: fade-up
+            // holds a transform, which would pin this bar to the section
+            // instead of the screen.
+            <div className="max-sm:bg-surface max-sm:border-border flex flex-wrap gap-2.5 max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-sticky max-sm:flex-nowrap max-sm:border-t max-sm:px-4 max-sm:pb-[max(12px,env(safe-area-inset-bottom))] max-sm:pt-3">
+              {onShare && (
+                <button
+                  type="button"
+                  onClick={onShare}
+                  className="rounded-input bg-primary text-primary-foreground focus-visible:ring-ring focus-visible:ring-offset-surface flex h-[46px] flex-1 items-center justify-center gap-2.5 px-5 text-[15px] font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:hidden"
+                >
+                  <Share className="h-4 w-4" /> Share
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onCopy}
                 className={cn(
-                  "rounded-input focus-visible:ring-ring focus-visible:ring-offset-surface flex h-[46px] w-full items-center justify-center gap-2.5 px-5 text-[15px] font-semibold transition-[filter,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:w-auto sm:flex-[1_1_240px]",
+                  "rounded-input focus-visible:ring-ring focus-visible:ring-offset-surface flex h-[46px] w-full items-center justify-center gap-2.5 px-5 text-[15px] font-semibold transition-[filter,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 max-sm:w-auto max-sm:flex-1 sm:w-auto sm:flex-[1_1_240px]",
                   isCopied
                     ? "text-go-fg border-primary border bg-[oklch(var(--primary)/0.16)]"
                     : "bg-primary text-primary-foreground hover:brightness-110",
+                  onShare &&
+                    !isCopied &&
+                    "max-sm:bg-secondary max-sm:text-ink max-sm:border-border-strong max-sm:hover:bg-accent max-sm:border max-sm:font-medium",
                 )}
               >
                 {isCopied ? (
                   <>
-                    <Check className="h-4 w-4" strokeWidth={2.5} /> Copied to clipboard
+                    <Check className="h-4 w-4" strokeWidth={2.5} /> Copied
+                    <span className="max-sm:hidden"> to clipboard</span>
                   </>
                 ) : (
                   <>
@@ -714,7 +739,10 @@ export function ResultView({
                 type="button"
                 onClick={onDownload}
                 disabled={isGenerating}
-                className="bg-secondary text-ink border-border-strong rounded-input hover:bg-accent focus-visible:ring-ring focus-visible:ring-offset-surface flex h-[46px] w-full items-center justify-center gap-2 border px-[18px] text-[14.5px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 sm:w-auto sm:flex-[0_1_160px]"
+                className={cn(
+                  "bg-secondary text-ink border-border-strong rounded-input hover:bg-accent focus-visible:ring-ring focus-visible:ring-offset-surface flex h-[46px] w-full items-center justify-center gap-2 border px-[18px] text-[14.5px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 max-sm:w-auto max-sm:flex-1 sm:w-auto sm:flex-[0_1_160px]",
+                  onShare && "max-sm:hidden",
+                )}
               >
                 <Download className="h-[15px] w-[15px]" />
                 {isGenerating ? "Preparing..." : "Download"}
@@ -726,7 +754,15 @@ export function ResultView({
               of exporting it, and the way to tell us it went wrong. Under the
               buttons rather than over them, centred on the pair, and at the
               quietest weight on the card. */}
-          <div className="mt-[18px] flex flex-wrap items-center justify-center gap-x-[22px] gap-y-2.5">
+          <div className="mt-[18px] flex flex-wrap items-center justify-center gap-x-[22px] gap-y-2.5 max-sm:mt-0">
+            {onShare && !isReading && (
+              <QuietAction
+                icon={Download}
+                label={isGenerating ? "Preparing..." : "Download"}
+                onClick={onDownload}
+                className="sm:hidden"
+              />
+            )}
             <QuietAction
               icon={FilePlus}
               label="Add files"
@@ -1245,16 +1281,21 @@ function QuietAction({
   icon: Icon,
   label,
   onClick,
+  className,
 }: {
   icon: typeof FilePlus;
   label: string;
   onClick: () => void;
+  className?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="text-ink-secondary hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-sm text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+      className={cn(
+        "text-ink-secondary hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-sm text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+        className,
+      )}
     >
       <Icon className="h-4 w-4" />
       {label}

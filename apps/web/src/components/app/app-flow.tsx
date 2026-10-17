@@ -999,6 +999,13 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               onDownload={async () => {
                 if (await output.download()) setExports((n) => n + 1);
               }}
+              onShare={
+                output.canShareFiles
+                  ? async () => {
+                      if (await output.share()) setExports((n) => n + 1);
+                    }
+                  : undefined
+              }
               onFeedback={() => setFeedbackOpen(true)}
               onStartOver={startOver}
               onAddFiles={onAddFiles}

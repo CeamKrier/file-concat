@@ -45,9 +45,13 @@ export interface OutputGeneration {
   isCopied: boolean;
   isGenerating: boolean;
   canEmit: boolean;
+  /** The browser can hand a file to the system share sheet. Read after
+   * hydration, so the server render and the first client render agree. */
+  canShareFiles: boolean;
   /** Resolve true when the bundle actually left: the feedback ask waits on it. */
   copy: () => Promise<boolean>;
   download: () => Promise<boolean>;
+  share: () => Promise<boolean>;
   reset: () => void;
 }
 
@@ -62,6 +66,14 @@ export function useOutputGeneration({
 }: OutputGenerationInputs): OutputGeneration {
   const [isCopied, setIsCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [canShareFiles, setCanShareFiles] = useState(false);
+
+  useEffect(() => {
+    setCanShareFiles(
+      typeof navigator.canShare === "function" &&
+        navigator.canShare({ files: [new File([""], "probe.txt", { type: "text/plain" })] }),
+    );
+  }, []);
 
   const recommendedFormat: OutputFormat = tokens > MULTI_OUTPUT_LIMIT ? "multi" : "single";
   // Split output is disabled (see SPLIT_OUTPUT_ENABLED): downloads stay single
@@ -186,6 +198,24 @@ export function useOutputGeneration({
     }
   }, [selectedFormat, includedContents, chunkSizeKB, buildSingle, outputStyle]);
 
+  // Always a .txt: Chrome shares only a fixed list of file types, and .md and
+  // .xml are not on it. The bytes are the same bundle in the chosen style.
+  const share = useCallback(async () => {
+    try {
+      const { projectName, text } = buildSingle(includedContents);
+      const file = new File([text], outputFileName(projectName, "txt"), { type: "text/plain" });
+      await navigator.share({ files: [file] });
+      track("output_taken", "share");
+      track("output_style", outputStyle);
+      tagOutcome("shared");
+      return true;
+    } catch (error) {
+      // AbortError is the sheet closed without a pick: no outcome, nothing wrong.
+      if ((error as Error).name !== "AbortError") console.error("Failed to share:", error);
+      return false;
+    }
+  }, [buildSingle, includedContents, outputStyle]);
+
   // Format and chunk size are persisted preferences (owned by useConfig), so a
   // fresh ingest only clears the transient emit state — not the user's choices.
   const reset = useCallback(() => {
@@ -199,8 +229,10 @@ export function useOutputGeneration({
     isCopied,
     isGenerating,
     canEmit: includedContents.length > 0,
+    canShareFiles,
     copy,
     download,
+    share,
     reset,
   };
 }

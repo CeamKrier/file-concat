@@ -146,7 +146,7 @@ export function tagBundleReady(): void {
 }
 
 /** The terminal action. Mirrors `output_taken`. */
-export function tagOutcome(outcome: "copied" | "downloaded"): void {
+export function tagOutcome(outcome: "copied" | "downloaded" | "shared"): void {
   const run = currentRun();
   if (run !== null) exportedRuns.add(run);
   tag("outcome", outcome);
