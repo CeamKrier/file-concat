@@ -372,4 +372,17 @@ describe("reading by content, never the name", () => {
     expect(written).toMatch(/binary data after .+ left out/);
     expect(result.stderr).toContain("privet.txt");
   });
+
+  it("leaves out an extension no text format uses, even when its bytes read as text", async () => {
+    const dir = makeTempDir("never-text");
+    fs.writeFileSync(path.join(dir, "font.ttf"), "glyf head hmtx name post\n".repeat(200));
+    fs.writeFileSync(path.join(dir, "main.ts"), "export const x = 1;\n");
+    const outFile = path.join(makeTempDir("never-text-out"), "out.xml");
+    const result = await runCli([dir, "-o", outFile, "--json"]);
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.stdout).skippedBreakdown.binary).toBe(1);
+    const written = fs.readFileSync(outFile, "utf-8");
+    expect(written).toContain("export const x = 1;");
+    expect(written).not.toContain("glyf head");
+  });
 });
