@@ -11,6 +11,7 @@ import {
   classifyBytes,
   decodeAs,
   defaultSourceRegistry,
+  isEncryptedContainer,
   isPasswordProtected,
   isPrunedDirectory,
   RECOGNISABLE_IMAGE_FORMATS,
@@ -760,7 +761,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setProgress({ phase: "reading", done: 0, total, note: STAGE.read, stages });
 
       for (let i = 0; i < total; i++) {
-        const { item: entry, path, route, sniffed, controlShare } = routed[i];
+        const { item: entry, path, route, sniffed, controlShare, encrypted } = routed[i];
 
         // Composition of the drop, recorded for every file whatever happens to
         // it below. The extension and the size are the whole payload; the name
@@ -782,6 +783,22 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           }
         };
 
+        // Its own bytes say it is locked: an encrypted zip, or a DRM book's
+        // chapters dropped unpacked. No reader opens it, so it lands with the
+        // locked documents below rather than as an unreadable format.
+        if (encrypted) {
+          addToTally(extractError, "encrypted", fileBytes);
+          nextValidations[path] = {
+            included: false,
+            reason: "Password protected",
+            classification: "binary",
+            size: fileBytes,
+            type: entry.file.type || "application/octet-stream",
+          };
+          tickProgress();
+          continue;
+        }
+
         // A document container: pull the text out and include *that*, instead
         // of classifying the container's raw bytes (ADR-0003). Which parser to
         // load came from the bytes, not the filename, so a renamed `.docx` and
@@ -801,6 +818,10 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           // a drop can take. Weight is reported after the fact instead.
           try {
             const bytes = new Uint8Array(await entry.file.arrayBuffer());
+            // A password-protected Office file, a rights-managed one, a DRM
+            // book: the reader would fail on it or read noise, so the catch
+            // below names it from the bytes instead.
+            if (isEncryptedContainer(bytes)) throw new Error("Password protected");
             const extracted = await parsers.extract(route.parserId, bytes, route.format);
             const { notes, reader } = extracted;
             // The document's own title above its text, when it says something (Q30 O2).

@@ -11,6 +11,7 @@ import {
   canExpandArchive,
   classifyBytes,
   expandArchive,
+  isEncryptedContainer,
   isPasswordProtected,
   matchTextualSignature,
   routeBytes,
@@ -245,7 +246,11 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
     // agree on which formats qualify and how the text is pulled.
     if (extract && route.kind === "extract") {
       try {
-        const extracted = await parsers.extract(route.parserId, readAll(source), route.format);
+        const bytes = readAll(source);
+        // A password-protected or rights-managed Office file, a DRM book: named
+        // from its own bytes, before a reader fails on it or reads noise.
+        if (isEncryptedContainer(bytes)) throw new Error("Password protected");
+        const extracted = await parsers.extract(route.parserId, bytes, route.format);
         const { notes } = extracted;
         // The document's own title above its text, when it says something (Q30 O2).
         const text = withTitle(extracted.text, extracted.title, file);
@@ -289,8 +294,14 @@ export async function concat(targetPath: string, options: ConcatOptions): Promis
       source.origin === "disk" &&
       canExpandArchive(route.archive)
     ) {
+      const bytes = readAll(source);
+      if (isEncryptedContainer(bytes)) {
+        log.warn(`Skipped (password protected): ${file}`);
+        skipped.parseFailed.push(file);
+        continue;
+      }
       try {
-        const entries = expandArchive(readAll(source), route.archive, path.basename(file));
+        const entries = expandArchive(bytes, route.archive, path.basename(file));
         if (entries.length > 0) {
           const dir = path.dirname(file);
           for (const entry of entries) {

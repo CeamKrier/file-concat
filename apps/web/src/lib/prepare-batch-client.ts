@@ -1,8 +1,10 @@
 import {
   canExpandArchive,
   classifyBytes,
+  epubEncryptedPaths,
   type ArchiveEntry,
   expandArchive,
+  isEncryptedContainer,
   routeBytes,
   ROUTER_SNIFF_BYTES,
   type ArchiveKind,
@@ -74,6 +76,13 @@ export async function prepareBatch(
 
     try {
       const bytes = new Uint8Array(await item.file.arrayBuffer());
+      // A locked zip unpacks to ciphertext, or to nothing, so it stays whole
+      // and says it is locked.
+      if (isEncryptedContainer(bytes)) {
+        archiveReads.push(`${route.archive}/none`);
+        files.push({ item, path, route, encrypted: true });
+        continue;
+      }
       const { entries, reader } = await unpack(bytes, route.archive, item.file.name);
       archiveReads.push(`${route.archive}/${reader}`);
       // An empty or unreadable archive keeps its original entry and falls
@@ -123,7 +132,29 @@ export async function prepareBatch(
     }
   }
 
+  await markDrmParts(files);
   return { files, expandedCount, unsupported, archiveReads, pruned };
+}
+
+const ENCRYPTION_XML = /(?:^|\/)META-INF\/encryption\.xml$/;
+
+/**
+ * A DRM book dropped unpacked: its chapters are ciphertext that would read as
+ * binary noise. The book's own `encryption.xml` names them, relative to the
+ * folder that holds `META-INF`.
+ */
+async function markDrmParts(files: RoutedFile[]): Promise<void> {
+  const manifests = files.filter((f) => ENCRYPTION_XML.test(f.path) && f.item.file.size <= 1 << 20);
+  if (manifests.length === 0) return;
+  const byPath = new Map(files.map((f) => [f.path, f]));
+  for (const manifest of manifests) {
+    const root = manifest.path.slice(0, manifest.path.length - "META-INF/encryption.xml".length);
+    const xml = manifest.item.content ?? (await manifest.item.file.text().catch(() => ""));
+    for (const part of epubEncryptedPaths(xml)) {
+      const file = byPath.get(root + part);
+      if (file) file.encrypted = true;
+    }
+  }
 }
 
 /**

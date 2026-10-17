@@ -136,6 +136,35 @@ describe("prepareBatch", () => {
     expect(pruned).toBeNull();
   });
 
+  it("keeps a password-locked zip whole and says it is locked", async () => {
+    const zip = zipSync({ "notes.txt": strToU8("hello") }, { level: 0 });
+    // ZipCrypto's mark: general purpose bit 0 on the local and central headers.
+    const view = new DataView(zip.buffer);
+    for (let at = 0; at + 4 <= zip.length; at++) {
+      if (view.getUint32(at, true) === 0x04034b50) zip[at + 6] |= 1;
+      if (view.getUint32(at, true) === 0x02014b50) zip[at + 8] |= 1;
+    }
+    const { files, expandedCount, archiveReads } = await prepareBatch([
+      { file: new File([zip], "locked.zip"), path: "locked.zip" },
+    ]);
+
+    expect(expandedCount).toBe(0);
+    expect(archiveReads).toEqual(["zip/none"]);
+    expect(files.map((f) => [f.path, f.encrypted])).toEqual([["locked.zip", true]]);
+  });
+
+  it("marks the chapters a DRM book's encryption.xml names when the book is dropped unpacked", async () => {
+    const xml = `<encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container" xmlns:enc="http://www.w3.org/2001/04/xmlenc#"><enc:EncryptedData><enc:EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#aes128-cbc"/><enc:CipherData><enc:CipherReference URI="OEBPS/ch1.xhtml"/></enc:CipherData></enc:EncryptedData><enc:EncryptedData><enc:EncryptionMethod Algorithm="http://www.idpf.org/2008/embedding"/><enc:CipherData><enc:CipherReference URI="OEBPS/font.otf"/></enc:CipherData></enc:EncryptedData></encryption>`;
+    const { files } = await prepareBatch(
+      ["META-INF/encryption.xml", "OEBPS/ch1.xhtml", "OEBPS/ch2.xhtml", "OEBPS/font.otf"].map((part) => ({
+        file: new File([part.endsWith(".xml") ? xml : "x"], part.split("/").pop()!),
+        path: `book/${part}`,
+      })),
+    );
+
+    expect(files.filter((f) => f.encrypted).map((f) => f.path)).toEqual(["book/OEBPS/ch1.xhtml"]);
+  });
+
   it("reports progress as it routes", async () => {
     const seen: [number, number][] = [];
     await prepareBatch(

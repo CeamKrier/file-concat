@@ -233,6 +233,25 @@ describe("file-concat CLI", () => {
       expect(written).toContain("notes.txt");
     });
 
+    it("names a password-protected Office file from its own bytes", async () => {
+      const dir = makeTempDir("locked");
+      // The OLE2 header, then the two stream names a password-protected .docx carries.
+      const utf16 = (name: string) => Buffer.from(`${name}\0`, "utf16le");
+      fs.writeFileSync(
+        path.join(dir, "report.docx"),
+        Buffer.concat([
+          Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]),
+          Buffer.alloc(504),
+          utf16("EncryptionInfo"),
+          utf16("EncryptedPackage"),
+        ]),
+      );
+      const result = await runCli([dir, "-o", path.join(makeTempDir("locked-out"), "out.xml"), "--json"]);
+      expect(result.exitCode).toBe(0);
+      expect(JSON.parse(result.stdout).skippedBreakdown.parseFailed).toBe(1);
+      expect(result.stderr).toContain("Skipped (password protected)");
+    });
+
     it("a corrupt document falls back to skippedBreakdown.parseFailed (no crash)", async () => {
       const dir = copyFixture("parse-project");
       fs.rmSync(path.join(dir, "hello.pdf"));
