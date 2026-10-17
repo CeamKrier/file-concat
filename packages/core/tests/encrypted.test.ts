@@ -1,17 +1,47 @@
 import { describe, expect, it } from "vitest";
-import { strToU8, zipSync } from "fflate";
+import { strToU8, unzipSync, zipSync } from "fflate";
 
 import { epubEncryptedPaths, isEncryptedContainer } from "../src/file-processing/encrypted";
 
 /** Set general purpose bit 0 on every local and central header, as ZipCrypto does. */
-function withEncryptionFlag(zip: Uint8Array): Uint8Array {
+function withEncryptionFlag(zip: Uint8Array, local = true): Uint8Array {
   const out = zip.slice();
   const view = new DataView(out.buffer);
   for (let at = 0; at + 4 <= out.length; at++) {
     const sig = view.getUint32(at, true);
-    if (sig === 0x04034b50) out[at + 6] |= 1;
+    if (sig === 0x04034b50 && local) out[at + 6] |= 1;
     if (sig === 0x02014b50) out[at + 8] |= 1;
   }
+  return out;
+}
+
+/** The same archive with a zip64 end record and locator, its classic end record saturated. */
+function asZip64(zip: Uint8Array): Uint8Array {
+  const end = zip.length - 22;
+  const view = new DataView(zip.buffer, zip.byteOffset);
+  const count = view.getUint16(end + 10, true);
+  const size = view.getUint32(end + 12, true);
+  const offset = view.getUint32(end + 16, true);
+  const out = new Uint8Array(end + 56 + 20 + 22);
+  out.set(zip.subarray(0, end));
+  const w = new DataView(out.buffer);
+  w.setUint32(end, 0x06064b50, true);
+  w.setBigUint64(end + 4, 44n, true);
+  w.setUint16(end + 12, 45, true);
+  w.setUint16(end + 14, 45, true);
+  w.setBigUint64(end + 24, BigInt(count), true);
+  w.setBigUint64(end + 32, BigInt(count), true);
+  w.setBigUint64(end + 40, BigInt(size), true);
+  w.setBigUint64(end + 48, BigInt(offset), true);
+  w.setUint32(end + 56, 0x07064b50, true);
+  w.setBigUint64(end + 64, BigInt(end), true);
+  w.setUint32(end + 72, 1, true);
+  const eocd = end + 76;
+  w.setUint32(eocd, 0x06054b50, true);
+  w.setUint16(eocd + 8, 0xffff, true);
+  w.setUint16(eocd + 10, 0xffff, true);
+  w.setUint32(eocd + 12, size, true);
+  w.setUint32(eocd + 16, 0xffffffff, true);
   return out;
 }
 
@@ -38,6 +68,15 @@ describe("isEncryptedContainer", () => {
     const zip = zipSync({ "notes.txt": strToU8("hello") });
     expect(isEncryptedContainer(zip)).toBe(false);
     expect(isEncryptedContainer(withEncryptionFlag(zip))).toBe(true);
+  });
+
+  it("walks a zip64 directory for the flag", () => {
+    const zip = zipSync({ "notes.txt": strToU8("hello"), "later.txt": strToU8("hidden") });
+    expect(unzipSync(asZip64(zip))["later.txt"]).toEqual(strToU8("hidden"));
+    expect(isEncryptedContainer(asZip64(zip))).toBe(false);
+    // Central headers only, so the first local header, read when no directory
+    // can be, says nothing.
+    expect(isEncryptedContainer(asZip64(withEncryptionFlag(zip, false)))).toBe(true);
   });
 
   it("calls a DRM book encrypted and a book with obfuscated fonts readable", () => {

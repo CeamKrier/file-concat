@@ -107,7 +107,9 @@ export function readHtml(html: string, fetchedFrom?: string): ExtractionResult {
         const src = new URL(raw, url);
         if (!/^https?:$/.test(src.protocol)) return alt;
         const href = url === PLACEHOLDER && src.href.startsWith(PLACEHOLDER) ? src.href.slice(PLACEHOLDER.length) : src.href;
-        return `![${alt}](${href})`;
+        // The hover title, as Turndown's own image rule writes it.
+        const title = ((node as HTMLElement).getAttribute("title") ?? "").replace(/\s+/g, " ").trim().replace(/"/g, '\\"');
+        return `![${alt}](${href}${title ? ` "${title}"` : ""})`;
       } catch {
         return alt;
       }

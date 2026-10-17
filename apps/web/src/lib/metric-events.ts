@@ -240,7 +240,10 @@ export const METRIC_EVENTS = [
    * the bundle was too big" unanswerable.
    */
   "bundle_size",
-  /** The terminal action: copy | download. May occur more than once per run. */
+  /**
+   * The terminal action: copy | download | share (the system share sheet, phones
+   * only). May occur more than once per run.
+   */
   "output_taken",
   /**
    * The bundle format an export produced: `xml` | `markdown` | `plain`.

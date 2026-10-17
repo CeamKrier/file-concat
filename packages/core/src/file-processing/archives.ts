@@ -222,8 +222,6 @@ function unicodePath(extra: Uint8Array, name: Uint8Array): string | undefined {
 /**
  * The central directory's records: each entry's general purpose flags (APPNOTE
  * 4.4.4), raw name and extra field. Empty when there is no end record to find.
- *
- * ponytail: a zip64 directory yields nothing; callers fall back to fflate's view.
  */
 export function* zipDirectory(bytes: Uint8Array): Generator<{ flags: number; name: Uint8Array; extra: Uint8Array }> {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -233,7 +231,15 @@ export function* zipDirectory(bytes: Uint8Array): Generator<{ flags: number; nam
   if (end < floor) return;
   let count = view.getUint16(end + 10, true);
   let at = view.getUint32(end + 16, true);
-  if (count === 0xffff || at === 0xffffffff) return;
+  if (count === 0xffff || at === 0xffffffff) {
+    // Zip64 (APPNOTE 4.3.14, 4.3.15): the locator right before the end record
+    // names the zip64 end record, which holds the real count and offset. Low
+    // 32 bits only, as fflate reads them: no array here reaches 4 GiB.
+    const record = end >= 20 && view.getUint32(end - 20, true) === 0x07064b50 ? view.getUint32(end - 12, true) : -1;
+    if (record < 0 || record + 56 > bytes.length || view.getUint32(record, true) !== 0x06064b50) return;
+    count = view.getUint32(record + 32, true);
+    at = view.getUint32(record + 48, true);
+  }
   for (; count > 0 && at + 46 <= bytes.length && view.getUint32(at, true) === 0x02014b50; count--) {
     const nameEnd = at + 46 + view.getUint16(at + 28, true);
     const extraEnd = nameEnd + view.getUint16(at + 30, true);

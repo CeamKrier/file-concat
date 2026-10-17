@@ -131,6 +131,7 @@ describe("extractHtml", () => {
     expect(text).toContain("![A cat](https://example.com/blog/pic.png)");
     expect(extractHtml(page('<ul><li>Milk</li></ul><img src="data:image/png;base64,QZBLOB" alt="A dog">')).text).toMatch(/A dog$/);
     expect(readHtml('<html><body><p>Milk</p><img src="pic.png" alt="A cat"></body></html>').text).toContain("![A cat](pic.png)");
+    expect(readHtml(`<html><body><p>Milk</p><img src="pic.png" alt="A cat" title='Our "Tom"\n cat'></body></html>`).text).toContain('![A cat](pic.png "Our \\"Tom\\" cat")');
     const unsaved = readHtml(`<html><body><article><p>${prose}</p><img src="img/cat.png" alt="A cat"><img src="data:image/png;base64,QZBLOB" alt="A dog"></article></body></html>`);
     expect(unsaved.reader).toBe("readability");
     expect(unsaved.text).toContain("![A cat](img/cat.png)");

@@ -77,7 +77,7 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
  * measured, not only read. The article's "only 10 files can be uploaded at
  * the same time" did not bite (11 went in one pass), so the page no longer
  * states it. The Custom GPT figure is the GPT-builder article
- * (help.openai.com/en/articles/8843948), which says 20 while the File Uploads
+ * (help.openai.com/en/articles/8554397), which says 20 while the File Uploads
  * FAQ still says 10; we follow the builder article. Move the date whenever the
  * figures are checked again, not otherwise. */
 const PROJECT_FILE_LIMITS = "5 files on Free, 25 on Go and Plus, 40 on Pro and above";

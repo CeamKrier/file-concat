@@ -1,0 +1,393 @@
+---
+title: "Markitdown vs Tika: What Each Text Extractor Misses, Measured"
+description: "FileConcat 2.6, Apache Tika and Microsoft's markitdown on 129 files with a marker in every place 17 formats hold text: comments, charts, headers, deleted text, hard files."
+date: "2026-10-17"
+author: "CeamKrier"
+draft: false
+kind: "research"
+version: "2.6"
+---
+
+import coverage from "~/data/extractor-coverage-2026-10-17.json";
+
+<KeyFindings
+  items={[
+    {
+      figure: "90.9 vs 72.9 and 41.5",
+      text: "Coverage of 11 formats weighted by what real files hold: FileConcat 2.6 against Apache Tika 3.3.2 and markitdown 0.1.5. FileConcat leads every format but ebooks.",
+    },
+    {
+      figure: "63.7% to 92.7%",
+      text: "Share of 648 marked constructs over 17 formats that FileConcat reads, from version 2.3 to 2.6: comments, charts, headers, form values, and deleted text kept out.",
+    },
+    {
+      figure: "45 of 45",
+      text: "Hard files read or named unreadable: legacy encodings, padded logs, bytecode, DRM chapters. markitdown 41, Tika 38, FileConcat 2.3 28.",
+    },
+  ]}
+  snapshot="2026-10-17 / FileConcat 2.6 at commit 75d8fd8 / 129 probe files, 1,973 real files, 45 hard files"
+  citation="Measured on 2026-10-17 on FileConcat 2.6 (commit 75d8fd8) against FileConcat 2.3.0, Apache Tika 3.3.2 and markitdown 0.1.5: mean coverage of 11 formats, each construct weighted by its share of 1,973 real files from Common Crawl, 90.9 (2.3.0 79.3, Tika 72.9, markitdown 41.5); 601 of 648 marked constructs over 17 formats read as a reader sees them, 92.7% (2.3.0 63.7%, Tika 67.7%, markitdown 35.0%); 45 of 45 hard files read or named unreadable (markitdown 41, file 39, Tika 38, rg 38, git 35, 2.3.0 28). Raw source printed instead of text counts as not read (FileConcat, fileconcat.com)."
+/>
+
+A text extractor can hand back clean text and still drop the comment in the margin, the chart's
+title or the page header, or let a deleted paragraph back in. We hid a marker in every place 17
+file formats can hold text, ran the same files through FileConcat, Apache Tika and Microsoft's
+markitdown, and counted what came back.
+
+<Contents />
+
+## Markitdown vs Tika vs FileConcat: which reads more of each format?
+
+FileConcat 2.6, in every format but ebooks. Of the other two, Tika reads more, and markitdown reads
+no OpenDocument file at all.
+
+| Format | FileConcat 2.6 | FileConcat 2.3 | Tika 3.3.2 | markitdown 0.1.5 |
+| --- | --- | --- | --- | --- |
+| Word (docx) | **81.5** | 72.7 | 75.6 | 72.3 |
+| Excel (xlsx) | **86.9** | 74.9 | 81.4 | 74.1 |
+| PowerPoint (pptx) | **100** | 85.4 | 81.9 | 84.1 |
+| PDF | **72.6** | 62.6 | 63.8 | 62.3 |
+| Email (eml) | **100** | 85.6 | 80.4 | 0\* |
+| Web page (HTML) | **98.3** | 91.7 | 54.7 | 66.4 |
+| Ebook (EPUB) | 88.4 | 73.4 | 59.1 | **97.6** |
+| RTF | **85.6** | 73.1 | 76.2 | 0\* |
+| OpenDocument text (odt) | **90.6** | 79.4 | 84.8 | 0 |
+| OpenDocument sheet (ods) | **96.5** | 89.5 | 63.7 | 0 |
+| OpenDocument slides (odp) | **99.7** | 83.8 | 79.9 | 0 |
+| **Mean of 11 formats** | **90.9** | 79.3 | 72.9 | 41.5 |
+
+\* markitdown printed these files as their own source, MIME parts and base64 for email, control
+words for RTF. That is not text a model can use, so it scores zero. How it scores counted as text
+is under "How we ran it". The ranking does not change.
+
+<Bars
+  title={coverage.weighted.title}
+  rows={coverage.weighted.rows}
+  unit="percent"
+  ours="FileConcat 2.6"
+  note="Each construct weighted by its share of real files of the format (1,973 Common Crawl files over 11 formats), mean of the 11 format scores. Same rule for every tool, run 2026-10-17"
+/>
+
+Each score is the share of what a reader of the file sees that came back. A construct found in most
+real files counts more than one found in few, so a spreadsheet's page header outweighs a chart's
+axis title.
+
+**How it was scored:** a marker in each construct. A visible construct counts when its marker comes
+back, a hidden or deleted one when it stays out.
+
+## What does each extractor leave out?
+
+markitdown leaves out comments, page headers and link addresses. Tika reads more of them, but also
+prints what the author deleted or hid.
+
+| In the file | FileConcat 2.6 | FileConcat 2.3 | Tika 3.3.2 | markitdown 0.1.5 |
+| --- | --- | --- | --- | --- |
+| Word comment's author | read | missed | missed | missed |
+| Word tracked deletion | kept out | kept out | **printed** | kept out |
+| Word hidden text | kept out | **printed** | **printed** | **printed** |
+| PowerPoint chart title | read | missed | read | read |
+| PowerPoint comment, current format | read | missed | missed | missed |
+| Excel page header | read | missed | read | missed |
+| Excel link address | read | missed | read | missed |
+| Excel very hidden sheet | kept out | **printed** | **printed** | **printed** |
+| PDF sticky-note comment | read | missed | read | missed |
+| PDF form field value | read | missed | read | missed |
+| Email Bcc line | read | missed | missed | not read\* |
+| Email calendar invite | read | missed | read | not read\* |
+| RTF deleted text | kept out | **printed** | **printed** | not read\* |
+| Web page cookie banner | kept out | kept out | **printed** | **printed** |
+| OpenDocument comment | read | missed | read | not read |
+| Ebook author | missed | missed | missed | read |
+| PDF line drawn invisible | missed | missed | read | read |
+| Web image title | read | read | missed | read |
+
+Tika's miss is the riskier kind. A deleted sentence in a Word file comes back run into the sentence
+it was cut from, with nothing to mark it, and a model reads it as the document's text. Across every
+hidden or deleted piece in the set, FileConcat keeps nearly nine in ten out and Tika fewer than
+half.
+
+<Bars
+  title={coverage.raw.title}
+  rows={coverage.raw.rows}
+  unit="percent"
+  ours="FileConcat 2.6"
+  note="Every marked construct counted once, no weighting. Word 97 .doc has no markers in the set and is left out. Raw source counted as not read"
+/>
+
+Unweighted, every construct counts the same however rare it is, and Tika moves just ahead of
+FileConcat 2.3.
+
+**What changed from 2.3:** comments with their authors, charts and SmartArt, page headers and
+footers, form field values, link addresses, calendar invites and bounce reasons, and deleted or
+hidden text kept out.
+
+## Which files does each tool fail to read at all?
+
+Text in an old encoding, logs padded with zero bytes, and compiled files posing as text. FileConcat
+reads or names all of them, and every other tool misses a few.
+
+<Bars
+  title={coverage.corpus.title}
+  rows={coverage.corpus.rows}
+  ours="FileConcat 2.6"
+  note="FileConcat's own test set of hard files: lock files, XML in every Unicode form, logs with ANSI codes and zero bytes, text in legacy encodings, bytecode, a text file with a binary tail. A text file passes when 90% of its words come back, a binary file when the tool says it cannot read it"
+/>
+
+The misses take three shapes. Tika returns nothing for a binary lock file, prints compiled Lua and a
+DRM-locked ebook chapter as garbage, and garbles Turkish saved in an old Windows encoding.
+markitdown stops with an error on two build logs, and for a text file with binary data after it
+returns the word None. FileConcat 2.3 misread most of the legacy-encoded files.
+
+**How it reads:** the first bytes decide whether a file is a document, an archive, text or binary.
+Text in an unknown encoding goes to chardetng, the detector Firefox uses.
+
+## Where does FileConcat still lose?
+
+On three constructs. One is a choice, two are open.
+
+1. **Ebook authors.** markitdown names the book's author. FileConcat leaves document authors out on
+   purpose, the same way in every format. Three in four real ebooks carry one, which costs about a
+   tenth of the ebook score and is why markitdown leads that row.
+2. **A PDF line drawn invisible.** Tika and markitdown print a line set to invisible on an ordinary
+   page. FileConcat drops it. It is rare in real PDFs.
+3. **A PDF comment flagged hidden.** It still comes back. None of the real PDFs we sampled had one.
+
+Every format FileConcat reads, and how, is on [the formats page](/docs/formats). Your files are not
+uploaded to us, the whole thing runs in your browser.
+
+<TryIt
+  title="Try it on your own files"
+  hint="Drop a Word file with comments or tracked changes and look for them in the result."
+/>
+
+{/* evidence */}
+
+## How we ran it
+
+Each probe file went through each tool once, on one machine, one process per file with a 300 second
+limit. FileConcat ran its web reading chain in Node, with HTML through the web app's own reader.
+Tika ran as `java -jar tika-app-3.3.2.jar --text`. markitdown ran as its command line, installed with
+`uvx --from 'markitdown[all]==0.1.5'`.
+
+<Method
+  dataset="FileConcat's coverage probes: 129 files over 18 formats, each construct a format can hold marked with a unique string. 70 more in the same folders are unchanged Apache POI and Apache Tika test files with no markers, so they are not scored. Weights from 1,973 real files of 11 formats sampled from Common Crawl. FileConcat's 45-file test set of hard files"
+  sample="747 constructs, 648 of them carrying a marker (all 30 Word 97 .doc constructs have none); 45 hard files"
+  measured="2026-10-17"
+  build="FileConcat 2.6 at commit 75d8fd8 on development; FileConcat 2.3.0 at tag v2.3.0, reader code untouched. Apache Tika app 3.3.2 on OpenJDK 21. markitdown 0.1.5. file 5.45, git 2.43.0, ripgrep 15.2.0"
+  tokenizer="None. These are presence counts, not token counts"
+  script="packages/cli/scripts/coverage/run.sh, then compare/run-tools.sh, score.py and tables.py; compare/dump-corpus.mts, fc-corpus.mts, run-corpus45.sh and score45.py for the hard files"
+  excludes="Reading order, wrapping and label wording; Word 97 .doc; speed; scans and OCR; formats outside the probe set"
+/>
+
+The rule was written before any total was read. A visible construct counts when every one of its
+markers is in the output. A hidden or deleted one counts when its marker is absent and the same file
+gave output with at least one other marker, so a tool that reads nothing earns nothing for keeping
+things out. A crash, an empty output or an unsupported format scores zero. Where the map gives a
+construct two parts with different answers, a name to hide and a text to show, each part is held to
+its own.
+
+Raw source counts as not read. markitdown prints email and RTF as the file's own text, and Tika
+prints a notebook as its JSON. Counted as text instead, they score:
+
+| Count | FileConcat 2.6 | FileConcat 2.3 | Tika 3.3.2 | markitdown 0.1.5 |
+| --- | --- | --- | --- | --- |
+| Weighted mean, raw source not read | **90.9** | 79.3 | 72.9 | 41.5 |
+| Weighted mean, raw source as text | **90.9** | 79.3 | 72.9 | 54.8 |
+| Constructs read, raw source not read | **92.7%** | 63.7% | 67.7% | 35.0% |
+| Constructs read, raw source as text | **92.7%** | 63.7% | 69.6% | 50.6% |
+
+Counted as text, markitdown's RTF scores 89.5 weighted, above FileConcat's 85.6, because control
+words leave the marker strings intact. That is the case the rule exists for.
+
+We also judged FileConcat 2.6's output by hand, construct by construct. The automatic rule disagrees
+on 45 of 648. It credits 6 that the hand judgment does not, on layout and reading order, which
+marker presence cannot see. It misses 39 that the hand judgment counts as handled, most of them
+document properties FileConcat leaves out by design. Every column in this post uses the automatic
+rule, so the comparison is like for like. One automatic miss is the rule's own: a formula with a TeX
+source is printed as its TeX, and the probe's TeX held only a marker.
+
+Hidden and deleted text: 130 constructs carry a "keep it out" answer. FileConcat 2.6 keeps 115 out,
+FileConcat 2.3 97, Tika 62 and markitdown 45. markitdown's figure is low partly because a format it
+does not read earns nothing for keeping things out.
+
+FileConcat's losses, sized on the real files: the ebook author is in 76.0% of 200 ebooks and worth
+11.6 points of the ebook score. An invisible line of PDF text is on 0.5% of 195 PDFs, worth
+0.1 points. No sampled PDF had a hidden comment.
+
+## Every construct, every format
+
+| Format | Constructs | FileConcat 2.6 | FileConcat 2.3 | Tika 3.3.2 | markitdown 0.1.5 |
+| --- | --- | --- | --- | --- | --- |
+| Word (docx) | 87 | **93** | 62 | 77 | 60 |
+| Email (eml) | 71 | **100** | 68 | 58 | 0\* |
+| Outlook (msg) | 24 | **100** | 75 | 75 | 42 |
+| Excel 97 (xls) | 20 | **100** | 55 | 70 | 50 |
+| PowerPoint 97 (ppt) | 8 | **100** | 62 | 88 | 0 |
+| OpenDocument text (odt) | 63 | **92** | 51 | 73 | 0 |
+| OpenDocument sheet (ods) | 21 | **86** | 57 | 57 | 0 |
+| OpenDocument slides (odp) | 26 | **92** | 54 | 69 | 0 |
+| PDF | 52 | **75** | 46 | 58 | 44 |
+| PowerPoint (pptx) | 45 | **100** | 60 | 78 | 64 |
+| RTF | 69 | **86** | 67 | 74 | 0\* |
+| Web page (HTML) | 51 | **94** | 80 | 61 | 67 |
+| Notebook (ipynb) | 16 | **94** | 81 | 0\* | 50 |
+| WebVTT | 18 | **100** | **100** | 67 | 67 |
+| SRT | 7 | **100** | **100** | **100** | **100** |
+| Ebook (EPUB) | 15 | **93** | 87 | 60 | **93** |
+| Excel (xlsx) | 55 | **95** | 55 | 75 | 51 |
+| **Total** | **648** | **601 (92.7%)** | 413 (63.7%) | 439 (67.7%) | 227 (35.0%) |
+
+Percent of the format's marked constructs. \* raw source, counted as not read.
+
+The weighted table covers the 11 formats we have real files for. A construct no real file of the
+format carried has no weight and leaves that format's weighted score.
+
+## The hard files, case by case
+
+The 45 cases are FileConcat's own test set for files that are hard to tell or hard to decode, built
+in memory from a seeded generator so no binary is committed. Extractors pass a text case when 90% of
+its words come back with tags stripped, and a binary case only when they say they cannot read it.
+Empty output or garbage fails. The empty file passes on empty output. file, git and ripgrep pass when
+their text-or-binary call is right.
+
+| Tool | Passed | Failed cases |
+| --- | --- | --- |
+| FileConcat 2.6 | **45** | none |
+| markitdown 0.1.5 | 41 | log-spinner, log-nul-head, xhtml-drm, big-text-then-binary |
+| file 5.45 | 39 | xml-utf16le-nobom, xml-utf16be-nobom, log-nul-tail, log-nul-head, log-nul-sparse, xhtml-utf16le-nobom-cjk |
+| Tika 3.3.2 | 38 | lock-gradle, lock-git-index, frag-flutter-compiled, xhtml-drm, txt-cp1254, lua-bytecode, lua-luajit |
+| ripgrep 15.2.0 | 38 | lock-gradle, lock-git-index, xml-android-binary, frag-flutter-compiled, xhtml-drm, lua-bytecode, lua-luajit |
+| git 2.43.0 | 35 | xml-utf16le/be-bom, xml-utf16le/be-nobom, log-nul-head, log-nul-sparse, xhtml-utf16le-bom, xhtml-utf16le-nobom-cjk, txt-utf32le-bom, txt-utf32be-bom |
+| FileConcat 2.3 | 28 | xml-latin1, log-nul-head, xhtml-cp1252/shiftjis/gbk/cp1251/euckr, txt-shiftjis/gbk/cp1251/euckr/cp1254/latin1, css-cp1251-comments, lua-gbk-strings, txt-utf32le-bom, txt-utf32be-bom |
+
+FileConcat ran each tree's own byte router and text classifier on every file, with the encoding
+detector where the tree has one (2.6 yes, 2.3 no). Without it, 2.6 passes 38: the seven
+legacy-encoding cases need the detector. ripgrep searches a file named on its command line even when
+it is binary, so its binary misses follow its design for explicit paths.
+
+## What others measured
+
+Published comparisons of these tools measure speed, or score whole-document quality against a
+reference. We found none that counts which constructs inside a file come back, which deleted or
+hidden text leaks, or which hard files a tool names instead of garbling.
+
+<StudyTable
+  rows={[
+    {
+      source: "Kreuzberg comparative benchmarks",
+      href: "https://dev.to/kreuzberg/kreuzberg-v430-and-benchmarks-500b",
+      venue: "Kreuzberg, 2026-02-12",
+      kind: "vendor",
+      sample: "50+ file formats, run in GitHub CI",
+      compared: "Kreuzberg, Tika, Docling, markitdown, Unstructured, PDFPlumber, MinerU, MuPDF4LLM",
+      headline: "Throughput, latency, memory, install size, cold start. Kreuzberg 9x faster on average. No coverage measure",
+    },
+    {
+      source: "anydoc README",
+      href: "https://github.com/firecrawl/anydoc",
+      venue: "Firecrawl, 2026-08",
+      kind: "vendor",
+      sample: "14 Office, ebook and ODF formats, LLM judge",
+      compared: "anydoc, markitdown, docling, unstructured, pandoc",
+      headline: "DOCX anydoc 88, markitdown 71, docling 71. Whole-document quality, not constructs",
+    },
+    {
+      source: "tika-eval",
+      href: "https://cwiki.apache.org/confluence/display/TIKA/TikaEval",
+      venue: "Apache Tika project",
+      sample: "about 3 million files in Tika's regression runs",
+      compared: "two tools, or two versions of one",
+      headline: "Exceptions, metadata counts, language and token statistics. No answer key",
+    },
+    {
+      source: "READoc",
+      href: "https://arxiv.org/abs/2409.05137",
+      venue: "ACL 2025 Findings",
+      sample: "3,576 PDFs from arXiv, GitHub and Zenodo",
+      compared: "pipeline tools, expert models, vision-language models",
+      headline: "PDF to Markdown structure, PDF only",
+    },
+  ]}
+  label="what it measured, what it found"
+/>
+
+The text-quality side of FileConcat on public benchmarks, including olmOCR-bench for PDFs, is in
+[the browser extraction benchmark](/blog/browser-text-extraction-benchmark).
+
+## Limitations
+
+- **Home field.** The probes were written for FileConcat's own coverage map, and FileConcat was
+  fixed against that map between 2.3 and 2.6. The hard files are its own test set. The one
+  counterweight is small: the xls and ppt probes were written with Apache POI, the library Tika
+  reads those formats with, and Tika still scores 70 and 88 on them against FileConcat's 100.
+- **Presence, not order.** A construct counts when its marker comes back. Reading order, wrapping
+  and whether a comment is labelled as one are not scored, which is why the hand judgment
+  disagrees on 45 constructs.
+- **Weights for 11 formats.** The weighted table rests on 65 to 200 real files per format, from
+  one Common Crawl sample. Outlook, the 97-2003 formats, notebooks and subtitles have no weights.
+- **Word 97 .doc is out.** Its constructs carry no markers, so it is in neither table.
+- **One run.** One machine, one pass, no timing.
+- **Repositories not counted.** A fix in this version for files whose binary data starts late
+  changed no verdict across fresh clones of 60 public repositories, 39,229 files, since fresh clones
+  hold almost no compiled files. It is not in these numbers.
+
+## Reproduce it
+
+Everything but the Tika jar is in the repository: the probes, the scorers, the parsed constructs
+and the real-file counts behind the weights.
+
+```bash
+D=packages/cli/scripts/coverage/compare
+bash packages/cli/scripts/coverage/run.sh . out/fc-HEAD
+bash packages/cli/scripts/coverage/run.sh ../fc-v2.3.0 out/fc-v2.3.0
+TIKA_JAR=tika-app-3.3.2.jar bash $D/run-tools.sh tika packages/cli/scripts/coverage/probes out/tika
+bash $D/run-tools.sh markitdown packages/cli/scripts/coverage/probes out/markitdown
+RULE=2 python3 -I $D/score.py $D/rows.json packages/cli/scripts/coverage/probes out $D/prevalence-2026-10-16 report.json
+python3 -I $D/tables.py report.json
+```
+
+The hard files, the comparison figures and the version worktree are in
+`packages/cli/scripts/coverage/README.md`.
+
+## Frequently asked questions
+
+**Is markitdown or Tika better for text extraction?**
+Tika read more on our probes: 67.7% of marked constructs against markitdown's 35.0%, and 72.9
+against 41.5 weighted by real files. markitdown led on ebooks. Tika also printed deleted and hidden
+text that markitdown kept out.
+
+**Does markitdown read OpenDocument files?**
+No. markitdown 0.1.5 stops on odt, ods and odp with "No converter attempted a conversion". It also
+does not read PowerPoint 97 files.
+
+**Does Apache Tika include tracked changes in the text?**
+Yes. Deleted text in Word and RTF files comes back in the body, run into the surrounding sentence,
+with nothing to mark it as deleted. FileConcat keeps it out.
+
+**Can I get Word comments and PowerPoint notes into the text?**
+FileConcat 2.6 reads comments with their authors in Word, PowerPoint, Excel, OpenDocument and RTF,
+and the comments on a PDF. In our probes Tika returned a Word comment without its author and missed
+comments in PowerPoint's current format. markitdown returned neither.
+
+**Do these tools upload my files?**
+Tika and markitdown run on your machine. FileConcat runs in your browser: your files are not
+uploaded to us. What you then paste into an assistant is your own choice, but preparing the file
+uploads nothing.
+
+## References
+
+- Apache Tika. [tika.apache.org](https://tika.apache.org/)
+- Microsoft. markitdown. [github.com/microsoft/markitdown](https://github.com/microsoft/markitdown)
+- Apache POI test data. [github.com/apache/poi](https://github.com/apache/poi/tree/trunk/test-data)
+- Li, Z. et al. "READoc: A Unified Benchmark for Realistic Document Structured Extraction." ACL 2025
+  Findings. [arXiv:2409.05137](https://arxiv.org/abs/2409.05137)
+- Kreuzberg. "Kreuzberg v4.3.0 and comparative benchmarks." 2026.
+  [dev.to](https://dev.to/kreuzberg/kreuzberg-v430-and-benchmarks-500b)
+- Firecrawl. anydoc. [github.com/firecrawl/anydoc](https://github.com/firecrawl/anydoc)
+- Mozilla. chardetng. [github.com/hsivonen/chardetng](https://github.com/hsivonen/chardetng)
+- Common Crawl. [commoncrawl.org](https://commoncrawl.org/)
+
+<Callout type="tip">
+  What happens to tables, footnotes and layout once a document becomes text is its own study:
+  [what gets lost converting documents to text](/blog/what-gets-lost-converting-documents-to-text).
+</Callout>

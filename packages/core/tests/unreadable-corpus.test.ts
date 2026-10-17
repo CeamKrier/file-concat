@@ -80,6 +80,13 @@ describe("classifyBytes edge cases", () => {
     expect(classifyBytes(bytes).classification).toBe("binary");
   });
 
+  it("calls binary that starts in the first bytes binary instead of cutting it", () => {
+    // A numba index pickle: under the 2% line overall, dense at the start, so
+    // the cut used to leave its first byte as the whole text (probe, 2026-10-17).
+    const bytes = Uint8Array.from({ length: 5000 }, (_, i) => (i > 0 && i < 364 && i % 4 === 0 ? 1 : 0x61));
+    expect(classifyBytes(bytes)).toMatchObject({ classification: "binary", text: "" });
+  });
+
   it("names the control-byte share of a binary verdict", () => {
     const bytes = Uint8Array.from({ length: 4000 }, (_, i) => (i % 10 === 0 ? 2 : 0x61));
     const result = classifyBytes(bytes);
