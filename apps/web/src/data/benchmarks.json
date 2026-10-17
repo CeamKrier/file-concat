@@ -17,6 +17,10 @@
           "note": "648 constructs in 129 probe files, each weighted by its share of 1,973 real files. All run by us.",
           "rows": [
             {
+              "label": "FileConcat 2.7",
+              "value": 90.9
+            },
+            {
               "label": "FileConcat 2.6",
               "value": 90.9
             },
@@ -44,6 +48,10 @@
           "post": "markitdown-vs-tika-text-extraction",
           "note": "Every construct counts once, however rare it is in real files. All run by us.",
           "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 92.7
+            },
             {
               "label": "FileConcat 2.6",
               "value": 92.7
@@ -74,6 +82,10 @@
           "note": "Tracked deletions, hidden sheets, cookie banners. A format a tool does not read earns nothing here.",
           "rows": [
             {
+              "label": "FileConcat 2.7",
+              "value": 115
+            },
+            {
               "label": "FileConcat 2.6",
               "value": 115
             },
@@ -103,6 +115,10 @@
           "post": "markitdown-vs-tika-text-extraction",
           "note": "Files hard to tell apart or hard to decode: legacy encodings, binaries that look like text. All run by us.",
           "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 45
+            },
             {
               "label": "FileConcat 2.6",
               "value": 45
@@ -146,6 +162,10 @@
           "note": "27 test documents in 12 formats, one structure each: merged cells, spreadsheet dates, scanned pages.",
           "rows": [
             {
+              "label": "FileConcat 2.7",
+              "value": 16
+            },
+            {
               "label": "FileConcat 2.6",
               "value": 16
             },
@@ -178,6 +198,10 @@
           "note": "200 real files.",
           "rows": [
             {
+              "label": "FileConcat 2.7",
+              "value": 81.5
+            },
+            {
               "label": "FileConcat 2.6",
               "value": 81.5
             },
@@ -206,6 +230,10 @@
           "post": "markitdown-vs-tika-text-extraction",
           "note": "200 real files.",
           "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 86.9
+            },
             {
               "label": "FileConcat 2.6",
               "value": 86.9
@@ -236,6 +264,10 @@
           "note": "198 real files.",
           "rows": [
             {
+              "label": "FileConcat 2.7",
+              "value": 100
+            },
+            {
               "label": "FileConcat 2.6",
               "value": 100
             },
@@ -265,6 +297,10 @@
           "note": "195 real files.",
           "rows": [
             {
+              "label": "FileConcat 2.7",
+              "value": 72.6
+            },
+            {
               "label": "FileConcat 2.6",
               "value": 72.6
             },
@@ -292,6 +328,10 @@
           "post": "markitdown-vs-tika-text-extraction",
           "note": "124 real files. markitdown printed the raw MIME source, scored 0.",
           "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 100
+            },
             {
               "label": "FileConcat 2.6",
               "value": 100
@@ -321,6 +361,10 @@
           "note": "198 real files.",
           "rows": [
             {
+              "label": "FileConcat 2.7",
+              "value": 98.3
+            },
+            {
               "label": "FileConcat 2.6",
               "value": 98.3
             },
@@ -348,6 +392,10 @@
           "post": "markitdown-vs-tika-text-extraction",
           "note": "200 real files. The one format where FileConcat is not first: it misses the author.",
           "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 88.4
+            },
             {
               "label": "FileConcat 2.6",
               "value": 88.4
@@ -377,6 +425,10 @@
           "note": "198 real files. markitdown printed the raw control words, scored 0.",
           "rows": [
             {
+              "label": "FileConcat 2.7",
+              "value": 85.6
+            },
+            {
               "label": "FileConcat 2.6",
               "value": 85.6
             },
@@ -404,6 +456,10 @@
           "post": "markitdown-vs-tika-text-extraction",
           "note": "199 real files. markitdown does not read it.",
           "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 90.6
+            },
             {
               "label": "FileConcat 2.6",
               "value": 90.6
@@ -433,6 +489,10 @@
           "note": "196 real files. markitdown does not read it.",
           "rows": [
             {
+              "label": "FileConcat 2.7",
+              "value": 96.5
+            },
+            {
               "label": "FileConcat 2.6",
               "value": 96.5
             },
@@ -460,6 +520,10 @@
           "post": "markitdown-vs-tika-text-extraction",
           "note": "65 real files. markitdown does not read it.",
           "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 99.7
+            },
             {
               "label": "FileConcat 2.6",
               "value": 99.7
@@ -632,6 +696,10 @@
           "note": "Source code as a share of the bundle's tokens. The rest is tests, lockfiles and vendored code. FileConcat runs as its command line tool built from the same release, which skips dot folders the web app keeps.",
           "rows": [
             {
+              "label": "FileConcat 2.7",
+              "value": 67.5
+            },
+            {
               "label": "FileConcat 2.6",
               "value": 67.5
             },
@@ -663,6 +731,10 @@
           "post": "repomix-vs-gitingest-vs-code2prompt",
           "note": "Fewer tokens only helps if the files left out did not matter.",
           "rows": [
+            {
+              "label": "FileConcat 2.7",
+              "value": 236665
+            },
             {
               "label": "FileConcat 2.6",
               "value": 236665
@@ -697,7 +769,7 @@
           "note": "The tool whose bundle had the highest share of source code on that repository.",
           "rows": [
             {
-              "label": "FileConcat 2.6",
+              "label": "FileConcat 2.7",
               "value": 35
             },
             {
@@ -726,7 +798,7 @@
           "note": "The tool with the fewest tokens on that repository.",
           "rows": [
             {
-              "label": "FileConcat 2.6",
+              "label": "FileConcat 2.7",
               "value": 30
             },
             {
