@@ -261,6 +261,12 @@ export function classifyBytes(bytes: Uint8Array, guess?: EncodingGuesser): Decod
     previous = at;
     at = block.end;
   }
+  // Binary data from inside the first run window leaves a format's own header
+  // (a pickle's protocol bytes), not text worth an entry: one stray character
+  // under a note, where the whole file is better named as binary.
+  if (stoppedAt !== undefined && stoppedAt < RUN_WINDOW) {
+    return { classification: "binary", text: "", encoding: "binary" };
+  }
   const kept = stripNuls(stoppedAt === undefined ? bytes : bytes.subarray(0, stoppedAt));
   const cut = stoppedAt === undefined ? {} : { stoppedAt };
 
