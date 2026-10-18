@@ -32,6 +32,14 @@ export const METRIC_EVENTS = [
    * do not.
    */
   "entry_device",
+  /**
+   * The release the page loaded, the `version` of `apps/web/package.json` (for
+   * example `2.7.1`). Same once-per-page-load guard as `entry_surface`, so every
+   * Run reads its code version through the page id. A tab opened before a deploy
+   * keeps writing the old version after it, which is why a release is read by
+   * this row and never by the deploy date.
+   */
+  "entry_version",
   /** Which remote source was imported: github | gitlab | bitbucket | gist | url. */
   "source_used",
   /**
