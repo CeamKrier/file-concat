@@ -550,17 +550,22 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
    * validation and no file status, while a file the patterns ate has both and
    * only the status carries which pattern. Keyed on validations so the first
    * kind is not silently missing from the total.
+   *
+   * Empty is judged on `filesCombined` and the live statuses, the values the
+   * screen itself renders from. `includedContents` follows them a render behind
+   * (`useDeferredValue`), so its first result render is empty for every drop,
+   * and from 2026-10-17 to 10-18 that wrote these rows beside a `bundle_size`.
    */
   const emptiedRun = useRef<number | null>(null);
   useEffect(() => {
-    if (phase !== "result" || includedContents.length > 0) return;
+    if (phase !== "result" || filesCombined > 0) return;
     const paths = Object.keys(ingestion.validations);
     if (paths.length === 0) return;
     const run = currentRun();
     if (run === null || run === emptiedRun.current) return;
     emptiedRun.current = run;
 
-    const statuses = new Map(settledStatuses.map((s) => [s.path, s]));
+    const statuses = new Map(filter.fileStatuses.map((s) => [s.path, s]));
     const tally: Tally = new Map();
     for (const path of paths) {
       const reason = statuses.get(path)?.reason ?? ingestion.validations[path]?.reason;
@@ -576,7 +581,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       for (const group of unreadable) codes.set(group.code, { n: group.files.length });
       trackTally("unreadable_reason", codes);
     }
-  }, [phase, includedContents, settledStatuses, ingestion.validations, emptyKind, unreadable]);
+  }, [phase, filesCombined, filter.fileStatuses, ingestion.validations, emptyKind, unreadable]);
 
   /**
    * Files someone moved by hand in the tree, recorded when the Files pane
