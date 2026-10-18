@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.7.1](https://github.com/CeamKrier/file-concat/compare/v2.7.0...v2.7.1) (2026-10-18)
+
+### Bug Fixes
+
+* **web:** empty-screen counters fire only on an empty screen ([0b5e614](https://github.com/CeamKrier/file-concat/commit/0b5e614f9891a37a055e0e684fbb0f42319cebf5))
+
 ## [2.7.0](https://github.com/CeamKrier/file-concat/compare/v2.6.0...v2.7.0) (2026-10-17)
 
 ### Features
