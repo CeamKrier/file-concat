@@ -24,6 +24,7 @@ import { estimateBundleTokens, preloadTokenEstimator } from "~/lib/tokens";
 import { weighBundle } from "~/lib/bundle-weight";
 import { useSelectedModel } from "~/hooks/use-selected-model";
 import { classifyUrl, type Classification, type ImportTab } from "~/lib/classify-url";
+import { friendlyFetchError } from "~/lib/fetch-error";
 import {
   addToTally,
   currentRun,
@@ -102,21 +103,6 @@ function importNarration(c: Classification): ImportNarration {
     label: `${c.hostName} (web page)`,
     note: "Pulled the readable text off the page. Nav, ads and scripts stripped.",
   };
-}
-
-/** Turn an engine fetch error into a friendly, info-toned line (never red). */
-function friendlyFetchError(error: unknown, c: Classification): string | null {
-  const message = error instanceof Error ? error.message : String(error);
-  if (/abort/i.test(message)) return null;
-  if (/not found|404/i.test(message))
-    return `Couldn't find that one. Check the ${c.hostName} link is public and spelled right.`;
-  if (/rate limit|rate-limit|429|too many requests/i.test(message))
-    return `${c.hostName} is rate-limiting requests right now. Give it a minute and try again.`;
-  if (/invalid|format|expected/i.test(message))
-    return "Use a full repo URL, like github.com/owner/repo, rather than a profile or search page.";
-  if (/private|403|auth/i.test(message))
-    return "Only public links can be fetched. This one looks private or needs a login.";
-  return "Couldn't fetch that link. Make sure it's public and try again.";
 }
 
 /** The one bundle description the preview renders and the estimate counts. */
@@ -893,11 +879,11 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         // `friendlyFetchError` answers null for that: a deliberate cancel is not
         // a failure, and counting it would inflate the rate with people who got
         // exactly what they asked for.
-        const message = friendlyFetchError(error, c);
-        if (message !== null) track("import_failed", "fetch");
+        const failure = friendlyFetchError(error, c);
+        if (failure !== null) track("import_failed", `fetch/${failure.reason}`);
         setPhase("landing");
         setResultNote(null);
-        setImportError(message);
+        setImportError(failure?.message ?? null);
       }
     })();
   }, [importUrl, importTab, begin, ingestion]);
