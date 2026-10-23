@@ -37,6 +37,7 @@ export {
   formatMsg,
   formatPpt,
   isPasswordProtected,
+  markedPages,
   pdfTitle,
   replacePages,
   rtfTitle,

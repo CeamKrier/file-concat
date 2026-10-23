@@ -32,6 +32,14 @@ export const METRIC_EVENTS = [
    * do not.
    */
   "entry_device",
+  /**
+   * The release the page loaded, the `version` of `apps/web/package.json` (for
+   * example `2.7.1`). Same once-per-page-load guard as `entry_surface`, so every
+   * Run reads its code version through the page id. A tab opened before a deploy
+   * keeps writing the old version after it, which is why a release is read by
+   * this row and never by the deploy date.
+   */
+  "entry_version",
   /** Which remote source was imported: github | gitlab | bitbucket | gist | url. */
   "source_used",
   /**
@@ -49,6 +57,9 @@ export const METRIC_EVENTS = [
    *
    * `fetch` is per press, from the import's own catch, and skips an abort:
    * `startOver` cancels the request, and a deliberate cancel is not a failure.
+   * Since 2026-10-23 it is `fetch/<reason>`: `notfound`, `ratelimit`, `badurl`,
+   * `private` or `other`, the branch of the message the person was shown. A bare
+   * `fetch` row predates the split and says nothing about why.
    *
    * **Attempts are `source_used` rows plus the `bad` and `binary` rows here,
    * never the sum of all three.** Only those two kinds happen before
@@ -361,6 +372,29 @@ export const METRIC_EVENTS = [
    * was the Run being abandoned.
    */
   "ocr_deferred",
+  /**
+   * Held scans whose first pages were read anyway, by format: `n` documents
+   * totalling `b` bytes, written once per Run at the end of ingest (Q112 O1,
+   * since 2026-10-23). Only documents still holding unread pages: one the first
+   * pages read whole goes to `ocr_recovered`. A subset of `ocr_deferred` in the
+   * same Run, and never followed by `ocr_ms` on its own: that stays the mark of
+   * a pass someone chose, so the offer's take-up reads the same as before.
+   */
+  "ocr_previewed",
+  /**
+   * Wall-clock milliseconds the first-page read held the bundle back, in `n`,
+   * once per Run that opened a held scan for it (Q112 O1). The wait nobody
+   * chose, so it is the number that says whether six pages is the right budget.
+   */
+  "ocr_preview_ms",
+  /**
+   * Held documents that got no first pages, by reason: `shape` (not a whole
+   * scan with its pages listed), `size` (past the byte cap), `budget` (the six
+   * pages were spent), `blank` (nothing legible on them), `error`, `stopped`.
+   * `n` documents totalling `b` bytes. With `ocr_previewed` it accounts for
+   * every document in `ocr_deferred` of the same Run.
+   */
+  "ocr_preview_skipped",
   /**
    * How confident tesseract was in a reading, as a band of ten (`0`, `10`, …
    * `90`), `n` readings each. Written per image read, kept or rejected, since

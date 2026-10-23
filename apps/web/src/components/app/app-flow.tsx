@@ -24,6 +24,7 @@ import { estimateBundleTokens, preloadTokenEstimator } from "~/lib/tokens";
 import { weighBundle } from "~/lib/bundle-weight";
 import { useSelectedModel } from "~/hooks/use-selected-model";
 import { classifyUrl, type Classification, type ImportTab } from "~/lib/classify-url";
+import { friendlyFetchError } from "~/lib/fetch-error";
 import {
   addToTally,
   currentRun,
@@ -102,21 +103,6 @@ function importNarration(c: Classification): ImportNarration {
     label: `${c.hostName} (web page)`,
     note: "Pulled the readable text off the page. Nav, ads and scripts stripped.",
   };
-}
-
-/** Turn an engine fetch error into a friendly, info-toned line (never red). */
-function friendlyFetchError(error: unknown, c: Classification): string | null {
-  const message = error instanceof Error ? error.message : String(error);
-  if (/abort/i.test(message)) return null;
-  if (/not found|404/i.test(message))
-    return `Couldn't find that one. Check the ${c.hostName} link is public and spelled right.`;
-  if (/rate limit|rate-limit|429|too many requests/i.test(message))
-    return `${c.hostName} is rate-limiting requests right now. Give it a minute and try again.`;
-  if (/invalid|format|expected/i.test(message))
-    return "Use a full repo URL, like github.com/owner/repo, rather than a profile or search page.";
-  if (/private|403|auth/i.test(message))
-    return "Only public links can be fetched. This one looks private or needs a login.";
-  return "Couldn't fetch that link. Make sure it's public and try again.";
 }
 
 /** The one bundle description the preview renders and the estimate counts. */
@@ -495,6 +481,9 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     const unreadImages = ingestion.unreadDocuments.filter(isImage);
     const media = ingestion.scannedDocuments.filter(isMedia);
     const unreadMedia = ingestion.unreadDocuments.filter(isMedia);
+    const untried = ingestion.unreadDocuments.filter(
+      (d) => !isOffer(d) && ingestion.validations[d.path]?.recognitionTried !== true,
+    );
     return {
       imageCount: images.length,
       recognisedImages: images.length - unreadImages.length,
@@ -513,9 +502,16 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       // hand its bundle back without lying about the scans in it: "never tried"
       // and "tried and got nothing" want opposite copy, and only the
       // per-document record can still tell them apart after an append.
-      untriedDocumentCount: ingestion.unreadDocuments.filter(
-        (d) => !isOffer(d) && ingestion.validations[d.path]?.recognitionTried !== true,
-      ).length,
+      untriedDocumentCount: untried.length,
+      // What the deferred row states as the scope of the offer (Q112 O1): how
+      // many had their first pages read anyway, and the pages still to read.
+      // Null when a document's pages are unknown, so no total is made up.
+      deferredScope: {
+        previewed: untried.filter((d) => d.previewed).length,
+        pagesLeft: untried.every((d) => d.pages?.length)
+          ? untried.reduce((sum, d) => sum + (d.pages?.length ?? 0), 0)
+          : null,
+      },
     };
   }, [ingestion.scannedDocuments, ingestion.unreadDocuments, ingestion.validations]);
 
@@ -893,11 +889,11 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         // `friendlyFetchError` answers null for that: a deliberate cancel is not
         // a failure, and counting it would inflate the rate with people who got
         // exactly what they asked for.
-        const message = friendlyFetchError(error, c);
-        if (message !== null) track("import_failed", "fetch");
+        const failure = friendlyFetchError(error, c);
+        if (failure !== null) track("import_failed", `fetch/${failure.reason}`);
         setPhase("landing");
         setResultNote(null);
-        setImportError(message);
+        setImportError(failure?.message ?? null);
       }
     })();
   }, [importUrl, importTab, begin, ingestion]);
@@ -1038,6 +1034,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               }
               stoppedReading={ingestion.stoppedReading}
               readDeferred={readDeferred}
+              deferredScope={recognition.deferredScope}
               readLanguageNote={readLanguageNote}
               onCheckReading={() => setReadingOpen(true)}
               onAdjust={() => openFiles("adjust")}

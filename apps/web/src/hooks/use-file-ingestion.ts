@@ -14,6 +14,7 @@ import {
   isEncryptedContainer,
   isPasswordProtected,
   isPrunedDirectory,
+  markedPages,
   RECOGNISABLE_IMAGE_FORMATS,
   replacePages,
   unreadableReason,
@@ -37,6 +38,7 @@ import {
   SpeechTooLongError,
 } from "~/lib/ocr";
 import { browserOcrLanguage, ocrLanguageFor, type OcrLanguage } from "~/lib/ocr-language";
+import { planPreview } from "~/lib/scan-preview";
 import { parsers, readFetchedPage, readSubtitleTrack, SUBTITLE_TRACK_FORMATS } from "~/lib/parsers";
 import { prepareBatch } from "~/lib/prepare-batch";
 import { extensionOf, mergePruned, NO_EXTENSION, pruneAtDoor, type PrunedAtDoor } from "~/lib/prune-at-door";
@@ -169,6 +171,11 @@ export type ScannedDocument = {
    * pages that decoded keep the document's own exact characters.
    */
   text?: string;
+  /**
+   * Its first pages were read on their own because the drop was past the caps
+   * (Q112 O1), so it is in the bundle with `text` and `pages` is the rest.
+   */
+  previewed?: boolean;
 };
 
 /**
@@ -684,6 +691,138 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     [],
   );
 
+  /**
+   * The first pages of the scans a drop's caps held back (Q112 O1), read as the
+   * drop's last stage so the bundle lands with them. The rest of each stays an
+   * offer, with its pages counted, the way a PDF viewer reads the page in view
+   * and leaves the whole document to a press.
+   *
+   * Not {@link readDocuments}: that pass is authoritative for what it is given,
+   * so a document read in part would come out of it counted as rescued and its
+   * other pages gone from its note. Here it joins the bundle as a document with
+   * pages still to read, which is the shape the rescue of a text PDF's scanned
+   * pages already takes, and the existing pass reads the rest into it.
+   */
+  const previewScans = useCallback(
+    async (documents: readonly ScannedDocument[], language: OcrLanguage, stages: readonly string[]) => {
+      const { read: plan, skipped } = planPreview(documents);
+      // Why each held document got no first pages, so a Run in `ocr_deferred`
+      // without `ocr_previewed` says which of six things happened to it.
+      const skips: Tally = new Map();
+      for (const { document, reason } of skipped) addToTally(skips, reason, document.file.size);
+      if (plan.length === 0 || readingRef.current) {
+        trackTally("ocr_preview_skipped", skips);
+        return;
+      }
+      readingRef.current = true;
+      const startedAt = performance.now();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setIsStopping(false);
+      setIsReading(true);
+      const total = plan.reduce((sum, { first }) => sum + first.length, 0);
+      const readEntries: ContentEntry[] = [];
+      const readValidations: Record<string, ValidationRecord> = {};
+      const rest = new Map<string, ScannedDocument | null>();
+      const previewed: Tally = new Map();
+      const recovered: Tally = new Map();
+      const opened = new Set<string>();
+      let done = 0;
+      try {
+        for (const { document, first } of plan) {
+          if (controller.signal.aborted) break;
+          opened.add(document.path);
+          try {
+            const bytes = new Uint8Array(await document.file.arrayBuffer());
+            const read = await readPdfPagesWithOcr(
+              bytes,
+              first,
+              language.code,
+              (page) =>
+                setProgress({
+                  phase: "recognising",
+                  done: done + page,
+                  total,
+                  note: `First pages, ${done + page + 1} of ${total}`,
+                  stages,
+                }),
+              controller.signal,
+            );
+            // Nothing legible on the first pages: left as the caps left it,
+            // held and offered, since the pages after them were never looked at.
+            if (read.size === 0) {
+              addToTally(skips, controller.signal.aborted ? "stopped" : "blank", document.file.size);
+              continue;
+            }
+            const pages = document.pages ?? [];
+            const unread = pages.filter((page) => !read.has(page));
+            const text = markedPages(pages, read);
+            readEntries.push({ path: document.path, content: text, recognised: true });
+            readValidations[document.path] = {
+              included: true,
+              classification: "text",
+              size: document.file.size,
+              type: document.file.type || "application/octet-stream",
+              extracted: true,
+              ...(unread.length > 0 ? { notes: [{ kind: "pages-scanned", count: unread.length, pages: unread }] } : {}),
+            };
+            // A short scan the byte cap held can be read whole by its first
+            // pages. Then it is rescued like any other, and counted that way.
+            if (unread.length === 0) {
+              rest.set(document.path, null);
+              addToTally(recovered, document.format, document.file.size);
+            } else {
+              rest.set(document.path, { ...document, pages: unread, text, previewed: true });
+              addToTally(previewed, document.format, document.file.size);
+            }
+          } catch (error) {
+            if (controller.signal.aborted) {
+              addToTally(skips, "stopped", document.file.size);
+              break;
+            }
+            addToTally(skips, "error", document.file.size);
+            console.error(`First-page recognition failed for ${document.path}:`, error);
+          } finally {
+            done += first.length;
+          }
+        }
+        if (controller.signal.aborted) setStoppedReading(true);
+      } finally {
+        readingRef.current = false;
+        abortRef.current = null;
+        setIsStopping(false);
+        setIsReading(false);
+      }
+      for (const { document } of plan) {
+        if (!opened.has(document.path)) addToTally(skips, "stopped", document.file.size);
+      }
+      // The wait the preview put in front of the bundle. Not `ocr_ms`, which
+      // stays the mark of a pass someone chose.
+      trackAmount("ocr_preview_ms", { n: performance.now() - startedAt });
+      trackTally("ocr_preview_skipped", skips);
+      if (readEntries.length === 0) return;
+      setEntries((prev) => [...prev, ...readEntries]);
+      setValidations((prev) => ({ ...prev, ...readValidations }));
+      setUnreadDocuments((prev) =>
+        prev.flatMap((d) => {
+          const next = rest.get(d.path);
+          return next === undefined ? [d] : next === null ? [] : [next];
+        }),
+      );
+      setReadLanguage(language);
+      setReadLanguages((prev) => {
+        const next = { ...prev };
+        for (const entry of readEntries) next[entry.path] = language;
+        return next;
+      });
+      // Its own counter, never `ocr_recovered`: a document read in part is not
+      // rescued, and the clean-Run measure reads that counter as whole.
+      trackTally("ocr_previewed", previewed);
+      trackTally("ocr_recovered", recovered);
+    },
+    [],
+  );
+
   const ingestBatch = useCallback(
     async (
       incoming: IncomingFile[],
@@ -1147,10 +1286,11 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           const deferred: Tally = new Map();
           for (const d of autoRead) addToTally(deferred, d.format, d.file.size);
           trackTally("ocr_deferred", deferred);
+          await previewScans(autoRead, browserOcrLanguage(), [...stages, STAGE.recognise]);
         }
       }
     },
-    [config, readDocuments],
+    [config, readDocuments, previewScans],
   );
 
   const ingestRepo = useCallback(

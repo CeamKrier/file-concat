@@ -1222,6 +1222,17 @@ export function replacePages(text: string, replacements: ReadonlyMap<number, str
 }
 
 /**
+ * A document assembled from recognised pages alone: a `# Page n` line over every
+ * page in `pages`, with the reading under it where there is one. An unread page
+ * keeps its bare marker, so a later {@link replacePages} has a place to put it.
+ */
+export function markedPages(pages: readonly number[], read: ReadonlyMap<number, string>): string {
+  return pages
+    .map((page) => [`# Page ${page}`, read.get(page)?.trim()].filter(Boolean).join("\n"))
+    .join("\n\n");
+}
+
+/**
  * One page of a PDF that a platform's own reader read (the web's liteparse),
  * numbered from 1 in file order. `scanned` is the reader's word that the page
  * holds a picture, which is what tells a scanned page from a blank one: both

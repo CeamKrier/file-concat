@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { version } from "../package.json";
 
 /**
  * Counters are best-effort and fire-and-forget, so the contract worth pinning is
@@ -208,7 +209,9 @@ describe("trackEntrySurface", () => {
       { n: "entry_surface", v: "home" },
       { n: "entry_source", v: "none" },
       { n: "entry_device", v: "desktop" },
+      { n: "entry_version", v: version },
     ]);
+    expect(version).toMatch(/^[a-z0-9._/+-]{1,32}$/);
   });
 
   it("sends the source label and nothing it was read from", async () => {

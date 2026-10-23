@@ -17,6 +17,7 @@
  * request rather than one per file.
  */
 
+import { version } from "../../package.json";
 import type { FeedbackOrigin } from "./feedback";
 import type { MetricEvent } from "./metric-events";
 
@@ -292,6 +293,7 @@ export function trackEntrySurface(pathname: string, referrer = "", search = ""):
   track("entry_surface", surfaceLabel(pathname));
   track("entry_source", sourceLabel(referrer, search));
   track("entry_device", currentDevice());
+  track("entry_version", version);
 }
 
 /**

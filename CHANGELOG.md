@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.8.0](https://github.com/CeamKrier/file-concat/compare/v2.7.1...v2.8.0) (2026-10-23)
+
+### Features
+
+* **web:** import_failed records why a fetch failed ([7c06a60](https://github.com/CeamKrier/file-concat/commit/7c06a60326c6f85d929e072eaf37321e9ab22364))
+* **web:** read the first pages of scans the caps held ([445da07](https://github.com/CeamKrier/file-concat/commit/445da0759380c5f94df114ff7f7e82ecbac5d734))
+* **web:** record the release a page loaded ([87387c2](https://github.com/CeamKrier/file-concat/commit/87387c260418e2ce9fb624014a160e4fa3503a18))
+
 ## [2.7.1](https://github.com/CeamKrier/file-concat/compare/v2.7.0...v2.7.1) (2026-10-18)
 
 ### Bug Fixes

@@ -51,6 +51,7 @@ function props(overrides: Partial<Parameters<typeof ResultView>[0]> = {}) {
     recoveredDocuments: 0,
     stoppedReading: false,
     readDeferred: false,
+    deferredScope: { previewed: 0, pagesLeft: null },
     readLanguageNote: null,
     onCheckReading: vi.fn(),
     onAdjust: vi.fn(),
@@ -126,5 +127,36 @@ describe("the door on the ledger", () => {
   it("stays silent, and keeps the clean sentence, when nothing was pruned", () => {
     render(<ResultView {...props({ pruned: null, filesCombined: 3, totalFiles: 3 })} />);
     expect(screen.getByText(/All 3 files came through whole/)).toBeInTheDocument();
+  });
+});
+
+/** Scans past the auto-read caps (Q112 O1): the row states the offer in pages. */
+describe("held scans on the ledger", () => {
+  const held = { scannedDocumentCount: 2, readDeferred: true };
+
+  it("says the first pages were read and counts the rest", () => {
+    render(<ResultView {...props({ ...held, deferredScope: { previewed: 2, pagesLeft: 57 } })} />);
+    openLedger();
+
+    expect(screen.getByText("Read the first pages of 2 documents.")).toBeInTheDocument();
+    expect(screen.getByText(/^57 more pages are not read yet\./)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Read the rest" })).toBeInTheDocument();
+  });
+
+  it("names the part of the drop the first pages did not reach", () => {
+    render(<ResultView {...props({ ...held, deferredScope: { previewed: 1, pagesLeft: 1 } })} />);
+    openLedger();
+
+    expect(screen.getByText("Read the first pages of 1 of 2 documents.")).toBeInTheDocument();
+    expect(screen.getByText(/^One more page is not read yet\./)).toBeInTheDocument();
+  });
+
+  it("keeps the plain offer, with its pages, when nothing was read", () => {
+    render(<ResultView {...props({ ...held, deferredScope: { previewed: 0, pagesLeft: 120 } })} />);
+    openLedger();
+
+    expect(screen.getByText("2 documents not read yet.")).toBeInTheDocument();
+    expect(screen.getByText(/their 120 pages as pictures/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Read them" })).toBeInTheDocument();
   });
 });

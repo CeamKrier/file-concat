@@ -112,6 +112,9 @@ type ResultViewProps = {
   /** True when no pass has been started over the scans at all, because the drop
    * was too big to read unasked. */
   readDeferred: boolean;
+  /** The deferred offer's scope: documents whose first pages were read anyway,
+   * and the pages still unread across all of them (null when not known). */
+  deferredScope: { previewed: number; pagesLeft: number | null };
   /** How to attribute the reading, already phrased: "as Turkish", "in 2 languages". */
   readLanguageNote: string | null;
   /** Open the reading dialog, where every recognition action lives. */
@@ -200,6 +203,7 @@ export function ResultView({
   recoveredDocuments,
   stoppedReading,
   readDeferred,
+  deferredScope,
   readLanguageNote,
   onCheckReading,
   onAdjust,
@@ -281,16 +285,27 @@ export function ResultView({
         action: { label: "Check the reading", onClick: onCheckReading },
       });
     } else if (readDeferred) {
-      // Never tried, because trying would have held this bundle behind a wait
-      // nobody agreed to. Framed as an offer: nothing has gone wrong, and the
-      // copy must not imply recognition looked and failed.
+      // Never tried as a whole, because that would have held this bundle behind
+      // a wait nobody agreed to. Framed as an offer: nothing has gone wrong, and
+      // the copy must not imply recognition looked and failed. Its scope is
+      // stated in pages, the one thing a reader can weigh the wait by (Q112 O1).
+      const { previewed, pagesLeft } = deferredScope;
+      const pages = pagesLeft === null ? null : `${fmt.format(pagesLeft)} ${pagesLeft === 1 ? "page" : "pages"}`;
+      const more =
+        pagesLeft === null ? "The rest is" : pagesLeft === 1 ? "One more page is" : `${fmt.format(pagesLeft)} more pages are`;
       rows.push({
         key: "scans",
         kind: "gap",
         icon: ScanText,
-        title: `${total} ${noun(total)} not read yet.`,
-        body: "Recognition can read the pages as pictures, a few seconds a page. This drop is large enough that the bundle came first and the reading waits for you to ask.",
-        action: { label: "Read them", onClick: onCheckReading },
+        title:
+          previewed > 0
+            ? `Read the first pages of ${previewed === total ? "" : `${previewed} of `}${total} ${noun(total)}.`
+            : `${total} ${noun(total)} not read yet.`,
+        body:
+          previewed > 0
+            ? `${more} not read yet. Recognition takes a few seconds a page, so it waits for you to ask.`
+            : `Recognition can read ${pages ? `their ${pages}` : "the pages"} as pictures, a few seconds a page. This drop is large enough that the bundle came first and the reading waits for you to ask.`,
+        action: { label: previewed > 0 ? "Read the rest" : "Read them", onClick: onCheckReading },
       });
     } else if (stoppedReading) {
       rows.push({
