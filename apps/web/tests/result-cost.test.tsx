@@ -50,6 +50,7 @@ function props(overrides: Partial<Parameters<typeof ResultView>[0]> = {}) {
     recoveredDocuments: 0,
     stoppedReading: false,
     readDeferred: false,
+    deferredScope: { previewed: 0, pagesLeft: null },
     readLanguageNote: null,
     onCheckReading: vi.fn(),
     onAdjust: vi.fn(),

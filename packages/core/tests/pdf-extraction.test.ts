@@ -4,6 +4,7 @@ import {
   assemblePdfPages,
   extractOfficeDocument,
   isPasswordProtected,
+  markedPages,
   replacePages,
   resolveImagePlaceholders,
 } from "../src/file-processing/parsers/officeparser";
@@ -240,6 +241,24 @@ describe("extractOfficeDocument — text that cannot be decoded", () => {
     const { notes } = await extractOfficeDocument(undecodableTextPdf());
 
     expect(notes?.[0].pages).toBeUndefined();
+  });
+});
+
+describe("markedPages", () => {
+  // The first pages of a held scan, read on their own (Q112 O1); the rest come
+  // later through replacePages, so every page needs its marker now.
+  const first = markedPages([1, 2, 3, 4], new Map([[1, " cover "], [2, "contents"]]));
+
+  it("marks every page and fills the ones read", () => {
+    expect(first).toBe(["# Page 1\ncover", "# Page 2\ncontents", "# Page 3", "# Page 4"].join("\n\n"));
+  });
+
+  it("leaves room for the rest of the pass to land", () => {
+    const whole = replacePages(first, new Map([[3, "chapter one"], [4, "chapter two"]]));
+
+    expect(whole).toContain("# Page 3\nchapter one");
+    expect(whole).toContain("# Page 4\nchapter two");
+    expect(whole.startsWith("# Page 1\ncover")).toBe(true);
   });
 });
 

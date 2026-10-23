@@ -481,6 +481,9 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     const unreadImages = ingestion.unreadDocuments.filter(isImage);
     const media = ingestion.scannedDocuments.filter(isMedia);
     const unreadMedia = ingestion.unreadDocuments.filter(isMedia);
+    const untried = ingestion.unreadDocuments.filter(
+      (d) => !isOffer(d) && ingestion.validations[d.path]?.recognitionTried !== true,
+    );
     return {
       imageCount: images.length,
       recognisedImages: images.length - unreadImages.length,
@@ -499,9 +502,16 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       // hand its bundle back without lying about the scans in it: "never tried"
       // and "tried and got nothing" want opposite copy, and only the
       // per-document record can still tell them apart after an append.
-      untriedDocumentCount: ingestion.unreadDocuments.filter(
-        (d) => !isOffer(d) && ingestion.validations[d.path]?.recognitionTried !== true,
-      ).length,
+      untriedDocumentCount: untried.length,
+      // What the deferred row states as the scope of the offer (Q112 O1): how
+      // many had their first pages read anyway, and the pages still to read.
+      // Null when a document's pages are unknown, so no total is made up.
+      deferredScope: {
+        previewed: untried.filter((d) => d.previewed).length,
+        pagesLeft: untried.every((d) => d.pages?.length)
+          ? untried.reduce((sum, d) => sum + (d.pages?.length ?? 0), 0)
+          : null,
+      },
     };
   }, [ingestion.scannedDocuments, ingestion.unreadDocuments, ingestion.validations]);
 
@@ -1024,6 +1034,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               }
               stoppedReading={ingestion.stoppedReading}
               readDeferred={readDeferred}
+              deferredScope={recognition.deferredScope}
               readLanguageNote={readLanguageNote}
               onCheckReading={() => setReadingOpen(true)}
               onAdjust={() => openFiles("adjust")}

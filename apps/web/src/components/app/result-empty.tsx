@@ -477,8 +477,8 @@ function ReadAction({
     return (
       <>
         <p className="text-ink-secondary mx-auto mt-6 max-w-[440px] text-[14px] leading-relaxed">
-          Recognition did not start on its own here: this drop is large enough that it would have
-          been a long wait nobody chose.
+          Recognition did not read this drop on its own: it is large enough that the whole of it
+          would have been a long wait nobody chose.
         </p>
         <div className="mt-6 flex flex-col items-center gap-3">
           <button

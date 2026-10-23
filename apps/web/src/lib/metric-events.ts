@@ -373,6 +373,29 @@ export const METRIC_EVENTS = [
    */
   "ocr_deferred",
   /**
+   * Held scans whose first pages were read anyway, by format: `n` documents
+   * totalling `b` bytes, written once per Run at the end of ingest (Q112 O1,
+   * since 2026-10-23). Only documents still holding unread pages: one the first
+   * pages read whole goes to `ocr_recovered`. A subset of `ocr_deferred` in the
+   * same Run, and never followed by `ocr_ms` on its own: that stays the mark of
+   * a pass someone chose, so the offer's take-up reads the same as before.
+   */
+  "ocr_previewed",
+  /**
+   * Wall-clock milliseconds the first-page read held the bundle back, in `n`,
+   * once per Run that opened a held scan for it (Q112 O1). The wait nobody
+   * chose, so it is the number that says whether six pages is the right budget.
+   */
+  "ocr_preview_ms",
+  /**
+   * Held documents that got no first pages, by reason: `shape` (not a whole
+   * scan with its pages listed), `size` (past the byte cap), `budget` (the six
+   * pages were spent), `blank` (nothing legible on them), `error`, `stopped`.
+   * `n` documents totalling `b` bytes. With `ocr_previewed` it accounts for
+   * every document in `ocr_deferred` of the same Run.
+   */
+  "ocr_preview_skipped",
+  /**
    * How confident tesseract was in a reading, as a band of ten (`0`, `10`, …
    * `90`), `n` readings each. Written per image read, kept or rejected, since
    * the rejections are exactly what says whether the floor sits in the right

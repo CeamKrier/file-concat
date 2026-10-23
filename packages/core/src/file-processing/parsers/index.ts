@@ -4,6 +4,7 @@ export {
   assemblePdfPages,
   extractOfficeDocument,
   isPasswordProtected,
+  markedPages,
   replacePages,
 } from "./officeparser";
 export type { OcrOptions, OfficeParserOptions, PdfAttachment, PdfPage } from "./officeparser";

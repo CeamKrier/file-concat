@@ -79,7 +79,9 @@ vi.mock("~/lib/ocr", () => ({
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
     return { text: READINGS.get(path)?.[language] ?? "" };
   },
-  readPdfPagesWithOcr: async (bytes: Uint8Array) => PAGE_READS.get(new TextDecoder().decode(bytes)) ?? new Map(),
+  // Only the pages asked for, as the real one draws only those.
+  readPdfPagesWithOcr: async (bytes: Uint8Array, pages: readonly number[]) =>
+    new Map([...(PAGE_READS.get(new TextDecoder().decode(bytes)) ?? new Map())].filter(([page]) => pages.includes(page))),
   // An image's bytes are a real PNG header, so this one keys on the name.
   recogniseImageWithOcr: async (file: File, language: string) => {
     attempts.push({ path: file.name, language });
@@ -91,6 +93,7 @@ vi.mock("~/lib/ocr", () => ({
 /** counter name → the rows it was last written with. Only non-empty writes. */
 type Row = { n: number; b: number };
 const TALLIES = new Map<string, Map<string, Row>>();
+const AMOUNTS = new Map<string, number>();
 
 vi.mock("~/lib/metrics", () => ({
   // Faithful enough to assert quantities on, which the old no-op stub was not.
@@ -100,7 +103,7 @@ vi.mock("~/lib/metrics", () => ({
   },
   startRun: () => {},
   track: () => {},
-  trackAmount: () => {},
+  trackAmount: (name: string, { n }: { n: number }) => AMOUNTS.set(name, n),
   trackTally: (name: string, tally: Map<string, Row>) => {
     if (tally.size > 0) TALLIES.set(name, new Map(tally));
   },
@@ -136,6 +139,7 @@ beforeEach(() => {
   PAGE_READS.clear();
   SUBTITLES.clear();
   TALLIES.clear();
+  AMOUNTS.clear();
   attempts = [];
   onDocumentRead = null;
   Object.defineProperty(navigator, "languages", { value: ["en-US"], configurable: true });
@@ -248,6 +252,72 @@ describe("a drop too big to read unasked", () => {
     expect(attempts).toEqual([]);
     expect(result.current.unreadDocuments.map((d) => d.path)).toEqual(["big.pdf"]);
     expect(result.current.validations["big.pdf"].recognitionTried).toBeUndefined();
+  });
+});
+
+describe("the first pages of a held scan (Q112 O1)", () => {
+  const TEN = Array.from({ length: 10 }, (_, i) => i + 1);
+  // Four whole scans of ten pages: one past the count cap, so the pass is held.
+  const drop = () => {
+    for (const path of ["a.pdf", "b.pdf", "c.pdf", "d.pdf"]) {
+      EXTRACTS.set(path, { text: "", notes: [{ kind: "pages-scanned", count: 10, pages: TEN }] });
+    }
+    return ["a.pdf", "b.pdf", "c.pdf", "d.pdf"].map(scan);
+  };
+
+  it("reads them as the drop's last stage and offers the rest by page", async () => {
+    PAGE_READS.set("a.pdf", new Map(TEN.map((page) => [page, `a${page}`])));
+    PAGE_READS.set("b.pdf", new Map([[1, "b cover"]]));
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch(drop());
+    });
+
+    // Six pages in all, three from each of the first two; the whole-document
+    // reader was never started.
+    expect(attempts).toEqual([]);
+    const a = result.current.entries.find((e) => e.path === "a.pdf")?.content ?? "";
+    expect(a.startsWith("# Page 1\na1\n\n# Page 2\na2\n\n# Page 3\na3\n\n# Page 4")).toBe(true);
+    expect(a).not.toContain("a4");
+    expect(result.current.validations["a.pdf"].included).toBe(true);
+    expect(result.current.validations["a.pdf"].notes).toEqual([
+      { kind: "pages-scanned", count: 7, pages: [4, 5, 6, 7, 8, 9, 10] },
+    ]);
+    expect(result.current.validations["b.pdf"].notes?.[0]).toMatchObject({ count: 9 });
+    // Still on offer, untried, with the rest named; the two the budget did not
+    // reach are exactly as the caps left them.
+    const unread = new Map(result.current.unreadDocuments.map((d) => [d.path, d]));
+    expect(unread.get("a.pdf")).toMatchObject({ previewed: true, pages: [4, 5, 6, 7, 8, 9, 10] });
+    expect(unread.get("c.pdf")?.previewed).toBeUndefined();
+    expect(unread.get("c.pdf")?.pages).toEqual(TEN);
+    expect(result.current.validations["a.pdf"].recognitionTried).toBeUndefined();
+    expect(TALLIES.get("ocr_previewed")?.get("pdf")?.n).toBe(2);
+    expect(TALLIES.get("ocr_recovered")).toBeUndefined();
+    expect(TALLIES.get("ocr_deferred")?.get("pdf")?.n).toBe(4);
+    // Every held document is accounted for: two read, two past the budget.
+    expect(TALLIES.get("ocr_preview_skipped")).toEqual(new Map([["budget", { n: 2, b: 10 }]]));
+    expect(AMOUNTS.get("ocr_preview_ms")).toBeGreaterThanOrEqual(0);
+    expect(AMOUNTS.has("ocr_ms")).toBe(false);
+  });
+
+  it("reads the rest into the same document when asked", async () => {
+    PAGE_READS.set("a.pdf", new Map(TEN.map((page) => [page, `a${page}`])));
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch(drop());
+    });
+    await act(async () => {
+      await result.current.readUnreadDocuments();
+    });
+
+    const a = result.current.entries.filter((e) => e.path === "a.pdf");
+    expect(a).toHaveLength(1);
+    expect(a[0].content).toContain("# Page 1\na1");
+    expect(a[0].content).toContain("# Page 10\na10");
+    expect(result.current.unreadDocuments.some((d) => d.path === "a.pdf")).toBe(false);
+    expect(result.current.validations["a.pdf"].notes ?? []).toEqual([]);
   });
 });
 
