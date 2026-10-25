@@ -4,6 +4,7 @@ import {
   ocrLanguageFor,
   ocrLanguageName,
   ocrLanguageOptions,
+  readerSize,
 } from "~/lib/ocr-language";
 import { readFailure } from "~/lib/ocr";
 
@@ -127,5 +128,15 @@ describe("readFailure", () => {
     expect(readFailure(new RangeError("Array buffer allocation failed"))).toBe("memory");
     expect(readFailure(new Error("Out of memory"))).toBe("memory");
     expect(readFailure(new Error("Error attempting to read image."))).toBe("other");
+  });
+});
+
+describe("readerSize", () => {
+  it("knows the download of every reader the control offers", () => {
+    // A language added without its size would start a download it never named.
+    for (const option of ocrLanguageOptions()) expect(readerSize(option.code), option.code).toMatch(/^\d\.\d MB$/);
+    expect(readerSize("tur")).toBe("2.1 MB");
+    expect(readerSize("eng")).toBe("3.0 MB");
+    expect(readerSize("xyz")).toBeNull();
   });
 });

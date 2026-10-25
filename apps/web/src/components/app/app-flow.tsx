@@ -42,6 +42,7 @@ import {
   browserOcrLanguage,
   ocrLanguageName,
   ocrLanguageOptions,
+  readerSize,
 } from "~/lib/ocr-language";
 import {
   beginCurate,
@@ -1083,6 +1084,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
                 language: {
                   name: ocrLanguageName(passLanguage),
                   fallback: !ingestion.readLanguage && browserLanguageWithoutReader() !== null,
+                  size: readerSize(passLanguage.code),
                   onChange: () => setReadingOpen(true),
                 },
               }}

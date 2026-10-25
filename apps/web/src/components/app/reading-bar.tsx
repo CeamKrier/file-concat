@@ -22,8 +22,9 @@ export type ReadingBarProps = {
   offers?: ReadingOffer[];
   /** How the last pass ended, when that needs saying (see {@link passOutcome}). */
   outcome?: string | null;
-  /** The language the next pass reads in, and the way to pick another. */
-  language?: { name: string; fallback: boolean; onChange: () => void };
+  /** The language the next pass reads in, its reader's one-time download
+   * ("2.1 MB", see `readerSize`), and the way to pick another. */
+  language?: { name: string; fallback: boolean; size?: string | null; onChange: () => void };
   className?: string;
 };
 
@@ -61,6 +62,7 @@ export function ReadingBar({
         isStopping={isStopping}
         onStop={onStop}
         language={language?.name}
+        size={language?.size}
         className={className}
       />
     );
@@ -97,6 +99,10 @@ export function ReadingBar({
           <span>
             Reads in {language.name}
             {language.fallback ? ", since your browser's language has no reader here." : "."}
+            {/* Speech brings its own model, priced in its own offer. */}
+            {language.size && offers.some((offer) => offer.key !== "speech")
+              ? ` The reader is a one-time ${language.size} download.`
+              : ""}
           </span>
           <button
             type="button"
@@ -116,12 +122,14 @@ function Running({
   isStopping,
   onStop,
   language,
+  size,
   className,
 }: {
   progress: ReadProgress;
   isStopping: boolean;
   onStop: () => void;
   language?: string;
+  size?: string | null;
   className?: string;
 }) {
   const [elapsed, setElapsed] = useState(0);
@@ -157,7 +165,7 @@ function Running({
             </div>
             <div className="text-ink-muted mt-[3px] text-[13px] leading-[1.55]">
               {loading
-                ? "A one-time download for this language, then it starts. "
+                ? `A one-time ${size ? `${size} ` : ""}download for this language, then it starts. `
                 : progress?.note
                   ? `${progress.note}. `
                   : ""}

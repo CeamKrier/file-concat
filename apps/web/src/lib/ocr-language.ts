@@ -167,6 +167,29 @@ export function browserOcrLanguage(): OcrLanguage {
 }
 
 /**
+ * Each reader's download in MB, gzipped, as the CDN serves it: Content-Length
+ * of every `4.0.0_best_int/<code>.traineddata.gz`, read 2026-10-25 (60/60).
+ * Said before the download starts, so a 3.8 MB wait on a phone is a choice.
+ * The browser keeps it after the first pass, so it is a one-time cost.
+ */
+const READER_MB: Record<string, number> = {
+  afr: 1.8, ara: 1.7, aze: 1.7, bel: 2.1, ben: 1.4, bos: 1.2, bul: 1.4, cat: 0.6,
+  ces: 2.2, chi_sim: 1.7, chi_tra: 1.7, cym: 1.4, dan: 1.8, deu: 1.3, ell: 1.3, eng: 3,
+  est: 3.1, eus: 2.2, fas: 0.4, fin: 3.8, fra: 0.7, gle: 0.7, glg: 1.7, heb: 0.6,
+  hin: 1.4, hrv: 2.3, hun: 2.9, hye: 1.6, ind: 1.2, isl: 1.7, ita: 1.7, jpn: 2,
+  kat: 1.1, kaz: 2.1, kor: 1.6, lav: 1.3, lit: 1.9, mkd: 0.7, mlt: 1.2, msa: 1.2,
+  nld: 3, nor: 2.5, pol: 2.6, por: 1.4, ron: 1.7, rus: 2.7, slk: 2.4, slv: 1.3,
+  spa: 2.1, sqi: 1, srp: 1.5, swa: 1.1, swe: 2.5, tam: 1.4, tel: 1.7, tha: 0.9,
+  tur: 2.1, ukr: 2.1, urd: 1, vie: 1.4,
+};
+
+/** A reader's one-time download, as shown on screen ("2.1 MB"), or null. */
+export function readerSize(code: string): string | null {
+  const mb = READER_MB[code];
+  return mb === undefined ? null : `${mb.toFixed(1)} MB`;
+}
+
+/**
  * The browser's own language when no reader exists for it and English stands
  * in, as its primary subtag (`ka`, `hy`), or null when there is a reader or no
  * language to go on. Said on screen before anything downloads, so a reading in

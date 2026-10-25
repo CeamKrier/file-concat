@@ -32,10 +32,11 @@ describe("the reading bar while a pass runs", () => {
         {...idle}
         isReading
         progress={{ done: 0, total: 3, note: GETTING_READER }}
-        language={{ name: "Turkish", fallback: false, onChange: () => {} }}
+        language={{ name: "Turkish", fallback: false, size: "2.1 MB", onChange: () => {} }}
       />,
     );
     expect(screen.getByText("Getting the reader for Turkish.")).toBeInTheDocument();
+    expect(screen.getByText(/A one-time 2.1 MB download for this language/)).toBeInTheDocument();
   });
 
   it("counts the file in hand and says the bundle is live", () => {
@@ -61,11 +62,17 @@ describe("the reading bar between passes", () => {
       vi.fn(),
     );
     render(
-      <ReadingBar {...idle} offers={offers} language={{ name: "English", fallback: true, onChange }} />,
+      <ReadingBar
+        {...idle}
+        offers={offers}
+        language={{ name: "English", fallback: true, size: "3.0 MB", onChange }}
+      />,
     );
 
     expect(
-      screen.getByText(/Reads in English, since your browser's language has no reader here\./),
+      screen.getByText(
+        /Reads in English, since your browser's language has no reader here\. The reader is a one-time 3\.0 MB download\./,
+      ),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Change language" }));
     expect(onChange).toHaveBeenCalledOnce();
