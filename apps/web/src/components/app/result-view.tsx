@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   AudioLines,
@@ -15,7 +15,6 @@ import {
   Gauge,
   Image as ImageIcon,
   Info,
-  LoaderCircle,
   MessageSquare,
   RotateCcw,
   ScanText,
@@ -35,6 +34,7 @@ import {
 import { cn } from "~/lib/utils";
 import type { BundleWeight } from "~/lib/bundle-weight";
 import type { PrunedAtDoor } from "~/lib/prune-at-door";
+import { ReadingBar, type ReadingBarProps } from "./reading-bar";
 import { SegmentedControl } from "./segmented-control";
 
 type OutputStyle = "xml" | "markdown" | "plain";
@@ -99,22 +99,15 @@ type ResultViewProps = {
   recognisedMedia: number;
   /** True while a recognition pass is running. */
   isReading: boolean;
-  /** Recognition progress, or null when idle. */
-  readProgress: { done: number; total: number; note?: string } | null;
-  /** True between the stop being asked for and the pass ending. */
-  isStopping: boolean;
-  /** End the pass now and release the export with whatever has been read. */
-  onStopReading: () => void;
+  /**
+   * The reading bar: the offers, the pass in flight and how the last one ended.
+   * A kind it offers is left out of the ledger, which would only say it twice.
+   */
+  reading: Omit<ReadingBarProps, "className">;
   /** How many documents recognition has already rescued in this Run. */
   recoveredDocuments: number;
   /** True when the last recognition pass ended on a stop rather than on its own. */
   stoppedReading: boolean;
-  /** True when no pass has been started over the scans at all, because the drop
-   * was too big to read unasked. */
-  readDeferred: boolean;
-  /** The deferred offer's scope: documents whose first pages were read anyway,
-   * and the pages still unread across all of them (null when not known). */
-  deferredScope: { previewed: number; pagesLeft: number | null };
   /** How to attribute the reading, already phrased: "as Turkish", "in 2 languages". */
   readLanguageNote: string | null;
   /** Open the reading dialog, where every recognition action lives. */
@@ -197,13 +190,9 @@ export function ResultView({
   mediaCount,
   recognisedMedia,
   isReading,
-  readProgress,
-  isStopping,
-  onStopReading,
+  reading,
   recoveredDocuments,
   stoppedReading,
-  readDeferred,
-  deferredScope,
   readLanguageNote,
   onCheckReading,
   onAdjust,
@@ -233,6 +222,7 @@ export function ResultView({
   // from it, then what is merely worth knowing.
   const noiseSkipped = noiseFiles.length;
   const rows: LedgerRow[] = [];
+  const offered = new Set(reading.offers?.map((offer) => offer.key));
 
   if (over && fit) {
     rows.push({
@@ -257,9 +247,9 @@ export function ResultView({
   // reading dialog, because the one thing you need before changing a language is
   // the text that language produced, and the text is in there.
   //
-  // Suppressed while a pass runs — the reading card above says it better, with
-  // a clock.
-  if (scannedDocumentCount > 0 && !isReading) {
+  // Suppressed while a pass runs, and while the reading bar offers the rest:
+  // the bar says both better, one with a clock and one with the button.
+  if (scannedDocumentCount > 0 && !isReading && !offered.has("scans")) {
     const total = scannedDocumentCount;
     const left = total - recoveredDocuments;
     const noun = (n: number) => (n === 1 ? "document" : "documents");
@@ -283,38 +273,6 @@ export function ResultView({
           ? `The page in hand finished, and everything read before you stopped is in the bundle. The other ${left} ${noun(left)} ${left === 1 ? "is" : "are"} still out.`
           : `Nothing legible came back from the other ${left}. Another language is the thing worth ruling out.`,
         action: { label: "Check the reading", onClick: onCheckReading },
-      });
-    } else if (readDeferred) {
-      // Never tried as a whole, because that would have held this bundle behind
-      // a wait nobody agreed to. Framed as an offer: nothing has gone wrong, and
-      // the copy must not imply recognition looked and failed. Its scope is
-      // stated in pages, the one thing a reader can weigh the wait by (Q112 O1).
-      const { previewed, pagesLeft } = deferredScope;
-      const pages = pagesLeft === null ? null : `${fmt.format(pagesLeft)} ${pagesLeft === 1 ? "page" : "pages"}`;
-      const more =
-        pagesLeft === null ? "The rest is" : pagesLeft === 1 ? "One more page is" : `${fmt.format(pagesLeft)} more pages are`;
-      rows.push({
-        key: "scans",
-        kind: "gap",
-        icon: ScanText,
-        title:
-          previewed > 0
-            ? `Read the first pages of ${previewed === total ? "" : `${previewed} of `}${total} ${noun(total)}.`
-            : `${total} ${noun(total)} not read yet.`,
-        body:
-          previewed > 0
-            ? `${more} not read yet. Recognition takes a few seconds a page, so it waits for you to ask.`
-            : `Recognition can read ${pages ? `their ${pages}` : "the pages"} as pictures, a few seconds a page. This drop is large enough that the bundle came first and the reading waits for you to ask.`,
-        action: { label: previewed > 0 ? "Read the rest" : "Read them", onClick: onCheckReading },
-      });
-    } else if (stoppedReading) {
-      rows.push({
-        key: "scans",
-        kind: "gap",
-        icon: ScanText,
-        title: `Stopped, with ${total} ${noun(total)} unread.`,
-        body: `Recognition never got to ${total === 1 ? "it" : "them"}, so ${total === 1 ? "it holds" : "they hold"} nothing yet.`,
-        action: { label: "Read them", onClick: onCheckReading },
       });
     } else {
       rows.push({
@@ -379,7 +337,7 @@ export function ResultView({
   // Its own row, never folded into the scan count. An image was never promised
   // as text, so it is not a gap in the bundle the way a scan is — it is an
   // offer, and the two must not be read as one number (ADR-0017).
-  if (imageCount > 0 && !isReading) {
+  if (imageCount > 0 && !isReading && !offered.has("images")) {
     const noun = (n: number) => (n === 1 ? "image" : "images");
     if (recognisedImages === 0) {
       rows.push({
@@ -412,7 +370,7 @@ export function ResultView({
 
   // The same offer for speech (D5), its own row because its price is its own:
   // a model download and minutes of listening, against seconds an image.
-  if (mediaCount > 0 && !isReading) {
+  if (mediaCount > 0 && !isReading && !offered.has("speech")) {
     const noun = (n: number) => (n === 1 ? "recording" : "recordings");
     rows.push(
       recognisedMedia === 0
@@ -665,58 +623,16 @@ export function ResultView({
         </div>
 
         <div className="border-t border-[oklch(var(--hairline))] px-5 pb-[18px] pt-3.5">
-          {isReading ? (
-            // Held rather than hidden: the buttons keep their place and their
-            // labels, in dashed outline, so the reason reads as a wait and not
-            // as a missing feature. Text lands in the bundle only when the pass
-            // ends, so an export taken mid-pass would quietly be missing every
-            // scanned document.
-            <>
-              <div className="flex flex-wrap gap-2.5">
-                <div
-                  aria-disabled="true"
-                  className="rounded-input bg-surface-alt text-ink-muted border-border-strong flex h-[46px] w-full cursor-not-allowed items-center justify-center gap-2.5 border border-dashed px-5 text-[15px] font-semibold sm:w-auto sm:flex-[1_1_240px]"
-                >
-                  <LoaderCircle
-                    className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
-                    strokeWidth={2}
-                  />
-                  Copy
-                </div>
-                <div
-                  aria-disabled="true"
-                  className="rounded-input bg-surface-alt text-ink-muted border-border-strong flex h-[46px] w-full cursor-not-allowed items-center justify-center border border-dashed px-[18px] text-[14.5px] font-medium sm:w-auto sm:flex-[0_1_160px]"
-                >
-                  Download
-                </div>
-              </div>
-              <div className="text-ink-secondary mt-3 flex flex-wrap items-baseline gap-2 text-[13px] leading-[1.55]">
-                <span className="min-w-0 flex-[1_1_300px]">
-                  Held while{" "}
-                  {readProgress
-                    ? `${readProgress.total} ${readProgress.total === 1 ? "file is" : "files are"}`
-                    : "the drop is"}{" "}
-                  being read. The text only lands in the bundle when the pass ends.
-                </span>
-                <button
-                  type="button"
-                  onClick={onStopReading}
-                  disabled={isStopping}
-                  className="border-border-strong rounded-chip text-ink hover:bg-accent focus-visible:ring-ring focus-visible:ring-offset-surface shrink-0 border px-3 py-1.5 text-[12.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60"
-                >
-                  {isStopping ? "Stopping..." : "Stop reading and export what is here"}
-                </button>
-              </div>
-            </>
-          ) : (
-            // On a phone the row leaves the card for a bar pinned to the bottom
-            // of the screen, where the thumb is, and stays there while the
-            // preview scrolls. Share leads it when the browser can hand the
-            // bundle to another app as a file; Copy then steps down to second.
-            // The section skips its entrance on a phone for this: fade-up
-            // holds a transform, which would pin this bar to the section
-            // instead of the screen.
-            <div className="max-sm:bg-surface max-sm:border-border flex flex-wrap gap-2.5 max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-sticky max-sm:flex-nowrap max-sm:border-t max-sm:px-4 max-sm:pb-[max(12px,env(safe-area-inset-bottom))] max-sm:pt-3">
+          {/* Open during a recognition pass too (Q7 O2): each file joins the
+              bundle as it is read, and the bundle names the ones still to
+              come. On a phone the row leaves the card for a bar pinned to the
+              bottom of the screen, where the thumb is, and stays there while
+              the preview scrolls. Share leads it when the browser can hand the
+              bundle to another app as a file; Copy then steps down to second.
+              The section skips its entrance on a phone for this: fade-up holds
+              a transform, which would pin this bar to the section instead of
+              the screen. */}
+          <div className="max-sm:bg-surface max-sm:border-border flex flex-wrap gap-2.5 max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-sticky max-sm:flex-nowrap max-sm:border-t max-sm:px-4 max-sm:pb-[max(12px,env(safe-area-inset-bottom))] max-sm:pt-3">
               {onShare && (
                 <button
                   type="button"
@@ -763,14 +679,13 @@ export function ResultView({
                 {isGenerating ? "Preparing..." : "Download"}
               </button>
             </div>
-          )}
 
           {/* The card's footer: everything you might do to the bundle instead
               of exporting it, and the way to tell us it went wrong. Under the
               buttons rather than over them, centred on the pair, and at the
               quietest weight on the card. */}
           <div className="mt-[18px] flex flex-wrap items-center justify-center gap-x-[22px] gap-y-2.5 max-sm:mt-0">
-            {onShare && !isReading && (
+            {onShare && (
               <QuietAction
                 icon={Download}
                 label={isGenerating ? "Preparing..." : "Download"}
@@ -810,7 +725,9 @@ export function ResultView({
         </div>
       </div>
 
-      {isReading && <ReadingProgress progress={readProgress} />}
+      {/* Between the export and the preview, because what a pass reads lands
+          in both: the button takes it and the preview shows it. */}
+      <ReadingBar {...reading} className="mt-4" />
 
       {/* Directly under the export block, because the Format control up
           there is what changes it. A setting whose effect is a screen away
@@ -1242,54 +1159,6 @@ function FileRows({ items }: { items: { name: string; why?: string; action?: Rea
       )}
     </>
   );
-}
-
-/**
- * A pass in flight, with a clock rather than a bar. Recognition has run from 31
- * seconds to 73 minutes on real drops, so a bar filling at an unknown rate is a
- * promise the pass cannot keep; elapsed time and a file count are both true at
- * every moment.
- */
-function ReadingProgress({ progress }: { progress: { done: number; total: number; note?: string } | null }) {
-  const [elapsed, setElapsed] = useState(0);
-  useEffect(() => {
-    const started = Date.now();
-    const id = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const total = progress?.total ?? 0;
-  const at = progress ? Math.min(progress.done + 1, total) : 0;
-
-  return (
-    <div className="border-border rounded-card bg-surface-alt mt-4 border px-[18px] py-3.5">
-      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
-        <div className="flex min-w-0 flex-1 items-start gap-3">
-          <Mark kind="gap" icon={ScanText} />
-          <div className="min-w-0">
-            <div className="text-ink text-sm leading-[1.5]" aria-live="polite">
-              {total > 0 ? `Reading ${at} of ${total} files.` : "Reading the pages as pictures."}
-            </div>
-            <div className="text-ink-muted mt-[3px] text-[13px] leading-[1.55]">
-              {/* Speech names where inside the file it is, as one recording can
-                  be the whole pass. */}
-              {progress?.note ? `${progress.note}.` : "Recognising the page images, here in your browser."} You
-              can leave this tab open and come back.
-            </div>
-          </div>
-        </div>
-        <span className="text-ink-muted ml-8 shrink-0 font-mono text-[11.5px] tabular-nums sm:ml-0 sm:mt-[3px]">
-          {clock(elapsed)} elapsed
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function clock(seconds: number) {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 function QuietAction({

@@ -65,11 +65,55 @@ export function clearsRecognitionFloor(reading: {
 export async function recogniseImageWithOcr(
   file: File,
   language: string,
+  signal?: AbortSignal,
 ): Promise<{ text: string; confidence: number }> {
   if (import.meta.env.SSR) return { text: "", confidence: 0 };
   const mod = await import("./extract-document-client");
-  const reading = await mod.recogniseImage(file, language);
+  const reading = await mod.recogniseImage(file, language, signal);
   return clearsRecognitionFloor(reading) ? reading : { ...reading, text: "" };
+}
+
+/**
+ * Load the pass's recogniser before its first file, so the wait for the
+ * language data is a stage of its own on screen rather than a first file that
+ * seems to hang. Resolves to the milliseconds it took.
+ */
+export async function prepareReader(language: string, signal?: AbortSignal): Promise<number> {
+  if (import.meta.env.SSR) return 0;
+  const startedAt = performance.now();
+  const mod = await import("./extract-document-client");
+  const ready = mod.readerFor(language);
+  await (signal
+    ? Promise.race([
+        ready,
+        new Promise<never>((_, reject) =>
+          signal.addEventListener("abort", () => reject(new DOMException("Stopped", "AbortError")), { once: true }),
+        ),
+      ])
+    : ready);
+  return performance.now() - startedAt;
+}
+
+/** End the pass's recogniser. Every pass ends with this, stopped or not. */
+export async function releaseReader(): Promise<void> {
+  if (import.meta.env.SSR) return;
+  const mod = await import("./extract-document-client");
+  await mod.releaseReader();
+}
+
+/**
+ * Why a reading failed, as the three things someone can act on: the reader or
+ * its language data never arrived (`offline`), the tab ran out of memory
+ * (`memory`), or the file itself (`other`). tesseract rejects with strings and
+ * the browsers word a dropped request three ways, so this matches on text.
+ */
+export type ReadFailure = "offline" | "memory" | "other";
+
+export function readFailure(error: unknown): ReadFailure {
+  const text = error instanceof Error ? `${error.name} ${error.message}` : String(error);
+  if (/failed to fetch|networkerror|load failed|network|offline/i.test(text)) return "offline";
+  if (/memory|RangeError|allocation/i.test(text)) return "memory";
+  return "other";
 }
 
 /**
@@ -105,7 +149,9 @@ export async function readRecording(
   const [speech, frames] = await Promise.all([import("./extract-speech-client"), import("./extract-frames-client")]);
   const tracks = VIDEO_CONTAINERS.has(format) ? await frames.mediaTracks(file) : { audio: true, video: false };
   const heard = tracks.audio ? await speech.transcribe(file, language.locale, signal, onNote) : [];
-  const seen = tracks.video ? await frames.readFrames(file, language.code, signal, onNote) : [];
+  // A stop part-way through the speech keeps what was heard (B4), and the
+  // frames are never started after it.
+  const seen = tracks.video && !signal?.aborted ? await frames.readFrames(file, language.code, signal, onNote) : [];
   const text = [...heard, ...seen]
     .sort((a, b) => a.at - b.at)
     .map((line) => line.text)

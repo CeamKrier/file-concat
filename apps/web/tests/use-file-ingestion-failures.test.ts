@@ -50,6 +50,9 @@ vi.mock("~/lib/parsers", () => ({
 
 vi.mock("~/lib/ocr", () => ({
   readWithOcr: async () => ({ text: "" }),
+  prepareReader: async () => 0,
+  releaseReader: async () => {},
+  readFailure: () => "other",
   SPEECH_FORMATS: new Set(),
   MAX_SPEECH_BYTES: 0,
   SpeechTooLongError: class extends Error {},

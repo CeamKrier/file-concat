@@ -139,6 +139,9 @@ function listPaths(paths: string[]): string {
 function renderExclusions(excluded: ExcludedSummary | undefined): string[] {
   if (!excluded) return [];
   const lines: string[] = [];
+  if (excluded.pending?.length) {
+    lines.push(`- not read yet (reading was in progress): ${listPaths(excluded.pending)}`);
+  }
   if (excluded.oversize?.length) {
     lines.push(`- over the size limit: ${listPaths(excluded.oversize)}`);
   }

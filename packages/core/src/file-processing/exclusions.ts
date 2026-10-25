@@ -30,6 +30,13 @@ export interface ExcludedSummary {
    * model asked about page 5 knows it was a scan nobody read.
    */
   partial?: { path: string; notes: readonly ExtractionNote[] }[];
+  /**
+   * Files a recognition pass was still working through when the bundle was
+   * taken (Q7 O2). Export stays open during a pass, so a copy can land before
+   * these are read, and the bundle has to say they are coming rather than let
+   * them read as binary or blank.
+   */
+  pending?: string[];
 }
 
 /** A file-status-shaped record: the path, why it was excluded, and whether it

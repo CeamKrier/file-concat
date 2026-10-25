@@ -167,6 +167,20 @@ export function browserOcrLanguage(): OcrLanguage {
 }
 
 /**
+ * The browser's own language when no reader exists for it and English stands
+ * in, as its primary subtag (`ka`, `hy`), or null when there is a reader or no
+ * language to go on. Said on screen before anything downloads, so a reading in
+ * the wrong language is a choice someone saw rather than a surprise.
+ */
+export function browserLanguageWithoutReader(): string | null {
+  if (typeof navigator === "undefined") return null;
+  const tag = navigator.languages?.[0] ?? navigator.language;
+  if (!tag || browserOcrLanguage() !== ENGLISH) return null;
+  const primary = tag.toLowerCase().split("-")[0];
+  return /^[a-z]{2,3}$/.test(primary) && primary !== "en" ? primary : null;
+}
+
+/**
  * What to call it on screen. `Intl.DisplayNames` already knows every language
  * name, so nothing here needs a table of them.
  *

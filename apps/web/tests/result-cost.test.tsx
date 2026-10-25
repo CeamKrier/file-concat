@@ -44,13 +44,9 @@ function props(overrides: Partial<Parameters<typeof ResultView>[0]> = {}) {
     mediaCount: 0,
     recognisedMedia: 0,
     isReading: false,
-    readProgress: null,
-    isStopping: false,
-    onStopReading: vi.fn(),
+    reading: { isReading: false, progress: null, isStopping: false, onStop: vi.fn() },
     recoveredDocuments: 0,
     stoppedReading: false,
-    readDeferred: false,
-    deferredScope: { previewed: 0, pagesLeft: null },
     readLanguageNote: null,
     onCheckReading: vi.fn(),
     onAdjust: vi.fn(),
@@ -107,12 +103,11 @@ describe("the price of one send", () => {
     expect(screen.getByText("50%")).toBeInTheDocument();
   });
 
-  it("keeps the figure while a recognition pass is holding the export", () => {
-    // The count grows when the pass ends, so the price does too. It is still
+  it("keeps the figure while a recognition pass runs", () => {
+    // The count grows as each file is read, so the price does too. It is still
     // the honest price of the bundle as it stands.
-    render(
-      <ResultView {...props({ isReading: true, readProgress: { done: 0, total: 2 } })} />,
-    );
+    const reading = { isReading: true, progress: { done: 0, total: 2 }, isStopping: false, onStop: vi.fn() };
+    render(<ResultView {...props({ isReading: true, reading })} />);
     expect(screen.getByText("$0.30")).toBeInTheDocument();
   });
 });

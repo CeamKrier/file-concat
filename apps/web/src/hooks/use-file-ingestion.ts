@@ -30,14 +30,23 @@ import { addToTally, startRun, track, trackAmount, trackTally, type Tally } from
 import { tagDrop, tagSource } from "~/lib/clarity-tags";
 import {
   MAX_SPEECH_BYTES,
+  prepareReader,
+  readFailure,
   readPdfPagesWithOcr,
   readRecording,
   readWithOcr,
   recogniseImageWithOcr,
+  releaseReader,
   SPEECH_FORMATS,
   SpeechTooLongError,
+  type ReadFailure,
 } from "~/lib/ocr";
-import { browserOcrLanguage, ocrLanguageFor, type OcrLanguage } from "~/lib/ocr-language";
+import {
+  browserLanguageWithoutReader,
+  browserOcrLanguage,
+  ocrLanguageFor,
+  type OcrLanguage,
+} from "~/lib/ocr-language";
 import { planPreview } from "~/lib/scan-preview";
 import { parsers, readFetchedPage, readSubtitleTrack, SUBTITLE_TRACK_FORMATS } from "~/lib/parsers";
 import { prepareBatch } from "~/lib/prepare-batch";
@@ -260,6 +269,16 @@ export type IngestOptions = { append?: AppendSource };
 
 export type ReadProgress = { done: number; total: number; note?: string } | null;
 
+/**
+ * How the last pass ended, for the line that reports it: how many of the files
+ * it was given came back with text, and the cause when any of them could not
+ * be read for a reason someone can act on (`offline`, `memory`).
+ */
+export type LastPass = { read: number; total: number; failure: ReadFailure | null } | null;
+
+/** Shown while the recogniser and its language data load, before the first file. */
+export const GETTING_READER = "Getting the reader";
+
 export type IngestPhase = "unpacking" | "reading" | "fetching" | "recognising";
 /**
  * Live progress for the processing view. `total === 0` means indeterminate.
@@ -357,6 +376,14 @@ export interface FileIngestion {
   /** The language the last pass read in, or null before one has run. */
   readLanguage: OcrLanguage | null;
   /**
+   * The files the running pass has not reached yet, by path. Export stays open
+   * during a pass (Q7 O2) and each file joins the bundle as it is read, so the
+   * bundle names these instead of leaving them to read as binary.
+   */
+  pendingReads: string[];
+  /** How the last pass ended; null before one has. */
+  lastPass: LastPass;
+  /**
    * The language each recovered document was actually read in, by path.
    *
    * Not the same thing as {@link readLanguage} once a pass can cover a subset:
@@ -411,6 +438,8 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   const [stoppedReading, setStoppedReading] = useState(false);
   const [readLanguage, setReadLanguage] = useState<OcrLanguage | null>(null);
   const [readLanguages, setReadLanguages] = useState<Record<string, OcrLanguage>>({});
+  const [pendingReads, setPendingReads] = useState<string[]>([]);
+  const [lastPass, setLastPass] = useState<LastPass>(null);
   // Read by `ingestBatch` to report what an append landed on top of. A ref
   // rather than a dependency, so adding this does not re-create every ingest
   // callback on each entry change.
@@ -439,6 +468,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
    * joins the bundle, one that does not is taken back out of it. That is what
    * makes a re-read in another language safe to run over documents an earlier
    * pass already recovered.
+   *
+   * Each document lands as soon as it is read, not when the pass ends (Q7 O2),
+   * so Copy and Download stay open throughout and take whatever is in.
    */
   const readDocuments = useCallback(
     async (
@@ -458,6 +490,8 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       setStoppedReading(false);
       const startedAt = performance.now();
       setIsReading(true);
+      setLastPass(null);
+      setPendingReads(documents.map((d) => d.path));
       setReadProgress({ done: 0, total: documents.length });
       // Also on the ingest channel, because a batch awaits this: recognition is
       // the last stage of the drop, not something happening behind a result that
@@ -483,17 +517,81 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // The videos among them whose frames gave text, against `frames_read`.
       const framesRead: Tally = new Map();
       const confidences: Tally = new Map();
+      const failures: Tally = new Map();
+      let failure: ReadFailure | null = null;
       const readEntries: ContentEntry[] = [];
-      const stillUnread: ScannedDocument[] = [];
-      const readValidations: Record<string, ValidationRecord> = {};
-      // Pages of a document already in the bundle that this pass drew and got
-      // nothing from, so the bundle's note keeps naming them.
-      const unreadPages = new Map<string, number[]>();
       // The documents this pass actually opened. Everything else it was given
-      // is left exactly as it was — see the merge below for why that matters.
+      // is left exactly as it was — see `merge` for why that matters.
       const attempted = new Set<string>();
 
+      /**
+       * One document's result, into the bundle at once. Replace in place where
+       * the path is already there (a re-read), append where it is not, and take
+       * out what this pass could not read so a second language never leaves the
+       * first one's text behind. `unreadPages` are pages of a document already
+       * in the bundle that this pass drew and got nothing from, so the bundle's
+       * note keeps naming them.
+       */
+      const merge = (
+        path: string,
+        entry: ContentEntry | undefined,
+        unread: ScannedDocument | undefined,
+        validation: ValidationRecord | undefined,
+        unreadPages: readonly number[] = [],
+      ) => {
+        setEntries((prev) => {
+          if (unread) return prev.filter((e) => e.path !== path);
+          if (!entry) return prev;
+          return prev.some((e) => e.path === path)
+            ? prev.map((e) => (e.path === path ? entry : e))
+            : [...prev, entry];
+        });
+        if (validation) {
+          setValidations((prev) => {
+            const notes = afterRecognition(prev[path]?.notes, unreadPages);
+            return { ...prev, [path]: validation.included && notes.length ? { ...validation, notes } : validation };
+          });
+        }
+        // Which language each document ended up read in, so a scoped pass never
+        // relabels the ones it did not touch. Documents this pass lost drop out.
+        setReadLanguages((prev) => {
+          const next = { ...prev };
+          delete next[path];
+          if (entry) next[path] = language;
+          return next;
+        });
+        // Merged, not replaced. A pass runs over a chosen subset, so the
+        // documents it was never given keep the standing they already had. A
+        // stop leaves the tail untouched rather than failed, so stopping a
+        // re-read can never throw away an earlier pass's good text.
+        setUnreadDocuments((prev) => [...prev.filter((d) => d.path !== path), ...(unread ? [unread] : [])]);
+        setPendingReads((prev) => prev.filter((p) => p !== path));
+      };
+
       try {
+        // The recogniser first, as a stage of its own: on the first pass it is
+        // a download, and a first file that sat on it looked like a hang. Speech
+        // loads its own model and says so in its own note.
+        if (documents.some((d) => !isSpeechMedia(d.format))) {
+          setReadProgress({ done: 0, total: documents.length, note: GETTING_READER });
+          try {
+            trackAmount("ocr_ready_ms", { n: await prepareReader(language.code, controller.signal) });
+          } catch (error) {
+            if (controller.signal.aborted) {
+              setStoppedReading(true);
+              trackAmount("read_stopped", { n: documents.length });
+              return 0;
+            }
+            // Nothing was opened, so nothing changes standing: every document
+            // stays the offer it was, under a line that says why.
+            failure = readFailure(error);
+            console.error("Recognition could not start:", error);
+            trackAmount("ocr_failed", { value: failure, n: documents.length });
+            return 0;
+          }
+          setReadProgress({ done: 0, total: documents.length });
+        }
+
         for (let i = 0; i < documents.length; i++) {
           const document = documents[i];
           // The cheap half of the stop. The signal below is what makes it land
@@ -505,6 +603,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             break;
           }
           attempted.add(document.path);
+          let pagesLeft: number[] = [];
           try {
             let text = "";
             if (isSpeechMedia(document.format)) {
@@ -521,7 +620,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
               // An image: the whole file is the picture, so it goes to the
               // recogniser as it is. No bytes are read here — the `File` is a
               // reference and the recogniser decodes it itself.
-              const reading = await recogniseImageWithOcr(document.file, language.code);
+              const reading = await recogniseImageWithOcr(document.file, language.code, controller.signal);
               addToTally(imagesRead, document.format, document.file.size);
               addToTally(confidences, confidenceBand(reading.confidence));
               text = reading.text;
@@ -546,7 +645,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                     }),
                   controller.signal,
                 );
-                unreadPages.set(document.path, document.pages.filter((page) => !read.has(page)));
+                pagesLeft = document.pages.filter((page) => !read.has(page));
                 if (read.size > 0) {
                   text = document.text
                     ? replacePages(document.text, read)
@@ -558,8 +657,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             }
             if (text) {
               addToTally(recovered, document.format, document.file.size);
-              readEntries.push({ path: document.path, content: text, recognised: true });
-              readValidations[document.path] = {
+              const entry: ContentEntry = { path: document.path, content: text, recognised: true };
+              readEntries.push(entry);
+              merge(document.path, entry, undefined, {
                 included: true,
                 classification: "text",
                 size: document.file.size,
@@ -569,15 +669,14 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                 // saying so would put a PNG under "text extracted from 1
                 // document". The bundle's recognition line covers both.
                 ...(isOfferOnly(document.format) ? {} : { extracted: true }),
-              };
+              }, pagesLeft);
             } else if (!document.text) {
               // Recognition found nothing: an encrypted PDF, a page with no
               // writing on it, or a language this pass read it in cannot see.
               // An image is left saying what it was, because it never promised
               // text in the first place — "no extractable text" would read as a
               // failure on a photograph that simply has no writing in it.
-              stillUnread.push(document);
-              readValidations[document.path] = {
+              merge(document.path, undefined, document, {
                 included: false,
                 reason: isSpeechMedia(document.format)
                   ? "No speech found"
@@ -588,12 +687,15 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                 size: document.file.size,
                 type: document.file.type || "application/octet-stream",
                 recognitionTried: true,
-              };
+              }, pagesLeft);
+            } else {
+              // A document that came here with text of its own and gained
+              // nothing is left exactly as it was. It is already in the bundle
+              // with the part of itself that decoded, and calling it unread
+              // would take that back out: a failed rescue must not cost more
+              // than it found.
+              merge(document.path, undefined, undefined, undefined);
             }
-            // A document that came here with text of its own and gained nothing
-            // is left exactly as it was. It is already in the bundle with the
-            // part of itself that decoded, and calling it unread would take that
-            // back out — a failed rescue must not cost more than it found.
           } catch (error) {
             // A stop now throws out of the reader mid-document. That document
             // was interrupted, not tried and found wanting, so it goes back to
@@ -606,9 +708,13 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
               break;
             }
             console.error(`Recognition failed for ${document.path}:`, error);
+            // The cause someone can act on wins over "the file itself", so a
+            // pass that lost its connection half-way says so.
+            const cause = readFailure(error);
+            addToTally(failures, cause, document.file.size);
+            if (failure === null || failure === "other") failure = cause;
             if (!document.text) {
-              stillUnread.push(document);
-              readValidations[document.path] = {
+              merge(document.path, undefined, document, {
                 included: false,
                 reason:
                   error instanceof SpeechTooLongError
@@ -618,7 +724,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                 size: document.file.size,
                 type: document.file.type || "application/octet-stream",
                 recognitionTried: true,
-              };
+              });
+            } else {
+              merge(document.path, undefined, undefined, undefined);
             }
           }
           setReadProgress({ done: i + 1, total: documents.length });
@@ -631,43 +739,6 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           });
         }
 
-        // Replace in place where a path is already in the bundle (a re-read),
-        // append where it is not (the first pass), and drop what this pass could
-        // not read so a second language never leaves the first one's text behind.
-        const failed = new Set(stillUnread.map((d) => d.path));
-        setEntries((prev) => {
-          const byPath = new Map(readEntries.map((e) => [e.path, e]));
-          const kept = prev.filter((e) => !failed.has(e.path)).map((e) => byPath.get(e.path) ?? e);
-          const present = new Set(kept.map((e) => e.path));
-          return [...kept, ...readEntries.filter((e) => !present.has(e.path))];
-        });
-        setValidations((prev) => {
-          const next = { ...prev, ...readValidations };
-          for (const path of Object.keys(readValidations)) {
-            const notes = afterRecognition(prev[path]?.notes, unreadPages.get(path) ?? []);
-            if (readValidations[path].included && notes.length) next[path] = { ...next[path], notes };
-          }
-          return next;
-        });
-        // Which language each document ended up read in, so a scoped pass never
-        // relabels the ones it did not touch. Documents this pass lost drop out.
-        setReadLanguages((prev) => {
-          const next = { ...prev };
-          for (const path of attempted) delete next[path];
-          for (const entry of readEntries) next[entry.path] = language;
-          return next;
-        });
-        // Merged, not replaced. A pass now runs over a chosen subset, so the
-        // documents it was never given have to keep the standing they already
-        // had — replacing the list would quietly rescue every document this
-        // pass did not look at. Same reason `attempted` and not `documents`:
-        // a stop leaves the tail untouched rather than failed, so stopping a
-        // re-read can no longer throw away an earlier pass's good text.
-        setUnreadDocuments((prev) => [
-          ...prev.filter((d) => !attempted.has(d.path)),
-          ...stillUnread,
-        ]);
-
         // What recognition rescued, against the `extract_failed` rows of the same
         // Run — the two together are what says whether this was worth building.
         trackAmount("ocr_ms", { n: performance.now() - startedAt });
@@ -679,6 +750,13 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         // right place, which is the only way those two guesses ever move.
         trackTally("ocr_conf", confidences);
         track("ocr_lang", language.code);
+        // English standing in for a browser language no reader exists for:
+        // which language, so the next one worth adding is a count, not a guess.
+        const missing = browserLanguageWithoutReader();
+        if (missing && language.code === "eng") track("ocr_lang_fallback", missing);
+        trackTally("ocr_failed", failures);
+        // How much of the pass a stop left: the files it never finished.
+        if (controller.signal.aborted) trackAmount("read_stopped", { n: documents.length - attempted.size });
         return readEntries.length;
       } finally {
         readingRef.current = false;
@@ -686,6 +764,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         setIsStopping(false);
         setIsReading(false);
         setReadProgress(null);
+        setPendingReads([]);
+        setLastPass({ read: readEntries.length, total: documents.length, failure });
+        void releaseReader();
       }
     },
     [],
@@ -792,6 +873,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         abortRef.current = null;
         setIsStopping(false);
         setIsReading(false);
+        void releaseReader();
       }
       for (const { document } of plan) {
         if (!opened.has(document.path)) addToTally(skips, "stopped", document.file.size);
@@ -1590,6 +1672,8 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     setStoppedReading(false);
     setReadLanguage(null);
     setReadLanguages({});
+    setPendingReads([]);
+    setLastPass(null);
     setSourceUrl(null);
     setIsProcessing(false);
     setIsRepoLoading(false);
@@ -1618,6 +1702,8 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     stoppedReading,
     readLanguage,
     readLanguages,
+    pendingReads,
+    lastPass,
     sourceUrl,
     isProcessing,
     isRepoLoading,
