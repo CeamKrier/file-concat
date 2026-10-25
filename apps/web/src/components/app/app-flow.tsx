@@ -207,18 +207,27 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // from the whole bundle (contents, preview, token count) follows in a render
   // React may interrupt, a step behind (useDeferredValue). On a big drop that
   // work is most of a second, and it used to hold the click until it finished.
-  const settledStatuses = useDeferredValue(filter.fileStatuses);
+  // Only a toggle is deferred. Statuses deferred across a new drop or append
+  // are not a step behind, they belong to another bundle: the result screen
+  // showed "0 tokens" or the last bundle's count for that render.
+  const live = useMemo(
+    () => ({ entries: ingestion.entries, statuses: filter.fileStatuses }),
+    [ingestion.entries, filter.fileStatuses],
+  );
+  const deferred = useDeferredValue(live);
+  const settled = deferred.entries === live.entries ? deferred : live;
+  const settledStatuses = settled.statuses;
   const includedContents = useMemo(() => {
     const included = new Set(settledStatuses.filter((s) => s.included).map((s) => s.path));
     const transform = config.showLineNumbers ? addLineNumbers : null;
-    return ingestion.entries
+    return settled.entries
       .filter((e) => included.has(e.path))
       .map((e) => ({
         path: e.path,
         content: transform ? transform(e.content) : e.content,
         recognised: e.recognised,
       }));
-  }, [ingestion.entries, settledStatuses, config.showLineNumbers]);
+  }, [settled.entries, settledStatuses, config.showLineNumbers]);
 
   // Real content gaps the model can't see in the tree (ADR-0008). Reported in
   // the bundle summary; noise and user-deselected files are never listed.
@@ -548,9 +557,9 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
    * kind is not silently missing from the total.
    *
    * Empty is judged on `filesCombined` and the live statuses, the values the
-   * screen itself renders from. `includedContents` follows them a render behind
-   * (`useDeferredValue`), so its first result render is empty for every drop,
-   * and from 2026-10-17 to 10-18 that wrote these rows beside a `bundle_size`.
+   * screen itself renders from. `includedContents` once followed them a render
+   * behind on every drop (`useDeferredValue`), and from 2026-10-17 to 10-18
+   * that wrote these rows beside a `bundle_size`.
    */
   const emptiedRun = useRef<number | null>(null);
   useEffect(() => {
