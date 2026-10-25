@@ -200,6 +200,9 @@ Clip what you want. A tapped row says it is being read and each clipping lands
 in a cart, one row per item, so a page that fails says so on its own row and
 names the reason while the rest carry on. The cart holds the last 50, and the
 work runs in the background, so closing the panel mid-batch does not stop it.
+Each clipping opens with a short header naming its source page and the tool
+that made it ("clipper: FileConcat Clipper"), so you can always tell where a
+file came from.
 
 Then press Send. Every finished row goes into your fileconcat.com tab at once,
 opening one if there is none. A send adds to the bundle rather than replacing
