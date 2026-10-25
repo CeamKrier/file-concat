@@ -155,6 +155,57 @@ describe("parseUrl variants", () => {
       expect(parsed.isValid).toBe(false);
       expect(parsed.error).toMatch(/invalid github url/i);
     });
+
+    // Shapes people paste straight from the address bar. Each was rejected by
+    // the old anchored pattern and surfaced as "use a full repo URL".
+    it.each([
+      ["https://github.com/owner/repo/", "repo", undefined, undefined],
+      ["https://www.github.com/owner/repo", "repo", undefined, undefined],
+      ["http://github.com/owner/repo", "repo", undefined, undefined],
+      ["https://github.com/owner/repo?tab=readme-ov-file", "repo", undefined, undefined],
+      ["https://github.com/owner/repo#readme", "repo", undefined, undefined],
+      ["https://github.com/owner/repo.git/", "repo", undefined, undefined],
+      ["https://github.com/owner/my.repo", "my.repo", undefined, undefined],
+      ["https://github.com/owner/repo/issues/12", "repo", undefined, undefined],
+      ["https://github.com/owner/repo/tree/main/", "repo", "main", undefined],
+      ["https://github.com/owner/repo/blob/main/src/index.ts", "repo", "main", "src/index.ts"],
+    ])("accepts %s", (url, repo, branch, path) => {
+      const parsed = githubAdapter.parseUrl(url);
+
+      expect(parsed.isValid).toBe(true);
+      expect(parsed.owner).toBe("owner");
+      expect(parsed.repo).toBe(repo);
+      expect(parsed.branch).toBe(branch);
+      expect(parsed.path).toBe(path);
+      expect(githubAdapter.matches(url)).toBe(true);
+    });
+
+    // The parts are interpolated into api.github.com and raw.githubusercontent
+    // paths, so anything outside GitHub's own character sets is refused.
+    it.each([
+      "https://github.com.evil.example/owner/repo",
+      "https://evil.example/github.com/owner/repo",
+      "https://github.com@evil.example/owner/repo",
+      "ftp://github.com/owner/repo",
+      "https://github.com/own%2Fer/repo",
+      "https://github.com/owner/..",
+      "https://gist.github.com/owner/abc123",
+      "not a url",
+    ])("rejects %s", (url) => {
+      expect(githubAdapter.parseUrl(url).isValid).toBe(false);
+      expect(githubAdapter.matches(url)).toBe(false);
+    });
+
+    // URL parsing resolves encoded dot segments before the split, so none
+    // reaches a ref or a path.
+    it.each([
+      "https://github.com/owner/repo/tree/%2e%2e/x",
+      "https://github.com/owner/repo/tree/main/a/%2E%2E/b",
+    ])("resolves dot segments in %s", (url) => {
+      const parsed = githubAdapter.parseUrl(url);
+
+      expect(`${parsed.branch}/${parsed.path}`).not.toMatch(/(^|\/)\.\.?(\/|$)|%2e/i);
+    });
   });
 
   describe("gitlab", () => {
@@ -279,10 +330,8 @@ describe("adapter fetch flows", () => {
 
   it("fetches files from GitHub repositories", async () => {
     mockFetch.mockImplementation((url: RequestInfo) => {
-      if (url === "https://api.github.com/repos/owner/repo") {
-        return Promise.resolve(makeResponse({ json: { default_branch: "main" } }));
-      }
-      if (url === "https://api.github.com/repos/owner/repo/git/trees/main?recursive=1") {
+      // No default-branch lookup: the tree is read at HEAD, one API request.
+      if (url === "https://api.github.com/repos/owner/repo/git/trees/HEAD?recursive=1") {
         return Promise.resolve(
           makeResponse({
             json: {
@@ -295,10 +344,10 @@ describe("adapter fetch flows", () => {
           }),
         );
       }
-      if (url === "https://raw.githubusercontent.com/owner/repo/main/src/index.ts") {
+      if (url === "https://raw.githubusercontent.com/owner/repo/HEAD/src/index.ts") {
         return Promise.resolve(makeResponse({ body: makeStreamBody(["abc"]) }));
       }
-      if (url === "https://raw.githubusercontent.com/owner/repo/main/README.md") {
+      if (url === "https://raw.githubusercontent.com/owner/repo/HEAD/README.md") {
         return Promise.resolve(makeResponse({ body: makeStreamBody(["hello"]) }));
       }
 
@@ -310,6 +359,34 @@ describe("adapter fetch flows", () => {
     expect(result.error).toBeUndefined();
     expect(result.files).toHaveLength(2);
     expect(result.files[0].content).toBeDefined();
+  });
+
+  it("encodes file names that would cut the raw URL", async () => {
+    mockFetch.mockImplementation((url: RequestInfo) => {
+      if (url === "https://api.github.com/repos/owner/repo/git/trees/HEAD?recursive=1") {
+        return Promise.resolve(
+          makeResponse({ json: { tree: [{ type: "blob", path: "docs/C# notes?.md", size: 2 }] } }),
+        );
+      }
+      if (url === "https://raw.githubusercontent.com/owner/repo/HEAD/docs/C%23%20notes%3F.md") {
+        return Promise.resolve(makeResponse({ body: makeStreamBody(["ok"]) }));
+      }
+      return Promise.resolve(makeResponse({ ok: false, status: 404 }));
+    });
+
+    const result = await githubAdapter.fetchFiles("https://github.com/owner/repo");
+
+    expect(result.failures).toBeUndefined();
+    expect(result.files.map((f) => f.path)).toEqual(["docs/C# notes?.md"]);
+  });
+
+  it("names the repository when it is missing, without a branch in the URL", async () => {
+    mockFetch.mockResolvedValue(makeResponse({ ok: false, status: 404 }));
+
+    const result = await githubAdapter.fetchFiles("https://github.com/owner/repo");
+
+    expect(result.error).toMatch(/repository 'owner\/repo' not found/i);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it("filters to a /tree/<branch>/<path> subdir and normalizes display paths", async () => {

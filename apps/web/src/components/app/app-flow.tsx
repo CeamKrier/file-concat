@@ -24,7 +24,7 @@ import { estimateBundleTokens, preloadTokenEstimator } from "~/lib/tokens";
 import { weighBundle } from "~/lib/bundle-weight";
 import { useSelectedModel } from "~/hooks/use-selected-model";
 import { classifyUrl, type Classification, type ImportTab } from "~/lib/classify-url";
-import { friendlyFetchError } from "~/lib/fetch-error";
+import { friendlyFetchError, type ImportError } from "~/lib/fetch-error";
 import {
   addToTally,
   currentRun,
@@ -198,7 +198,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // visible under the drop target, on every landing (see `ImportPanel`).
   const [importTab, setImportTab] = useState<ImportTab>("github");
   const [importUrl, setImportUrl] = useState("");
-  const [importError, setImportError] = useState<string | null>(null);
+  const [importError, setImportError] = useState<ImportError | null>(null);
   const [resultNote, setResultNote] = useState<ResultNote | null>(null);
   const importAbortRef = useRef<AbortController | null>(null);
 
@@ -871,13 +871,15 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     // attempt writes no `source_used` either, so without that it is absent
     // from the data entirely rather than merely unexplained.
     if (c.kind === "empty" || c.kind === "bad") {
-      setImportError("That doesn't look like a link yet. Paste a public repo, Gist, or page URL.");
+      setImportError({
+        message: "That doesn't look like a link yet. Paste a public repo, Gist, or page URL.",
+      });
       return;
     }
     if (c.kind === "binary") {
-      setImportError(
-        `That link points to a ${c.fileType} file, which can't be read as text. Try a repo, a Gist, or a page with text.`,
-      );
+      setImportError({
+        message: `That link points to a ${c.fileType} file, which can't be read as text. Try a repo, a Gist, or a page with text.`,
+      });
       return;
     }
     setImportError(null);
@@ -902,7 +904,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         if (failure !== null) track("import_failed", `fetch/${failure.reason}`);
         setPhase("landing");
         setResultNote(null);
-        setImportError(failure?.message ?? null);
+        setImportError(failure);
       }
     })();
   }, [importUrl, importTab, begin, ingestion]);

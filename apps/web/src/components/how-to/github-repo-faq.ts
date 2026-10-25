@@ -50,7 +50,7 @@ export const GITHUB_REPO_FAQ = [
   },
   {
     q: "Does a large repository work?",
-    a: "Yes. When GitHub's file listing for a repository comes back incomplete, FileConcat downloads the whole repository as one archive instead and unpacks it in your browser. Without an account, GitHub limits how often one address can call its API. Many imports in a short time can be refused, and the message says when to try again.",
+    a: "Up to about 100,000 files, yes: GitHub lists that many in one request. A bigger repository stops with a link to GitHub's ZIP of it. Download it and drop it here, and it is unpacked in your browser. Without an account, GitHub allows 60 requests an hour per network and each import uses one. When those are used up, the message says when they reset and links the same ZIP.",
   },
   {
     q: "Is my code uploaded to a server?",

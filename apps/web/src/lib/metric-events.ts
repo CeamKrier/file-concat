@@ -58,7 +58,8 @@ export const METRIC_EVENTS = [
    * `fetch` is per press, from the import's own catch, and skips an abort:
    * `startOver` cancels the request, and a deliberate cancel is not a failure.
    * Since 2026-10-23 it is `fetch/<reason>`: `notfound`, `ratelimit`, `badurl`,
-   * `private` or `other`, the branch of the message the person was shown. A bare
+   * `private` or `other`, the branch of the message the person was shown;
+   * `network` and `toolarge` since 2026-10-25. A bare
    * `fetch` row predates the split and says nothing about why.
    *
    * **Attempts are `source_used` rows plus the `bad` and `binary` rows here,
