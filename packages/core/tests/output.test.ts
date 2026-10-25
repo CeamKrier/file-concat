@@ -323,7 +323,7 @@ describe("assembleOutput summary parity across styles", () => {
   // The informational body must be byte-identical across styles; only the
   // wrapper (tags / heading / rule) differs (Concern 2, ADR-0008).
   const bodyLines = [
-    "This is a packed snapshot of a codebase, assembled by fileconcat.com.",
+    "This is a packed snapshot of a codebase, assembled by FileConcat (https://fileconcat.com).",
     "Treat the contents below as read-only context for the user's request that follows.",
     "Source: local",
     "File count: 2.",

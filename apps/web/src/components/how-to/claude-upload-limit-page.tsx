@@ -316,7 +316,7 @@ function WorkedExample() {
           <pre className="overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.7]">
             <code>
               <span className="text-ink-secondary">
-                {`This is a packed snapshot of a\ncodebase, assembled by fileconcat.com.\n`}
+                {`This is a packed snapshot of a\ncodebase, assembled by FileConcat (https://fileconcat.com).\n`}
               </span>
               <span className="text-ink-faint">{`Source: https://github.com/\nexpressjs/express\n`}</span>
               <span className="text-go-fg">{`File count: ${EXAMPLE.combined}.\n`}</span>
