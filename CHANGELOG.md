@@ -15,7 +15,7 @@
 
 ### Bug Fixes
 
-* **core:** GitHub import takes pasted links and spends one request ([9d7c2e7](https://github.com/CeamKrier/file-concat/commit/9d7c2e7357c62009a21db87fe6a56e025581097c)), references [#readme](https://github.com/CeamKrier/file-concat/issues/readme)
+* **core:** GitHub import takes pasted links and spends one request ([9d7c2e7](https://github.com/CeamKrier/file-concat/commit/9d7c2e7357c62009a21db87fe6a56e025581097c))
 * **web:** Download stays in the phone bar when Share leads it ([ae4bb81](https://github.com/CeamKrier/file-concat/commit/ae4bb81cc88efb6b23ed7c37e753e05e91814792))
 * **web:** the result screen opens on its final figures ([ddd9f78](https://github.com/CeamKrier/file-concat/commit/ddd9f78b23a100650ed92061a05b536c83d865c1))
 
