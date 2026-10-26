@@ -1,4 +1,3 @@
-import { unzipSync } from "fflate";
 import type { SourceAdapter, ParsedSourceUrl, FetchOptions } from "../types";
 import type { RepositoryContent, RepoFile, FetchFailure } from "../../types";
 import { SOURCE_METADATA } from "../metadata";
@@ -6,14 +5,13 @@ import { createProgressReporter } from "../progress";
 import { DEFAULT_DOWNLOAD_CONCURRENCY, pooledMap } from "../pooled-map";
 import { classifyResponseError, fetchWithRateLimitRetry } from "./_errors";
 
-/** GitHub URL regex patterns */
-const GITHUB_REPO_REGEX =
-  /^https?:\/\/github\.com\/([^/]+)\/([^/]+)(?:\/tree\/([^/]+)(?:\/(.+))?)?$/;
+const GITHUB_HOSTS = new Set(["github.com", "www.github.com"]);
+// GitHub's own character sets. The parts are interpolated into API and raw
+// paths, so nothing outside them gets that far.
+const OWNER_REGEX = /^[A-Za-z0-9_-]{1,39}$/;
+const REPO_REGEX = /^[A-Za-z0-9_.-]{1,100}$/;
+const MAX_REF_LENGTH = 255;
 const GITHUB_RAW_REGEX = /^https?:\/\/raw\.githubusercontent\.com\//;
-
-interface GitHubRepoResponse {
-  default_branch: string;
-}
 
 interface GitHubTreeItem {
   type: string;
@@ -54,48 +52,36 @@ export function getGitHubDisplayPath(itemPath: string, subPath?: string): string
 }
 
 /**
- * Extract the files from a GitHub zipball (`/zipball/{ref}`). The archive wraps
- * everything in a single top-level `owner-repo-<sha>/` directory, which we
- * strip. Directory entries and (when `subPath` is set) files outside the
- * subtree are dropped, and the subPath prefix is stripped from display paths so
- * the result matches the selective per-file path (see {@link getGitHubDisplayPath}).
- */
-export function extractZipballFiles(bytes: Uint8Array, subPath?: string): RepoFile[] {
-  const unzipped = unzipSync(bytes);
-  const decoder = new TextDecoder();
-  const files: RepoFile[] = [];
-
-  for (const [entryPath, data] of Object.entries(unzipped)) {
-    if (entryPath.endsWith("/")) continue; // directory entry
-
-    // Strip the single wrapping "owner-repo-<sha>/" top-level directory.
-    const slash = entryPath.indexOf("/");
-    const repoPath = slash === -1 ? entryPath : entryPath.slice(slash + 1);
-    if (!repoPath) continue;
-
-    if (!isGitHubTreeItemIncluded({ type: "blob", path: repoPath }, subPath)) continue;
-
-    const displayPath = getGitHubDisplayPath(repoPath, subPath);
-    files.push({
-      name: displayPath.split("/").pop() || "",
-      path: displayPath,
-      type: "text/plain",
-      size: data.length,
-      content: decoder.decode(data),
-    });
-  }
-
-  return files;
-}
-
-/**
- * Parse GitHub repository URL
+ * Parse a GitHub repository URL as people paste it from the address bar:
+ * `www.`, a trailing slash, `?tab=...`, `#readme` and `.git` are all fine.
+ * `/tree/<ref>/<path>` and `/blob/<ref>/<path>` narrow to a ref and subpath;
+ * any other page under the repo (issues, pulls) means the repo itself. The
+ * URL parser resolves dot segments, `%2e%2e` included, before we split.
  */
 function parseGitHubUrl(url: string): ParsedSourceUrl {
-  const match = url.match(GITHUB_REPO_REGEX);
+  let parsed: URL | undefined;
+  try {
+    parsed = new URL(url);
+  } catch {
+    // reported as invalid below
+  }
 
-  if (!match) {
-    // Check if it's a raw URL
+  const [owner = "", rawRepo = "", kind, ref, ...rest] =
+    parsed?.pathname.split("/").filter(Boolean) ?? [];
+  const repo = rawRepo.replace(/\.git$/, "");
+  const narrowed = (kind === "tree" || kind === "blob") && ref !== undefined;
+
+  const valid =
+    parsed !== undefined &&
+    (parsed.protocol === "https:" || parsed.protocol === "http:") &&
+    GITHUB_HOSTS.has(parsed.hostname) &&
+    OWNER_REGEX.test(owner) &&
+    REPO_REGEX.test(repo) &&
+    repo !== "." &&
+    repo !== ".." &&
+    (!narrowed || ref.length <= MAX_REF_LENGTH);
+
+  if (!valid) {
     if (GITHUB_RAW_REGEX.test(url)) {
       return {
         type: "github",
@@ -112,15 +98,13 @@ function parseGitHubUrl(url: string): ParsedSourceUrl {
     };
   }
 
-  const [, owner, repo, branch, path] = match;
-
   return {
     type: "github",
     isValid: true,
     owner,
-    repo: repo.replace(/\.git$/, ""),
-    branch: branch || undefined,
-    path: path || undefined,
+    repo,
+    branch: narrowed ? ref : undefined,
+    path: narrowed && rest.length ? rest.join("/") : undefined,
   };
 }
 
@@ -138,58 +122,34 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
       throw new Error(parsed.error || "Invalid GitHub URL");
     }
 
-    const { owner, repo, path: subPath } = parsed;
-    let { branch } = parsed;
+    const { owner, repo, branch, path: subPath } = parsed;
+    // Without a ref the tree is read at HEAD, the default branch, so one API
+    // request covers the import: the anonymous budget is 60 an hour per IP.
+    const ref = branch ?? "HEAD";
 
-    // Get default branch if not specified
-    if (!branch) {
-      onStatus?.("Finding the default branch");
-      const repoResponse = await fetchWithRateLimitRetry(
-        `https://api.github.com/repos/${owner}/${repo}`,
-        { signal },
-      );
-      if (!repoResponse.ok) {
-        if (repoResponse.status === 404) {
-          throw new Error(`Repository '${owner}/${repo}' not found`);
-        }
-        throw classifyResponseError(repoResponse, `GitHub repo ${owner}/${repo}`);
-      }
-      const repoData = (await repoResponse.json()) as GitHubRepoResponse;
-      branch = repoData.default_branch;
-    }
-
-    // Get file tree
     onStatus?.("Listing files");
-    const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`;
+    const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${ref}?recursive=1`;
     const treeResponse = await fetchWithRateLimitRetry(treeUrl, { signal });
 
     if (!treeResponse.ok) {
       if (treeResponse.status === 404) {
-        throw new Error(`Branch '${branch}' not found in repository`);
+        throw new Error(
+          branch
+            ? `Branch '${branch}' not found in repository`
+            : `Repository '${owner}/${repo}' not found`,
+        );
       }
-      throw classifyResponseError(treeResponse, `GitHub tree ${owner}/${repo}@${branch}`);
+      throw classifyResponseError(treeResponse, `GitHub repo ${owner}/${repo}`);
     }
 
     const treeData = (await treeResponse.json()) as GitHubTreeResponse;
 
-    // Large repos: GitHub caps the recursive tree at ~100k entries / 7MB and
-    // flags it `truncated`. The listing is then incomplete, so rather than
-    // silently shipping a partial repo (ADR-0004) we pull the whole thing as a
-    // single zipball — one request, no per-file rate-limit fan-out.
+    // GitHub caps the recursive tree at ~100k entries / 7MB and flags it
+    // `truncated`. A partial repo is never shipped (ADR-0004). The archive
+    // route is closed to a browser (codeload grants CORS to GitHub's own
+    // origin only), so the way out is the user downloading the ZIP.
     if (treeData.truncated) {
-      onStatus?.("Large repository, downloading full archive");
-      const zipUrl = `https://api.github.com/repos/${owner}/${repo}/zipball/${branch}`;
-      const zipResponse = await fetchWithRateLimitRetry(zipUrl, { signal });
-      if (!zipResponse.ok) {
-        throw classifyResponseError(zipResponse, `GitHub archive ${owner}/${repo}@${branch}`);
-      }
-      const bytes = new Uint8Array(await zipResponse.arrayBuffer());
-      const archived = extractZipballFiles(bytes, subPath);
-      if (subPath && archived.length === 0) {
-        throw new Error(`Path '${subPath}' not found in branch '${branch}'`);
-      }
-      onStatus?.(`Extracted ${archived.length} ${archived.length === 1 ? "file" : "files"}`);
-      return { files: archived };
+      throw new Error(`Repository '${owner}/${repo}' is too large to list in the browser`);
     }
 
     const files = treeData.tree.filter((item) => isGitHubTreeItemIncluded(item, subPath));
@@ -209,7 +169,9 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
     const failures: FetchFailure[] = [];
 
     const fetchedFiles = await pooledMap(files, DEFAULT_DOWNLOAD_CONCURRENCY, async (item) => {
-      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${item.path}`;
+      // A file name can hold `#`, `?` or `%`, which would cut or bend the URL.
+      const encodedPath = item.path.split("/").map(encodeURIComponent).join("/");
+      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${encodedPath}`;
       const displayPath = getGitHubDisplayPath(item.path, subPath);
 
       try {
@@ -284,7 +246,7 @@ async function fetchGitHubFiles(url: string, options?: FetchOptions): Promise<Re
 export const githubAdapter: SourceAdapter = {
   type: "github",
   meta: SOURCE_METADATA.github,
-  matches: (url) => GITHUB_REPO_REGEX.test(url) && !url.includes("gist.github.com"),
+  matches: (url) => parseGitHubUrl(url).isValid,
   parseUrl: parseGitHubUrl,
   fetchFiles: fetchGitHubFiles,
 };

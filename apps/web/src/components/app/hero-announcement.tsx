@@ -14,11 +14,9 @@ import { ChevronRight } from "lucide-react";
  * in the hero above the drop zone: news is worth one line, never a second row
  * of decoration competing with the heading.
  */
-const ANNOUNCEMENT = {
-  label: "New",
-  body: "Every FileConcat benchmark on one page, against Tika, markitdown and the best server tools",
-  to: "/benchmarks",
-} satisfies { label: string; body: string; to: string } | null;
+// Taken down 2026-10-26 (Q15 O3): it named Tika and markitdown above the
+// heading, to visitors who mostly came for an upload limit.
+const ANNOUNCEMENT = null as { label: string; body: string; to: string } | null;
 
 export function HeroAnnouncement() {
   if (!ANNOUNCEMENT) return null;

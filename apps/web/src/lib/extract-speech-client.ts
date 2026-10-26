@@ -163,11 +163,23 @@ export async function transcribe(
   const lines: TimedLine[] = [];
   let at = 0;
   for (const piece of pieces) {
+    if (signal?.aborted && lines.length > 0) {
+      return [...lines, { at: at / RATE, text: `[stopped at ${timestamp(at / RATE).slice(1, -1)}]` }];
+    }
     signal?.throwIfAborted();
     onNote?.(`Listening at ${timestamp(at / RATE).slice(1, -1)} of ${timestamp(seconds).slice(1, -1)}`);
     // A copy, not the view: the decoded whole stays here, the piece is transferred.
     const audio = piece.slice();
-    const text = await send({ model, audio, language });
+    let text: string;
+    try {
+      text = await send({ model, audio, language });
+    } catch (error) {
+      // A stop in the middle of a long recording keeps what was already
+      // written out, marked where it ends, rather than throwing minutes of
+      // transcript away. A stop before the first piece has nothing to keep.
+      if (!signal?.aborted || lines.length === 0) throw error;
+      return [...lines, { at: at / RATE, text: `[stopped at ${timestamp(at / RATE).slice(1, -1)}]` }];
+    }
     if (text) lines.push({ at: at / RATE, text: `${timestamp(at / RATE)} ${text}` });
     at += piece.length;
   }

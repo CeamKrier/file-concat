@@ -1,0 +1,67 @@
+{
+  "measured": "2026-10-26",
+  "screenshot": "1920 x 1080, scale 1, top of the page",
+  "reader": "tesseract.js 7.0.0, English, the defaults FileConcat uses",
+  "tokenizer": "o200k, FileConcat token count",
+  "excluded": "gnu.org/philosophy/free-sw.en.html answered 429 Too Many Requests, so its screenshot held no page",
+  "claudeImageTokens": {
+    "standard": 1560,
+    "highResolution": 2691
+  },
+  "rows": [
+    {
+      "page": "Wikipedia, Large language model",
+      "url": "https://en.wikipedia.org/wiki/Large_language_model",
+      "textTokens": 800,
+      "wordsMatched": 0.968
+    },
+    {
+      "page": "Wikipedia, Optical character recognition",
+      "url": "https://en.wikipedia.org/wiki/Optical_character_recognition",
+      "textTokens": 794,
+      "wordsMatched": 0.983
+    },
+    {
+      "page": "MDN, Array.prototype.map()",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map",
+      "textTokens": 339,
+      "wordsMatched": 0.721
+    },
+    {
+      "page": "Hacker News, front page",
+      "url": "https://news.ycombinator.com/",
+      "textTokens": 1074,
+      "wordsMatched": 0.812
+    },
+    {
+      "page": "GitHub, facebook/react",
+      "url": "https://github.com/facebook/react",
+      "textTokens": 631,
+      "wordsMatched": 0.797
+    },
+    {
+      "page": "Python tutorial, introduction",
+      "url": "https://docs.python.org/3/tutorial/introduction.html",
+      "textTokens": 545,
+      "wordsMatched": 0.986
+    },
+    {
+      "page": "RFC 9110, HTTP semantics",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html",
+      "textTokens": 763,
+      "wordsMatched": 0.981
+    },
+    {
+      "page": "Effective Go",
+      "url": "https://go.dev/doc/effective_go",
+      "textTokens": 288,
+      "wordsMatched": 0.989
+    },
+    {
+      "page": "The Rust book, getting started",
+      "url": "https://doc.rust-lang.org/book/ch01-00-getting-started.html",
+      "textTokens": 338,
+      "wordsMatched": 1
+    }
+  ]
+}

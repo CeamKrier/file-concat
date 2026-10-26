@@ -44,13 +44,9 @@ function props(overrides: Partial<Parameters<typeof ResultView>[0]> = {}) {
     mediaCount: 0,
     recognisedMedia: 0,
     isReading: false,
-    readProgress: null,
-    isStopping: false,
-    onStopReading: vi.fn(),
+    reading: { isReading: false, progress: null, isStopping: false, onStop: vi.fn() },
     recoveredDocuments: 0,
     stoppedReading: false,
-    readDeferred: false,
-    deferredScope: { previewed: 0, pagesLeft: null },
     readLanguageNote: null,
     onCheckReading: vi.fn(),
     onAdjust: vi.fn(),
@@ -107,28 +103,29 @@ describe("the price of one send", () => {
     expect(screen.getByText("50%")).toBeInTheDocument();
   });
 
-  it("keeps the figure while a recognition pass is holding the export", () => {
-    // The count grows when the pass ends, so the price does too. It is still
+  it("keeps the figure while a recognition pass runs", () => {
+    // The count grows as each file is read, so the price does too. It is still
     // the honest price of the bundle as it stands.
-    render(
-      <ResultView {...props({ isReading: true, readProgress: { done: 0, total: 2 } })} />,
-    );
+    const reading = { isReading: true, progress: { done: 0, total: 2 }, isStopping: false, onStop: vi.fn() };
+    render(<ResultView {...props({ isReading: true, reading })} />);
     expect(screen.getByText("$0.30")).toBeInTheDocument();
   });
 });
 
 /**
  * Under 640px the export row is a bar pinned to the bottom of the screen. Share
- * leads it only when the browser can share a file, and Download then moves to
- * the quiet row, so it is still one tap away.
+ * leads it only when the browser can share a file, and Download then narrows to
+ * an icon in the same bar, keeping its name for screen readers. It used to drop
+ * to a 20px text link under the bar.
  */
 describe("the phone bar", () => {
-  it("offers Share and moves Download when the browser can share a file", () => {
+  it("offers Share and keeps one named Download when the browser can share a file", () => {
     const onShare = vi.fn();
     render(<ResultView {...props({ onShare })} />);
     screen.getByRole("button", { name: /share/i }).click();
     expect(onShare).toHaveBeenCalledOnce();
-    expect(screen.getAllByRole("button", { name: /download/i })).toHaveLength(2);
+    const download = screen.getByRole("button", { name: /download/i });
+    expect(download.className).toContain("max-sm:w-[46px]");
   });
 
   it("has no Share without file sharing", () => {

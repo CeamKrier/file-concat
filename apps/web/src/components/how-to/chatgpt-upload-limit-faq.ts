@@ -9,6 +9,10 @@
  */
 export const CHATGPT_UPLOAD_LIMIT_FAQ = [
   {
+    q: "How many PDFs can I upload to ChatGPT?",
+    a: "As many as the file quota allows, since OpenAI sets no separate count for PDFs: 3 a day on the Free plan, and up to 80 every 3 hours. Each PDF can be up to 512 MB and 2 million tokens. Forty PDFs combined into one file count as one upload. Figures as of October 2026.",
+  },
+  {
     q: "What is the ChatGPT file upload limit?",
     a: "OpenAI's File Uploads FAQ says you can upload up to 80 files every 3 hours, and that Free users are limited to 3 file uploads per day. It adds that these limits may be lowered during peak hours. Separately, one file can be at most 512 MB, a text or document file at most 2 million tokens, and everything you have uploaded shares 25 GB of storage per user. Figures as of September 2026; OpenAI changes them, so check the current ones.",
   },

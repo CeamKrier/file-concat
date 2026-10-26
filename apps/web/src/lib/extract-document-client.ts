@@ -67,16 +67,63 @@ const MAX_IMAGE_SIDE = 2000;
 export async function recogniseImage(
   file: File,
   language: string,
+  signal?: AbortSignal,
 ): Promise<{ text: string; confidence: number }> {
-  const { createWorker } = await import("tesseract.js");
   const image = await flattenImage(file);
-  const worker = await createWorker(language);
-  try {
-    const { data } = await worker.recognize(image);
-    return { text: data.text.trim(), confidence: data.confidence };
-  } finally {
-    await worker.terminate();
-  }
+  const worker = await untilStopped(readerFor(language), signal);
+  const { data } = await untilStopped(worker.recognize(image), signal);
+  return { text: data.text.trim(), confidence: data.confidence };
+}
+
+type TesseractWorker = Awaited<ReturnType<typeof import("tesseract.js").createWorker>>;
+
+/**
+ * The recogniser for the pass in hand, made once and kept until the pass
+ * releases it. A worker per image paid the engine's start and the language
+ * data's load on every image, which on a drop of forty screenshots was most of
+ * the wait. Keyed by language because a pass reads in exactly one.
+ */
+let reader: { language: string; worker: Promise<TesseractWorker> } | null = null;
+
+/** The pass's recogniser, made on first use. Resolves once its language is
+ * loaded, which on the first pass of all is the download. */
+export function readerFor(language: string): Promise<TesseractWorker> {
+  if (reader?.language === language) return reader.worker;
+  void releaseReader();
+  const worker = import("tesseract.js").then(({ createWorker }) => createWorker(language));
+  const current = { language, worker };
+  reader = current;
+  // A failed load is not kept, or every later image would fail on it too.
+  worker.catch(() => {
+    if (reader === current) reader = null;
+  });
+  return worker;
+}
+
+/** End the pass's recogniser. Safe to call with none running. */
+export async function releaseReader(): Promise<void> {
+  const current = reader;
+  reader = null;
+  const worker = await current?.worker.catch(() => null);
+  await worker?.terminate();
+}
+
+/**
+ * The work, or an AbortError the moment the pass is stopped. tesseract cannot
+ * cancel a page and a terminated worker never answers, so the stop rejects on
+ * its own and ends the recogniser, which is what frees the page in hand.
+ */
+function untilStopped<T>(work: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return work;
+  if (signal.aborted) return Promise.reject(new DOMException("Stopped", "AbortError"));
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => {
+      void releaseReader();
+      reject(new DOMException("Stopped", "AbortError"));
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    work.then(resolve, reject).finally(() => signal.removeEventListener("abort", onAbort));
+  });
 }
 
 /** The image on an opaque white ground, scaled to {@link MAX_IMAGE_SIDE}, or the
@@ -160,14 +207,13 @@ export async function readPdfPages(
 ): Promise<Map<number, string>> {
   const pdfjs = await import("pdfjs-dist");
   pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-  const { createWorker } = await import("tesseract.js");
 
   const loading = pdfjs.getDocument({ data: bytes, BinaryDataFactory: BinaryData });
   const pdf = await loading.promise;
-  const worker = await createWorker(language);
   const canvas = document.createElement("canvas");
   const read = new Map<number, string>();
   try {
+    const worker = await untilStopped(readerFor(language), signal);
     for (const [index, number] of pages.entries()) {
       // A page is the unit of work here, so the stop lands at page granularity
       // rather than document granularity: seconds instead of minutes on a
@@ -189,11 +235,13 @@ export async function readPdfPages(
       page.cleanup();
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve));
       if (!blob) continue;
-      const { data } = await worker.recognize(blob);
+      const { data } = await untilStopped(worker.recognize(blob), signal);
       if (data.text.trim()) read.set(number, data.text.trim());
     }
+  } catch (error) {
+    // A stop keeps the pages read before it, as the loop's own check does.
+    if (!signal?.aborted) throw error;
   } finally {
-    await worker.terminate();
     // Frees the page bitmaps and the worker pdf.js started for this document;
     // a rescue can run over several documents in one drop.
     canvas.width = 0;

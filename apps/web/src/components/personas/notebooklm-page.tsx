@@ -151,10 +151,11 @@ function WhereItStops() {
           id="notebooklm-limit"
           className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          Where NotebookLM stops you.
+          The NotebookLM source limit, plan by plan.
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[50ch] text-[15px] leading-relaxed">
-          A notebook caps the number of sources, and each source has a generous word limit.
+          50 sources a notebook on the free plan, up to 600 on the top one, and up to 500,000 words in
+          each source.
           Combining into one file trades a long list of sources for a single one that still has room
           to spare.
         </p>

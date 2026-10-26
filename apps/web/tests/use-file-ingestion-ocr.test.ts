@@ -59,9 +59,14 @@ const READINGS = new Map<string, Record<string, string>>();
 let attempts: { path: string; language: string }[] = [];
 /** Fires as each document finishes, which is where a mid-pass stop can happen. */
 let onDocumentRead: ((path: string) => void) | null = null;
+/** Holds an image's reading until it resolves, so a test can look mid-pass. */
+let imageGate: ((path: string) => Promise<void>) | null = null;
 
 vi.mock("~/lib/ocr", () => ({
   SPEECH_FORMATS: new Set(["mp3", "iso-bmff", "matroska"]),
+  prepareReader: async () => 0,
+  releaseReader: async () => {},
+  readFailure: () => "other",
   MAX_SPEECH_BYTES: 1024 ** 3,
   SpeechTooLongError: class extends Error {},
   // Keyed on the name, with the locale the dialog passed.
@@ -84,6 +89,7 @@ vi.mock("~/lib/ocr", () => ({
     new Map([...(PAGE_READS.get(new TextDecoder().decode(bytes)) ?? new Map())].filter(([page]) => pages.includes(page))),
   // An image's bytes are a real PNG header, so this one keys on the name.
   recogniseImageWithOcr: async (file: File, language: string) => {
+    await imageGate?.(file.name);
     attempts.push({ path: file.name, language });
     onDocumentRead?.(file.name);
     return { text: READINGS.get(file.name)?.[language] ?? "", confidence: 90 };
@@ -134,6 +140,7 @@ function image(path: string): { file: File; path: string } {
 const originalLanguages = Object.getOwnPropertyDescriptor(navigator, "languages");
 
 beforeEach(() => {
+  imageGate = null;
   READINGS.clear();
   EXTRACTS.clear();
   PAGE_READS.clear();
@@ -322,6 +329,39 @@ describe("the first pages of a held scan (Q112 O1)", () => {
 });
 
 describe("images", () => {
+  it("puts each reading in the bundle as it lands and names what is still pending", async () => {
+    READINGS.set("one.png", { eng: "TOTAL 42.00 paid in full" });
+    READINGS.set("two.png", { eng: "INVOICE 2026-10 overdue" });
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([image("one.png"), image("two.png")]);
+    });
+
+    let release = () => {};
+    imageGate = async (path) => {
+      if (path === "two.png") await new Promise<void>((resolve) => (release = resolve));
+    };
+    let pass: Promise<number> = Promise.resolve(0);
+    await act(async () => {
+      pass = result.current.readSelected(["one.png", "two.png"], "en");
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    // Q7 O2: the first reading is already in the bundle a Copy would take, and
+    // the second is named as pending, not as unreadable.
+    expect(result.current.isReading).toBe(true);
+    expect(result.current.entries.find((e) => e.path === "one.png")?.content).toBe("TOTAL 42.00 paid in full");
+    expect(result.current.pendingReads).toEqual(["two.png"]);
+
+    await act(async () => {
+      release();
+      await pass;
+    });
+    expect(result.current.pendingReads).toEqual([]);
+    expect(result.current.lastPass).toEqual({ read: 2, total: 2, failure: null });
+  });
+
   it("offers them without reading them", async () => {
     READINGS.set("shot.png", { eng: "TOTAL 42.00" });
 

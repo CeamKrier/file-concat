@@ -10,6 +10,8 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
+import { ScanText } from "lucide-react";
+
 import { ResultView } from "~/components/app/result-view";
 import { weighBundle } from "~/lib/bundle-weight";
 import type { PrunedAtDoor } from "~/lib/prune-at-door";
@@ -45,13 +47,9 @@ function props(overrides: Partial<Parameters<typeof ResultView>[0]> = {}) {
     mediaCount: 0,
     recognisedMedia: 0,
     isReading: false,
-    readProgress: null,
-    isStopping: false,
-    onStopReading: vi.fn(),
+    reading: { isReading: false, progress: null, isStopping: false, onStop: vi.fn() },
     recoveredDocuments: 0,
     stoppedReading: false,
-    readDeferred: false,
-    deferredScope: { previewed: 0, pagesLeft: null },
     readLanguageNote: null,
     onCheckReading: vi.fn(),
     onAdjust: vi.fn(),
@@ -130,33 +128,36 @@ describe("the door on the ledger", () => {
   });
 });
 
-/** Scans past the auto-read caps (Q112 O1): the row states the offer in pages. */
-describe("held scans on the ledger", () => {
-  const held = { scannedDocumentCount: 2, readDeferred: true };
+/** An offer in the reading bar is not said again on the ledger (Q5). */
+describe("offers on the result screen", () => {
+  it("shows the bar's offer and leaves the scans row out of the ledger", () => {
+    const onRead = vi.fn();
+    const reading = {
+      isReading: false,
+      progress: null,
+      isStopping: false,
+      onStop: vi.fn(),
+      offers: [{ key: "scans" as const, icon: ScanText, text: "2 documents not read yet.", label: "Read them", onRead }],
+    };
+    const { unmount } = render(<ResultView {...props({ scannedDocumentCount: 2, reading })} />);
 
-  it("says the first pages were read and counts the rest", () => {
-    render(<ResultView {...props({ ...held, deferredScope: { previewed: 2, pagesLeft: 57 } })} />);
+    fireEvent.click(screen.getByRole("button", { name: "Read them" }));
+    expect(onRead).toHaveBeenCalledOnce();
+    // The scans were the ledger's only row, so with the offer there is no ledger.
+    expect(screen.queryByRole("button", { name: /What happened to your files/ })).not.toBeInTheDocument();
+
+    // Control: without the offer the same drop has its row.
+    unmount();
+    render(<ResultView {...props({ scannedDocumentCount: 2, reading: { ...reading, offers: [] } })} />);
     openLedger();
-
-    expect(screen.getByText("Read the first pages of 2 documents.")).toBeInTheDocument();
-    expect(screen.getByText(/^57 more pages are not read yet\./)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Read the rest" })).toBeInTheDocument();
+    expect(screen.getByText("2 documents couldn't be read.")).toBeInTheDocument();
   });
 
-  it("names the part of the drop the first pages did not reach", () => {
-    render(<ResultView {...props({ ...held, deferredScope: { previewed: 1, pagesLeft: 1 } })} />);
-    openLedger();
+  it("keeps Copy and Download live while a pass runs", () => {
+    const reading = { isReading: true, progress: { done: 1, total: 3 }, isStopping: false, onStop: vi.fn() };
+    render(<ResultView {...props({ isReading: true, reading })} />);
 
-    expect(screen.getByText("Read the first pages of 1 of 2 documents.")).toBeInTheDocument();
-    expect(screen.getByText(/^One more page is not read yet\./)).toBeInTheDocument();
-  });
-
-  it("keeps the plain offer, with its pages, when nothing was read", () => {
-    render(<ResultView {...props({ ...held, deferredScope: { previewed: 0, pagesLeft: 120 } })} />);
-    openLedger();
-
-    expect(screen.getByText("2 documents not read yet.")).toBeInTheDocument();
-    expect(screen.getByText(/their 120 pages as pictures/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Read them" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Copy/ })).toBeEnabled();
+    expect(screen.getByText("Reading 2 of 3.")).toBeInTheDocument();
   });
 });

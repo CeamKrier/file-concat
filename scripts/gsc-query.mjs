@@ -7,6 +7,7 @@
 // which is gitignored).
 //
 // Usage:  node scripts/gsc-query.mjs [days]   (default 90)
+//         node scripts/gsc-query.mjs country [days]
 
 import { createSign } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -18,7 +19,7 @@ const KEY_PATH = process.env.GSC_KEY || join(REPO_ROOT, "google-search-console-a
 // First arg selects the mode: `inspect` runs URL index-coverage inspection,
 // anything else (a number) is the analytics look-back window in days.
 const ARG = process.argv[2];
-const MODE = ARG === "inspect" ? "inspect" : ARG === "page" ? "page" : "analytics";
+const MODE = ARG === "inspect" || ARG === "page" || ARG === "country" ? ARG : "analytics";
 // `page` mode: every query one URL draws, not just the ones the leak filter keeps.
 // The default report answers "which pages leak clicks"; this answers the next
 // question, "what is a page on the second results page actually ranking for",
@@ -26,7 +27,7 @@ const MODE = ARG === "inspect" ? "inspect" : ARG === "page" ? "page" : "analytic
 // reaches its 12-impression floor.
 const PAGE = MODE === "page" ? process.argv[3] : null;
 const DAYS = Number(
-  (MODE === "inspect" ? process.argv[3] : MODE === "page" ? process.argv[4] : process.argv[2]) || 90,
+  (MODE === "page" ? process.argv[4] : MODE === "analytics" ? process.argv[2] : process.argv[3]) || 90,
 );
 
 const b64url = (buf) =>
@@ -263,6 +264,14 @@ async function main() {
   }
 
   console.log(`Property: ${siteUrl}   window: ${isoDaysAgo(DAYS)} .. ${isoDaysAgo(1)} (${DAYS}d)\n`);
+
+  // `country` mode: the localization trigger (2026-10-25) is one language
+  // reaching 5% of impressions on the core intents; this is where it is read.
+  if (MODE === "country") {
+    const rows = await query(token, siteUrl, ["country"]);
+    table(rows.sort((a, b) => b.impressions - a.impressions).slice(0, 30), 8);
+    return;
+  }
 
   const total = await query(token, siteUrl, [], 1);
   if (total[0]) {

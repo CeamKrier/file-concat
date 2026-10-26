@@ -23,18 +23,22 @@ export const Route = createFileRoute("/how-to/chatgpt-file-upload-limit")({
         // the refusal "you've reached your file upload limit", and "reset"
         // or "per day" variants. Remedy words ("merge files for chatgpt")
         // return no autocomplete at all, so the title carries the limit and the
-        // description promises the way past it. No figures here, same call as
-        // /for/chatgpt-projects: a cached description cannot carry the date the
-        // quota was read, so the numbers live on the page next to it.
+        // description promises the way past it. Since 2026-10-26 the
+        // description also names the quota, as the setup for the way past it,
+        // because the page ranked on the first page but drew few clicks
+        // without one. A cached snippet can lag a quota change by weeks: on a DRIFT
+        // line in check-vendor-caps, fix this string first. Read the CTR
+        // against the prior period around 2026-11-23 and revert if it did not
+        // move. The Claude limit page runs the same test.
         title: "Get past the ChatGPT file upload limit",
         description:
-          "Reached your file upload limit? ChatGPT counts files, so a whole folder, PDFs included, can go in as one upload. Read in your browser, not uploaded to us.",
+          "Over ChatGPT's 80 files every 3 hours, or 3 a day on Free? Combine a whole folder, PDFs included, into one file and it counts as one upload. Not uploaded to us.",
         url: "https://fileconcat.com/how-to/chatgpt-file-upload-limit",
       }),
       {
         name: "keywords",
         content:
-          "chatgpt file upload limit, you've reached your file upload limit, chatgpt file upload limit reset, chatgpt file upload limit per day, chatgpt upload limit free, chatgpt upload limit reached, how to get around chatgpt file upload limit, upload multiple files to chatgpt",
+          "chatgpt file upload limit, you've reached your file upload limit, chatgpt file upload limit reset, chatgpt file upload limit per day, chatgpt upload limit free, chatgpt upload limit reached, how to get around chatgpt file upload limit, upload multiple files to chatgpt, how many pdfs can i upload to chatgpt, chatgpt pdf upload limit",
       },
     ],
     links: [{ rel: "canonical", href: "https://fileconcat.com/how-to/chatgpt-file-upload-limit" }],

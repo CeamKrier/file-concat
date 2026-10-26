@@ -22,8 +22,9 @@ export const Route = createFileRoute("/how-to/share-all-files-with-ai")({
         // Retitled 2026-09-24 from "How to share all your files with an AI at
         // once": nobody types the remedy, they type the limit. The page is the
         // hub every limit page links from, and a title of its own gives it a
-        // second chance at its own canonical. No figures in the description,
-        // same call as the limit pages: the dated table carries them.
+        // second chance at its own canonical. No figures in the description:
+        // it cannot carry the date, and the dated table does. The two limit
+        // pages test figures in theirs from 2026-10-26; wait for that read.
         title: "AI file upload limits: ChatGPT, Claude, Gemini, NotebookLM",
         description:
           "Every file upload limit in ChatGPT, Claude, Gemini and NotebookLM in one dated, sourced table, and a way past each one. Not uploaded to us.",

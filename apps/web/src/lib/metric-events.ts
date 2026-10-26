@@ -58,7 +58,8 @@ export const METRIC_EVENTS = [
    * `fetch` is per press, from the import's own catch, and skips an abort:
    * `startOver` cancels the request, and a deliberate cancel is not a failure.
    * Since 2026-10-23 it is `fetch/<reason>`: `notfound`, `ratelimit`, `badurl`,
-   * `private` or `other`, the branch of the message the person was shown. A bare
+   * `private` or `other`, the branch of the message the person was shown;
+   * `network` and `toolarge` since 2026-10-25. A bare
    * `fetch` row predates the split and says nothing about why.
    *
    * **Attempts are `source_used` rows plus the `bad` and `binary` rows here,
@@ -407,6 +408,43 @@ export const METRIC_EVENTS = [
    * brings.
    */
   "ocr_conf",
+  /**
+   * Milliseconds from a pass asking for the recogniser to it being ready, in
+   * `n`, once per pass that reads anything but speech. The first pass on a
+   * browser includes the language-data download; a cached one is the engine's
+   * start alone. Since 2026-10-25 (ReadingBar), when one worker per pass
+   * replaced one per image.
+   */
+  "ocr_ready_ms",
+  /**
+   * Files a pass could not read, by cause: `offline` (the reader or its
+   * language data never arrived), `memory`, `other`. `n` files totalling `b`
+   * bytes. A pass whose reader never loaded writes one row for all its files,
+   * with no bytes. The cause decides the remedy the screen offers, so this says
+   * which remedy is worth making better.
+   */
+  "ocr_failed",
+  /**
+   * A pass someone stopped, with `n` the files it never finished. Written once
+   * per stopped pass. Export stays open during a pass since 2026-10-25, so a
+   * stop is no longer the only way to get the bundle out, and this is what says
+   * whether people still reach for it.
+   */
+  "read_stopped",
+  /**
+   * The browser's language when no recognition reader exists for it and English
+   * read in its place, as the primary subtag (`ka`, `hy`). Once per pass that
+   * ran in that stand-in English. The count of the languages worth adding.
+   */
+  "ocr_lang_fallback",
+  /**
+   * An export taken after a pass ended, by someone who already exported while
+   * it ran: `copy`, `download` or `share`. Once per pass. Export stays open
+   * during a pass since 2026-10-25 (Q7 O2), and the bundle names the files not
+   * read yet; this is how often someone came back for the finished one, which
+   * decides whether the screen should offer that outright.
+   */
+  "output_retaken_after_pass",
   /**
    * Why a Run that dropped files combined none of them: one row per exclusion
    * reason, `n` files each. Written once per Run, and only when the bundle came

@@ -12,6 +12,7 @@ import {
   oursByVersion,
   ranked,
   score,
+  shownRows,
   versionAxis,
   type Benchmark,
 } from "~/lib/benchmarks";
@@ -86,6 +87,18 @@ describe("chart helpers", () => {
   it("orders our rows oldest first and scales a count to 100", () => {
     expect(oursByVersion(chart("higher").rows).map((r) => r.version)).toEqual(["2.9", "2.10"]);
     expect(score({ ...chart("higher"), unit: "count", of: 26 }, 13)).toBe(50);
+  });
+
+  it("draws a repeated value once, at the newest version that holds it", () => {
+    const rows = [
+      { label: "FileConcat 2.8", value: 90 },
+      { label: "FileConcat 2.7", value: 90 },
+      { label: "FileConcat 2.6", value: 90 },
+      { label: "FileConcat 2.3", value: 79 },
+      { label: "FileConcat 2.0", value: 90 },
+      { label: "Tool A 1.0", value: 90 },
+    ];
+    expect(shownRows(rows).map((r) => r.label)).toEqual(["FileConcat 2.8", "FileConcat 2.3", "FileConcat 2.0", "Tool A 1.0"]);
   });
 
   it("picks the best other tool in the chart's own direction", () => {

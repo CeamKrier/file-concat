@@ -24,7 +24,7 @@ import { estimateBundleTokens, preloadTokenEstimator } from "~/lib/tokens";
 import { weighBundle } from "~/lib/bundle-weight";
 import { useSelectedModel } from "~/hooks/use-selected-model";
 import { classifyUrl, type Classification, type ImportTab } from "~/lib/classify-url";
-import { friendlyFetchError } from "~/lib/fetch-error";
+import { friendlyFetchError, type ImportError } from "~/lib/fetch-error";
 import {
   addToTally,
   currentRun,
@@ -37,7 +37,13 @@ import {
 import { tagSurface } from "~/lib/clarity-tags";
 import { encodingWhy } from "~/lib/encoding-guess";
 import { cn } from "~/lib/utils";
-import { browserOcrLanguage, ocrLanguageName, ocrLanguageOptions } from "~/lib/ocr-language";
+import {
+  browserLanguageWithoutReader,
+  browserOcrLanguage,
+  ocrLanguageName,
+  ocrLanguageOptions,
+  readerSize,
+} from "~/lib/ocr-language";
 import {
   beginCurate,
   endCurate,
@@ -56,6 +62,7 @@ import { ResultEmpty } from "./result-empty";
 import { EncodingPicker } from "./encoding-picker";
 import { FeedbackDock } from "./feedback-dock";
 import { ReadingDialog } from "./reading-dialog";
+import { offersFor, passOutcome } from "./reading-bar";
 import { emptyKindFor, emptyReasonSlug, unreadableGroups } from "./empty-kind";
 import {
   isRecognisableImage,
@@ -198,7 +205,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // visible under the drop target, on every landing (see `ImportPanel`).
   const [importTab, setImportTab] = useState<ImportTab>("github");
   const [importUrl, setImportUrl] = useState("");
-  const [importError, setImportError] = useState<string | null>(null);
+  const [importError, setImportError] = useState<ImportError | null>(null);
   const [resultNote, setResultNote] = useState<ResultNote | null>(null);
   const importAbortRef = useRef<AbortController | null>(null);
 
@@ -207,18 +214,27 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // from the whole bundle (contents, preview, token count) follows in a render
   // React may interrupt, a step behind (useDeferredValue). On a big drop that
   // work is most of a second, and it used to hold the click until it finished.
-  const settledStatuses = useDeferredValue(filter.fileStatuses);
+  // Only a toggle is deferred. Statuses deferred across a new drop or append
+  // are not a step behind, they belong to another bundle: the result screen
+  // showed "0 tokens" or the last bundle's count for that render.
+  const live = useMemo(
+    () => ({ entries: ingestion.entries, statuses: filter.fileStatuses }),
+    [ingestion.entries, filter.fileStatuses],
+  );
+  const deferred = useDeferredValue(live);
+  const settled = deferred.entries === live.entries ? deferred : live;
+  const settledStatuses = settled.statuses;
   const includedContents = useMemo(() => {
     const included = new Set(settledStatuses.filter((s) => s.included).map((s) => s.path));
     const transform = config.showLineNumbers ? addLineNumbers : null;
-    return ingestion.entries
+    return settled.entries
       .filter((e) => included.has(e.path))
       .map((e) => ({
         path: e.path,
         content: transform ? transform(e.content) : e.content,
         recognised: e.recognised,
       }));
-  }, [ingestion.entries, settledStatuses, config.showLineNumbers]);
+  }, [settled.entries, settledStatuses, config.showLineNumbers]);
 
   // Real content gaps the model can't see in the tree (ADR-0008). Reported in
   // the bundle summary; noise and user-deselected files are never listed.
@@ -226,13 +242,20 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // what is missing, so a question about page 5 is not answered as if page 5
   // were blank (Q7 O1).
   const excluded = useMemo(() => {
-    const summary = summarizeExclusions(settledStatuses);
+    // A file a running pass has not reached is named as not read yet, never as
+    // a file the tool could not read (Q7 O2).
+    const pending = new Set(ingestion.pendingReads);
+    const summary = summarizeExclusions(settledStatuses.filter((s) => !pending.has(s.path)));
     const included = new Set(settledStatuses.filter((s) => s.included).map((s) => s.path));
     const partial = Object.entries(ingestion.validations)
       .filter(([path, v]) => included.has(path) && v.notes?.length)
       .map(([path, v]) => ({ path, notes: v.notes ?? [] }));
-    return partial.length ? { ...summary, partial } : summary;
-  }, [settledStatuses, ingestion.validations]);
+    return {
+      ...summary,
+      ...(partial.length ? { partial } : {}),
+      ...(pending.size ? { pending: [...pending] } : {}),
+    };
+  }, [settledStatuses, ingestion.validations, ingestion.pendingReads]);
 
   const [estimatorReady, setEstimatorReady] = useState(false);
   useEffect(() => {
@@ -503,6 +526,12 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       // and "tried and got nothing" want opposite copy, and only the
       // per-document record can still tell them apart after an append.
       untriedDocumentCount: untried.length,
+      // What the reading bar offers, by kind: only what no pass has been over.
+      offerPaths: {
+        images: unreadImages.filter((d) => ingestion.validations[d.path]?.recognitionTried !== true).map((d) => d.path),
+        speech: unreadMedia.filter((d) => ingestion.validations[d.path]?.recognitionTried !== true).map((d) => d.path),
+        scans: untried.map((d) => d.path),
+      },
       // What the deferred row states as the scope of the offer (Q112 O1): how
       // many had their first pages read anyway, and the pages still to read.
       // Null when a document's pages are unknown, so no total is made up.
@@ -518,6 +547,19 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // A stop outranks it. The untouched tail of a stopped pass is untried too,
   // and "stopped, with N unread" is the more specific of the two things to say.
   const readDeferred = recognition.untriedDocumentCount > 0 && !ingestion.stoppedReading;
+
+  // Whether a bundle was taken while a pass ran, so taking it again once the
+  // pass is over can be counted (output_retaken_after_pass). It says whether
+  // export-during-a-pass is used and then redone, which is the cost of Q7 O2.
+  const exportedDuringPass = useRef(false);
+  const noteExport = (kind: "copy" | "download" | "share") => {
+    setExports((n) => n + 1);
+    if (ingestion.isReading) exportedDuringPass.current = true;
+    else if (exportedDuringPass.current) {
+      exportedDuringPass.current = false;
+      track("output_retaken_after_pass", kind);
+    }
+  };
 
   const emptyKind = useMemo(
     () =>
@@ -548,9 +590,9 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
    * kind is not silently missing from the total.
    *
    * Empty is judged on `filesCombined` and the live statuses, the values the
-   * screen itself renders from. `includedContents` follows them a render behind
-   * (`useDeferredValue`), so its first result render is empty for every drop,
-   * and from 2026-10-17 to 10-18 that wrote these rows beside a `bundle_size`.
+   * screen itself renders from. `includedContents` once followed them a render
+   * behind on every drop (`useDeferredValue`), and from 2026-10-17 to 10-18
+   * that wrote these rows beside a `bundle_size`.
    */
   const emptiedRun = useRef<number | null>(null);
   useEffect(() => {
@@ -664,9 +706,15 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   // Before any pass, the browser's language: a recording is never read on its
   // own, so its first pass starts here, and English would hand a Turkish talk
   // to the English-only speech model.
-  const readLocale =
-    languageOptions.find((o) => o.code === (ingestion.readLanguage ?? browserOcrLanguage()).code)
-      ?.locale ?? null;
+  const passLanguage = ingestion.readLanguage ?? browserOcrLanguage();
+  const readLocale = languageOptions.find((o) => o.code === passLanguage.code)?.locale ?? null;
+
+  const readingOffers = offersFor(
+    recognition.offerPaths,
+    recognition.deferredScope,
+    ingestion.stoppedReading,
+    (paths) => void ingestion.readSelected(paths, readLocale ?? passLanguage.locale),
+  );
   /**
    * What to call the reading on the summary card. A scoped re-read can leave
    * two documents read in two languages, and there is no honest single name for
@@ -862,13 +910,15 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     // attempt writes no `source_used` either, so without that it is absent
     // from the data entirely rather than merely unexplained.
     if (c.kind === "empty" || c.kind === "bad") {
-      setImportError("That doesn't look like a link yet. Paste a public repo, Gist, or page URL.");
+      setImportError({
+        message: "That doesn't look like a link yet. Paste a public repo, Gist, or page URL.",
+      });
       return;
     }
     if (c.kind === "binary") {
-      setImportError(
-        `That link points to a ${c.fileType} file, which can't be read as text. Try a repo, a Gist, or a page with text.`,
-      );
+      setImportError({
+        message: `That link points to a ${c.fileType} file, which can't be read as text. Try a repo, a Gist, or a page with text.`,
+      });
       return;
     }
     setImportError(null);
@@ -893,7 +943,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         if (failure !== null) track("import_failed", `fetch/${failure.reason}`);
         setPhase("landing");
         setResultNote(null);
-        setImportError(failure?.message ?? null);
+        setImportError(failure);
       }
     })();
   }, [importUrl, importTab, begin, ingestion]);
@@ -995,15 +1045,15 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               isCopied={output.isCopied}
               isGenerating={output.isGenerating}
               onCopy={async () => {
-                if (await output.copy()) setExports((n) => n + 1);
+                if (await output.copy()) noteExport("copy");
               }}
               onDownload={async () => {
-                if (await output.download()) setExports((n) => n + 1);
+                if (await output.download()) noteExport("download");
               }}
               onShare={
                 output.canShareFiles
                   ? async () => {
-                      if (await output.share()) setExports((n) => n + 1);
+                      if (await output.share()) noteExport("share");
                     }
                   : undefined
               }
@@ -1024,17 +1074,26 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               mediaCount={recognition.mediaCount}
               recognisedMedia={recognition.recognisedMedia}
               isReading={ingestion.isReading}
-              readProgress={ingestion.readProgress}
-              isStopping={ingestion.isStopping}
-              onStopReading={ingestion.stopReading}
+              reading={{
+                isReading: ingestion.isReading,
+                progress: ingestion.readProgress,
+                isStopping: ingestion.isStopping,
+                onStop: ingestion.stopReading,
+                offers: readingOffers,
+                outcome: passOutcome(ingestion.lastPass, ingestion.stoppedReading),
+                language: {
+                  name: ocrLanguageName(passLanguage),
+                  fallback: !ingestion.readLanguage && browserLanguageWithoutReader() !== null,
+                  size: readerSize(passLanguage.code),
+                  onChange: () => setReadingOpen(true),
+                },
+              }}
               recoveredDocuments={
                 ingestion.recoveredDocuments -
                 recognition.recognisedImages -
                 recognition.recognisedMedia
               }
               stoppedReading={ingestion.stoppedReading}
-              readDeferred={readDeferred}
-              deferredScope={recognition.deferredScope}
               readLanguageNote={readLanguageNote}
               onCheckReading={() => setReadingOpen(true)}
               onAdjust={() => openFiles("adjust")}
@@ -1059,10 +1118,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         language={readLocale}
         languageOptions={languageOptions}
         isReading={ingestion.isReading}
-        progress={ingestion.readProgress}
         onRead={ingestion.readSelected}
-        onStop={ingestion.stopReading}
-        isStopping={ingestion.isStopping}
       />
 
       <FeedbackDock

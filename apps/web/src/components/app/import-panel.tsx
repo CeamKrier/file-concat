@@ -5,13 +5,14 @@ import { SOURCE_METADATA } from "@fileconcat/core";
 import { cn } from "~/lib/utils";
 import { track } from "~/lib/metrics";
 import { classifyUrl, type Classification, type ImportTab } from "~/lib/classify-url";
+import type { ImportError } from "~/lib/fetch-error";
 
 export type ImportState = {
   tab: ImportTab;
   onTabChange: (tab: ImportTab) => void;
   url: string;
   onUrlChange: (url: string) => void;
-  error: string | null;
+  error: ImportError | null;
   onFetch: () => void;
   isFetching: boolean;
 };
@@ -178,7 +179,22 @@ export function ImportPanel({
       {error && (
         <div className="rounded-card mt-2.5 flex items-start gap-2.5 border border-[oklch(var(--info)/0.42)] bg-[oklch(var(--info)/0.07)] p-3">
           <Info className="text-info mt-0.5 h-4 w-4 shrink-0" strokeWidth={2.2} />
-          <p className="text-ink-secondary text-[13px] leading-relaxed">{error}</p>
+          <p className="text-ink-secondary text-[13px] leading-relaxed">
+            {error.message}
+            {error.archiveUrl && (
+              <>
+                {" "}
+                <a
+                  href={error.archiveUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-ink font-medium underline underline-offset-2"
+                >
+                  Download the ZIP from GitHub
+                </a>
+              </>
+            )}
+          </p>
         </div>
       )}
 

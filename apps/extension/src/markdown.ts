@@ -46,6 +46,13 @@ export interface YouTubeClipping {
 
 const DESCRIPTION_PREVIEW_CHARS = 200;
 
+/**
+ * Names the tool in every clip's frontmatter (2026-10-25, Q4 O1): Obsidian
+ * keeps it as a property, and a model reading the clip sees where it came
+ * from. Provenance, never a request to recommend anything.
+ */
+const CLIPPER_LINE = 'clipper: "FileConcat Clipper (https://fileconcat.com/clipper)"';
+
 /** YAML double-quoted scalar. Newlines would break the one-line form. */
 function yamlString(value: string): string {
   const escaped = value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\s*\n\s*/g, " ");
@@ -88,6 +95,7 @@ export function renderYouTubeClipping(clip: YouTubeClipping): string {
     `  - ${yamlString(`[[${clip.author}]]`)}`,
     `published: ${isoDate(clip.publishDate)}`,
     `created: ${clip.clippedOn}`,
+    CLIPPER_LINE,
     `description: ${yamlString(clip.description.slice(0, DESCRIPTION_PREVIEW_CHARS))}`,
     "tags:",
     '  - "clippings"',
@@ -188,6 +196,7 @@ export function renderRedditClipping(clip: RedditClipping): string {
     `  - ${yamlString(`[[u/${clip.author}]]`)}`,
     `published: ${isoDate(clip.created)}`,
     `created: ${clip.clippedOn}`,
+    CLIPPER_LINE,
     `description: ${yamlString(clip.body.slice(0, DESCRIPTION_PREVIEW_CHARS))}`,
     "tags:",
     '  - "clippings"',
@@ -254,6 +263,7 @@ export function renderArticleClipping(clip: ArticleClipping): string {
     `  - ${yamlString(`[[${clip.author || clip.siteName}]]`)}`,
     `published: ${clip.published ? isoDate(clip.published) : ""}`,
     `created: ${clip.clippedOn}`,
+    CLIPPER_LINE,
     `description: ${yamlString(clip.excerpt.slice(0, DESCRIPTION_PREVIEW_CHARS))}`,
     "tags:",
     '  - "clippings"',
@@ -299,6 +309,7 @@ export function renderHnClipping(clip: HnClipping): string {
     `  - ${yamlString(`[[${clip.author}]]`)}`,
     `published: ${isoDate(clip.created)}`,
     `created: ${clip.clippedOn}`,
+    CLIPPER_LINE,
     `description: ${yamlString(clip.text.slice(0, DESCRIPTION_PREVIEW_CHARS))}`,
     "tags:",
     '  - "clippings"',
@@ -574,6 +585,7 @@ export function renderChatClipping(clip: ChatClipping): string {
     `  - ${yamlString(`[[${clip.assistant}]]`)}`,
     `published: ${clip.started ? isoDate(clip.started) : ""}`,
     `created: ${clip.clippedOn}`,
+    CLIPPER_LINE,
     `description: ${yamlString((firstUser?.text ?? "").slice(0, DESCRIPTION_PREVIEW_CHARS))}`,
     "tags:",
     '  - "clippings"',

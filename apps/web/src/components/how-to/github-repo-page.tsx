@@ -60,7 +60,7 @@ function Hero({ dropProps, linkImport }: LandingProps) {
           </span>
 
           <h1 className="font-display text-ink mt-6 text-balance text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.06] tracking-[-0.025em]">
-            Turn a GitHub repo into one text file.
+            Turn a GitHub repo into one text or .txt file.
           </h1>
 
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[16px] leading-relaxed">
@@ -234,7 +234,7 @@ const STEPS = [
   },
   {
     title: "Press Fetch",
-    body: "Your browser downloads the files straight from GitHub. A large repository comes as one archive, unpacked in your browser.",
+    body: "Your browser downloads the files straight from GitHub, with no server in between.",
   },
   {
     title: "Leave out what you do not need",
@@ -323,7 +323,7 @@ function ClosingCta() {
         </button>
       </div>
       <FurtherReading>
-        URL shapes, rate limits and the archive fallback, in detail:{" "}
+        URL shapes, rate limits and very large repositories, in detail:{" "}
         <ProseLink to="/docs/github-import">GitHub import</ProseLink>
         .
       </FurtherReading>

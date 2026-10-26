@@ -158,7 +158,14 @@ describe("the filtered rescue", () => {
     expect(screen.queryByRole("button", { name: /read the rest/i })).toBeNull();
     expect(screen.getByText(/reading 1 of 2/i)).toBeTruthy();
 
-    await act(async () => screen.getByRole("button", { name: /stop reading/i }).click());
+    // Past the guard that drops a press meant for the button it replaced.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(Date.now() + 1000);
+      await act(async () => screen.getByRole("button", { name: /stop reading/i }).click());
+    } finally {
+      vi.useRealTimers();
+    }
     expect(onStopReading).toHaveBeenCalledOnce();
   });
 

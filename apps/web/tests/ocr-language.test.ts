@@ -1,5 +1,12 @@
-import { describe, expect, it } from "vitest";
-import { ocrLanguageFor, ocrLanguageName, ocrLanguageOptions } from "~/lib/ocr-language";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  browserLanguageWithoutReader,
+  ocrLanguageFor,
+  ocrLanguageName,
+  ocrLanguageOptions,
+  readerSize,
+} from "~/lib/ocr-language";
+import { readFailure } from "~/lib/ocr";
 
 /**
  * A scan holds no text, so the language cannot be discovered from the document.
@@ -89,5 +96,47 @@ describe("ocrLanguageOptions", () => {
   it("names every option, sorted, with nothing left as a raw code", () => {
     expect(options.every((o) => /^[A-Z]/.test(o.name))).toBe(true);
     expect(options.map((o) => o.name)).toEqual([...options.map((o) => o.name)].sort());
+  });
+});
+
+/** The fallback is said on screen, never left for a garbled reading to reveal. */
+describe("browserLanguageWithoutReader", () => {
+  afterEach(() => vi.restoreAllMocks());
+  const browser = (languages: string[]) =>
+    vi.spyOn(navigator, "languages", "get").mockReturnValue(languages);
+
+  it("names a browser language with no reader, which English then stands in for", () => {
+    browser(["mi-NZ"]);
+    expect(browserLanguageWithoutReader()).toBe("mi");
+  });
+
+  it("is null when the browser asks for English, or for a language with a reader", () => {
+    browser(["en-US"]);
+    expect(browserLanguageWithoutReader()).toBeNull();
+    browser(["tr-TR"]);
+    expect(browserLanguageWithoutReader()).toBeNull();
+    // A later tag with a reader is the one used, so nothing stood in.
+    browser(["mi", "fr-CA"]);
+    expect(browserLanguageWithoutReader()).toBeNull();
+  });
+});
+
+describe("readFailure", () => {
+  it("tells a dropped download from a full tab from the file itself", () => {
+    expect(readFailure(new TypeError("Failed to fetch"))).toBe("offline");
+    expect(readFailure("NetworkError when attempting to fetch resource.")).toBe("offline");
+    expect(readFailure(new RangeError("Array buffer allocation failed"))).toBe("memory");
+    expect(readFailure(new Error("Out of memory"))).toBe("memory");
+    expect(readFailure(new Error("Error attempting to read image."))).toBe("other");
+  });
+});
+
+describe("readerSize", () => {
+  it("knows the download of every reader the control offers", () => {
+    // A language added without its size would start a download it never named.
+    for (const option of ocrLanguageOptions()) expect(readerSize(option.code), option.code).toMatch(/^\d\.\d MB$/);
+    expect(readerSize("tur")).toBe("2.1 MB");
+    expect(readerSize("eng")).toBe("3.0 MB");
+    expect(readerSize("xyz")).toBeNull();
   });
 });

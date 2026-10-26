@@ -18,6 +18,7 @@ import {
   isCurrent,
   latestOurs,
   score,
+  shownRows,
   type Benchmark,
 } from "~/lib/benchmarks";
 import { formatPostDate } from "~/lib/blog";
@@ -27,9 +28,13 @@ const h2Class =
 
 const pct = (v: number) => `${Math.round(v)}%`;
 
-/** One point per tool that ran both benchmarks, matched by its label. */
+/**
+ * One point per tool that ran both benchmarks, matched by its label. One of
+ * our versions is left out when it repeated the next version on both axes.
+ */
 function pair(x: Benchmark, y: Benchmark): ScatterPoint[] {
-  return x.rows.flatMap((r) => {
+  const kept = new Set([...shownRows(x.rows), ...shownRows(y.rows)].map((r) => r.label));
+  return x.rows.filter((r) => kept.has(r.label)).flatMap((r) => {
     const other = y.rows.find((o) => o.label === r.label);
     return other ? [{ label: r.label, x: score(x, r.value), y: score(y, other.value) }] : [];
   });

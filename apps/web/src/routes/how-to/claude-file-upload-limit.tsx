@@ -21,19 +21,18 @@ export const Route = createFileRoute("/how-to/claude-file-upload-limit")({
       ...generateSEOMeta({
         // The searcher has hit the cap on files in one chat: "claude file upload
         // limit", "claude 20 file limit", "per chat". /for/claude-projects owns
-        // the project error and keeps it. No figures here, same call as
-        // /how-to/chatgpt-file-upload-limit: a cached title or description
-        // cannot carry the date the cap was read, so the numbers live on the
-        // page next to it.
+        // the project error and keeps it. The description names the cap since
+        // 2026-10-26, the same test as /how-to/chatgpt-file-upload-limit,
+        // whose comment holds the reason and the read date.
         title: "Get past the Claude file upload limit per chat",
         description:
-          "Hit Claude's file limit in a chat? It counts files, so a whole folder or GitHub repo, PDFs included, can go in as one attachment. Read in your browser, not uploaded to us.",
+          "Over Claude's 20 files per chat? Combine a whole folder or GitHub repo, PDFs included, into one file and it takes one of the 20 slots. Not uploaded to us.",
         url: "https://fileconcat.com/how-to/claude-file-upload-limit",
       }),
       {
         name: "keywords",
         content:
-          "claude file upload limit, claude file upload limit per chat, claude 20 file limit, claude upload limit, claude max files per chat, claude your message will exceed the length limit for this chat, claude pdf 1000 pages, upload multiple files to claude",
+          "claude file upload limit, claude file upload limit per chat, claude 20 file limit, claude upload limit, claude max files per chat, claude your message will exceed the length limit for this chat, claude pdf 1000 pages, upload multiple files to claude, how many pdfs can i upload to claude, claude pdf upload limit",
       },
     ],
     links: [{ rel: "canonical", href: "https://fileconcat.com/how-to/claude-file-upload-limit" }],

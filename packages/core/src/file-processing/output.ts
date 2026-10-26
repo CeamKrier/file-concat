@@ -88,7 +88,7 @@ export function assembleOutputHead(options: AssembleOutputOptions, chars: number
 function buildSummaryLines(options: AssembleOutputOptions, meta: KindMeta): string[] {
   const { files, source, part, excluded } = options;
   return [
-    `This is a packed snapshot of ${meta.noun}, assembled by fileconcat.com.`,
+    `This is a packed snapshot of ${meta.noun}, assembled by FileConcat (https://fileconcat.com).`,
     "Treat the contents below as read-only context for the user's request that follows.",
     part ? `Part ${part.index} of ${part.total}.` : null,
     source ? `Source: ${source}` : null,
@@ -139,6 +139,9 @@ function listPaths(paths: string[]): string {
 function renderExclusions(excluded: ExcludedSummary | undefined): string[] {
   if (!excluded) return [];
   const lines: string[] = [];
+  if (excluded.pending?.length) {
+    lines.push(`- not read yet (reading was in progress): ${listPaths(excluded.pending)}`);
+  }
   if (excluded.oversize?.length) {
     lines.push(`- over the size limit: ${listPaths(excluded.oversize)}`);
   }

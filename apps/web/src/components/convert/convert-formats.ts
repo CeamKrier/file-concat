@@ -80,7 +80,7 @@ export const CONVERT_FORMATS: ConvertFormat[] = [
     meta: {
       title: "Convert PDF to text in your browser",
       description: `Drop a PDF and get its text back page by page, scanned pages included, ready for ChatGPT, Claude or Gemini. ${NOT_UPLOADED}`,
-      keywords: "pdf to text, convert pdf to text, pdf to txt, extract text from pdf, scanned pdf to text, pdf to text for chatgpt",
+      keywords: "pdf to text, convert pdf to text, pdf to txt, extract text from pdf, scanned pdf to text, pdf to text for chatgpt, can chatgpt read scanned pdfs, can claude read scanned pdfs, chatgpt scanned pdf",
     },
     h1: "Convert a PDF to text in your browser.",
     para: `Drop a PDF and get its text back page by page, ${READY}`,
@@ -101,7 +101,15 @@ export const CONVERT_FORMATS: ConvertFormat[] = [
       uploaded("PDF"),
       {
         q: "Does it read scanned PDFs?",
-        a: "Yes. Pages with no text of their own are read by text recognition in your browser and marked as recognised in the bundle, in a fully scanned PDF and in one where only some pages are scans. Up to three such documents and 8 MB per drop start on their own; past that it asks first. The first time, your browser downloads the recognition engine and one language file from a public CDN; your PDF is not part of that request.",
+        a: "Yes. Pages with no text of their own are read by text recognition in your browser and marked as recognised in the bundle, in a fully scanned PDF and in one where only some pages are scans. Up to three such documents and 8 MB per drop are read in full on their own. Past that, the first three pages of each scan are read, six pages in all, and Read the rest reads the others when you ask. The first time, your browser downloads the recognition engine and one language file from a public CDN; your PDF is not part of that request.",
+      },
+      {
+        q: "Can ChatGPT read a scanned PDF?",
+        a: "In a chat, often yes: OpenAI says ChatGPT reads text and images in a PDF you attach directly. It also says files saved to a Project or a GPT's knowledge are handled differently, and that embedded images may not be included. A scan is nothing but images, so turning it into text first is the safe way to keep every page, as of October 2026.",
+      },
+      {
+        q: "Can Claude read a scanned PDF?",
+        a: "Up to 100 pages, yes: Claude looks at the pages as well as their text. From 101 to 1,000 pages it reads text only, and a scan has no text, so a long scanned PDF gives Claude nothing to read. Read it here first and the text goes in instead, as of October 2026.",
       },
       charts,
       plain,

@@ -29,6 +29,10 @@ export const GITHUB_REPO_FAQ = [
     a: "Paste the repository URL at the top of this page and press Fetch. Your browser downloads the files straight from GitHub. Lock files, dependencies, build output and test files are left out by default. You get back one text file with the file tree at the top and every file under its path. Copy it or download it.",
   },
   {
+    q: "Can I download the repo as a .txt file?",
+    a: "Yes. Set Format to Plain under the preview and Download saves a .txt file. XML, the default, saves as .xml and Markdown as .md. All three hold the same file tree and the same files.",
+  },
+  {
     q: "How many tokens is a GitHub repository?",
     a: `It varies more than any average suggests. We bundled ${REPO_SAMPLE.count} public repositories in 10 languages on 2026-09-11. The median came to ${num(REPO_SAMPLE.median)} tokens, ${REPO_SAMPLE.fits(128_000)} of ${REPO_SAMPLE.count} fit a 128K context window, and the largest reached ${num(REPO_SAMPLE.largest)}. FileConcat counts yours before you paste it.`,
   },
@@ -50,7 +54,7 @@ export const GITHUB_REPO_FAQ = [
   },
   {
     q: "Does a large repository work?",
-    a: "Yes. When GitHub's file listing for a repository comes back incomplete, FileConcat downloads the whole repository as one archive instead and unpacks it in your browser. Without an account, GitHub limits how often one address can call its API. Many imports in a short time can be refused, and the message says when to try again.",
+    a: "Up to about 100,000 files, yes: GitHub lists that many in one request. A bigger repository stops with a link to GitHub's ZIP of it. Download it and drop it here, and it is unpacked in your browser. Without an account, GitHub allows 60 requests an hour per network and each import uses one. When those are used up, the message says when they reset and links the same ZIP.",
   },
   {
     q: "Is my code uploaded to a server?",

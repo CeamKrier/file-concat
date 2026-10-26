@@ -11,6 +11,7 @@ import {
   oursByVersion,
   ranked,
   score,
+  shownRows,
   versionAxis,
   type Benchmark,
 } from "~/lib/benchmarks";
@@ -93,7 +94,7 @@ export function ChartCard({
 
 /** Columns for a short chart, horizontal bars once the labels would not fit under a column. */
 export function BenchmarkFigure({ b }: { b: Benchmark }) {
-  if (b.rows.length <= 5) return <Columns b={b} />;
+  if (shownRows(b.rows).length <= 5) return <Columns b={b} />;
   return (
     <Bars
       title={<ChartTitle title={b.title} sub={subOf(b)} />}
@@ -393,7 +394,8 @@ export function VersionSteps({ b }: { b: Benchmark }) {
  * format has a converter page links to it.
  */
 export function FormatHeatmap({ charts }: { charts: Benchmark[] }) {
-  const tools = ranked(charts[0]).map((r) => r.label);
+  // Every label any row draws, so a version kept in one format but repeated in another still has its column.
+  const tools = [...new Set(charts.flatMap((b) => ranked(b).map((r) => r.label)))];
   const columns = [
     ...tools.filter((t) => t === latestOurs(charts[0].rows).label),
     ...tools.filter((t) => !isOurs(t)),

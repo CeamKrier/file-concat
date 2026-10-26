@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.9.0](https://github.com/CeamKrier/file-concat/compare/v2.8.0...v2.9.0) (2026-10-26)
+
+### Features
+
+* **core:** the bundle names FileConcat with its address ([015d7b8](https://github.com/CeamKrier/file-concat/commit/015d7b85118d1a1d2eead5d3941628eb83cfc3c3))
+* **web:** how-tos for many screenshots and exporting a chat to Markdown ([78de1bc](https://github.com/CeamKrier/file-concat/commit/78de1bcbfe1b6c521c48cde923f55f1251451c7b))
+* **web:** limit pages answer how many PDFs, repo page says .txt ([31d5bde](https://github.com/CeamKrier/file-concat/commit/31d5bde4b55d5d9cc731d7f33e9ffe1abef9ee78))
+* **web:** limit pages name the cap in their search description ([dba08a9](https://github.com/CeamKrier/file-concat/commit/dba08a9b52e30f5e4f40ab90814694a9ab84a3a2))
+* **web:** one reading bar for every recognition pass ([b2d1931](https://github.com/CeamKrier/file-concat/commit/b2d1931247cf1158b09f019c05016d529ade1da9))
+* **web:** PDF to text answers whether ChatGPT and Claude read scans ([af69b2f](https://github.com/CeamKrier/file-concat/commit/af69b2f9fd5eaee699d3a70c119b9147c7a5042c))
+* **web:** the hero drops the benchmarks announcement ([21ad18e](https://github.com/CeamKrier/file-concat/commit/21ad18ee655e2625496c0840789b445e1480c2b9))
+* **web:** the reading bar names each reader's download size ([38a1df0](https://github.com/CeamKrier/file-concat/commit/38a1df0b20e090949bf760d2af7485444963d06f))
+
+### Bug Fixes
+
+* **core:** GitHub import takes pasted links and spends one request ([9d7c2e7](https://github.com/CeamKrier/file-concat/commit/9d7c2e7357c62009a21db87fe6a56e025581097c))
+* **web:** Download stays in the phone bar when Share leads it ([ae4bb81](https://github.com/CeamKrier/file-concat/commit/ae4bb81cc88efb6b23ed7c37e753e05e91814792))
+* **web:** the result screen opens on its final figures ([ddd9f78](https://github.com/CeamKrier/file-concat/commit/ddd9f78b23a100650ed92061a05b536c83d865c1))
+
 ## [2.8.0](https://github.com/CeamKrier/file-concat/compare/v2.7.1...v2.8.0) (2026-10-23)
 
 ### Features

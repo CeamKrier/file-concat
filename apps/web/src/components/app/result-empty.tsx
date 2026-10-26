@@ -5,7 +5,6 @@ import {
   FilterX,
   FolderX,
   ImageOff,
-  LoaderCircle,
   RotateCcw,
   ScanText,
   SlidersHorizontal,
@@ -16,6 +15,7 @@ import { useState } from "react";
 import type { EmptyKind, UnreadableGroup } from "./empty-kind";
 import type { PrunedAtDoor } from "~/lib/prune-at-door";
 import { cn } from "~/lib/utils";
+import { ReadingBar } from "./reading-bar";
 
 type ResultEmptyProps = {
   droppedFiles: string[];
@@ -288,7 +288,7 @@ export function ResultEmpty({
         // A pass someone started from the dialog, seen from the screen behind
         // it. The dialog carries its own stop; this one is for the case where it
         // was closed mid-pass.
-        <ReadingProgress progress={readProgress} stopping={isStopping} onStop={onStopReading} />
+        <InFlight progress={readProgress} stopping={isStopping} onStop={onStopReading} />
       ) : (
         <div className="mt-7 flex flex-col items-center gap-3">
           <button
@@ -378,9 +378,9 @@ function GroupFiles({ files, showWhy }: { files: UnreadableGroup["files"]; showW
   );
 }
 
-/** A pass in flight, and the way out of it. Shared by both variants that can
- * have one running behind them. */
-function ReadingProgress({
+/** A pass in flight, and the way out of it: the same reading bar the result
+ * screen shows (Q5). Shared by both variants that can have one running. */
+function InFlight({
   progress,
   stopping,
   onStop,
@@ -390,32 +390,13 @@ function ReadingProgress({
   onStop?: () => void;
 }) {
   return (
-    <div className="mt-7 flex flex-col items-center gap-3">
-      <div className="text-ink-secondary flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-sm" aria-live="polite">
-        <LoaderCircle
-          className="text-info h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
-          strokeWidth={2}
-        />
-        {/* `done` counts finished files, so the one in hand is the next index.
-            Clamped, or the last one reads "3 of 2" for the moment between its
-            result landing and the pass ending. */}
-        <span>
-          Reading
-          {progress ? ` ${Math.min(progress.done + 1, progress.total)} of ${progress.total}` : ""}...
-        </span>
-        {progress?.note && <span className="text-ink-muted">{progress.note}</span>}
-      </div>
-      {onStop && (
-        <button
-          type="button"
-          onClick={onStop}
-          disabled={stopping}
-          className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background disabled:hover:text-ink-muted rounded-sm px-2 py-1 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-default disabled:opacity-60"
-        >
-          {stopping ? "Stopping..." : "Stop reading"}
-        </button>
-      )}
-    </div>
+    <ReadingBar
+      isReading
+      progress={progress}
+      isStopping={!!stopping}
+      onStop={onStop ?? (() => {})}
+      className="mx-auto mt-7 max-w-[520px] text-left"
+    />
   );
 }
 
@@ -468,7 +449,7 @@ function ReadAction({
       Adjust what&apos;s included
     </button>
   ) : null;
-  if (isReading) return <ReadingProgress progress={progress} stopping={stopping} onStop={onStop} />;
+  if (isReading) return <InFlight progress={progress} stopping={stopping} onStop={onStop} />;
 
   // Never started, because starting would have meant a wait nobody agreed to.
   // The one state where the sentence has to say why nothing happened, or the

@@ -171,6 +171,24 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    url: "/how-to/export-chatgpt-conversation-to-markdown",
+    sourceFile: [
+      "apps/web/src/routes/how-to/export-chatgpt-conversation-to-markdown.tsx",
+      "apps/web/src/components/how-to/export-conversation-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/how-to/send-many-screenshots-to-chatgpt",
+    sourceFile: [
+      "apps/web/src/routes/how-to/send-many-screenshots-to-chatgpt.tsx",
+      "apps/web/src/components/how-to/screenshots-page.tsx",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
     url: "/how-to/upload-folder-to-chatgpt",
     sourceFile: [
       "apps/web/src/routes/how-to/upload-folder-to-chatgpt.tsx",

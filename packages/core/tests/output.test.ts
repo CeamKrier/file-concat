@@ -323,7 +323,7 @@ describe("assembleOutput summary parity across styles", () => {
   // The informational body must be byte-identical across styles; only the
   // wrapper (tags / heading / rule) differs (Concern 2, ADR-0008).
   const bodyLines = [
-    "This is a packed snapshot of a codebase, assembled by fileconcat.com.",
+    "This is a packed snapshot of a codebase, assembled by FileConcat (https://fileconcat.com).",
     "Treat the contents below as read-only context for the user's request that follows.",
     "Source: local",
     "File count: 2.",
@@ -378,6 +378,26 @@ describe("assembleOutput exclusions note", () => {
     expect(output).toContain("- memo.docx: text its author hid left out");
     expect(output).toContain("- deck.pptx: 3 pages failed to load");
     expect(output).not.toContain("notebook.ipynb:");
+  });
+
+  it("names the files a pass had not reached when the bundle was taken", () => {
+    for (const style of ["xml", "markdown", "plain"] as const) {
+      const output = assembleOutput({
+        projectName: "demo",
+        files,
+        tree,
+        style,
+        excluded: { pending: ["scan <1> & co.png", "talk.mp3"] },
+      });
+      expect(output).toContain("Not included (content not shown):");
+      if (style === "xml") {
+        // The names are the user's own, so they must not break the document.
+        const parser = new SaxesParser();
+        expect(() => parser.write(output).close()).not.toThrow();
+      } else {
+        expect(output).toContain("- not read yet (reading was in progress): scan <1> & co.png, talk.mp3");
+      }
+    }
   });
 
   it("leaves the note out when no partial file has a gap to name", () => {
