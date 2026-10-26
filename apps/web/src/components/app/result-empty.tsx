@@ -79,7 +79,7 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
   recognisable: {
     icon: ScanText,
     title: "These are images",
-    body: "Text can be read off them, here in your browser. FileConcat won't do it on its own, because an icon and a photographed page look alike until the work is done. It takes a few seconds an image, plus a one-time 5 MB language download.",
+    body: "Text can be read off them, here in your browser. FileConcat won't do it on its own, because an icon and a photographed page look alike until the work is done. It takes a few seconds an image, plus a one-time language download of under 4 MB.",
     cta: "Read them",
   },
   // Recordings, before anyone has listened. Offered like images, and for a
@@ -107,7 +107,7 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
   scanned: {
     icon: ScanText,
     title: "These pages can't be read as text",
-    body: "Either the page is a picture of text, or its fonts carry no map from what is stored back to letters. Either way there are no characters in the file to pull out. Recognition reads the pixels instead: a few seconds a page, plus a one-time 5 MB language download.",
+    body: "Either the page is a picture of text, or its fonts carry no map from what is stored back to letters. Either way there are no characters in the file to pull out. Recognition reads the pixels instead: a few seconds a page, plus a one-time language download of under 4 MB.",
     cta: "Read the rest",
   },
   // Not a rescue at all: the files are fine and the filters are the reason the
