@@ -755,8 +755,13 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         const missing = browserLanguageWithoutReader();
         if (missing && language.code === "eng") track("ocr_lang_fallback", missing);
         trackTally("ocr_failed", failures);
-        // How much of the pass a stop left: the files it never finished.
-        if (controller.signal.aborted) trackAmount("read_stopped", { n: documents.length - attempted.size });
+        // How much of the pass a stop left: the files it never finished. A
+        // transcript cut short returns instead of throwing, so the loop never
+        // saw that stop and this is where the pass is marked stopped.
+        if (controller.signal.aborted) {
+          setStoppedReading(true);
+          trackAmount("read_stopped", { n: documents.length - attempted.size });
+        }
         return readEntries.length;
       } finally {
         readingRef.current = false;
