@@ -377,7 +377,8 @@ function ClosingCta() {
         </button>
       </div>
       <FurtherReading>
-        Text out of a PDF, and what gets lost on the way:{" "}
+        Text out of a book, and what gets lost on the way:{" "}
+        <ProseLink to="/convert/epub-to-text">converting an EPUB to text</ProseLink> and{" "}
         <ProseLink to="/convert/pdf-to-text">converting a PDF to text for an LLM</ProseLink>
         . What each format keeps and leaves out is on <ProseLink to="/docs/formats">the formats list</ProseLink>.
       </FurtherReading>
