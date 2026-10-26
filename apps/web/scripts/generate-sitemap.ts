@@ -257,6 +257,76 @@ const pages: SitemapEntry[] = [
     priority: 0.8,
   },
   {
+    url: "/convert/eml-to-text",
+    sourceFile: [
+      "apps/web/src/routes/convert/$slug.tsx",
+      "apps/web/src/components/convert/convert-page.tsx",
+      "apps/web/src/components/convert/convert-formats.ts",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/convert/html-to-text",
+    sourceFile: [
+      "apps/web/src/routes/convert/$slug.tsx",
+      "apps/web/src/components/convert/convert-page.tsx",
+      "apps/web/src/components/convert/convert-formats.ts",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/convert/epub-to-text",
+    sourceFile: [
+      "apps/web/src/routes/convert/$slug.tsx",
+      "apps/web/src/components/convert/convert-page.tsx",
+      "apps/web/src/components/convert/convert-formats.ts",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/convert/rtf-to-text",
+    sourceFile: [
+      "apps/web/src/routes/convert/$slug.tsx",
+      "apps/web/src/components/convert/convert-page.tsx",
+      "apps/web/src/components/convert/convert-formats.ts",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/convert/odt-to-text",
+    sourceFile: [
+      "apps/web/src/routes/convert/$slug.tsx",
+      "apps/web/src/components/convert/convert-page.tsx",
+      "apps/web/src/components/convert/convert-formats.ts",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/convert/ods-to-text",
+    sourceFile: [
+      "apps/web/src/routes/convert/$slug.tsx",
+      "apps/web/src/components/convert/convert-page.tsx",
+      "apps/web/src/components/convert/convert-formats.ts",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    url: "/convert/odp-to-text",
+    sourceFile: [
+      "apps/web/src/routes/convert/$slug.tsx",
+      "apps/web/src/components/convert/convert-page.tsx",
+      "apps/web/src/components/convert/convert-formats.ts",
+    ],
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
     url: "/how-to/upload-book-to-chatgpt",
     sourceFile: [
       "apps/web/src/routes/how-to/upload-book-to-chatgpt.tsx",

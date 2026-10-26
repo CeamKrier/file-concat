@@ -1,0 +1,26 @@
+From: Dana Ruiz <dana@harbor-supplies.example>
+To: Sam Lee <sam@example.com>
+Cc: Orders <orders@harbor-supplies.example>
+Date: Tue, 14 Oct 2026 09:12:00 +0000
+Subject: Renewal terms for 2027
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="b1"
+
+--b1
+Content-Type: text/plain; charset=utf-8
+
+Hi Sam,
+
+The renewal keeps this year's price for 2027. Two things change: deliveries move to Thursdays, and the notice period drops to 30 days.
+
+The full terms are attached.
+
+Dana
+
+--b1
+Content-Type: application/pdf; name="terms-2027.pdf"
+Content-Disposition: attachment; filename="terms-2027.pdf"
+Content-Transfer-Encoding: base64
+
+JVBERi0xLjQKJSB0ZXJtcwo=
+--b1--
