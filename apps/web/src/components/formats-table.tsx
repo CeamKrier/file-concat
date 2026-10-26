@@ -1,3 +1,5 @@
+import { ProseLink } from "~/components/app/marketing/further-reading";
+import { CONVERT_LINKS } from "~/components/convert/convert-links";
 import { READ_FORMATS, type FormatGroup } from "~/data/formats";
 
 /**
@@ -36,12 +38,28 @@ export function FormatsTable() {
                   <dt className="text-ink-muted">Left out</dt>
                   <dd className="text-ink">{entry.loses}</dd>
                 </dl>
+                <ConvertLinks name={entry.name} />
               </li>
             ))}
           </ul>
         </section>
       ))}
     </div>
+  );
+}
+
+/** The /convert pages for this row, so the list leads to a page that shows it. */
+function ConvertLinks({ name }: { name: string }) {
+  const links = CONVERT_LINKS.filter((link) => link.formats.includes(name));
+  if (links.length === 0) return null;
+  return (
+    <p className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[14px]">
+      {links.map((link) => (
+        <ProseLink key={link.slug} to={`/convert/${link.slug}`}>
+          {link.label}
+        </ProseLink>
+      ))}
+    </p>
   );
 }
 

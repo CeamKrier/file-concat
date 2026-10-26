@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { SiGithub, SiGooglechrome, SiNpm } from "@icons-pack/react-simple-icons";
 
 import BMCLogo from "~/components/bmc-logo";
+import { CONVERT_LINKS } from "~/components/convert/convert-links";
 import { hasPublishedPosts } from "~/lib/blog";
 import { DOCS_NAVIGATION } from "~/lib/docs-nav";
 import { LogoMark } from "../logo-mark";
@@ -123,21 +124,11 @@ export function SiteFooter() {
               For researchers
             </Link>
             <h2 className={`${headingClass} mt-6`}>Convert to text</h2>
-            <Link to="/convert/$slug" params={{ slug: "pdf-to-text" }} className={linkClass}>
-              PDF to text
-            </Link>
-            <Link to="/convert/$slug" params={{ slug: "docx-to-text" }} className={linkClass}>
-              Word to text
-            </Link>
-            <Link to="/convert/$slug" params={{ slug: "excel-to-text" }} className={linkClass}>
-              Excel to text
-            </Link>
-            <Link to="/convert/$slug" params={{ slug: "pptx-to-text" }} className={linkClass}>
-              PowerPoint to text
-            </Link>
-            <Link to="/convert/$slug" params={{ slug: "image-to-text" }} className={linkClass}>
-              Image to text
-            </Link>
+            {CONVERT_LINKS.map((link) => (
+              <Link key={link.slug} to="/convert/$slug" params={{ slug: link.slug }} className={linkClass}>
+                {link.label}
+              </Link>
+            ))}
           </div>
 
           <div className={columnClass}>

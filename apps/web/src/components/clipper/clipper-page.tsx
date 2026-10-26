@@ -479,6 +479,8 @@ function Uses() {
           getting a YouTube transcript into ChatGPT
         </ProseLink>
         .
+        A page you already saved from the browser converts on 
+        <ProseLink to="/convert/html-to-text">web page to text</ProseLink>.
       </p>
     </MarketingSection>
   );
