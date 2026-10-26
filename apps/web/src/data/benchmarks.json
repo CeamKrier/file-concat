@@ -392,6 +392,7 @@
         },
         {
           "id": "eml",
+          "convert": "eml-to-text",
           "title": "Email (eml)",
           "metric": "Weighted coverage",
           "unit": "percent",
@@ -432,6 +433,7 @@
         },
         {
           "id": "html",
+          "convert": "html-to-text",
           "title": "Web page (HTML)",
           "metric": "Weighted coverage",
           "unit": "percent",
@@ -472,6 +474,7 @@
         },
         {
           "id": "epub",
+          "convert": "epub-to-text",
           "title": "Ebook (EPUB)",
           "metric": "Weighted coverage",
           "unit": "percent",
@@ -512,6 +515,7 @@
         },
         {
           "id": "rtf",
+          "convert": "rtf-to-text",
           "title": "RTF",
           "metric": "Weighted coverage",
           "unit": "percent",
@@ -552,6 +556,7 @@
         },
         {
           "id": "odt",
+          "convert": "odt-to-text",
           "title": "OpenDocument text (odt)",
           "metric": "Weighted coverage",
           "unit": "percent",
@@ -592,6 +597,7 @@
         },
         {
           "id": "ods",
+          "convert": "ods-to-text",
           "title": "OpenDocument sheet (ods)",
           "metric": "Weighted coverage",
           "unit": "percent",
@@ -632,6 +638,7 @@
         },
         {
           "id": "odp",
+          "convert": "odp-to-text",
           "title": "OpenDocument slides (odp)",
           "metric": "Weighted coverage",
           "unit": "percent",

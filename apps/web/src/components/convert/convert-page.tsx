@@ -6,9 +6,13 @@ import {
   ChevronRight,
   CircleMinus,
   Download,
+  BookOpen,
   FileText,
+  Globe,
   Image as ImageIcon,
   Lock,
+  Mail,
+  Paperclip,
   Presentation,
   Table2,
   type LucideIcon,
@@ -31,8 +35,8 @@ import {
 } from "./convert-formats";
 
 /**
- * /convert/<format>-to-text: one template for the five formats people drop
- * most. The searcher wants the conversion done, so the drop zone leads and the
+ * /convert/<format>-to-text: one template for every format with a page here.
+ * The searcher wants the conversion done, so the drop zone leads and the
  * page then shows, on a real sample, exactly what comes back. The result card
  * is drawn from `convert-samples.json`, an engine run, never typed numbers.
  * Hosts the real app flow via AppFlow's renderLanding slot.
@@ -118,7 +122,7 @@ function Sample({ format }: { format: ConvertFormat }) {
           <div className="mb-3.5 flex flex-wrap items-center gap-2.5">
             <Check className="text-primary h-[17px] w-[17px] shrink-0" strokeWidth={2.8} />
             <span className="font-display text-ink text-[19px] font-semibold tracking-[-0.02em]">
-              Your document is ready
+              Your bundle is ready
             </span>
             <span className="text-ink-muted bg-surface border-border ml-auto rounded-md border px-2.5 py-1 font-mono text-[11.5px]">
               {s.files} file
@@ -272,15 +276,7 @@ function SourceDrawing({ kind }: { kind: ConvertKey }) {
           <span className="border-r px-[9px] py-1.5 font-bold" style={cell}>Start</span>
           <span className="px-[9px] py-1.5">3 November</span>
         </div>
-        <div
-          className="mt-4 flex h-[74px] items-center justify-center border"
-          style={{
-            borderColor: "#c5baa5",
-            background: "repeating-linear-gradient(135deg,#ddd4c2 0 6px,#e6dece 6px 12px)",
-          }}
-        >
-          <ImageIcon className="h-[22px] w-[22px]" style={{ color: "#8a7e68" }} strokeWidth={1.8} />
-        </div>
+        <Picture className="mt-4 h-[74px]" />
         <div className="mt-auto pt-2.5">
           <div className="mb-[5px] w-11 border-t" style={cell} />
           <div className="text-[9px] leading-[1.4]">
@@ -292,85 +288,196 @@ function SourceDrawing({ kind }: { kind: ConvertKey }) {
   }
 
   if (kind === "excel") {
-    const rows = [
-      ["Travel", "4,000", "3,650"],
-      ["Software", "2,500", "2,710"],
-      ["Total", "6,500", "6,360"],
-    ];
-    const line = "1px solid #ddd4c2";
     return (
-      <div aria-hidden className="w-full max-w-[330px] overflow-hidden rounded-[3px] text-[11.5px]" style={sheet}>
-        <div className="px-2.5 py-2 font-mono text-[10.5px]" style={{ color: "#5c5446", borderBottom: "1px solid #d6cdbb" }}>
-          =SUM(C2:C3)
+      <SheetDrawing
+        formula="=SUM(C2:C3)"
+        head={["Item", "Budget", "Actual"]}
+        rows={[
+          ["Travel", "4,000", "3,650"],
+          ["Software", "2,500", "2,710"],
+          ["Total", "6,500", "6,360"],
+        ]}
+        tabs={["Q3", "Q4"]}
+      />
+    );
+  }
+
+  if (kind === "ods") {
+    return (
+      <SheetDrawing
+        formula="=SUM(C2:C3)"
+        head={["Item", "Count", "Value"]}
+        rows={[
+          ["Rope, 50 m", "40", "320.00"],
+          ["Fenders", "12", "540.00"],
+          ["Total", "52", "860.00"],
+        ]}
+        tabs={["October", "Notes"]}
+      />
+    );
+  }
+
+  if (kind === "pptx") {
+    return (
+      <SlidesDrawing
+        slides={[
+          { title: "Project kickoff", sub: "Design and engineering" },
+          { title: "Budget by team", chart: ["48%", "80%", "34%", "62%"] },
+          { title: "Next steps", lines: ["Agree scope", "Book review"] },
+        ]}
+      />
+    );
+  }
+
+  if (kind === "odp") {
+    return (
+      <SlidesDrawing
+        slides={[
+          { title: "Welcome week", sub: "Your first five days at Harbor Supplies" },
+          { title: "Day one", lines: ["Collect your badge at reception", "Laptop setup with IT at 10:00", "Lunch with your team"] },
+          { title: "Who to ask", lines: ["Pay and leave: Priya Shah", "Orders and stock: Dana Ruiz"] },
+        ]}
+      />
+    );
+  }
+
+  if (kind === "rtf") {
+    return (
+      <div aria-hidden className="flex aspect-[8.5/11] w-full max-w-[290px] flex-col rounded-[2px] px-[30px] pb-6 pt-5" style={paper}>
+        <div className="text-right text-[9px]" style={{ color: "#6b6150" }}>
+          Harbor Supplies, board minutes
         </div>
-        <div className="grid grid-cols-[1.3fr_1fr_1fr]">
-          {["Item", "Budget", "Actual"].map((h, i) => (
-            <span
-              key={h}
-              className={`px-[9px] py-[7px] font-semibold ${i ? "text-right" : ""}`}
-              style={{ background: "#e4dccb", borderBottom: "1px solid #d6cdbb", borderRight: i < 2 ? "1px solid #d6cdbb" : undefined }}
-            >
-              {h}
-            </span>
-          ))}
-          {rows.flatMap((row, r) =>
-            row.map((v, i) => {
-              const selected = r === 2 && i === 2;
-              return (
-                <span
-                  key={`${r}-${i}`}
-                  className={`px-[9px] py-[7px] ${i ? "text-right" : ""} ${r === 2 ? "font-semibold" : ""}`}
-                  style={
-                    selected
-                      ? { border: "2px solid #3f7a52", padding: "6px 8px" }
-                      : { borderBottom: line, borderRight: i < 2 ? line : undefined }
-                  }
-                >
-                  {v}
-                </span>
-              );
-            }),
-          )}
-          {Array.from({ length: 6 }, (_, i) => (
-            <span key={i} className="h-7" style={{ borderRight: i % 3 < 2 ? line : undefined, borderBottom: i < 3 ? line : undefined }} />
-          ))}
+        <div className="mt-4 text-[16px] font-bold leading-[1.25]">Board minutes, 9 October 2026</div>
+        <div className="mt-2 text-[11px] leading-[1.6]">Present: Dana Ruiz, Sam Lee, Priya Shah.</div>
+        <div className="mt-3.5 text-[13px] font-bold">Decisions</div>
+        <ol className="mt-1.5 space-y-1 text-[11px] leading-[1.5]">
+          <li>1. The 2027 price list is approved as drafted.</li>
+          <li>2. The Thursday delivery trial runs until the end of January.</li>
+          <li>3. Priya will report on the Monday backlog at the next meeting.</li>
+        </ol>
+        <div className="mt-auto text-[11px]">Next meeting: 13 November, 10:00.</div>
+      </div>
+    );
+  }
+
+  if (kind === "odt") {
+    return (
+      <div aria-hidden className="flex aspect-[8.5/11] w-full max-w-[290px] flex-col rounded-[2px] px-[30px] pb-5 pt-8" style={paper}>
+        <div className="text-[19px] font-bold">Leave policy</div>
+        <div className="mt-2.5 text-[11px] leading-[1.6]">Everyone gets 25 days of paid leave a year, plus public holidays.</div>
+        <ol className="mt-3 space-y-1.5 text-[11px] leading-[1.5]">
+          <li>1. Ask your manager at least two weeks ahead.</li>
+          <li>2. Up to five unused days carry over to next year.</li>
+          <li>3. Sick leave is separate and does not count against the 25.</li>
+        </ol>
+        <Picture className="mt-4 h-[60px]" />
+        <div className="mt-auto border-t pt-1.5 text-[9px]" style={{ borderColor: "#9c907a" }}>
+          Staff handbook, section 4
         </div>
-        <div className="flex gap-0.5 px-2 text-[11px]" style={{ background: "#e4dccb", borderTop: "1px solid #d6cdbb" }}>
-          <span className="px-3.5 py-1.5 font-semibold" style={{ background: "#f3efe6", borderBottom: "2px solid #3f7a52" }}>
-            Q3
-          </span>
-          <span className="px-3.5 py-1.5" style={{ color: "#5c5446" }}>
-            Q4
+      </div>
+    );
+  }
+
+  if (kind === "email") {
+    const field = (name: string, value: string) => (
+      <div className="flex gap-2 text-[10.5px] leading-[1.7]">
+        <span className="w-[44px] shrink-0" style={{ color: "#6b6150" }}>
+          {name}
+        </span>
+        <span className="min-w-0 truncate">{value}</span>
+      </div>
+    );
+    return (
+      <div aria-hidden className="w-full max-w-[330px] overflow-hidden rounded-[3px]" style={sheet}>
+        <div className="px-4 pb-3 pt-3.5" style={{ borderBottom: "1px solid #d6cdbb" }}>
+          <div className="mb-2 text-[14px] font-semibold">Renewal terms for 2027</div>
+          {field("From", "Dana Ruiz")}
+          {field("To", "Sam Lee")}
+          {field("Cc", "Orders")}
+          {field("Date", "14 Oct 2026, 09:12")}
+        </div>
+        <div className="px-4 py-3.5 text-[11px] leading-[1.6]" style={{ fontFamily: paper.fontFamily }}>
+          <p>Hi Sam,</p>
+          <p className="mt-2">
+            The renewal keeps this year&apos;s price for 2027. Two things change: deliveries move to Thursdays,
+            and the notice period drops to 30 days.
+          </p>
+          <p className="mt-2">The full terms are attached.</p>
+          <p className="mt-2">Dana</p>
+        </div>
+        <div className="px-4 pb-4">
+          <span className="inline-flex items-center gap-1.5 rounded-[3px] border px-2.5 py-1.5 text-[10.5px]" style={{ borderColor: "#c5baa5", background: "#ebe4d6" }}>
+            <Paperclip className="h-3 w-3" strokeWidth={2} />
+            terms-2027.pdf
           </span>
         </div>
       </div>
     );
   }
 
-  if (kind === "pptx") {
+  if (kind === "html") {
+    const muted = { background: "#e4dccb", color: "#6b6150" };
     return (
-      <div aria-hidden className="flex w-full max-w-[290px] flex-col gap-2.5" style={{ color: "#2b251c" }}>
-        <div className="flex aspect-video flex-col justify-center rounded-[3px] px-[18px] py-4" style={sheet}>
-          <div className="font-display text-[17px] font-semibold">Project kickoff</div>
-          <div className="mt-1 text-[10.5px]" style={{ color: "#5c5446" }}>
-            Design and engineering
+      <div aria-hidden className="w-full max-w-[330px] overflow-hidden rounded-[3px] text-[10px]" style={sheet}>
+        <div className="flex items-center gap-2 px-2.5 py-2" style={{ borderBottom: "1px solid #d6cdbb" }}>
+          <span className="flex gap-1">
+            {[0, 1, 2].map((i) => (
+              <span key={i} className="h-[7px] w-[7px] rounded-full" style={{ background: "#c5baa5" }} />
+            ))}
+          </span>
+          <span className="min-w-0 flex-1 truncate rounded-[3px] px-2 py-1 font-mono text-[9px]" style={muted}>
+            blog.harbor-supplies.example/four-days
+          </span>
+        </div>
+        <div className="px-3 py-1.5" style={muted}>
+          We use cookies to improve this site. <span className="underline">Accept</span>
+        </div>
+        <div className="flex gap-3 px-3 py-1.5" style={{ color: "#6b6150", borderBottom: "1px solid #ddd4c2" }}>
+          <span className="font-semibold">Harbor Supplies blog</span>
+          <span>Home</span>
+          <span>Products</span>
+          <span>Careers</span>
+        </div>
+        <div className="flex gap-3 px-3 py-3">
+          <div className="min-w-0 flex-1" style={{ fontFamily: paper.fontFamily }}>
+            <div className="text-[13px] font-bold leading-[1.25]">What a four-day week did to our support queue</div>
+            <div className="mt-1 text-[8.5px]" style={{ color: "#6b6150" }}>
+              By Dana Ruiz, 2 October 2026
+            </div>
+            <p className="mt-2 leading-[1.55]">
+              In March we moved the support team to a four-day week. Nobody&apos;s hours went down.
+            </p>
+            <p className="mt-1.5 leading-[1.55]">Three months on, the first reply time went from 4 hours 10 minutes to 3 hours 40 minutes.</p>
+          </div>
+          <div className="w-[84px] shrink-0 self-start rounded-[3px] px-2 py-2" style={muted}>
+            <div className="font-semibold">Spring sale</div>
+            <div className="mt-1 leading-[1.4]">20% off rope and fenders this week only.</div>
           </div>
         </div>
-        <div className="flex aspect-video flex-col rounded-[3px] px-4 py-3" style={sheet}>
-          <div className="font-display text-[12.5px] font-semibold">Budget by team</div>
-          <div className="mt-2 flex flex-1 items-end gap-2.5 px-1.5" style={axes}>
-            <span style={bar("48%")} />
-            <span style={bar("80%", true)} />
-            <span style={bar("34%")} />
-            <span style={bar("62%")} />
-          </div>
+        <div className="px-3 py-1.5 text-[8.5px]" style={{ ...muted, borderTop: "1px solid #d6cdbb" }}>
+          Copyright 2026 Harbor Supplies. Privacy
         </div>
-        <div className="aspect-video rounded-[3px] px-[18px] py-3.5" style={sheet}>
-          <div className="font-display text-[12.5px] font-semibold">Next steps</div>
-          <div className="mt-1.5 text-[10.5px] leading-[1.7]">
-            - Agree scope
-            <br />- Book review
-          </div>
+      </div>
+    );
+  }
+
+  if (kind === "epub") {
+    const page = "min-w-0 flex-1 px-3.5 py-4 text-[9.5px] leading-[1.6]";
+    return (
+      <div aria-hidden className="flex w-full max-w-[340px] overflow-hidden rounded-[3px]" style={paper}>
+        <div className={page} style={{ borderRight: "1px solid #c5baa5" }}>
+          <div className="text-[12.5px] font-bold">1. Getting there</div>
+          <p className="mt-2">
+            The harbour sits at the end of the coast road, an hour from the city by the 42 bus. The last bus back
+            leaves at ten past eleven.
+          </p>
+          <p className="mt-2">If you drive, park on the hill above the slipway.</p>
+        </div>
+        <div className={page}>
+          <div className="text-[12.5px] font-bold">2. Where to eat</div>
+          <p className="mt-2">The fish market opens at six and sells breakfast from a hatch at the back.</p>
+          <Picture className="mt-2.5 h-[52px]" />
+          <p className="mt-2.5">For dinner, arrive before seven.</p>
         </div>
       </div>
     );
@@ -386,6 +493,115 @@ function SourceDrawing({ kind }: { kind: ConvertKey }) {
       loading="lazy"
       className="h-auto w-full max-w-[330px] rounded-[3px]"
     />
+  );
+}
+
+/** A picture in a drawn file: hatched, because the text never describes it. */
+function Picture({ className }: { className: string }) {
+  return (
+    <div
+      className={`flex items-center justify-center border ${className}`}
+      style={{
+        borderColor: "#c5baa5",
+        background: "repeating-linear-gradient(135deg,#ddd4c2 0 6px,#e6dece 6px 12px)",
+      }}
+    >
+      <ImageIcon className="h-[22px] w-[22px]" style={{ color: "#8a7e68" }} strokeWidth={1.8} />
+    </div>
+  );
+}
+
+/** A spreadsheet with its formula bar on the total and its sheet tabs, the first one open. */
+function SheetDrawing({ formula, head, rows, tabs }: { formula: string; head: string[]; rows: string[][]; tabs: string[] }) {
+  const line = "1px solid #ddd4c2";
+  return (
+    <div aria-hidden className="w-full max-w-[330px] overflow-hidden rounded-[3px] text-[11.5px]" style={sheet}>
+      <div className="px-2.5 py-2 font-mono text-[10.5px]" style={{ color: "#5c5446", borderBottom: "1px solid #d6cdbb" }}>
+        {formula}
+      </div>
+      <div className="grid grid-cols-[1.3fr_1fr_1fr]">
+        {head.map((h, i) => (
+          <span
+            key={h}
+            className={`px-[9px] py-[7px] font-semibold ${i ? "text-right" : ""}`}
+            style={{ background: "#e4dccb", borderBottom: "1px solid #d6cdbb", borderRight: i < 2 ? "1px solid #d6cdbb" : undefined }}
+          >
+            {h}
+          </span>
+        ))}
+        {rows.flatMap((row, r) =>
+          row.map((v, i) => {
+            const last = r === rows.length - 1;
+            const selected = last && i === 2;
+            return (
+              <span
+                key={`${r}-${i}`}
+                className={`px-[9px] py-[7px] ${i ? "text-right" : ""} ${last ? "font-semibold" : ""}`}
+                style={
+                  selected
+                    ? { border: "2px solid #3f7a52", padding: "6px 8px" }
+                    : { borderBottom: line, borderRight: i < 2 ? line : undefined }
+                }
+              >
+                {v}
+              </span>
+            );
+          }),
+        )}
+        {Array.from({ length: 6 }, (_, i) => (
+          <span key={i} className="h-7" style={{ borderRight: i % 3 < 2 ? line : undefined, borderBottom: i < 3 ? line : undefined }} />
+        ))}
+      </div>
+      <div className="flex gap-0.5 px-2 text-[11px]" style={{ background: "#e4dccb", borderTop: "1px solid #d6cdbb" }}>
+        {tabs.map((t, i) => (
+          <span
+            key={t}
+            className={`px-3.5 py-1.5 ${i ? "" : "font-semibold"}`}
+            style={i ? { color: "#5c5446" } : { background: "#f3efe6", borderBottom: "2px solid #3f7a52" }}
+          >
+            {t}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type DrawnSlide = { title: string; sub?: string; lines?: string[]; chart?: string[] };
+
+/** A deck as three slides stacked: a title slide, then content slides with a list or a chart. */
+function SlidesDrawing({ slides }: { slides: DrawnSlide[] }) {
+  return (
+    <div aria-hidden className="flex w-full max-w-[290px] flex-col gap-2.5" style={{ color: "#2b251c" }}>
+      {slides.map((slide) =>
+        slide.sub ? (
+          <div key={slide.title} className="flex aspect-video flex-col justify-center rounded-[3px] px-[18px] py-4" style={sheet}>
+            <div className="font-display text-[17px] font-semibold">{slide.title}</div>
+            <div className="mt-1 text-[10.5px]" style={{ color: "#5c5446" }}>
+              {slide.sub}
+            </div>
+          </div>
+        ) : slide.chart ? (
+          <div key={slide.title} className="flex aspect-video flex-col rounded-[3px] px-4 py-3" style={sheet}>
+            <div className="font-display text-[12.5px] font-semibold">{slide.title}</div>
+            <div className="mt-2 flex flex-1 items-end gap-2.5 px-1.5" style={axes}>
+              {slide.chart.map((h, i) => (
+                <span key={i} style={bar(h, i === 1)} />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div key={slide.title} className="aspect-video rounded-[3px] px-[18px] py-3.5" style={sheet}>
+            <div className="font-display text-[12.5px] font-semibold">{slide.title}</div>
+            <div className="mt-1.5 text-[10.5px] leading-[1.7]">
+              {slide.lines?.map((l) => (
+                <div key={l}>- {l}</div>
+              ))}
+            </div>
+          </div>
+        ),
+      )}
+    </div>
   );
 }
 
@@ -477,6 +693,13 @@ const ICONS: Record<ConvertKey, LucideIcon> = {
   excel: Table2,
   pptx: Presentation,
   image: ImageIcon,
+  email: Mail,
+  html: Globe,
+  epub: BookOpen,
+  rtf: FileText,
+  odt: FileText,
+  ods: Table2,
+  odp: Presentation,
 };
 
 function OtherFormats({ format }: { format: ConvertFormat }) {
@@ -503,7 +726,7 @@ function OtherFormats({ format }: { format: ConvertFormat }) {
           })}
         </ul>
         <p className="text-ink-muted mt-[22px] flex flex-wrap items-baseline gap-x-3.5 gap-y-1.5 text-[15px]">
-          <span>Also EPUB, email, notebooks, subtitles and ZIP archives.</span>
+          <span>Also Kindle books, notebooks, subtitles and ZIP archives.</span>
           <span className="text-ink-secondary">
             <ProseLink to="/docs/formats">Every format it reads</ProseLink>
           </span>

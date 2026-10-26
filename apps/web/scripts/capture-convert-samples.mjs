@@ -26,6 +26,13 @@ const SAMPLES = [
   { key: "excel", file: "budget.xlsx" },
   { key: "pptx", file: "kickoff.pptx" },
   { key: "image", file: "whiteboard.jpg", recognise: true },
+  { key: "email", file: "renewal-terms.eml" },
+  { key: "html", file: "four-day-week.html" },
+  { key: "epub", file: "harbour-guide.epub" },
+  { key: "rtf", file: "board-minutes.rtf" },
+  { key: "odt", file: "leave-policy.odt" },
+  { key: "ods", file: "stock-count.ods" },
+  { key: "odp", file: "welcome-week.odp" },
 ];
 
 const cache = join(homedir(), ".cache/ms-playwright");
@@ -47,11 +54,10 @@ for (const s of SAMPLES) {
   await page.locator("input[type=file]:not([webkitdirectory])").first().setInputFiles(join(here, "convert-samples", s.file));
   if (s.recognise) {
     await page.getByRole("button", { name: /^Read them/ }).first().click();
+    // The dialog closes itself and the result screen takes the reading.
     await page.getByRole("button", { name: "Read 1 file" }).click();
-    await page.getByRole("button", { name: "Done", exact: true }).waitFor({ timeout: 300_000 });
-    await page.getByRole("button", { name: "Close" }).click();
   }
-  await page.getByText("Your document is ready").waitFor({ timeout: 120_000 });
+  await page.getByText("Your bundle is ready").waitFor({ timeout: 300_000 });
   await page.waitForTimeout(1500);
 
   const screen = await page.evaluate(() => {
