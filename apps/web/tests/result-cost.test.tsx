@@ -114,16 +114,18 @@ describe("the price of one send", () => {
 
 /**
  * Under 640px the export row is a bar pinned to the bottom of the screen. Share
- * leads it only when the browser can share a file, and Download then moves to
- * the quiet row, so it is still one tap away.
+ * leads it only when the browser can share a file, and Download then narrows to
+ * an icon in the same bar, keeping its name for screen readers. It used to drop
+ * to a 20px text link under the bar.
  */
 describe("the phone bar", () => {
-  it("offers Share and moves Download when the browser can share a file", () => {
+  it("offers Share and keeps one named Download when the browser can share a file", () => {
     const onShare = vi.fn();
     render(<ResultView {...props({ onShare })} />);
     screen.getByRole("button", { name: /share/i }).click();
     expect(onShare).toHaveBeenCalledOnce();
-    expect(screen.getAllByRole("button", { name: /download/i })).toHaveLength(2);
+    const download = screen.getByRole("button", { name: /download/i });
+    expect(download.className).toContain("max-sm:w-[46px]");
   });
 
   it("has no Share without file sharing", () => {

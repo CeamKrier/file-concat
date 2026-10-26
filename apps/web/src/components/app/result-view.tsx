@@ -70,7 +70,7 @@ type ResultViewProps = {
   onCopy: () => void;
   onDownload: () => void;
   /** Present when the browser can share a file: phones then get Share in the
-   * bottom bar, with Download moved to the quiet row. */
+   * bottom bar, with Download narrowed to an icon at its end. */
   onShare?: () => void;
   /** Clear all state and return to the landing drop zone. */
   onStartOver: () => void;
@@ -628,7 +628,9 @@ export function ResultView({
               come. On a phone the row leaves the card for a bar pinned to the
               bottom of the screen, where the thumb is, and stays there while
               the preview scrolls. Share leads it when the browser can hand the
-              bundle to another app as a file; Copy then steps down to second.
+              bundle to another app as a file; Copy then steps down to second
+              and Download narrows to a 46px icon at the end, still in the bar
+              rather than a text link under it.
               The section skips its entrance on a phone for this: fade-up holds
               a transform, which would pin this bar to the section instead of
               the screen. */}
@@ -672,27 +674,22 @@ export function ResultView({
                 disabled={isGenerating}
                 className={cn(
                   "bg-secondary text-ink border-border-strong rounded-input hover:bg-accent focus-visible:ring-ring focus-visible:ring-offset-surface flex h-[46px] w-full items-center justify-center gap-2 border px-[18px] text-[14.5px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 max-sm:w-auto max-sm:flex-1 sm:w-auto sm:flex-[0_1_160px]",
-                  onShare && "max-sm:hidden",
+                  onShare && "max-sm:w-[46px] max-sm:flex-none max-sm:px-0",
                 )}
               >
                 <Download className="h-[15px] w-[15px]" />
-                {isGenerating ? "Preparing..." : "Download"}
+                <span className={cn(onShare && "max-sm:sr-only")}>
+                  {isGenerating ? "Preparing..." : "Download"}
+                </span>
               </button>
             </div>
 
           {/* The card's footer: everything you might do to the bundle instead
               of exporting it, and the way to tell us it went wrong. Under the
               buttons rather than over them, centred on the pair, and at the
-              quietest weight on the card. */}
-          <div className="mt-[18px] flex flex-wrap items-center justify-center gap-x-[22px] gap-y-2.5 max-sm:mt-0">
-            {onShare && (
-              <QuietAction
-                icon={Download}
-                label={isGenerating ? "Preparing..." : "Download"}
-                onClick={onDownload}
-                className="sm:hidden"
-              />
-            )}
+              quietest weight on the card. On a phone each one is a 44px row
+              for the thumb, so the wrap needs no gap of its own. */}
+          <div className="mt-[18px] flex flex-wrap items-center justify-center gap-x-[22px] gap-y-2.5 max-sm:mt-0 max-sm:gap-y-0">
             <QuietAction
               icon={FilePlus}
               label="Add files"
@@ -1177,7 +1174,7 @@ function QuietAction({
       type="button"
       onClick={onClick}
       className={cn(
-        "text-ink-secondary hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-sm text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+        "text-ink-secondary hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-sm text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 max-sm:min-h-11",
         className,
       )}
     >
