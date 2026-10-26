@@ -81,9 +81,21 @@ export function nearestOther(b: Benchmark): BenchmarkRow | null {
   return b.rows.filter((r) => !isOurs(r.label)).sort((x, y) => Math.abs(x.value - mine) - Math.abs(y.value - mine))[0] ?? null;
 }
 
+/**
+ * The rows a chart draws: a FileConcat row whose value the next version
+ * repeated is dropped, so a rerun that moved nothing shows as the newest
+ * version alone instead of a column per release with the same number. The
+ * data keeps every row; the by-version strip still reads them all.
+ */
+export function shownRows(rows: BenchmarkRow[]): BenchmarkRow[] {
+  const mine = oursByVersion(rows);
+  const repeated = new Set(mine.filter((r, i) => mine[i + 1]?.value === r.value).map((r) => r.label));
+  return rows.filter((r) => !repeated.has(r.label));
+}
+
 /** Best first, the way a leaderboard reads. */
 export const ranked = (b: Benchmark) =>
-  [...b.rows].sort((x, y) => (b.better === "higher" ? y.value - x.value : x.value - y.value));
+  shownRows(b.rows).sort((x, y) => (b.better === "higher" ? y.value - x.value : x.value - y.value));
 
 export function formatValue(b: Benchmark, value: number): string {
   if (b.unit === "percent") return `${value.toFixed(1)}%`;
