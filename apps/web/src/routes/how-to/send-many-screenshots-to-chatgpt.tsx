@@ -21,8 +21,8 @@ export const Route = createFileRoute("/how-to/send-many-screenshots-to-chatgpt")
       ...generateSEOMeta({
         // The searcher has a pile of screenshots and an image cap in the way:
         // "too many screenshots", "how many images can I send". No figures in
-        // the description, same call as the upload-limit pages: it cannot carry
-        // the date the caps were read.
+        // the description: it cannot carry the date the caps were read. The
+        // upload-limit pages test figures in theirs from 2026-10-26.
         title: "Too many screenshots for ChatGPT or Claude? Send one file",
         description:
           "Hit the image limit? Read the text out of every screenshot in your browser and send it to ChatGPT or Claude as one file. Not uploaded to us.",

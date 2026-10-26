@@ -60,7 +60,8 @@
         "apps/web/src/components/how-to/upload-book-page.tsx",
         "apps/web/src/content/blog/youtube-transcript-to-chatgpt.mdx",
         "apps/web/src/components/how-to/screenshots-page.tsx",
-        "apps/web/src/components/how-to/screenshots-faq.ts"
+        "apps/web/src/components/how-to/screenshots-faq.ts",
+        "apps/web/src/routes/how-to/chatgpt-file-upload-limit.tsx"
       ]
     },
     {
@@ -139,6 +140,7 @@
         "Uploaded file is too large"
       ],
       "used_by": [
+        "apps/web/src/routes/how-to/claude-file-upload-limit.tsx",
         "apps/web/src/components/personas/claude-projects-page.tsx",
         "apps/web/src/components/personas/claude-projects-faq.ts",
         "apps/web/src/routes/for/claude-projects.tsx",
