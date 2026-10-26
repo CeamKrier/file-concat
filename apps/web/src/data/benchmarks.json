@@ -684,10 +684,14 @@
           "metric": "olmOCR-bench, 1,403 pages",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-23",
+          "measured": "2026-10-26",
           "post": "browser-text-extraction-benchmark",
           "note": "Tests passed, mean of 8 parts. GPU and API rows from allenai's table, Marker from its README, the rest run by us.",
           "rows": [
+            {
+              "label": "FileConcat 2.9",
+              "value": 40.2
+            },
             {
               "label": "FileConcat 2.8",
               "value": 40.2
@@ -737,10 +741,14 @@
           "metric": "Article text F1, 181 pages",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-23",
+          "measured": "2026-10-26",
           "post": "browser-text-extraction-benchmark",
           "note": "Zyte's article extraction benchmark at commit 4a3bc97. Other readers: their published outputs.",
           "rows": [
+            {
+              "label": "FileConcat 2.9",
+              "value": 93.6
+            },
             {
               "label": "FileConcat 2.8",
               "value": 93.6
@@ -787,10 +795,14 @@
           "unit": "count",
           "of": 26,
           "better": "higher",
-          "measured": "2026-10-23",
+          "measured": "2026-10-26",
           "post": "browser-text-extraction-benchmark",
           "note": "One archive per case readers get wrong: zip64, non-ASCII names, tar dialects, 7z. All run by us.",
           "rows": [
+            {
+              "label": "FileConcat 2.9",
+              "value": 25
+            },
             {
               "label": "FileConcat 2.8",
               "value": 25
