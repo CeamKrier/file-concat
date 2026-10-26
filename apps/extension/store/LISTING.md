@@ -9,17 +9,31 @@ Assets are in `assets/`. They are generated, not hand-drawn. Rebuild the
 extension, then run `node apps/extension/store/generate-assets.mjs` to
 reproduce all five from a real browser.
 
-Matches manifest version `0.3.2`.
+Matches manifest version `0.3.3`.
 
 The version lives in `apps/extension/package.json` and WXT copies it into the
 manifest. Bump it by hand, once per submission rather than once per change:
 Chrome only accepts an upload numbered above the published one, a number that
 never reaches the store means nothing to anyone, and a review takes days, so
 there is no release cadence to automate against. Update this line in the same
-commit. `0.3.1` is what is live (store page, updated 2026-09-17). `0.3.0` was the batch built after `0.2.0`, ChatGPT, Claude and Gemini
+commit. `0.3.2` is what is live (published 2026-10-17). `0.3.0` was the batch built after `0.2.0`, ChatGPT, Claude and Gemini
 conversations included, and was rejected on 2026-09-15 for its six-brand
 summary (see "Rejected once" below); `0.3.1` is the same package with the
 summary and description cut to five brands.
+
+## Dashboard edits for 0.3.3
+
+The package is `fileconcatextension-0.3.3-chrome.zip`, built the same way as
+0.3.1 below. Every clipping now carries a `clipper: FileConcat Clipper
+(https://fileconcat.com/clipper)` line in its frontmatter, which reaches the
+store by the upload itself. One pasted field changes against 0.3.2:
+
+| Field       | Where | What changes                                                                  |
+| ----------- | ----- | ----------------------------------------------------------------------------- |
+| Description | paste | after the cart paragraph, the "Each clipping opens with a short header" lines |
+
+The description says so because the Web Store asks an extension to do nothing
+its listing does not describe. Everything else stays as 0.3.2 left it.
 
 ## Dashboard edits for 0.3.2
 
