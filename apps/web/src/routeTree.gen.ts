@@ -21,9 +21,11 @@ import { Route as HowToUploadZipToChatgptRouteImport } from './routes/how-to/upl
 import { Route as HowToUploadFolderToChatgptRouteImport } from './routes/how-to/upload-folder-to-chatgpt'
 import { Route as HowToUploadBookToChatgptRouteImport } from './routes/how-to/upload-book-to-chatgpt'
 import { Route as HowToShareAllFilesWithAiRouteImport } from './routes/how-to/share-all-files-with-ai'
+import { Route as HowToSendManyScreenshotsToChatgptRouteImport } from './routes/how-to/send-many-screenshots-to-chatgpt'
 import { Route as HowToGitingestRepomixAlternativeRouteImport } from './routes/how-to/gitingest-repomix-alternative'
 import { Route as HowToGitingestAlternativeRouteImport } from './routes/how-to/gitingest-alternative'
 import { Route as HowToGithubRepoToTextRouteImport } from './routes/how-to/github-repo-to-text'
+import { Route as HowToExportChatgptConversationToMarkdownRouteImport } from './routes/how-to/export-chatgpt-conversation-to-markdown'
 import { Route as HowToClaudeFileUploadLimitRouteImport } from './routes/how-to/claude-file-upload-limit'
 import { Route as HowToChatgptFileUploadLimitRouteImport } from './routes/how-to/chatgpt-file-upload-limit'
 import { Route as HowToChatgptConversationTooLongRouteImport } from './routes/how-to/chatgpt-conversation-too-long'
@@ -106,6 +108,12 @@ const HowToShareAllFilesWithAiRoute =
     path: '/how-to/share-all-files-with-ai',
     getParentRoute: () => rootRouteImport,
   } as any)
+const HowToSendManyScreenshotsToChatgptRoute =
+  HowToSendManyScreenshotsToChatgptRouteImport.update({
+    id: '/how-to/send-many-screenshots-to-chatgpt',
+    path: '/how-to/send-many-screenshots-to-chatgpt',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const HowToGitingestRepomixAlternativeRoute =
   HowToGitingestRepomixAlternativeRouteImport.update({
     id: '/how-to/gitingest-repomix-alternative',
@@ -123,6 +131,12 @@ const HowToGithubRepoToTextRoute = HowToGithubRepoToTextRouteImport.update({
   path: '/how-to/github-repo-to-text',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HowToExportChatgptConversationToMarkdownRoute =
+  HowToExportChatgptConversationToMarkdownRouteImport.update({
+    id: '/how-to/export-chatgpt-conversation-to-markdown',
+    path: '/how-to/export-chatgpt-conversation-to-markdown',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const HowToClaudeFileUploadLimitRoute =
   HowToClaudeFileUploadLimitRouteImport.update({
     id: '/how-to/claude-file-upload-limit',
@@ -242,9 +256,11 @@ export interface FileRoutesByFullPath {
   '/how-to/chatgpt-conversation-too-long': typeof HowToChatgptConversationTooLongRoute
   '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
   '/how-to/claude-file-upload-limit': typeof HowToClaudeFileUploadLimitRoute
+  '/how-to/export-chatgpt-conversation-to-markdown': typeof HowToExportChatgptConversationToMarkdownRoute
   '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
   '/how-to/gitingest-alternative': typeof HowToGitingestAlternativeRoute
   '/how-to/gitingest-repomix-alternative': typeof HowToGitingestRepomixAlternativeRoute
+  '/how-to/send-many-screenshots-to-chatgpt': typeof HowToSendManyScreenshotsToChatgptRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/how-to/upload-book-to-chatgpt': typeof HowToUploadBookToChatgptRoute
   '/how-to/upload-folder-to-chatgpt': typeof HowToUploadFolderToChatgptRoute
@@ -277,9 +293,11 @@ export interface FileRoutesByTo {
   '/how-to/chatgpt-conversation-too-long': typeof HowToChatgptConversationTooLongRoute
   '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
   '/how-to/claude-file-upload-limit': typeof HowToClaudeFileUploadLimitRoute
+  '/how-to/export-chatgpt-conversation-to-markdown': typeof HowToExportChatgptConversationToMarkdownRoute
   '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
   '/how-to/gitingest-alternative': typeof HowToGitingestAlternativeRoute
   '/how-to/gitingest-repomix-alternative': typeof HowToGitingestRepomixAlternativeRoute
+  '/how-to/send-many-screenshots-to-chatgpt': typeof HowToSendManyScreenshotsToChatgptRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/how-to/upload-book-to-chatgpt': typeof HowToUploadBookToChatgptRoute
   '/how-to/upload-folder-to-chatgpt': typeof HowToUploadFolderToChatgptRoute
@@ -313,9 +331,11 @@ export interface FileRoutesById {
   '/how-to/chatgpt-conversation-too-long': typeof HowToChatgptConversationTooLongRoute
   '/how-to/chatgpt-file-upload-limit': typeof HowToChatgptFileUploadLimitRoute
   '/how-to/claude-file-upload-limit': typeof HowToClaudeFileUploadLimitRoute
+  '/how-to/export-chatgpt-conversation-to-markdown': typeof HowToExportChatgptConversationToMarkdownRoute
   '/how-to/github-repo-to-text': typeof HowToGithubRepoToTextRoute
   '/how-to/gitingest-alternative': typeof HowToGitingestAlternativeRoute
   '/how-to/gitingest-repomix-alternative': typeof HowToGitingestRepomixAlternativeRoute
+  '/how-to/send-many-screenshots-to-chatgpt': typeof HowToSendManyScreenshotsToChatgptRoute
   '/how-to/share-all-files-with-ai': typeof HowToShareAllFilesWithAiRoute
   '/how-to/upload-book-to-chatgpt': typeof HowToUploadBookToChatgptRoute
   '/how-to/upload-folder-to-chatgpt': typeof HowToUploadFolderToChatgptRoute
@@ -350,9 +370,11 @@ export interface FileRouteTypes {
     | '/how-to/chatgpt-conversation-too-long'
     | '/how-to/chatgpt-file-upload-limit'
     | '/how-to/claude-file-upload-limit'
+    | '/how-to/export-chatgpt-conversation-to-markdown'
     | '/how-to/github-repo-to-text'
     | '/how-to/gitingest-alternative'
     | '/how-to/gitingest-repomix-alternative'
+    | '/how-to/send-many-screenshots-to-chatgpt'
     | '/how-to/share-all-files-with-ai'
     | '/how-to/upload-book-to-chatgpt'
     | '/how-to/upload-folder-to-chatgpt'
@@ -385,9 +407,11 @@ export interface FileRouteTypes {
     | '/how-to/chatgpt-conversation-too-long'
     | '/how-to/chatgpt-file-upload-limit'
     | '/how-to/claude-file-upload-limit'
+    | '/how-to/export-chatgpt-conversation-to-markdown'
     | '/how-to/github-repo-to-text'
     | '/how-to/gitingest-alternative'
     | '/how-to/gitingest-repomix-alternative'
+    | '/how-to/send-many-screenshots-to-chatgpt'
     | '/how-to/share-all-files-with-ai'
     | '/how-to/upload-book-to-chatgpt'
     | '/how-to/upload-folder-to-chatgpt'
@@ -420,9 +444,11 @@ export interface FileRouteTypes {
     | '/how-to/chatgpt-conversation-too-long'
     | '/how-to/chatgpt-file-upload-limit'
     | '/how-to/claude-file-upload-limit'
+    | '/how-to/export-chatgpt-conversation-to-markdown'
     | '/how-to/github-repo-to-text'
     | '/how-to/gitingest-alternative'
     | '/how-to/gitingest-repomix-alternative'
+    | '/how-to/send-many-screenshots-to-chatgpt'
     | '/how-to/share-all-files-with-ai'
     | '/how-to/upload-book-to-chatgpt'
     | '/how-to/upload-folder-to-chatgpt'
@@ -456,9 +482,11 @@ export interface RootRouteChildren {
   HowToChatgptConversationTooLongRoute: typeof HowToChatgptConversationTooLongRoute
   HowToChatgptFileUploadLimitRoute: typeof HowToChatgptFileUploadLimitRoute
   HowToClaudeFileUploadLimitRoute: typeof HowToClaudeFileUploadLimitRoute
+  HowToExportChatgptConversationToMarkdownRoute: typeof HowToExportChatgptConversationToMarkdownRoute
   HowToGithubRepoToTextRoute: typeof HowToGithubRepoToTextRoute
   HowToGitingestAlternativeRoute: typeof HowToGitingestAlternativeRoute
   HowToGitingestRepomixAlternativeRoute: typeof HowToGitingestRepomixAlternativeRoute
+  HowToSendManyScreenshotsToChatgptRoute: typeof HowToSendManyScreenshotsToChatgptRoute
   HowToShareAllFilesWithAiRoute: typeof HowToShareAllFilesWithAiRoute
   HowToUploadBookToChatgptRoute: typeof HowToUploadBookToChatgptRoute
   HowToUploadFolderToChatgptRoute: typeof HowToUploadFolderToChatgptRoute
@@ -553,6 +581,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HowToShareAllFilesWithAiRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/how-to/send-many-screenshots-to-chatgpt': {
+      id: '/how-to/send-many-screenshots-to-chatgpt'
+      path: '/how-to/send-many-screenshots-to-chatgpt'
+      fullPath: '/how-to/send-many-screenshots-to-chatgpt'
+      preLoaderRoute: typeof HowToSendManyScreenshotsToChatgptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/how-to/gitingest-repomix-alternative': {
       id: '/how-to/gitingest-repomix-alternative'
       path: '/how-to/gitingest-repomix-alternative'
@@ -572,6 +607,13 @@ declare module '@tanstack/react-router' {
       path: '/how-to/github-repo-to-text'
       fullPath: '/how-to/github-repo-to-text'
       preLoaderRoute: typeof HowToGithubRepoToTextRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-to/export-chatgpt-conversation-to-markdown': {
+      id: '/how-to/export-chatgpt-conversation-to-markdown'
+      path: '/how-to/export-chatgpt-conversation-to-markdown'
+      fullPath: '/how-to/export-chatgpt-conversation-to-markdown'
+      preLoaderRoute: typeof HowToExportChatgptConversationToMarkdownRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/how-to/claude-file-upload-limit': {
@@ -728,9 +770,13 @@ const rootRouteChildren: RootRouteChildren = {
   HowToChatgptConversationTooLongRoute: HowToChatgptConversationTooLongRoute,
   HowToChatgptFileUploadLimitRoute: HowToChatgptFileUploadLimitRoute,
   HowToClaudeFileUploadLimitRoute: HowToClaudeFileUploadLimitRoute,
+  HowToExportChatgptConversationToMarkdownRoute:
+    HowToExportChatgptConversationToMarkdownRoute,
   HowToGithubRepoToTextRoute: HowToGithubRepoToTextRoute,
   HowToGitingestAlternativeRoute: HowToGitingestAlternativeRoute,
   HowToGitingestRepomixAlternativeRoute: HowToGitingestRepomixAlternativeRoute,
+  HowToSendManyScreenshotsToChatgptRoute:
+    HowToSendManyScreenshotsToChatgptRoute,
   HowToShareAllFilesWithAiRoute: HowToShareAllFilesWithAiRoute,
   HowToUploadBookToChatgptRoute: HowToUploadBookToChatgptRoute,
   HowToUploadFolderToChatgptRoute: HowToUploadFolderToChatgptRoute,

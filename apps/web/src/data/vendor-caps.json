@@ -28,7 +28,7 @@
     {
       "url": "https://help.openai.com/en/articles/8555545-uploading-files-and-audio-to-chatgpt",
       "anchor": "Uploading files and audio to ChatGPT",
-      "checked": "2026-10-17",
+      "checked": "2026-10-26",
       "quotes": [
         "maximum size of 512 MB per file",
         "capped at 2 million tokens per file",
@@ -41,7 +41,8 @@
         "Choose a supported file type",
         "Documents and text DOCX, PDF, TXT",
         "Spreadsheets XLSX, XLS, CSV, TSV",
-        "Presentations PPTX"
+        "Presentations PPTX",
+        "Images have a limit of 20 MB per image"
       ],
       "used_by": [
         "apps/web/src/components/personas/chatgpt-projects-faq.ts",
@@ -57,7 +58,9 @@
         "apps/web/src/components/how-to/upload-zip-faq.ts",
         "apps/web/src/components/how-to/upload-folder-page.tsx",
         "apps/web/src/components/how-to/upload-book-page.tsx",
-        "apps/web/src/content/blog/youtube-transcript-to-chatgpt.mdx"
+        "apps/web/src/content/blog/youtube-transcript-to-chatgpt.mdx",
+        "apps/web/src/components/how-to/screenshots-page.tsx",
+        "apps/web/src/components/how-to/screenshots-faq.ts"
       ]
     },
     {
@@ -309,6 +312,53 @@
         "apps/web/src/components/how-to/chatgpt-conversation-too-long-page.tsx",
         "apps/web/src/components/how-to/chatgpt-conversation-too-long-faq.ts",
         "apps/web/src/routes/how-to/chatgpt-conversation-too-long.tsx"
+      ]
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/build-with-claude/vision",
+      "anchor": "Image limits and costs",
+      "checked": "2026-10-26",
+      "quotes": [
+        "20 for each message on claude.ai",
+        "The maximum dimensions for each image are 8000x8000 px",
+        "Each patch is a 28",
+        "2,576 px 4,784 Standard All other models 1,568 px 1,568"
+      ],
+      "used_by": [
+        "apps/web/src/components/how-to/screenshots-page.tsx",
+        "apps/web/src/components/how-to/screenshots-faq.ts",
+        "apps/web/src/data/screenshots-measured.json"
+      ]
+    },
+    {
+      "url": "https://help.openai.com/en/articles/7260999-exporting-your-chatgpt-history-and-data",
+      "anchor": "Exporting your ChatGPT history and data",
+      "checked": "2026-10-26",
+      "quotes": [
+        "Under Export data , select Export",
+        "Exports can take up to 7 days to arrive",
+        "The download link expires 24 hours after you receive it",
+        "The downloaded ZIP file includes your chat history",
+        "Not available for ChatGPT Business, Enterprise, or ChatGPT for Healthcare workspaces"
+      ],
+      "used_by": [
+        "apps/web/src/components/how-to/export-conversation-page.tsx",
+        "apps/web/src/components/how-to/export-conversation-faq.ts"
+      ]
+    },
+    {
+      "url": "https://support.claude.com/en/articles/9450526-export-your-claude-data",
+      "anchor": "Export your Claude data",
+      "checked": "2026-10-26",
+      "quotes": [
+        "export user information and chat history from Settings",
+        "It's not possible to run an export from Claude for iOS or Android",
+        "you will receive a download link via email",
+        "The download link will expire 24 hours after delivery"
+      ],
+      "used_by": [
+        "apps/web/src/components/how-to/export-conversation-page.tsx",
+        "apps/web/src/components/how-to/export-conversation-faq.ts"
       ]
     }
   ]

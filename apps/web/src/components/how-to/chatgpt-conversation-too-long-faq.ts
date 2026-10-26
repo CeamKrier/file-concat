@@ -40,3 +40,11 @@ export const CHATGPT_CONVERSATION_TOO_LONG_FAQ = [
     a: "Not to us. The extension asks chatgpt.com for the one conversation with your own signed-in session, keeps nothing, and hands the text to the fileconcat.com tab in your browser. The only upload is the file you attach to the new chat.",
   },
 ];
+
+/** Measured on 2026-09-14 on one 41-turn ChatGPT conversation (the Clipper's
+ * build measurement, docs/clipper-chat-plan.md): after load the /c/ page held
+ * 4 of its 82 message elements, and the clipping without reasoning held all 41
+ * turns in 201,838 characters. The conversation is private, so the page shows
+ * counts only. The "4 of 82" line is already public on /clipper, and
+ * /how-to/export-chatgpt-conversation-to-markdown reads the same figures. */
+export const EXAMPLE = { turns: 41, messages: 82, onPage: 4, chars: 201_838 };

@@ -10,7 +10,7 @@ import { MarketingSection } from "~/components/app/marketing/section";
 import { STORE_URL } from "~/components/clipper/clipper-page";
 import { trackStoreClick } from "~/lib/metrics";
 
-import { CHATGPT_CONVERSATION_TOO_LONG_FAQ } from "./chatgpt-conversation-too-long-faq";
+import { CHATGPT_CONVERSATION_TOO_LONG_FAQ, EXAMPLE } from "./chatgpt-conversation-too-long-faq";
 
 /**
  * /how-to/chatgpt-conversation-too-long: the searcher hit "You've reached the
@@ -297,12 +297,6 @@ function Workflow() {
   );
 }
 
-/** Measured on 2026-09-14 on one 41-turn ChatGPT conversation (the Clipper's
- * build measurement, docs/clipper-chat-plan.md): after load the /c/ page held
- * 4 of its 82 message elements, and the clipping without reasoning held all 41
- * turns in 201,838 characters. The conversation is private, so the page shows
- * counts only. The "4 of 82" line is already public on /clipper. */
-const EXAMPLE = { turns: 41, messages: 82, onPage: 4, chars: 201_838 };
 const num = (n: number) => n.toLocaleString("en-US");
 
 function WorkedExample() {
