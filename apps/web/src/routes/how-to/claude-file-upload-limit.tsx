@@ -33,7 +33,7 @@ export const Route = createFileRoute("/how-to/claude-file-upload-limit")({
       {
         name: "keywords",
         content:
-          "claude file upload limit, claude file upload limit per chat, claude 20 file limit, claude upload limit, claude max files per chat, claude your message will exceed the length limit for this chat, claude pdf 1000 pages, upload multiple files to claude",
+          "claude file upload limit, claude file upload limit per chat, claude 20 file limit, claude upload limit, claude max files per chat, claude your message will exceed the length limit for this chat, claude pdf 1000 pages, upload multiple files to claude, how many pdfs can i upload to claude, claude pdf upload limit",
       },
     ],
     links: [{ rel: "canonical", href: "https://fileconcat.com/how-to/claude-file-upload-limit" }],

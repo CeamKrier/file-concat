@@ -34,7 +34,7 @@ export const Route = createFileRoute("/how-to/chatgpt-file-upload-limit")({
       {
         name: "keywords",
         content:
-          "chatgpt file upload limit, you've reached your file upload limit, chatgpt file upload limit reset, chatgpt file upload limit per day, chatgpt upload limit free, chatgpt upload limit reached, how to get around chatgpt file upload limit, upload multiple files to chatgpt",
+          "chatgpt file upload limit, you've reached your file upload limit, chatgpt file upload limit reset, chatgpt file upload limit per day, chatgpt upload limit free, chatgpt upload limit reached, how to get around chatgpt file upload limit, upload multiple files to chatgpt, how many pdfs can i upload to chatgpt, chatgpt pdf upload limit",
       },
     ],
     links: [{ rel: "canonical", href: "https://fileconcat.com/how-to/chatgpt-file-upload-limit" }],

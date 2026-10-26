@@ -95,10 +95,11 @@ function WhereItStops() {
           id="upload-limit"
           className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          The ChatGPT upload limits.
+          How many PDFs can you upload to ChatGPT?
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[50ch] text-[15px] leading-relaxed">
-          Two of these count files over time and two count size. A folder sent as one combined file
+          Three a day on Free, 80 every 3 hours on a paid plan. A PDF counts like any other file.
+          Two of these limits count files over time and two count size. A folder sent as one combined file
           uses one upload from each time window, whatever it holds.
         </p>
       </div>

@@ -23,7 +23,7 @@ export const Route = createFileRoute("/how-to/github-repo-to-text")({
         // text file", "github to llm". The description promises the file and
         // the count, and says where the fetch goes, since a pasted URL is the
         // one input here that leaves the tab (to GitHub, never to us).
-        title: "GitHub repo to text: one file for any LLM",
+        title: "GitHub repo to text or .txt: one file for any LLM",
         description:
           "Paste a GitHub repo URL and get one text file for ChatGPT or Claude, with the token count first. Your browser fetches it from GitHub. Not uploaded to us.",
         url: "https://fileconcat.com/how-to/github-repo-to-text",
@@ -31,7 +31,7 @@ export const Route = createFileRoute("/how-to/github-repo-to-text")({
       {
         name: "keywords",
         content:
-          "github repo to text, convert github repo to text file, github repository to txt, github repo to llm, github repo to markdown, repo to single file, github to chatgpt, gitingest alternative, how many tokens is a github repo",
+          "github repo to text, repo to txt, github repo to txt, convert github repo to text file, github repository to txt, github repo to llm, github repo to markdown, repo to single file, github to chatgpt, gitingest alternative, how many tokens is a github repo",
       },
     ],
     links: [{ rel: "canonical", href: "https://fileconcat.com/how-to/github-repo-to-text" }],

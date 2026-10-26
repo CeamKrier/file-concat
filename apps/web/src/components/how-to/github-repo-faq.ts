@@ -29,6 +29,10 @@ export const GITHUB_REPO_FAQ = [
     a: "Paste the repository URL at the top of this page and press Fetch. Your browser downloads the files straight from GitHub. Lock files, dependencies, build output and test files are left out by default. You get back one text file with the file tree at the top and every file under its path. Copy it or download it.",
   },
   {
+    q: "Can I download the repo as a .txt file?",
+    a: "Yes. Set Format to Plain under the preview and Download saves a .txt file. XML, the default, saves as .xml and Markdown as .md. All three hold the same file tree and the same files.",
+  },
+  {
     q: "How many tokens is a GitHub repository?",
     a: `It varies more than any average suggests. We bundled ${REPO_SAMPLE.count} public repositories in 10 languages on 2026-09-11. The median came to ${num(REPO_SAMPLE.median)} tokens, ${REPO_SAMPLE.fits(128_000)} of ${REPO_SAMPLE.count} fit a 128K context window, and the largest reached ${num(REPO_SAMPLE.largest)}. FileConcat counts yours before you paste it.`,
   },

@@ -11,6 +11,10 @@
  */
 export const CLAUDE_UPLOAD_LIMIT_FAQ = [
   {
+    q: "How many PDFs can I upload to Claude?",
+    a: "Twenty per chat, the same as any other file, according to the Claude help center in October 2026. Each PDF can have up to 1,000 pages, and past 100 pages Claude reads its text only, not its charts or images. A project takes any number of PDFs up to 30 MB each, as long as they fit the context window together. Two hundred PDFs combined into one file take one of the twenty slots.",
+  },
+  {
     q: "What is the Claude file upload limit?",
     a: "Up to 20 files per chat, each up to 500 MB, according to the Claude help center in September 2026. A PDF can have at most 1,000 pages and an image at most 8000 x 8000 pixels. Files added to a project are capped at 30 MB each with no file count, but together they have to fit Claude's context window.",
   },

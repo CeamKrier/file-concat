@@ -116,10 +116,10 @@ function Limits() {
           id="claude-upload-limits"
           className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
         >
-          The Claude file upload limits.
+          How many PDFs can you upload to Claude?
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[50ch] text-[15px] leading-relaxed">
-          Only the first row counts files, and one combined file takes one slot of it. The rest
+          Twenty per chat, each up to 1,000 pages. Only the first row counts files, and one combined file takes one slot of it. The rest
           count size, which combining does not change.
         </p>
       </div>
