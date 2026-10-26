@@ -72,6 +72,7 @@ vi.mock("~/lib/ocr", () => ({
   // Keyed on the name, with the locale the dialog passed.
   readRecording: async (file: File, _format: string, language: { locale: string }) => {
     attempts.push({ path: file.name, language: language.locale });
+    onDocumentRead?.(file.name);
     return { text: READINGS.get(file.name)?.[language.locale] ?? "", seen: false };
   },
   readWithOcr: async (bytes: Uint8Array, language: string, signal?: AbortSignal) => {
@@ -635,6 +636,26 @@ describe("stopping a pass", () => {
     expect(result.current.entries.find((e) => e.path === "c.pdf")?.content).toBe("third");
     expect(result.current.unreadDocuments).toHaveLength(0);
     expect(result.current.recoveredDocuments).toBe(3);
+  });
+
+  it("calls a transcript cut short by Stop a stopped pass", async () => {
+    // The real speech reader returns what it heard so far, marked where it
+    // ends, instead of throwing, so nothing in the loop sees the stop.
+    READINGS.set("talk.mp3", { "en-US": "[0:00] Hello [stopped at 4:52]" });
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([image("talk.mp3")]);
+    });
+
+    await act(async () => {
+      onDocumentRead = (path) => {
+        if (path === "talk.mp3") result.current.stopReading();
+      };
+      await result.current.readSelected(["talk.mp3"], "en-US");
+    });
+
+    expect(result.current.stoppedReading).toBe(true);
+    expect(result.current.entries.find((e) => e.path === "talk.mp3")?.content).toContain("[stopped at 4:52]");
   });
 
   it("leaves the interrupted document untried rather than failed", async () => {
