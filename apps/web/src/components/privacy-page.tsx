@@ -41,7 +41,7 @@ const COLLECTED = [
   },
   {
     title: "Standard analytics signals.",
-    body: "Country-level location, browser, and device type, plus first-party analytics cookies (_clck, _clsk).",
+    body: "Country-level location, browser, and device type. Outside the EU, the UK and Switzerland, Clarity also sets first-party analytics cookies (_clck, _clsk). Inside them it sets none, so each page view is recorded on its own.",
   },
   {
     title: "Repository imports you ask for.",
