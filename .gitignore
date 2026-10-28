@@ -88,3 +88,13 @@ google-search-console-api.json
 # extractOfficeDocument), not in git.
 *.traineddata
 *.traineddata.gz
+
+# Operator scripts for local readings (Search Console, Bing, Threads, D1
+# counters, supply watch). Nothing in the site, the CLI or CI runs them, so
+# they live beside the pulse skill, off the public repo.
+/scripts/gsc-query.mjs
+/scripts/bing-query.mjs
+/scripts/threads-query.mjs
+/scripts/metrics-query.mjs
+/scripts/d1-snapshot.mjs
+/scripts/supply-watch.mjs
