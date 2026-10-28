@@ -18,6 +18,7 @@
  */
 
 import { version } from "../../package.json";
+import { firstUsedBand } from "./first-used";
 import type { FeedbackOrigin } from "./feedback";
 import type { MetricEvent } from "./metric-events";
 
@@ -294,6 +295,7 @@ export function trackEntrySurface(pathname: string, referrer = "", search = ""):
   track("entry_source", sourceLabel(referrer, search));
   track("entry_device", currentDevice());
   track("entry_version", version);
+  track("entry_first_used", firstUsedBand());
 }
 
 /**

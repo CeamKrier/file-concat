@@ -40,6 +40,14 @@ export const METRIC_EVENTS = [
    * this row and never by the deploy date.
    */
   "entry_version",
+  /**
+   * How long ago this device first opened the tool, as a band from
+   * `firstUsedBand` in `./first-used` (ADR-0019): `new`, `d0`, `d1-7`, `d8-30`,
+   * `d31+`, `off` (opted out or Global Privacy Control) or `none` (storage
+   * unavailable). Same once-per-page-load guard as `entry_surface`. The stored
+   * date never leaves the browser, and nothing says which earlier visit it was.
+   */
+  "entry_first_used",
   /** Which remote source was imported: github | gitlab | bitbucket | gist | url. */
   "source_used",
   /**

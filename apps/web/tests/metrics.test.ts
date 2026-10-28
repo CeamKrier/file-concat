@@ -210,6 +210,7 @@ describe("trackEntrySurface", () => {
       { n: "entry_source", v: "none" },
       { n: "entry_device", v: "desktop" },
       { n: "entry_version", v: version },
+      { n: "entry_first_used", v: "new" },
     ]);
     expect(version).toMatch(/^[a-z0-9._/+-]{1,32}$/);
   });
