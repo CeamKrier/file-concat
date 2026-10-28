@@ -1,8 +1,17 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { track, tagOutcome } = vi.hoisted(() => ({ track: vi.fn(), tagOutcome: vi.fn() }));
-vi.mock("~/lib/metrics", () => ({ track, trackAmount: vi.fn(), currentRun: () => 1 }));
+const { track, tagOutcome, trackDeviceExports } = vi.hoisted(() => ({
+  track: vi.fn(),
+  tagOutcome: vi.fn(),
+  trackDeviceExports: vi.fn(),
+}));
+vi.mock("~/lib/metrics", () => ({
+  track,
+  trackAmount: vi.fn(),
+  trackDeviceExports,
+  currentRun: () => 1,
+}));
 vi.mock("~/lib/clarity-tags", () => ({ tagOutcome, tagBundleReady: vi.fn() }));
 
 import { useOutputGeneration } from "~/hooks/use-output-generation";
@@ -28,6 +37,7 @@ describe("sharing the bundle", () => {
 
   beforeEach(() => {
     track.mockClear();
+    trackDeviceExports.mockClear();
     tagOutcome.mockClear();
     shared = [];
     share = vi.fn(async ({ files }: { files: File[] }) => {
@@ -52,6 +62,7 @@ describe("sharing the bundle", () => {
     expect(shared[0].type).toBe("text/plain");
     expect(await shared[0].text()).toContain("# hello");
     expect(track).toHaveBeenCalledWith("output_taken", "share");
+    expect(trackDeviceExports).toHaveBeenCalledTimes(1);
     expect(tagOutcome).toHaveBeenCalledWith("shared");
   });
 

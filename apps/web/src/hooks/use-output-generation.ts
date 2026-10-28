@@ -13,7 +13,7 @@ import {
   generateProjectName,
 } from "@fileconcat/core";
 
-import { currentRun, track, trackAmount } from "~/lib/metrics";
+import { currentRun, track, trackAmount, trackDeviceExports } from "~/lib/metrics";
 import { tagBundleReady, tagOutcome } from "~/lib/clarity-tags";
 
 import type { ContentEntry } from "./use-file-ingestion";
@@ -142,13 +142,14 @@ export function useOutputGeneration({
       // Recorded after the write succeeds: a failed copy is not an outcome.
       track("output_taken", "copy");
       track("output_style", outputStyle);
+      trackDeviceExports(includedContents.map((f) => f.path), tokens);
       tagOutcome("copied");
       return true;
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
       return false;
     }
-  }, [buildSingle, includedContents, outputStyle]);
+  }, [buildSingle, includedContents, outputStyle, tokens]);
 
   const download = useCallback(async () => {
     setIsGenerating(true);
@@ -166,6 +167,7 @@ export function useOutputGeneration({
         triggerDownload(text, outputFileName(projectName, extension), mimeType);
         track("output_taken", "download");
         track("output_style", outputStyle);
+        trackDeviceExports(includedContents.map((f) => f.path), tokens);
         tagOutcome("downloaded");
         return true;
       }
@@ -188,6 +190,7 @@ export function useOutputGeneration({
       // One multi-part download is one outcome, however many parts it wrote.
       track("output_taken", "download");
       track("output_style", outputStyle);
+      trackDeviceExports(includedContents.map((f) => f.path), tokens);
       tagOutcome("downloaded");
       return true;
     } catch (error) {
@@ -196,7 +199,7 @@ export function useOutputGeneration({
     } finally {
       setIsGenerating(false);
     }
-  }, [selectedFormat, includedContents, chunkSizeKB, buildSingle, outputStyle]);
+  }, [selectedFormat, includedContents, chunkSizeKB, buildSingle, outputStyle, tokens]);
 
   // Always a .txt: Chrome shares only a fixed list of file types, and .md and
   // .xml are not on it. The bytes are the same bundle in the chosen style.
@@ -207,6 +210,7 @@ export function useOutputGeneration({
       await navigator.share({ files: [file] });
       track("output_taken", "share");
       track("output_style", outputStyle);
+      trackDeviceExports(includedContents.map((f) => f.path), tokens);
       tagOutcome("shared");
       return true;
     } catch (error) {
@@ -214,7 +218,7 @@ export function useOutputGeneration({
       if ((error as Error).name !== "AbortError") console.error("Failed to share:", error);
       return false;
     }
-  }, [buildSingle, includedContents, outputStyle]);
+  }, [buildSingle, includedContents, outputStyle, tokens]);
 
   // Format and chunk size are persisted preferences (owned by useConfig), so a
   // fresh ingest only clears the transient emit state — not the user's choices.

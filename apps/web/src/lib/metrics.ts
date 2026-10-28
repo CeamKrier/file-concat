@@ -18,6 +18,8 @@
  */
 
 import { version } from "../../package.json";
+import { firstUsedBand } from "./first-used";
+import { recordExport } from "./recap";
 import type { FeedbackOrigin } from "./feedback";
 import type { MetricEvent } from "./metric-events";
 
@@ -173,6 +175,17 @@ export function trackStoreClick(): void {
   track("cta_clicked", "clipper_store");
 }
 
+/**
+ * Adds an exported Run to this device's recap totals and sends the band of its
+ * export count. Called beside every `output_taken`; a second export of the
+ * same Run adds nothing and sends nothing.
+ */
+export function trackDeviceExports(paths: string[], tokens: number): void {
+  if (import.meta.env.SSR) return;
+  const band = recordExport(currentRun(), paths, tokens);
+  if (band !== null) track("device_exports", band);
+}
+
 /** Record one label-only event. Safe to call anywhere: a no-op during SSR. */
 export function track(name: MetricEvent, value?: string): void {
   if (import.meta.env.SSR) return;
@@ -294,6 +307,7 @@ export function trackEntrySurface(pathname: string, referrer = "", search = ""):
   track("entry_source", sourceLabel(referrer, search));
   track("entry_device", currentDevice());
   track("entry_version", version);
+  track("entry_first_used", firstUsedBand());
 }
 
 /**

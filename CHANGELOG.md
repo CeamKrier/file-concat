@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.10.0](https://github.com/CeamKrier/file-concat/compare/v2.9.0...v2.10.0) (2026-10-28)
+
+### Features
+
+* **web:** a benchmark draws a repeated version once ([d19bc64](https://github.com/CeamKrier/file-concat/commit/d19bc646a1198d2798f2796db7b35875de42719b))
+* **web:** converter pages for email, web pages, EPUB, RTF and OpenDocument ([df13368](https://github.com/CeamKrier/file-concat/commit/df133684e1b3e9f9ab978bb49f0d8385b9f12507))
+* **web:** count returning visits with a coarse first-use band ([d34fa13](https://github.com/CeamKrier/file-concat/commit/d34fa13b7036da7ff4cb2e1531d150b371bd4fe6))
+* **web:** keep export totals on the device and send a usage band ([aaa13b5](https://github.com/CeamKrier/file-concat/commit/aaa13b51ef811754966dc4317e1733fd38bfcc5b))
+
+### Bug Fixes
+
+* **web:** a speech pass cut short by Stop says it was stopped ([4b8a85a](https://github.com/CeamKrier/file-concat/commit/4b8a85afd0ba353540d80fc2db40906b8807a30c))
+* **web:** image and scan screens drop the 5 MB download figure ([3283063](https://github.com/CeamKrier/file-concat/commit/3283063d7facb14fdd78d3b5d5a637712d48dd8b))
+* **web:** link every converter page from the footer and the formats list ([fbd1b1b](https://github.com/CeamKrier/file-concat/commit/fbd1b1b882a22a11b7ab78514d9f0d5dbb236eeb))
+
 ## [2.9.0](https://github.com/CeamKrier/file-concat/compare/v2.8.0...v2.9.0) (2026-10-26)
 
 ### Features
