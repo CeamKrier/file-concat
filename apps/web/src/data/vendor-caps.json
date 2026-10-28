@@ -80,10 +80,10 @@
     {
       "url": "https://help.openai.com/en/articles/8554397-creating-and-editing-gpts",
       "anchor": "Creating and editing GPTs",
-      "checked": "2026-09-14",
+      "checked": "2026-10-28",
       "quotes": [
         "You can attach up to 20 files to a GPT",
-        "retirement is planned for Dec 11, 2026"
+        "Standard retirement is scheduled for December 11, 2026"
       ],
       "used_by": [
         "apps/web/src/components/personas/chatgpt-projects-page.tsx",
