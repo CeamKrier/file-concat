@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.10.1](https://github.com/CeamKrier/file-concat/compare/v2.10.0...v2.10.1) (2026-10-28)
+
+### Bug Fixes
+
+* **scripts:** pull every Search Console row so zero-click leaks show ([eba264d](https://github.com/CeamKrier/file-concat/commit/eba264d875ad7ded8307258e8961946ba441ffe8))
+* **web:** say Clarity sets no cookies in the EU, UK and Switzerland ([ab170dc](https://github.com/CeamKrier/file-concat/commit/ab170dc841c1fb15bb57bbebe985a23fd204eff7))
+
 ## [2.10.0](https://github.com/CeamKrier/file-concat/compare/v2.9.0...v2.10.0) (2026-10-28)
 
 ### Features
