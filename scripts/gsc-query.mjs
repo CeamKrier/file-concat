@@ -79,7 +79,9 @@ function isoDaysAgo(n) {
   return d.toISOString().slice(0, 10);
 }
 
-async function query(token, siteUrl, dimensions, rowLimit = 250, filters) {
+// The API sorts by clicks, so a short rowLimit drops the zero-click rows the
+// leak tables look for. 25,000 is the API maximum.
+async function query(token, siteUrl, dimensions, rowLimit = 25000, filters) {
   const json = await api(token, `/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, {
     startDate: isoDaysAgo(DAYS),
     endDate: isoDaysAgo(1),
@@ -290,7 +292,7 @@ async function main() {
   console.log(`\n=== QUERIES (${queries.length}) top by impressions ===`);
   table(queries.sort((a, b) => b.impressions - a.impressions).slice(0, 25));
 
-  const qp = await query(token, siteUrl, ["query", "page"], 250);
+  const qp = await query(token, siteUrl, ["query", "page"]);
   const leak = qp
     .filter((r) => r.impressions >= 12 && r.ctr < 0.02)
     .sort((a, b) => b.impressions - a.impressions)
