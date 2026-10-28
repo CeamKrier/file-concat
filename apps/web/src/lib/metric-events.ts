@@ -48,6 +48,14 @@ export const METRIC_EVENTS = [
    * date never leaves the browser, and nothing says which earlier visit it was.
    */
   "entry_first_used",
+  /**
+   * How many Runs this device has exported, as a band of the total kept by
+   * `recordExport` in `./recap`: `1`, `2-4`, `5-19`, `20+`, `off` (opted out
+   * or Global Privacy Control) or `none` (storage unavailable). One row per
+   * exported Run, never per page load, so a band is read as a share of
+   * exports and never as a share of people. The totals stay on the device.
+   */
+  "device_exports",
   /** Which remote source was imported: github | gitlab | bitbucket | gist | url. */
   "source_used",
   /**

@@ -11,6 +11,8 @@
  */
 
 const KEY = "fileconcat-first-used";
+/** The recap totals (`./recap`) live and die with the date: same lifetime, same opt-out. */
+export const RECAP_KEY = "fileconcat-recap";
 const OFF_KEY = "fileconcat-first-used-off";
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** 13 months. Past it the date is replaced, never extended by a visit. */
@@ -38,9 +40,13 @@ export function firstUsedBand(now = new Date()): FirstUsedBand {
       : Number.NaN;
     if (!(age >= 0)) {
       localStorage.setItem(KEY, today);
+      localStorage.removeItem(RECAP_KEY);
       return "new";
     }
-    if (age > LIFETIME_DAYS) localStorage.setItem(KEY, today);
+    if (age > LIFETIME_DAYS) {
+      localStorage.setItem(KEY, today);
+      localStorage.removeItem(RECAP_KEY);
+    }
     if (age === 0) return "d0";
     if (age <= 7) return "d1-7";
     if (age <= 30) return "d8-30";
@@ -65,6 +71,7 @@ export function setFirstUsedOff(off: boolean): void {
     if (off) {
       localStorage.setItem(OFF_KEY, "1");
       localStorage.removeItem(KEY);
+      localStorage.removeItem(RECAP_KEY);
     } else {
       localStorage.removeItem(OFF_KEY);
     }

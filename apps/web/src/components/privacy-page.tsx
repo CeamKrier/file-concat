@@ -33,7 +33,7 @@ const COLLECTED = [
   },
   {
     title: "Anonymous counts, kept by us.",
-    body: `So we know which formats to support next and where the tool struggles, we count the file types in a drop (how many of each, how many bytes, and the size of the largest file), which text encoding a file was read in when it was not UTF-8, such as windows-1251, why files that could not be read were left out, such as encrypted or damaged, the number of files, how long reading them took, how large the combined result was, how many files you moved in or out by hand and how long the file list was open, and whether you copied or downloaded. A click on the button that opens the Clipper in the Chrome Web Store is counted too. We also record what kind of site sent you here, such as a search engine or an AI assistant, as a single label, and never the address you came from. We record whether the screen is a phone, a tablet or a computer the same way, as one label read from the screen size and whether it is used by touch, and never the screen size itself. We record which version of FileConcat the page loaded, such as 2.7.1, so we can tell which release a count came from. When the tool itself crashes we record the kind of error, such as a type error or a script that failed to load, and never its message. Filenames are checked against a short published list of project files such as package.json and go.mod, and only a match is recorded. Nothing else about a filename leaves your browser, and no folder path or file content ever does. Each count carries a random id that lasts for one page load, is never stored on your device, and is never reused. To tell a first visit from a return, your browser also keeps the date it first opened the tool, and each visit sends only a rough band of it: first time, same day, within a week, within a month, or longer. The date itself is never sent, a visit never renews it, and it is replaced after 13 months. You can turn it off below, and it stays off while your browser sends Global Privacy Control. So nothing ties a count to you, to a specific other visit, or to your files, unless you add your email to a feedback note as described below. We delete these counts after ${METRICS_RETENTION_DAYS} days.`,
+    body: `So we know which formats to support next and where the tool struggles, we count the file types in a drop (how many of each, how many bytes, and the size of the largest file), which text encoding a file was read in when it was not UTF-8, such as windows-1251, why files that could not be read were left out, such as encrypted or damaged, the number of files, how long reading them took, how large the combined result was, how many files you moved in or out by hand and how long the file list was open, and whether you copied or downloaded. A click on the button that opens the Clipper in the Chrome Web Store is counted too. We also record what kind of site sent you here, such as a search engine or an AI assistant, as a single label, and never the address you came from. We record whether the screen is a phone, a tablet or a computer the same way, as one label read from the screen size and whether it is used by touch, and never the screen size itself. We record which version of FileConcat the page loaded, such as 2.7.1, so we can tell which release a count came from. When the tool itself crashes we record the kind of error, such as a type error or a script that failed to load, and never its message. Filenames are checked against a short published list of project files such as package.json and go.mod, and only a match is recorded. Nothing else about a filename leaves your browser, and no folder path or file content ever does. Each count carries a random id that lasts for one page load, is never stored on your device, and is never reused. To tell a first visit from a return, your browser also keeps the date it first opened the tool, and each visit sends only a rough band of it: first time, same day, within a week, within a month, or longer. The date itself is never sent, a visit never renews it, and it is replaced after 13 months. Beside it, your browser keeps running totals of what you exported here: how many times, how many files and tokens, and how many files of each type, for a summary we plan to show you. Each export sends only a rough band of how many times this device has exported: once, 2 to 4, 5 to 19, or 20 and more. The totals are deleted together with the date. You can turn both off below, and it stays off while your browser sends Global Privacy Control. So nothing ties a count to you, to a specific other visit, or to your files, unless you add your email to a feedback note as described below. We delete these counts after ${METRICS_RETENTION_DAYS} days.`,
   },
   {
     title: "Feedback, when you send it.",
@@ -57,7 +57,7 @@ const COLLECTED = [
   },
   {
     title: "Your settings.",
-    body: "Filters and preferences are saved in your browser's local storage, along with the date the feedback question was last shown, which keeps it from being asked again for a month, and the date you first opened the tool. They stay on your device. Only the rough band of the first-use date described above is ever sent.",
+    body: "Filters and preferences are saved in your browser's local storage, along with the date the feedback question was last shown, which keeps it from being asked again for a month, the date you first opened the tool, and the export totals described above. They stay on your device. Only the rough bands described above are ever sent.",
   },
 ];
 
@@ -102,13 +102,15 @@ function FirstUsedControl() {
   if (firstUsedByGpc()) {
     return (
       <p className="text-ink-secondary mt-6 text-[14px] leading-relaxed">
-        Your browser sends Global Privacy Control, so the first-use date is not kept.
+        Your browser sends Global Privacy Control, so the first-use date and export totals are not kept.
       </p>
     );
   }
   return (
     <p className="text-ink-secondary mt-6 text-[14px] leading-relaxed">
-      {off ? "The first-use date is off on this device. " : "The first-use date is on for this device. "}
+      {off
+        ? "The first-use date and export totals are off on this device. "
+        : "The first-use date and export totals are on for this device. "}
       <button
         type="button"
         className="text-ink font-medium underline underline-offset-2"
@@ -117,7 +119,7 @@ function FirstUsedControl() {
           setOff(!off);
         }}
       >
-        {off ? "Turn it back on" : "Turn it off and delete it"}
+        {off ? "Turn them back on" : "Turn them off and delete them"}
       </button>
     </p>
   );
