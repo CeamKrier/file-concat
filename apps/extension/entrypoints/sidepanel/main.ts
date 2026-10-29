@@ -11,11 +11,13 @@
 
 import { browser } from "#imports";
 import {
+  JOB_KEY,
   OPTIONS_KEY,
   SENT_KEY,
   SENT_TTL_MS,
   STATUS_KEY,
   TRAY_KEY,
+  type Job,
   type PageItem,
   type PageReport,
   type PanelRequest,
@@ -24,6 +26,7 @@ import {
   type SiteResponse,
   type Status,
   type TrayItem,
+  reportUrl,
 } from "../../src/messages";
 import { estimateTokens } from "../../src/markdown";
 
@@ -61,6 +64,7 @@ const ui = {
   list: el("list"),
   listHint: el("list-hint"),
   bulkToggle: el<HTMLButtonElement>("bulk-toggle"),
+  bulkAll: el<HTMLButtonElement>("bulk-all"),
   rows: el<HTMLUListElement>("rows"),
   echoRow: el("echo-row"),
   echo: el("echo"),
@@ -87,6 +91,9 @@ const ui = {
   cartClear: el<HTMLButtonElement>("cart-clear"),
   cartHide: el<HTMLButtonElement>("cart-hide"),
   cartList: el<HTMLUListElement>("cart-list"),
+  job: el("job"),
+  jobText: el("job-text"),
+  resume: el<HTMLButtonElement>("resume"),
   sending: el("sending"),
   sentOpen: el<HTMLButtonElement>("sent-open"),
   sentLinkText: el("sent-link-text"),
@@ -123,6 +130,8 @@ let activeTabId: number | undefined;
 /** One remembered answer per site, so YouTube's and Reddit's stay apart. */
 let options: Record<string, boolean> = {};
 let status: Status | undefined;
+/** The worker's queue: how far the run is and whether it stopped. */
+let job: Job | undefined;
 
 let cartOpen = false;
 /** Which overlay is up, if any. One at a time: they are all the whole panel. */
@@ -262,6 +271,10 @@ function renderPage() {
 
   ui.bulkToggle.textContent = bulk ? "Done" : "Select";
   ui.bulkToggle.setAttribute("aria-pressed", String(bulk));
+  // Every row loaded, not every row the site holds: Load more is what reaches
+  // the rest, and the count says which of the two this is.
+  ui.bulkAll.hidden = !bulk;
+  ui.bulkAll.textContent = picked.size === page.items.length ? "Select none" : `Select all ${page.items.length}`;
   ui.listHint.textContent = bulk
     ? "Pick the ones you want."
     : page.more === true
@@ -421,6 +434,7 @@ async function openHeld(id: string) {
 }
 
 function renderBulk() {
+  ui.bulkAll.textContent = picked.size === page.items.length ? "Select none" : `Select all ${page.items.length}`;
   ui.bulkCount.textContent = `${picked.size} selected`;
   ui.bulkClip.textContent = `Clip ${picked.size}`;
   renderFloor();
@@ -428,7 +442,7 @@ function renderBulk() {
 
 function queue(items: { id: string; title: string; expand?: boolean; group?: string }[]) {
   if (items.length === 0 || activeTabId === undefined) return;
-  return tell({ type: "fc:start", tabId: activeTabId, items, option: option() });
+  return tell({ type: "fc:start", tabId: activeTabId, site: page.site, items, option: option() });
 }
 
 // ---------- the cart ----------
@@ -462,9 +476,30 @@ function renderCart() {
     ? `Already sent · ${files(sent.length)}, last 7 days`
     : "Already sent · nothing in the last 7 days";
 
+  renderJob();
   ui.cartList.replaceChildren(...tray.map(clipRow));
   for (const paint of repaint.values()) paint();
   renderFloor();
+}
+
+const STOPPED: Record<NonNullable<Job["paused"]>["reason"], string> = {
+  rate: "Stopped: YouTube is limiting requests. Resume in a while.",
+  bot: "Stopped: YouTube asked to confirm this is not a bot. Resume later.",
+  errors: "Stopped: five videos in a row failed. Check the connection, then resume.",
+  interrupted: "Stopped: the browser or the extension restarted.",
+};
+
+/** How far a YouTube run is, and Resume once it stopped. A single clip needs neither. */
+function renderJob() {
+  const reading = tray.filter((item) => item.site === "youtube" && waiting(item)).length;
+  const total = job?.total ?? 0;
+  const paused = job?.paused && reading ? job.paused : undefined;
+  ui.job.hidden = !paused && !(reading && total > 1);
+  ui.resume.hidden = !paused;
+  ui.jobText.textContent = paused
+    ? STOPPED[paused.reason]
+    : `${Math.max(0, total - reading)} of ${total} read${job?.step ? `. ${job.step}` : ""}`;
+  ui.jobText.title = ui.jobText.textContent;
 }
 
 /** The folder a clipping landed in, or nothing when it landed at the top. */
@@ -475,8 +510,10 @@ const waiting = (item: TrayItem) => item.state === "queued" || item.state === "f
 
 function where(item: TrayItem): string {
   if (item.state === "failed") return item.error ?? "";
-  if (item.clipping) return folder(item.clipping.path);
-  return item.state === "fetching" ? "Reading…" : "Queued";
+  // Before the folder: a re-clipped row keeps its old file until the new one
+  // lands, and it is the new read that is under way.
+  if (waiting(item)) return item.state === "fetching" ? "Reading…" : "Queued";
+  return item.clipping ? folder(item.clipping.path) : "";
 }
 
 function clipRow(item: TrayItem): HTMLLIElement {
@@ -516,15 +553,23 @@ function clipRow(item: TrayItem): HTMLLIElement {
     take.addEventListener("click", () => void copy(item.clipping!.markdown, "Clip"));
     acts.append(peek, take);
   }
-  // Only while the tab it came from is still open: clipping is a question put
-  // to a page, and there is no route to the content without one.
-  if (item.state === "failed" && activeTabId !== undefined) {
+  // A YouTube row is clipped by the worker and needs no tab. Any other is a
+  // question put to the page it came from, which the worker remembers.
+  if (item.state === "failed" && (item.site === "youtube" || activeTabId !== undefined)) {
     const again = h("button", "mini go", "Retry");
     again.type = "button";
-    again.addEventListener("click", () => {
-      if (activeTabId !== undefined) void tell({ type: "fc:retry", tabId: activeTabId, id: item.id, option: option() });
-    });
+    again.addEventListener("click", () => void tell({ type: "fc:retry", id: item.id, tabId: activeTabId }));
     acts.append(again);
+  }
+  // A shape change is the site moving under the reader, which only a new
+  // release fixes, so the row says where to tell us.
+  const report = item.state === "failed" ? reportUrl(item.error, browser.runtime.getManifest().version) : undefined;
+  if (report) {
+    const link = h("a", "mini", "Report");
+    link.href = report;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    acts.append(link);
   }
   const remove = h("button", "mini quiet", "Remove");
   remove.type = "button";
@@ -877,8 +922,18 @@ ui.bulkCancel.addEventListener("click", () => {
   picked.clear();
   renderPage();
 });
+ui.bulkAll.addEventListener("click", () => {
+  if (picked.size === page.items.length) picked.clear();
+  else for (const item of page.items) picked.add(item.id);
+  renderPage();
+});
 ui.bulkClip.addEventListener("click", () => {
   const chosen = page.items.filter((item) => picked.has(item.id));
+  // A batch can take hours, so this is the one moment to ask whether to say
+  // when it is done. Asked here, inside the press: Chrome only shows the
+  // prompt during a user gesture, and a refusal changes nothing else.
+  if (chosen.length > 1 || chosen.some((item) => item.expand))
+    void browser.permissions.request({ permissions: ["notifications"] }).catch(() => false);
   bulk = false;
   picked.clear();
   void queue(chosen.map((item) => ({ id: item.id, title: item.title, expand: item.expand })));
@@ -898,6 +953,7 @@ ui.cartHide.addEventListener("click", shutCart);
 ui.cartGrab.addEventListener("click", shutCart);
 ui.scrim.addEventListener("click", shutCart);
 ui.cartClear.addEventListener("click", () => void tell({ type: "fc:clear" }));
+ui.resume.addEventListener("click", () => void tell({ type: "fc:resume" }));
 ui.send.addEventListener("click", () => void tell({ type: "fc:send" }));
 ui.peekCopy.addEventListener("click", () => {
   if (peeked) void copy(peeked, "Clip");
@@ -975,6 +1031,10 @@ browser.storage.local.onChanged.addListener((changes) => {
     if (overlay === "settings") renderSettings();
   }
   if (changes[STATUS_KEY]) say(changes[STATUS_KEY].newValue as Status | undefined);
+  if (changes[JOB_KEY]) {
+    job = changes[JOB_KEY].newValue as Job | undefined;
+    renderJob();
+  }
 });
 
 browser.tabs.onActivated.addListener(refreshSoon);
@@ -988,7 +1048,10 @@ browser.runtime.onMessage.addListener((message) => {
 });
 
 async function start() {
-  const stored = await browser.storage.local.get([TRAY_KEY, SENT_KEY, OPTIONS_KEY, STATUS_KEY]);
+  const stored = await browser.storage.local.get([TRAY_KEY, SENT_KEY, OPTIONS_KEY, STATUS_KEY, JOB_KEY]);
+  job = stored[JOB_KEY] as Job | undefined;
+  // A worker Chrome shut down mid-run notices only once something starts it.
+  void browser.runtime.sendMessage({ type: "fc:wake" } satisfies PanelRequest).catch(() => {});
   tray = Array.isArray(stored[TRAY_KEY]) ? (stored[TRAY_KEY] as TrayItem[]) : [];
   sent = fresh(Array.isArray(stored[SENT_KEY]) ? (stored[SENT_KEY] as SentItem[]) : []);
   options = (stored[OPTIONS_KEY] as Record<string, boolean> | undefined) ?? {};

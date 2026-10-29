@@ -40,6 +40,9 @@ export interface YouTubeClipping {
   comments: Comment[];
   /** How many the video has in total, e.g. "994", against the few we took. */
   commentTotal?: string;
+  /** Some comments or replies that were asked for could not be read. Said in
+   *  the file, because a reader who is not told assumes these are all of them. */
+  commentsIncomplete?: boolean;
   /** Clip date as `YYYY-MM-DD`. */
   clippedOn: string;
 }
@@ -106,6 +109,7 @@ export function renderYouTubeClipping(clip: YouTubeClipping): string {
 
   const parts = [`${frontmatter}\n![](${url})`, hardBreaks(clip.description), "## Transcript", transcript];
   if (clip.comments.length > 0) parts.push("## Comments", renderComments(clip));
+  else if (clip.commentsIncomplete) parts.push("## Comments", "_The comments could not be read._");
   return parts.join("\n\n") + "\n";
 }
 
@@ -117,7 +121,8 @@ function renderComments(clip: YouTubeClipping): string {
   const total = clip.commentTotal ? `${clip.commentTotal} in total, ` : "";
   const threads = clip.comments.filter((comment) => comment.depth === 0).length;
   const replies = clip.comments.length - threads;
-  const heading = `_${total}top ${threads} shown${replies ? ` with ${replies} of their replies` : ""}._`;
+  const missing = clip.commentsIncomplete ? " Some could not be read." : "";
+  const heading = `_${total}top ${threads} shown${replies ? ` with ${replies} of their replies` : ""}.${missing}_`;
   const blocks = clip.comments.map((comment) => {
     // Same two spaces per level as Reddit and HN. A reply is indented under the
     // comment it answers, which is the only structure YouTube's comments have.

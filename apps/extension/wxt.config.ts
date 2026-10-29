@@ -26,7 +26,14 @@ export default defineConfig({
     // the one left unnamed; it stays in the third screenshot.
     name: "FileConcat Clipper: threads, chats and transcripts to Markdown",
     description: "Save ChatGPT, Claude and Gemini chats, Reddit threads, YouTube transcripts and any article as Markdown for your LLM.",
-    permissions: ["storage", "unlimitedStorage", "sidePanel"],
+    // `declarativeNetRequestWithHostAccess` shows no install warning, so the
+    // update does not disable the extension. It lets the worker's YouTube
+    // requests carry YouTube's Origin; see `setOriginRule` in the background.
+    permissions: ["storage", "unlimitedStorage", "sidePanel", "declarativeNetRequestWithHostAccess"],
+    // Asked for the first time a batch is clipped, to say when it is done.
+    // Optional because a new required permission with a warning disables the
+    // installed extension for everyone until they accept it.
+    optional_permissions: ["notifications"],
     // The article handler is the catch-all, so the host list is the web. That
     // is the cost of "any article", and it is the feature rather than a side
     // effect of it; nothing is read from a page until you ask for it.
