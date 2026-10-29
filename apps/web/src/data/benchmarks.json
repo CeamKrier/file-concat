@@ -12,7 +12,7 @@
           "metric": "Weighted by real files, mean of 11 formats",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-29",
+          "measured": "2026-10-30",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "648 constructs in 129 probe files, each weighted by its share of 1,973 real files. All run by us.",
           "rows": [
@@ -56,7 +56,7 @@
           "metric": "Of 648 over 17 formats, unweighted",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-29",
+          "measured": "2026-10-30",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "Every construct counts once, however rare it is in real files. All run by us.",
           "rows": [
@@ -101,7 +101,7 @@
           "unit": "count",
           "of": 130,
           "better": "higher",
-          "measured": "2026-10-29",
+          "measured": "2026-10-30",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "Tracked deletions, hidden sheets, cookie banners. A format a tool does not read earns nothing here.",
           "rows": [
@@ -147,7 +147,7 @@
           "unit": "count",
           "of": 45,
           "better": "higher",
-          "measured": "2026-10-29",
+          "measured": "2026-10-30",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "Files hard to tell apart or hard to decode: legacy encodings, binaries that look like text. All run by us.",
           "rows": [
@@ -205,7 +205,7 @@
           "unit": "count",
           "of": 16,
           "better": "higher",
-          "measured": "2026-10-29",
+          "measured": "2026-10-30",
           "post": "what-gets-lost-converting-documents-to-text",
           "note": "27 test documents in 12 formats, one structure each: merged cells, spreadsheet dates, scanned pages.",
           "rows": [
@@ -253,7 +253,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-29",
+          "measured": "2026-10-30",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "200 real files.",
           "rows": [
@@ -298,7 +298,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-29",
+          "measured": "2026-10-30",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "200 real files.",
           "rows": [
@@ -343,7 +343,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-29",
+          "measured": "2026-10-30",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "198 real files.",
           "rows": [
@@ -388,7 +388,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-29",
+          "measured": "2026-10-30",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "195 real files.",
           "rows": [
@@ -433,7 +433,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-29",
+          "measured": "2026-10-30",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "124 real files. markitdown printed the raw MIME source, scored 0.",
           "rows": [
@@ -478,7 +478,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-29",
+          "measured": "2026-10-30",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "198 real files.",
           "rows": [
@@ -523,7 +523,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-29",
+          "measured": "2026-10-30",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "200 real files. The one format where FileConcat is not first: it misses the author.",
           "rows": [
@@ -568,7 +568,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-29",
+          "measured": "2026-10-30",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "198 real files. markitdown printed the raw control words, scored 0.",
           "rows": [
@@ -613,7 +613,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-29",
+          "measured": "2026-10-30",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "199 real files. markitdown does not read it.",
           "rows": [
@@ -658,7 +658,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-29",
+          "measured": "2026-10-30",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "196 real files. markitdown does not read it.",
           "rows": [
@@ -703,7 +703,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-29",
+          "measured": "2026-10-30",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "65 real files. markitdown does not read it.",
           "rows": [
