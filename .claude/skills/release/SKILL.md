@@ -32,6 +32,29 @@ gh run list --workflow=ci.yml --branch development --limit 1 --json headSha,stat
 - Local uncommitted work is not shipped and does not block a release. Say so if there is any.
   Build side-effect files (`sitemap.xml`, `llms*.txt`, `models.json`) are never committed.
 
+## 1b. Clipper canary, weekly
+
+The extension reads ChatGPT, Claude, Gemini, YouTube, Reddit, HN and articles through each
+site's own internal shapes, which change without notice. A local canary clips one fixed page per
+site in the owner's debug Chrome and compares counts with a recorded baseline. It lives in
+gitignored `docs/clipper-chat-probes/canary/`, so on any other machine this step does nothing.
+
+```bash
+C=docs/clipper-chat-probes/canary
+if [ -f $C/canary.sh ]; then
+  node -e 'const l=require("fs").readFileSync(process.argv[1],"utf8").trim().split("\n").pop();const d=(Date.now()-Date.parse(JSON.parse(l).at))/864e5;console.log(d.toFixed(1)+" days since the last canary run");process.exit(d>=7?1:0)' $C/canary.log \
+    || bash $C/canary.sh
+fi
+```
+
+- It runs only when the last run is 7 or more days old, and takes about 2 minutes. When the
+  debug Chrome is not running it starts it, and closes it again afterwards.
+- `DRIFT` or `BROKEN` means a reader broke. Report it as a finding with the site name. It does
+  not block the web release: the fix ships as a clipper release.
+- `SIGNED-OUT` means the debug profile lost that site's session. Ask the owner to sign in there,
+  then rerun `bash $C/canary.sh`.
+- After an intended change to a reader's output, rebaseline with `bash $C/canary.sh --record`.
+
 ## 2. Cut the version on development
 
 ```bash
