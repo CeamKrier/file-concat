@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.10.2](https://github.com/CeamKrier/file-concat/compare/v2.10.1...v2.10.2) (2026-10-29)
+
+### Bug Fixes
+
+* **web:** the privacy page no longer says the clipper tray holds 50 ([a247643](https://github.com/CeamKrier/file-concat/commit/a24764383d0adaade1c5d4974d68ec57a0f11396))
+
 ## [2.10.1](https://github.com/CeamKrier/file-concat/compare/v2.10.0...v2.10.1) (2026-10-28)
 
 ### Bug Fixes
