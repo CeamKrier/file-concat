@@ -9,17 +9,51 @@ Assets are in `assets/`. They are generated, not hand-drawn. Rebuild the
 extension, then run `node apps/extension/store/generate-assets.mjs` to
 reproduce all five from a real browser.
 
-Matches manifest version `0.3.3`.
+Matches manifest version `0.3.4`.
 
 The version lives in `apps/extension/package.json` and WXT copies it into the
 manifest. Bump it by hand, once per submission rather than once per change:
 Chrome only accepts an upload numbered above the published one, a number that
 never reaches the store means nothing to anyone, and a review takes days, so
 there is no release cadence to automate against. Update this line in the same
-commit. `0.3.2` is what is live (published 2026-10-17). `0.3.0` was the batch built after `0.2.0`, ChatGPT, Claude and Gemini
+commit. `0.3.2` is what is live (published 2026-10-17). `0.3.3` was
+submitted 2026-10-26 and `0.3.4` on 2026-10-30. `0.3.0` was the batch built after `0.2.0`, ChatGPT, Claude and Gemini
 conversations included, and was rejected on 2026-09-15 for its six-brand
 summary (see "Rejected once" below); `0.3.1` is the same package with the
 summary and description cut to five brands.
+
+## Dashboard edits for 0.3.4
+
+The package is `fileconcatextension-0.3.4-chrome.zip`, built the same way as
+0.3.1 below.
+
+What changes in the extension:
+
+- A batch of videos can be all of a channel's loaded videos (Select, then
+  Select all), with no cap of 50.
+- The background worker reads them one paced request at a time, with no
+  cookies.
+- A shape-change error on a conversation offers a Report link to a prefilled
+  GitHub issue.
+
+Two permissions reach the store by the upload itself:
+
+- `declarativeNetRequestWithHostAccess`: required. It shows no install
+  warning, so the update does not disable the extension.
+- `notifications`: optional, asked for the first time a batch starts.
+
+Pasted fields that change against 0.3.3:
+
+| Field                                 | Where | What changes                                                                         |
+| ------------------------------------- | ----- | ------------------------------------------------------------------------------------ |
+| Description                           | paste | the Listings, video and cart paragraphs: Select all, the paced batch, no "last 50"   |
+| `unlimitedStorage` justification      | paste | the cart has no fixed size, a video batch queues up to 1,000                         |
+| `declarativeNetRequestWithHostAccess` | paste | new row                                                                              |
+| `notifications`                       | paste | new row, if the form lists optional permissions                                      |
+| Host permission justification         | paste | the background worker paragraph: `www.youtube.com` joins `hn.algolia.com`            |
+
+The remote-code answer stays "No". Its explanation below names the new
+requests, but the explanation is not pasted.
 
 ## Dashboard edits for 0.3.3
 
@@ -185,7 +219,7 @@ Gemini conversation wrote come along as files.
 Listings, one item at a time. A subreddit, a YouTube channel, a front page or a
 search page lists what it has loaded, and one button scrolls the
 page for the rest so the whole listing is on offer. Tap a row to clip it, or
-press Select to take a batch. Each item is opened and read on its own, so a
+press Select, then Select all, to take every item at once. Each item is opened and read on its own, so a
 session of scrolling becomes a set of files rather than one flattened page of
 headlines.
 
@@ -194,7 +228,10 @@ transcript, which is not text that was on the page to begin with. A channel's
 Playlists tab lists its playlists, and clipping one clips the videos it holds.
 Comments are an opt-in extra, off by default: they add the top 60 threads and,
 under the ones with the most replies, the replies themselves, which runs three
-to four times the tokens.
+to four times the tokens. A batch of videos is read in the background one
+request at a time, so a whole channel can go in one batch of up to 1,000: with
+comments on it runs at about 75 videos an hour. If the site asks it to slow
+down, it stops, keeps the rest queued, and waits for you to resume.
 
 Any article. Everywhere else, if a page reads as an article, the panel offers to
 clip it. Mozilla's Readability picks the body and Turndown renders it, which
@@ -212,8 +249,9 @@ front of you.
 
 Clip what you want. A tapped row says it is being read and each clipping lands
 in a cart, one row per item, so a page that fails says so on its own row and
-names the reason while the rest carry on. The cart holds the last 50, and the
-work runs in the background, so closing the panel mid-batch does not stop it.
+names the reason while the rest carry on. The work runs in the background, so
+closing the panel mid-batch does not stop it, and if you allow it, a
+notification says when a long batch is done.
 Each clipping opens with a short header naming its source page and the tool
 that made it ("clipper: FileConcat Clipper"), so you can always tell where a
 file came from.
@@ -333,8 +371,10 @@ the delivery. The extension has no other function and no other destination.
 | Permission         | Justification to paste                                                                                                                                                                                                                                                                                                                                                                                 |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `storage`          | A clipping has to survive between the moment it is made and the moment the user sends it, and the extension's background worker can be shut down by Chrome at any point in between. The tray is therefore kept in `chrome.storage.local` rather than in memory. The same storage holds the user's per-site on/off preferences and the last status line shown in the panel. None of it is uploaded to us. |
-| `unlimitedStorage` | Clippings are large. A single Hacker News thread measured 264,851 characters and a long article measured 39,509, and the tray holds up to 50 of them, which is well past the 5 MB the default quota allows. Without this permission a normal session of clipping fills the quota and the tray starts failing to save work the user has already done.                                                   |
+| `unlimitedStorage` | Clippings are large. A single Hacker News thread measured 264,851 characters and a long article measured 39,509, and the cart has no fixed size: one batch of videos can queue up to 1,000 clippings, which is well past the 5 MB the default quota allows. Without this permission a normal session of clipping fills the quota and the tray starts failing to save work the user has already done.                                                   |
 | `sidePanel`        | The entire user interface is a side panel. There is no popup and no options page. The panel is what lists what the current page offers, shows the tray, and carries the send button. A panel rather than a popup because clipping continues while the user keeps browsing, and a popup is dismissed the moment attention moves.                                                                        |
+| `declarativeNetRequestWithHostAccess` | The background worker reads the transcripts and comments of the videos the user selected, and the videos of a playlist the user selected, from YouTube's own innertube endpoint (`https://www.youtube.com/youtubei/`), without cookies. YouTube refuses those requests when their Origin header is the extension's own, so one session rule sets the Origin to `https://www.youtube.com` on exactly those requests: the URL must start with `https://www.youtube.com/youtubei/`, the initiator must be this extension, and the request must be a fetch. No other request is touched, nothing is blocked or redirected, and no web page's requests match the rule. The WithHostAccess variant shows no install warning and acts only where host permission already exists. |
+| `notifications` (optional) | Requested only when the user starts a batch of more than one item or a playlist, and declining it changes nothing else. A long batch finishes while the user is elsewhere (with comments, about 75 videos an hour), so one notification says it is done, or that it stopped and is waiting to be resumed. Its text is fixed wording and a count, never a page title. The toolbar badge shows the same progress without it. |
 
 **Host permission justification** for `<all_urls>`:
 
@@ -345,7 +385,7 @@ First, the extension can clip articles from any site using Mozilla Readability. 
 
 Second, the side panel needs the active tab’s URL to show the current site and decide whether the page can be clipped. Chrome exposes tab.url only with either the tabs permission or host permission. We use host permissions instead of tabs because tabs would also expose the title and URL of every open tab, which we do not need.
 
-The background worker only makes outbound requests to hn.algolia.com for Hacker News comments, and that host is hard-coded in an allowlist. All other content is read only from the page the user is actively viewing. On chatgpt.com, claude.ai and gemini.google.com the content script makes same-origin requests for the conversation (one on Claude, one per 100 turns on Gemini, two on a signed-in ChatGPT page, the first for the page's own session token), and nothing is stored or sent elsewhere.
+The background worker makes outbound requests to two hard-coded hosts and no others: hn.algolia.com for Hacker News comments, and YouTube's own innertube endpoint on www.youtube.com for the transcripts and comments of the videos the user selected, sent without cookies. All other content is read only from the page the user is actively viewing. On chatgpt.com, claude.ai and gemini.google.com the content script makes same-origin requests for the conversation (one on Claude, one per 100 turns on Gemini, two on a signed-in ChatGPT page, the first for the page's own session token), and nothing is stored or sent elsewhere.
 ```
 
 **Are you using remote code?**
@@ -357,7 +397,8 @@ No, I am not using remote code.
 All executable code ships inside the package. There is no `eval`, no injected
 `<script>`, and no module fetched at runtime. The network requests the
 extension makes return data, not code: YouTube's own innertube endpoint for a
-transcript, a Reddit post's own page for its full body, hn.algolia.com for a
+transcript, its comments and a playlist's videos (from the background worker,
+without cookies), a Reddit post's own page for its full body, hn.algolia.com for a
 comment tree, and chatgpt.com's, claude.ai's and gemini.google.com's own
 conversation endpoints, same-origin from the page, for a conversation.
 
@@ -425,6 +466,7 @@ against each:
 | ------------------------------- | ------------------------------------------------------- |
 | Broad host permissions          | `<all_urls>`, unavoidable, justified above              |
 | Sensitive execution permissions | none requested, `tabs` deliberately avoided             |
+| Header modification             | one session rule: the Origin of this extension's own innertube requests, nothing else |
 | Obfuscated or minified code     | shipped unminified on purpose, `wxt.config.ts` says why |
 | New developer, new item         | both true, so expect the slow end                       |
 

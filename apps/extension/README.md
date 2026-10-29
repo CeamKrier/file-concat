@@ -51,6 +51,13 @@ Playlists tab lists playlists instead, and clipping one clips the videos it
 holds, filed under the playlist's name. **Include comments** is off by default —
 about 30 more requests and three to four times the tokens.
 
+**Select all** takes every loaded video at once, with no cap of 50. The service
+worker reads the batch itself, one request about every 1.5 s, without cookies:
+measured 2026-10-29 at 50 videos with comments in 40 minutes, 1,369 requests,
+no 429. It stops at the first 429 or bot check, keeps the rest queued, and
+waits for **Resume**. The toolbar badge counts what is left, and an optional
+notification says when the batch is done.
+
 On Hacker News: a thread offers **Clip this thread** and
 `hn.algolia.com/api/v1/items/<id>` returns the entire comment tree in one
 request — no auth, no paging, nothing to opt into. Measured 2026-08-19 on a
@@ -109,15 +116,17 @@ worker, and the panel reads the result whenever you open it again.
 
 A push **extends** the bundle in the open FileConcat page rather than replacing it, de-duplicating by
 path, so a repo and the discussion about it can sit in one bundle in either
-order and re-sending the same clipping does not double it. The tray keeps the
-last 50 clippings, so sending the set again is always safe. **Start over** in
+order and re-sending the same clipping does not double it. The tray keeps every
+clipping until you send or remove it, so sending the set again is always safe. **Start over** in
 the app is the only thing that clears a bundle.
 
 ## How it works
 
 | File | Role |
 | --- | --- |
-| `entrypoints/youtube.content.ts` | Content script on youtube.com. Two innertube POSTs per video, no HTML parsing beyond the client version. |
+| `entrypoints/youtube.content.ts` | Content script on youtube.com. Reports the page's videos and playlists; the look-inside caret opens a playlist. |
+| `src/youtube-clip.ts` | What the worker asks innertube for a video: the player, the transcript, the comments, a playlist's videos. A bot check or a 429 stops the queue. |
+| `src/queue.ts` | The worker queue's pure parts: the pacer, the next row, the send chunks, id validation. |
 | `entrypoints/reddit.content.ts` | Content script on reddit.com. Reads `shreddit-post` / `shreddit-comment` attributes; no API. |
 | `entrypoints/hn.content.ts` | Content script on news.ycombinator.com. One Algolia request per thread, whole tree. |
 | `entrypoints/chatgpt.content.ts` | Content script on chatgpt.com. One or two same-origin requests for the conversation JSON; the page itself only holds a window of it. |
