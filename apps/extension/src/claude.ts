@@ -6,6 +6,7 @@
 // session cookie alone. Ten conversations measured; design and figures in
 // docs/clipper-chat-plan.md, "Claude".
 
+import { shapeChanged } from "./messages";
 import { type ChatBlock, type ChatClipping, fence, link, mergeChatBlocks } from "./markdown";
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
@@ -17,8 +18,7 @@ export function conversationRef(pathname: string): string | null {
 
 export const claudeUrl = (id: string) => `https://claude.ai/chat/${id}`;
 
-export const SHAPE_CHANGED =
-  "Claude changed the shape of this conversation. Reload the extension, and if this persists, report it.";
+export const SHAPE_CHANGED = shapeChanged("Claude");
 
 // ---------- the JSON, as much of it as is read ----------
 

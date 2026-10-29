@@ -92,15 +92,23 @@ export interface StartItem {
 
 /** Panel -> background. Everything the panel wants done outlives the panel. */
 export type PanelRequest =
-  | { type: "fc:start"; tabId: number; items: StartItem[]; option: boolean }
+  // `site` is the page report's own: YouTube rows are clipped by the worker
+  // straight from innertube, every other site by the tab they came from.
+  | { type: "fc:start"; tabId: number; site: string; items: StartItem[]; option: boolean }
   | { type: "fc:send" }
   | { type: "fc:remove"; id: string }
   | { type: "fc:clear" }
-  // A failed row, run again against the tab it came from. Its own tab, not the
-  // active one: a session moves on, and retrying a Reddit thread against
+  // A failed row, queued again. It runs against the tab the row remembers, not
+  // the active one: a session moves on, and retrying a Reddit thread against
   // whatever is in front of you now would clip the wrong page under the right
-  // name. A row whose tab is gone is not offered a retry at all.
-  | { type: "fc:retry"; tabId: number; id: string; option: boolean }
+  // name. `tabId` is only for rows stored before rows remembered theirs.
+  | { type: "fc:retry"; id: string; tabId?: number }
+  // The queue stopped on a rate limit, a bot check, a run of failures or a
+  // restart. Go on.
+  | { type: "fc:resume" }
+  // Sent when the panel opens. Answering it starts a worker Chrome shut down,
+  // whose startup is what notices a run it interrupted.
+  | { type: "fc:wake" }
   // Sent rows, pushed again. A push replaces same-path files in the tab, so
   // this is how a clip that arrived wrong is corrected in place.
   | { type: "fc:resend"; ids: string[] };
@@ -134,7 +142,30 @@ export interface TrayItem {
    * would move the file.
    */
   grouped?: boolean;
+  /** The page report's site. "youtube" rows need no tab. */
+  site?: string;
+  /** The tab a row that does need one was clipped from. */
+  tabId?: number;
+  /** The site's opt-in as it was when this row was queued. */
+  option?: boolean;
+  /** A YouTube playlist, opened into its videos when the queue reaches it. */
+  expand?: boolean;
   addedAt: number;
+}
+
+/**
+ * The queue's own state, apart from the rows: how big the current run is,
+ * what it is doing right now, and why it stopped if it did. A small key, so
+ * writing it on every request is cheap — and each write is an extension API
+ * call, which is what keeps the worker alive between requests.
+ */
+export interface Job {
+  /** Rows the current run has taken on, done or not. */
+  total: number;
+  /** What the worker is doing right now, for the panel: "Title: replies 3/25". */
+  step?: string;
+  /** Set when the queue stopped and waits for Resume. */
+  paused?: { reason: "rate" | "bot" | "errors" | "interrupted"; at: number };
 }
 
 /**
@@ -172,6 +203,7 @@ export interface Status {
 export const TRAY_KEY = "tray";
 export const SENT_KEY = "sent";
 export const STATUS_KEY = "status";
+export const JOB_KEY = "job";
 /** Per site, because "include comments" and "expand more comments" are not the
  *  same promise and should not share one remembered answer. */
 export const OPTIONS_KEY = "options";
@@ -209,3 +241,25 @@ export type PushAnswer = { ok: true; count: number } | { ok: false; error: strin
 /** The shape the fileconcat.com page listens for on `window.postMessage`. */
 export const PUSH_CHANNEL = "fileconcat-clipper";
 export const PUSH_VERSION = 1;
+
+/** What a chat reader says when the site's JSON stops matching what it reads. */
+export const shapeChanged = (brand: string) =>
+  `${brand} changed the shape of this conversation. Reload the extension, and if this persists, report it.`;
+
+const CHAT_BRANDS = ["ChatGPT", "Claude", "Gemini"];
+
+/**
+ * A prefilled GitHub issue for a row that failed on a shape change, or nothing
+ * for any other error. The brand is read off which fixed sentence matched and
+ * the version off the manifest, so nothing from the page goes in: no URL, no
+ * title, no clip. The user still sees GitHub's form and decides whether to file it.
+ */
+export function reportUrl(error: string | undefined, version: string): string | undefined {
+  const brand = CHAT_BRANDS.find((name) => error === shapeChanged(name));
+  if (!brand) return undefined;
+  const query = new URLSearchParams({
+    title: `Clipper ${version}: the ${brand} reader stopped working`,
+    body: `${shapeChanged(brand)}\n\nClipper version: ${version}\n\nWhat kind of ${brand} page was it (a conversation, a share link, a project)? Please do not paste the conversation itself.`,
+  });
+  return `https://github.com/CeamKrier/file-concat/issues/new?${query}`;
+}

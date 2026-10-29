@@ -70,7 +70,7 @@ const CLIPPER = [
   },
   {
     title: "Clippings stay in your browser until you send them.",
-    body: "The tray holds the last 50 in the browser's own extension storage, on your device. Nothing in it reaches us. Removing a row or clearing the tray deletes it outright.",
+    body: "The tray holds them in the browser's own extension storage, on your device, until you send or remove them. Nothing in it reaches us. Removing a row or clearing the tray deletes it outright.",
   },
   {
     title: "Sending is a handoff between two things on your device.",
@@ -82,7 +82,7 @@ const CLIPPER = [
   },
   {
     title: "Requests go to the site you are already on, never to us.",
-    body: "Clipping a video asks YouTube for its transcript. Clipping a Reddit post from a listing asks Reddit for that post's page, the same way clicking through to it would. Clipping a Hacker News thread asks hn.algolia.com for its comments, because Hacker News blocks that request from its own page. Clipping a ChatGPT conversation asks chatgpt.com for it with the page's own session. That is one request on a share page and two on a signed-in page. The first of the two fetches the session token, which is used once and not kept. Clipping a Claude conversation asks claude.ai the same way, one request. Clipping a Gemini conversation asks gemini.google.com the same way, one request per 100 turns, with the token the page itself sends. None of these go to us.",
+    body: "Clipping a video asks YouTube for its transcript, and its comments when you turned them on. The extension asks for these itself, without your YouTube cookies, so the requests are not tied to your account. Clipping a Reddit post from a listing asks Reddit for that post's page, the same way clicking through to it would. Clipping a Hacker News thread asks hn.algolia.com for its comments, because Hacker News blocks that request from its own page. Clipping a ChatGPT conversation asks chatgpt.com for it with the page's own session. That is one request on a share page and two on a signed-in page. The first of the two fetches the session token, which is used once and not kept. Clipping a Claude conversation asks claude.ai the same way, one request. Clipping a Gemini conversation asks gemini.google.com the same way, one request per 100 turns, with the token the page itself sends. None of these go to us.",
   },
   {
     title: "It asks for access to all sites.",

@@ -398,6 +398,11 @@
         padding: 5px 10px;
       }
 
+      /* Pushes the two chips right together, the hint keeping the left. */
+      #bulk-all {
+        margin-left: auto;
+      }
+
       .chip-btn[aria-pressed="true"] {
         background: var(--hairline);
         border-color: var(--border-strong);
@@ -951,6 +956,10 @@
         padding: 5px 10px;
       }
 
+      a.mini {
+        text-decoration: none;
+      }
+
       .mini:hover {
         border-color: var(--border-strong);
         color: var(--foreground);
@@ -1047,6 +1056,23 @@
         flex: 1;
         font-size: 11.5px;
         color: var(--text-muted);
+      }
+
+      .job {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+        font-size: 12.5px;
+        color: var(--text-secondary);
+      }
+
+      .job span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .send-row {
@@ -1498,6 +1524,7 @@
       <div id="list" hidden>
         <div class="list-head">
           <span class="hint" id="list-hint"></span>
+          <button class="chip-btn" id="bulk-all" type="button" hidden></button>
           <button class="chip-btn" id="bulk-toggle" type="button" aria-pressed="false">Select</button>
         </div>
         <button class="ghost wide" id="more" type="button" hidden></button>
@@ -1550,6 +1577,10 @@
       </div>
       <ul class="cart-list" id="cart-list"></ul>
       <div class="cart-foot">
+        <div class="job" id="job" hidden>
+          <span id="job-text"></span>
+          <button class="mini go" id="resume" type="button" hidden>Resume</button>
+        </div>
         <div id="sending" hidden>
           <div class="bar"><span></span></div>
           <p class="bar-note">Pushing into the fileconcat.com tab…</p>

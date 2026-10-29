@@ -6,6 +6,7 @@
 // tree, with assistant text as source Markdown. Design and figures in
 // docs/clipper-chat-plan.md.
 
+import { shapeChanged } from "./messages";
 import { type ChatBlock, type ChatClipping, mergeChatBlocks } from "./markdown";
 
 export interface ConversationRef {
@@ -81,8 +82,7 @@ export interface Conversation {
   current_node?: string;
 }
 
-export const SHAPE_CHANGED =
-  "ChatGPT changed the shape of this conversation. Reload the extension, and if this persists, report it.";
+export const SHAPE_CHANGED = shapeChanged("ChatGPT");
 
 /** The known content types. Anything else is counted and named, never dropped in silence. */
 const KNOWN = new Set(["text", "multimodal_text", "thoughts", "code", "execution_output", "reasoning_recap", "model_editable_context"]);

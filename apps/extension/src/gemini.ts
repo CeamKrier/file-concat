@@ -9,6 +9,7 @@
 // measured (2026-01 to 2026-09), fields only appeared or went null. Design
 // and figures in docs/clipper-chat-plan.md, "Gemini".
 
+import { shapeChanged } from "./messages";
 import { type ChatBlock, type ChatClipping, link, mergeChatBlocks } from "./markdown";
 
 const APP = /^\/app\/([0-9a-f]{16})$/;
@@ -19,8 +20,7 @@ export function conversationRef(pathname: string): string | null {
 
 export const geminiUrl = (id: string) => `https://gemini.google.com/app/${id}`;
 
-export const SHAPE_CHANGED =
-  "Gemini changed the shape of this conversation. Reload the extension, and if this persists, report it.";
+export const SHAPE_CHANGED = shapeChanged("Gemini");
 
 // ---------- positional access ----------
 
