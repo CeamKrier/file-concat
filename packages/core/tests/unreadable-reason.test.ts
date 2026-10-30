@@ -46,6 +46,8 @@ describe("unreadableReason", () => {
     expect(unreadableReason("build/main.o").label).toBe("Compiled code or library");
     expect(unreadableReason("cache.sqlite").label).toBe("Database file");
     expect(unreadableReason("weights.safetensors").label).toBe("Data or model file");
+    expect(unreadableReason("app/debug.keystore").label).toBe("Java keystore");
+    expect(unreadableReason("release.jks").label).toBe("Java keystore");
     expect(unreadableReason("book.mobi").remedy).toContain("Calibre");
     expect(unreadableReason("draft.pages").remedy).toContain(".docx");
     expect(unreadableReason("mystery.xyz")).toEqual({ label: "Binary file" });
