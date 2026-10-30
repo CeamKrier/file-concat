@@ -7,7 +7,7 @@
 #
 # Rivals are not rerun: Tika, markitdown, file, git and rg are pinned to the
 # versions their rows name, and their outputs live (gitignored) in
-# docs/measurements/capability-2026-10-17/. A minute or two, no network.
+# docs/measurements/capability-2026-10-31/. A minute or two, no network.
 #
 # usage, from the repo root: bash packages/cli/scripts/bench/rerun-documents.sh
 set -euo pipefail
@@ -15,7 +15,7 @@ set -euo pipefail
 V=$(node -p 'require("./apps/web/package.json").version.split(".").slice(0, 2).join(".")')
 C=packages/cli/scripts/coverage
 D=$C/compare
-KEEP=docs/measurements/capability-2026-10-17
+KEEP=docs/measurements/capability-2026-10-31
 OUT=docs/measurements/bench-documents-$V.json
 W=$(mktemp -d)
 trap 'rm -rf "$W"' EXIT

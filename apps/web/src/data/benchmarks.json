@@ -41,12 +41,12 @@
               "value": 79.3
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 72.9
             },
             {
-              "label": "markitdown 0.1.5",
-              "value": 41.5
+              "label": "markitdown 0.1.9",
+              "value": 41.6
             }
           ]
         },
@@ -81,16 +81,16 @@
               "value": 92.7
             },
             {
-              "label": "Tika 3.3.2",
-              "value": 67.7
+              "label": "Tika 4.2.0",
+              "value": 66.5
             },
             {
               "label": "FileConcat 2.3",
               "value": 63.7
             },
             {
-              "label": "markitdown 0.1.5",
-              "value": 35
+              "label": "markitdown 0.1.9",
+              "value": 36
             }
           ]
         },
@@ -130,12 +130,12 @@
               "value": 97
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 62
             },
             {
-              "label": "markitdown 0.1.5",
-              "value": 45
+              "label": "markitdown 0.1.9",
+              "value": 46
             }
           ]
         },
@@ -172,16 +172,16 @@
               "value": 45
             },
             {
-              "label": "markitdown 0.1.5",
-              "value": 41
+              "label": "markitdown 0.1.9",
+              "value": 42
             },
             {
               "label": "file 5.45",
               "value": 39
             },
             {
-              "label": "Tika 3.3.2",
-              "value": 38
+              "label": "Tika 4.2.0",
+              "value": 36
             },
             {
               "label": "rg 15.2.0",
@@ -282,11 +282,11 @@
               "value": 72.7
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 75.6
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 72.3
             }
           ]
@@ -327,11 +327,11 @@
               "value": 74.9
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 81.4
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 74.1
             }
           ]
@@ -372,11 +372,11 @@
               "value": 85.4
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 81.9
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 84.1
             }
           ]
@@ -417,12 +417,12 @@
               "value": 62.6
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 63.8
             },
             {
-              "label": "markitdown 0.1.5",
-              "value": 62.3
+              "label": "markitdown 0.1.9",
+              "value": 62.7
             }
           ]
         },
@@ -462,11 +462,11 @@
               "value": 85.6
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 80.4
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 0
             }
           ]
@@ -507,11 +507,11 @@
               "value": 91.7
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 54.7
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 66.4
             }
           ]
@@ -552,11 +552,11 @@
               "value": 73.4
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 59.1
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 97.6
             }
           ]
@@ -597,11 +597,11 @@
               "value": 73.1
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 76.2
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 0
             }
           ]
@@ -642,11 +642,11 @@
               "value": 79.4
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 84.8
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 0
             }
           ]
@@ -687,11 +687,11 @@
               "value": 89.5
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 63.7
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 0
             }
           ]
@@ -732,11 +732,11 @@
               "value": 83.8
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 79.9
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 0
             }
           ]
@@ -757,7 +757,7 @@
           "better": "higher",
           "measured": "2026-10-26",
           "post": "browser-text-extraction-benchmark",
-          "note": "Tests passed, mean of 8 parts. GPU and API rows from allenai's table, Marker from its README, the rest run by us.",
+          "note": "Tests passed, mean of 8 parts. olmOCR and Mistral from allenai's table, Chandra and Marker (fast, no OCR) from their own READMEs, the rest run by us.",
           "rows": [
             {
               "label": "FileConcat 2.9",
@@ -772,8 +772,8 @@
               "value": 40.1
             },
             {
-              "label": "Chandra 0.1.0, GPU",
-              "value": 83.1
+              "label": "Chandra 0.2.0, GPU",
+              "value": 85.8
             },
             {
               "label": "olmOCR 2, GPU",
@@ -784,7 +784,7 @@
               "value": 72
             },
             {
-              "label": "Marker 1.10.1, CPU",
+              "label": "Marker 2.1.0, CPU",
               "value": 43.6
             },
             {

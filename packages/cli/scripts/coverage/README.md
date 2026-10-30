@@ -45,16 +45,18 @@ written for this map.
 
 ## Against Tika and markitdown
 
-`compare/` scores other extractors on the same probes, for the 2026-10-17 comparison.
-Versions: Apache Tika app 3.3.2 (`--text`, one JVM per file), markitdown 0.1.5, file
-5.45, git 2.43.0, rg 15.2.0.
+`compare/` scores other extractors on the same probes. The 2026-10-17 comparison ran
+Tika 3.3.2 and markitdown 0.1.5; /benchmarks reran them on 2026-10-31 at Apache Tika app
+4.2.0 (`--text`, one JVM per file, `tika-app-4.2.0.jar` from the release's
+`tika-app-4.2.0.zip`) and markitdown 0.1.9, whose `[all]` extra needs `uvx --prerelease
+allow`. file 5.45, git 2.43.0, rg 15.2.0.
 
 ```bash
 D=packages/cli/scripts/coverage/compare
 git worktree add ../fc-v2.3.0 v2.3.0 && (cd ../fc-v2.3.0 && pnpm install)
 bash packages/cli/scripts/coverage/run.sh . out/fc-HEAD
 bash packages/cli/scripts/coverage/run.sh ../fc-v2.3.0 out/fc-v2.3.0
-TIKA_JAR=tika-app-3.3.2.jar bash $D/run-tools.sh tika packages/cli/scripts/coverage/probes out/tika
+TIKA_JAR=tika-app-4.2.0.jar bash $D/run-tools.sh tika packages/cli/scripts/coverage/probes out/tika
 bash $D/run-tools.sh markitdown packages/cli/scripts/coverage/probes out/markitdown
 RULE=2 python3 -I $D/score.py $D/rows.json packages/cli/scripts/coverage/probes out $D/prevalence-2026-10-16 report.json
 python3 -I $D/tables.py report.json
@@ -72,7 +74,7 @@ The 45 hard files of `packages/core/tests/fixtures/unreadable-corpus.ts`:
 
 ```bash
 tsx $D/dump-corpus.mts c45
-TIKA_JAR=tika-app-3.3.2.jar bash $D/run-corpus45.sh c45 out45
+TIKA_JAR=tika-app-4.2.0.jar bash $D/run-corpus45.sh c45 out45
 tsx $D/fc-corpus.mts . c45 fc-head.json
 tsx $D/fc-corpus.mts ../fc-v2.3.0 c45 fc-v230.json
 python3 -I $D/score45.py c45 out45 report45.json fc-HEAD=fc-head.json fc-v2.3.0=fc-v230.json

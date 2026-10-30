@@ -6,7 +6,7 @@
 import json, os, sys, collections
 
 TOOLS = ["fc-HEAD", "fc-v2.3.0", "tika", "markitdown"]
-NAMES = ["FileConcat HEAD", "FileConcat 2.3.0", "Tika 3.3.2", "markitdown 0.1.5"]
+NAMES = ["FileConcat HEAD", "FileConcat 2.3.0", "Tika 4.2.0", "markitdown 0.1.9"]
 PASSTHROUGH = {("markitdown", "Email .eml"), ("markitdown", "RTF"), ("tika", "Notebook .ipynb")}
 
 rep = json.load(open(sys.argv[1]))
@@ -57,9 +57,9 @@ print(f"| **Mean of {len(weights)} formats** | | " + " | ".join(f"**{sum(means[t
 # --json <out> <score45.json>: the figures the blog post draws, from the same numbers.
 if len(sys.argv) > 3 and sys.argv[2] == "--json":
     head = os.environ.get("FC_LABEL", "FileConcat 2.6")
-    label = {"fc-HEAD": head, "fc-v2.3.0": "FileConcat 2.3", "tika": "Tika 3.3.2", "markitdown": "markitdown 0.1.5"}
+    label = {"fc-HEAD": head, "fc-v2.3.0": "FileConcat 2.3", "tika": "Tika 4.2.0", "markitdown": "markitdown 0.1.9"}
     corpus = json.load(open(sys.argv[4]))
-    tools45 = {"fc-HEAD": head, "fc-v2.3.0": "FileConcat 2.3", "tika": "Tika 3.3.2", "markitdown": "markitdown 0.1.5", "file": "file 5.45", "rg": "rg 15.2.0", "git": "git 2.43.0"}
+    tools45 = {"fc-HEAD": head, "fc-v2.3.0": "FileConcat 2.3", "tika": "Tika 4.2.0", "markitdown": "markitdown 0.1.9", "file": "file 5.45", "rg": "rg 15.2.0", "git": "git 2.43.0"}
     corpus_rows = [{"label": n, "value": sum(bool(x) for x in corpus[t].values())} for t, n in tools45.items()]
     out = {
         "weighted": {
