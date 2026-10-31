@@ -57,7 +57,7 @@
     "file-type": "^22.0.1",
     "glob": "^11.0.0",
     "officeparser": "^8.1.1",
-    "postal-mime": "^4.0.7"
+    "postal-mime": "^4.2.0"
   },
   "devDependencies": {
     "7z-wasm": "^1.2.0",
@@ -65,8 +65,8 @@
     "@dqbd/tiktoken": "^1.0.22",
     "@fileconcat/core": "workspace:*",
     "@firecrawl/anydoc-wasm": "^0.2.4",
-    "@huggingface/transformers": "4.3.0",
-    "@llamaindex/liteparse-wasm": "file:../../vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.3.tgz",
+    "@huggingface/transformers": "4.3.2",
+    "@llamaindex/liteparse-wasm": "file:../../vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.17.0-fc.1.tgz",
     "@mozilla/readability": "0.6.0",
     "@types/jsdom": "^30.0.0",
     "@types/node": "^22.0.0",
@@ -81,7 +81,7 @@
     "mammoth": "^1.13.0",
     "matroska-subtitles": "^3.3.2",
     "mdream": "1.7.2",
-    "mp4box": "^2.4.1",
+    "mp4box": "^2.5.0",
     "node-unrar-js": "^2.0.2",
     "officeparser8": "npm:officeparser@8.1.0",
     "onnxruntime-node": "^1.30.0",

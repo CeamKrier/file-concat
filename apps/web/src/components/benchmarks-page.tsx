@@ -156,7 +156,9 @@ export function BenchmarksPage() {
           Every release runs the document benchmarks again. The PDF, web page, archive and
           repository benchmarks run again when a release changes the reader they test. Each new
           FileConcat row joins the older ones, so every chart is also its own history. A new method
-          starts a new chart. The linked studies keep the numbers they were published with.
+          starts a new chart. When another tool&apos;s newer release is measured, its row is
+          replaced and names the new version. The linked studies keep the numbers and versions they were published
+          with.
         </p>
         <p className="text-ink-secondary mt-3 text-[15px] leading-[1.65]">
           Your files are not uploaded to us, the whole thing runs in your browser.

@@ -1,0 +1,206 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ceamkrier <ceamkrier@gmail.com>
+Date: Sat, 31 Oct 2026 04:25:25 +0300
+Subject: [PATCH 4/4] fix: keep the text of every line a table run's span
+ covers
+
+The region classifier skips every line inside a table run's span, so text
+the table leaves out of its cells is dropped from the markdown. A run that
+binned only some columns of its rows, or a sparse run stretched over a
+column of worked solutions, lost whole lines that the text output keeps:
+a spec sheet's capacity rows and model numbers, a page of exam answers,
+the footnotes under a parts table.
+
+Two guards, on every run the classifier emits:
+
+- A pipe-table run whose cells and interstitials carry under 70% of the
+  non-space characters of its span is read as text instead. Across 1,333
+  runs on three corpora, every run that left out whole lines sat below
+  0.7 and every benchmark table kept 0.73 or more.
+- In a run that stays, a line no cell took a single word from is handed
+  back as an interstitial, so it is emitted ahead of the table. A line
+  sharing any word with the table stays with it, so nothing is repeated.
+---
+ .../liteparse/src/markdown_layout/classify.rs |  17 ++-
+ .../liteparse/src/markdown_layout/tables.rs   | 113 +++++++++++++++++-
+ 2 files changed, 127 insertions(+), 3 deletions(-)
+
+diff --git a/crates/liteparse/src/markdown_layout/classify.rs b/crates/liteparse/src/markdown_layout/classify.rs
+index 4d5e2d7..96fe98e 100644
+--- a/crates/liteparse/src/markdown_layout/classify.rs
++++ b/crates/liteparse/src/markdown_layout/classify.rs
+@@ -1,6 +1,6 @@
+ use crate::types::{OutlineTarget, ParsedPage, ProjectedLine, Rect};
+ 
+-use super::blocks::{Block, PositionedBlock, paragraph_from_accum};
++use super::blocks::{Block, Cell, PositionedBlock, paragraph_from_accum};
+ use super::headings::{
+     HEADING_MAX_TEXT_CHARS, MAX_HEADING_LEVELS, heading_level_for, heading_size_of,
+     is_caption_line, is_toc_title, looks_like_bold_heading, looks_like_numbered_bold_heading,
+@@ -566,6 +566,12 @@ fn classify_region(
+     let table_runs: Vec<_> = merge_table_runs(ruled_runs, borderless_runs)
+         .into_iter()
+         .filter(|run| !super::tables::run_reads_as_prose(run, false))
++        // A table that carries under 70% of the text of the lines it spans
++        // loses the rest, since the loop below skips the span. Its lines are
++        // read as text instead. Across 1,333 runs on three corpora, every run
++        // that left out whole lines sat below 0.7 and every benchmark table
++        // kept 0.73 or more.
++        .filter(|run| super::tables::run_text_kept(run, lines).is_none_or(|kept| kept >= 0.7))
+         .collect();
+ 
+     // Region-wide pre-pass: which line indices carry a lettered/roman marker
+@@ -618,7 +624,14 @@ fn classify_region(
+             state.flush_paragraph(&mut blocks);
+             state.flush_code(&mut blocks);
+             state.reset_list();
+-            let run = table_iter.next().unwrap();
++            let mut run = table_iter.next().unwrap();
++            // Lines in the span that no cell took a word from (a note under
++            // the table, a column the grid left out) go the same way.
++            let left_out = super::tables::lines_left_out(&run, lines);
++            run.interstitials.extend(left_out.into_iter().map(|i| Cell {
++                text: lines[i].text.clone(),
++                bbox: Some(lines[i].bbox.clone()),
++            }));
+             // Prose lines the run stepped over between its header and body
+             // sit inside `[run.start, run.end)`, which this loop skips — emit
+             // each as its own paragraph ahead of the table so the text isn't
+diff --git a/crates/liteparse/src/markdown_layout/tables.rs b/crates/liteparse/src/markdown_layout/tables.rs
+index 7a823d6..e6d5fd5 100644
+--- a/crates/liteparse/src/markdown_layout/tables.rs
++++ b/crates/liteparse/src/markdown_layout/tables.rs
+@@ -914,6 +914,68 @@ pub(super) fn run_reads_as_prose(run: &TableRun, full: bool) -> bool {
+     }
+ }
+ 
++/// Share of the non-space characters of the lines a run spans that its cells
++/// and interstitials carry, or `None` for a run that is not a pipe table. The
++/// classifier skips the whole span, so whatever the table leaves out is
++/// dropped from the markdown. Header replication can push it above 1.
++pub(super) fn run_text_kept(run: &TableRun, lines: &[ProjectedLine]) -> Option<f32> {
++    let Block::Table { header, rows } = &run.block else {
++        return None;
++    };
++    let chars = |t: &str| t.chars().filter(|c| !c.is_whitespace()).count();
++    let span: usize = lines
++        .get(run.start..run.end)?
++        .iter()
++        .map(|l| chars(&l.text))
++        .sum();
++    if span == 0 {
++        return None;
++    }
++    let kept: usize = header
++        .iter()
++        .flatten()
++        .chain(rows.iter().flatten())
++        .chain(&run.interstitials)
++        .map(|c| chars(&c.text))
++        .sum();
++    Some(kept as f32 / span as f32)
++}
++
++/// Lines inside a run's span that none of its cells or interstitials took a
++/// word from. The classifier skips the span, so these would be dropped. A
++/// line that shares even one word with the table stays with it, so nothing
++/// the table already shows is repeated.
++pub(super) fn lines_left_out(run: &TableRun, lines: &[ProjectedLine]) -> Vec<usize> {
++    let Block::Table { header, rows } = &run.block else {
++        return Vec::new();
++    };
++    let mut words: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
++    for cell in header
++        .iter()
++        .flatten()
++        .chain(rows.iter().flatten())
++        .chain(&run.interstitials)
++    {
++        for w in cell.text.split_whitespace() {
++            *words.entry(w).or_default() += 1;
++        }
++    }
++    (run.start..run.end.min(lines.len()))
++        .filter(|&i| {
++            let mut taken = false;
++            for w in lines[i].text.split_whitespace() {
++                if let Some(n) = words.get_mut(w)
++                    && *n > 0
++                {
++                    *n -= 1;
++                    taken = true;
++                }
++            }
++            !taken && !lines[i].text.trim().is_empty()
++        })
++        .collect()
++}
++
+ /// Measurement-value shape: a decimal number ("2.28"), currency/percent,
+ /// comma-grouped number ("1,240"), or a dash placeholder ("--" / "—").
+ /// Bare integers (years, codes) deliberately do NOT match — they appear in
+@@ -6254,7 +6316,8 @@ mod tests {
+         // second column, not split across both. The colspan grid still sees
+         // the raw extent.
+         let l = line_with_spans(&[("Alpha", 10.0), ("Beta gamma", 99.6)], 5.0, 10.0);
+-        let (grid, _) = assign_cells(&[l], &[0.0, 100.0, 200.0], &[0.0, 20.0], false, false).unwrap();
++        let (grid, _) =
++            assign_cells(&[l], &[0.0, 100.0, 200.0], &[0.0, 20.0], false, false).unwrap();
+         assert_eq!(grid.text[0][0].text, "Alpha");
+         assert_eq!(grid.text[0][1].text, "Beta gamma");
+         assert_eq!(grid.repl[0][0], "Alpha Beta gamma");
+@@ -7862,6 +7925,54 @@ mod tests {
+             .collect()
+     }
+ 
++    #[test]
++    fn run_text_kept_counts_what_the_table_carries() {
++        use super::super::test_helpers::line;
++        let lines = vec![
++            line("Model Capacity", 10.0, 10.0, 12.0, 10.0),
++            line("50D 5,000 @ 24 2,270 @ 600 26-79", 10.0, 25.0, 12.0, 10.0),
++        ];
++        let run = |rows: Vec<Vec<Cell>>| TableRun {
++            interstitials: Vec::new(),
++            start: 0,
++            end: 2,
++            body_start: 0,
++            bbox: None,
++            block: Block::Table { header: None, rows },
++        };
++        let whole = run(vec![
++            vec!["Model".into(), "Capacity".into()],
++            vec!["50D".into(), "5,000 @ 24 2,270 @ 600 26-79".into()],
++        ]);
++        assert_eq!(run_text_kept(&whole, &lines), Some(1.0));
++        // Only the model column made it into the cells: the capacities are
++        // inside the span the classifier skips, so they would be lost.
++        let partial = run(vec![vec!["Model".into()], vec!["50D".into()]]);
++        assert!(run_text_kept(&partial, &lines).unwrap() < 0.7);
++    }
++
++    #[test]
++    fn lines_left_out_names_lines_no_cell_took() {
++        use super::super::test_helpers::line;
++        let lines = vec![
++            line("Model Order No.", 10.0, 10.0, 12.0, 10.0),
++            line("50D 659249", 10.0, 25.0, 12.0, 10.0),
++            line("Integral arms.", 10.0, 40.0, 12.0, 10.0),
++        ];
++        let run = TableRun {
++            interstitials: Vec::new(),
++            start: 0,
++            end: 3,
++            body_start: 0,
++            bbox: None,
++            block: Block::Table {
++                header: Some(vec!["Model".into(), "Order No.".into()]),
++                rows: vec![vec!["50D".into(), "659249".into()]],
++            },
++        };
++        assert_eq!(lines_left_out(&run, &lines), vec![2]);
++    }
++
+     #[test]
+     fn prose_cut_into_columns_reads_as_prose() {
+         // Two columns of running text sliced row by row by a page frame.

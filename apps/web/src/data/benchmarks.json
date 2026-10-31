@@ -12,7 +12,7 @@
           "metric": "Weighted by real files, mean of 11 formats",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-30",
+          "measured": "2026-10-31",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "648 constructs in 129 probe files, each weighted by its share of 1,973 real files. All run by us.",
           "rows": [
@@ -41,12 +41,12 @@
               "value": 79.3
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 72.9
             },
             {
-              "label": "markitdown 0.1.5",
-              "value": 41.5
+              "label": "markitdown 0.1.9",
+              "value": 41.6
             }
           ]
         },
@@ -56,7 +56,7 @@
           "metric": "Of 648 over 17 formats, unweighted",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-30",
+          "measured": "2026-10-31",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "Every construct counts once, however rare it is in real files. All run by us.",
           "rows": [
@@ -81,16 +81,16 @@
               "value": 92.7
             },
             {
-              "label": "Tika 3.3.2",
-              "value": 67.7
+              "label": "Tika 4.2.0",
+              "value": 66.5
             },
             {
               "label": "FileConcat 2.3",
               "value": 63.7
             },
             {
-              "label": "markitdown 0.1.5",
-              "value": 35
+              "label": "markitdown 0.1.9",
+              "value": 36
             }
           ]
         },
@@ -101,7 +101,7 @@
           "unit": "count",
           "of": 130,
           "better": "higher",
-          "measured": "2026-10-30",
+          "measured": "2026-10-31",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "Tracked deletions, hidden sheets, cookie banners. A format a tool does not read earns nothing here.",
           "rows": [
@@ -130,12 +130,12 @@
               "value": 97
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 62
             },
             {
-              "label": "markitdown 0.1.5",
-              "value": 45
+              "label": "markitdown 0.1.9",
+              "value": 46
             }
           ]
         },
@@ -147,7 +147,7 @@
           "unit": "count",
           "of": 45,
           "better": "higher",
-          "measured": "2026-10-30",
+          "measured": "2026-10-31",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "Files hard to tell apart or hard to decode: legacy encodings, binaries that look like text. All run by us.",
           "rows": [
@@ -172,16 +172,16 @@
               "value": 45
             },
             {
-              "label": "markitdown 0.1.5",
-              "value": 41
+              "label": "markitdown 0.1.9",
+              "value": 42
             },
             {
               "label": "file 5.45",
               "value": 39
             },
             {
-              "label": "Tika 3.3.2",
-              "value": 38
+              "label": "Tika 4.2.0",
+              "value": 36
             },
             {
               "label": "rg 15.2.0",
@@ -205,7 +205,7 @@
           "unit": "count",
           "of": 16,
           "better": "higher",
-          "measured": "2026-10-30",
+          "measured": "2026-10-31",
           "post": "what-gets-lost-converting-documents-to-text",
           "note": "27 test documents in 12 formats, one structure each: merged cells, spreadsheet dates, scanned pages.",
           "rows": [
@@ -253,7 +253,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-30",
+          "measured": "2026-10-31",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "200 real files.",
           "rows": [
@@ -282,11 +282,11 @@
               "value": 72.7
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 75.6
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 72.3
             }
           ]
@@ -298,7 +298,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-30",
+          "measured": "2026-10-31",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "200 real files.",
           "rows": [
@@ -327,11 +327,11 @@
               "value": 74.9
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 81.4
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 74.1
             }
           ]
@@ -343,7 +343,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-30",
+          "measured": "2026-10-31",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "198 real files.",
           "rows": [
@@ -372,11 +372,11 @@
               "value": 85.4
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 81.9
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 84.1
             }
           ]
@@ -388,7 +388,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-30",
+          "measured": "2026-10-31",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "195 real files.",
           "rows": [
@@ -417,12 +417,12 @@
               "value": 62.6
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 63.8
             },
             {
-              "label": "markitdown 0.1.5",
-              "value": 62.3
+              "label": "markitdown 0.1.9",
+              "value": 62.7
             }
           ]
         },
@@ -433,7 +433,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-30",
+          "measured": "2026-10-31",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "124 real files. markitdown printed the raw MIME source, scored 0.",
           "rows": [
@@ -462,11 +462,11 @@
               "value": 85.6
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 80.4
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 0
             }
           ]
@@ -478,7 +478,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-30",
+          "measured": "2026-10-31",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "198 real files.",
           "rows": [
@@ -507,11 +507,11 @@
               "value": 91.7
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 54.7
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 66.4
             }
           ]
@@ -523,7 +523,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-30",
+          "measured": "2026-10-31",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "200 real files. The one format where FileConcat is not first: it misses the author.",
           "rows": [
@@ -552,11 +552,11 @@
               "value": 73.4
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 59.1
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 97.6
             }
           ]
@@ -568,7 +568,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-30",
+          "measured": "2026-10-31",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "198 real files. markitdown printed the raw control words, scored 0.",
           "rows": [
@@ -597,11 +597,11 @@
               "value": 73.1
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 76.2
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 0
             }
           ]
@@ -613,7 +613,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-30",
+          "measured": "2026-10-31",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "199 real files. markitdown does not read it.",
           "rows": [
@@ -642,11 +642,11 @@
               "value": 79.4
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 84.8
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 0
             }
           ]
@@ -658,7 +658,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-30",
+          "measured": "2026-10-31",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "196 real files. markitdown does not read it.",
           "rows": [
@@ -687,11 +687,11 @@
               "value": 89.5
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 63.7
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 0
             }
           ]
@@ -703,7 +703,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-30",
+          "measured": "2026-10-31",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "65 real files. markitdown does not read it.",
           "rows": [
@@ -732,11 +732,11 @@
               "value": 83.8
             },
             {
-              "label": "Tika 3.3.2",
+              "label": "Tika 4.2.0",
               "value": 79.9
             },
             {
-              "label": "markitdown 0.1.5",
+              "label": "markitdown 0.1.9",
               "value": 0
             }
           ]
@@ -755,10 +755,14 @@
           "metric": "olmOCR-bench, 1,403 pages",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-26",
+          "measured": "2026-10-31",
           "post": "browser-text-extraction-benchmark",
-          "note": "Tests passed, mean of 8 parts. GPU and API rows from allenai's table, Marker from its README, the rest run by us.",
+          "note": "Tests passed, mean of 8 parts. olmOCR and Mistral from allenai's table, Chandra and Marker (fast, no OCR) from their own READMEs, the rest run by us.",
           "rows": [
+            {
+              "label": "FileConcat 2.10",
+              "value": 40.3
+            },
             {
               "label": "FileConcat 2.9",
               "value": 40.2
@@ -772,8 +776,8 @@
               "value": 40.1
             },
             {
-              "label": "Chandra 0.1.0, GPU",
-              "value": 83.1
+              "label": "Chandra 0.2.0, GPU",
+              "value": 85.8
             },
             {
               "label": "olmOCR 2, GPU",
@@ -784,7 +788,7 @@
               "value": 72
             },
             {
-              "label": "Marker 1.10.1, CPU",
+              "label": "Marker 2.1.0, CPU",
               "value": 43.6
             },
             {
@@ -812,10 +816,14 @@
           "metric": "Article text F1, 181 pages",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-26",
+          "measured": "2026-10-31",
           "post": "browser-text-extraction-benchmark",
           "note": "Zyte's article extraction benchmark at commit 4a3bc97. Other readers: their published outputs.",
           "rows": [
+            {
+              "label": "FileConcat 2.10",
+              "value": 93.6
+            },
             {
               "label": "FileConcat 2.9",
               "value": 93.6
@@ -866,10 +874,14 @@
           "unit": "count",
           "of": 26,
           "better": "higher",
-          "measured": "2026-10-26",
+          "measured": "2026-10-31",
           "post": "browser-text-extraction-benchmark",
           "note": "One archive per case readers get wrong: zip64, non-ASCII names, tar dialects, 7z. All run by us.",
           "rows": [
+            {
+              "label": "FileConcat 2.10",
+              "value": 25
+            },
             {
               "label": "FileConcat 2.9",
               "value": 25
@@ -914,10 +926,14 @@
           "metric": "Median share of 60 repositories",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-26",
+          "measured": "2026-10-31",
           "post": "repomix-vs-gitingest-vs-code2prompt",
           "note": "Source code as a share of the bundle's tokens. The rest is tests, lockfiles and vendored code. FileConcat runs as its command line tool built from the same release, which skips dot folders the web app keeps.",
           "rows": [
+            {
+              "label": "FileConcat 2.10",
+              "value": 67.5
+            },
             {
               "label": "FileConcat 2.9",
               "value": 67.5
@@ -958,10 +974,14 @@
           "metric": "Median tokens over 60 repositories",
           "unit": "tokens",
           "better": "lower",
-          "measured": "2026-10-26",
+          "measured": "2026-10-31",
           "post": "repomix-vs-gitingest-vs-code2prompt",
           "note": "Fewer tokens only helps if the files left out did not matter.",
           "rows": [
+            {
+              "label": "FileConcat 2.10",
+              "value": 236670
+            },
             {
               "label": "FileConcat 2.9",
               "value": 236670
@@ -1003,12 +1023,12 @@
           "unit": "count",
           "of": 60,
           "better": "higher",
-          "measured": "2026-10-26",
+          "measured": "2026-10-31",
           "post": "repomix-vs-gitingest-vs-code2prompt",
           "note": "The tool whose bundle had the highest share of source code on that repository.",
           "rows": [
             {
-              "label": "FileConcat 2.9",
+              "label": "FileConcat 2.10",
               "value": 35
             },
             {
@@ -1032,12 +1052,12 @@
           "unit": "count",
           "of": 60,
           "better": "higher",
-          "measured": "2026-10-26",
+          "measured": "2026-10-31",
           "post": "repomix-vs-gitingest-vs-code2prompt",
           "note": "The tool with the fewest tokens on that repository.",
           "rows": [
             {
-              "label": "FileConcat 2.9",
+              "label": "FileConcat 2.10",
               "value": 30
             },
             {

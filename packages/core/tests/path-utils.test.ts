@@ -155,6 +155,7 @@ describe("prunedAtWalk", () => {
     expect(prunedAtWalk("obj/Debug/app.o")).toBe(true);
     expect(prunedAtWalk("lib/native.DLL")).toBe(true);
     expect(prunedAtWalk("media/intro.avi")).toBe(true);
+    expect(prunedAtWalk("app/debug.keystore")).toBe(true);
     // Images get the recognition offer, so they are read in, a video that can
     // carry a subtitle track has it read as the transcript, and audio gets the
     // speech offer.

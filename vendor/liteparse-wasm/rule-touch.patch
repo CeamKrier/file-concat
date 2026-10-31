@@ -1,7 +1,7 @@
-From e0a77bd383f84cfa44d919d3e6fa4920cd55879c Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: ceamkrier <ceamkrier@gmail.com>
 Date: Fri, 16 Oct 2026 21:36:47 +0300
-Subject: [PATCH] fix: keep a run that only touches a rule in its own table
+Subject: [PATCH 1/4] fix: keep a run that only touches a rule in its own table
  cell
 
 assign_cells bucketed a run's x extent against the ruled column edges with
@@ -37,10 +37,10 @@ Measured against v2.16.0, markdown, no OCR:
  1 file changed, 34 insertions(+), 13 deletions(-)
 
 diff --git a/crates/liteparse/src/markdown_layout/tables.rs b/crates/liteparse/src/markdown_layout/tables.rs
-index ac7efe4..315da84 100644
+index bce2221..6f84b0b 100644
 --- a/crates/liteparse/src/markdown_layout/tables.rs
 +++ b/crates/liteparse/src/markdown_layout/tables.rs
-@@ -3659,6 +3659,7 @@ fn assign_cells(
+@@ -4228,6 +4228,7 @@ fn assign_cells(
      // (the occasional PDFium merged run aside); decorative slide/layout boxes
      // over flowing prose slice through most runs.
      const STRADDLE_MARGIN_PT: f32 = 3.0;
@@ -48,7 +48,7 @@ index ac7efe4..315da84 100644
      let mut span_total = 0usize;
      let mut span_straddle = 0usize;
  
-@@ -3732,8 +3733,17 @@ fn assign_cells(
+@@ -4381,8 +4382,17 @@ fn assign_cells(
              let row = find_bucket(ys, span_cy.clamp(ys[0], ys[n_rows])).unwrap_or(row);
              let sx0 = (span.x).clamp(xs[0], xs[n_cols]);
              let sx1 = (span.x + span.width).clamp(xs[0], xs[n_cols]);
@@ -68,7 +68,7 @@ index ac7efe4..315da84 100644
              span_total += 1;
              {
                  let m0 = (span.x + STRADDLE_MARGIN_PT).clamp(xs[0], xs[n_cols]);
-@@ -3742,24 +3752,23 @@ fn assign_cells(
+@@ -4391,24 +4401,23 @@ fn assign_cells(
                      span_straddle += 1;
                  }
              }
@@ -103,7 +103,7 @@ index ac7efe4..315da84 100644
              // Span crosses interior boundaries: split at the whitespace
              // nearest each crossed boundary x (xs[k] is column k's left
              // boundary, which is exactly the split target).
-@@ -5249,6 +5258,18 @@ mod tests {
+@@ -6133,6 +6142,18 @@ mod tests {
          assert_eq!(piece_texts(&span), ["Added Relative"]);
      }
  
@@ -113,7 +113,7 @@ index ac7efe4..315da84 100644
 +        // second column, not split across both. The colspan grid still sees
 +        // the raw extent.
 +        let l = line_with_spans(&[("Alpha", 10.0), ("Beta gamma", 99.6)], 5.0, 10.0);
-+        let (grid, _) = assign_cells(&[l], &[0.0, 100.0, 200.0], &[0.0, 20.0], false).unwrap();
++        let (grid, _) = assign_cells(&[l], &[0.0, 100.0, 200.0], &[0.0, 20.0], false, false).unwrap();
 +        assert_eq!(grid.text[0][0].text, "Alpha");
 +        assert_eq!(grid.text[0][1].text, "Beta gamma");
 +        assert_eq!(grid.repl[0][0], "Alpha Beta gamma");
@@ -122,6 +122,3 @@ index ac7efe4..315da84 100644
      fn rows(v: &[&[&str]]) -> Vec<Vec<Cell>> {
          v.iter()
              .map(|r| r.iter().map(|s| Cell::from(*s)).collect())
--- 
-2.43.0
-

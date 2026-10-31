@@ -85,14 +85,14 @@ importers:
         specifier: ^0.2.4
         version: 0.2.4
       '@huggingface/transformers':
-        specifier: 4.3.0
-        version: 4.3.0(@types/node@22.19.1)
+        specifier: 4.3.2
+        version: 4.3.2(@types/node@22.19.1)
       '@icons-pack/react-simple-icons':
         specifier: ^11.2.0
         version: 11.2.0(react@18.3.1)
       '@llamaindex/liteparse-wasm':
-        specifier: file:../../vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.3.tgz
-        version: file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.3.tgz
+        specifier: file:../../vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.17.0-fc.1.tgz
+        version: file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.17.0-fc.1.tgz
       '@mdx-js/react':
         specifier: ^3.1.1
         version: 3.1.1(@types/react@18.3.27)(react@18.3.1)
@@ -160,23 +160,23 @@ importers:
         specifier: ^0.468.0
         version: 0.468.0(react@18.3.1)
       mediabunny:
-        specifier: 1.61.3
-        version: 1.61.3
+        specifier: 1.65.0
+        version: 1.65.0
       minimatch:
         specifier: ^10.1.1
         version: 10.1.1
       mp4box:
-        specifier: 2.4.1
-        version: 2.4.1
+        specifier: 2.5.0
+        version: 2.5.0
       onnxruntime-web:
         specifier: 1.31.0-dev.20260914-8d85527a0
         version: 1.31.0-dev.20260914-8d85527a0
       pdfjs-dist:
-        specifier: 6.1.200
-        version: 6.1.200
+        specifier: 6.2.108
+        version: 6.2.108
       postal-mime:
-        specifier: ^4.0.7
-        version: 4.0.7
+        specifier: ^4.2.0
+        version: 4.2.0
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -308,8 +308,8 @@ importers:
         specifier: ^8.1.1
         version: 8.1.1
       postal-mime:
-        specifier: ^4.0.7
-        version: 4.0.7
+        specifier: ^4.2.0
+        version: 4.2.0
     devDependencies:
       7z-wasm:
         specifier: ^1.2.0
@@ -327,11 +327,11 @@ importers:
         specifier: ^0.2.4
         version: 0.2.4
       '@huggingface/transformers':
-        specifier: 4.3.0
-        version: 4.3.0(@types/node@22.19.1)
+        specifier: 4.3.2
+        version: 4.3.2(@types/node@22.19.1)
       '@llamaindex/liteparse-wasm':
-        specifier: file:../../vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.3.tgz
-        version: file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.3.tgz
+        specifier: file:../../vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.17.0-fc.1.tgz
+        version: file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.17.0-fc.1.tgz
       '@mozilla/readability':
         specifier: 0.6.0
         version: 0.6.0
@@ -375,8 +375,8 @@ importers:
         specifier: 1.7.2
         version: 1.7.2
       mp4box:
-        specifier: ^2.4.1
-        version: 2.4.1
+        specifier: ^2.5.0
+        version: 2.5.0
       node-unrar-js:
         specifier: ^2.0.2
         version: 2.0.2
@@ -439,8 +439,8 @@ importers:
         specifier: ^4.8.0
         version: 4.8.0
       postal-mime:
-        specifier: ^4.0.7
-        version: 4.0.7
+        specifier: ^4.2.0
+        version: 4.2.0
       saxes:
         specifier: 6.0.0
         version: 6.0.0
@@ -1478,8 +1478,8 @@ packages:
   '@huggingface/tokenizers@0.2.0':
     resolution: {integrity: sha512-LidMHe1FpcSYH4vcSjXooda34pC0M8m1gmDOv7SQi6Iv+ib1zX7J3sHBCC9/3FPCkn2k1b55FneVqMRxrr99pg==}
 
-  '@huggingface/transformers@4.3.0':
-    resolution: {integrity: sha512-fL1A/WUZwouPrOlYxU5dzIwD2T5J781JiB2jDR8bFe5DwCj0Gfudq+NEXCMno49kQgajHA7xQkrRLJlqG1veEA==}
+  '@huggingface/transformers@4.3.2':
+    resolution: {integrity: sha512-V3+dqf3iWlRYJ9I9GreM3zGQd0lAXnnoPeddmkOQYWAEE4l/+Fi6p7tx/qVUJlKQgLXGim2W76rTOzz+eC0i7g==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -1970,9 +1970,9 @@ packages:
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
 
-  '@llamaindex/liteparse-wasm@file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.3.tgz':
-    resolution: {integrity: sha512-biM36AFJcUYbGsh1uk14XFuw/qKEAh05ISBmA/wn1adjc+i0RWb5jrLqlCBh6qc2quAfnaKV/FAF6U6ykiA05g==, tarball: file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.3.tgz}
-    version: 2.16.0-fc.3
+  '@llamaindex/liteparse-wasm@file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.17.0-fc.1.tgz':
+    resolution: {integrity: sha512-8yxaOv+1hQ6qI5xDz+o5q5RMjCmeBWLUiklUvxXMJsi+rKpua0IYn4jKjOtxPUV7wmVyUwAUgp3UwMc/Q1hsDg==, tarball: file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.17.0-fc.1.tgz}
+    version: 2.17.0-fc.1
     engines: {node: '>=18.0.0'}
 
   '@mdream/rust-android-arm-eabi@1.7.2':
@@ -4856,8 +4856,8 @@ packages:
     resolution: {integrity: sha512-0cXfvkNSZVF0sd4emNC30kxQarb7/0Ib8xm0iL9Y5RGXuBBDCDPJDpWpSnUO6HBin7GMGOvrXP5IWdf/BOkLyQ==}
     hasBin: true
 
-  mediabunny@1.61.3:
-    resolution: {integrity: sha512-kUqLKVXQVwHR62GkOJxYosAmXERJbqnXBgJDTtRlxHEYviVkMg/Evhl9XN6kedqS5LP1tV4kFKyzY/V4a4ofow==}
+  mediabunny@1.65.0:
+    resolution: {integrity: sha512-TNnDNOmD5Fme4rwMGWuNv485a9iQwd9lgw88PI9zQ0FMnzEUoo6EJpG7ZhdJ2iwZFWo8AzNkP1KPq5IAHaktKw==}
 
   merge2@1.4.1:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
@@ -5031,8 +5031,8 @@ packages:
   moment@2.31.0:
     resolution: {integrity: sha512-0acOTfMiWOheYS4eoWb80yYMb/JLvVv9SHbs2PehaDzfUG0Bw855SKyk0IKTnPGa5+U2bmi3W68l1+sGLX/pvw==}
 
-  mp4box@2.4.1:
-    resolution: {integrity: sha512-0HGX7nXoDIX6FKLVl4a3wtYjBlwqsN3xuQC3GXzNtKp98FXUOhDSq623azsz8DG5ptd9ZXcXodDkgbdMZOjWvw==}
+  mp4box@2.5.0:
+    resolution: {integrity: sha512-AK5FQsN5aD2m91HuCGPlRDomDhGxK0o4F8ZVyAbAfcMWBW2QlhZvE0S7v9lBq0Ib4eONq7mT1SBVdrnnIrn4pw==}
     engines: {node: '>=20.8.1'}
 
   ms@2.1.3:
@@ -5295,10 +5295,6 @@ packages:
     resolution: {integrity: sha512-TL03MdYIJqVuHsOetqDokYotwIIMkcGJNIndLxeutR4uaEcBJqqJeXUgk4k0ytEFNqxLDTBLYUHpn4DnJyl6Kg==}
     engines: {node: '>=18'}
 
-  pdfjs-dist@6.1.200:
-    resolution: {integrity: sha512-o8MolyzirkkLrcdsae/HEOiIcXWI7DS5zGpvqW8xTC2YUsW30rltFw2bDGvw/fskUdEMrQm2br68jzDS5BH2vw==}
-    engines: {node: '>=22.13.0 || >=24'}
-
   pdfjs-dist@6.2.108:
     resolution: {integrity: sha512-YxFb+SQcodN2rnX9Tn3dHYlqfb7NjlzzfONPpJd+AKoKtUjEdevTfbC07d5TcczzOK6261auRkP/M8OBHs9vFQ==}
     engines: {node: '>=22.13.0 || >=24'}
@@ -5343,8 +5339,8 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  postal-mime@4.0.7:
-    resolution: {integrity: sha512-6iBsSWv8bd9ss+lp9hzKITHj+h7HyDSum7MC8P6XH5/HEuEzZxk8+6u/MpfX7mLstMw6dQ9MvPEMP/SOcGQnFg==}
+  postal-mime@4.2.0:
+    resolution: {integrity: sha512-QG5Rh8wY/zjwFF1lKWcBbwWcAWR5jWodmMPL4gMik43XDLebtWoAAPyG0lrE2kYYZ5IHTASrepGuGO0YIwNKAg==}
     engines: {node: '>=20'}
 
   postcss-import@15.1.0:
@@ -7383,7 +7379,7 @@ snapshots:
 
   '@huggingface/tokenizers@0.2.0': {}
 
-  '@huggingface/transformers@4.3.0(@types/node@22.19.1)':
+  '@huggingface/transformers@4.3.2(@types/node@22.19.1)':
     dependencies:
       '@huggingface/jinja': 0.5.10
       '@huggingface/tokenizers': 0.2.0
@@ -7761,7 +7757,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@llamaindex/liteparse-wasm@file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.3.tgz': {}
+  '@llamaindex/liteparse-wasm@file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.17.0-fc.1.tgz': {}
 
   '@mdream/rust-android-arm-eabi@1.7.2':
     optional: true
@@ -10908,7 +10904,7 @@ snapshots:
       '@mdream/rust-win32-arm64-msvc': 1.7.2
       '@mdream/rust-win32-x64-msvc': 1.7.2
 
-  mediabunny@1.61.3:
+  mediabunny@1.65.0:
     dependencies:
       '@types/dom-mediacapture-transform': 0.1.12
       '@types/dom-webcodecs': 0.1.13
@@ -11261,7 +11257,7 @@ snapshots:
 
   moment@2.31.0: {}
 
-  mp4box@2.4.1: {}
+  mp4box@2.5.0: {}
 
   ms@2.1.3: {}
 
@@ -11541,10 +11537,6 @@ snapshots:
 
   pdf-oxide-wasm@0.3.77: {}
 
-  pdfjs-dist@6.1.200:
-    optionalDependencies:
-      '@napi-rs/canvas': 1.0.6
-
   pdfjs-dist@6.2.108:
     optionalDependencies:
       '@napi-rs/canvas': 1.0.6
@@ -11579,7 +11571,7 @@ snapshots:
 
   playwright-core@1.61.1: {}
 
-  postal-mime@4.0.7: {}
+  postal-mime@4.2.0: {}
 
   postcss-import@15.1.0(postcss@8.5.6):
     dependencies:

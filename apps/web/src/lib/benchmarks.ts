@@ -5,8 +5,10 @@ import { version } from "../../package.json";
 /**
  * The benchmarks page reads one file, `src/data/benchmarks.json`. A rerun adds
  * a row labelled with the version it measured and moves `measured`; it never
- * edits an older row, so each chart is also its own history. A change of
- * method gets a new benchmark id rather than joining the old series.
+ * edits an older FileConcat row, so each chart is also its own history. Another
+ * tool's row is replaced when that tool ships a newer release: the chart then
+ * compares against what people can install today. A change of method gets a
+ * new benchmark id rather than joining the old series.
  */
 
 export type BenchmarkRow = { label: string; value: number };

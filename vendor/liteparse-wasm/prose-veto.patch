@@ -1,8 +1,8 @@
-From 8118219a083cf5dbc246ffc2d1b655cc1d4e05aa Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: ceamkrier <ceamkrier@gmail.com>
 Date: Fri, 16 Oct 2026 23:08:13 +0300
-Subject: [PATCH] fix: drop a page-wide ruled table only when its cells read as
- prose
+Subject: [PATCH 2/4] fix: drop a page-wide ruled table only when its cells
+ read as prose
 
 The global ruled pass dropped its table whenever one layout leaf tabled on
 its own. On real pages that leaf is often one band of a table the page rules
@@ -24,12 +24,12 @@ to a page-wide grid, one moves a heading into a table row.
  3 files changed, 166 insertions(+), 2 deletions(-)
 
 diff --git a/crates/liteparse/src/markdown_layout/classify.rs b/crates/liteparse/src/markdown_layout/classify.rs
-index fad8caf..6c135be 100644
+index 2969741..a1cdae2 100644
 --- a/crates/liteparse/src/markdown_layout/classify.rs
 +++ b/crates/liteparse/src/markdown_layout/classify.rs
-@@ -210,7 +210,17 @@ pub fn classify_page_with_filters(
-             .is_empty()
-                 || !super::tables::detect_tables(&sub).is_empty()
+@@ -255,7 +255,17 @@ pub fn classify_page_with_filters(
+                     .iter()
+                     .any(|r| table_column_count(&r.block) >= 2 && covers_global(&r.block))
          });
 -        if already_handled {
 +        // A leaf tabling on its own is only a reason to drop the global
@@ -47,10 +47,10 @@ index fad8caf..6c135be 100644
          }
          // Single-column gate. A decorative banner/frame around a prose
 diff --git a/crates/liteparse/src/markdown_layout/tables.rs b/crates/liteparse/src/markdown_layout/tables.rs
-index 315da84..8835815 100644
+index 6f84b0b..1f6aa8a 100644
 --- a/crates/liteparse/src/markdown_layout/tables.rs
 +++ b/crates/liteparse/src/markdown_layout/tables.rs
-@@ -760,6 +760,92 @@ fn is_alpha_dominant(text: &str) -> bool {
+@@ -808,6 +808,92 @@ fn is_alpha_dominant(text: &str) -> bool {
      letters > digits
  }
  
@@ -143,9 +143,9 @@ index 315da84..8835815 100644
  /// Measurement-value shape: a decimal number ("2.28"), currency/percent,
  /// comma-grouped number ("1,240"), or a dash placeholder ("--" / "—").
  /// Bare integers (years, codes) deliberately do NOT match — they appear in
-@@ -6553,4 +6639,72 @@ mod tests {
-             "lettered list must not be detected as a description-list table"
-         );
+@@ -7742,4 +7828,72 @@ mod tests {
+         ));
+         assert!(md.contains(r"Dose \*as written\*"), "{md}");
      }
 +
 +    fn grid(rows: &[&[&str]]) -> Vec<Vec<Cell>> {
@@ -229,6 +229,3 @@ index 65dcd15..4205089 100644
      matches!(c,
          '\u{1100}'..='\u{11FF}'   // Hangul Jamo
          | '\u{3040}'..='\u{30FF}' // Hiragana, Katakana
--- 
-2.43.0
-

@@ -38,8 +38,8 @@ function ClaudeProjectsLanding(dropProps: DropZoneProps) {
   );
 }
 
-/** The hero's answer line, read on 2026-10-17 at the Claude help center's RAG
- * article (pinned in vendor-caps.json): RAG is on Pro, Max, Team and Enterprise,
+/** The hero's answer line, read on 2026-10-31 at the Claude help center's RAG
+ * article (pinned in vendor-caps.json): RAG is on Pro, Max, Ultra, Team and Enterprise,
  * and it switches on "when your project knowledge approaches the context window
  * limit". Half of this page's named searches ask what happens near capacity, so
  * the hero answers that first. Move the date when it is read again. */

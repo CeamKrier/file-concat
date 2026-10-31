@@ -54,6 +54,8 @@ const FAMILIES: ReadonlyArray<readonly [label: string, extensions: readonly stri
     "Data or model file",
     ["bin", "dat", "npy", "npz", "pkl", "pickle", "parquet", "orc", "h5", "hdf5", "pt", "pth", "onnx", "safetensors", "ckpt", "gguf", "mat", "sav", "nc"],
   ],
+  // Android projects bring their signing keys along (debug.keystore, release.jks).
+  ["Java keystore", ["keystore", "jks"]],
 ];
 
 /**

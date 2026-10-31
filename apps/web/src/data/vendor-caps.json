@@ -119,10 +119,10 @@
     {
       "url": "https://support.claude.com/en/articles/11473015-retrieval-augmented-generation-rag-for-projects",
       "anchor": "Retrieval augmented generation (RAG) for projects",
-      "checked": "2026-10-17",
+      "checked": "2026-10-31",
       "quotes": [
         "expand your project's capacity by up to 10x",
-        "RAG for projects is available on paid plans (Pro, Max, Team, and Enterprise)",
+        "RAG for projects is available on paid plans (Pro, Max, Ultra, Team, and Enterprise)",
         "When your project knowledge approaches the context window limit"
       ],
       "used_by": [
