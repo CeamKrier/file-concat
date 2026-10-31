@@ -25,7 +25,7 @@
   "devDependencies": {
     "chardetng-wasm": "1.0.2",
     "fast-check": "^4.8.0",
-    "postal-mime": "^4.0.7",
+    "postal-mime": "^4.2.0",
     "saxes": "6.0.0",
     "vitest": "^2.1.8"
   }
