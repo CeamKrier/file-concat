@@ -1,5 +1,5 @@
 THIRD-PARTY SOFTWARE NOTICES
-pdfjs-dist 6.1.200 (openjpeg.wasm), the JPEG 2000 decoder pdf.js uses when it draws a scanned page before recognition. OpenJPEG compiled to wasm by mozilla/pdf.js.openjpeg. Both texts below are the ones pdfjs-dist ships beside the wasm, as they stand in mozilla/pdf.js at v6.1.200 (6353acefe5007cd4899247a8c4e83cb7c9435a54), external/openjpeg/.
+pdfjs-dist 6.2.108 (openjpeg.wasm), the JPEG 2000 decoder pdf.js uses when it draws a scanned page before recognition. OpenJPEG compiled to wasm by mozilla/pdf.js.openjpeg. Both texts below are the ones pdfjs-dist ships beside the wasm, as they stand in mozilla/pdf.js at v6.2.108 (0365cbde028bd92e58f2dab1bb70cd30ac7acfd7), external/openjpeg/.
 
 ==============================================================================
 OpenJPEG | BSD-2-Clause | https://github.com/uclouvain/openjpeg

@@ -172,8 +172,8 @@ importers:
         specifier: 1.31.0-dev.20260914-8d85527a0
         version: 1.31.0-dev.20260914-8d85527a0
       pdfjs-dist:
-        specifier: 6.1.200
-        version: 6.1.200
+        specifier: 6.2.108
+        version: 6.2.108
       postal-mime:
         specifier: ^4.0.7
         version: 4.0.7
@@ -5294,10 +5294,6 @@ packages:
   pdf-oxide-wasm@0.3.77:
     resolution: {integrity: sha512-TL03MdYIJqVuHsOetqDokYotwIIMkcGJNIndLxeutR4uaEcBJqqJeXUgk4k0ytEFNqxLDTBLYUHpn4DnJyl6Kg==}
     engines: {node: '>=18'}
-
-  pdfjs-dist@6.1.200:
-    resolution: {integrity: sha512-o8MolyzirkkLrcdsae/HEOiIcXWI7DS5zGpvqW8xTC2YUsW30rltFw2bDGvw/fskUdEMrQm2br68jzDS5BH2vw==}
-    engines: {node: '>=22.13.0 || >=24'}
 
   pdfjs-dist@6.2.108:
     resolution: {integrity: sha512-YxFb+SQcodN2rnX9Tn3dHYlqfb7NjlzzfONPpJd+AKoKtUjEdevTfbC07d5TcczzOK6261auRkP/M8OBHs9vFQ==}
@@ -11540,10 +11536,6 @@ snapshots:
   pathval@2.0.1: {}
 
   pdf-oxide-wasm@0.3.77: {}
-
-  pdfjs-dist@6.1.200:
-    optionalDependencies:
-      '@napi-rs/canvas': 1.0.6
 
   pdfjs-dist@6.2.108:
     optionalDependencies:

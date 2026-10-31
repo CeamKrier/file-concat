@@ -8,8 +8,9 @@ import jpxUrl from "pdfjs-dist/wasm/openjpeg.wasm?url";
  * self-hosted pdf.js worker; only ever reached through the dynamic import in
  * ./parsers, so none of this lands in the Cloudflare SSR worker.
  *
- * `pdfWorkerUrl` is our own vendored copy of pdf.js's worker (version-locked to
- * the pdfjs-dist bundled inside officeparser — see ADR-0003). Serving it from
+ * `pdfWorkerUrl` is our own vendored copy of pdf.js's worker. It must be the
+ * version of the pdfjs-dist inside officeparser (ADR-0003), which
+ * tests/pdfjs-version.test.ts holds; pdf.js refuses any other. Serving it from
  * our origin keeps extraction fully offline; officeparser's default is a CDN URL.
  */
 export function extractOffice(bytes: Uint8Array, format?: string): Promise<ExtractionResult> {
