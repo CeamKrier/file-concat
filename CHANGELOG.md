@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.10.3](https://github.com/CeamKrier/file-concat/compare/v2.10.2...v2.10.3) (2026-10-31)
+
+### Bug Fixes
+
+* **core:** name Java keystores instead of calling them binary files ([20fd6f1](https://github.com/CeamKrier/file-concat/commit/20fd6f1cd78ffefc9c3244affcdd8ca001077f09))
+* **deps:** mediabunny 1.65.0 ([dee8c6e](https://github.com/CeamKrier/file-concat/commit/dee8c6ea2ca1ac658cf940fcbc3f813ee05626e5))
+* **deps:** mp4box 2.5.0 in web and CLI ([aec3d50](https://github.com/CeamKrier/file-concat/commit/aec3d505fa849c08ded98e3c4ff52abf4d09ae75))
+* **deps:** postal-mime 4.2.0 in core, CLI and web ([93095c6](https://github.com/CeamKrier/file-concat/commit/93095c6d7a741a4e5f2b85c3195ae48cbc8523a8))
+* **web:** liteparse 2.17, without the PDF text its tables dropped ([aa2c0a7](https://github.com/CeamKrier/file-concat/commit/aa2c0a7042575d785caf24e8299bf5e464632a23))
+* **web:** serve officeparser the pdf.js worker of its own version ([0b273db](https://github.com/CeamKrier/file-concat/commit/0b273db8c6d749a4e184870271ffe5ff7edc070c))
+
 ## [2.10.2](https://github.com/CeamKrier/file-concat/compare/v2.10.1...v2.10.2) (2026-10-29)
 
 ### Bug Fixes
