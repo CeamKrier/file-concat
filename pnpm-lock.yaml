@@ -85,8 +85,8 @@ importers:
         specifier: ^0.2.4
         version: 0.2.4
       '@huggingface/transformers':
-        specifier: 4.3.0
-        version: 4.3.0(@types/node@22.19.1)
+        specifier: 4.3.2
+        version: 4.3.2(@types/node@22.19.1)
       '@icons-pack/react-simple-icons':
         specifier: ^11.2.0
         version: 11.2.0(react@18.3.1)
@@ -327,8 +327,8 @@ importers:
         specifier: ^0.2.4
         version: 0.2.4
       '@huggingface/transformers':
-        specifier: 4.3.0
-        version: 4.3.0(@types/node@22.19.1)
+        specifier: 4.3.2
+        version: 4.3.2(@types/node@22.19.1)
       '@llamaindex/liteparse-wasm':
         specifier: file:../../vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.3.tgz
         version: file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.3.tgz
@@ -1478,8 +1478,8 @@ packages:
   '@huggingface/tokenizers@0.2.0':
     resolution: {integrity: sha512-LidMHe1FpcSYH4vcSjXooda34pC0M8m1gmDOv7SQi6Iv+ib1zX7J3sHBCC9/3FPCkn2k1b55FneVqMRxrr99pg==}
 
-  '@huggingface/transformers@4.3.0':
-    resolution: {integrity: sha512-fL1A/WUZwouPrOlYxU5dzIwD2T5J781JiB2jDR8bFe5DwCj0Gfudq+NEXCMno49kQgajHA7xQkrRLJlqG1veEA==}
+  '@huggingface/transformers@4.3.2':
+    resolution: {integrity: sha512-V3+dqf3iWlRYJ9I9GreM3zGQd0lAXnnoPeddmkOQYWAEE4l/+Fi6p7tx/qVUJlKQgLXGim2W76rTOzz+eC0i7g==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -7379,7 +7379,7 @@ snapshots:
 
   '@huggingface/tokenizers@0.2.0': {}
 
-  '@huggingface/transformers@4.3.0(@types/node@22.19.1)':
+  '@huggingface/transformers@4.3.2(@types/node@22.19.1)':
     dependencies:
       '@huggingface/jinja': 0.5.10
       '@huggingface/tokenizers': 0.2.0

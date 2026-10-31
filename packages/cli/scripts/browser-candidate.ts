@@ -38,7 +38,7 @@ const { chromium } = createRequire(path.join(REPO_ROOT, "apps", "web", "package.
 };
 
 const ORIGIN = "https://probe.test";
-const TRANSFORMERS = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0/+esm";
+const TRANSFORMERS = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2/+esm";
 
 interface Candidate {
   /** Runs once in the page; leaves whatever `read` needs on `window`. */
