@@ -17,6 +17,10 @@
           "note": "648 constructs in 129 probe files, each weighted by its share of 1,973 real files. All run by us.",
           "rows": [
             {
+              "label": "FileConcat 2.11",
+              "value": 90.9
+            },
+            {
               "label": "FileConcat 2.10",
               "value": 90.9
             },
@@ -60,6 +64,10 @@
           "post": "markitdown-vs-tika-text-extraction",
           "note": "Every construct counts once, however rare it is in real files. All run by us.",
           "rows": [
+            {
+              "label": "FileConcat 2.11",
+              "value": 92.7
+            },
             {
               "label": "FileConcat 2.10",
               "value": 92.7
@@ -106,6 +114,10 @@
           "note": "Tracked deletions, hidden sheets, cookie banners. A format a tool does not read earns nothing here.",
           "rows": [
             {
+              "label": "FileConcat 2.11",
+              "value": 115
+            },
+            {
               "label": "FileConcat 2.10",
               "value": 115
             },
@@ -151,6 +163,10 @@
           "post": "markitdown-vs-tika-text-extraction",
           "note": "Files hard to tell apart or hard to decode: legacy encodings, binaries that look like text. All run by us.",
           "rows": [
+            {
+              "label": "FileConcat 2.11",
+              "value": 45
+            },
             {
               "label": "FileConcat 2.10",
               "value": 45
@@ -210,6 +226,10 @@
           "note": "27 test documents in 12 formats, one structure each: merged cells, spreadsheet dates, scanned pages.",
           "rows": [
             {
+              "label": "FileConcat 2.11",
+              "value": 16
+            },
+            {
               "label": "FileConcat 2.10",
               "value": 16
             },
@@ -258,6 +278,10 @@
           "note": "200 real files.",
           "rows": [
             {
+              "label": "FileConcat 2.11",
+              "value": 81.5
+            },
+            {
               "label": "FileConcat 2.10",
               "value": 81.5
             },
@@ -302,6 +326,10 @@
           "post": "markitdown-vs-tika-text-extraction",
           "note": "200 real files.",
           "rows": [
+            {
+              "label": "FileConcat 2.11",
+              "value": 86.9
+            },
             {
               "label": "FileConcat 2.10",
               "value": 86.9
@@ -348,6 +376,10 @@
           "note": "198 real files.",
           "rows": [
             {
+              "label": "FileConcat 2.11",
+              "value": 100
+            },
+            {
               "label": "FileConcat 2.10",
               "value": 100
             },
@@ -392,6 +424,10 @@
           "post": "markitdown-vs-tika-text-extraction",
           "note": "195 real files.",
           "rows": [
+            {
+              "label": "FileConcat 2.11",
+              "value": 72.6
+            },
             {
               "label": "FileConcat 2.10",
               "value": 72.6
@@ -438,6 +474,10 @@
           "note": "124 real files. markitdown printed the raw MIME source, scored 0.",
           "rows": [
             {
+              "label": "FileConcat 2.11",
+              "value": 100
+            },
+            {
               "label": "FileConcat 2.10",
               "value": 100
             },
@@ -482,6 +522,10 @@
           "post": "markitdown-vs-tika-text-extraction",
           "note": "198 real files.",
           "rows": [
+            {
+              "label": "FileConcat 2.11",
+              "value": 98.3
+            },
             {
               "label": "FileConcat 2.10",
               "value": 98.3
@@ -528,6 +572,10 @@
           "note": "200 real files. The one format where FileConcat is not first: it misses the author.",
           "rows": [
             {
+              "label": "FileConcat 2.11",
+              "value": 88.4
+            },
+            {
               "label": "FileConcat 2.10",
               "value": 88.4
             },
@@ -572,6 +620,10 @@
           "post": "markitdown-vs-tika-text-extraction",
           "note": "198 real files. markitdown printed the raw control words, scored 0.",
           "rows": [
+            {
+              "label": "FileConcat 2.11",
+              "value": 85.6
+            },
             {
               "label": "FileConcat 2.10",
               "value": 85.6
@@ -618,6 +670,10 @@
           "note": "199 real files. markitdown does not read it.",
           "rows": [
             {
+              "label": "FileConcat 2.11",
+              "value": 90.6
+            },
+            {
               "label": "FileConcat 2.10",
               "value": 90.6
             },
@@ -663,6 +719,10 @@
           "note": "196 real files. markitdown does not read it.",
           "rows": [
             {
+              "label": "FileConcat 2.11",
+              "value": 96.5
+            },
+            {
               "label": "FileConcat 2.10",
               "value": 96.5
             },
@@ -707,6 +767,10 @@
           "post": "markitdown-vs-tika-text-extraction",
           "note": "65 real files. markitdown does not read it.",
           "rows": [
+            {
+              "label": "FileConcat 2.11",
+              "value": 99.7
+            },
             {
               "label": "FileConcat 2.10",
               "value": 99.7
@@ -759,6 +823,10 @@
           "post": "browser-text-extraction-benchmark",
           "note": "Tests passed, mean of 8 parts. olmOCR and Mistral from allenai's table, Chandra and Marker (fast, no OCR) from their own READMEs, the rest run by us.",
           "rows": [
+            {
+              "label": "FileConcat 2.11",
+              "value": 40.2
+            },
             {
               "label": "FileConcat 2.10",
               "value": 40.3
@@ -821,6 +889,10 @@
           "note": "Zyte's article extraction benchmark at commit 4a3bc97. Other readers: their published outputs, except Trafilatura 2.3.1, run here with the benchmark's own script.",
           "rows": [
             {
+              "label": "FileConcat 2.11",
+              "value": 93.6
+            },
+            {
               "label": "FileConcat 2.10",
               "value": 93.6
             },
@@ -878,6 +950,10 @@
           "post": "browser-text-extraction-benchmark",
           "note": "One archive per case readers get wrong: zip64, non-ASCII names, tar dialects, 7z. All run by us.",
           "rows": [
+            {
+              "label": "FileConcat 2.11",
+              "value": 25
+            },
             {
               "label": "FileConcat 2.10",
               "value": 25
