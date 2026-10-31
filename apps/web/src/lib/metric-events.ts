@@ -426,6 +426,14 @@ export const METRIC_EVENTS = [
    */
   "ocr_conf",
   /**
+   * Images whose reading fell under the confidence floor and that the person
+   * put in the bundle anyway, from the empty screen's "Include what it read"
+   * (Q134 O3), `n` images per press. Only the count leaves the browser. A Run
+   * with this row exports a guess, so the headline is read with and without
+   * these Runs.
+   */
+  "ocr_guess_included",
+  /**
    * Milliseconds from a pass asking for the recogniser to it being ready, in
    * `n`, once per pass that reads anything but speech. The first pass on a
    * browser includes the language-data download; a cached one is the engine's

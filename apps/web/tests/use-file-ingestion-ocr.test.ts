@@ -55,6 +55,8 @@ vi.mock("~/lib/parsers", () => ({
 
 /** path → language code → what recognition reads. Absent means unreadable. */
 const READINGS = new Map<string, Record<string, string>>();
+/** file name -> a reading under the confidence floor, which comes back as a guess. */
+const GUESSES = new Map<string, string>();
 /** Every (path, language) pair recognition was actually asked for. */
 let attempts: { path: string; language: string }[] = [];
 /** Fires as each document finishes, which is where a mid-pass stop can happen. */
@@ -98,6 +100,8 @@ vi.mock("~/lib/ocr", () => ({
     await imageGate?.(file.name);
     attempts.push({ path: file.name, language });
     onDocumentRead?.(file.name);
+    const guess = GUESSES.get(file.name);
+    if (guess) return { text: "", confidence: 31, guess };
     return { text: READINGS.get(file.name)?.[language] ?? "", confidence: 90 };
   },
 }));
@@ -149,6 +153,7 @@ beforeEach(() => {
   imageGate = null;
   pageGate = null;
   READINGS.clear();
+  GUESSES.clear();
   EXTRACTS.clear();
   PAGE_READS.clear();
   SUBTITLES.clear();
@@ -515,6 +520,73 @@ describe("images", () => {
     expect(TALLIES.get("ocr_read")?.get("png")?.n).toBe(2);
     expect(TALLIES.get("ocr_conf")?.get("90")?.n).toBe(2);
     expect(TALLIES.get("ocr_recovered")?.get("png")?.n).toBe(1);
+  });
+});
+
+describe("a reading under the confidence floor (Q134 O3)", () => {
+  it("keeps it out of the bundle, held as a guess on the image", async () => {
+    GUESSES.set("shot.png", "Setlings > Acconut");
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([image("shot.png")]);
+    });
+    await act(async () => {
+      await result.current.readSelected(["shot.png"], "en");
+    });
+
+    expect(result.current.entries).toEqual([]);
+    expect(result.current.validations["shot.png"]).toMatchObject({
+      included: false,
+      recognitionTried: true,
+      guess: { text: "Setlings > Acconut", confidence: 31 },
+    });
+  });
+
+  it("puts it in only when asked, as recognised text the Files pane can take out", async () => {
+    GUESSES.set("shot.png", "Setlings > Acconut");
+    READINGS.set("clear.png", { eng: "TOTAL 42.00" });
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([image("shot.png"), image("clear.png")]);
+    });
+    await act(async () => {
+      await result.current.readSelected(["shot.png", "clear.png"], "en");
+    });
+    act(() => result.current.includeGuesses());
+
+    expect(result.current.entries.find((e) => e.path === "shot.png")).toEqual({
+      path: "shot.png",
+      content: "Setlings > Acconut",
+      recognised: true,
+    });
+    // An ordinary included text file now, with no guess left to offer.
+    expect(result.current.validations["shot.png"]).toMatchObject({ included: true, classification: "text" });
+    expect(result.current.validations["shot.png"].guess).toBeUndefined();
+    expect(result.current.unreadDocuments).toEqual([]);
+    // Only the count leaves the browser, and only the guessed one is counted.
+    expect(AMOUNTS.get("ocr_guess_included")).toBe(1);
+  });
+
+  it("leaves no guess behind once a second language reads it clearly", async () => {
+    GUESSES.set("shot.png", "Setlings > Acconut");
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([image("shot.png")]);
+    });
+    await act(async () => {
+      await result.current.readSelected(["shot.png"], "en");
+    });
+    GUESSES.clear();
+    READINGS.set("shot.png", { deu: "Einstellungen > Konto" });
+    await act(async () => {
+      await result.current.readSelected(["shot.png"], "de");
+    });
+
+    expect(result.current.validations["shot.png"].guess).toBeUndefined();
+    expect(result.current.entries.find((e) => e.path === "shot.png")?.content).toBe("Einstellungen > Konto");
   });
 });
 

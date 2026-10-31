@@ -68,6 +68,14 @@ describe("the reading dialog", () => {
     expect(screen.getByText(/Nothing legible here/)).toBeInTheDocument();
   });
 
+  it("shows a reading under the confidence floor as a guess left out, masked from recordings", () => {
+    open({ documents: [{ ...doc("shot.png", "Setlings > Acconut"), guess: true }] });
+
+    expect(screen.getByText("Low confidence, left out of the bundle.")).toBeInTheDocument();
+    expect(screen.getByText("Setlings > Acconut").getAttribute("data-clarity-mask")).toBe("True");
+    expect(screen.queryByText(/Nothing legible here/)).toBeNull();
+  });
+
   it("names the speech model's download before the first transcription, by language", async () => {
     open({ documents: [doc("talk.mp3", "", false)], language: "en" });
     expect(screen.getByText(/66 MB for English/)).toBeInTheDocument();

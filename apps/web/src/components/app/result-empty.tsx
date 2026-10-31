@@ -5,12 +5,13 @@ import {
   FilterX,
   FolderX,
   ImageOff,
+  Languages,
   RotateCcw,
   ScanText,
   SlidersHorizontal,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { EmptyKind, UnreadableGroup } from "./empty-kind";
 import type { PrunedAtDoor } from "~/lib/prune-at-door";
@@ -61,6 +62,16 @@ type ResultEmptyProps = {
    * spending seconds an image (ADR-0017).
    */
   onOfferRead?: () => void;
+  /**
+   * For `guessed`: how many images were read, how many came back with writing
+   * under the confidence floor, the language of the pass, and the first of
+   * those readings to show.
+   */
+  guess?: { read: number; guessed: number; language: string; sample: { name: string; text: string } | null };
+  /** Put the guesses in the bundle. Only for `guessed`. */
+  onIncludeGuesses?: () => void;
+  /** True once recognition has been over every image, so `image` says it looked. */
+  imagesTried?: boolean;
 };
 
 // One rescue component, three voices, keyed by what was actually dropped. The
@@ -128,6 +139,14 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
     body: "Everything in this drop sits in a folder FileConcat never opens (dependencies, build output, caches) or is a kind of file that never holds text (fonts, media, compiled code). To read one of these folders anyway, drop it by itself.",
     cta: "Start over",
   },
+  // Read, but under the confidence floor (Q134 O3). The body is built from the
+  // counts and the language, so this one is only the title and the button.
+  guessed: {
+    icon: ScanText,
+    title: "Read, but not with confidence",
+    body: "",
+    cta: "Include what it read",
+  },
   other: {
     icon: FileQuestion,
     title: "Nothing text-like to combine",
@@ -149,6 +168,19 @@ const COPY: Record<EmptyKind, { icon: LucideIcon; title: string; body: string; c
  */
 const FILTERED_BY_INCLUDE =
   "These files are readable. An include pattern is on and none of them matched it, so there was nothing to pack. It stays set between drops, so it may be left over from an earlier one.";
+
+// `image` once recognition has been over the drop: the old body said nothing of
+// it, which left a person who pressed Read with no idea whether it ran.
+const IMAGE_AFTER_PASS =
+  "Recognition read them here in your browser and found no writing in them. FileConcat bundles text, so there was nothing to pack.";
+
+function guessedBody({ read, guessed, language }: { read: number; guessed: number; language: string }): string {
+  const ran =
+    read === 1
+      ? `Recognition ran on this image in ${language}. It made out some writing but was unsure of most of it, so the text was left out.`
+      : `Recognition ran on these ${read} images in ${language}. ${guessed === read ? `All ${read}` : `${guessed} of them`} had writing it could make out, but it was unsure of most of it, so the text was left out.`;
+  return `${ran} A different language, a small screenshot or a picture with little writing in it can cause this. If you include it, the bundle marks it as a guess.`;
+}
 
 const MAX_EXT_CHIPS = 16;
 
@@ -201,6 +233,9 @@ export function ResultEmpty({
   onRead,
   onStopReading,
   onOfferRead,
+  guess,
+  onIncludeGuesses,
+  imagesTried = false,
 }: ResultEmptyProps) {
   const { icon: Icon, cta } = COPY[kind];
   const groups = kind === "other" ? unreadable : [];
@@ -211,7 +246,25 @@ export function ResultEmpty({
       : unreadableCount === 1
         ? "This file could not be read as text"
         : `None of these ${unreadableCount} files could be read as text`;
-  const body = kind === "filtered" && byInclude ? FILTERED_BY_INCLUDE : COPY[kind].body;
+  const body =
+    kind === "filtered" && byInclude
+      ? FILTERED_BY_INCLUDE
+      : kind === "guessed" && guess
+        ? guessedBody(guess)
+        : kind === "image" && imagesTried
+          ? IMAGE_AFTER_PASS
+          : COPY[kind].body;
+  // The screen changes under the reading dialog as it closes, and the button
+  // focus would return to is gone. The heading takes it, so a screen reader
+  // reads what happened.
+  const heading = useRef<HTMLHeadingElement>(null);
+  const afterPass = kind === "guessed" || (kind === "image" && imagesTried);
+  useEffect(() => {
+    if (afterPass) heading.current?.focus();
+  }, [afterPass]);
+  const retry = onOfferRead
+    ? { label: "Read again in another language", icon: Languages, onClick: onOfferRead }
+    : null;
   // `filtered` leads with the drawer and keeps starting over as the quiet way
   // out. Every other variant keeps its own CTA in front and offers the drawer
   // underneath, but only when the drawer has a row to re-include: an Adjust
@@ -225,7 +278,9 @@ export function ResultEmpty({
       ? (adjust ?? startOver)
       : (kind === "recognisable" || kind === "speech") && onOfferRead
         ? { label: cta, icon: kind === "speech" ? AudioLines : ScanText, onClick: onOfferRead }
-        : { label: cta, icon: null, onClick: onStartOver };
+        : kind === "guessed" && onIncludeGuesses
+          ? { label: cta, icon: null, onClick: onIncludeGuesses }
+          : { label: cta, icon: null, onClick: onStartOver };
   // Every variant but `filtered` puts Start over in front, so Adjust underneath
   // is enough. `recognisable` is the exception: its front button is the offer,
   // so without this there is no way out of the screen except taking it.
@@ -234,7 +289,12 @@ export function ResultEmpty({
       ? (adjust ? startOver : null)
       : kind === "recognisable" || kind === "speech"
         ? startOver
-        : adjust;
+        : afterPass && retry
+          ? retry
+          : adjust;
+  // `guessed` keeps Start over too: its front button is the include, and the
+  // page header has no way back of its own.
+  const tertiary = kind === "guessed" ? startOver : null;
   const extensions = kind === "pruned" && pruned ? prunedChips(pruned) : extensionHistogram(droppedFiles);
   const shownExts = extensions.slice(0, MAX_EXT_CHIPS);
   const extraExts = extensions.length - shownExts.length;
@@ -245,14 +305,33 @@ export function ResultEmpty({
         <Icon className="text-info h-6 w-6" strokeWidth={2} />
       </span>
 
-      <h2 className="font-display text-ink mt-4 text-2xl font-bold tracking-[-0.02em]">{title}</h2>
+      <h2
+        ref={heading}
+        tabIndex={-1}
+        className="font-display text-ink mt-4 text-2xl font-bold tracking-[-0.02em] focus:outline-none"
+      >
+        {title}
+      </h2>
       <p className="text-ink-secondary mx-auto mt-2 max-w-[440px] text-[15px] leading-relaxed">
         {body}
       </p>
 
+      {kind === "guessed" && guess?.sample && (
+        <figure className="border-border bg-surface-inset mx-auto mt-5 max-w-[440px] rounded-[11px] border p-3.5 text-left">
+          <figcaption className="text-ink-muted text-[12px]">What it read from {guess.sample.name}</figcaption>
+          {/* File content, so masked in Clarity like the bundle preview. */}
+          <p
+            data-clarity-mask="True"
+            className="text-ink mt-1 line-clamp-2 whitespace-pre-wrap text-[13px] leading-relaxed"
+          >
+            {guess.sample.text}
+          </p>
+        </figure>
+      )}
+
       {groups.length > 0 && <UnreadableList groups={groups} />}
 
-      {groups.length === 0 && shownExts.length > 0 && (
+      {groups.length === 0 && kind !== "guessed" && shownExts.length > 0 && (
         <div className="mt-5 flex flex-wrap justify-center gap-1.5">
           {shownExts.map(({ ext, count }) => (
             <span
@@ -299,15 +378,19 @@ export function ResultEmpty({
             {primary.icon && <primary.icon className="h-4 w-4" strokeWidth={2} />}
             {primary.label}
           </button>
-          {secondary && (
-            <button
-              type="button"
-              onClick={secondary.onClick}
-              className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-sm px-2 py-1 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-            >
-              <secondary.icon className="h-4 w-4" />
-              {secondary.label}
-            </button>
+          {[secondary, tertiary].map(
+            (action) =>
+              action && (
+                <button
+                  key={action.label}
+                  type="button"
+                  onClick={action.onClick}
+                  className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-sm px-2 py-1 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                >
+                  <action.icon className="h-4 w-4" />
+                  {action.label}
+                </button>
+              ),
           )}
         </div>
       )}

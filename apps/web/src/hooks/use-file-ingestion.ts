@@ -116,6 +116,12 @@ export type ValidationRecord = {
    */
   recognitionTried?: boolean;
   /**
+   * What recognition read off an image under the confidence floor. Kept out of
+   * the bundle until the person includes it (Q134 O3), and replaced with the
+   * record, so a re-read or Start over never leaves an old one behind.
+   */
+  guess?: { text: string; confidence: number };
+  /**
    * What the reader could not recover from this document, when it said so
    * (ADR-0008). A parser reports these on partial successes too, so a record
    * can carry both `extracted: true` and a note: the text arrived, part of the
@@ -360,6 +366,8 @@ export interface FileIngestion {
   readSelected: (paths: readonly string[], locale: string) => Promise<number>;
   /** Abandon the rest of a recognition pass. Whatever was read stays read. */
   stopReading: () => void;
+  /** Put every image's low-confidence reading into the bundle, marked as recognised. */
+  includeGuesses: () => void;
   /** Read a file whose encoding was guessed again in the one the person picked. */
   decodeFileAs: (path: string, encoding: string) => Promise<void>;
   /**
@@ -611,6 +619,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           }
           attempted.add(document.path);
           let pagesLeft: number[] = [];
+          let guess: ValidationRecord["guess"];
           try {
             let text = "";
             if (isSpeechMedia(document.format)) {
@@ -631,6 +640,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
               addToTally(imagesRead, document.format, document.file.size);
               addToTally(confidences, confidenceBand(reading.confidence));
               text = reading.text;
+              if (reading.guess) guess = { text: reading.guess, confidence: reading.confidence };
             } else {
               const bytes = new Uint8Array(await document.file.arrayBuffer());
               if (document.pages && document.pages.length > 0) {
@@ -694,6 +704,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                 size: document.file.size,
                 type: document.file.type || "application/octet-stream",
                 recognitionTried: true,
+                ...(guess ? { guess } : {}),
               }, pagesLeft);
             } else {
               // A document that came here with text of its own and gained
@@ -1628,6 +1639,30 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     abortRef.current.abort();
   }, []);
 
+  /**
+   * The guesses in, on the person's word only (Q134 O3). Each becomes an
+   * ordinary recognised entry, so the bundle names it as a guess and the Files
+   * pane can still take one out.
+   */
+  const includeGuesses = useCallback(() => {
+    const guessed = Object.entries(validations).filter(([, v]) => !v.included && v.guess);
+    if (guessed.length === 0) return;
+    const paths = new Set(guessed.map(([path]) => path));
+    setEntries((prev) => [
+      ...prev.filter((e) => !paths.has(e.path)),
+      ...guessed.map(([path, v]) => ({ path, content: v.guess!.text, recognised: true as const })),
+    ]);
+    setValidations((prev) => {
+      const next = { ...prev };
+      for (const [path, v] of guessed) {
+        next[path] = { included: true, classification: "text", size: v.size, type: v.type, recognitionTried: true };
+      }
+      return next;
+    });
+    setUnreadDocuments((prev) => prev.filter((d) => !paths.has(d.path)));
+    trackAmount("ocr_guess_included", { n: guessed.length });
+  }, [validations]);
+
   const decodeFileAs = useCallback(async (path: string, encoding: string) => {
     const file = guessedFiles.current.get(path);
     if (!file) return;
@@ -1716,6 +1751,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     readUnreadDocuments,
     readSelected,
     stopReading,
+    includeGuesses,
     decodeFileAs,
     isStopping,
     stoppedReading,
