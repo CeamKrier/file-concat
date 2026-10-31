@@ -818,7 +818,7 @@
           "better": "higher",
           "measured": "2026-10-31",
           "post": "browser-text-extraction-benchmark",
-          "note": "Zyte's article extraction benchmark at commit 4a3bc97. Other readers: their published outputs.",
+          "note": "Zyte's article extraction benchmark at commit 4a3bc97. Other readers: their published outputs, except Trafilatura 2.3.1, run here with the benchmark's own script.",
           "rows": [
             {
               "label": "FileConcat 2.10",
@@ -845,8 +845,8 @@
               "value": 97
             },
             {
-              "label": "Trafilatura 2.0.0",
-              "value": 95.8
+              "label": "Trafilatura 2.3.1",
+              "value": 96
             },
             {
               "label": "Readability",
