@@ -662,7 +662,9 @@ export const METRIC_EVENTS = [
    * (`error` a sync throw, `rejection` an unhandled promise, `boundary` a render
    * React caught and replaced the page with) and what it was (an allowlisted
    * `Error.name`, `chunk` for a stale asset after a deploy, `foreign` for a
-   * third-party script, `other` for the rest).
+   * third-party script, `other` for the rest). `boundary/chunk-reload` is the
+   * boundary reloading once for a stale chunk instead of showing; a
+   * `boundary/chunk` row is then a page the reload could not save.
    *
    * The message never leaves the browser. It carries asset URLs and whatever a
    * thrown string happened to hold, so `lib/js-errors.ts` matches it there and

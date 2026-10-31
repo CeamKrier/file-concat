@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * The plumbing is one `track` call; what is worth pinning is the label. A
@@ -117,5 +117,56 @@ describe("installErrorCounter", () => {
     );
 
     expect(values()).toEqual(["error/referenceerror", "rejection/rangeerror"]);
+  });
+});
+
+describe("reloadForStaleChunk", () => {
+  const stale = () => new TypeError("Importing a module script failed.");
+  let reload: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    sessionStorage.clear();
+    reload = vi.fn();
+    vi.stubGlobal("location", { ...window.location, reload });
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("reloads once for a stale chunk and records the reload, not the error", () => {
+    expect(jsErrors.reloadForStaleChunk(stale())).toBe(true);
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(values()).toEqual(["boundary/chunk-reload"]);
+  });
+
+  it("does not reload again inside the window, so a broken build cannot loop", () => {
+    jsErrors.reloadForStaleChunk(stale());
+    expect(jsErrors.reloadForStaleChunk(stale())).toBe(false);
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("reloads again for a later deploy in the same tab", () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(1_000_000);
+    jsErrors.reloadForStaleChunk(stale());
+    now.mockReturnValue(1_000_000 + 61_000);
+    expect(jsErrors.reloadForStaleChunk(stale())).toBe(true);
+    now.mockRestore();
+  });
+
+  it("never reloads for any other error", () => {
+    expect(jsErrors.reloadForStaleChunk(new TypeError("x is not a function"))).toBe(false);
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it("does not reload when storage is blocked, since nothing could stop a loop", () => {
+    const blocked = () => {
+      throw new DOMException("blocked", "SecurityError");
+    };
+    vi.stubGlobal("sessionStorage", { getItem: blocked, setItem: blocked });
+    expect(jsErrors.reloadForStaleChunk(stale())).toBe(false);
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it("knows Vite's CSS preload failure as the same stale asset", () => {
+    expect(jsErrors.isChunkError(new Error("Unable to preload CSS for /assets/a.css"))).toBe(true);
   });
 });

@@ -57,7 +57,45 @@ const KNOWN_KINDS: ReadonlySet<string> = new Set([
  * most common kind there is. Every browser words it differently and none of the
  * wordings leaves here.
  */
-const CHUNK_MESSAGE = /dynamically imported module|importing a module script|loading chunk/i;
+const CHUNK_MESSAGE =
+  /dynamically imported module|importing a module script|unable to preload css|loading (css )?chunk/i;
+
+/** True for the stale-asset failure above, which only a fresh document fixes. */
+export function isChunkError(cause: unknown): boolean {
+  return cause instanceof Error && CHUNK_MESSAGE.test(cause.message);
+}
+
+/**
+ * When the boundary reloaded for a stale chunk, so a second failure inside the
+ * window shows the page instead of reloading forever. A time, not a per-message
+ * key as TanStack Router uses: Safari's message carries no URL, so a message key
+ * would allow one reload per tab ever, and a second deploy hours later in the
+ * same tab deserves its own.
+ */
+const RELOAD_KEY = "fc:chunk-reload";
+const RELOAD_WINDOW_MS = 60_000;
+
+/**
+ * Reloads the page once for a stale chunk and says whether it did. The router
+ * reloads once only for split route components; the app's own dynamic imports
+ * and split loaders land on the boundary, whose reset rethrows the same error.
+ * No storage means no guard, so it does not reload at all.
+ */
+export function reloadForStaleChunk(cause: unknown): boolean {
+  if (!isChunkError(cause)) return false;
+  try {
+    const last = Number(sessionStorage.getItem(RELOAD_KEY));
+    if (last && Date.now() - last < RELOAD_WINDOW_MS) return false;
+    sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
+  } catch {
+    return false;
+  }
+  // Sent by the visibilitychange flush as the page unloads.
+  seen.add("boundary/chunk-reload");
+  track("js_error", "boundary/chunk-reload");
+  window.location.reload();
+  return true;
+}
 
 /**
  * What a cross-origin script error looks like from here: no error object and a

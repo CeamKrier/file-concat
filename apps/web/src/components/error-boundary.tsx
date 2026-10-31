@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Button } from "~/components/ui/button";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
-import { recordError } from "~/lib/js-errors";
+import { isChunkError, recordError, reloadForStaleChunk } from "~/lib/js-errors";
 
 interface ErrorBoundaryProps {
   error: Error;
@@ -19,12 +19,13 @@ interface ErrorBoundaryProps {
  * fileconcat.com. The detail belongs in the console, where the person who can
  * act on it is already looking.
  *
- * The button reloads when the route cannot reset itself. A stale chunk is the
- * common case and only a fresh document fixes it.
+ * A stale chunk reloads the page once on its own, and its button always
+ * reloads: a reset rethrows the same error, and only a fresh document fixes it.
  */
 export function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
   useEffect(() => {
     console.error(error);
+    if (reloadForStaleChunk(error)) return;
     // React swallows a render error, so this never reaches the window listener.
     // Without it the loudest failure the app has — the whole page replaced — is
     // the one thing the counter cannot see.
@@ -39,7 +40,7 @@ export function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
         This page did not finish loading. Reloading usually fixes it. The details are in your
         browser console.
       </p>
-      <Button onClick={() => (reset ? reset() : window.location.reload())}>
+      <Button onClick={() => (reset && !isChunkError(error) ? reset() : window.location.reload())}>
         <RefreshCw className="mr-2 h-4 w-4" />
         Try Again
       </Button>
