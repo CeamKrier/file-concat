@@ -15,8 +15,9 @@
  *  - medians: linear interpolation, NaN dropped.
  *
  * Each repository is checked out at the commit the stored run recorded, so ours
- * and theirs read the same tree. Rival rows are not remeasured: their versions
- * have not changed, and their numbers come from the stored file as they are.
+ * and theirs read the same tree. Rival rows are not remeasured: their numbers
+ * come from the stored file as they are, and a newer release whose output was
+ * checked unchanged is named by SAME_OUTPUT.
  *
  * Usage (from packages/cli):
  *   pnpm exec tsx scripts/bench/rerun-repos.ts --version 2.6 --clones <dir>
@@ -159,10 +160,14 @@ for (const r of scored) {
   densest[d] = (densest[d] ?? 0) + 1;
   cheapest[c] = (cheapest[c] ?? 0) + 1;
 }
+// Releases since the stored run whose output on every sample repository, at its
+// stored commit, is byte for byte the stored release's, so its numbers stand.
+// Repomix 1.18.1 against 1.18.0, all 60, 2026-10-31.
+const SAME_OUTPUT: Partial<Record<Tool, string>> = { repomix: "1.18.1" };
 const label = (tool: Tool) =>
   tool === "fileconcat"
     ? `FileConcat ${version}`
-    : `${LABEL[tool]} ${String(stored.versions[tool]).replace(/^code2prompt /, "")}`;
+    : `${LABEL[tool]} ${SAME_OUTPUT[tool] ?? String(stored.versions[tool]).replace(/^code2prompt /, "")}`;
 const chart = (wins: Record<string, number>) =>
   TOOLS.map((t) => ({ label: label(t), value: wins[t] ?? 0 })).sort((a, b) => b.value - a.value);
 
