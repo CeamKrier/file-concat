@@ -71,7 +71,10 @@ export function BenchmarksPage() {
         </h1>
         <p className="text-ink-secondary mt-4 text-[16px] leading-[1.55]">
           FileConcat against other tools on every benchmark we have run. Each row names the version
-          it measured.
+          it measured. The repository charts measure the command line tool, every other chart the
+          web app. The command line tool reads PDFs and Office files with a different reader, does
+          not read scanned pages and keeps saved web pages as markup, so those charts do not
+          describe it.
         </p>
         <p className="text-ink-faint mt-3 font-mono text-[12.5px]">
           Updated <time dateTime={LAST_MEASURED}>{formatPostDate(LAST_MEASURED)}</time> / current
