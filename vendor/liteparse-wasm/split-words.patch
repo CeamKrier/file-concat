@@ -1,7 +1,7 @@
-From 34057c4b362a23e39129a4f30312abaa24e5d163 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: ceamkrier <ceamkrier@gmail.com>
-Date: Fri, 16 Oct 2026 23:29:52 +0300
-Subject: [PATCH] fix: read a table candidate as text when its cells split
+Date: Sat, 31 Oct 2026 04:08:03 +0300
+Subject: [PATCH 3/4] fix: read a table candidate as text when its cells split
  words
 
 A table candidate on any path (ruled, borderless, cross-region, page-wide)
@@ -23,10 +23,10 @@ opendataloader-bench unchanged.
  2 files changed, 49 insertions(+), 21 deletions(-)
 
 diff --git a/crates/liteparse/src/markdown_layout/classify.rs b/crates/liteparse/src/markdown_layout/classify.rs
-index 6c135be..8741464 100644
+index a1cdae2..4d5e2d7 100644
 --- a/crates/liteparse/src/markdown_layout/classify.rs
 +++ b/crates/liteparse/src/markdown_layout/classify.rs
-@@ -214,13 +214,11 @@ pub fn classify_page_with_filters(
+@@ -259,13 +259,11 @@ pub fn classify_page_with_filters(
          // table when the global table's cells read as prose (the frame case
          // above). Otherwise the leaf is usually one band of a table the page
          // rules cut into regions, and the global table is the whole of it.
@@ -45,7 +45,7 @@ index 6c135be..8741464 100644
              continue;
          }
          // Single-column gate. A decorative banner/frame around a prose
-@@ -525,7 +523,12 @@ fn classify_region(
+@@ -563,7 +561,12 @@ fn classify_region(
      let ruled_runs = detect_ruled_tables(lines, rule_segments, page.page_width, page.page_height);
      let borderless_runs = precomputed_tables
          .unwrap_or_else(|| detect_tables_banded(lines, rule_segments, page.page_height));
@@ -60,10 +60,10 @@ index 6c135be..8741464 100644
      // Region-wide pre-pass: which line indices carry a lettered/roman marker
      // (`a.`, `i.`) that belongs to a confirmed sequential list run. Only these
 diff --git a/crates/liteparse/src/markdown_layout/tables.rs b/crates/liteparse/src/markdown_layout/tables.rs
-index 8835815..a091d1c 100644
+index 1f6aa8a..7a823d6 100644
 --- a/crates/liteparse/src/markdown_layout/tables.rs
 +++ b/crates/liteparse/src/markdown_layout/tables.rs
-@@ -768,7 +768,11 @@ fn is_alpha_dominant(text: &str) -> bool {
+@@ -816,7 +816,11 @@ fn is_alpha_dominant(text: &str) -> bool {
  /// function-word lists are left out. A grid where data-like cells are common is
  /// never prose: rejecting a real table only degrades it to text, but keeping a
  /// phantom one scrambles the page, so every signal is a high bar.
@@ -76,7 +76,7 @@ index 8835815..a091d1c 100644
      use super::paragraphs::{ends_hyphenated, ends_sentence_final};
      let filled: Vec<(usize, &str)> = rows
          .iter()
-@@ -800,12 +804,17 @@ pub(super) fn cells_read_as_prose(rows: &[Vec<Cell>]) -> bool {
+@@ -848,12 +852,17 @@ pub(super) fn cells_read_as_prose(rows: &[Vec<Cell>]) -> bool {
          return false;
      }
      // Words split at a cell's end: text was cut by a column edge, not laid out
@@ -98,7 +98,7 @@ index 8835815..a091d1c 100644
      // A sentence running down a column: an open cell of a few words followed by
      // a lowercase one. The 3-word floor keeps a units column ("kg", "kg") out.
      let opens = |t: &str| {
-@@ -846,6 +855,17 @@ pub(super) fn cells_read_as_prose(rows: &[Vec<Cell>]) -> bool {
+@@ -894,6 +903,17 @@ pub(super) fn cells_read_as_prose(rows: &[Vec<Cell>]) -> bool {
      mean_len > 90.0 && sentence.len() as f32 >= 0.5 * n && sentence_cols.len() >= 2
  }
  
@@ -116,7 +116,7 @@ index 8835815..a091d1c 100644
  /// Measurement-value shape: a decimal number ("2.28"), currency/percent,
  /// comma-grouped number ("1,240"), or a dash placeholder ("--" / "—").
  /// Bare integers (years, codes) deliberately do NOT match — they appear in
-@@ -6674,16 +6694,21 @@ mod tests {
+@@ -7863,16 +7883,21 @@ mod tests {
                  "ness classes and job development.",
              ],
          ]);
@@ -144,7 +144,7 @@ index 8835815..a091d1c 100644
      }
  
      #[test]
-@@ -6693,7 +6718,7 @@ mod tests {
+@@ -7882,7 +7907,7 @@ mod tests {
              &["Single twitch, 60 mA, 300 us", "0.46", "60"],
              &["Train of four, 60 mA, 300 us", "0.54", "60"],
          ]);
@@ -153,7 +153,7 @@ index 8835815..a091d1c 100644
          // A label column next to long descriptions: sentences in one column.
          let rows = grid(&[
              &[
-@@ -6705,6 +6730,6 @@ mod tests {
+@@ -7894,6 +7919,6 @@ mod tests {
                  "The two residents could not take part in an interview because of their health, the staff said.",
              ],
          ]);
@@ -161,6 +161,3 @@ index 8835815..a091d1c 100644
 +        assert!(!cells_read_as_prose(&rows, true));
      }
  }
--- 
-2.43.0
-

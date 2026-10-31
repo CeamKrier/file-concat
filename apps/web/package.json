@@ -28,7 +28,7 @@
     "@firecrawl/anydoc-wasm": "^0.2.4",
     "@huggingface/transformers": "4.3.2",
     "@icons-pack/react-simple-icons": "^11.2.0",
-    "@llamaindex/liteparse-wasm": "file:../../vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.16.0-fc.3.tgz",
+    "@llamaindex/liteparse-wasm": "file:../../vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.17.0-fc.1.tgz",
     "@mdx-js/react": "^3.1.1",
     "@mdx-js/rollup": "^3.1.1",
     "@mozilla/readability": "0.6.0",
