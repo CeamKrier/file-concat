@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.11.0](https://github.com/CeamKrier/file-concat/compare/v2.10.3...v2.11.0) (2026-10-31)
+
+### Features
+
+* **web:** keep a low-confidence image reading as a guess you can include ([e017cb7](https://github.com/CeamKrier/file-concat/commit/e017cb7207eda7b22ecef2cd387ce6310da6535b))
+* **web:** show the result before held scans' first pages are read ([42a1827](https://github.com/CeamKrier/file-concat/commit/42a1827892caac0e80f69f8ca0fe5a01aabc01c7))
+
+### Bug Fixes
+
+* **web:** reload once when a deploy leaves a tab on a stale chunk ([b1544dc](https://github.com/CeamKrier/file-concat/commit/b1544dc538d9b5d667317448a5ec7b60ab6f73a6))
+
 ## [2.10.3](https://github.com/CeamKrier/file-concat/compare/v2.10.2...v2.10.3) (2026-10-31)
 
 ### Bug Fixes
