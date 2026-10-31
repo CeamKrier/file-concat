@@ -72,6 +72,22 @@ when a `.wasm` asset has no notices file**: a new wasm reader needs one under
 `licenses/` and a line in the script's `WASM_NOTICES`. GPL/AGPL npm packages in
 the client also fail the build.
 
+## Reader upgrades need the real corpus
+
+`packages/cli/tests/probes.test.ts` runs the probe files (all but `html/`) under
+`packages/cli/scripts/coverage/probes/`, plus the vendored-liteparse patch page
+in `packages/cli/tests/fixtures/liteparse-patches/`, through the web's real
+readers on every `pnpm test`. It fails when a file loses a word, gains one, or
+moves to another reader. After an intended change, run
+`pnpm vitest run probes -u` in `packages/cli` and read the JSON diff.
+
+The probes are synthetic, one construct each, so they miss losses that only
+real documents show. The liteparse 2.16 upgrade left the probes unchanged and
+changed 4 of the 195 real PDFs, and the 2.17 table loss was found on those PDFs
+too. An upgrade of any reader (the `READERS`
+in `scripts/supply-watch.mjs`, SheetJS and fflate) also needs the real-corpus
+run, and its result goes in the commit body.
+
 ## Tooling conventions
 
 - Use `pnpm` for installs/scripts so the workspace protocol resolves.
