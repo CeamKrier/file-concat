@@ -81,7 +81,7 @@
     "mammoth": "^1.13.0",
     "matroska-subtitles": "^3.3.2",
     "mdream": "1.7.2",
-    "mp4box": "^2.4.1",
+    "mp4box": "^2.5.0",
     "node-unrar-js": "^2.0.2",
     "officeparser8": "npm:officeparser@8.1.0",
     "onnxruntime-node": "^1.30.0",
