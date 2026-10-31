@@ -86,7 +86,8 @@ real documents show. The liteparse 2.16 upgrade left the probes unchanged and
 changed 4 of the 195 real PDFs, and the 2.17 table loss was found on those PDFs
 too. An upgrade of any reader (the `READERS`
 in `scripts/supply-watch.mjs`, SheetJS and fflate) also needs the real-corpus
-run, and its result goes in the commit body.
+run, and its result goes in the commit body. That is why `.github/dependabot.yml`
+ignores every reader: a new reader needs a line there too.
 
 ## Tooling conventions
 

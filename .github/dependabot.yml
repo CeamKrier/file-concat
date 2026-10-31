@@ -1,0 +1,76 @@
+# Version updates for what is safe to take without reading it: minor and patch
+# releases of everything that is not a reader, in one monthly PR against
+# `development`. CI runs on it because `dependabot/**` is in ci.yml's push branches.
+#
+# Left out on purpose:
+# - Readers (`READERS` in scripts/supply-watch.mjs, plus SheetJS, fflate,
+#   file-type, foliate-js and the tokenizer). A reader upgrade needs the
+#   real-corpus run (.claude/CLAUDE.md, "Reader upgrades need the real corpus"),
+#   which no PR bot does; supply-watch reports their releases instead.
+# - Benchmark rivals and candidate readers in packages/cli: their version is
+#   what /benchmarks and the measurement notes name.
+# - Deliberate pins: typescript, prettier and its plugin, commit-and-tag-version,
+#   saxes.
+# - Every major release.
+#
+# Security updates are not configured here. They always target the default
+# branch (master), which only ever advances by merging development, so they stay
+# alerts and are fixed on development by hand.
+#
+# One directory: Dependabot reads pnpm-workspace.yaml from the root and updates
+# all three packages and the one lockfile in the same PR.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    target-branch: "development"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      # readers
+      - dependency-name: "tesseract.js"
+      - dependency-name: "pdfjs-dist"
+      - dependency-name: "@llamaindex/liteparse-wasm"
+      - dependency-name: "@firecrawl/anydoc-wasm"
+      - dependency-name: "@huggingface/transformers"
+      - dependency-name: "onnxruntime-web"
+      - dependency-name: "@mozilla/readability"
+      - dependency-name: "turndown"
+      - dependency-name: "postal-mime"
+      - dependency-name: "7z-wasm"
+      - dependency-name: "chardetng-wasm"
+      - dependency-name: "mediabunny"
+      - dependency-name: "mp4box"
+      - dependency-name: "officeparser*"
+      - dependency-name: "xlsx"
+      - dependency-name: "fflate"
+      - dependency-name: "file-type"
+      - dependency-name: "foliate-js"
+      - dependency-name: "@dqbd/tiktoken"
+      # benchmark rivals and candidate readers (packages/cli)
+      - dependency-name: "defuddle"
+      - dependency-name: "mdream"
+      - dependency-name: "mammoth"
+      - dependency-name: "pdf-oxide-wasm"
+      - dependency-name: "docling.rs-wasm"
+      - dependency-name: "ppu-paddle-ocr"
+      - dependency-name: "libarchive-wasm"
+      - dependency-name: "node-unrar-js"
+      - dependency-name: "@zip.js/zip.js"
+      - dependency-name: "matroska-subtitles"
+      - dependency-name: "onnxruntime-node"
+      # deliberate pins
+      - dependency-name: "typescript"
+      - dependency-name: "prettier*"
+      - dependency-name: "commit-and-tag-version"
+      - dependency-name: "saxes"
