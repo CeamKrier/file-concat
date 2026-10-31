@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CONFIG } from "@fileconcat/core";
 
@@ -61,6 +61,8 @@ let attempts: { path: string; language: string }[] = [];
 let onDocumentRead: ((path: string) => void) | null = null;
 /** Holds an image's reading until it resolves, so a test can look mid-pass. */
 let imageGate: ((path: string) => Promise<void>) | null = null;
+/** The same for a held scan's first pages. */
+let pageGate: ((path: string) => Promise<void>) | null = null;
 
 vi.mock("~/lib/ocr", () => ({
   SPEECH_FORMATS: new Set(["mp3", "iso-bmff", "matroska"]),
@@ -86,8 +88,11 @@ vi.mock("~/lib/ocr", () => ({
     return { text: READINGS.get(path)?.[language] ?? "" };
   },
   // Only the pages asked for, as the real one draws only those.
-  readPdfPagesWithOcr: async (bytes: Uint8Array, pages: readonly number[]) =>
-    new Map([...(PAGE_READS.get(new TextDecoder().decode(bytes)) ?? new Map())].filter(([page]) => pages.includes(page))),
+  readPdfPagesWithOcr: async (bytes: Uint8Array, pages: readonly number[]) => {
+    const path = new TextDecoder().decode(bytes);
+    await pageGate?.(path);
+    return new Map([...(PAGE_READS.get(path) ?? new Map())].filter(([page]) => pages.includes(page)));
+  },
   // An image's bytes are a real PNG header, so this one keys on the name.
   recogniseImageWithOcr: async (file: File, language: string) => {
     await imageGate?.(file.name);
@@ -142,6 +147,7 @@ const originalLanguages = Object.getOwnPropertyDescriptor(navigator, "languages"
 
 beforeEach(() => {
   imageGate = null;
+  pageGate = null;
   READINGS.clear();
   EXTRACTS.clear();
   PAGE_READS.clear();
@@ -273,7 +279,7 @@ describe("the first pages of a held scan (Q112 O1)", () => {
     return ["a.pdf", "b.pdf", "c.pdf", "d.pdf"].map(scan);
   };
 
-  it("reads them as the drop's last stage and offers the rest by page", async () => {
+  it("reads them behind the result and offers the rest by page", async () => {
     PAGE_READS.set("a.pdf", new Map(TEN.map((page) => [page, `a${page}`])));
     PAGE_READS.set("b.pdf", new Map([[1, "b cover"]]));
 
@@ -281,6 +287,7 @@ describe("the first pages of a held scan (Q112 O1)", () => {
     await act(async () => {
       await result.current.ingestBatch(drop());
     });
+    await waitFor(() => expect(result.current.isReading).toBe(false));
 
     // Six pages in all, three from each of the first two; the whole-document
     // reader was never started.
@@ -316,6 +323,7 @@ describe("the first pages of a held scan (Q112 O1)", () => {
     await act(async () => {
       await result.current.ingestBatch(drop());
     });
+    await waitFor(() => expect(result.current.isReading).toBe(false));
     await act(async () => {
       await result.current.readUnreadDocuments();
     });
@@ -326,6 +334,71 @@ describe("the first pages of a held scan (Q112 O1)", () => {
     expect(a[0].content).toContain("# Page 10\na10");
     expect(result.current.unreadDocuments.some((d) => d.path === "a.pdf")).toBe(false);
     expect(result.current.validations["a.pdf"].notes ?? []).toEqual([]);
+  });
+
+  /** Holds every first-page read until `open()` is called. */
+  const gate = () => {
+    let open = () => {};
+    const shut = new Promise<void>((resolve) => (open = resolve));
+    pageGate = () => shut;
+    return () => act(async () => open());
+  };
+
+  it("shows the result before the first pages land, then adds each one", async () => {
+    PAGE_READS.set("a.pdf", new Map(TEN.map((page) => [page, `a${page}`])));
+    const open = gate();
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch(drop());
+    });
+
+    expect(result.current.entries.some((e) => e.path === "a.pdf")).toBe(false);
+    expect(result.current.isPreviewing).toBe(true);
+    expect(result.current.pendingReads).toContain("a.pdf");
+    expect(result.current.readProgress).toMatchObject({ done: 0, total: 2 });
+
+    await open();
+    await waitFor(() => expect(result.current.isReading).toBe(false));
+    expect(result.current.entries.find((e) => e.path === "a.pdf")?.content).toContain("a1");
+    expect(result.current.isPreviewing).toBe(false);
+    expect(result.current.pendingReads).toEqual([]);
+  });
+
+  it("writes nothing once Start over took the pass away", async () => {
+    PAGE_READS.set("a.pdf", new Map(TEN.map((page) => [page, `a${page}`])));
+    const open = gate();
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch(drop());
+    });
+    act(() => result.current.reset());
+    await open();
+
+    expect(result.current.entries).toEqual([]);
+    expect(result.current.unreadDocuments).toEqual([]);
+    expect(result.current.stoppedReading).toBe(false);
+    expect(result.current.isReading).toBe(false);
+    expect(AMOUNTS.has("ocr_preview_ms")).toBe(false);
+    expect(TALLIES.has("ocr_previewed")).toBe(false);
+  });
+
+  it("never puts a scan back after Keep only pruned it", async () => {
+    PAGE_READS.set("a.pdf", new Map(TEN.map((page) => [page, `a${page}`])));
+    const open = gate();
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch(drop());
+    });
+    act(() => result.current.keepOnly(["c.pdf"]));
+    await open();
+
+    expect(result.current.entries.some((e) => e.path === "a.pdf")).toBe(false);
+    expect(result.current.validations["a.pdf"]).toBeUndefined();
+    expect(result.current.stoppedReading).toBe(false);
+    expect(result.current.isReading).toBe(false);
   });
 });
 

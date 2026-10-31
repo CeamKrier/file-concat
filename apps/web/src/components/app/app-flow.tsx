@@ -554,6 +554,9 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   const exportedDuringPass = useRef(false);
   const noteExport = (kind: "copy" | "download" | "share") => {
     setExports((n) => n + 1);
+    // The first-page read behind the result (Q131 O2): once per pass, the
+    // first export that left before its pages landed.
+    if (ingestion.isPreviewing && !exportedDuringPass.current) track("output_taken_during_preview", kind);
     if (ingestion.isReading) exportedDuringPass.current = true;
     else if (exportedDuringPass.current) {
       exportedDuringPass.current = false;
