@@ -18,13 +18,13 @@
   "dependencies": {
     "fflate": "^0.8.3",
     "file-type": "^22.0.1",
-    "ignore": "^7.0.5",
-    "minimatch": "^10.1.1",
+    "ignore": "^7.0.14",
+    "minimatch": "^10.2.6",
     "officeparser": "8.1.1"
   },
   "devDependencies": {
     "chardetng-wasm": "1.0.2",
-    "fast-check": "^4.8.0",
+    "fast-check": "^4.10.2",
     "postal-mime": "^4.2.0",
     "saxes": "6.0.0",
     "vitest": "^2.1.8"
