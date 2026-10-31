@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CONFIG } from "@fileconcat/core";
 
@@ -55,12 +55,16 @@ vi.mock("~/lib/parsers", () => ({
 
 /** path → language code → what recognition reads. Absent means unreadable. */
 const READINGS = new Map<string, Record<string, string>>();
+/** file name -> a reading under the confidence floor, which comes back as a guess. */
+const GUESSES = new Map<string, string>();
 /** Every (path, language) pair recognition was actually asked for. */
 let attempts: { path: string; language: string }[] = [];
 /** Fires as each document finishes, which is where a mid-pass stop can happen. */
 let onDocumentRead: ((path: string) => void) | null = null;
 /** Holds an image's reading until it resolves, so a test can look mid-pass. */
 let imageGate: ((path: string) => Promise<void>) | null = null;
+/** The same for a held scan's first pages. */
+let pageGate: ((path: string) => Promise<void>) | null = null;
 
 vi.mock("~/lib/ocr", () => ({
   SPEECH_FORMATS: new Set(["mp3", "iso-bmff", "matroska"]),
@@ -86,13 +90,18 @@ vi.mock("~/lib/ocr", () => ({
     return { text: READINGS.get(path)?.[language] ?? "" };
   },
   // Only the pages asked for, as the real one draws only those.
-  readPdfPagesWithOcr: async (bytes: Uint8Array, pages: readonly number[]) =>
-    new Map([...(PAGE_READS.get(new TextDecoder().decode(bytes)) ?? new Map())].filter(([page]) => pages.includes(page))),
+  readPdfPagesWithOcr: async (bytes: Uint8Array, pages: readonly number[]) => {
+    const path = new TextDecoder().decode(bytes);
+    await pageGate?.(path);
+    return new Map([...(PAGE_READS.get(path) ?? new Map())].filter(([page]) => pages.includes(page)));
+  },
   // An image's bytes are a real PNG header, so this one keys on the name.
   recogniseImageWithOcr: async (file: File, language: string) => {
     await imageGate?.(file.name);
     attempts.push({ path: file.name, language });
     onDocumentRead?.(file.name);
+    const guess = GUESSES.get(file.name);
+    if (guess) return { text: "", confidence: 31, guess };
     return { text: READINGS.get(file.name)?.[language] ?? "", confidence: 90 };
   },
 }));
@@ -142,7 +151,9 @@ const originalLanguages = Object.getOwnPropertyDescriptor(navigator, "languages"
 
 beforeEach(() => {
   imageGate = null;
+  pageGate = null;
   READINGS.clear();
+  GUESSES.clear();
   EXTRACTS.clear();
   PAGE_READS.clear();
   SUBTITLES.clear();
@@ -273,7 +284,7 @@ describe("the first pages of a held scan (Q112 O1)", () => {
     return ["a.pdf", "b.pdf", "c.pdf", "d.pdf"].map(scan);
   };
 
-  it("reads them as the drop's last stage and offers the rest by page", async () => {
+  it("reads them behind the result and offers the rest by page", async () => {
     PAGE_READS.set("a.pdf", new Map(TEN.map((page) => [page, `a${page}`])));
     PAGE_READS.set("b.pdf", new Map([[1, "b cover"]]));
 
@@ -281,6 +292,7 @@ describe("the first pages of a held scan (Q112 O1)", () => {
     await act(async () => {
       await result.current.ingestBatch(drop());
     });
+    await waitFor(() => expect(result.current.isReading).toBe(false));
 
     // Six pages in all, three from each of the first two; the whole-document
     // reader was never started.
@@ -316,6 +328,7 @@ describe("the first pages of a held scan (Q112 O1)", () => {
     await act(async () => {
       await result.current.ingestBatch(drop());
     });
+    await waitFor(() => expect(result.current.isReading).toBe(false));
     await act(async () => {
       await result.current.readUnreadDocuments();
     });
@@ -326,6 +339,71 @@ describe("the first pages of a held scan (Q112 O1)", () => {
     expect(a[0].content).toContain("# Page 10\na10");
     expect(result.current.unreadDocuments.some((d) => d.path === "a.pdf")).toBe(false);
     expect(result.current.validations["a.pdf"].notes ?? []).toEqual([]);
+  });
+
+  /** Holds every first-page read until `open()` is called. */
+  const gate = () => {
+    let open = () => {};
+    const shut = new Promise<void>((resolve) => (open = resolve));
+    pageGate = () => shut;
+    return () => act(async () => open());
+  };
+
+  it("shows the result before the first pages land, then adds each one", async () => {
+    PAGE_READS.set("a.pdf", new Map(TEN.map((page) => [page, `a${page}`])));
+    const open = gate();
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch(drop());
+    });
+
+    expect(result.current.entries.some((e) => e.path === "a.pdf")).toBe(false);
+    expect(result.current.isPreviewing).toBe(true);
+    expect(result.current.pendingReads).toContain("a.pdf");
+    expect(result.current.readProgress).toMatchObject({ done: 0, total: 2 });
+
+    await open();
+    await waitFor(() => expect(result.current.isReading).toBe(false));
+    expect(result.current.entries.find((e) => e.path === "a.pdf")?.content).toContain("a1");
+    expect(result.current.isPreviewing).toBe(false);
+    expect(result.current.pendingReads).toEqual([]);
+  });
+
+  it("writes nothing once Start over took the pass away", async () => {
+    PAGE_READS.set("a.pdf", new Map(TEN.map((page) => [page, `a${page}`])));
+    const open = gate();
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch(drop());
+    });
+    act(() => result.current.reset());
+    await open();
+
+    expect(result.current.entries).toEqual([]);
+    expect(result.current.unreadDocuments).toEqual([]);
+    expect(result.current.stoppedReading).toBe(false);
+    expect(result.current.isReading).toBe(false);
+    expect(AMOUNTS.has("ocr_preview_ms")).toBe(false);
+    expect(TALLIES.has("ocr_previewed")).toBe(false);
+  });
+
+  it("never puts a scan back after Keep only pruned it", async () => {
+    PAGE_READS.set("a.pdf", new Map(TEN.map((page) => [page, `a${page}`])));
+    const open = gate();
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch(drop());
+    });
+    act(() => result.current.keepOnly(["c.pdf"]));
+    await open();
+
+    expect(result.current.entries.some((e) => e.path === "a.pdf")).toBe(false);
+    expect(result.current.validations["a.pdf"]).toBeUndefined();
+    expect(result.current.stoppedReading).toBe(false);
+    expect(result.current.isReading).toBe(false);
   });
 });
 
@@ -442,6 +520,73 @@ describe("images", () => {
     expect(TALLIES.get("ocr_read")?.get("png")?.n).toBe(2);
     expect(TALLIES.get("ocr_conf")?.get("90")?.n).toBe(2);
     expect(TALLIES.get("ocr_recovered")?.get("png")?.n).toBe(1);
+  });
+});
+
+describe("a reading under the confidence floor (Q134 O3)", () => {
+  it("keeps it out of the bundle, held as a guess on the image", async () => {
+    GUESSES.set("shot.png", "Setlings > Acconut");
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([image("shot.png")]);
+    });
+    await act(async () => {
+      await result.current.readSelected(["shot.png"], "en");
+    });
+
+    expect(result.current.entries).toEqual([]);
+    expect(result.current.validations["shot.png"]).toMatchObject({
+      included: false,
+      recognitionTried: true,
+      guess: { text: "Setlings > Acconut", confidence: 31 },
+    });
+  });
+
+  it("puts it in only when asked, as recognised text the Files pane can take out", async () => {
+    GUESSES.set("shot.png", "Setlings > Acconut");
+    READINGS.set("clear.png", { eng: "TOTAL 42.00" });
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([image("shot.png"), image("clear.png")]);
+    });
+    await act(async () => {
+      await result.current.readSelected(["shot.png", "clear.png"], "en");
+    });
+    act(() => result.current.includeGuesses());
+
+    expect(result.current.entries.find((e) => e.path === "shot.png")).toEqual({
+      path: "shot.png",
+      content: "Setlings > Acconut",
+      recognised: true,
+    });
+    // An ordinary included text file now, with no guess left to offer.
+    expect(result.current.validations["shot.png"]).toMatchObject({ included: true, classification: "text" });
+    expect(result.current.validations["shot.png"].guess).toBeUndefined();
+    expect(result.current.unreadDocuments).toEqual([]);
+    // Only the count leaves the browser, and only the guessed one is counted.
+    expect(AMOUNTS.get("ocr_guess_included")).toBe(1);
+  });
+
+  it("leaves no guess behind once a second language reads it clearly", async () => {
+    GUESSES.set("shot.png", "Setlings > Acconut");
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch([image("shot.png")]);
+    });
+    await act(async () => {
+      await result.current.readSelected(["shot.png"], "en");
+    });
+    GUESSES.clear();
+    READINGS.set("shot.png", { deu: "Einstellungen > Konto" });
+    await act(async () => {
+      await result.current.readSelected(["shot.png"], "de");
+    });
+
+    expect(result.current.validations["shot.png"].guess).toBeUndefined();
+    expect(result.current.entries.find((e) => e.path === "shot.png")?.content).toBe("Einstellungen > Konto");
   });
 });
 

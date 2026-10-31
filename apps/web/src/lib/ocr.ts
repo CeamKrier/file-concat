@@ -61,16 +61,22 @@ export function clearsRecognitionFloor(reading: {
  * the person asked for it (ADR-0017). Applies the floor here so there is one
  * answer to "did that count", and still reports the confidence, which is what
  * `ocr_conf` records whether the reading was kept or not.
+ *
+ * A reading under the confidence floor that still has writing in it comes back
+ * as `guess`: kept out of the bundle, offered to the person (Q134 O3). Every
+ * OCR tool surveyed keeps and flags such text; none deletes it.
  */
 export async function recogniseImageWithOcr(
   file: File,
   language: string,
   signal?: AbortSignal,
-): Promise<{ text: string; confidence: number }> {
+): Promise<{ text: string; confidence: number; guess?: string }> {
   if (import.meta.env.SSR) return { text: "", confidence: 0 };
   const mod = await import("./extract-document-client");
   const reading = await mod.recogniseImage(file, language, signal);
-  return clearsRecognitionFloor(reading) ? reading : { ...reading, text: "" };
+  if (clearsRecognitionFloor(reading)) return reading;
+  const writing = clearsRecognitionFloor({ ...reading, confidence: MIN_CONFIDENCE });
+  return { ...reading, text: "", ...(writing ? { guess: reading.text } : {}) };
 }
 
 /**

@@ -116,6 +116,12 @@ export type ValidationRecord = {
    */
   recognitionTried?: boolean;
   /**
+   * What recognition read off an image under the confidence floor. Kept out of
+   * the bundle until the person includes it (Q134 O3), and replaced with the
+   * record, so a re-read or Start over never leaves an old one behind.
+   */
+  guess?: { text: string; confidence: number };
+  /**
    * What the reader could not recover from this document, when it said so
    * (ADR-0008). A parser reports these on partial successes too, so a record
    * can carry both `extracted: true` and a note: the text arrived, part of the
@@ -278,6 +284,8 @@ export type LastPass = { read: number; total: number; failure: ReadFailure | nul
 
 /** Shown while the recogniser and its language data load, before the first file. */
 export const GETTING_READER = "Getting the reader";
+/** The reading bar's note while the held scans' first pages are read (Q131 O2). */
+export const PREVIEW_NOTE = "The first pages of each held scan";
 
 export type IngestPhase = "unpacking" | "reading" | "fetching" | "recognising";
 /**
@@ -319,6 +327,8 @@ export interface FileIngestion {
   unreadDocuments: ScannedDocument[];
   /** True while a recognition pass is running. */
   isReading: boolean;
+  /** True while the pass running is the held scans' first pages (Q131 O2). */
+  isPreviewing: boolean;
   /** Recognition progress, or null when idle. `note` says where inside one
    * long file the pass is (speech: the model download, the position reached). */
   readProgress: ReadProgress;
@@ -356,6 +366,8 @@ export interface FileIngestion {
   readSelected: (paths: readonly string[], locale: string) => Promise<number>;
   /** Abandon the rest of a recognition pass. Whatever was read stays read. */
   stopReading: () => void;
+  /** Put every image's low-confidence reading into the bundle, marked as recognised. */
+  includeGuesses: () => void;
   /** Read a file whose encoding was guessed again in the one the person picked. */
   decodeFileAs: (path: string, encoding: string) => Promise<void>;
   /**
@@ -436,6 +448,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   const abortRef = useRef<AbortController | null>(null);
   const [isStopping, setIsStopping] = useState(false);
   const [stoppedReading, setStoppedReading] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
   const [readLanguage, setReadLanguage] = useState<OcrLanguage | null>(null);
   const [readLanguages, setReadLanguages] = useState<Record<string, OcrLanguage>>({});
   const [pendingReads, setPendingReads] = useState<string[]>([]);
@@ -539,6 +552,8 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         validation: ValidationRecord | undefined,
         unreadPages: readonly number[] = [],
       ) => {
+        // Keep only took the pass away: this document is no longer in the set.
+        if (abortRef.current !== controller) return;
         setEntries((prev) => {
           if (unread) return prev.filter((e) => e.path !== path);
           if (!entry) return prev;
@@ -604,6 +619,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           }
           attempted.add(document.path);
           let pagesLeft: number[] = [];
+          let guess: ValidationRecord["guess"];
           try {
             let text = "";
             if (isSpeechMedia(document.format)) {
@@ -624,6 +640,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
               addToTally(imagesRead, document.format, document.file.size);
               addToTally(confidences, confidenceBand(reading.confidence));
               text = reading.text;
+              if (reading.guess) guess = { text: reading.guess, confidence: reading.confidence };
             } else {
               const bytes = new Uint8Array(await document.file.arrayBuffer());
               if (document.pages && document.pages.length > 0) {
@@ -687,6 +704,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
                 size: document.file.size,
                 type: document.file.type || "application/octet-stream",
                 recognitionTried: true,
+                ...(guess ? { guess } : {}),
               }, pagesLeft);
             } else {
               // A document that came here with text of its own and gained
@@ -778,19 +796,26 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
   );
 
   /**
-   * The first pages of the scans a drop's caps held back (Q112 O1), read as the
-   * drop's last stage so the bundle lands with them. The rest of each stays an
-   * offer, with its pages counted, the way a PDF viewer reads the page in view
-   * and leaves the whole document to a press.
+   * The first pages of the scans a drop's caps held back (Q112 O1), read behind
+   * the result once it is on screen (Q131 O2): the wait in front of it ran to
+   * minutes. Each document joins the bundle as its pages land, the way the hand
+   * pass does (Q7 O2), and Copy and Download take what is in. The rest of each
+   * stays an offer, with its pages counted, the way a PDF viewer reads the page
+   * in view and leaves the whole document to a press.
    *
    * Not {@link readDocuments}: that pass is authoritative for what it is given,
    * so a document read in part would come out of it counted as rescued and its
    * other pages gone from its note. Here it joins the bundle as a document with
    * pages still to read, which is the shape the rescue of a text PDF's scanned
    * pages already takes, and the existing pass reads the rest into it.
+   *
+   * Start over and Keep only take the pass away (`abortRef`), and from then on
+   * it writes nothing, not even its counters: its documents are gone, and a
+   * merge would put one back into a bundle someone just pruned. The same check
+   * PDF.js makes before each write of a search that outlived its document.
    */
   const previewScans = useCallback(
-    async (documents: readonly ScannedDocument[], language: OcrLanguage, stages: readonly string[]) => {
+    async (documents: readonly ScannedDocument[], language: OcrLanguage) => {
       const { read: plan, skipped } = planPreview(documents);
       // Why each held document got no first pages, so a Run in `ocr_deferred`
       // without `ocr_previewed` says which of six things happened to it.
@@ -804,36 +829,25 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       const startedAt = performance.now();
       const controller = new AbortController();
       abortRef.current = controller;
+      const current = () => abortRef.current === controller;
       setIsStopping(false);
+      setStoppedReading(false);
       setIsReading(true);
-      const total = plan.reduce((sum, { first }) => sum + first.length, 0);
-      const readEntries: ContentEntry[] = [];
-      const readValidations: Record<string, ValidationRecord> = {};
-      const rest = new Map<string, ScannedDocument | null>();
+      setIsPreviewing(true);
+      setPendingReads(plan.map(({ document }) => document.path));
+      setReadProgress({ done: 0, total: plan.length, note: PREVIEW_NOTE });
       const previewed: Tally = new Map();
       const recovered: Tally = new Map();
       const opened = new Set<string>();
-      let done = 0;
       try {
-        for (const { document, first } of plan) {
+        for (let i = 0; i < plan.length; i++) {
+          const { document, first } = plan[i];
           if (controller.signal.aborted) break;
           opened.add(document.path);
           try {
             const bytes = new Uint8Array(await document.file.arrayBuffer());
-            const read = await readPdfPagesWithOcr(
-              bytes,
-              first,
-              language.code,
-              (page) =>
-                setProgress({
-                  phase: "recognising",
-                  done: done + page,
-                  total,
-                  note: `First pages, ${done + page + 1} of ${total}`,
-                  stages,
-                }),
-              controller.signal,
-            );
+            const read = await readPdfPagesWithOcr(bytes, first, language.code, undefined, controller.signal);
+            if (!current()) return;
             // Nothing legible on the first pages: left as the caps left it,
             // held and offered, since the pages after them were never looked at.
             if (read.size === 0) {
@@ -843,8 +857,8 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             const pages = document.pages ?? [];
             const unread = pages.filter((page) => !read.has(page));
             const text = markedPages(pages, read);
-            readEntries.push({ path: document.path, content: text, recognised: true });
-            readValidations[document.path] = {
+            const entry: ContentEntry = { path: document.path, content: text, recognised: true };
+            const validation: ValidationRecord = {
               included: true,
               classification: "text",
               size: document.file.size,
@@ -854,14 +868,15 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             };
             // A short scan the byte cap held can be read whole by its first
             // pages. Then it is rescued like any other, and counted that way.
-            if (unread.length === 0) {
-              rest.set(document.path, null);
-              addToTally(recovered, document.format, document.file.size);
-            } else {
-              rest.set(document.path, { ...document, pages: unread, text, previewed: true });
-              addToTally(previewed, document.format, document.file.size);
-            }
+            const rest = unread.length === 0 ? null : { ...document, pages: unread, text, previewed: true };
+            addToTally(rest ? previewed : recovered, document.format, document.file.size);
+            setEntries((prev) => [...prev.filter((e) => e.path !== document.path), entry]);
+            setValidations((prev) => ({ ...prev, [document.path]: validation }));
+            setUnreadDocuments((prev) => prev.flatMap((d) => (d.path !== document.path ? [d] : rest ? [rest] : [])));
+            setReadLanguage(language);
+            setReadLanguages((prev) => ({ ...prev, [document.path]: language }));
           } catch (error) {
+            if (!current()) return;
             if (controller.signal.aborted) {
               addToTally(skips, "stopped", document.file.size);
               break;
@@ -869,43 +884,37 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             addToTally(skips, "error", document.file.size);
             console.error(`First-page recognition failed for ${document.path}:`, error);
           } finally {
-            done += first.length;
+            if (current()) {
+              setPendingReads((prev) => prev.filter((p) => p !== document.path));
+              setReadProgress({ done: i + 1, total: plan.length, note: PREVIEW_NOTE });
+            }
           }
         }
         if (controller.signal.aborted) setStoppedReading(true);
+        for (const { document } of plan) {
+          if (!opened.has(document.path)) addToTally(skips, "stopped", document.file.size);
+        }
+        // How long the read behind the result took. Not `ocr_ms`, which stays the
+        // mark of a pass someone chose.
+        trackAmount("ocr_preview_ms", { n: performance.now() - startedAt });
+        trackTally("ocr_preview_skipped", skips);
+        // Its own counter, never `ocr_recovered`: a document read in part is not
+        // rescued, and the clean-Run measure reads that counter as whole.
+        trackTally("ocr_previewed", previewed);
+        trackTally("ocr_recovered", recovered);
       } finally {
         readingRef.current = false;
-        abortRef.current = null;
-        setIsStopping(false);
-        setIsReading(false);
+        // A superseded pass leaves the screen to whatever took it away.
+        if (current()) {
+          abortRef.current = null;
+          setIsStopping(false);
+          setIsReading(false);
+          setIsPreviewing(false);
+          setReadProgress(null);
+          setPendingReads([]);
+        }
         void releaseReader();
       }
-      for (const { document } of plan) {
-        if (!opened.has(document.path)) addToTally(skips, "stopped", document.file.size);
-      }
-      // The wait the preview put in front of the bundle. Not `ocr_ms`, which
-      // stays the mark of a pass someone chose.
-      trackAmount("ocr_preview_ms", { n: performance.now() - startedAt });
-      trackTally("ocr_preview_skipped", skips);
-      if (readEntries.length === 0) return;
-      setEntries((prev) => [...prev, ...readEntries]);
-      setValidations((prev) => ({ ...prev, ...readValidations }));
-      setUnreadDocuments((prev) =>
-        prev.flatMap((d) => {
-          const next = rest.get(d.path);
-          return next === undefined ? [d] : next === null ? [] : [next];
-        }),
-      );
-      setReadLanguage(language);
-      setReadLanguages((prev) => {
-        const next = { ...prev };
-        for (const entry of readEntries) next[entry.path] = language;
-        return next;
-      });
-      // Its own counter, never `ocr_recovered`: a document read in part is not
-      // rescued, and the clean-Run measure reads that counter as whole.
-      trackTally("ocr_previewed", previewed);
-      trackTally("ocr_recovered", recovered);
     },
     [],
   );
@@ -1373,7 +1382,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           const deferred: Tally = new Map();
           for (const d of autoRead) addToTally(deferred, d.format, d.file.size);
           trackTally("ocr_deferred", deferred);
-          await previewScans(autoRead, browserOcrLanguage(), [...stages, STAGE.recognise]);
+          // Not awaited (Q131 O2): the result shows now and the first pages land
+          // in it as they are read, on the result screen's own reading bar.
+          void previewScans(autoRead, browserOcrLanguage());
         }
       }
     },
@@ -1628,6 +1639,30 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     abortRef.current.abort();
   }, []);
 
+  /**
+   * The guesses in, on the person's word only (Q134 O3). Each becomes an
+   * ordinary recognised entry, so the bundle names it as a guess and the Files
+   * pane can still take one out.
+   */
+  const includeGuesses = useCallback(() => {
+    const guessed = Object.entries(validations).filter(([, v]) => !v.included && v.guess);
+    if (guessed.length === 0) return;
+    const paths = new Set(guessed.map(([path]) => path));
+    setEntries((prev) => [
+      ...prev.filter((e) => !paths.has(e.path)),
+      ...guessed.map(([path, v]) => ({ path, content: v.guess!.text, recognised: true as const })),
+    ]);
+    setValidations((prev) => {
+      const next = { ...prev };
+      for (const [path, v] of guessed) {
+        next[path] = { included: true, classification: "text", size: v.size, type: v.type, recognitionTried: true };
+      }
+      return next;
+    });
+    setUnreadDocuments((prev) => prev.filter((d) => !paths.has(d.path)));
+    trackAmount("ocr_guess_included", { n: guessed.length });
+  }, [validations]);
+
   const decodeFileAs = useCallback(async (path: string, encoding: string) => {
     const file = guessedFiles.current.get(path);
     if (!file) return;
@@ -1648,6 +1683,17 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
    * way a replacing drop leaves them.
    */
   const keepOnly = useCallback((paths: readonly string[]) => {
+    // A pass still reading would put a pruned document back, so this ends it.
+    // The first-page read writes nothing more; a hand pass reports a stop.
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+      setIsReading(false);
+      setIsPreviewing(false);
+      setIsStopping(false);
+      setReadProgress(null);
+      setPendingReads([]);
+    }
     const kept = new Set(paths);
     const rows = <T extends { path: string }>(prev: T[]) =>
       prev.filter((row) => kept.has(row.path));
@@ -1671,7 +1717,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     setUnreadDocuments([]);
     // Abandons a pass still in flight; its own `finally` clears the rest.
     abortRef.current?.abort();
+    abortRef.current = null;
     setIsReading(false);
+    setIsPreviewing(false);
     setIsStopping(false);
     setReadProgress(null);
     setStoppedReading(false);
@@ -1696,12 +1744,14 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     pruned,
     unreadDocuments,
     isReading,
+    isPreviewing,
     readProgress,
     recoveredDocuments,
     scannedDocuments,
     readUnreadDocuments,
     readSelected,
     stopReading,
+    includeGuesses,
     decodeFileAs,
     isStopping,
     stoppedReading,

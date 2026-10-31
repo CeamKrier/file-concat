@@ -554,12 +554,25 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   const exportedDuringPass = useRef(false);
   const noteExport = (kind: "copy" | "download" | "share") => {
     setExports((n) => n + 1);
+    // The first-page read behind the result (Q131 O2): once per pass, the
+    // first export that left before its pages landed.
+    if (ingestion.isPreviewing && !exportedDuringPass.current) track("output_taken_during_preview", kind);
     if (ingestion.isReading) exportedDuringPass.current = true;
     else if (exportedDuringPass.current) {
       exportedDuringPass.current = false;
       track("output_retaken_after_pass", kind);
     }
   };
+
+  // Images recognition read under the confidence floor, still out of the bundle
+  // (Q134 O3). The empty screen offers them; nothing else does yet.
+  const guessed = useMemo(
+    () =>
+      Object.entries(ingestion.validations).flatMap(([path, v]) =>
+        !v.included && v.guess ? [{ name: path.split("/").pop() ?? path, text: v.guess.text }] : [],
+      ),
+    [ingestion.validations],
+  );
 
   const emptyKind = useMemo(
     () =>
@@ -570,8 +583,9 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         recognition.offerableImageCount,
         ingestion.pruned?.count ?? 0,
         recognition.offerableMediaCount,
+        guessed.length,
       ),
-    [droppedFiles, recognition, adjustableCount, ingestion.pruned],
+    [droppedFiles, recognition, adjustableCount, ingestion.pruned, guessed],
   );
   const unreadable = useMemo(
     () => unreadableGroups(ingestion.validations, ingestion.failedFiles),
@@ -740,7 +754,10 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     const stillUnread = new Set(ingestion.unreadDocuments.map((d) => d.path));
     const contentByPath = new Map(ingestion.entries.map((e) => [e.path, e.content]));
     return ingestion.scannedDocuments.map((d) => {
-      const text = stillUnread.has(d.path) ? "" : (contentByPath.get(d.path) ?? "");
+      // A reading under the confidence floor is shown as what it is, not as
+      // "nothing legible": the empty screen offers the same text.
+      const guess = ingestion.validations[d.path]?.included === false ? ingestion.validations[d.path]?.guess : undefined;
+      const text = guess ? guess.text : stillUnread.has(d.path) ? "" : (contentByPath.get(d.path) ?? "");
       const language = ingestion.readLanguages[d.path];
       return {
         path: d.path,
@@ -749,6 +766,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         tried: ingestion.validations[d.path]?.recognitionTried === true,
         language: language ? ocrLanguageName(language) : null,
         speech: isSpeechMedia(d.format),
+        guess: guess !== undefined,
       };
     });
   }, [
@@ -1023,6 +1041,14 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               onRead={ingestion.readUnreadDocuments}
               onStopReading={ingestion.stopReading}
               onOfferRead={() => setReadingOpen(true)}
+              guess={{
+                read: recognition.imageCount,
+                guessed: guessed.length,
+                language: ocrLanguageName(passLanguage),
+                sample: guessed[0] ?? null,
+              }}
+              onIncludeGuesses={ingestion.includeGuesses}
+              imagesTried={recognition.imageCount > 0 && recognition.offerableImageCount === 0}
             />
           ) : (
             <ResultView

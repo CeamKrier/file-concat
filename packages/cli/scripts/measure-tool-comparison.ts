@@ -49,7 +49,7 @@
  * The external tools are not vendored, the same way the pypdf reader is not. Pin
  * them yourself before a rerun and the report records what it actually got:
  *
- *   npm i -g repomix@1.18.0        (or pass --repomix <path to the binary>)
+ *   npm i -g repomix@1.18.1        (or pass --repomix <path to the binary>)
  *   uv tool install gitingest==0.3.1
  *   code2prompt: the v4.2.0 release binary for your platform, from its GitHub
  *   releases page. There is an unrelated package of the same name on PyPI; the
@@ -63,7 +63,7 @@
  *   --pins <file>      funnel measurement to take commits from
  *                      (default docs/measurements/repo-funnel-2026-09-07.json)
  *   --out <file>       output JSON (default docs/measurements/tool-comparison-<date>.json)
- *   --repomix <cmd>    repomix binary (default `npx -y repomix@1.18.0`)
+ *   --repomix <cmd>    repomix binary (default `npx -y repomix@1.18.1`)
  *   --gitingest <cmd>  gitingest binary (default `gitingest`)
  *   --code2prompt <cmd> code2prompt binary (default `code2prompt`)
  *   --limit <n>        stop after n repositories
@@ -205,7 +205,7 @@ function readPins(file: string): Map<string, string> {
 /** The argv of each external tool, as resolved from the flags. */
 type Bins = Record<Exclude<Tool, "fileconcat">, string[]>;
 
-/** Split a command string into argv, so `--repomix "npx -y repomix@1.18.0"` works. */
+/** Split a command string into argv, so `--repomix "npx -y repomix@1.18.1"` works. */
 const split = (cmd: string) => cmd.split(/\s+/).filter(Boolean);
 
 function run(cmd: string[], cwd: string, outFile: string): number {
@@ -663,7 +663,7 @@ async function main() {
   }
 
   const bins = {
-    repomix: split(typeof args.repomix === "string" ? args.repomix : "npx -y repomix@1.18.0"),
+    repomix: split(typeof args.repomix === "string" ? args.repomix : "npx -y repomix@1.18.1"),
     gitingest: split(typeof args.gitingest === "string" ? args.gitingest : "gitingest"),
     code2prompt: split(
       typeof args["code2prompt"] === "string" ? (args["code2prompt"] as string) : "code2prompt",

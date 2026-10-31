@@ -1,6 +1,15 @@
 import { COMPILED_LABEL, GENERIC_UNREADABLE_LABEL, unreadableLabel } from "@fileconcat/core";
 
-export type EmptyKind = "image" | "recognisable" | "speech" | "archive" | "scanned" | "filtered" | "pruned" | "other";
+export type EmptyKind =
+  | "image"
+  | "recognisable"
+  | "guessed"
+  | "speech"
+  | "archive"
+  | "scanned"
+  | "filtered"
+  | "pruned"
+  | "other";
 
 /**
  * Which rescue a drop that combined nothing earns, from what was dropped and
@@ -25,6 +34,7 @@ export function emptyKindFor(
   offerableImageCount = 0,
   prunedCount = 0,
   offerableMediaCount = 0,
+  guessedImageCount = 0,
 ): EmptyKind {
   // Nothing was read. Either nothing was dropped, or all of it was turned
   // away at the door (a build tree, a fonts folder); calling the second one
@@ -43,6 +53,9 @@ export function emptyKindFor(
   // Audio or a video with no subtitle track, not yet transcribed: the same
   // offer, heard rather than seen (D5).
   if (offerableMediaCount > 0) return "speech";
+  // Read, but under the confidence floor: the text is there to include, so this
+  // is still not a dead end (Q134 O3).
+  if (guessedImageCount > 0) return "guessed";
   const images = droppedFiles.filter((n) => IMAGE.test(n)).length;
   if (images > 0 && images >= droppedFiles.length / 2) return "image";
   return "other";

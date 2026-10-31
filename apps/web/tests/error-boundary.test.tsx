@@ -38,4 +38,20 @@ describe("the root error screen", () => {
     screen.getByRole("button", { name: /try again/i }).click();
     expect(reset).toHaveBeenCalled();
   });
+  it("reloads for a stale chunk where a route reset would only rethrow it", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    // The automatic reload already happened inside the window, so the page shows.
+    sessionStorage.setItem("fc:chunk-reload", String(Date.now()));
+    const reload = vi.fn();
+    vi.stubGlobal("location", { ...window.location, reload });
+    const reset = vi.fn();
+
+    render(<ErrorBoundary error={new TypeError("Importing a module script failed.")} reset={reset} />);
+    expect(reload).not.toHaveBeenCalled();
+    screen.getByRole("button", { name: /try again/i }).click();
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(reset).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+    sessionStorage.clear();
+  });
 });

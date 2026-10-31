@@ -1,0 +1,51 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 810 >>
+stream
+72 700 m 540 700 l S
+72 678 m 540 678 l S
+72 628 m 540 628 l S
+72 592 m 540 592 l S
+72 556 m 540 556 l S
+72 700 m 72 556 l S
+200 700 m 200 556 l S
+540 700 m 540 556 l S
+BT /F1 10 Tf 76 686 Td (Item) Tj ET
+BT /F1 10 Tf 199.6 686 Td (Description) Tj ET
+BT /F1 10 Tf 76 664 Td (Pump) Tj ET
+BT /F1 10 Tf 199.6 664 Td (Moves water from the lower tank) Tj ET
+BT /F1 10 Tf 199.6 650 Td (to the roof reservoir every night) Tj ET
+BT /F1 10 Tf 199.6 636 Td (when power is cheapest.) Tj ET
+BT /F1 10 Tf 76 614 Td (Valve) Tj ET
+BT /F1 10 Tf 199.6 614 Td (Closes the return line whenever) Tj ET
+BT /F1 10 Tf 199.6 600 Td (the reservoir reports it is full.) Tj ET
+BT /F1 10 Tf 76 578 Td (Gauge) Tj ET
+BT /F1 10 Tf 199.6 578 Td (Shows the reservoir level on) Tj ET
+BT /F1 10 Tf 199.6 564 Td (the panel beside the door.) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000001102 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1199
+%%EOF

@@ -56,7 +56,7 @@
     "commander": "^12.0.0",
     "file-type": "^22.0.1",
     "glob": "^11.0.0",
-    "officeparser": "^8.1.1",
+    "officeparser": "8.1.1",
     "postal-mime": "^4.2.0"
   },
   "devDependencies": {

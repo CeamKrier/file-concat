@@ -399,9 +399,10 @@ export const METRIC_EVENTS = [
    */
   "ocr_previewed",
   /**
-   * Wall-clock milliseconds the first-page read held the bundle back, in `n`,
-   * once per Run that opened a held scan for it (Q112 O1). The wait nobody
-   * chose, so it is the number that says whether six pages is the right budget.
+   * Wall-clock milliseconds the first-page read took, in `n`, once per Run that
+   * opened a held scan for it (Q112 O1). Until Q131 O2 it held the bundle back,
+   * the wait nobody chose; since then it runs behind the result, so read it by
+   * release. A pass Start over or Keep only took away writes none.
    */
   "ocr_preview_ms",
   /**
@@ -424,6 +425,14 @@ export const METRIC_EVENTS = [
    * brings.
    */
   "ocr_conf",
+  /**
+   * Images whose reading fell under the confidence floor and that the person
+   * put in the bundle anyway, from the empty screen's "Include what it read"
+   * (Q134 O3), `n` images per press. Only the count leaves the browser. A Run
+   * with this row exports a guess, so the headline is read with and without
+   * these Runs.
+   */
+  "ocr_guess_included",
   /**
    * Milliseconds from a pass asking for the recogniser to it being ready, in
    * `n`, once per pass that reads anything but speech. The first pass on a
@@ -461,6 +470,13 @@ export const METRIC_EVENTS = [
    * decides whether the screen should offer that outright.
    */
   "output_retaken_after_pass",
+  /**
+   * An export taken while the held scans' first pages were still being read
+   * behind the result (Q131 O2): `copy`, `download` or `share`, once per such
+   * pass. The bundle it took lacks the pages not landed yet, so this is how
+   * often the background read arrives too late to be in what people take.
+   */
+  "output_taken_during_preview",
   /**
    * Why a Run that dropped files combined none of them: one row per exclusion
    * reason, `n` files each. Written once per Run, and only when the bundle came
@@ -654,7 +670,9 @@ export const METRIC_EVENTS = [
    * (`error` a sync throw, `rejection` an unhandled promise, `boundary` a render
    * React caught and replaced the page with) and what it was (an allowlisted
    * `Error.name`, `chunk` for a stale asset after a deploy, `foreign` for a
-   * third-party script, `other` for the rest).
+   * third-party script, `other` for the rest). `boundary/chunk-reload` is the
+   * boundary reloading once for a stale chunk instead of showing; a
+   * `boundary/chunk` row is then a page the reload could not save.
    *
    * The message never leaves the browser. It carries asset URLs and whatever a
    * thrown string happened to hold, so `lib/js-errors.ts` matches it there and

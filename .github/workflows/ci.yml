@@ -26,9 +26,12 @@ name: CI
 # If this repository ever takes pull requests from forks, add `pull_request:`
 # back — a fork's push does not run here, and an unchecked outside PR is worse
 # than a duplicate.
+#
+# `dependabot/**`: Dependabot pushes its PR branches inside this repository
+# (.github/dependabot.yml), so push covers them too.
 on:
   push:
-    branches: [development, master]
+    branches: [development, master, "dependabot/**"]
   workflow_dispatch:
 
 # A newer commit on the same branch makes the previous run's answer obsolete.

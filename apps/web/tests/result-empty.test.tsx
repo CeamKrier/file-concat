@@ -76,6 +76,77 @@ describe("the image offer", () => {
 });
 
 /**
+ * Recognition ran and read writing it was unsure of (Q134 O3). The text used
+ * to be thrown away and the screen said "images, not text": a person who
+ * pressed Read was never told it ran.
+ */
+describe("the guessed rescue", () => {
+  const guess = {
+    read: 4,
+    guessed: 3,
+    language: "English",
+    sample: { name: "shot.png", text: "Setlings > Acconut" },
+  };
+
+  it("outranks the image dead end, and yields to every rescue that is not about images", () => {
+    expect(emptyKindFor(["a.png", "b.png"], 0, 0, 0, 0, 0, 2)).toBe("guessed");
+    expect(emptyKindFor(["a.png", "b.png"], 0, 0, 1, 0, 0, 1)).toBe("recognisable");
+    expect(emptyKindFor(["scan.pdf", "a.png"], 1, 0, 0, 0, 0, 1)).toBe("scanned");
+  });
+
+  it("says recognition ran, shows what it read, and puts it in only when asked", async () => {
+    const onIncludeGuesses = vi.fn();
+    const onOfferRead = vi.fn();
+    const onStartOver = vi.fn();
+    render(
+      <ResultEmpty
+        droppedFiles={["shot.png"]}
+        kind="guessed"
+        guess={guess}
+        onIncludeGuesses={onIncludeGuesses}
+        onOfferRead={onOfferRead}
+        onStartOver={onStartOver}
+      />,
+    );
+
+    expect(screen.getByText(/Recognition ran on these 4 images in English. 3 of them had writing/)).toBeTruthy();
+    expect(screen.getByText("What it read from shot.png")).toBeTruthy();
+    // File content, so masked in Clarity like the bundle preview.
+    expect(screen.getByText("Setlings > Acconut").getAttribute("data-clarity-mask")).toBe("True");
+    // The screen changed under a closing dialog; the heading takes focus.
+    expect(document.activeElement).toBe(screen.getByRole("heading", { name: /not with confidence/i }));
+
+    await act(async () => {
+      screen.getByRole("button", { name: /include what it read/i }).click();
+      screen.getByRole("button", { name: /another language/i }).click();
+      screen.getByRole("button", { name: /start over/i }).click();
+    });
+    expect(onIncludeGuesses).toHaveBeenCalledTimes(1);
+    expect(onOfferRead).toHaveBeenCalledTimes(1);
+    expect(onStartOver).toHaveBeenCalledTimes(1);
+  });
+
+  it("speaks of one image in the singular", () => {
+    render(
+      <ResultEmpty
+        droppedFiles={["shot.png"]}
+        kind="guessed"
+        guess={{ ...guess, read: 1, guessed: 1 }}
+        onIncludeGuesses={vi.fn()}
+        onStartOver={vi.fn()}
+      />,
+    );
+    expect(screen.getByText(/Recognition ran on this image in English. It made out some writing/)).toBeTruthy();
+  });
+
+  it("tells the image dead end that recognition looked, and offers another language", () => {
+    render(<ResultEmpty droppedFiles={["a.png"]} kind="image" imagesTried onOfferRead={vi.fn()} onStartOver={vi.fn()} />);
+    expect(screen.getByText(/found no writing in them/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /another language/i })).toBeTruthy();
+  });
+});
+
+/**
  * The drop that is not broken at all: readable files, every one of them eaten
  * by a pattern. Calling those binary was a lie, and Start over would have
  * dropped the same files into the same filters.

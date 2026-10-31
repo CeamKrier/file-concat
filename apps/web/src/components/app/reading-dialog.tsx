@@ -24,6 +24,8 @@ export type ReadingDocument = {
   language: string | null;
   /** Audio or video: heard by a speech model rather than read off pixels. */
   speech: boolean;
+  /** `text` is a reading under the confidence floor, still out of the bundle. */
+  guess?: boolean;
 };
 
 type ReadingDialogProps = {
@@ -261,6 +263,9 @@ function ReadingPanel({
                         null
                   }
                 />
+                {document.guess && (
+                  <p className="text-ink-muted mt-1 text-[12px]">Low confidence, left out of the bundle.</p>
+                )}
                 {document.text ? (
                   /* Line breaks kept: they fall where the page broke, which is
                      most of what makes a scan recognisable as itself. Clamped
@@ -269,6 +274,7 @@ function ReadingPanel({
                      sample is bounded before it gets here. */
                   <p
                     id={bodyId}
+                    data-clarity-mask="True"
                     className={cn(
                       "text-ink mt-1 whitespace-pre-wrap text-[13px] leading-relaxed",
                       !open && "line-clamp-2",
