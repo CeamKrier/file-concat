@@ -11,6 +11,9 @@
 #   what /benchmarks and the measurement notes name.
 # - Deliberate pins: typescript, prettier and its plugin, commit-and-tag-version,
 #   saxes.
+# - TanStack Router and Start: from react-start 1.169 and start-plugin-core
+#   1.171.51 they need Vite 8, and Vite is a major release away. Their minor
+#   bumps broke the build and the root route's types. Take them with Vite 8.
 # - Every major release.
 #
 # Security updates are not configured here. They always target the default
@@ -74,3 +77,5 @@ updates:
       - dependency-name: "prettier*"
       - dependency-name: "commit-and-tag-version"
       - dependency-name: "saxes"
+      # held until Vite 8
+      - dependency-name: "@tanstack/*"
