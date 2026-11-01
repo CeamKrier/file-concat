@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 // Resolved the way Node resolves them, not read off package.json ranges: core
-// asks for officeparser ^8.1.1, so a lockfile refresh can move the pdf.js it
-// brings without touching any file in this repo.
+// pins officeparser, and an officeparser bump can move the pdf.js it brings
+// without touching any pdf.js line in this repo.
 const web = join(dirname(fileURLToPath(import.meta.url)), "..");
 const fromCore = createRequire(join(web, "../../packages/core/package.json"));
 let officeparser = dirname(fromCore.resolve("officeparser"));

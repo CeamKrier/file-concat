@@ -3095,6 +3095,7 @@
  "odf/probe.ods": {
   "reader": "extract/office:officeparser",
   "notes": [
+   "hidden-left-out x1",
    "comments-included x1"
   ],
   "words": {
