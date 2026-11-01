@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.11.1](https://github.com/CeamKrier/file-concat/compare/v2.11.0...v2.11.1) (2026-11-01)
+
+### Bug Fixes
+
+* **core:** read office files with officeparser 8.5.0 ([c9c136e](https://github.com/CeamKrier/file-concat/commit/c9c136e519421cba448c2614b313a8d557499681))
+
 ## [2.11.0](https://github.com/CeamKrier/file-concat/compare/v2.10.3...v2.11.0) (2026-10-31)
 
 ### Features
