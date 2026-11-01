@@ -53,16 +53,16 @@
     "prepare": "git config core.hooksPath .githooks"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.1",
+    "@eslint/js": "^9.39.5",
     "commit-and-tag-version": "13.2.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.24",
+    "eslint-plugin-react-refresh": "^0.5.7",
     "globals": "^15.15.0",
-    "nx": "^21.2.3",
+    "nx": "^21.6.11",
     "prettier": "3.6.2",
     "prettier-plugin-tailwindcss": "0.6.14",
     "typescript": "~5.6.3",
-    "typescript-eslint": "^8.48.0"
+    "typescript-eslint": "^8.72.1"
   }
 }
