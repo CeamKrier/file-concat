@@ -12,7 +12,7 @@
           "metric": "Weighted by real files, mean of 11 formats",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "648 constructs in 129 probe files, each weighted by its share of 1,973 real files. All run by us.",
           "rows": [
@@ -60,7 +60,7 @@
           "metric": "Of 648 over 17 formats, unweighted",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "Every construct counts once, however rare it is in real files. All run by us.",
           "rows": [
@@ -109,7 +109,7 @@
           "unit": "count",
           "of": 130,
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "Tracked deletions, hidden sheets, cookie banners. A format a tool does not read earns nothing here.",
           "rows": [
@@ -159,7 +159,7 @@
           "unit": "count",
           "of": 45,
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "Files hard to tell apart or hard to decode: legacy encodings, binaries that look like text. All run by us.",
           "rows": [
@@ -221,7 +221,7 @@
           "unit": "count",
           "of": 16,
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "what-gets-lost-converting-documents-to-text",
           "note": "27 test documents in 12 formats, one structure each: merged cells, spreadsheet dates, scanned pages.",
           "rows": [
@@ -273,7 +273,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "200 real files.",
           "rows": [
@@ -322,7 +322,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "200 real files.",
           "rows": [
@@ -371,7 +371,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "198 real files.",
           "rows": [
@@ -420,7 +420,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "195 real files.",
           "rows": [
@@ -469,7 +469,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "124 real files. markitdown printed the raw MIME source, scored 0.",
           "rows": [
@@ -518,7 +518,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "198 real files.",
           "rows": [
@@ -567,7 +567,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "200 real files. The one format where FileConcat is not first: it misses the author.",
           "rows": [
@@ -616,7 +616,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "198 real files. markitdown printed the raw control words, scored 0.",
           "rows": [
@@ -665,7 +665,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "199 real files. markitdown does not read it.",
           "rows": [
@@ -714,7 +714,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "196 real files. markitdown does not read it.",
           "rows": [
@@ -763,7 +763,7 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "65 real files. markitdown does not read it.",
           "rows": [
@@ -819,7 +819,7 @@
           "metric": "olmOCR-bench, 1,403 pages",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "browser-text-extraction-benchmark",
           "note": "Tests passed, mean of 8 parts. olmOCR and Mistral from allenai's table, Chandra and Marker (fast, no OCR) from their own READMEs, the rest run by us.",
           "rows": [
@@ -884,7 +884,7 @@
           "metric": "Article text F1, 181 pages",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "browser-text-extraction-benchmark",
           "note": "Zyte's article extraction benchmark at commit 4a3bc97. Other readers: their published outputs, except Trafilatura 2.3.1, run here with the benchmark's own script.",
           "rows": [
@@ -946,7 +946,7 @@
           "unit": "count",
           "of": 26,
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "browser-text-extraction-benchmark",
           "note": "One archive per case readers get wrong: zip64, non-ASCII names, tar dialects, 7z. All run by us.",
           "rows": [
@@ -1002,10 +1002,14 @@
           "metric": "Median share of 60 repositories",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "repomix-vs-gitingest-vs-code2prompt",
           "note": "Source code as a share of the bundle's tokens. The rest is tests, lockfiles and vendored code. FileConcat runs as its command line tool built from the same release, which skips dot folders the web app keeps.",
           "rows": [
+            {
+              "label": "FileConcat 2.11",
+              "value": 67.5
+            },
             {
               "label": "FileConcat 2.10",
               "value": 67.5
@@ -1050,10 +1054,14 @@
           "metric": "Median tokens over 60 repositories",
           "unit": "tokens",
           "better": "lower",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "repomix-vs-gitingest-vs-code2prompt",
           "note": "Fewer tokens only helps if the files left out did not matter.",
           "rows": [
+            {
+              "label": "FileConcat 2.11",
+              "value": 236670
+            },
             {
               "label": "FileConcat 2.10",
               "value": 236670
@@ -1099,12 +1107,12 @@
           "unit": "count",
           "of": 60,
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "repomix-vs-gitingest-vs-code2prompt",
           "note": "The tool whose bundle had the highest share of source code on that repository.",
           "rows": [
             {
-              "label": "FileConcat 2.10",
+              "label": "FileConcat 2.11",
               "value": 35
             },
             {
@@ -1128,12 +1136,12 @@
           "unit": "count",
           "of": 60,
           "better": "higher",
-          "measured": "2026-10-31",
+          "measured": "2026-11-01",
           "post": "repomix-vs-gitingest-vs-code2prompt",
           "note": "The tool with the fewest tokens on that repository.",
           "rows": [
             {
-              "label": "FileConcat 2.10",
+              "label": "FileConcat 2.11",
               "value": 30
             },
             {

@@ -1038,7 +1038,9 @@ function toLibraryConfig(options: OfficeParserOptions): Record<string, unknown> 
   // A PDF is read as a flow of pages, not laid out from its geometry (8.x's
   // default): that layout drops the page nodes our passes key on, and the
   // flow reader orders columns and recovers positioned tables on its own.
-  const config: Record<string, unknown> = { ignorePageGeometry: true };
+  // Its running headers and footers stay in the pages (8.4 moved them out):
+  // dropRunningFurniture thins them, the same rule a PDF read by liteparse gets.
+  const config: Record<string, unknown> = { ignorePageGeometry: true, pdfParserConfig: { keepHeadersAndFootersInPages: true } };
   if (options.pdfWorkerSrc) config.pdfWorkerSrc = options.pdfWorkerSrc;
   // Only the variants need translating; a base format sniffs the same either
   // way, and leaving it to the library keeps that path exactly as it was.
@@ -1185,6 +1187,26 @@ function decodedPart(line: string): { kept: string; lost: number } {
   const before = line.slice(0, first).trimEnd();
   const after = line.slice(last + 1).trimStart();
   return { kept: before && after ? `${before} ${after}` : before || after, lost: last + 1 - first };
+}
+
+/**
+ * Put back the tell `dropUndecodableLines` reads. Since 8.3 officeparser strips
+ * control characters from PDF text, so glyph ids arrive looking like letters;
+ * since 8.5 it names each font whose text is its glyph ids instead
+ * (`PDF_FONT_UNMAPPED`, upstream issue 127). A run in such a font is written as
+ * control characters, so it is left out and counted exactly as before.
+ * ponytail: matched by the font's name, so a mapped subset sharing that name
+ * goes too, and a run whose font has no name stays; a run-level flag upstream
+ * would close both.
+ */
+function markUnmappedFonts(warnings: ReadonlyArray<{ code: string; details?: unknown }>): (node: OfficeContentNode) => void {
+  const fonts = new Set(
+    warnings.filter(({ code }) => code === "PDF_FONT_UNMAPPED").map(({ details }) => (details as { font?: string } | undefined)?.font),
+  );
+  return (node) => {
+    const font = node.formatting?.font;
+    if (node.type === "text" && node.text && font && fonts.has(font)) node.text = "\u0003".repeat(node.text.length);
+  };
 }
 
 /** A `# Page n` line, with the number the document prints on the page after it when that differs. */
@@ -1502,6 +1524,7 @@ export async function extractOfficeDocument(
   const charts = showCharts(bytes, isWorkbook(ast.content));
   const sheetVisitors = [expandMergedCells(), charts, comments.visit];
   const visitors = [
+    ...(ast.type === "pdf" ? [markUnmappedFonts(ast.warnings ?? [])] : []),
     dropSlideChrome(chrome),
     markSectionStarts(anyPageHasText, hidden, deck),
     dropSlideNumberFromNotes,

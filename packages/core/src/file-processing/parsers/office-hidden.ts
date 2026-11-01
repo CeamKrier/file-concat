@@ -225,6 +225,35 @@ export function withoutMergedCells(xml: string): { xml: string; hidden: number }
 }
 
 /**
+ * A spreadsheet's cells under a merge (`table:covered-table-cell`) emptied,
+ * and how many held text. LibreOffice shows only the merge's first cell, but a
+ * covered one can keep its value, and officeparser 8.5 reads it at the merge's
+ * place. The cell stays, so the columns after it keep their place.
+ */
+export function withoutCoveredCells(xml: string): { xml: string; hidden: number } {
+  let out = "";
+  let kept = 0;
+  let hidden = 0;
+  let depth = 0;
+  let content = 0;
+  for (const t of tagsOf(xml)) {
+    if (t.name !== "table:covered-table-cell") continue;
+    if (t.opens && depth === 0) {
+      // The tag without its value attributes, which officeparser reads too.
+      const repeated = attr(t.tag, "table:number-columns-repeated");
+      out += `${xml.slice(kept, t.from)}<table:covered-table-cell${repeated ? ` table:number-columns-repeated="${repeated}"` : ""}${t.closes ? "/>" : ">"}`;
+      kept = t.to;
+      if (!t.closes) [depth, content] = [1, t.to];
+    } else if (t.opens && !t.closes) depth++;
+    else if (!t.opens && depth > 0 && --depth === 0) {
+      if (xml.slice(content, t.from).replace(/<[^>]*>/g, "").trim()) hidden++;
+      kept = t.from;
+    }
+  }
+  return { xml: out + xml.slice(kept), hidden };
+}
+
+/**
  * A ruby run as `base(reading)`, the way an ODT ruby and HTML's `rp` fallback
  * read; officeparser drops both halves (C8). The ruby's own run is closed
  * before and reopened after, so base and reading become runs of the
@@ -435,6 +464,11 @@ export function withoutHiddenText(bytes: Uint8Array): { bytes: Uint8Array; hidde
     collectHiddenStyles(content, styles);
     if (parts["styles.xml"]) collectHiddenStyles(strFromU8(parts["styles.xml"]), styles);
     const after = withoutHiddenOdf(content, styles);
+    if (content.includes("<office:spreadsheet")) {
+      const covered = withoutCoveredCells(after.xml);
+      after.xml = covered.xml;
+      after.hidden += covered.hidden;
+    }
     // A text document's list items get the labels its lists print (C8).
     if (content.includes("<office:text")) after.xml = withOdfListLabels(after.xml, parts["styles.xml"] ? strFromU8(parts["styles.xml"]) : "");
     // Frames' and tables' alternative text, where officeparser reads it (Q31 O1).

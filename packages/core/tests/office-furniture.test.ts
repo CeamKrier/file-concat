@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { extractOfficeDocument } from "../src/file-processing/parsers/officeparser";
 import { hiddenLabel, nameBlocks, sheetHeaderText, workbookSheets } from "../src/file-processing/parsers/office-charts";
 import { biffSheetFurniture, deckLabels, odsHidden, odsSheetFurniture, odsValidations, slideMasterText } from "../src/file-processing/parsers/office-furniture";
-import { withoutMergedCells } from "../src/file-processing/parsers/office-hidden";
+import { withoutCoveredCells, withoutMergedCells } from "../src/file-processing/parsers/office-hidden";
 import { deckPptx, odfDocument, twoSheetXlsx } from "./fixtures/containers";
 
 describe("sheetHeaderText", () => {
@@ -427,6 +427,23 @@ describe("deck sections, custom shows, slide names and merged cells", () => {
     expect(text).not.toMatch(/Ghost|Under/);
     expect(text).toContain("| C |");
     expect(notes).toContainEqual({ kind: "hidden-left-out", count: 2 });
+  });
+
+  it("empties an ODS cell under a merge and counts it, keeping its column", () => {
+    const row =
+      `<table:table-row><table:table-cell table:number-columns-spanned="2"><text:p>Shown</text:p></table:table-cell>` +
+      `<table:covered-table-cell office:value-type="string"><text:p>Ghost</text:p></table:covered-table-cell>` +
+      `<table:covered-table-cell table:number-columns-repeated="3"/><table:table-cell><text:p>After</text:p></table:table-cell></table:table-row>`;
+    const { xml, hidden } = withoutCoveredCells(row);
+    expect(hidden).toBe(1);
+    expect(xml).not.toContain("Ghost");
+    expect(xml).toContain(
+      '<table:covered-table-cell></table:covered-table-cell><table:covered-table-cell table:number-columns-repeated="3"/>',
+    );
+    expect(xml).toContain("Shown");
+    expect(xml).toContain("After");
+    // Cells that never close: one pass, not one per cell.
+    expect(withoutCoveredCells("<table:covered-table-cell>x".repeat(200_000)).hidden).toBe(0);
   });
 
   it("names an ODP slide by its draw:name, not LibreOffice's page<n>", async () => {
