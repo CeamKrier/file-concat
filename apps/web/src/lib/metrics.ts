@@ -350,6 +350,12 @@ const SOURCE_HOSTS: [RegExp, string][] = [
   [/(^|\.)github\.com$/, "github"],
   [/(^|\.)reddit\.com$/, "reddit"],
   [/^news\.ycombinator\.com$/, "hn"],
+  [/(^|\.)youtube\.com$|^youtu\.be$/, "youtube"],
+  [/(^|\.)(x|twitter)\.com$|^t\.co$/, "x"],
+  [/(^|\.)linkedin\.com$|^lnkd\.in$/, "linkedin"],
+  [/(^|\.)instagram\.com$/, "instagram"],
+  [/(^|\.)tiktok\.com$/, "tiktok"],
+  [/(^|\.)facebook\.com$|^fb\.me$/, "facebook"],
   [/(^|\.)fileconcat\.com$/, "self"],
 ];
 

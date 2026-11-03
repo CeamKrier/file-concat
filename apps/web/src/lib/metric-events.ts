@@ -17,7 +17,7 @@ export const METRIC_EVENTS = [
   "entry_surface",
   /**
    * What sent the visit, as a closed label from `sourceLabel` in `./metrics`: a
-   * search engine, an AI assistant, a link site, `self`, `other`, or `none` when
+   * search engine, an AI assistant, a link or social site, `self`, `other`, or `none` when
    * there is no referrer. Written beside `entry_surface` under the same
    * once-per-page-load guard, so the two pair one to one by page id. Only the
    * label leaves the browser: the referrer, the page URL and its `utm_source`
