@@ -91,8 +91,8 @@ importers:
         specifier: ^11.2.0
         version: 11.2.0(react@18.3.1)
       '@llamaindex/liteparse-wasm':
-        specifier: file:../../vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.17.0-fc.1.tgz
-        version: file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.17.0-fc.1.tgz
+        specifier: file:../../vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.18.0-fc.1.tgz
+        version: file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.18.0-fc.1.tgz
       '@mdx-js/react':
         specifier: ^3.1.1
         version: 3.1.1(@types/react@18.3.27)(react@18.3.1)
@@ -330,8 +330,8 @@ importers:
         specifier: 4.3.2
         version: 4.3.2(@types/node@22.20.5)
       '@llamaindex/liteparse-wasm':
-        specifier: file:../../vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.17.0-fc.1.tgz
-        version: file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.17.0-fc.1.tgz
+        specifier: file:../../vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.18.0-fc.1.tgz
+        version: file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.18.0-fc.1.tgz
       '@mozilla/readability':
         specifier: 0.6.0
         version: 0.6.0
@@ -1803,9 +1803,9 @@ packages:
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
 
-  '@llamaindex/liteparse-wasm@file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.17.0-fc.1.tgz':
-    resolution: {integrity: sha512-8yxaOv+1hQ6qI5xDz+o5q5RMjCmeBWLUiklUvxXMJsi+rKpua0IYn4jKjOtxPUV7wmVyUwAUgp3UwMc/Q1hsDg==, tarball: file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.17.0-fc.1.tgz}
-    version: 2.17.0-fc.1
+  '@llamaindex/liteparse-wasm@file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.18.0-fc.1.tgz':
+    resolution: {integrity: sha512-vFv8dBwMRgqQrgIHb8LsI602phYlcp6LiDFN6DCUzJ6zX9G8F0ljdgMKNln+KitDnjV03VB9YOUKoYEygFdqnQ==, tarball: file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.18.0-fc.1.tgz}
+    version: 2.18.0-fc.1
     engines: {node: '>=18.0.0'}
 
   '@mdream/rust-android-arm-eabi@1.7.2':
@@ -7426,7 +7426,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@llamaindex/liteparse-wasm@file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.17.0-fc.1.tgz': {}
+  '@llamaindex/liteparse-wasm@file:vendor/liteparse-wasm/llamaindex-liteparse-wasm-2.18.0-fc.1.tgz': {}
 
   '@mdream/rust-android-arm-eabi@1.7.2':
     optional: true
