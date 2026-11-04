@@ -528,9 +528,9 @@ exist anywhere in a PDF, so no reader can recover them reliably.
 ### Should I upload the PDF to the model instead?
 
 Sometimes. Anthropic's documentation says each page is converted to an image and its text extracted, and
-both are sent. That is why charts and diagrams can be asked about. It costs more: their Bedrock
-documentation puts text-only extraction at roughly 1,000 tokens for a three-page PDF against roughly
-7,000 for the full visual mode. Encrypted PDFs are rejected outright. Extracting to text first is
+both are sent. That is why charts and diagrams can be asked about. It costs more: on 165 real PDFs
+we counted with Anthropic's token counter, the median file cost 2.81 times its extracted text
+([how many tokens is a PDF in Claude](/blog/how-many-tokens-is-a-pdf-in-claude)). Encrypted PDFs are rejected outright. Extracting to text first is
 cheaper and lets you see exactly what the model will see, which is the point of checking the headers and footers.
 
 ### Why do my spreadsheet dates come out as numbers?

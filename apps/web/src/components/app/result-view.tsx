@@ -8,6 +8,7 @@ import {
   Copy,
   Download,
   FilePlus,
+  FileText,
   FileX2,
   Filter,
   FolderOpen,
@@ -446,6 +447,34 @@ export function ResultView({
           ? `${first} was read because you dropped it, though inside a project it is skipped.`
           : `${pruned.roots.join(", ")} were read because you dropped them, though inside a project they are skipped.`,
       body: "A folder with this name is never opened when it sits inside something you drop: dependencies, build output, a cache. Dropped on its own it is what you chose, so it is read in full.",
+    });
+  }
+
+  // Q164 O1: a static fact, never a per-bundle estimate. The K5 measurement is
+  // a distribution over other people's PDFs, and a number computed for this
+  // bundle from it would read as a promise. Opens in a new tab so the bundle
+  // on this screen survives the click.
+  if (extractedFiles.some((name) => name.toLowerCase().endsWith(".pdf"))) {
+    rows.push({
+      key: "pdf-cost",
+      kind: "note",
+      icon: FileText,
+      title: "As text, a PDF usually costs Claude far fewer tokens than the upload.",
+      body: (
+        <>
+          Through Claude's API an uploaded PDF also carries an image of every page. On 165 real PDFs
+          the text cost about a third. Upload the PDF itself when the answer is in a chart or a
+          picture.{" "}
+          <a
+            href="/blog/how-many-tokens-is-a-pdf-in-claude"
+            target="_blank"
+            rel="noopener"
+            className="text-go-fg whitespace-nowrap underline underline-offset-4"
+          >
+            How we counted
+          </a>
+        </>
+      ),
     });
   }
 
