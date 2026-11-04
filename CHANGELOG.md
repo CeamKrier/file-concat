@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.13.0](https://github.com/CeamKrier/file-concat/compare/v2.12.0...v2.13.0) (2026-11-04)
+
+### Features
+
+* **core:** send check detectors and masking ([d8829aa](https://github.com/CeamKrier/file-concat/commit/d8829aacfd63a3ed71e0c2250bcd0b5889a8bc24))
+* **core:** send check finds emails, IBANs, SSNs and cards, and hides listed words ([638b57f](https://github.com/CeamKrier/file-concat/commit/638b57fdd223142ad4ebcf789e9468958dbd6a28))
+* **web:** post on what a PDF costs Claude, limit page line and result note ([1e7c206](https://github.com/CeamKrier/file-concat/commit/1e7c2060286ea76e6d1a636fdaf26471c2dcc2b5))
+* **web:** send check lists identifiers in documents and hides listed words ([2f0c404](https://github.com/CeamKrier/file-concat/commit/2f0c4048c01d8b0658a3e0afb3f5aa750315022b))
+* **web:** send check lists phone numbers in documents ([fcca65b](https://github.com/CeamKrier/file-concat/commit/fcca65b2995e934f948d16a2ce48d6d67823d6ba))
+* **web:** send check masks hidden words in file and folder names ([3cffaf0](https://github.com/CeamKrier/file-concat/commit/3cffaf02351390d1dc9686318a92aa490fe650cd))
+* **web:** send check masks keys before export ([efddf7b](https://github.com/CeamKrier/file-concat/commit/efddf7b731b296b4576906dd306926b3fd235b30))
+
+### Bug Fixes
+
+* **web:** liteparse 2.18, with the table span fix now upstream ([78f0d01](https://github.com/CeamKrier/file-concat/commit/78f0d01379bb071e2d4caf5119a9275f957d4e92))
+
 ## [2.12.0](https://github.com/CeamKrier/file-concat/compare/v2.11.1...v2.12.0) (2026-11-04)
 
 ### Features
