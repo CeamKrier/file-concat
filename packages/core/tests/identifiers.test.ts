@@ -68,7 +68,8 @@ describe("findIdentifiers", () => {
     for (const run of ["1".repeat(1_000_000), "1 ".repeat(500_000), "card 1-".repeat(150_000), "tel 1 (".repeat(150_000)]) {
       const t0 = performance.now();
       findIdentifiers(run);
-      expect(performance.now() - t0).toBeLessThan(150);
+      // Same budget and reason as the key rules' linear-time test in send-check.test.ts.
+      expect(performance.now() - t0).toBeLessThan(1000);
     }
   });
 
@@ -76,7 +77,7 @@ describe("findIdentifiers", () => {
     const run = "a".repeat(1_000_000);
     const t0 = performance.now();
     findIdentifiers(run + "@" + run);
-    expect(performance.now() - t0).toBeLessThan(100);
+    expect(performance.now() - t0).toBeLessThan(1000);
   });
 
   it("does not stretch an IBAN into the next word", () => {

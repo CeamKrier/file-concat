@@ -110,7 +110,10 @@ describe("key rules", () => {
           const t0 = performance.now();
           void [...input.matchAll(re)].length;
           const ms = performance.now() - t0;
-          expect(ms, `${rule.id} on ${JSON.stringify(input.slice(0, 30))}`).toBeLessThan(100);
+          // A budget, not a benchmark: one cold run on a slow CI runner took 174 ms for a
+          // rule that does 25 ms locally and doubles with the input. Backtracking that is
+          // not linear on 1 MB takes minutes, so 1 s still catches it.
+          expect(ms, `${rule.id} on ${JSON.stringify(input.slice(0, 30))}`).toBeLessThan(1000);
         }
       }
     }
