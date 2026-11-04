@@ -81,3 +81,5 @@ export type { ExcludedSummary, ExclusionInput } from "./exclusions";
 export { classifyBundleKind } from "./bundle-kind";
 export { isEncryptedContainer, epubEncryptedPaths } from "./encrypted";
 export type { BundleKind } from "./bundle-kind";
+export * from "./identifiers";
+export * from "./send-check";
