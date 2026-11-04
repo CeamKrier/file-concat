@@ -31,6 +31,7 @@ export const DOCS_NAVIGATION: DocSection[] = [
     links: [
       { title: "File filtering", href: "/docs/file-filtering" },
       { title: "Filter precedence", href: "/docs/filter-precedence" },
+      { title: "Send check", href: "/docs/send-check" },
       { title: "Token estimation", href: "/docs/token-estimation" },
       { title: "Token costs", href: "/docs/token-costs" },
       { title: "Context window costs", href: "/docs/context-window-costs" },

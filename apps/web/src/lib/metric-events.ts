@@ -688,11 +688,15 @@ export const METRIC_EVENTS = [
   "js_error",
   /**
    * The send check (K1): which kinds of finding a bundle had and what the user
-   * did about them. `found_key` a key was masked, `found_conn` a database
-   * password in a connection string was listed; `kept_key` someone sent a key
-   * as written (the false-positive proxy), `masked_conn` someone masked the
-   * listed passwords. Once per Run per value, deduplicated in `app-flow.tsx`.
-   * Never a value, a provider or a file name.
+   * did about them. `found-key` a key was masked, `found-conn` a database
+   * password in a connection string was listed, `found-email` /
+   * `found-iban` / `found-ssn` / `found-card` that identifier was listed in a
+   * document, `found-comment` a reader kept review comments; `kept-key`
+   * someone sent a key as written (the false-positive proxy), `masked-<kind>`
+   * (`conn`, `email`, `iban`, `ssn`, `card`) someone masked a listed kind,
+   * `hid-words` the "always hide" list was used (the name-model gate, Q156).
+   * Once per Run per value, deduplicated in `app-flow.tsx`. Never a value, a
+   * provider, a file name, a hidden word or how many there were.
    */
   "send_check",
 ] as const;

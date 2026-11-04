@@ -1,14 +1,19 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { findWords, hideList, KEY_RULES } from "@fileconcat/core";
 
+import { normalizeValue } from "~/lib/metrics";
 import {
   checkEntries,
+  LISTED,
   linesOf,
   maskEntry,
+  parseHide,
   SendCheck,
   summarizeCheck,
   type SendCheckProps,
 } from "~/components/app/send-check";
+import { SendCheckRules } from "~/components/send-check-rules";
 
 // Key-shaped strings are built at runtime so the repository never holds one.
 const ALNUM = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -65,7 +70,33 @@ describe("send check in the bundle step", () => {
     expect(bundle([e], new Map(), none, new Set(["connection-string"])).out[0]).toBe(
       "url: postgres://app:[Secret removed: database password]@db.internal:5432/app",
     );
-    expect(summarizeCheck(bundle([e]).checked).conn).toEqual({ count: 1, files: ["compose.yml"] });
+    expect(summarizeCheck(bundle([e]).checked).listed.get("connection-string")).toEqual({
+      count: 1,
+      files: ["compose.yml"],
+    });
+  });
+
+  it("looks for identifiers in documents only, and masks a kind once asked", () => {
+    const text = "Contact jane@example.com, IBAN GB82 WEST 1234 5698 7654 32.";
+    const doc = { path: "docs/q3-report.docx", content: text };
+    const code = { path: "src/a.ts", content: text };
+    const { checked, out } = bundle([doc, code]);
+    expect(out).toEqual([text, text]);
+    const listed = summarizeCheck(checked).listed;
+    expect(listed.get("email")).toEqual({ count: 1, files: ["q3-report.docx"] });
+    expect(listed.get("iban")).toEqual({ count: 1, files: ["q3-report.docx"] });
+    const masked = bundle([doc, code], new Map(), none, new Set(["email", "iban"])).out;
+    expect(masked).toEqual(["Contact [Email removed], IBAN [IBAN removed].", text]);
+  });
+
+  it("masks hidden words in every file, also one the detector failed on", () => {
+    const list = hideList(parseHide("Acme Corp, jane"));
+    const text = "acme  corp hired Jane; Janet stays";
+    const words = findWords(text, list);
+    expect(maskEntry("a.ts", text, undefined, none, none, words)).toBe("[Hidden] hired [Hidden]; Janet stays");
+    expect(maskEntry("a.ts", text, { text, findings: null, lines: [] }, none, none, words)).toBe(
+      "[Hidden] hired [Hidden]; Janet stays",
+    );
   });
 
   it("lists a key once per unique value in a file, with the line it is on", () => {
@@ -74,6 +105,12 @@ describe("send check in the bundle step", () => {
     const { keys } = summarizeCheck(bundle([{ path: "src/config.ts", content: text }]).checked);
     expect(keys).toHaveLength(1);
     expect(keys[0]).toMatchObject({ label: "GitHub token", file: "config.ts", line: 2 });
+  });
+
+  it("sends every counter value as written, none stripped by normalizeValue", () => {
+    const values = ["found-key", "kept-key", "found-comment", "hid-words"];
+    for (const l of LISTED) values.push(`found-${l.value}`, `masked-${l.value}`);
+    for (const v of values) expect(normalizeValue(v)).toBe(v);
   });
 
   it("counts lines the way an editor does, CRLF and lone CR included", () => {
@@ -88,6 +125,8 @@ const base: SendCheckProps = {
   onKeep: () => {},
   onRemove: () => {},
   listed: [],
+  comments: { count: 0, files: [] },
+  hide: { entries: [], places: 0, onCommit: () => {} },
   pending: 0,
   failed: [],
 };
@@ -162,5 +201,63 @@ describe("the send check block", () => {
     rerender(<SendCheck {...base} listed={[{ ...row, masked: true }]} />);
     expect(screen.getByText("2 database passwords masked")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Show again" })).toBeInTheDocument();
+  });
+
+  it("names review comments the readers kept, with no action", () => {
+    render(<SendCheck {...base} comments={{ count: 12, files: ["q3-report.docx"] }} />);
+    expect(screen.getByText("12 review comments, in q3-report.docx")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Mask" })).not.toBeInTheDocument();
+  });
+
+  it("splits hide entries on commas and lines, each once", () => {
+    expect(parseHide(" Jane Doe,Acme\r\n\nacme, Acme ,")).toEqual(["Jane Doe", "Acme", "acme"]);
+  });
+
+  it("commits hidden words on Enter and on blur, never per keystroke", () => {
+    const onCommit = vi.fn();
+    render(<SendCheck {...base} hide={{ ...base.hide, onCommit }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Hide names" }));
+    const field = screen.getByLabelText("Always hide these words");
+    expect(field).toHaveFocus();
+    fireEvent.change(field, { target: { value: "Jane Doe, Acme" } });
+    expect(onCommit).not.toHaveBeenCalled();
+    fireEvent.keyDown(field, { key: "Enter" });
+    expect(onCommit).toHaveBeenLastCalledWith(["Jane Doe", "Acme"]);
+    fireEvent.change(field, { target: { value: "Jane Doe" } });
+    fireEvent.blur(field);
+    expect(onCommit).toHaveBeenLastCalledWith(["Jane Doe"]);
+  });
+
+  it("never puts a hidden word in an attribute or outside the masked root (AC-S8)", () => {
+    const { container } = render(
+      <SendCheck {...base} hide={{ entries: ["Zyxwvut"], places: 3, onCommit: () => {} }} />,
+    );
+    const root = container.firstElementChild!;
+    expect(root).toHaveAttribute("data-clarity-mask", "True");
+    expect(screen.getByLabelText("Always hide these words")).toHaveValue("Zyxwvut");
+    expect(screen.getByText("Hidden in 3 places. Forgotten when you start over.")).toBeInTheDocument();
+    for (const el of container.querySelectorAll("*")) {
+      for (const a of el.attributes) expect(a.value).not.toContain("Zyxwvut");
+    }
+  });
+});
+
+describe("the send check docs", () => {
+  it("links from every state to the page that lists what is checked, in a new tab", () => {
+    for (const props of [base, { ...base, pending: 1 }, { ...base, keys }]) {
+      const { unmount } = render(<SendCheck {...props} />);
+      const link = screen.getByRole("link", { name: "What is checked" });
+      expect(link).toHaveAttribute("href", "/docs/send-check");
+      expect(link).toHaveAttribute("target", "_blank");
+      unmount();
+    }
+  });
+
+  it("lists every key rule the detector has, by its readable name", () => {
+    render(<SendCheckRules />);
+    for (const rule of KEY_RULES.filter((r) => r.id !== "connection-string")) {
+      expect(screen.getAllByText(new RegExp(`^${rule.label}$`, "i")).length).toBeGreaterThan(0);
+    }
+    expect(screen.queryByText("database password")).not.toBeInTheDocument();
   });
 });

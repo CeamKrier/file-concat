@@ -34,7 +34,9 @@ whitelist when you use it.
 
 A file whose own name starts with a dot (`.gitignore`, `.editorconfig`,
 `.env`) is held back before any pattern runs. It shows dimmed in the
-tree with the reason "Hidden file"; tick it to include it. A directory
+tree with the reason "Hidden file"; tick it to include it. A file you
+tick back in goes through the [send check](/docs/send-check) like any
+other, so a key in it is replaced before you copy. A directory
 that starts with a dot is not held back here: `.github/workflows/ci.yml`
 comes through unless a pattern names it. The CLI walks differently and
 skips everything under a dot directory as well. See

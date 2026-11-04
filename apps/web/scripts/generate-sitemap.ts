@@ -411,6 +411,15 @@ const pages: SitemapEntry[] = [
     priority: 0.6,
   },
   {
+    url: "/docs/send-check",
+    sourceFile: [
+      "apps/web/src/content/docs/send-check.mdx",
+      "packages/core/src/file-processing/send-check.ts",
+    ],
+    changefreq: "monthly",
+    priority: 0.6,
+  },
+  {
     url: "/docs/token-estimation",
     sourceFile: "apps/web/src/content/docs/token-estimation.mdx",
     changefreq: "monthly",

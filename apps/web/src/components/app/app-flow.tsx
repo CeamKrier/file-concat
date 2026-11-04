@@ -9,8 +9,11 @@ import {
   formatSize,
   generateFileTree,
   generateProjectName,
+  findWords,
+  hideList,
   summarizeExclusions,
   type AssembleOutputOptions,
+  type Finding,
   type ExcludedSummary,
   type OutputStyle,
 } from "@fileconcat/core";
@@ -53,7 +56,7 @@ import {
 import { MarketingSections, SiteFooter } from "./marketing";
 
 import { TopBar } from "./top-bar";
-import { CONN, checkEntries, maskEntry, summarizeCheck, type CheckedFile } from "./send-check";
+import { LISTED, checkEntries, maskEntry, summarizeCheck, type CheckedFile } from "./send-check";
 import { LandingHero } from "./landing-hero";
 import type { DropZoneProps } from "./drop-zone";
 import type { ImportState } from "./import-panel";
@@ -239,10 +242,20 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   }, [settled.entries, settledStatuses]);
   // Keys the user chose to send as written, by finding id, never by category,
   // so a key that lands later is masked (SG2). Database passwords in a
-  // connection string are listed, not masked, until the user masks them.
-  // Neither is persisted; Start over clears both.
+  // connection string and identifiers in documents are listed, not masked,
+  // until the user masks their kind. The "always hide" words are masked
+  // everywhere. None of it is persisted; Start over clears all three.
   const [keptKeys, setKeptKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [maskedKinds, setMaskedKinds] = useState<ReadonlySet<string>>(() => new Set());
+  const [hideEntries, setHideEntries] = useState<string[]>([]);
+  // Outside the per-file cache: it depends on the list as well as the text.
+  const hidden = useMemo(() => {
+    const out = new Map<string, Finding[]>();
+    if (hideEntries.length === 0) return out;
+    const list = hideList(hideEntries);
+    for (const e of settled.entries) if (checked.has(e.path)) out.set(e.path, findWords(e.content, list));
+    return out;
+  }, [settled.entries, checked, hideEntries]);
 
   const includedContents = useMemo(() => {
     const transform = config.showLineNumbers ? addLineNumbers : null;
@@ -250,12 +263,25 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     return settled.entries
       .filter((e) => checked.has(e.path))
       .map((e) => {
-        const raw = maskEntry(e.path, e.content, checked.get(e.path), keptKeys, maskedKinds);
+        const raw = maskEntry(e.path, e.content, checked.get(e.path), keptKeys, maskedKinds, hidden.get(e.path));
         return { path: e.path, content: transform ? transform(raw) : raw, recognised: e.recognised };
       });
-  }, [settled.entries, checked, keptKeys, maskedKinds, config.showLineNumbers]);
+  }, [settled.entries, checked, keptKeys, maskedKinds, hidden, config.showLineNumbers]);
 
   const sendCheck = useMemo(() => summarizeCheck(checked), [checked]);
+  const hiddenPlaces = useMemo(() => [...hidden.values()].reduce((n, f) => n + f.length, 0), [hidden]);
+  // Review comments a reader kept in the text: listed, nothing to mask.
+  const comments = useMemo(() => {
+    const out = { count: 0, files: [] as string[] };
+    for (const [path, v] of Object.entries(ingestion.validations)) {
+      if (!checked.has(path)) continue;
+      const n = v.notes?.find((note) => note.kind === "comments-included")?.count ?? 0;
+      if (n === 0) continue;
+      out.count += n;
+      out.files.push(path.split("/").pop() ?? path);
+    }
+    return out;
+  }, [ingestion.validations, checked]);
 
   // `send_check`, once per Run per value: which kinds a bundle had and what was
   // done about them, never a value, a provider or a file (spec, Counter).
@@ -269,38 +295,46 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   }, []);
   useEffect(() => {
     if (phase !== "result") return;
-    if (sendCheck.keys.length > 0) trackCheck("found_key");
-    if (sendCheck.conn.count > 0) trackCheck("found_conn");
-  }, [phase, sendCheck, trackCheck]);
+    if (sendCheck.keys.length > 0) trackCheck("found-key");
+    for (const l of LISTED) if (sendCheck.listed.get(l.kind)?.count) trackCheck(`found-${l.value}`);
+    if (comments.count > 0) trackCheck("found-comment");
+    // That the list was used, never its words or how many.
+    if (hideEntries.length > 0) trackCheck("hid-words");
+  }, [phase, sendCheck, comments, hideEntries, trackCheck]);
 
   const sendCheckProps = {
     keys: sendCheck.keys,
     kept: keptKeys,
     onKeep: (ids: string[]) => {
       setKeptKeys((prev) => new Set([...prev, ...ids]));
-      trackCheck("kept_key");
+      trackCheck("kept-key");
     },
     onRemove: (ids: string[]) =>
       setKeptKeys((prev) => new Set([...prev].filter((id) => !ids.includes(id)))),
-    listed: [
-      {
-        kind: CONN,
-        noun: ["database password", "database passwords"] as [string, string],
-        count: sendCheck.conn.count,
-        files: sendCheck.conn.files,
-        masked: maskedKinds.has(CONN),
-        onToggle: () => {
-          const masking = !maskedKinds.has(CONN);
-          setMaskedKinds((prev) => {
-            const next = new Set(prev);
-            if (masking) next.add(CONN);
-            else next.delete(CONN);
-            return next;
-          });
-          if (masking) trackCheck("masked_conn");
-        },
+    listed: LISTED.map((l) => ({
+      kind: l.kind,
+      noun: l.noun,
+      count: sendCheck.listed.get(l.kind)?.count ?? 0,
+      files: sendCheck.listed.get(l.kind)?.files ?? [],
+      masked: maskedKinds.has(l.kind),
+      onToggle: () => {
+        const masking = !maskedKinds.has(l.kind);
+        setMaskedKinds((prev) => {
+          const next = new Set(prev);
+          if (masking) next.add(l.kind);
+          else next.delete(l.kind);
+          return next;
+        });
+        if (masking) trackCheck(`masked-${l.value}`);
       },
-    ],
+    })),
+    comments,
+    hide: {
+      entries: hideEntries,
+      places: hiddenPlaces,
+      // The same list again (a blur with nothing typed) keeps the old array, so nothing re-matches.
+      onCommit: (next: string[]) => setHideEntries((prev) => (prev.join("\n") === next.join("\n") ? prev : next)),
+    },
     pending: ingestion.pendingReads.length,
     failed: sendCheck.failed,
   };
@@ -916,6 +950,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     setImportError(null);
     setKeptKeys(new Set());
     setMaskedKinds(new Set());
+    setHideEntries([]);
   }, [ingestion, filter, output, filesOpen, closeFiles]);
 
   const onDrop = useCallback(

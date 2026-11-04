@@ -1,6 +1,19 @@
-import { useState, type ReactNode } from "react";
-import { Database, KeyRound, type LucideIcon } from "lucide-react";
-import { findSensitive, maskFindings, type Finding } from "@fileconcat/core";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import {
+  ChevronDown,
+  CreditCard,
+  Database,
+  Eye,
+  EyeOff,
+  IdCard,
+  KeyRound,
+  Landmark,
+  Mail,
+  MessageSquareText,
+  Undo2,
+  type LucideIcon,
+} from "lucide-react";
+import { findSensitive, isDocumentPath, maskFindings, type Finding } from "@fileconcat/core";
 
 /**
  * The send check (K1): what the bundle held that the user may not mean an AI
@@ -32,6 +45,10 @@ export type SendCheckProps = {
   onKeep: (ids: string[]) => void;
   onRemove: (ids: string[]) => void;
   listed: ListedKind[];
+  /** Review comments the readers kept in the text (`comments-included` notes). */
+  comments: { count: number; files: string[] };
+  /** The committed "always hide" entries and how many places they masked. */
+  hide: { entries: string[]; places: number; onCommit: (entries: string[]) => void };
   /** Files a reading pass has not reached yet. */
   pending: number;
   /** Files the detector threw on, by name. */
@@ -62,12 +79,26 @@ export function linesOf(text: string, findings: Finding[]): number[] {
 /** The key rule whose findings are listed, not masked by default (spec, Detection). */
 export const CONN = "connection-string";
 
+/**
+ * Every kind that is listed with a Mask toggle, in screen order. `value` is the
+ * kind's name in the `send_check` counter (`found-conn`, `masked-email`). Hyphens, not underscores: `normalizeValue` strips anything outside `[a-z0-9._/+-]`.
+ */
+export const LISTED: { kind: string; value: string; noun: [string, string]; icon: LucideIcon }[] = [
+  { kind: CONN, value: "conn", noun: ["database password", "database passwords"], icon: Database },
+  { kind: "email", value: "email", noun: ["email", "emails"], icon: Mail },
+  { kind: "iban", value: "iban", noun: ["IBAN", "IBANs"], icon: Landmark },
+  { kind: "ssn", value: "ssn", noun: ["SSN", "SSNs"], icon: IdCard },
+  { kind: "card", value: "card", noun: ["card number", "card numbers"], icon: CreditCard },
+];
+const ICON = new Map(LISTED.map((l) => [l.kind, l.icon]));
+
 /** One file's check, cached while its text is the same string. `null` findings: the detector threw. */
 export type CheckedFile = { text: string; findings: Finding[] | null; lines: number[] };
 
-export function checkFile(text: string): CheckedFile {
+/** `identifiers` on document files only (`isDocumentPath`): in code an email is a package author. */
+export function checkFile(text: string, identifiers = false): CheckedFile {
   try {
-    const findings = findSensitive(text);
+    const findings = findSensitive(text, { identifiers });
     return { text, findings, lines: findings.length ? linesOf(text, findings) : [] };
   } catch {
     return { text, findings: null, lines: [] };
@@ -89,15 +120,16 @@ export function checkEntries(
   for (const e of entries) {
     if (!included.has(e.path)) continue;
     const hit = prev.get(e.path);
-    next.set(e.path, hit && hit.text === e.content ? hit : checkFile(e.content));
+    next.set(e.path, hit && hit.text === e.content ? hit : checkFile(e.content, isDocumentPath(e.path)));
   }
   return next;
 }
 
 /**
  * The text that leaves for one entry. Keys are masked unless their id was
- * kept; a connection-string password only once its kind was masked. A file
- * the detector threw on goes out as it is, and the block names it.
+ * kept; a listed kind (connection-string passwords, identifiers) only once it
+ * was masked; the user's hidden words always. A file the detector threw on
+ * still gets its hidden words masked, and the block names it.
  */
 export function maskEntry(
   path: string,
@@ -105,17 +137,23 @@ export function maskEntry(
   hit: CheckedFile | undefined,
   kept: ReadonlySet<string>,
   maskedKinds: ReadonlySet<string>,
+  words: Finding[] = [],
 ): string {
-  if (!hit?.findings?.length) return text;
-  return maskFindings(text, hit.findings, (f) =>
-    f.kind === CONN ? maskedKinds.has(CONN) : f.category === "key" && !kept.has(findingId(path, f)),
+  const findings = hit?.findings?.length ? [...hit.findings, ...words] : words;
+  if (findings.length === 0) return text;
+  return maskFindings(text, findings, (f) =>
+    f.category === "word"
+      ? true
+      : f.category === "key" && f.kind !== CONN
+        ? !kept.has(findingId(path, f))
+        : maskedKinds.has(f.kind),
   );
 }
 
 /** What the block lists: keys once per unique value in a file, then the rest by kind. */
 export function summarizeCheck(checked: ReadonlyMap<string, CheckedFile>) {
   const keys: CheckedKey[] = [];
-  const conn = { count: 0, files: [] as string[] };
+  const listed = new Map(LISTED.map((l) => [l.kind, { count: 0, files: [] as string[] }]));
   const failed: string[] = [];
   for (const [path, hit] of checked) {
     const name = path.split("/").pop() ?? path;
@@ -125,21 +163,23 @@ export function summarizeCheck(checked: ReadonlyMap<string, CheckedFile>) {
       const id = findingId(path, f);
       if (seen.has(id)) return;
       seen.add(id);
-      if (f.kind === CONN) {
-        conn.count++;
-        if (!conn.files.includes(name)) conn.files.push(name);
+      const row = listed.get(f.kind);
+      if (row) {
+        row.count++;
+        if (!row.files.includes(name)) row.files.push(name);
       } else if (f.category === "key") {
         keys.push({ id, label: f.label, file: name, line: hit.lines[i] ?? 1 });
       }
     });
   }
-  return { keys, conn, failed };
+  return { keys, listed, failed };
 }
 
 const COVERAGE = "Names and addresses are not checked.";
 
+const CHIP_ICON = "h-3.5 w-3.5 shrink-0";
 const CHIP_BASE =
-  "rounded-chip focus-visible:ring-ring focus-visible:ring-offset-surface-alt shrink-0 self-start border px-2.5 py-1.5 text-[12.5px] transition-[color,background-color,filter] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2";
+  "inline-flex items-center gap-1.5 rounded-chip focus-visible:ring-ring focus-visible:ring-offset-surface-alt shrink-0 self-start border px-2.5 py-1.5 text-[12.5px] transition-[color,background-color,filter] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2";
 // Three tiers, so the action the check recommends is the one that stands out:
 // primary (mask what is still going out), secondary (undo or keep), quiet (look).
 const CHIP = {
@@ -171,23 +211,37 @@ function statusLines(pending: number, failed: string[]): string[] {
   return lines;
 }
 
-export function SendCheck({ keys, kept, onKeep, onRemove, listed, pending, failed, className }: SendCheckProps) {
+export function SendCheck({
+  keys,
+  kept,
+  onKeep,
+  onRemove,
+  listed,
+  comments,
+  hide,
+  pending,
+  failed,
+  className,
+}: SendCheckProps) {
+  const [hiding, setHiding] = useState(false);
   const found = listed.filter((l) => l.count > 0);
   const status = statusLines(pending, failed);
+  const showHide = hiding || hide.entries.length > 0;
+  const openHide = showHide ? null : (
+    <>
+      <HideButton onClick={() => setHiding(true)} />{" "}
+    </>
+  );
 
-  if (keys.length === 0 && found.length === 0) {
+  if (keys.length === 0 && found.length === 0 && comments.count === 0 && !showHide) {
     // No box: nothing to act on, and the line is the coverage statement itself.
     return (
       <div data-clarity-mask="True" className={className}>
-        {status.length === 0 ? (
-          <p className="text-ink-muted text-[13px] leading-[1.55]">
-            No keys or passwords found. {COVERAGE}
-          </p>
-        ) : (
-          <p className="text-ink-muted text-[13px] leading-[1.55]">
-            {status.join(" ")} {COVERAGE}
-          </p>
-        )}
+        <p className="text-ink-muted text-[13px] leading-[1.55]">
+          <span>{status.length === 0 ? `No keys or passwords found. ${COVERAGE}` : `${status.join(" ")} ${COVERAGE}`}</span>{" "}
+          {openHide}
+          <WhatIsChecked />
+        </p>
       </div>
     );
   }
@@ -202,19 +256,124 @@ export function SendCheck({ keys, kept, onKeep, onRemove, listed, pending, faile
       {found.map((l) => (
         <CheckRow
           key={l.kind}
-          icon={Database}
+          icon={ICON.get(l.kind) ?? KeyRound}
           title={
             l.masked
               ? `${plural(l.count, l.noun[0], l.noun[1])} masked`
               : `${plural(l.count, l.noun[0], l.noun[1])} in ${names(l.files)}`
           }
-          action={{ label: l.masked ? "Show again" : "Mask", onClick: l.onToggle, primary: !l.masked }}
+          action={{
+            label: l.masked ? "Show again" : "Mask",
+            icon: l.masked ? Eye : EyeOff,
+            onClick: l.onToggle,
+            primary: !l.masked,
+          }}
         />
       ))}
+      {comments.count > 0 && (
+        <CheckRow
+          icon={MessageSquareText}
+          title={`${plural(comments.count, "review comment", "review comments")}, in ${names(comments.files)}`}
+        />
+      )}
+      {showHide && <HideRow {...hide} focus={hiding} />}
       <div className="text-ink-muted border-t border-[oklch(var(--hairline))] px-[18px] py-3 text-[13px] leading-[1.55]">
-        {[...status, COVERAGE].join(" ")}
+        <span>{[...status, COVERAGE].join(" ")}</span> {openHide}
+        <WhatIsChecked />
       </div>
     </div>
+  );
+}
+
+/** Entries as typed: comma- or line-separated, trimmed, each once. */
+export function parseHide(draft: string): string[] {
+  return [
+    ...new Set(
+      draft
+        .split(/[,\r\n]+/)
+        .map((w) => w.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
+function HideButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-ink-secondary hover:text-ink whitespace-nowrap underline underline-offset-4"
+    >
+      Hide names
+    </button>
+  );
+}
+
+/**
+ * The "always hide" field. The words live only in the textarea's value and in
+ * memory: never in an attribute, which Clarity records verbatim (AC-S8), and
+ * never stored. Committed on Enter or blur, not per keystroke.
+ */
+function HideRow({ entries, places, onCommit, focus }: SendCheckProps["hide"] & { focus: boolean }) {
+  const id = useId();
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const [draft, setDraft] = useState(() => entries.join(", "));
+  useEffect(() => {
+    if (focus) ref.current?.focus();
+  }, [focus]);
+  const commit = () => onCommit(parseHide(draft));
+  const note =
+    entries.length === 0
+      ? "Each one is replaced with [Hidden] in every file, code included, but not in file or folder names. Forgotten when you start over."
+      : places > 0
+        ? `Hidden in ${plural(places, "place", "places")}. Forgotten when you start over.`
+        : "Not found in this bundle.";
+  return (
+    <div className="border-t border-[oklch(var(--hairline))] px-[18px] py-3.5">
+      <div className="flex min-w-0 items-start gap-3">
+        <div className="text-ink-faint mt-px flex h-[22px] w-[22px] shrink-0 items-center justify-center">
+          <EyeOff className="h-[15px] w-[15px]" strokeWidth={1.9} aria-hidden />
+        </div>
+        <div className="min-w-0 flex-1">
+          <label htmlFor={id} className="text-ink block text-sm leading-[1.5]">
+            Always hide these words
+          </label>
+          <textarea
+            id={id}
+            ref={ref}
+            rows={2}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                commit();
+              }
+            }}
+            placeholder="Names, a client, a project, separated by commas"
+            spellCheck={false}
+            autoComplete="off"
+            className="border-border bg-surface-inset text-ink placeholder:text-ink-muted focus-visible:border-border-strong focus-visible:ring-ring rounded-input mt-2 block w-full resize-y border px-3 py-2 text-[13.5px] leading-[1.55] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+          />
+          <p className="text-ink-muted mt-1.5 text-[13px] leading-[1.55]">{note}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** A new tab, so reading the list does not throw the bundle away. */
+function WhatIsChecked() {
+  return (
+    <a
+      href="/docs/send-check"
+      target="_blank"
+      rel="noopener"
+      className="text-ink-secondary hover:text-ink whitespace-nowrap underline underline-offset-4"
+    >
+      What is checked
+    </a>
   );
 }
 
@@ -235,8 +394,8 @@ function KeysRow({ keys, kept, onKeep, onRemove }: Pick<SendCheckProps, "keys" |
       body={removed.length > 0 && keptKeys.length > 0 ? `${plural(keptKeys.length, "key", "keys")} kept as written` : undefined}
       action={
         removed.length > 0
-          ? { label: "Keep originals", onClick: () => onKeep(removed.map((k) => k.id)) }
-          : { label: "Remove again", onClick: () => onRemove(keptKeys.map((k) => k.id)), primary: true }
+          ? { label: "Keep originals", icon: Undo2, onClick: () => onKeep(removed.map((k) => k.id)) }
+          : { label: "Remove again", icon: EyeOff, onClick: () => onRemove(keptKeys.map((k) => k.id)), primary: true }
       }
       more={{ open, onToggle: () => setOpen((o) => !o) }}
     >
@@ -255,6 +414,11 @@ function KeysRow({ keys, kept, onKeep, onRemove }: Pick<SendCheckProps, "keys" |
                   className={CHIP.secondary}
                   onClick={() => (isKept ? onRemove([k.id]) : onKeep([k.id]))}
                 >
+                  {isKept ? (
+                    <EyeOff className={CHIP_ICON} strokeWidth={2} aria-hidden />
+                  ) : (
+                    <Undo2 className={CHIP_ICON} strokeWidth={2} aria-hidden />
+                  )}
                   {isKept ? "Remove again" : "Keep"}
                 </button>
               </li>
@@ -277,7 +441,7 @@ function CheckRow({
   icon: LucideIcon;
   title: string;
   body?: string;
-  action: { label: string; onClick: () => void; primary?: boolean };
+  action?: { label: string; icon: LucideIcon; onClick: () => void; primary?: boolean };
   more?: { open: boolean; onToggle: () => void };
   children?: ReactNode;
 }) {
@@ -295,16 +459,24 @@ function CheckRow({
             {body && <div className="text-ink-muted mt-[3px] text-[13px] leading-[1.55]">{body}</div>}
           </div>
         </div>
-        <div className="ml-8 flex shrink-0 gap-2 sm:ml-0">
-          <button type="button" onClick={action.onClick} className={action.primary ? CHIP.primary : CHIP.secondary}>
-            {action.label}
-          </button>
-          {more && (
-            <button type="button" onClick={more.onToggle} aria-expanded={more.open} className={CHIP.quiet}>
-              {more.open ? "Hide" : "Show each"}
+        {action && (
+          <div className="ml-8 flex shrink-0 gap-2 sm:ml-0">
+            <button type="button" onClick={action.onClick} className={action.primary ? CHIP.primary : CHIP.secondary}>
+              <action.icon className={CHIP_ICON} strokeWidth={2} aria-hidden />
+              {action.label}
             </button>
-          )}
-        </div>
+            {more && (
+              <button type="button" onClick={more.onToggle} aria-expanded={more.open} className={CHIP.quiet}>
+                <ChevronDown
+                  className={`${CHIP_ICON} transition-transform duration-200 motion-reduce:transition-none ${more.open ? "rotate-180" : ""}`}
+                  strokeWidth={2}
+                  aria-hidden
+                />
+                {more.open ? "Hide" : "Show each"}
+              </button>
+            )}
+          </div>
+        )}
       </div>
       {children && <div className="sm:ml-[34px]">{children}</div>}
     </div>
