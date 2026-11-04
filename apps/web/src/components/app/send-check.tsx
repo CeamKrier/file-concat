@@ -10,6 +10,7 @@ import {
   Landmark,
   Mail,
   MessageSquareText,
+  Phone,
   Undo2,
   type LucideIcon,
 } from "lucide-react";
@@ -89,6 +90,7 @@ export const LISTED: { kind: string; value: string; noun: [string, string]; icon
   { kind: "iban", value: "iban", noun: ["IBAN", "IBANs"], icon: Landmark },
   { kind: "ssn", value: "ssn", noun: ["SSN", "SSNs"], icon: IdCard },
   { kind: "card", value: "card", noun: ["card number", "card numbers"], icon: CreditCard },
+  { kind: "phone", value: "phone", noun: ["phone number", "phone numbers"], icon: Phone },
 ];
 const ICON = new Map(LISTED.map((l) => [l.kind, l.icon]));
 

@@ -82,7 +82,7 @@ export const KEY_RULES: KeyRule[] = [
   }),
 ];
 
-const IDENTIFIER_LABEL: Record<IdentifierKind, string> = { email: "Email", iban: "IBAN", ssn: "SSN", card: "Card number" };
+const IDENTIFIER_LABEL: Record<IdentifierKind, string> = { email: "Email", iban: "IBAN", ssn: "SSN", card: "Card number", phone: "Phone number" };
 
 export interface Finding {
   /** A key rule id, an identifier kind, or `word` for the user's own words. */

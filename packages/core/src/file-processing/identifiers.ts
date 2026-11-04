@@ -9,9 +9,16 @@
  * Luhn-valid run (11,212 in 66 documents) and every dashed SSN shape (3) was a
  * decimal, a DOI, a table number or another country's id, and no labelled one
  * was false.
+ *
+ * A phone number is taken only right after its label too (Q158 O1). Presidio
+ * runs libphonenumber per region and lets the label raise a score; here the
+ * label gates, because unlabelled phone shapes in the same documents were
+ * mostly table and course numbers, and 40 of 40 sampled labelled ones (784
+ * in 140 of 2,277 documents) were phones. The number is read from the label onward, so an international
+ * prefix such as "+44 (0)" is part of the match.
  */
 
-export type IdentifierKind = "email" | "iban" | "ssn" | "card";
+export type IdentifierKind = "email" | "iban" | "ssn" | "card" | "phone";
 
 export interface IdentifierMatch {
   kind: IdentifierKind;
@@ -77,6 +84,10 @@ const CARD_SHAPE = /(?<![\w./=?#,-])\d(?:[ -]?\d){12,18}(?![\w-]|[.,]\d)/g;
 const SSN_LABEL = /(?:\bssn|\bsocial\s+security(?:\s+(?:number|no\.?|#))?|\bss#)[^\d\n]{0,12}$/i;
 const CARD_LABEL = /(?:\bcard|\bcredit|\bdebit|\bvisa|\bmastercard|\bamex|\bamerican\s+express)[^\d\n]{0,20}$/i;
 const labelled = (text: string, at: number, label: RegExp) => label.test(text.slice(Math.max(0, at - 40), at));
+// The label, then the number from where it ends: 7 to 15 digits (E.164), with
+// spaces, dots, dashes and brackets between them, standing alone.
+const PHONE_LABEL = /\b(?:phone|tel|mobile|cell|fax|call)[^\d\n+(]{0,15}/gi;
+const PHONE_SHAPE = /\(?\+?\(?\d(?:[ .()-]{0,2}\d){6,14}(?![\w-]|[.,]\d)/y;
 
 /** Every exact identifier in `text`, in order of position. */
 export function findIdentifiers(text: string): IdentifierMatch[] {
@@ -117,6 +128,12 @@ export function findIdentifiers(text: string): IdentifierMatch[] {
     if (luhnValid(digits) && labelled(text, m.index, CARD_LABEL)) {
       out.push({ kind: "card", start: m.index, end: m.index + m[0].length, value: digits });
     }
+  }
+
+  for (const label of text.matchAll(PHONE_LABEL)) {
+    PHONE_SHAPE.lastIndex = label.index + label[0].length;
+    const m = PHONE_SHAPE.exec(text);
+    if (m) out.push({ kind: "phone", start: m.index, end: m.index + m[0].length, value: m[0].replace(/\D/g, "") });
   }
 
   return out.sort((a, b) => a.start - b.start);

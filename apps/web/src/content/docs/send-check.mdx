@@ -1,6 +1,6 @@
 ---
 title: "Send check - which keys, passwords and personal numbers FileConcat removes before you paste"
-description: "Before you copy or download a bundle, FileConcat checks it in your browser for API keys, tokens, private keys, database passwords, and the emails, IBANs and card numbers in documents. What it removes, what it only lists, how to hide names, and what it does not check."
+description: "Before you copy or download a bundle, FileConcat checks it in your browser for API keys, tokens, private keys, database passwords, and the emails, IBANs, card and phone numbers in documents. What it removes, what it only lists, how to hide names, and what it does not check."
 ---
 
 # Send check
@@ -49,7 +49,7 @@ DATABASE_URL: postgres://app:[Secret removed: database password]@db:5432/app
 A password that is plainly a placeholder is never listed: a template such as `${DB_PASSWORD}` or
 `<password>`, and words such as `password`, `secret`, `changeme` or `example`.
 
-## Emails, IBANs and card numbers in documents
+## Emails, IBANs, card and phone numbers in documents
 
 In documents, FileConcat also looks for the identifiers that are exact enough to find without
 guessing. Each kind gets its own row with a **Mask** button, and none is masked until you press it,
@@ -61,6 +61,7 @@ because a bundle of contracts or invoices is often meant to carry them.
 | IBAN | the country's length and the IBAN check digits both hold | `[IBAN removed]` |
 | US social security number | it follows "SSN" or "social security" on the same line and is a number the US could issue | `[SSN removed]` |
 | Card number | it follows "card", "credit", "debit", "Visa", "Mastercard" or "Amex" on the same line and its check digit holds | `[Card number removed]` |
+| Phone number | it comes right after "phone", "tel", "mobile", "cell", "fax" or "call" on the same line and has 7 to 15 digits | `[Phone number removed]` |
 
 Documents here are PDFs, Word, Excel, PowerPoint, OpenDocument and RTF files, ebooks, emails,
 subtitles, Markdown and plain text, and CSV, TSV and vCard files, where a contact list usually is. Code and
@@ -70,7 +71,9 @@ licence line.
 An SSN or card number needs its label because 9 to 19 digits in a row are mostly something else.
 We ran the check over 2,277 public documents and 60 code repositories: a card-shaped number with
 no label matched more than 14,000 times, all of them ids, DOIs and table numbers, and a labelled
-one matched none of them.
+one matched none of them. A phone number needs its label for the same reason: without one, the
+phone-shaped numbers in those documents were mostly table and course numbers, and with one, 40 of
+40 we read were phones.
 
 ## Hiding names and other words
 
@@ -118,9 +121,9 @@ not check notes.pdf.") and goes into the bundle as it is.
 - Names and addresses, unless you list them to hide.
 - Keys, passwords and the identifiers above in file and folder names: those are masked in the
   text of a file only. Hidden words are masked in names too.
-- Phone numbers, and ID, passport and tax numbers.
-- An SSN or a card number with no label next to it, and any of the identifiers above in a code or
-  config file.
+- IP addresses, and ID, passport and tax numbers.
+- An SSN, a card number or a phone number with no label next to it, and any of the identifiers
+  above in a code or config file.
 - A key with no recognisable shape, such as `api_key = "..."` with a random value. A rule for
   these finds far more ordinary strings than keys, so it is off.
 - A password that is not part of a connection string, and an `Authorization` header in a `curl`

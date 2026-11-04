@@ -53,8 +53,19 @@ describe("findIdentifiers", () => {
     expect(kinds("SSN\n123-45-6789")).toEqual([]);
   });
 
+  it("takes a phone number only right after its label, prefix included", () => {
+    expect(kinds("Phone: (555) 123-4567, Fax 555.123.4568")).toEqual(["phone:(555) 123-4567", "phone:555.123.4568"]);
+    expect(kinds("Telephone: +44 (0)20 7946 0958 | Tel: (+34) 923 338 121")).toEqual([
+      "phone:+44 (0)20 7946 0958",
+      "phone:(+34) 923 338 121",
+    ]);
+    expect(kinds("Mobile +90 532 123 45 67.")).toEqual(["phone:+90 532 123 45 67"]);
+    // No label, a label on another line, too few digits, inside a longer token.
+    expect(kinds("Total 555 123 4567, phone\n555 123 4567, call 123-45, tel 5551234567x")).toEqual([]);
+  });
+
   it("scans long digit runs in linear time", () => {
-    for (const run of ["1".repeat(1_000_000), "1 ".repeat(500_000), "card 1-".repeat(150_000)]) {
+    for (const run of ["1".repeat(1_000_000), "1 ".repeat(500_000), "card 1-".repeat(150_000), "tel 1 (".repeat(150_000)]) {
       const t0 = performance.now();
       findIdentifiers(run);
       expect(performance.now() - t0).toBeLessThan(150);
