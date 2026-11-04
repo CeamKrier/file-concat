@@ -82,12 +82,12 @@ export const KEY_RULES: KeyRule[] = [
   }),
 ];
 
-const IDENTIFIER_LABEL: Record<IdentifierKind, string> = { email: "Email", iban: "IBAN", tckn: "TC Kimlik", vkn: "VKN" };
+const IDENTIFIER_LABEL: Record<IdentifierKind, string> = { email: "Email", iban: "IBAN", ssn: "SSN", card: "Card number" };
 
 export interface Finding {
-  /** A key rule id, or an identifier kind. */
+  /** A key rule id, an identifier kind, or `word` for the user's own words. */
   kind: string;
-  category: "key" | "identifier";
+  category: "key" | "identifier" | "word";
   label: string;
   start: number;
   end: number;
@@ -138,36 +138,88 @@ export function findSensitive(text: string, options: { identifiers?: boolean } =
   return out.sort((a, b) => a.start - b.start);
 }
 
+/** At most this many words, each this long: the list is matched on every bundle change. */
+export const HIDE_LIMITS = { entries: 200, length: 100 };
+
+// A word is a run of Unicode letters and digits, so "Acme's" holds the word
+// "Acme" and "Muller" never matches inside "Mullerstrasse".
+const WORD = /[\p{L}\p{N}]+/gu;
+const WORD_AT = /[\p{L}\p{N}]+/uy;
+const GAP_AT = /\s+/y;
+
+/**
+ * The user's "always hide" entries, ready to match: lowercased words per entry,
+ * by first word. An entry may be several words ("Jane Doe"); they then match
+ * across any run of whitespace, line breaks included.
+ */
+export function hideList(entries: readonly string[]): Map<string, string[][]> {
+  const byFirst = new Map<string, string[][]>();
+  for (const entry of entries.slice(0, HIDE_LIMITS.entries)) {
+    const words = entry.slice(0, HIDE_LIMITS.length).toLowerCase().match(WORD);
+    if (!words) continue;
+    byFirst.set(words[0], [...(byFirst.get(words[0]) ?? []), words]);
+  }
+  return byFirst;
+}
+
+/**
+ * Every place in `text` where an entry of `list` stands as whole words, case
+ * ignored. One pass over the words of the text and a map lookup each, so a
+ * long list costs about what a short one does.
+ */
+export function findWords(text: string, list: Map<string, string[][]>): Finding[] {
+  const out: Finding[] = [];
+  if (list.size === 0) return out;
+  for (const m of text.matchAll(WORD)) {
+    const entries = list.get(m[0].toLowerCase());
+    if (!entries) continue;
+    let best = -1;
+    for (const words of entries) {
+      let end = m.index + m[0].length;
+      let i = 1;
+      for (; i < words.length; i++) {
+        GAP_AT.lastIndex = end;
+        if (!GAP_AT.test(text)) break;
+        WORD_AT.lastIndex = GAP_AT.lastIndex;
+        const next = WORD_AT.exec(text);
+        if (!next || next[0].toLowerCase() !== words[i]) break;
+        end = WORD_AT.lastIndex;
+      }
+      if (i === words.length) best = Math.max(best, end);
+    }
+    if (best >= 0) out.push({ kind: "word", category: "word", label: "Hidden", start: m.index, end: best, value: text.slice(m.index, best) });
+  }
+  return out;
+}
+
+const TIER: Record<Finding["category"], number> = { key: 0, word: 1, identifier: 2 };
+const placeholder = (f: Finding) =>
+  f.category === "key" ? `[Secret removed: ${f.label}]` : f.category === "word" ? "[Hidden]" : `[${f.label} removed]`;
+
 /**
  * `text` with every finding `masked` accepts replaced by its placeholder.
- * Where masked spans overlap, a key wins over an identifier, then the earlier
- * span. A replaced span keeps its line breaks, so line numbers still match.
+ * Masked spans that overlap are replaced as their union, once, under the
+ * placeholder of the highest tier (key, then the user's word, then an
+ * identifier), so no character of any masked span is left. A replaced span
+ * keeps its line breaks, so line numbers still match.
  */
 export function maskFindings(text: string, findings: Finding[], masked: (f: Finding) => boolean): string {
   // Linear after the sort: a contact list can hold 100k emails, so no pairwise
   // overlap check and no string rebuilt per finding.
-  const byStart = (a: Finding, b: Finding) => a.start - b.start;
-  const sweep = (list: Finding[]) => {
-    const kept: Finding[] = [];
-    for (const f of list.sort(byStart)) if (!kept.length || f.start >= kept[kept.length - 1].end) kept.push(f);
-    return kept;
-  };
-  const wanted = findings.filter(masked);
-  const keys = sweep(wanted.filter((f) => f.category === "key"));
-  const ids: Finding[] = [];
-  let k = 0;
-  for (const f of sweep(wanted.filter((f) => f.category !== "key"))) {
-    while (k < keys.length && keys[k].end <= f.start) k++;
-    if (k < keys.length && keys[k].start < f.end) continue;
-    ids.push(f);
-  }
-
+  const wanted = findings.filter(masked).sort((a, b) => a.start - b.start);
   const parts: string[] = [];
   let at = 0;
-  for (const f of [...keys, ...ids].sort(byStart)) {
-    const breaks = text.slice(f.start, f.end).match(/\r\n|\r|\n/g)?.join("") ?? "";
-    parts.push(text.slice(at, f.start), f.category === "key" ? `[Secret removed: ${f.label}]` : `[${f.label} removed]`, breaks);
-    at = f.end;
+  for (let i = 0; i < wanted.length; ) {
+    let top = wanted[i];
+    let end = top.end;
+    const start = top.start;
+    for (i++; i < wanted.length && wanted[i].start < end; i++) {
+      end = Math.max(end, wanted[i].end);
+      if (TIER[wanted[i].category] < TIER[top.category]) top = wanted[i];
+    }
+    const breaks = text.slice(start, end).match(/\r\n|\r|\n/g)?.join("") ?? "";
+    parts.push(text.slice(at, start), placeholder(top), breaks);
+    at = end;
   }
   parts.push(text.slice(at));
   return parts.join("");

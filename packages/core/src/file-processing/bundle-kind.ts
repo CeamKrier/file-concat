@@ -48,6 +48,16 @@ function classifyFile(path: string): Bucket {
 }
 
 /**
+ * Whether the send check looks for emails, IBANs, SSNs and cards in this file:
+ * documents, plus the data files that hold contact and payment lists. Code,
+ * config and unknown files are left out, where an email is a package author or
+ * a LICENSE line and a long number is an id.
+ */
+export function isDocumentPath(path: string): boolean {
+  return classifyFile(path) === "doc" || /\.(csv|tsv|vcf)$/i.test(path);
+}
+
+/**
  * Decide a bundle's kind from its file paths. Pure and deterministic — a
  * function of the set alone, with no clock, randomness, or order-dependence, so
  * the same folder always yields the same tag (ADR-0001, ADR-0005). The tag is

@@ -78,7 +78,7 @@ export {
 } from "./unreadable-reason";
 export type { UnreadableReason } from "./unreadable-reason";
 export type { ExcludedSummary, ExclusionInput } from "./exclusions";
-export { classifyBundleKind } from "./bundle-kind";
+export { classifyBundleKind, isDocumentPath } from "./bundle-kind";
 export { isEncryptedContainer, epubEncryptedPaths } from "./encrypted";
 export type { BundleKind } from "./bundle-kind";
 export * from "./identifiers";

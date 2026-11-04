@@ -3,13 +3,15 @@
  * match needs no model and no guess (Q145 O1). Names, addresses and anything
  * else that takes context to see are out of scope on purpose.
  *
- * Algorithms follow python-stdnum (tr/tckimlik.py, tr/vkn.py, iban.py). IBAN
- * lengths come from the SWIFT IBAN registry v101 through stdnum's iban.dat.
- * Payment cards are left out: on the 2026-11-04 corpora every Luhn-valid match
- * was a decimal, a DOI or an id, none a card.
+ * IBAN follows python-stdnum (iban.py), with lengths from the SWIFT IBAN
+ * registry v101 through stdnum's iban.dat. A US SSN and a payment card are
+ * taken only next to their label: on the 2026-11-04 corpora every unlabelled
+ * Luhn-valid run (11,212 in 66 documents) and every dashed SSN shape (3) was a
+ * decimal, a DOI, a table number or another country's id, and no labelled one
+ * was false.
  */
 
-export type IdentifierKind = "email" | "iban" | "tckn" | "vkn";
+export type IdentifierKind = "email" | "iban" | "ssn" | "card";
 
 export interface IdentifierMatch {
   kind: IdentifierKind;
@@ -45,26 +47,21 @@ export function ibanValid(compact: string): boolean {
   return rest === 1;
 }
 
-/** Turkish identity number: 11 digits, no leading zero, two check digits. */
-export function tcknValid(digits: string): boolean {
-  if (!/^[1-9]\d{10}$/.test(digits)) return false;
-  const d = [...digits].map(Number);
-  let weighted = 0;
-  for (let i = 0; i < 9; i++) weighted += d[i] * (i % 2 === 0 ? 3 : 1);
-  const check1 = (((10 - weighted) % 10) + 10) % 10;
-  const check2 = (check1 + d.slice(0, 9).reduce((a, b) => a + b, 0)) % 10;
-  return d[9] === check1 && d[10] === check2;
+/** US SSN as the SSA issues it: area not 000, 666 or 900-999, group not 00, serial not 0000. */
+export function ssnValid(digits: string): boolean {
+  return /^(?!000|666|9)\d{3}(?!00)\d{2}(?!0000)\d{4}$/.test(digits);
 }
 
-/** Turkish tax number: 10 digits, one check digit. */
-export function vknValid(digits: string): boolean {
-  if (!/^\d{10}$/.test(digits)) return false;
+/** Luhn over 13 to 19 digits (ISO/IEC 7812). */
+export function luhnValid(digits: string): boolean {
+  if (!/^\d{13,19}$/.test(digits)) return false;
   let sum = 0;
-  for (let i = 1; i <= 9; i++) {
-    const c1 = (Number(digits[9 - i]) + i) % 10;
-    if (c1) sum += (c1 * 2 ** i) % 9 || 9;
+  for (let i = 0; i < digits.length; i++) {
+    let n = Number(digits[digits.length - 1 - i]);
+    if (i % 2) n = n > 4 ? n * 2 - 9 : n * 2;
+    sum += n;
   }
-  return (((10 - sum) % 10) + 10) % 10 === Number(digits[9]);
+  return sum % 10 === 0;
 }
 
 // A file extension after the @ is an asset name such as icon@2x.png, not a mailbox.
@@ -73,9 +70,13 @@ const NOT_A_TLD = new Set(["png", "jpg", "jpeg", "gif", "svg", "webp", "avif", "
 // a run, so a long run of letters is scanned once, not once per position.
 const EMAIL = /(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]{1,64}@(?:[A-Za-z0-9-]{1,63}\.){1,8}([A-Za-z]{2,24})(?![A-Za-z0-9-])/g;
 const IBAN_START = /(?<![A-Za-z0-9])[A-Z]{2}\d{2}(?=[ ]?[A-Z0-9])/g;
-const TEN_OR_ELEVEN = /(?<![\w./=?#,-])\d{10,11}(?![\w-]|[.,]\d)/g;
-// One random 10-digit number in ten passes the VKN check, so a VKN needs its label nearby.
-const VKN_LABEL = /(?:vkn|vergi\s*(?:kimlik\s*)?(?:no|numaras)|tax\s*(?:id|no))[^\d\n]{0,12}$/i;
+// Digit runs that stand alone: not inside a word, a path, a URL query or a decimal.
+const SSN_SHAPE = /(?<![\w./=?#,-])\d{3}([- ]?)\d{2}\1\d{4}(?![\w-]|[.,]\d)/g;
+const CARD_SHAPE = /(?<![\w./=?#,-])\d(?:[ -]?\d){12,18}(?![\w-]|[.,]\d)/g;
+// The label must sit just before the number, on the same line.
+const SSN_LABEL = /(?:\bssn|\bsocial\s+security(?:\s+(?:number|no\.?|#))?|\bss#)[^\d\n]{0,12}$/i;
+const CARD_LABEL = /(?:\bcard|\bcredit|\bdebit|\bvisa|\bmastercard|\bamex|\bamerican\s+express)[^\d\n]{0,20}$/i;
+const labelled = (text: string, at: number, label: RegExp) => label.test(text.slice(Math.max(0, at - 40), at));
 
 /** Every exact identifier in `text`, in order of position. */
 export function findIdentifiers(text: string): IdentifierMatch[] {
@@ -104,10 +105,18 @@ export function findIdentifiers(text: string): IdentifierMatch[] {
     }
   }
 
-  for (const m of text.matchAll(TEN_OR_ELEVEN)) {
-    const labelled = () => VKN_LABEL.test(text.slice(Math.max(0, m.index - 40), m.index));
-    const kind = m[0].length === 11 ? (tcknValid(m[0]) ? "tckn" : null) : vknValid(m[0]) && labelled() ? "vkn" : null;
-    if (kind) out.push({ kind, start: m.index, end: m.index + m[0].length, value: m[0] });
+  for (const m of text.matchAll(SSN_SHAPE)) {
+    const digits = m[0].replace(/\D/g, "");
+    if (ssnValid(digits) && labelled(text, m.index, SSN_LABEL)) {
+      out.push({ kind: "ssn", start: m.index, end: m.index + m[0].length, value: digits });
+    }
+  }
+
+  for (const m of text.matchAll(CARD_SHAPE)) {
+    const digits = m[0].replace(/\D/g, "");
+    if (luhnValid(digits) && labelled(text, m.index, CARD_LABEL)) {
+      out.push({ kind: "card", start: m.index, end: m.index + m[0].length, value: digits });
+    }
   }
 
   return out.sort((a, b) => a.start - b.start);

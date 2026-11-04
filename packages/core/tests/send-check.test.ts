@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { KEY_RULES, findSensitive, maskFindings, type Finding } from "../src/file-processing/send-check";
+import {
+  HIDE_LIMITS,
+  KEY_RULES,
+  findSensitive,
+  findWords,
+  hideList,
+  maskFindings,
+  type Finding,
+} from "../src/file-processing/send-check";
 
 // Every key-shaped string here is assembled at runtime from parts and a seeded
 // generator, so the repository never holds one (GitHub push protection).
@@ -161,6 +169,26 @@ describe("maskFindings", () => {
     expect(maskFindings(text, [email, key], all)).toBe("postg[Secret removed: database password]@db");
   });
 
+  it("masks the union of spans that overlap in part, so neither leaks a character", () => {
+    const text = "user=jane.doe@example.org:s3cretpass@db rest";
+    const email: Finding = { kind: "email", category: "identifier", label: "Email", start: 5, end: 25, value: "jane.doe@example.org" };
+    const key: Finding = { kind: "connection-string", category: "key", label: "database password", start: 14, end: 36, value: "x" };
+    const word: Finding = { kind: "word", category: "word", label: "Hidden", start: 30, end: 39, value: "x" };
+    expect(maskFindings(text, [email, key, word], all)).toBe("user=[Secret removed: database password] rest");
+    expect(maskFindings(text, [email, word], all)).toBe("user=[Email removed]:s3cr[Hidden] rest");
+    // Same tier, in part: the later span used to be dropped whole.
+    const a: Finding = { ...key, start: 5, end: 20 };
+    const b: Finding = { ...key, start: 11, end: 28 };
+    expect(maskFindings(text, [a, b], all)).toBe("user=[Secret removed: database password]cretpass@db rest");
+  });
+
+  it("masks labelled SSNs and cards with their own label", () => {
+    const text = "SSN: 123-45-6789\nVisa card 4111 1111 1111 1111";
+    expect(maskFindings(text, findSensitive(text, { identifiers: true }), all)).toBe(
+      "SSN: [SSN removed]\nVisa card [Card number removed]",
+    );
+  });
+
   it("masks a 100k-address contact list in linear time", () => {
     const text = Array.from({ length: 100_000 }, (_, i) => `person${i}@example.org`).join("\n");
     const findings = findSensitive(text, { identifiers: true });
@@ -174,5 +202,42 @@ describe("maskFindings", () => {
   it("masks identifiers with their own label", () => {
     const text = "IBAN TR33 0006 1005 1978 6457 8413 26.";
     expect(maskFindings(text, findSensitive(text, { identifiers: true }), all)).toBe("IBAN [IBAN removed].");
+  });
+});
+
+describe("findWords", () => {
+  const hide = (text: string, entries: string[]) => maskFindings(text, findWords(text, hideList(entries)), () => true);
+
+  it("hides whole words, case ignored, in every place they stand", () => {
+    expect(hide("Acme signed. ACME's lawyer, acme-corp, Acmeville.", ["acme"])).toBe(
+      "[Hidden] signed. [Hidden]'s lawyer, [Hidden]-corp, Acmeville.",
+    );
+  });
+
+  it("matches several words across whitespace and line breaks, keeping the breaks", () => {
+    expect(hide("Dear Jane\r\nDoe, Jane Smith", ["Jane Doe"])).toBe("Dear [Hidden]\r\n, Jane Smith");
+    // The longer entry wins where two start on the same word.
+    expect(hide("Jane Doe Jr", ["Jane", "Jane Doe Jr"])).toBe("[Hidden]");
+  });
+
+  it("matches letters outside ASCII as words", () => {
+    expect(hide("Herr Müller und Øyvind, Müllerstraße", ["müller", "Øyvind"])).toBe(
+      "Herr [Hidden] und [Hidden], Müllerstraße",
+    );
+  });
+
+  it("ignores entries with no letters or digits, and caps the list", () => {
+    expect(hideList([" ", "--", ""]).size).toBe(0);
+    expect(hideList(Array.from({ length: 500 }, (_, i) => `w${i}`)).size).toBe(HIDE_LIMITS.entries);
+  });
+
+  it("matches 2,000 words over 20 MB in linear time", () => {
+    const words = Array.from({ length: 2_000 }, (_, i) => `name${i}`);
+    const text = "lorem ipsum dolor sit amet name7 ".repeat(620_000); // about 20 MB
+    const list = hideList(words.slice(0, HIDE_LIMITS.entries));
+    const t0 = performance.now();
+    const found = findWords(text, list);
+    expect(performance.now() - t0).toBeLessThan(3_000);
+    expect(found.length).toBe(620_000);
   });
 });

@@ -1,15 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { findIdentifiers, ibanValid, tcknValid, vknValid } from "../src/file-processing/identifiers";
+import { findIdentifiers, ibanValid, luhnValid, ssnValid } from "../src/file-processing/identifiers";
 
 const kinds = (text: string) => findIdentifiers(text).map((m) => `${m.kind}:${text.slice(m.start, m.end)}`);
 
 describe("checksums", () => {
-  it("match python-stdnum's documented examples", () => {
-    expect(tcknValid("17291716060")).toBe(true);
-    expect(tcknValid("17291716061")).toBe(false);
-    expect(tcknValid("07291716060")).toBe(false);
-    expect(vknValid("4540536920")).toBe(true);
-    expect(vknValid("4540536921")).toBe(false);
+  it("apply the SSA's SSN rules and Luhn", () => {
+    expect(ssnValid("123456789")).toBe(true);
+    for (const bad of ["000456789", "666456789", "912456789", "123006789", "123450000", "12345678"]) {
+      expect(ssnValid(bad)).toBe(false);
+    }
+    // Published test numbers (Visa, Mastercard, Amex), never issued.
+    expect(luhnValid("4111111111111111")).toBe(true);
+    expect(luhnValid("5555555555554444")).toBe(true);
+    expect(luhnValid("378282246310005")).toBe(true);
+    expect(luhnValid("4111111111111112")).toBe(false);
+    expect(luhnValid("411111111111")).toBe(false);
   });
 
   it("validate IBAN length and mod 97", () => {
@@ -25,17 +30,35 @@ describe("checksums", () => {
 describe("findIdentifiers", () => {
   it("finds each kind with its span", () => {
     const text =
-      "Mail ayse@ornek.com.tr, IBAN TR33 0006 1005 1978 6457 8413 26 BIC, TCKN 17291716060, VKN 4540536920.";
+      "Mail jane@example.co.uk, IBAN GB82 WEST 1234 5698 7654 32 BIC, SSN: 123-45-6789, Visa card 4111 1111 1111 1111.";
     expect(kinds(text)).toEqual([
-      "email:ayse@ornek.com.tr",
-      "iban:TR33 0006 1005 1978 6457 8413 26",
-      "tckn:17291716060",
-      "vkn:4540536920",
+      "email:jane@example.co.uk",
+      "iban:GB82 WEST 1234 5698 7654 32",
+      "ssn:123-45-6789",
+      "card:4111 1111 1111 1111",
     ]);
   });
 
   it("skips asset names, failed checksums and digits inside longer tokens", () => {
-    expect(kinds("logo@2x.png a17291716060 17291716060b 1729171606.05 4540536920-1")).toEqual([]);
+    expect(kinds("logo@2x.png SSN a123456789 SSN 123456789b card 4111111111111111.5 card 4111111111111111-1")).toEqual([]);
+  });
+
+  it("takes an SSN or a card only next to its label", () => {
+    expect(kinds("Ref 123-45-6789, order 4111 1111 1111 1111")).toEqual([]);
+    expect(kinds("Social Security Number: 123 45 6789")).toEqual(["ssn:123 45 6789"]);
+    expect(kinds("Credit card no. 5555-5555-5555-4444")).toEqual(["card:5555-5555-5555-4444"]);
+    // Mixed separators are not one SSN; a failed Luhn is not a card.
+    expect(kinds("SSN 123-45 6789, card 4111 1111 1111 1112")).toEqual([]);
+    // The label must be on the same line.
+    expect(kinds("SSN\n123-45-6789")).toEqual([]);
+  });
+
+  it("scans long digit runs in linear time", () => {
+    for (const run of ["1".repeat(1_000_000), "1 ".repeat(500_000), "card 1-".repeat(150_000)]) {
+      const t0 = performance.now();
+      findIdentifiers(run);
+      expect(performance.now() - t0).toBeLessThan(150);
+    }
   });
 
   it("scans a long run of letters in linear time", () => {
@@ -43,12 +66,6 @@ describe("findIdentifiers", () => {
     const t0 = performance.now();
     findIdentifiers(run + "@" + run);
     expect(performance.now() - t0).toBeLessThan(100);
-  });
-
-  it("takes a VKN only next to its label", () => {
-    expect(kinds("ISBN 4540536920")).toEqual([]);
-    expect(kinds("Vergi No: 4540536920")).toEqual(["vkn:4540536920"]);
-    expect(kinds("VKN 4540536920")).toEqual(["vkn:4540536920"]);
   });
 
   it("does not stretch an IBAN into the next word", () => {
