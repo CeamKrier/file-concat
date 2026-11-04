@@ -8,6 +8,7 @@ import {
   Copy,
   Download,
   FilePlus,
+  FileText,
   FileX2,
   Filter,
   FolderOpen,
@@ -36,6 +37,7 @@ import type { BundleWeight } from "~/lib/bundle-weight";
 import type { PrunedAtDoor } from "~/lib/prune-at-door";
 import { ReadingBar, type ReadingBarProps } from "./reading-bar";
 import { SegmentedControl } from "./segmented-control";
+import { SendCheck, type SendCheckProps } from "./send-check";
 
 type OutputStyle = "xml" | "markdown" | "plain";
 type SplitMode = "single" | "multi";
@@ -85,6 +87,8 @@ type ResultViewProps = {
   flaggedFiles: { name: string; why?: string; action?: ReactNode }[];
   /** Included files whose text was extracted from a document (PDF/Office/ODF). */
   extractedFiles: string[];
+  /** The send check (K1): keys removed, kinds listed, files not yet checked. */
+  sendCheck?: SendCheckProps;
   /** Included documents that lost whole pages on the way out, and what is missing. */
   partialDocuments: UnsupportedFile[];
   /** Every document in this Run that opened with no text in it, recovered or not. */
@@ -202,6 +206,7 @@ export function ResultView({
   splitMode,
   onSplitModeChange,
   onFeedback,
+  sendCheck,
 }: ResultViewProps) {
   // A hidden input behind a real button, the same idiom the drop zone uses: the
   // native file picker with a label we control.
@@ -442,6 +447,34 @@ export function ResultView({
           ? `${first} was read because you dropped it, though inside a project it is skipped.`
           : `${pruned.roots.join(", ")} were read because you dropped them, though inside a project they are skipped.`,
       body: "A folder with this name is never opened when it sits inside something you drop: dependencies, build output, a cache. Dropped on its own it is what you chose, so it is read in full.",
+    });
+  }
+
+  // Q164 O1: a static fact, never a per-bundle estimate. The K5 measurement is
+  // a distribution over other people's PDFs, and a number computed for this
+  // bundle from it would read as a promise. Opens in a new tab so the bundle
+  // on this screen survives the click.
+  if (extractedFiles.some((name) => name.toLowerCase().endsWith(".pdf"))) {
+    rows.push({
+      key: "pdf-cost",
+      kind: "note",
+      icon: FileText,
+      title: "As text, a PDF usually costs Claude far fewer tokens than the upload.",
+      body: (
+        <>
+          Through Claude's API an uploaded PDF also carries an image of every page. On 165 real PDFs
+          the text cost about a third. Upload the PDF itself when the answer is in a chart or a
+          picture.{" "}
+          <a
+            href="/blog/how-many-tokens-is-a-pdf-in-claude"
+            target="_blank"
+            rel="noopener"
+            className="text-go-fg whitespace-nowrap underline underline-offset-4"
+          >
+            How we counted
+          </a>
+        </>
+      ),
     });
   }
 
@@ -725,6 +758,9 @@ export function ResultView({
       {/* Between the export and the preview, because what a pass reads lands
           in both: the button takes it and the preview shows it. */}
       <ReadingBar {...reading} className="mt-4" />
+
+      {/* Under the export, before the preview: what it masks lands in both. */}
+      {sendCheck && <SendCheck {...sendCheck} className="mt-4" />}
 
       {/* Directly under the export block, because the Format control up
           there is what changes it. A setting whose effect is a screen away

@@ -9,8 +9,13 @@ import {
   formatSize,
   generateFileTree,
   generateProjectName,
+  findWords,
+  hideList,
+  maskPath,
+  maskWords,
   summarizeExclusions,
   type AssembleOutputOptions,
+  type Finding,
   type ExcludedSummary,
   type OutputStyle,
 } from "@fileconcat/core";
@@ -53,6 +58,7 @@ import {
 import { MarketingSections, SiteFooter } from "./marketing";
 
 import { TopBar } from "./top-bar";
+import { LISTED, checkEntries, maskEntry, renameExcluded, summarizeCheck, type CheckedFile } from "./send-check";
 import { LandingHero } from "./landing-hero";
 import type { DropZoneProps } from "./drop-zone";
 import type { ImportState } from "./import-panel";
@@ -224,17 +230,116 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   const deferred = useDeferredValue(live);
   const settled = deferred.entries === live.entries ? deferred : live;
   const settledStatuses = settled.statuses;
-  const includedContents = useMemo(() => {
+  // The send check (K1). It runs here, on whatever text each included file has
+  // now, because text lands through several paths after the result shows (a
+  // reading pass, a guess put in, Add files, a clipper push) and every export
+  // reads `includedContents`. Findings are cached per path and reused only
+  // while the text is the same string; the map is rebuilt each time, so it
+  // holds this bundle's included files and nothing older.
+  const checkCache = useRef(new Map<string, CheckedFile>());
+  const checked = useMemo(() => {
     const included = new Set(settledStatuses.filter((s) => s.included).map((s) => s.path));
+    checkCache.current = checkEntries(settled.entries, included, checkCache.current);
+    return checkCache.current;
+  }, [settled.entries, settledStatuses]);
+  // Keys the user chose to send as written, by finding id, never by category,
+  // so a key that lands later is masked (SG2). Database passwords in a
+  // connection string and identifiers in documents are listed, not masked,
+  // until the user masks their kind. The "always hide" words are masked
+  // everywhere. None of it is persisted; Start over clears all three.
+  const [keptKeys, setKeptKeys] = useState<ReadonlySet<string>>(() => new Set());
+  const [maskedKinds, setMaskedKinds] = useState<ReadonlySet<string>>(() => new Set());
+  const [hideEntries, setHideEntries] = useState<string[]>([]);
+  const hideWords = useMemo(() => hideList(hideEntries), [hideEntries]);
+  // Outside the per-file cache: it depends on the list as well as the text.
+  const hidden = useMemo(() => {
+    const out = new Map<string, Finding[]>();
+    if (hideWords.size === 0) return out;
+    for (const e of settled.entries) if (checked.has(e.path)) out.set(e.path, findWords(e.content, hideWords));
+    return out;
+  }, [settled.entries, checked, hideWords]);
+
+  const includedContents = useMemo(() => {
     const transform = config.showLineNumbers ? addLineNumbers : null;
+    // Masked on the raw text, before line numbers, which renumber CRLF.
     return settled.entries
-      .filter((e) => included.has(e.path))
-      .map((e) => ({
-        path: e.path,
-        content: transform ? transform(e.content) : e.content,
-        recognised: e.recognised,
-      }));
-  }, [settled.entries, settledStatuses, config.showLineNumbers]);
+      .filter((e) => checked.has(e.path))
+      .map((e) => {
+        const raw = maskEntry(e.path, e.content, checked.get(e.path), keptKeys, maskedKinds, hidden.get(e.path));
+        return { path: e.path, content: transform ? transform(raw) : raw, recognised: e.recognised };
+      });
+  }, [settled.entries, checked, keptKeys, maskedKinds, hidden, config.showLineNumbers]);
+
+  const sendCheck = useMemo(() => summarizeCheck(checked), [checked]);
+  const hiddenPlaces = useMemo(() => [...hidden.values()].reduce((n, f) => n + f.length, 0), [hidden]);
+  // Review comments a reader kept in the text: listed, nothing to mask.
+  const comments = useMemo(() => {
+    const out = { count: 0, files: [] as string[] };
+    for (const [path, v] of Object.entries(ingestion.validations)) {
+      if (!checked.has(path)) continue;
+      const n = v.notes?.find((note) => note.kind === "comments-included")?.count ?? 0;
+      if (n === 0) continue;
+      out.count += n;
+      out.files.push(path.split("/").pop() ?? path);
+    }
+    return out;
+  }, [ingestion.validations, checked]);
+
+  // `send_check`, once per Run per value: which kinds a bundle had and what was
+  // done about them, never a value, a provider or a file (spec, Counter).
+  const checkSent = useRef<{ run: number | null; values: Set<string> }>({ run: null, values: new Set() });
+  const trackCheck = useCallback((value: string) => {
+    const run = currentRun();
+    if (checkSent.current.run !== run) checkSent.current = { run, values: new Set() };
+    if (checkSent.current.values.has(value)) return;
+    checkSent.current.values.add(value);
+    track("send_check", value);
+  }, []);
+  useEffect(() => {
+    if (phase !== "result") return;
+    if (sendCheck.keys.length > 0) trackCheck("found-key");
+    for (const l of LISTED) if (sendCheck.listed.get(l.kind)?.count) trackCheck(`found-${l.value}`);
+    if (comments.count > 0) trackCheck("found-comment");
+    // That the list was used, never its words or how many.
+    if (hideEntries.length > 0) trackCheck("hid-words");
+  }, [phase, sendCheck, comments, hideEntries, trackCheck]);
+
+  const sendCheckProps = {
+    keys: sendCheck.keys,
+    kept: keptKeys,
+    onKeep: (ids: string[]) => {
+      setKeptKeys((prev) => new Set([...prev, ...ids]));
+      trackCheck("kept-key");
+    },
+    onRemove: (ids: string[]) =>
+      setKeptKeys((prev) => new Set([...prev].filter((id) => !ids.includes(id)))),
+    listed: LISTED.map((l) => ({
+      kind: l.kind,
+      noun: l.noun,
+      count: sendCheck.listed.get(l.kind)?.count ?? 0,
+      files: sendCheck.listed.get(l.kind)?.files ?? [],
+      masked: maskedKinds.has(l.kind),
+      onToggle: () => {
+        const masking = !maskedKinds.has(l.kind);
+        setMaskedKinds((prev) => {
+          const next = new Set(prev);
+          if (masking) next.add(l.kind);
+          else next.delete(l.kind);
+          return next;
+        });
+        if (masking) trackCheck(`masked-${l.value}`);
+      },
+    })),
+    comments,
+    hide: {
+      entries: hideEntries,
+      places: hiddenPlaces,
+      // The same list again (a blur with nothing typed) keeps the old array, so nothing re-matches.
+      onCommit: (next: string[]) => setHideEntries((prev) => (prev.join("\n") === next.join("\n") ? prev : next)),
+    },
+    pending: ingestion.pendingReads.length,
+    failed: sendCheck.failed,
+  };
 
   // Real content gaps the model can't see in the tree (ADR-0008). Reported in
   // the bundle summary; noise and user-deselected files are never listed.
@@ -261,15 +366,24 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   useEffect(() => {
     void preloadTokenEstimator().then(() => setEstimatorReady(true));
   }, []);
+  // What leaves, as opposed to what the screen shows: hidden words are masked
+  // in every path and in the source address too, so they reach neither the
+  // file tags, the tree, the project name, the notes nor a download's name.
+  // The screen keeps the real names; it is the user's own view.
+  const sent = useMemo(() => {
+    if (hideWords.size === 0) return { contents: includedContents, excluded, source: ingestion.sourceUrl };
+    const rename = (path: string) => maskPath(path, hideWords);
+    return {
+      // ponytail: two paths that mask to the same name stay two entries under one name.
+      contents: includedContents.map((f) => ({ ...f, path: rename(f.path) })),
+      excluded: renameExcluded(excluded, rename),
+      source: ingestion.sourceUrl && maskWords(ingestion.sourceUrl, hideWords),
+    };
+  }, [includedContents, excluded, ingestion.sourceUrl, hideWords]);
+
   const bundle = useMemo(
-    () =>
-      bundleOptions(
-        includedContents,
-        config.outputStyle,
-        ingestion.sourceUrl ?? undefined,
-        excluded,
-      ),
-    [includedContents, config.outputStyle, ingestion.sourceUrl, excluded],
+    () => bundleOptions(sent.contents, config.outputStyle, sent.source ?? undefined, sent.excluded),
+    [sent, config.outputStyle],
   );
 
   // Only the head is shown, so only the head is assembled (see
@@ -295,10 +409,10 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   }, [bundle, estimatorReady]);
 
   const output = useOutputGeneration({
-    includedContents,
-    excluded,
+    includedContents: sent.contents,
+    excluded: sent.excluded,
     tokens,
-    sourceUrl: ingestion.sourceUrl,
+    sourceUrl: sent.source,
     outputStyle: config.outputStyle,
     formatPreference: config.defaultOutputFormat,
     chunkSizeKB: config.chunkSizeKB,
@@ -845,6 +959,9 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     setResultNote(null);
     setImportUrl("");
     setImportError(null);
+    setKeptKeys(new Set());
+    setMaskedKinds(new Set());
+    setHideEntries([]);
   }, [ingestion, filter, output, filesOpen, closeFiles]);
 
   const onDrop = useCallback(
@@ -1091,6 +1208,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               skippedByDefault={skippedByDefault}
               flaggedFiles={flaggedFiles}
               extractedFiles={extractedFiles}
+              sendCheck={sendCheckProps}
               partialDocuments={partialDocuments}
               scannedDocumentCount={
                 ingestion.scannedDocuments.length - recognition.imageCount - recognition.mediaCount

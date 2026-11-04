@@ -72,6 +72,12 @@ function Hero({ dropProps, linkImport }: LandingProps) {
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[17px] leading-relaxed">
             Claude takes {CHAT_FILE_CAP} files per chat. A whole folder here is one of them.
           </p>
+
+          {/* Q164 O1: the one rounded K5 figure, scoped to the API it was counted on. */}
+          <p className="text-ink-muted mt-3 max-w-[52ch] text-[14px] leading-relaxed">
+            A PDF pasted as text costs about a third of the tokens the PDF does through Claude's API.{" "}
+            <ProseLink to="/blog/how-many-tokens-is-a-pdf-in-claude">We counted 195 real PDFs.</ProseLink>
+          </p>
         </div>
 
         <div className="min-w-0">

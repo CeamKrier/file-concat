@@ -1,0 +1,143 @@
+---
+title: "Send check - which keys, passwords and personal numbers FileConcat removes before you paste"
+description: "Before you copy or download a bundle, FileConcat checks it in your browser for API keys, tokens, private keys, database passwords, and the emails, IBANs, card and phone numbers in documents. What it removes, what it only lists, how to hide names, and what it does not check."
+---
+
+# Send check
+
+When your bundle is ready, FileConcat checks the text of every file in it for keys, passwords and
+a few kinds of personal numbers before anything leaves the page. A key it recognises is replaced in the bundle, so Copy, Download,
+Share, the split parts, the preview and the token count all carry the replaced text. The check runs
+in your browser, like the rest of FileConcat. Your files are not uploaded to us.
+
+The result screen shows what happened under the export card, in a block called "Checked before you
+send". A bundle with nothing found shows one line instead: "No keys or passwords found. Names and
+addresses are not checked."
+
+## What is removed by default
+
+Each of these is replaced with a placeholder that names what was there. The rules are ported from
+[gitleaks](https://github.com/gitleaks/gitleaks) (MIT), with its keyword checks, its minimum
+randomness for each key and its allowlists, so a string that only looks like a key, such as
+`AKIAIOSFODNN7EXAMPLE` from AWS's own documentation, stays as it is.
+
+<SendCheckRules />
+
+## What the bundle says instead
+
+Only the secret is replaced. The quotes, the variable name and the rest of the line stay, so the
+model still sees that a key was configured and where:
+
+```ts
+export const github = "[Secret removed: GitHub token]";
+```
+
+A private key that spans many lines becomes one placeholder followed by the same number of line
+breaks, so with line numbers turned on, line 40 in the bundle is still line 40 in your file.
+How Repomix, gitingest and code2prompt handle the same key is measured in
+[Repomix vs gitingest vs code2prompt](/blog/repomix-vs-gitingest-vs-code2prompt).
+
+## Database passwords are listed, not removed
+
+A connection string with a password in it, such as `postgres://app:...@db:5432/app`, is named in
+the block with a **Mask** button rather than replaced, because most of the ones found in real
+repositories are examples or test values. Mask replaces only the password: user, host and database
+stay readable.
+
+```yaml
+DATABASE_URL: postgres://app:[Secret removed: database password]@db:5432/app
+```
+
+A password that is plainly a placeholder is never listed: a template such as `${DB_PASSWORD}` or
+`<password>`, and words such as `password`, `secret`, `changeme` or `example`.
+
+## Emails, IBANs, card and phone numbers in documents
+
+In documents, FileConcat also looks for the identifiers that are exact enough to find without
+guessing. Each kind gets its own row with a **Mask** button, and none is masked until you press it,
+because a bundle of contracts or invoices is often meant to carry them.
+
+| Kind | Found when | Replaced with |
+| --- | --- | --- |
+| Email | an address with a real domain ending; `logo@2x.png` is not one | `[Email removed]` |
+| IBAN | the country's length and the IBAN check digits both hold | `[IBAN removed]` |
+| US social security number | it follows "SSN" or "social security" on the same line and is a number the US could issue | `[SSN removed]` |
+| Card number | it follows "card", "credit", "debit", "Visa", "Mastercard" or "Amex" on the same line and its check digit holds | `[Card number removed]` |
+| Phone number | it comes right after "phone", "tel", "mobile", "cell", "fax" or "call" on the same line and has 7 to 15 digits | `[Phone number removed]` |
+
+Documents here are PDFs, Word, Excel, PowerPoint, OpenDocument and RTF files, ebooks, emails,
+subtitles, Markdown and plain text, and CSV, TSV and vCard files, where a contact list usually is. Code and
+config files are not searched for these, because an email in code is mostly a package author or a
+licence line.
+
+An SSN or card number needs its label because 9 to 19 digits in a row are mostly something else.
+We ran the check over 2,277 public documents and 60 code repositories: a card-shaped number with
+no label matched more than 14,000 times, all of them ids, DOIs and table numbers, and a labelled
+one matched none of them. A phone number needs its label for the same reason: without one, the
+phone-shaped numbers in those documents were mostly table and course numbers, and with one, 40 of
+40 we read were phones.
+
+## Hiding names and other words
+
+Names, client names and project code names have no shape a check can find, so you list them. **Hide
+names** opens a field under "Always hide these words". Separate entries with commas or new lines;
+an entry can be several words, such as `Jane Doe`. Press Enter or click away to apply the list.
+
+Every place an entry stands as whole words is replaced with `[Hidden]`, in every file, code included,
+with capitals ignored. `Jane` hides "jane" and "JANE" but not "Janet". The bundle's file and
+folder names, its file tree, its project name, the name of a downloaded file and the source address
+are masked the same way; the extension stays, so `Acme Corp/acme-q3.pdf` goes out as
+`[Hidden]/[Hidden]-q3.pdf`. The result screen keeps the real names, since only you see it. The block says how many places
+were hidden. The list is held in memory for this bundle only: it is not saved on your device, never
+sent anywhere, and **Start over** forgets it.
+
+When a hidden word overlaps a key or a masked identifier, the whole stretch is replaced once, so
+no part of either is left.
+
+## Review comments
+
+Office documents, RTF files and PDFs can carry review comments, which the readers keep in the text. The
+block names them, as in "12 review comments, in q3-report.docx", so a comment you forgot about does
+not reach the model unseen. There is nothing to mask: delete them in the document if they should
+not go.
+
+## Keeping a key
+
+A key the model needs, such as a test token in a fixture, can be sent as written. **Keep
+originals** keeps every key on screen, and **Show each** lists them one by one with their file and
+line, each with its own **Keep**. **Remove again** undoes it.
+
+A choice covers the keys you saw when you made it. A key that arrives later, from a file you add or
+a scan that finishes reading, is removed like any other. **Start over** clears every choice, and
+none of them is stored on your device or sent anywhere.
+
+## While files are still being read
+
+Scanned pages and recordings get their text after the result screen shows. Each file is checked
+when its text lands, and until then the block says "Still reading 2 files. They are checked when
+their text lands." instead of the nothing-found line. A file the check fails on is named ("Could
+not check notes.pdf.") and goes into the bundle as it is.
+
+## What is not checked
+
+- Names and addresses, unless you list them to hide.
+- Keys, passwords and the identifiers above in file and folder names: those are masked in the
+  text of a file only. Hidden words are masked in names too.
+- IP addresses, and ID, passport and tax numbers.
+- An SSN, a card number or a phone number with no label next to it, and any of the identifiers
+  above in a code or config file.
+- A key with no recognisable shape, such as `api_key = "..."` with a random value. A rule for
+  these finds far more ordinary strings than keys, so it is off.
+- A password that is not part of a connection string, and an `Authorization` header in a `curl`
+  example.
+- Text in an image or a scan that has not been read yet.
+- The repository address in the bundle header.
+
+Files whose names start with a dot, such as `.env`, are held back before the check runs; see
+[File filtering](/docs/file-filtering). A `.env` you tick back in is checked like any
+other file.
+
+The check removes what it recognises and says so. It does not make a bundle safe to share, and what
+you then paste into an assistant is your own choice. The [privacy page](/privacy) says what our
+anonymous counts record about the check: which kind was found, and whether it was kept or masked,
+never the finding itself or the file it was in, and that the hide list was used, never its words.

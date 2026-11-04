@@ -41,6 +41,7 @@ Pick on what you need in the bundle first, and on what it costs second.
 | --- | --- | --- |
 | the most of your own code for the tokens | FileConcat | the densest bundle on most repositories, and the cheapest on about half |
 | PDF, Word, Excel or PowerPoint files next to the code | FileConcat | the only one of the four that reads them |
+| a key in a file replaced, the rest of the file kept | FileConcat, in the browser | Repomix leaves the whole file out, the other two send the key |
 | tests and CI files in, without changing a setting | Repomix | keeps every test and hidden file, for about a fifth more tokens |
 | a Python toolchain | gitingest | close to the cheapest on most repositories; check what it skipped on large ones |
 | one binary, nothing to install | code2prompt | check its Markdown: a file's own code block can end that file early |
@@ -99,6 +100,27 @@ describe themselves as packing a codebase, and a PDF is not code. If your contex
 plus a spec, a contract or a paper, reading the document is the whole job.
 [What gets lost converting documents to text](/blog/what-gets-lost-converting-documents-to-text)
 measures how well we do it.
+
+## What happens to a key in your files
+
+A key that slips into a bundle goes wherever you paste it. The tools answer that differently,
+and only one of the answers keeps the file.
+
+We put a made-up GitHub token in `config.ts`, and a database password and an email in
+`setup.md`, then ran each tool at its defaults:
+
+| Tool | The key | The rest of the file |
+| --- | --- | --- |
+| FileConcat, in the browser | replaced; password and email listed to mask | kept |
+| Repomix | left out with the file | left out, with a warning |
+| gitingest | sent as written | kept |
+| code2prompt | sent as written | kept |
+
+Repomix runs Secretlint and leaves out any file it flags, so the code around the key goes too.
+FileConcat replaces only the key, so the model still reads
+`github = "[Secret removed: GitHub token]"` and everything else in the file. Our CLI does not
+run this check: it carries the key as written, like gitingest.
+[What the send check looks for](/docs/send-check) lists every rule, and what it does not check.
 
 ## What our defaults leave out
 
@@ -183,6 +205,14 @@ A tool is credited with a file only when the file's own first and last 200 chara
 bundle. A per-file marker alone is not enough. gitingest writes a `FILE:` line for 459 paths
 across the sample and then leaves them empty: binaries, fonts, archives and office files. A
 count of markers would have credited it with text it never wrote.
+
+The key test is one folder, not the sample, run on 2026-11-04: `src/main.ts`, `src/config.ts`
+holding a GitHub-shaped token, and `docs/setup.md` holding a connection string with a password
+and an email address. Every value was generated at random for the run, so none of them is real.
+Repomix 1.18.1, gitingest 0.3.1 and code2prompt 4.2.0 ran at their defaults, as did FileConcat
+2.13.0 in the browser, the first release with the check, and
+@fileconcat/cli 0.4.0. A value counts as sent when it appears anywhere in the bundle. Repomix
+reported two files left out for security, and its bundle held none of the three values.
 
 ## What the same repository costs
 
@@ -313,7 +343,8 @@ files.
 ## Where our own defaults cost you
 
 Our defaults are the most aggressive of the four and that is not free. Two things the other
-tools carry and we do not, each sized so you can decide.
+tools carry and we do not, each sized so you can decide. One thing runs only in the browser:
+the check that replaces keys. A CLI bundle carries a key as written.
 
 The first is tests. Since 2026-09-09 the default list drops test files by the naming convention
 of each ecosystem: `api.test.ts`, `handler_test.go`, `test_parser.py`, `parser_spec.rb`,

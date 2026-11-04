@@ -25,10 +25,13 @@ export function PrivacySection() {
       <StageRail />
       <div className="min-w-0">
         <BandIntro id="private-by-design" title="We don't upload your files.">
-          Read, filtered and combined in your browser, with no account. Anonymous usage
-          analytics run, and the privacy page says what they see.
+          Read, filtered and combined in your browser, with no account. Before you copy, the
+          bundle is checked there too: API keys are replaced, and the emails, IBANs and phone
+          numbers in your documents are listed for you to mask. Anonymous usage analytics run,
+          and the privacy page says what they see.
         </BandIntro>
         <BandLinks className="mt-6">
+          <BandLink to="/docs/send-check">What the check looks for</BandLink>
           <BandLink to="/privacy">What we collect, and what we don&apos;t</BandLink>
         </BandLinks>
       </div>
