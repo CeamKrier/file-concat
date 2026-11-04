@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.12.0](https://github.com/CeamKrier/file-concat/compare/v2.11.1...v2.12.0) (2026-11-04)
+
+### Features
+
+* **web:** name video and social sources ([3fbe2ad](https://github.com/CeamKrier/file-concat/commit/3fbe2adaf24442e7d56923b1ee0f5447586df7d7))
+
 ## [2.11.1](https://github.com/CeamKrier/file-concat/compare/v2.11.0...v2.11.1) (2026-11-01)
 
 ### Bug Fixes
