@@ -53,6 +53,7 @@ import {
 import { MarketingSections, SiteFooter } from "./marketing";
 
 import { TopBar } from "./top-bar";
+import { CONN, checkEntries, maskEntry, summarizeCheck, type CheckedFile } from "./send-check";
 import { LandingHero } from "./landing-hero";
 import type { DropZoneProps } from "./drop-zone";
 import type { ImportState } from "./import-panel";
@@ -224,17 +225,85 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   const deferred = useDeferredValue(live);
   const settled = deferred.entries === live.entries ? deferred : live;
   const settledStatuses = settled.statuses;
-  const includedContents = useMemo(() => {
+  // The send check (K1). It runs here, on whatever text each included file has
+  // now, because text lands through several paths after the result shows (a
+  // reading pass, a guess put in, Add files, a clipper push) and every export
+  // reads `includedContents`. Findings are cached per path and reused only
+  // while the text is the same string; the map is rebuilt each time, so it
+  // holds this bundle's included files and nothing older.
+  const checkCache = useRef(new Map<string, CheckedFile>());
+  const checked = useMemo(() => {
     const included = new Set(settledStatuses.filter((s) => s.included).map((s) => s.path));
+    checkCache.current = checkEntries(settled.entries, included, checkCache.current);
+    return checkCache.current;
+  }, [settled.entries, settledStatuses]);
+  // Keys the user chose to send as written, by finding id, never by category,
+  // so a key that lands later is masked (SG2). Database passwords in a
+  // connection string are listed, not masked, until the user masks them.
+  // Neither is persisted; Start over clears both.
+  const [keptKeys, setKeptKeys] = useState<ReadonlySet<string>>(() => new Set());
+  const [maskedKinds, setMaskedKinds] = useState<ReadonlySet<string>>(() => new Set());
+
+  const includedContents = useMemo(() => {
     const transform = config.showLineNumbers ? addLineNumbers : null;
+    // Masked on the raw text, before line numbers, which renumber CRLF.
     return settled.entries
-      .filter((e) => included.has(e.path))
-      .map((e) => ({
-        path: e.path,
-        content: transform ? transform(e.content) : e.content,
-        recognised: e.recognised,
-      }));
-  }, [settled.entries, settledStatuses, config.showLineNumbers]);
+      .filter((e) => checked.has(e.path))
+      .map((e) => {
+        const raw = maskEntry(e.path, e.content, checked.get(e.path), keptKeys, maskedKinds);
+        return { path: e.path, content: transform ? transform(raw) : raw, recognised: e.recognised };
+      });
+  }, [settled.entries, checked, keptKeys, maskedKinds, config.showLineNumbers]);
+
+  const sendCheck = useMemo(() => summarizeCheck(checked), [checked]);
+
+  // `send_check`, once per Run per value: which kinds a bundle had and what was
+  // done about them, never a value, a provider or a file (spec, Counter).
+  const checkSent = useRef<{ run: number | null; values: Set<string> }>({ run: null, values: new Set() });
+  const trackCheck = useCallback((value: string) => {
+    const run = currentRun();
+    if (checkSent.current.run !== run) checkSent.current = { run, values: new Set() };
+    if (checkSent.current.values.has(value)) return;
+    checkSent.current.values.add(value);
+    track("send_check", value);
+  }, []);
+  useEffect(() => {
+    if (phase !== "result") return;
+    if (sendCheck.keys.length > 0) trackCheck("found_key");
+    if (sendCheck.conn.count > 0) trackCheck("found_conn");
+  }, [phase, sendCheck, trackCheck]);
+
+  const sendCheckProps = {
+    keys: sendCheck.keys,
+    kept: keptKeys,
+    onKeep: (ids: string[]) => {
+      setKeptKeys((prev) => new Set([...prev, ...ids]));
+      trackCheck("kept_key");
+    },
+    onRemove: (ids: string[]) =>
+      setKeptKeys((prev) => new Set([...prev].filter((id) => !ids.includes(id)))),
+    listed: [
+      {
+        kind: CONN,
+        noun: ["database password", "database passwords"] as [string, string],
+        count: sendCheck.conn.count,
+        files: sendCheck.conn.files,
+        masked: maskedKinds.has(CONN),
+        onToggle: () => {
+          const masking = !maskedKinds.has(CONN);
+          setMaskedKinds((prev) => {
+            const next = new Set(prev);
+            if (masking) next.add(CONN);
+            else next.delete(CONN);
+            return next;
+          });
+          if (masking) trackCheck("masked_conn");
+        },
+      },
+    ],
+    pending: ingestion.pendingReads.length,
+    failed: sendCheck.failed,
+  };
 
   // Real content gaps the model can't see in the tree (ADR-0008). Reported in
   // the bundle summary; noise and user-deselected files are never listed.
@@ -845,6 +914,8 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     setResultNote(null);
     setImportUrl("");
     setImportError(null);
+    setKeptKeys(new Set());
+    setMaskedKinds(new Set());
   }, [ingestion, filter, output, filesOpen, closeFiles]);
 
   const onDrop = useCallback(
@@ -1091,6 +1162,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               skippedByDefault={skippedByDefault}
               flaggedFiles={flaggedFiles}
               extractedFiles={extractedFiles}
+              sendCheck={sendCheckProps}
               partialDocuments={partialDocuments}
               scannedDocumentCount={
                 ingestion.scannedDocuments.length - recognition.imageCount - recognition.mediaCount

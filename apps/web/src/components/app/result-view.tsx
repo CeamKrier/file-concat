@@ -36,6 +36,7 @@ import type { BundleWeight } from "~/lib/bundle-weight";
 import type { PrunedAtDoor } from "~/lib/prune-at-door";
 import { ReadingBar, type ReadingBarProps } from "./reading-bar";
 import { SegmentedControl } from "./segmented-control";
+import { SendCheck, type SendCheckProps } from "./send-check";
 
 type OutputStyle = "xml" | "markdown" | "plain";
 type SplitMode = "single" | "multi";
@@ -85,6 +86,8 @@ type ResultViewProps = {
   flaggedFiles: { name: string; why?: string; action?: ReactNode }[];
   /** Included files whose text was extracted from a document (PDF/Office/ODF). */
   extractedFiles: string[];
+  /** The send check (K1): keys removed, kinds listed, files not yet checked. */
+  sendCheck?: SendCheckProps;
   /** Included documents that lost whole pages on the way out, and what is missing. */
   partialDocuments: UnsupportedFile[];
   /** Every document in this Run that opened with no text in it, recovered or not. */
@@ -202,6 +205,7 @@ export function ResultView({
   splitMode,
   onSplitModeChange,
   onFeedback,
+  sendCheck,
 }: ResultViewProps) {
   // A hidden input behind a real button, the same idiom the drop zone uses: the
   // native file picker with a label we control.
@@ -725,6 +729,9 @@ export function ResultView({
       {/* Between the export and the preview, because what a pass reads lands
           in both: the button takes it and the preview shows it. */}
       <ReadingBar {...reading} className="mt-4" />
+
+      {/* Under the export, before the preview: what it masks lands in both. */}
+      {sendCheck && <SendCheck {...sendCheck} className="mt-4" />}
 
       {/* Directly under the export block, because the Format control up
           there is what changes it. A setting whose effect is a screen away

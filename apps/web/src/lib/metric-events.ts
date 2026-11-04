@@ -686,6 +686,15 @@ export const METRIC_EVENTS = [
    * belongs to a drop or to the page around it.
    */
   "js_error",
+  /**
+   * The send check (K1): which kinds of finding a bundle had and what the user
+   * did about them. `found_key` a key was masked, `found_conn` a database
+   * password in a connection string was listed; `kept_key` someone sent a key
+   * as written (the false-positive proxy), `masked_conn` someone masked the
+   * listed passwords. Once per Run per value, deduplicated in `app-flow.tsx`.
+   * Never a value, a provider or a file name.
+   */
+  "send_check",
 ] as const;
 
 export type MetricEvent = (typeof METRIC_EVENTS)[number];
