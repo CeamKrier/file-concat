@@ -26,7 +26,7 @@ import pdfTokens from "~/data/pdf-tokens.json";
     },
   ]}
   snapshot="2026-11-04 / 195 PDFs from Common Crawl / Claude API token counting, claude-opus-5-5"
-  citation="Measured on 2026-11-04 with Anthropic's token counting endpoint (POST /v1/messages/count_tokens, claude-opus-5-5) on 195 PDFs sampled from Common Crawl CC-MAIN-2026-34: across the 165 PDFs with a text layer (1,807 pages), the PDF document blocks counted 4,432,664 input tokens and the text FileConcat 2.12.0 extracted from them 1,674,624, 2.65x pooled and a per-file median of 2.81x (10th to 90th percentile 1.78x to 5.64x); the median page counted 2,390 tokens as a PDF and 856 as text; 112 of the 165 hold at least one embedded raster image (FileConcat, fileconcat.com)."
+  citation="Measured on 2026-11-04 with Anthropic's token counting endpoint (POST /v1/messages/count_tokens, claude-opus-5-5) on 195 PDFs sampled from Common Crawl CC-MAIN-2026-34: across the 165 PDFs with a text layer (1,807 pages), the PDF document blocks counted 4,432,664 input tokens and the text FileConcat 2.13.0 extracted from them 1,674,624, 2.65x pooled and a per-file median of 2.81x (10th to 90th percentile 1.78x to 5.64x); the median page counted 2,390 tokens as a PDF and 856 as text; 112 of the 165 hold at least one embedded raster image (FileConcat, fileconcat.com)."
 />
 
 Anthropic says how a PDF is billed: the text of each page, plus an image of each page. It does not
@@ -48,7 +48,7 @@ text. The difference is the picture of the page that Claude reads alongside its 
     { label: "as text", value: pdfTokens.groups.text.textPerPage },
   ]}
   ours="as text"
-  note="Anthropic's token counting endpoint, claude-opus-5-5, 2026-11-04. Text is what FileConcat 2.12.0 extracts."
+  note="Anthropic's token counting endpoint, claude-opus-5-5, 2026-11-04. Text is what FileConcat 2.13.0 extracts."
 >
   The same pages, counted both ways. The text side is the page's words and nothing else.
 </Bars>
@@ -160,7 +160,7 @@ page's words.
   dataset="195 PDFs drawn from Common Crawl CC-MAIN-2026-34 by build-cc-corpus.py, at most two per registered domain"
   sample="165 PDFs with a text layer (1,807 pages) compared; 24 scanned and 5 undecodable reported apart; 1 rejected by the API"
   measured="2026-11-04"
-  build="FileConcat 2.12.0 (commit 8dbd622), the web chain's PDF reader through run-corpus.sh"
+  build="FileConcat 2.13.0 (its reader at commit 8dbd622), the web chain's PDF reader through run-corpus.sh"
   tokenizer="Anthropic's POST /v1/messages/count_tokens with model claude-opus-5-5, both sides"
   script="packages/cli/scripts/measure-pdf-tokens.mjs, after run-corpus.sh"
   excludes="claude.ai, Amazon Bedrock and Google Vertex; citations on; answer quality; PDFs too large for the crawl to keep whole"
