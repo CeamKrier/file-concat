@@ -9,6 +9,7 @@ import {
   linesOf,
   maskEntry,
   parseHide,
+  renameExcluded,
   SendCheck,
   summarizeCheck,
   type SendCheckProps,
@@ -105,6 +106,32 @@ describe("send check in the bundle step", () => {
     const { keys } = summarizeCheck(bundle([{ path: "src/config.ts", content: text }]).checked);
     expect(keys).toHaveLength(1);
     expect(keys[0]).toMatchObject({ label: "GitHub token", file: "config.ts", line: 2 });
+  });
+
+  it("renames every path in the excluded summary", () => {
+    const up = (p: string) => p.toUpperCase();
+    expect(
+      renameExcluded(
+        {
+          oversize: ["a"],
+          unextractable: ["b"],
+          binary: ["c"],
+          unsupported: [{ label: "font", paths: ["d"] }],
+          unreadable: ["e"],
+          partial: [{ path: "f", notes: [] }],
+          pending: ["g"],
+        },
+        up,
+      ),
+    ).toEqual({
+      oversize: ["A"],
+      unextractable: ["B"],
+      binary: ["C"],
+      unsupported: [{ label: "font", paths: ["D"] }],
+      unreadable: ["E"],
+      partial: [{ path: "F", notes: [] }],
+      pending: ["G"],
+    });
   });
 
   it("sends every counter value as written, none stripped by normalizeValue", () => {

@@ -13,7 +13,7 @@ import {
   Undo2,
   type LucideIcon,
 } from "lucide-react";
-import { findSensitive, isDocumentPath, maskFindings, type Finding } from "@fileconcat/core";
+import { findSensitive, isDocumentPath, maskFindings, type ExcludedSummary, type Finding } from "@fileconcat/core";
 
 /**
  * The send check (K1): what the bundle held that the user may not mean an AI
@@ -148,6 +148,24 @@ export function maskEntry(
         ? !kept.has(findingId(path, f))
         : maskedKinds.has(f.kind),
   );
+}
+
+/**
+ * The excluded summary with `rename` applied to every path in it, so a hidden
+ * word in a file name does not reach the bundle's notes either.
+ */
+export function renameExcluded(excluded: ExcludedSummary, rename: (path: string) => string): ExcludedSummary {
+  const all = (paths?: string[]) => paths?.map(rename);
+  return {
+    ...excluded,
+    oversize: all(excluded.oversize),
+    unextractable: all(excluded.unextractable),
+    binary: all(excluded.binary),
+    unsupported: excluded.unsupported?.map((u) => ({ ...u, paths: u.paths.map(rename) })),
+    unreadable: all(excluded.unreadable),
+    partial: excluded.partial?.map((p) => ({ ...p, path: rename(p.path) })),
+    pending: all(excluded.pending),
+  };
 }
 
 /** What the block lists: keys once per unique value in a file, then the rest by kind. */
@@ -324,7 +342,7 @@ function HideRow({ entries, places, onCommit, focus }: SendCheckProps["hide"] & 
   const commit = () => onCommit(parseHide(draft));
   const note =
     entries.length === 0
-      ? "Each one is replaced with [Hidden] in every file, code included, but not in file or folder names. Forgotten when you start over."
+      ? "Each one is replaced with [Hidden] in every file and file name, code included. Forgotten when you start over."
       : places > 0
         ? `Hidden in ${plural(places, "place", "places")}. Forgotten when you start over.`
         : "Not found in this bundle.";

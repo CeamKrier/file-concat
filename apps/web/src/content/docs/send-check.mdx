@@ -79,8 +79,10 @@ names** opens a field under "Always hide these words". Separate entries with com
 an entry can be several words, such as `Jane Doe`. Press Enter or click away to apply the list.
 
 Every place an entry stands as whole words is replaced with `[Hidden]`, in every file, code included,
-with capitals ignored. `Jane` hides "jane" and "JANE" but not "Janet". File and folder names are
-not changed yet, so a client name in a folder name still reaches the bundle's file list. The block says how many places
+with capitals ignored. `Jane` hides "jane" and "JANE" but not "Janet". The bundle's file and
+folder names, its file tree, its project name, the name of a downloaded file and the source address
+are masked the same way; the extension stays, so `Acme Corp/acme-q3.pdf` goes out as
+`[Hidden]/[Hidden]-q3.pdf`. The result screen keeps the real names, since only you see it. The block says how many places
 were hidden. The list is held in memory for this bundle only: it is not saved on your device, never
 sent anywhere, and **Start over** forgets it.
 
@@ -114,8 +116,8 @@ not check notes.pdf.") and goes into the bundle as it is.
 ## What is not checked
 
 - Names and addresses, unless you list them to hide.
-- File and folder names: hidden words and the kinds above are masked in the text of a file, not
-  in its name or path.
+- Keys, passwords and the identifiers above in file and folder names: those are masked in the
+  text of a file only. Hidden words are masked in names too.
 - Phone numbers, and ID, passport and tax numbers.
 - An SSN or a card number with no label next to it, and any of the identifiers above in a code or
   config file.

@@ -6,6 +6,8 @@ import {
   findWords,
   hideList,
   maskFindings,
+  maskPath,
+  maskWords,
   type Finding,
 } from "../src/file-processing/send-check";
 
@@ -239,5 +241,22 @@ describe("findWords", () => {
     const found = findWords(text, list);
     expect(performance.now() - t0).toBeLessThan(3_000);
     expect(found.length).toBe(620_000);
+  });
+});
+
+describe("maskPath", () => {
+  const list = hideList(["Acme Corp", "acme", "pdf"]);
+
+  it("hides words in folders and the file name, never the extension", () => {
+    expect(maskPath("clients/Acme Corp/acme-q3.pdf", list)).toBe("clients/[Hidden]/[Hidden]-q3.pdf");
+    expect(maskPath("notes/report.pdf", list)).toBe("notes/report.pdf");
+    expect(maskPath("acme.v2/readme", list)).toBe("[Hidden].v2/readme");
+    // A dot file has no extension to keep; its name is the word.
+    expect(maskPath("app/.acme", list)).toBe("app/.[Hidden]");
+    expect(maskPath("app/.acme", hideList([]))).toBe("app/.acme");
+  });
+
+  it("hides words in any text, such as a source address", () => {
+    expect(maskWords("https://github.com/acme/site", list)).toBe("https://github.com/[Hidden]/site");
   });
 });

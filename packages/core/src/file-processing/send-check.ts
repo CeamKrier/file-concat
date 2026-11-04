@@ -192,6 +192,23 @@ export function findWords(text: string, list: Map<string, string[][]>): Finding[
   return out;
 }
 
+/** `text` with every entry of `list` replaced by `[Hidden]`: a source address, say. */
+export function maskWords(text: string, list: Map<string, string[][]>): string {
+  return list.size === 0 ? text : maskFindings(text, findWords(text, list), () => true);
+}
+
+/**
+ * A file path as the bundle names it: hidden words masked in every folder and
+ * in the file name, the extension left as it is, so the language tag and the
+ * file type still read ("[Hidden]/q3.pdf", never "contract.[Hidden]").
+ */
+export function maskPath(path: string, list: Map<string, string[][]>): string {
+  if (list.size === 0) return path;
+  const dot = path.lastIndexOf(".");
+  const end = dot > path.lastIndexOf("/") + 1 ? dot : path.length;
+  return maskWords(path.slice(0, end), list) + path.slice(end);
+}
+
 const TIER: Record<Finding["category"], number> = { key: 0, word: 1, identifier: 2 };
 const placeholder = (f: Finding) =>
   f.category === "key" ? `[Secret removed: ${f.label}]` : f.category === "word" ? "[Hidden]" : `[${f.label} removed]`;

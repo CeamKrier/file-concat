@@ -11,6 +11,8 @@ import {
   generateProjectName,
   findWords,
   hideList,
+  maskPath,
+  maskWords,
   summarizeExclusions,
   type AssembleOutputOptions,
   type Finding,
@@ -56,7 +58,7 @@ import {
 import { MarketingSections, SiteFooter } from "./marketing";
 
 import { TopBar } from "./top-bar";
-import { LISTED, checkEntries, maskEntry, summarizeCheck, type CheckedFile } from "./send-check";
+import { LISTED, checkEntries, maskEntry, renameExcluded, summarizeCheck, type CheckedFile } from "./send-check";
 import { LandingHero } from "./landing-hero";
 import type { DropZoneProps } from "./drop-zone";
 import type { ImportState } from "./import-panel";
@@ -248,14 +250,14 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   const [keptKeys, setKeptKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [maskedKinds, setMaskedKinds] = useState<ReadonlySet<string>>(() => new Set());
   const [hideEntries, setHideEntries] = useState<string[]>([]);
+  const hideWords = useMemo(() => hideList(hideEntries), [hideEntries]);
   // Outside the per-file cache: it depends on the list as well as the text.
   const hidden = useMemo(() => {
     const out = new Map<string, Finding[]>();
-    if (hideEntries.length === 0) return out;
-    const list = hideList(hideEntries);
-    for (const e of settled.entries) if (checked.has(e.path)) out.set(e.path, findWords(e.content, list));
+    if (hideWords.size === 0) return out;
+    for (const e of settled.entries) if (checked.has(e.path)) out.set(e.path, findWords(e.content, hideWords));
     return out;
-  }, [settled.entries, checked, hideEntries]);
+  }, [settled.entries, checked, hideWords]);
 
   const includedContents = useMemo(() => {
     const transform = config.showLineNumbers ? addLineNumbers : null;
@@ -364,15 +366,24 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   useEffect(() => {
     void preloadTokenEstimator().then(() => setEstimatorReady(true));
   }, []);
+  // What leaves, as opposed to what the screen shows: hidden words are masked
+  // in every path and in the source address too, so they reach neither the
+  // file tags, the tree, the project name, the notes nor a download's name.
+  // The screen keeps the real names; it is the user's own view.
+  const sent = useMemo(() => {
+    if (hideWords.size === 0) return { contents: includedContents, excluded, source: ingestion.sourceUrl };
+    const rename = (path: string) => maskPath(path, hideWords);
+    return {
+      // ponytail: two paths that mask to the same name stay two entries under one name.
+      contents: includedContents.map((f) => ({ ...f, path: rename(f.path) })),
+      excluded: renameExcluded(excluded, rename),
+      source: ingestion.sourceUrl && maskWords(ingestion.sourceUrl, hideWords),
+    };
+  }, [includedContents, excluded, ingestion.sourceUrl, hideWords]);
+
   const bundle = useMemo(
-    () =>
-      bundleOptions(
-        includedContents,
-        config.outputStyle,
-        ingestion.sourceUrl ?? undefined,
-        excluded,
-      ),
-    [includedContents, config.outputStyle, ingestion.sourceUrl, excluded],
+    () => bundleOptions(sent.contents, config.outputStyle, sent.source ?? undefined, sent.excluded),
+    [sent, config.outputStyle],
   );
 
   // Only the head is shown, so only the head is assembled (see
@@ -398,10 +409,10 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   }, [bundle, estimatorReady]);
 
   const output = useOutputGeneration({
-    includedContents,
-    excluded,
+    includedContents: sent.contents,
+    excluded: sent.excluded,
     tokens,
-    sourceUrl: ingestion.sourceUrl,
+    sourceUrl: sent.source,
     outputStyle: config.outputStyle,
     formatPreference: config.defaultOutputFormat,
     chunkSizeKB: config.chunkSizeKB,
