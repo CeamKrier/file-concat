@@ -1,0 +1,148 @@
+---
+title: "What Uses Up Your Claude Usage Limit So Fast"
+description: "Why your Claude usage limit runs out after a few messages: Anthropic counts the size of what you attach and the length of the chat, not the number of messages. Counted on Anthropic's API, a typical PDF costs close to three times its own text."
+date: "2026-11-05"
+author: "CeamKrier"
+draft: false
+---
+
+import example from "~/data/claude-usage-example.json";
+
+<Tldr
+  items={[
+    "Claude's usage limit is not a message count. Anthropic says the messages you get vary with message length, including the length of files you attach, and with how long the conversation already is.",
+    "On Anthropic's API, a PDF is the expensive way to hand Claude text. Counted with Anthropic's own token counter, a typical PDF cost close to three times its extracted text.",
+    "To make the limit last: attach text instead of the PDF, keep files you reuse in a Project, start a new chat instead of stretching a long one, and check Settings > Usage before a big job.",
+  ]}
+/>
+
+You attached a report, asked three questions, and Claude says you have hit your limit until later
+today. It felt like three messages. To Claude it was the whole report, inside a conversation that
+grew with every question.
+
+## What counts against your Claude usage limit
+
+Anthropic's [advice on usage limits](https://support.claude.com/en/articles/9797557-usage-limit-best-practices)
+lists what spends the allowance: message length, file attachment size, current conversation length,
+tools such as Research and web search, the model, the effort level, artifacts, and multi-step tasks.
+The [Pro plan page](https://support.claude.com/en/articles/8325606-what-is-the-pro-plan) puts the
+first three in one sentence: the number of messages you can send "will vary based on message length,
+including the length of files you attach, the length of your current conversation, and the model or
+feature you use."
+
+So the limit depends on how much Claude has to read and do, not on how many times you press send. A
+large attachment makes the conversation long from its first message, and everything you ask after
+it is asked inside that conversation.
+
+On paid plans there are two clocks. A session limit resets five hours after your first message, and
+a weekly limit resets at a fixed time each week. Usage in claude.ai, Claude Code and Claude Desktop
+all counts against the same limit, according to
+[Anthropic's limits article](https://support.claude.com/en/articles/11647753-understanding-usage-and-length-limits).
+
+## Why a PDF costs more than its own text
+
+Through Anthropic's API, Claude reads a PDF twice over: the text of each page, and an image of
+each page. The image is charged whether the page holds a chart or three lines of text. We took 195
+PDFs from the public web and counted the 165 with a text layer with Anthropic's token counter, once
+as a PDF and once as the text FileConcat extracts. The median file cost 2.81 times as much as a PDF
+as it did as text. The full method is in
+[How many tokens is a PDF in Claude](/blog/how-many-tokens-is-a-pdf-in-claude).
+
+One file you can check yourself: the paper "Attention Is All You Need", 15 pages from arXiv.
+
+<Bars
+  title={`Input tokens for "${example.file}", ${example.pages} pages`}
+  rows={[
+    { label: "as a PDF", value: example.pdf },
+    { label: "as text", value: example.text },
+  ]}
+  ours="as text"
+  note={`Anthropic's token counting endpoint, ${example.model}, ${example.measured}. Text is what FileConcat 2.13.0 extracts.`}
+>
+  The same paper counted both ways. As text it costs less than half as much.
+</Bars>
+
+These counts come from Anthropic's API. Anthropic does not publish how the claude.ai apps weigh a
+PDF against your usage limit. Its [upload help page](https://support.claude.com/en/articles/8241126-upload-files-to-claude)
+says the apps read a PDF of 101 to 1,000 pages as text only. Read the counts here as the best
+available guide, not as the apps' own number.
+
+## How to make your Claude usage limit last longer
+
+<Steps>
+  <Step title="Attach the text, not the PDF">
+    Drop the PDF into FileConcat, copy the extracted text, and paste it or attach it as a `.txt`
+    file. The text loses the pictures. If your question is about a chart or a scanned page, keep
+    the PDF.
+  </Step>
+  <Step title="Put files you keep asking about in a Project">
+    Anthropic says "Content in projects is cached and counts less against your limits when reused."
+    The cache does not last forever: "Caches expire after a period of inactivity", so the first
+    message after a long break counts the files in full again.
+  </Step>
+  <Step title="Start a new chat when the topic changes">
+    Anthropic counts the length of the current conversation against your limit, so a long chat makes
+    new messages cost more. Its own advice for a long chat near the limit is to try starting a new
+    conversation.
+  </Step>
+  <Step title="Match the model and effort to the job">
+    A lower effort level or a lighter model for routine questions leaves more of the limit for the
+    hard ones. Turn off tools and web search a question does not need.
+  </Step>
+  <Step title="Check Settings > Usage before a big job">
+    Paid plans show how much of the five-hour session and the weekly limit is used, and when each
+    resets.
+  </Step>
+</Steps>
+
+For a code folder the waste is different: lock files, vendored code, build output and test files.
+FileConcat's defaults leave out the ones they recognise by name, which removed a median of more
+than a fifth of the tokens from fresh clones of
+[60 public repositories](/blog/how-many-tokens-is-a-codebase).
+
+The numbers will change, and so will the prices behind them. Much of your allowance goes on what
+Claude reads, so send the text your question needs and nothing else.
+
+<TryIt
+  title="Turn your PDF into text before you attach it"
+  hint="Text out, and an estimated token count of what you would paste. Your files are not uploaded to us."
+/>
+
+{/* evidence */}
+
+## Frequently asked questions
+
+### Does file size count toward the Claude usage limit?
+
+Yes. Anthropic lists file attachment size among the factors that affect your usage limits, beside
+message length and conversation length. A bigger attachment spends more of the limit.
+
+### Why did I hit the Claude usage limit after one prompt?
+
+One prompt can carry a lot: a long PDF, a large pasted file, a research task or web searches, or a
+high effort level. On Anthropic's API a PDF is charged for an image of every page on top of its
+text, and the apps read the visuals of any PDF up to 100 pages.
+
+### When does the Claude usage limit reset?
+
+The session limit resets in full five hours after the first message of the session. The weekly limit
+resets at a fixed day and time assigned to your account. Settings > Usage shows both.
+
+### Does starting a new chat reset the Claude usage limit?
+
+No. The limit runs on the five-hour and weekly clocks. A new chat only makes the next messages
+cheaper, because the length of the current conversation is one of the things Anthropic counts.
+
+### Is pasted text cheaper than an uploaded PDF in Claude?
+
+On the API almost always: 163 of 165 PDFs with a text layer counted fewer tokens as text. How the
+claude.ai apps count a PDF against the limit is not published, so treat the API figure as the best
+available guide, not as the apps' own number.
+
+## Sources
+
+- [Anthropic's advice on usage limits](https://support.claude.com/en/articles/9797557-usage-limit-best-practices), Claude Help Center, read 2026-11-05
+- [What is the Pro plan?](https://support.claude.com/en/articles/8325606-what-is-the-pro-plan), Claude Help Center, read 2026-11-05
+- [How do usage and length limits work?](https://support.claude.com/en/articles/11647753-understanding-usage-and-length-limits), Claude Help Center, read 2026-11-05
+- [Upload files to Claude](https://support.claude.com/en/articles/8241126-upload-files-to-claude), Claude Help Center, read 2026-11-05
+- [How many tokens is a PDF in Claude](/blog/how-many-tokens-is-a-pdf-in-claude), our count of 195 PDFs

@@ -1,0 +1,15 @@
+{
+  "_comment": "One PDF counted two ways for /blog/what-uses-up-your-claude-usage-limit: as a PDF document block and as the text FileConcat's web chain extracts from it. Produced by packages/cli/scripts/measure-pdf-tokens.mjs on a one-file corpus after run-corpus.sh; the one-message wrapper is subtracted from both sides.",
+  "measured": "2026-11-05",
+  "model": "claude-opus-5-5",
+  "endpoint": "POST /v1/messages/count_tokens",
+  "build": "FileConcat 2.13.0 web chain",
+  "file": "Attention Is All You Need",
+  "source": "https://arxiv.org/abs/1706.03762v7",
+  "pages": 15,
+  "pdf": 38347,
+  "text": 16670,
+  "pdfPerPage": 2556,
+  "textPerPage": 1111,
+  "ratio": 2.3
+}
