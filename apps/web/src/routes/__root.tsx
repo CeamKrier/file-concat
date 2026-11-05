@@ -1,4 +1,5 @@
-import { createRootRoute, Outlet, HeadContent, Scripts } from "@tanstack/react-router";
+import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { NotFound } from "~/components/not-found";
 import { ErrorBoundary } from "~/components/error-boundary";
 import {
@@ -40,10 +41,13 @@ export const Route = createRootRoute({
       },
     ],
   }),
-  component: RootComponent,
+  // The document is a shell, not the root's component: the root's errorComponent
+  // replaces its component, and when that component was <html> a crash rendered
+  // a bare <div> into the document and left the page blank (2026-11-05).
+  shellComponent: RootDocument,
 });
 
-function RootComponent() {
+function RootDocument({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="dark">
       <head>
@@ -60,7 +64,7 @@ function RootComponent() {
         ></script>
       </head>
       <body className="bg-background text-foreground min-h-screen antialiased">
-        <Outlet />
+        {children}
         <Scripts />
       </body>
     </html>

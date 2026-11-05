@@ -2,6 +2,46 @@
   "_comment": "Every vendor cap the site states, pinned to the sentence on the vendor page it was read from. scripts/check-vendor-caps.ts fetches each url at build time and fails the build when a quote is gone while the anchor (the article title) is still there. A missing quote means re-read the page, fix the number in used_by, and move the quote and checked date here. Quotes are matched case-insensitively on whitespace-collapsed text with straight apostrophes.",
   "sources": [
     {
+      "url": "https://support.claude.com/en/articles/9797557-usage-limit-best-practices",
+      "anchor": "Usage limit best practices",
+      "checked": "2026-11-05",
+      "quotes": [
+        "File attachment size",
+        "Current conversation length",
+        "Content in projects is cached and counts less against your limits when reused",
+        "Caches expire after a period of inactivity"
+      ],
+      "used_by": [
+        "apps/web/src/content/blog/what-uses-up-your-claude-usage-limit.mdx"
+      ]
+    },
+    {
+      "url": "https://support.claude.com/en/articles/8325606-what-is-the-pro-plan",
+      "anchor": "What is the Pro plan",
+      "checked": "2026-11-05",
+      "quotes": [
+        "The number of messages you can send will vary based on message length, including the length of files you attach, the length of your current conversation, and the model or feature you use",
+        "Pro plans have a five-hour limit and a weekly usage limit"
+      ],
+      "used_by": [
+        "apps/web/src/content/blog/what-uses-up-your-claude-usage-limit.mdx"
+      ]
+    },
+    {
+      "url": "https://support.claude.com/en/articles/11647753-understanding-usage-and-length-limits",
+      "anchor": "How do usage and length limits work",
+      "checked": "2026-11-05",
+      "quotes": [
+        "a session limit that resets every five hours, and weekly limits that reset once every week",
+        "counts towards the same usage limit",
+        "Try starting a new conversation if you",
+        "The period starts when you send your first message, and your limit resets in full five hours later"
+      ],
+      "used_by": [
+        "apps/web/src/content/blog/what-uses-up-your-claude-usage-limit.mdx"
+      ]
+    },
+    {
       "url": "https://help.openai.com/en/articles/10169521-using-projects-in-chatgpt",
       "anchor": "Projects in ChatGPT",
       "checked": "2026-10-17",
@@ -145,6 +185,7 @@
         "in PDFs of 100 pages or fewer"
       ],
       "used_by": [
+        "apps/web/src/content/blog/what-uses-up-your-claude-usage-limit.mdx",
         "apps/web/src/components/convert/convert-formats.ts",
         "apps/web/src/routes/how-to/claude-file-upload-limit.tsx",
         "apps/web/src/components/personas/claude-projects-page.tsx",
@@ -231,6 +272,37 @@
       "checked": "2026-09-14",
       "quotes": ["upload up to 10 files when creating a custom Gem"],
       "used_by": ["apps/web/src/components/personas/gemini-gems-page.tsx"]
+    },
+    {
+      "url": "https://support.google.com/gemini/answer/18560919?hl=en",
+      "anchor": "About the transition from Gems to skills",
+      "checked": "2026-11-05",
+      "quotes": [
+        "Starting in November 2026, Gems will transition to skills in Gemini Apps for personal Google Accounts, and in 2027, for work and school accounts",
+        "A skill can have up to 100 MB of files",
+        "Some file types that are supported in Gems are not currently supported in skills"
+      ],
+      "used_by": [
+        "apps/web/src/components/personas/gemini-gems-page.tsx",
+        "apps/web/src/components/personas/gemini-gems-faq.ts"
+      ]
+    },
+    {
+      "url": "https://support.google.com/gemini/answer/17094296?co=GENIE.Platform%3DDesktop&hl=en",
+      "anchor": "Create & manage skills for Gemini Apps",
+      "checked": "2026-11-05",
+      "quotes": [
+        "The total size of all uploaded files must not exceed 100 MB",
+        "Archives & compressed files",
+        ".scala , .swift , .ts web & ui files",
+        "Data & config: .sql structure & naming",
+        ".md , .rst , .txt , .markdown"
+      ],
+      "used_by": [
+        "apps/web/src/components/personas/gemini-gems-page.tsx",
+        "apps/web/src/components/personas/gemini-gems-faq.ts",
+        "apps/web/src/routes/for/gemini-gems.tsx"
+      ]
     },
     {
       "url": "https://repomix.com/guide/privacy",

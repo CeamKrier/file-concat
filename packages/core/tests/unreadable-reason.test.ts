@@ -48,6 +48,9 @@ describe("unreadableReason", () => {
     expect(unreadableReason("weights.safetensors").label).toBe("Data or model file");
     expect(unreadableReason("app/debug.keystore").label).toBe("Java keystore");
     expect(unreadableReason("release.jks").label).toBe("Java keystore");
+    expect(unreadableReason("certs/client.p12").label).toBe("Certificate and private key");
+    expect(unreadableReason("signing.pfx").label).toBe("Certificate and private key");
+    expect(unreadableReason("banner.fla").label).toBe("Adobe Animate file");
     expect(unreadableReason("book.mobi").remedy).toContain("Calibre");
     expect(unreadableReason("draft.pages").remedy).toContain(".docx");
     expect(unreadableReason("mystery.xyz")).toEqual({ label: "Binary file" });

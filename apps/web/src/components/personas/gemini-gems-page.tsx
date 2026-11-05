@@ -140,9 +140,12 @@ function OneSlot() {
  * Re-checked 2026-09-14: no Gemini help-center page states a knowledge-file
  * count (its "up to 10" lines are per-prompt uploads and ZIP contents); the
  * only Google source is the Workspace announcement linked below, which is why
- * the figure stays hedged. Move the date only when it is checked again. */
+ * the figure stays hedged. Move the date only when it is checked again.
+ * Skills row read 2026-11-05 from Google's Gems-to-skills transition page and
+ * the skills help page, both pinned in vendor-caps.json. */
 const CAPS = [
   { where: "Gem knowledge files", caps: "Files a Gem can reference", limit: "About 10" },
+  { where: "Skill files (replacing Gems)", caps: "Total size of a skill's files", limit: "100 MB" },
 ];
 
 function WhereItStops() {
@@ -156,8 +159,11 @@ function WhereItStops() {
           Where Gemini stops you.
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[50ch] text-[15px] leading-relaxed">
-          A Gem holds you to about ten knowledge files. One combined file stays under the cap,
-          because it is one file no matter how many documents went into it.
+          A Gem holds you to about ten knowledge files. Skills, which replace Gems from November
+          2026 on personal accounts, take up to 100 MB and turn away some file types, .ts, .sql
+          and .zip among them. One combined .md or .txt file clears the file count and the type
+          check: it is one file, in a type skills accept, no matter how many documents went into
+          it. Its size still counts toward the 100 MB.
         </p>
       </div>
 
@@ -199,6 +205,16 @@ function WhereItStops() {
           Google's announcement of Gem knowledge files
         </a>
         . The Gemini help center states no count, so the Gem editor is where the current one shows.
+        Skills figure as of November 2026, from{" "}
+        <a
+          href="https://support.google.com/gemini/answer/18560919"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-ink-secondary underline decoration-[oklch(var(--border-strong))] underline-offset-2 transition-colors duration-150"
+        >
+          Google's page on the move from Gems to skills
+        </a>
+        .
         On ChatGPT, Claude, or NotebookLM instead? See{" "}
         <Link
           to="/how-to/share-all-files-with-ai"
