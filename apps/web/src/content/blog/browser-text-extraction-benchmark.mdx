@@ -98,15 +98,15 @@ Yes, for a page saved from Chrome. 2.0 bundled the whole HTML source, markup inc
 />
 
 2.1 lands one point under Mozilla Readability, the engine it runs, and three under the best server
-extractor. Firefox does not mark a saved page with its address, so a page saved there still goes
+extractor. A page without a saved-page mark FileConcat recognizes, from Chrome or SingleFile, still goes
 the 2.0 way.
 
 **How it reads:** Chrome's "saved from" mark, then Mozilla Readability, then Markdown.
 
 ## Office files: does an old format still read?
 
-Every Office format we tested reads in 2.1 except Word 95 and older, close to how far Tika agrees
-with itself across a conversion.
+Every Office format we tested reads in 2.1 except Word 95 and older and dotx templates, close to
+how far Tika agrees with itself across a conversion.
 
 | Format | Files | 2.0 | 2.1 | Tika ceiling |
 | --- | --- | --- | --- | --- |
@@ -150,7 +150,7 @@ Kindle books and video. Both now read, a subtitle track word for word.
 | epub, mobi, azw3 against Project Gutenberg's text | F1 98.8, 99.6, 99.6 |
 | video subtitle track, mp4, mkv, webm | 0% word error |
 | video speech, English / Turkish | 12.7% / 32.4% word error |
-| on-screen text in video, English / Turkish | F1 82.7 / 81.8 |
+| on-screen text in video without burned-in subtitles, English / Turkish | F1 82.7 / 81.8 |
 
 Speech is the weakest row. English runs on Moonshine base, a 66 MB model. Every other language runs
 on Whisper small, 244 MB, and the Turkish sample is two videos.
@@ -218,9 +218,9 @@ uses the converted set for doc, xls, ppt and rtf and POI's files for xlsx and xl
 2.1 scored doc 74.5 (99 files), xls 74.8 (241), ppt 78.6 (71), docx 66.5 (64), pptx 55.9 (55) and
 xlsm 52.5 (7). Files with fewer than 20 reference words were not scored.
 
-Every published extraction benchmark we found runs its readers natively, and most are written by
-the vendor of the tool that wins them. We found no measurement of extraction inside a browser, for
-any format.
+None of the published extraction benchmarks we list here runs its readers inside a browser, and most are written by
+the vendor of the tool that wins them. We found no other measurement of
+browser extraction either, for any format.
 
 <StudyTable
   rows={[
@@ -235,7 +235,7 @@ any format.
     {
       source: "LiteParse README",
       href: "https://github.com/run-llama/liteparse",
-      venue: "LlamaIndex, v2.14.4",
+      venue: "LlamaIndex",
       kind: "vendor",
       sample: "olmOCR-bench, CPU",
       compared: "CPU text-layer readers",
@@ -244,7 +244,7 @@ any format.
     {
       source: "Marker README",
       href: "https://github.com/datalab-to/marker",
-      venue: "Datalab, 2026-10-02",
+      venue: "Datalab",
       kind: "vendor",
       sample: "olmOCR-bench",
       compared: "Marker against other pipelines",
@@ -261,7 +261,7 @@ any format.
     {
       source: "anydoc README",
       href: "https://github.com/firecrawl/anydoc",
-      venue: "Firecrawl, 2026-08",
+      venue: "Firecrawl",
       kind: "vendor",
       sample: "14 Office, ebook and ODF formats, LLM judge",
       compared: "anydoc, markitdown, docling, unstructured, pandoc",
@@ -285,17 +285,18 @@ the same scorer, so a gap between two of our rows is not a gap between two harne
 
 ## Limitations
 
-- **One browser.** Chromium only. Firefox and Safari decode audio and video differently.
-- **No timing.** Runs were on a desktop, so no speed figure is published. A laptop is slower.
+- **One browser.** Chromium only. Firefox and Safari were not measured.
+- **No timing.** Runs were on a desktop, so no speed figure is published.
 - **2.0 ran in Node.** Its rows are its extraction code run outside the browser. For 2.1, seven
   of the nine Office figures with a Node run matched the browser to the third decimal, and the
   other two were within 0.012. The two settings read the same.
 - **Small speech samples.** Turkish is two videos. Its 32.4% is a direction, not a leaderboard
   figure.
-- **Agreement is not truth.** Tika keeps headers, footers and comments some readers drop on
-  purpose, and LibreOffice wrote every converted file.
+- **Agreement is not truth.** Where a reader keeps or drops words Tika does not, such as a
+  header, footer or comment, those words lower its score, and LibreOffice wrote every converted
+  file.
 - **Archives favour 7-Zip.** 7-Zip wrote the 7z variants and reads them in FileConcat. rar has no
-  keyed set, since only WinRAR writes it.
+  keyed set, since only RARLAB's own tools write it.
 - **Weak and small:** a Word 6 file scored 0, since the Word reader declines Word 6 and Word 95, and two dotx
   templates scored 0.9.
 - **Not measured:** layout beyond the benchmarks' own tests, email, encrypted files.
@@ -316,7 +317,9 @@ Score with `packages/cli/scripts/score-against-reference.py` (Office, ebooks),
 `score-video.py` (video), olmOCR-bench's `python -m olmocr.bench.benchmark` at commit f7cfe4c
 (PDF) and the article benchmark's `evaluate.py` (web pages). The archive and video test sets are
 written by `build-archive-corpus.py` and `build-video-corpus.py` in the same folder, with a fixed
-seed.
+seed. `packages/cli/scripts/bench/rerun-browser.sh` reruns FileConcat's PDF, web-page and archive rows: it adds
+Chrome's "saved from" mark to the benchmark pages, reshapes the bundle into the reader-only view
+scored for the web-page rows, and scores archive output against the known files.
 
 ## Frequently asked questions
 
@@ -326,8 +329,8 @@ Yes. FileConcat 2.1 reads the text layer in the browser and runs OCR on pages th
 a GPU.
 
 **How accurate is in-browser OCR?**
-Good enough to search and summarise a scan, not good enough for math or degraded typewritten
-pages. The GPU readers that lead the benchmark are far larger than anything FileConcat downloads.
+Weak. On olmOCR-bench's old scans 2.1 passed 17.3% of tests, against 13.3% for LiteParse and
+FileConcat 2.0, which run no OCR, and it scored zero on math. The GPU readers that lead the benchmark are far larger than anything FileConcat downloads.
 
 **Can I get text out of a saved web page?**
 Yes, if it was saved from Chrome. On 181 benchmark pages the article body matched at 0.937 F1,

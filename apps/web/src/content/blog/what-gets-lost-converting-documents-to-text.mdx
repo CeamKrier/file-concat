@@ -23,7 +23,7 @@ kind: "research"
     },
   ]}
   snapshot="FileConcat 2.2 / 27 test documents in 12 formats"
-  citation="Across 27 documents each isolating one structure, measured on 2026-10-14, FileConcat 2.2's browser reader chain closed 16 of 16 extraction defects found in August (FileConcat 2.0: 13 of 16) and brought two new losses, a running header dropped entirely (fixed the same day, kept once) and curly quotes flattened to ASCII (open); on identical PDF bytes it kept column order where an independent reader (pypdf 6.14.2) interleaved the columns (FileConcat, fileconcat.com)."
+  citation="Across 27 documents each written to test a few named structures, measured on 2026-10-14, FileConcat 2.2's browser reader chain closed 16 of 16 extraction defects found in August (FileConcat 2.0: 13 of 16) and brought two new losses, a running header dropped entirely (fixed the same day, kept once) and curly quotes flattened to ASCII (open); on identical PDF bytes it kept column order where an independent reader (pypdf 6.14.2) interleaved the columns (FileConcat, fileconcat.com)."
 />
 
 A PDF is not text. Neither is a Word file or a spreadsheet. Something has to walk the container and
@@ -84,8 +84,8 @@ alternated one line from each column, where ours kept the columns apart. On page
 header and footer, it poured every copy into the prose. Ours keeps the header once and drops the page
 numbers, because the page breaks are already marked.
 
-That is why swapping libraries on the strength of a published ranking is a gamble. The rankings score
-whole pages and average them, and the largest one leaves headers and footers out of the score. Test
+That is why swapping libraries on the strength of a published ranking is a gamble. The rankings average
+their metrics over many pages, and one of them, OmniDocBench, leaves headers and footers out of the score. Test
 the page you care about.
 
 ## Try it on your own files
@@ -103,7 +103,7 @@ names it and reads it with OCR on your machine.
 
 {/* evidence */}
 
-## What nobody had measured yet
+## What the studies we checked did not measure
 
 The question this page answers has two halves. When a document becomes LLM context, which structures
 survive? And where one does not, is the loss forced by the format or chosen by the reader?
@@ -124,7 +124,7 @@ Document extraction is well benchmarked and the benchmarks answer a different qu
       compared:
         "10 parsers including PyPDF, pdfminer.six, PyMuPDF, pdfplumber, pypdfium2, Unstructured, Tabula, Camelot, Nougat and Table Transformer",
       headline:
-        "PyMuPDF and pypdfium2 lead on text, every parser struggled on Scientific and Patent documents, and Camelot's best table recall was 0.72",
+        "PyMuPDF and pypdfium2 lead on text, the rule-based parsers struggled on Scientific and Patent documents for text extraction, and Camelot's best table recall was 0.72",
     },
     {
       source: "Ouyang et al., OmniDocBench",
@@ -154,14 +154,14 @@ Two things are missing from all of it.
 attributes such as merged cells, but a page that carries several structures still moves as one
 score. Our corpus goes the other way: small files, each check aimed at one structure.
 
-**The largest benchmark excludes headers and footers.** OmniDocBench states its ignore rule plainly: headers,
+**OmniDocBench excludes headers and footers.** It states its ignore rule plainly: headers,
 footers, page numbers and page footnotes "participate in matching but are excluded from metric
 calculations", because tools handle them inconsistently. Captions are excluded for the same reason. That
 is a fair choice for ranking parsers against each other. It also means the benchmark is silent on a
 structure we measured doing real damage. A 40-page report that interleaves its running header into every
 page seam is not a small scoring artifact to the model reading it.
 
-**And nobody separates the format from the library.** This is the finding that changes what you do next,
+**And neither study separates the format from the library.** This is the finding that changes what you do next,
 and it needs two readers on identical bytes to say anything at all.
 
 ## The 27 documents we broke on purpose
@@ -194,7 +194,8 @@ structures that are hard, which is a different thing and the right thing for a f
 
 ## How we measured what was lost
 
-Every file goes through the path the product uses. Nothing here reimplements extraction.
+Every file goes through the extraction code the product uses, run under Node. Nothing here
+reimplements extraction.
 
 <Method
   dataset="27 generated documents across 12 formats, each written to test a few named document structures"
@@ -215,8 +216,8 @@ Every file goes through the path the product uses. Nothing here reimplements ext
   <Step title="Extract through both reader chains">
     The browser starts a PDF with liteparse, a workbook with SheetJS and an RTF with anydoc, and moves
     to a second reader when the first returns nothing usable. The CLI reads all of them with
-    officeparser. Both chains run from the code the product ships, so the text measured here is the
-    text a bundle would carry. Up to FileConcat 2.0 the two were one chain.
+    officeparser. Both chains run from the code the product ships, so the text measured here is what
+    those readers return, before browser OCR and the rest of the bundle step. Up to FileConcat 2.0 the two were one chain.
   </Step>
   <Step title="Score each structure as a check">
     Every defect from the earlier reading is written as a test over the extracted text. A rerun reports
@@ -236,8 +237,8 @@ FIXED while nothing was fixed. Every such check therefore carries an anchor: tex
 the check to mean anything. A missing anchor reports SIGNAL ABSENT and is never counted as a pass.
 
 **A check written for our output shape does not transfer.** Our reader renders a recovered table with
-pipes. No other library does, so running that check against pypdf would score output formatting
-rather than whether data survived. That check is marked not compared, and the honest consequence is that
+pipes. The check was not validated against pypdf's output, so running it there could score output
+formatting rather than whether data survived. That check is marked not compared, and the honest consequence is that
 the table finding below has no attribution.
 
 ## What the two readers found
@@ -311,7 +312,7 @@ run adds two losses found on the browser chain itself. Re-run against FileConcat
   ]}
   guard={{
     id: "docx-3.1",
-    structure: "A tracked deletion reaching the bundle as current text. Never once, in any round.",
+    structure: "A tracked deletion reaching the bundle as current text. Not once on the test file, in any recorded round.",
   }}
 />
 
@@ -322,13 +323,13 @@ The CLI reads the same files with one library and scores 13 of 16 on the August 
 did on both. It keeps the curly quotes, so the one open loss is the browser's alone.
 
 `docx-3.1` is listed apart from the rest on purpose. It is a standing guard, not a defect that got
-fixed, and folding it into the headline would inflate the count by one. A tracked deletion has never
-reached a bundle, and the check exists so that stays true.
+fixed, and folding it into the headline would inflate the count by one. On the test file, the tracked
+deletion has not reached the bundle in any recorded run, and the check exists so that stays true.
 
 ### Where the loss belongs
 
 Five PDF findings have checks that read only the text, so they can be run against both readers on
-identical bytes. This is the part no benchmark reports.
+identical bytes. Neither study above reports this.
 
 <ReaderDuel
   label="Five PDF structures, two readers, identical bytes"
@@ -377,8 +378,8 @@ This row read differently on the first run of this measurement. The browser's PD
 strips every copy of a repeated line by default, title or confidentiality marking included. We now
 keep its copies and remove the repeats ourselves. None of the five readers we checked keeps exactly
 one copy: docling, marker and liteparse drop all of them, unstructured and pymupdf4llm keep all. A
-single page keeps liteparse's stripping, because there it can only remove page numbers, URLs and
-copyright lines.
+single page keeps liteparse's stripping, because there it removes fixed chrome such as a page
+number, URL, DOI or copyright line.
 
 ### The experiment that separates a column model from luck
 
@@ -465,15 +466,16 @@ that way.
 - **Every fixture is generated.** Real documents are written by software with its own habits, and Word's
   merge XML is not the `docx` library's. `docx-3.2` is flagged for exactly this reason. Treat every
   result here as a floor check on hard structures, not as a survey of documents in the wild.
-- **One file per structure.** A structure that passes here passes on one instance of it. This design
-  buys attribution and pays for it in breadth.
+- **Few instances per structure.** Most structures appear in one file, and some files exercise
+  several, so a pass here is a pass on one instance. This design buys attribution and pays for it in
+  breadth.
 - **The independent reader covers PDF only.** pypdf reads PDFs. The docx, xlsx, pptx and rtf findings
   therefore have no attribution column at all, and could be format limits or our own choices. We do not
   know which, and say so rather than guessing.
 - **One comparison is unattributable even within PDF.** The table finding's check reads our own pipe
-  rendering, which no other library emits.
-- **Both chains run under Node.** The browser chain is the same code, but OCR does not run here, so a
-  scanned page counts as named, not as read. Scan results here are floors.
+  rendering and was not validated against pypdf's output.
+- **Both chains run under Node.** The browser chain is the same reader code, but OCR and the rest of
+  the bundle step do not run here, so a scanned page counts as named, not as read. Scan results here are floors.
 - **The header fix is checked on one file here.** On olmOCR-bench's 753 header and footer tests, whose
   pages are all single pages, the score is 57.4% before and after it. A long document whose header
   changes wording from page to page keeps every copy.
@@ -531,8 +533,8 @@ exist in an untagged PDF, so a reader has to infer them from where the text sits
 Sometimes. Anthropic's documentation says each page is converted to an image and its text extracted, and
 both are sent. That is why charts and diagrams can be asked about. It costs more: on 165 real PDFs
 we counted with Anthropic's token counter, the median file cost 2.81 times its extracted text
-([how many tokens is a PDF in Claude](/blog/how-many-tokens-is-a-pdf-in-claude)). Encrypted PDFs are rejected outright. Extracting to text first is
-cheaper and lets you see exactly what the model will see, which is the point of checking the headers and footers.
+([how many tokens is a PDF in Claude](/blog/how-many-tokens-is-a-pdf-in-claude)). Encrypted PDFs are rejected outright. Extracting to text first was
+cheaper for most of those files and lets you see exactly what the model will see, which is the point of checking the headers and footers.
 
 ### Why do my spreadsheet dates come out as numbers?
 
