@@ -1,6 +1,6 @@
 ---
 title: "How to Save a Reddit Thread as Markdown"
-description: "Save a whole Reddit thread as one Markdown file, authors kept and replies indented up to eight levels, ready to hand to ChatGPT or Claude. What copy and paste loses, and what to do instead."
+description: "Save the loaded comments of a Reddit thread as one Markdown file, with authors where the page shows them and replies indented up to eight levels, ready to paste into ChatGPT or Claude. What copy and paste loses, and what to do instead."
 date: "2026-08-28"
 author: "CeamKrier"
 draft: false
@@ -8,8 +8,8 @@ draft: false
 
 <Tldr
   items={[
-    "Select-all and copy keeps the words and drops the shape: who replied to whom, the scores, and every reply Reddit had not loaded.",
-    "FileConcat Clipper, a free Chrome side panel, saves the thread as Markdown with author, score and nesting level per comment. Expand more comments walks the 'more replies' links three rounds deep.",
+    "A copy of the page can lose who replied to whom, and it holds only the replies Reddit had loaded.",
+    "FileConcat Clipper, a free Chrome side panel, saves the loaded comments as Markdown with the author and score where the page shows them, and replies indented up to eight levels. Expand more comments walks the 'more replies' links three rounds deep.",
     "Send pushes it into fileconcat.com, where several threads become one bundle with a token count before you paste.",
   ]}
 />
@@ -19,13 +19,13 @@ somewhere in there the answer to the thing you were looking up. You want to
 ask a model about it rather than read all of it, which means getting the thread out of
 the browser first.
 
-Selecting the page and pressing copy is the obvious move, and it is the one that
-loses the thing that makes a thread a thread.
+Selecting the page and pressing copy is the obvious move, and it can lose the thing
+that makes a thread a thread.
 
 ## What copy and paste loses
 
 A discussion is not a document. Its meaning lives in the shape: who said what, in reply
-to whom, and how much the room agreed. Copy the rendered page and you get the words with
+to whom, and how much the room agreed. Copy the rendered page and you can get the words with
 the shape stripped out.
 
 <BeforeAfter>
@@ -54,10 +54,9 @@ The benchmark is misleading
     Depends on the workload`}</After>
 </BeforeAfter>
 
-On the left, a reply reads as one more paragraph. On the right it still reads as a reply
-to the thing above it, and the model can follow who is answering whom. The words are
-the same, but only the right-hand version lets the model tell which disagreement a reply
-belongs to.
+On the left, a reply reads as one more paragraph. On the right it is indented under the
+comment it answers, with its author and score above it, so the clipping records which
+comment each reply belongs to.
 
 ## Half the thread is not on the page
 
@@ -65,12 +64,11 @@ There is a second problem, and it is the one that catches people out. Reddit doe
 render the whole thread. It renders the part it thinks you want and hides the rest behind
 "more replies" links, which you then click one at a time.
 
-We measured this on one thread on 2026-08-19: 25 comments were on the page when it
-finished loading, out of 41 in the thread. Select-all could not have taken the other 16
-because they were never there to select.
+Select-all cannot take the replies behind those links, because they were never on the
+page to select.
 
-So a copy of the page is not a copy of the thread. It is a copy of the visible top of the
-thread, and nothing on screen tells you which one you are holding.
+So a copy of the page is not a copy of the thread. It holds only the comments Reddit had
+already rendered, and the copied text may not say what was left out.
 
 ## Save the whole thing instead
 
@@ -84,13 +82,12 @@ you as Markdown.
     the page you came from.
   </Step>
   <Step title="Turn on Expand more comments if you want the deep replies">
-    It clicks the thread's own "more replies" links three rounds deep. On that same
-    41-comment thread it reached 38. It is off by default because it is slower, and the
-    switch is in the panel's settings.
+    It clicks the thread's own "more replies" links three rounds deep, waiting after each
+    round. It is off by default, and the switch is in the panel's settings.
   </Step>
   <Step title="Clip it, then send it">
-    The clipping lands in the panel's cart with every author, score and level of nesting
-    kept. **Send** pushes it into an open [fileconcat.com](/) tab, opening one if there is
+    The clipping lands in the panel's cart with the author and score the page shows for each
+    loaded comment, replies indented up to eight levels. **Send** pushes it into an open [fileconcat.com](/) tab, opening one if there is
     none.
   </Step>
 </Steps>
@@ -116,14 +113,15 @@ took from the thread itself.
 
 ## Why Markdown, and why a bundle
 
-Markdown is the format a model reads without being taught anything: headings are
-headings, indentation is nesting, and there is no markup budget spent on layout.
+Markdown is plain text with light formatting. In the clipping, each comment opens with
+its author in bold, then its score, and replies are indented under the comment they answer.
 
-The send does not replace what is already in your bundle. It extends it, and files with
-the same name replace each other. So a repository and the thread arguing about it can sit
+The send does not replace what is already in your bundle. It extends it. A later file with
+the same path replaces the earlier one, and two clippings that share a name in one send
+are numbered apart. So a repository and the thread arguing about it can sit
 in the same bundle in either order. Re-sending a corrected clipping fixes it in place
 instead of duplicating it. When you are done, the bundler gives you one file with a live
-token count, so you know it fits before you paste it anywhere.
+token estimate to compare with a model's context limit before you paste it anywhere.
 
 None of it is uploaded to us on the way. The clipping is made in your browser, held in your
 browser's own storage between the clip and the send, and handed to an open FileConcat

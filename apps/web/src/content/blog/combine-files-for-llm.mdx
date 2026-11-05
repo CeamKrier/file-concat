@@ -1,6 +1,6 @@
 ---
 title: "How to Upload Multiple Files to ChatGPT at Once"
-description: "Upload multiple files to ChatGPT at once as one labeled file: one upload against the cap, every file boundary kept, and the token count shown first."
+description: "Upload multiple files to ChatGPT at once as one labeled file: one upload against the cap, a path label on every included file, and the token count shown first."
 date: "2026-07-11"
 author: "CeamKrier"
 draft: false
@@ -8,17 +8,15 @@ draft: false
 
 <Tldr
   items={[
-    "Drop the folder on fileconcat.com and you get one text file: the tree first, then every file in a block labelled with its path.",
-    "Pasting files one at a time loses the boundaries. The labels cost 0.6% to 3.8% of the bundle and are the map the model reads by.",
+    "Drop the folder on fileconcat.com and you get one text file: the tree first, then every included file in a block labelled with its path.",
+    "Pasted file contents carry no path labels unless you add them. The whole wrapper, paths and tree together, costs 0.6% to 3.8% of the bundle.",
     "The token count is on the result before you paste. A whole public repository is a median 236,218 tokens, and 23 of 60 fit a 128K window.",
     "Your files are not uploaded to us. The whole thing runs in your browser.",
   ]}
 />
 
 You have a handful of files that belong together: a few source files, some notes, a
-config or two. ChatGPT and Claude give you a single box. Before you can ask your
-question, everything from the folder has to get into that box in a shape the model can
-follow.
+config or two.
 
 This guide shows how to upload multiple files to ChatGPT at once, or to Claude, by
 combining them into one. It covers what the quick approaches cost you and what a labeled
@@ -26,33 +24,29 @@ bundle looks like. Partway down there is a place to try it on your own files.
 
 ## Why one paste of everything falls short
 
-A chat box takes one block of text. When you paste file after file into it, the bytes
-arrive, but the boundaries do not. The model sees one long run of characters with no
-reliable signal for where `math.ts` ends and `date.ts` begins.
-
-Pasting files in one at a time is the usual way to get them into one chat, and it is
-where the structure leaks out. The content is the
-same, but the model loses track of which file it is reading.
+When you paste file after file into a chat box, the bytes arrive, but nothing names a
+file unless you type its name in yourself. The text is one long run of characters with
+no marker for where `math.ts` ends and `date.ts` begins.
 
 <Callout type="note" title="What 'one block' means">
-  Most chat boxes accept a single block of text. The task is to turn many files into
-  one block that still tells the model where each file starts, ends, and sits in the
-  tree.
+  Pasted text goes into one composer, even when the chat also takes attachments. The task
+  is to turn many files into one block that still says where each file starts, ends, and
+  sits in the tree.
 </Callout>
 
 ## Three ways to combine your files
 
-There are three common ways to do it, and they trade effort against structure.
+Here are three ways to do it, and they trade effort against structure.
 
 <Steps>
   <Step title="Copy and paste by hand">
-    Fine for two or three files. Past that it gets tedious, and every paste drops the
-    file path, the one label that tells the model what it is looking at.
+    Manageable for two or three files. Each paste leaves out the file path unless you
+    type it in yourself.
   </Step>
   <Step title="Concatenate on the command line">
-    `cat src/*.ts` joins the files into one in a second. What it
+    `cat src/*.ts` joins the files into one. What it
     will not do is add file headers, skip lock files and build output, or tell you how
-    large the result is. You get the bytes and none of the structure.
+    large the result is.
   </Step>
   <Step title="Bundle it with FileConcat">
     Drop the folder in your browser. The noise gets filtered out, every file is wrapped
@@ -62,7 +56,8 @@ There are three common ways to do it, and they trade effort against structure.
 </Steps>
 
 The gap between the second and third option is what the rest of this guide is about.
-Here are the same two files, first as a raw `cat` dump, then as a labeled bundle:
+Here are the same two files, first as a raw `cat` dump, then as a simplified labeled
+bundle (the real one also carries a summary, the tree and each file's language):
 
 <BeforeAfter>
   <Before label="cat src/*.ts">{`export function add(a, b) {
@@ -85,40 +80,39 @@ export function formatDate(d) {
 
 ## Try it with your own files
 
-The fastest way to see the difference is on your own files. Drop a folder or a few
+Drop a folder or a few
 files below. It runs entirely in your browser, there is no account, and your files are
-not uploaded to us. What you get back is one file you can upload to ChatGPT or Claude.
+not uploaded to us. What you get back is one bundle you can copy into ChatGPT or Claude.
 
 <TryIt />
 
 ## Why the labels matter
 
-The labels are not decoration. A file path is the cheapest context you can give a
-model: it says that `src/math.ts` is a module, that `date.ts` sits beside it, and that
-a file named `index.ts` is probably an entry point. Strip the paths and the model has
-to infer all of that from the code alone.
+The labels are not decoration. A file path says where each file sits: `src/math.ts`
+and `src/date.ts` live side by side under `src/`. Strip the path labels and only the
+tree still shows where each file sits.
 
-The tree at the top of the bundle does the same job at a larger scale. It lets the
-model see the shape of the project before it reads a single line, the way you would
-glance at a file explorer before opening anything. That is what lets the model follow
-many files in one bundle without guessing where each one sits.
+The tree at the top of the bundle does the same job at a larger scale. It lays out the
+shape of the project before the first file's contents, the way a file explorer does
+before you open anything.
 
 They are also cheaper than they look. Measured across five codebases containing 248
 files, the entire wrapper (paths, fences and tree together) came to between 0.6% and
 3.8% of the bundle. The choice between XML, Markdown and plain labels moved the total by
-only 0.24% to 1.13%. The labels are close to free, and
+only 0.24% to 1.13%.
 [XML vs Markdown for LLM context](/blog/xml-vs-markdown-for-llm-context) has the
 measurement.
 
-<Callout type="warn" title="Paths are the cheapest context you can add">
-  If you keep only one thing from a raw `cat` dump, keep the file paths. A few extra
-  tokens of `path="..."` buy the model a map it would otherwise have to guess at.
+<Callout type="warn" title="Keep the paths">
+  If you keep only one thing from a raw `cat` dump, keep the file paths. Each path label
+  names an included file by its full path.
 </Callout>
 
 ## Upload multiple files to ChatGPT as one
 
-ChatGPT counts files, not bytes. OpenAI's File Uploads FAQ allows 80 files every 3 hours,
-and 3 a day on the Free plan, as of September 2026. A Project holds a set number of
+ChatGPT's upload-rate limit counts files, not bytes. OpenAI's File Uploads FAQ allows up to 80
+files every 3 hours, and 3 a day on the Free plan, and says it may lower these limits at peak hours. Separate per-file size and token
+limits apply too. A Project holds a set number of
 files per plan. A bundle is one file however many went into it, so twenty source files
 and a spec cost one upload and take one Project slot. Every cap by plan:
 [the ChatGPT file upload limit](/how-to/chatgpt-file-upload-limit), and for Projects,
@@ -129,8 +123,7 @@ and a spec cost one upload and take one Project slot. Every cap by plan:
 The other thing the chat box has is a ceiling: it accepts only so much text at once. So
 it helps to know the size of a bundle before you paste it, not after it bounces back.
 
-A loose folder of notes and a few source files is rarely the problem. A whole repository
-usually is. We tokenized 60 public repositories end to end, and the median one assembled
+A small folder may fit. A whole repository often does not. We tokenized 60 public repositories end to end, and the median one assembled
 into 236,218 tokens:
 
 | Context window | Repositories that fit |
@@ -150,8 +143,8 @@ see that number before you paste rather than after.
 send: lock files, build output, vendored code, and test files by their ecosystem's naming
 convention. On a fresh clone the defaults remove a
 median 22.7% of tokens, about a third of it test files, and a median 73.7% of files survive
-them. If you need a much smaller bundle, the lever is deciding that a whole category does
-not belong in this question, not a stricter filter.
+them. If you need a much smaller bundle, leave out a whole category that does not belong in
+this question, or add stricter include and ignore patterns.
 
 <Callout type="tip">
   Working with a whole repository instead of a loose folder? You can paste a GitHub,

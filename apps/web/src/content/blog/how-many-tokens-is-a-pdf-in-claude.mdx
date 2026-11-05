@@ -18,7 +18,7 @@ import pdfTokens from "~/data/pdf-tokens.json";
     },
     {
       figure: "About 1,600",
-      text: "Tokens per page the PDF costs on top of its text. Claude reads an image of every page along with the text. A typical page is about 2,400 tokens as a PDF and about 900 as text.",
+      text: "Tokens per page the PDF costs on top of its text, the measured gap between the two counts. Anthropic bills an image of every page along with the text. A typical page is about 2,400 tokens as a PDF and about 900 as text.",
     },
     {
       figure: "2 in 3",
@@ -39,7 +39,8 @@ FileConcat extracts from it.
 ## How many tokens is a PDF in Claude?
 
 About 2,400 tokens for a typical page uploaded as a PDF, and about 900 for the same page pasted as
-text. The difference is the picture of the page that Claude reads alongside its text.
+text. Anthropic bills a picture of every page on top of its text, and the gap between the two
+counts is about 1,600 tokens per page.
 
 <Bars
   title="Input tokens per page, median page of 165 PDFs with a text layer"
@@ -53,7 +54,7 @@ text. The difference is the picture of the page that Claude reads alongside its 
   The same pages, counted both ways. The text side is the extracted words, with a page marker per page.
 </Bars>
 
-That price per page is fixed by the image, not by how much the page says. A page with one line of text
+Much of that price comes from the image, which every page pays for however little it says. A page with one line of text
 still pays for its whole picture, so short pages cost the most extra. A dense page of small print is
 the one case where the text alone can outweigh the image: two of the 165 PDFs cost more as text.
 
@@ -74,14 +75,14 @@ half the PDFs, and half or less for nearly nine in ten.
 
 When the page's picture carries something its words do not. The image is what lets Claude read a
 chart, a photo, a diagram or a scanned page. Text keeps the words and leaves all of that behind, and
-two in three of these PDFs hold at least one embedded picture, even if many of them are only a logo.
+two in three of these PDFs hold at least one embedded picture.
 
 - **Paste the text when the question is about the words.** Contracts, reports, papers, manuals and
   forms are read from their text, and about three fifths of the upload's tokens pay for pictures of
   pages the answer does not need.
-- **Upload the PDF when the answer is in a figure.** A chart's values or a diagram's labels are often
-  not in the text layer at all. Check your text before you trust it for that.
-- **A scanned PDF usually has no text to paste.** FileConcat says when a file is a scan and offers to
+- **Upload the PDF when the answer is in a figure.** A chart's values or a diagram's labels can be
+  missing from the text layer. Check your text before you trust it for that.
+- **A fully scanned PDF has no text to paste.** FileConcat says when a file is a scan and offers to
   read it on your machine. In the claude.ai apps, a PDF of 101 to 1,000 pages is read as text only anyway.
 
 The saving repeats in a long conversation, because the document stays in it and is read again with
@@ -90,8 +91,8 @@ with small print.
 
 ## Count your own PDF
 
-The figures above are a distribution. Your PDF is one point in it, and the result screen shows its
-token count before you paste anything.
+The figures above are a distribution. Your PDF is one point in it, and the result screen estimates
+the tokens of the bundle built from its text before you paste anything.
 
 Drop a PDF here and FileConcat extracts its text in your browser and estimates the tokens of what
 you would paste. Your files are not uploaded to us. What you then paste into an
@@ -104,7 +105,7 @@ assistant is your own choice, but preparing the file uploads nothing.
 
 {/* evidence */}
 
-## What nobody had measured yet
+## What earlier sources measured
 
 Anthropic's own [PDF documentation](https://platform.claude.com/docs/build-with-claude/pdf-support)
 gives the rule and a range, not a measurement. It says "Each page typically uses 1,500-3,000 tokens
@@ -118,17 +119,18 @@ pages and about a third are a single page.
 
 The one study we found that logs Claude's PDF token counts is
 [Ak et al. (arXiv 2609.29933)](https://arxiv.org/abs/2609.29933). On Claude Sonnet 4.5 it saw a mean of
-about 2,050 tokens per page on 50 to 100 page documents, falling to about 1,540 above 100 pages, which
+about 2,050 tokens per page on 50 to 100 page documents, falling to about 1,540 on 100 to 150 page documents, which
 it attributes to the API downsampling page images to fit a 200K window. It also counts the same
 benchmarks as extracted text, but publishes no per-document ratio of the two.
 
 It also says that without citations the API "falls back to basic text extraction". Our counts
 contradict that for the direct API. Every count here was made without citations, and every page still
 cost about 1,600 tokens more than its text. That gap matches what a page with no text at all costs, as
-the scanned group below shows. We counted only the direct API, so the fallback may belong to another
-platform the paper does not name.
+the scanned group below shows. We counted only the direct API's count endpoint, so the paper's result
+without citations is not directly comparable to these counts.
 
-Nobody had counted the same real PDFs both ways with the vendor's own counter. That is this page.
+We found no published count of the same real PDFs both ways with the vendor's own counter. That is
+this page.
 
 ## The 195 PDFs, and where they came from
 
@@ -181,7 +183,7 @@ page's words.
     request.
   </Step>
   <Step title="Subtract the envelope">
-    A one-message request costs 9 tokens before any content. That is counted once and subtracted from
+    A one-message request costs some tokens before any content. That is counted once and subtracted from
     both sides, so each figure is the content alone.
   </Step>
   <Step title="Count pages and pictures with pdf.js">
@@ -194,8 +196,8 @@ page's words.
 
 Pooled, the 165 PDFs count 4,432,664 tokens uploaded and 1,674,624 as text: 2.65 times as much, or 62.2%
 saved by pasting the text. Per file the median ratio is 2.81x, the 10th percentile 1.78x and the 90th
-5.64x. The pooled figure sits below the median because pooling weights each file by its size, and the
-files with the most text per page are where the gap is narrowest.
+5.64x. The two differ because pooling weights each file by its text tokens, where the median counts every
+file once.
 
 <Stopper value="2.81x" source="median per-file ratio / 165 PDFs with a text layer / claude-opus-5-5 / 2026-11-04">
   What the typical PDF costs uploaded, against its own text pasted. The 10th to 90th percentile runs
@@ -214,17 +216,17 @@ few to say anything about long PDFs beyond this: their median page counted the s
 short file's, so on this model we saw none of the downsampling the arXiv study logged.
 
 The PDF's extra cost per page has a median of 1,568 tokens over the text. On the scanned PDFs, where
-most pages have no text layer, the median page costs 1,586 as a PDF. The two numbers are close because
+most pages have no text layer, the median file costs 1,586 a page as a PDF. The two numbers are close because
 both are mostly the same thing: the image of one page.
 
-**Where the text costs more.** Two files: `c9a5be22.pdf`, one dense newspaper page at 10,238 tokens as
-text against 5,247 as a PDF, and `94ba3f01.pdf` at 0.99x. Why the newspaper page's PDF counts about half
-its extracted text is not verified. One reading is that Claude's own text extraction of that page is
+**Where the text costs more.** Two files counted fewer tokens as a PDF than as extracted
+text, at 0.51x and 0.99x. Why the first counts about half its extracted text is not verified.
+One reading is that Claude's own text extraction of that file is
 shorter than ours; we did not see the text the endpoint extracted, only its count.
 
 **What text leaves behind.** 112 of the 165 hold at least one embedded raster image, on 551 of their
-1,807 pages. Many are logos and decorations, and vector charts are not counted at all, so this is how
-often a page has a picture, not how often the picture matters.
+1,807 pages. The count does not say what a picture shows, and vector charts are not counted at all, so
+this is how often a page has a picture, not how often the picture matters.
 
 ## Scanned and broken PDFs
 
@@ -242,22 +244,22 @@ valid". It is counted in the 195 and nowhere else.
 
 ## Limitations
 
-- **This is the Claude API, not the claude.ai apps.** The apps do not publish what a PDF costs in
-  tokens. Their help page says a PDF of 101 to 1,000 pages is read as text only, which is the text side
+- **This is the Claude API, not the claude.ai apps.** Their help page gives no token figure for a
+  PDF. It says a PDF of 101 to 1,000 pages is read as text only, which is the text side
   of this page done for you. Whether a shorter upload in the apps costs what the API counts is not
   verified.
 - **One model, one tokenizer.** `claude-opus-5-5` shares the tokenizer introduced with Claude Opus 4.7.
-  Anthropic says that tokenizer counts roughly 30% more than earlier models. Both sides move together,
-  so the ratio should hold on older models, but we did not count them.
+  Anthropic says that tokenizer counts roughly 30% more than earlier models. The ratio was not
+  measured on older models.
 - **Web PDFs are short.** The median file is 3 pages. The largest files were never in the sample,
   because the crawl does not keep files it cut short.
 - **Cost, not answers.** This counts what reaches the model. It does not say whether the answer is as
-  good. Ak et al. found raw PDF the strongest input for Sonnet 4.5 on a long-document benchmark, and
-  extracted text the cheapest. Losing the picture is a real price for a question about a figure.
+  good. Ak et al. found raw PDF the strongest whole-document input for Sonnet 4.5 on MMLongBench but
+  behind extracted text on LongDocURL, and extracted text cheaper than raw PDF. Losing the picture is a real price for a question about a figure.
 - **The picture count is a floor.** pdf.js reports pages that paint a raster image. A chart drawn as
   vector paths is not counted, and a logo counts the same as a photo.
 - **The bundle wrapper is not counted.** Pasted as part of a FileConcat bundle, each file adds its tag
-  and the bundle a short header. We did not count it; it is small against thousands of tokens per PDF.
+  and the bundle a short header. We did not count it.
 - **Our text has page markers.** The extracted text carries one `# Page N` line per page, as the bundle
   does. It is counted, so the text side is slightly higher than the words alone.
 
@@ -276,8 +278,7 @@ node --env-file=<your env file> packages/cli/scripts/measure-pdf-tokens.mjs \
 ```
 
 The first command needs DuckDB and draws every format; only `pdf/` is counted here. The crawl and the
-seed are this sample's defaults. How many index parts our draw read was not recorded, so a rerun can
-pick a different 195. The last
+seed are this sample's defaults. How many index parts our draw read was not recorded. The last
 one writes the JSON this page is drawn from: the four groups, the 100-page cut, the picture counts, the
 rejected file, and the per-file ratios behind the figure.
 
@@ -286,7 +287,8 @@ rejected file, and the per-file ratios behind the figure.
 ### How many tokens is a PDF page in Claude?
 
 On the 1,807 text-layer pages measured here, the median page counted 2,390 input tokens as a PDF
-document block on `claude-opus-5-5`. About 1,600 of that is the page's image and the rest its text. The
+document block on `claude-opus-5-5`. About 1,600 of that is the measured gap over the page's text, where Anthropic bills an image of
+every page on top of the text. The
 same page pasted as extracted text counted 856. Anthropic's documentation gives 1,500 to 3,000 tokens of
 text per page, which is higher than what these web PDFs held.
 
@@ -297,8 +299,9 @@ as much uploaded. One of the two exceptions is a single page of very dense small
 
 ### Do scanned PDFs cost more tokens?
 
-They cost less per page as a PDF, about 1,586 tokens, because there is no text layer to bill.
-There is no cheaper text to paste, though: the text has to be recognised from the image first.
+They cost less per page as a PDF: the median scanned file averaged about 1,586 tokens a page. For the 19 of the
+24 that produced no extracted text there is no cheaper text to paste, though: the text
+has to be recognised from the image first.
 
 ### Does Claude read the images in a PDF?
 
@@ -308,7 +311,8 @@ help page.
 
 ### How do I count the tokens in my own PDF?
 
-Drop it into FileConcat and the result screen shows the token count of the extracted text. For the PDF
+Drop it into FileConcat and the result screen shows an estimated token count of the bundle built from
+the extracted text. For the PDF
 side, Anthropic's token counting endpoint takes the PDF as a base64 document block and is free to call.
 
 ## References
@@ -350,7 +354,7 @@ side, Anthropic's token counting endpoint takes the PDF as a base64 document blo
       sample: "MMLongBench-Doc and LongDocURL, Claude Sonnet 4.5 and Qwen3.5 readers",
       compared: "Raw PDF, page images and extracted text as inputs, accuracy and cost",
       headline:
-        "Raw PDF the strongest input for Sonnet and the most expensive; about 2,050 billed tokens per page on 50-100 page documents, about 1,540 above 100 pages",
+        "Raw PDF the strongest whole-document input for Sonnet on MMLongBench, behind extracted text on LongDocURL, and the most expensive; about 2,050 billed tokens per page on 50-100 page documents, about 1,540 on 100-150 page documents",
     },
   ]}
 />

@@ -1,6 +1,6 @@
 ---
 title: "How to Save a Hacker News Thread"
-description: "Save an entire Hacker News discussion as one Markdown file, every reply, indented up to eight levels deep, ready for ChatGPT or Claude. Including the comments nobody expanded."
+description: "Save a Hacker News discussion as one Markdown file, every comment with text and an author that the Algolia API returns, indented up to eight levels deep, ready for ChatGPT or Claude. Including the comments nobody expanded."
 date: "2026-08-28"
 author: "CeamKrier"
 draft: false
@@ -8,13 +8,13 @@ draft: false
 
 <Tldr
   items={[
-    "FileConcat Clipper, a free Chrome side panel, reads a Hacker News thread through the Algolia API: the whole comment tree in one request, nothing to expand first.",
-    "Clip this thread, Peek to read it back, Send to fileconcat.com, where it becomes one Markdown bundle with a live token count.",
-    "Depth costs nothing. A 638-comment thread came back as 264,851 characters, eight levels deep, none of it on screen when the button was pressed.",
+    "FileConcat Clipper, a Chrome side panel, reads a Hacker News thread through the Algolia API: the comment tree it returns, in one request, nothing to expand first.",
+    "Clip this thread, Peek to read it back, Send to fileconcat.com, where the Markdown clipping joins one bundle with a live token count.",
+    "Depth costs no extra request and nothing to expand: the tree arrives in one response, though a deeper thread makes a bigger file.",
   ]}
 />
 
-Hacker News threads are dense in a specific way. The correction that matters is usually
+Hacker News threads are dense in a specific way. The correction that matters can sit
 four levels down, under a collapsed comment, in a subtree nobody scrolled to. The value is
 in the whole tree, and the whole tree is what you cannot see.
 
@@ -25,25 +25,23 @@ thread, not the top of it.
 
 Open a 600-comment thread and the page gives you the ones it decided to render. [more]
 links stand in for the rest, and collapse toggles hide subtrees. Select all,
-copy, paste, and you have captured the state of a user interface rather than the content
-of a discussion.
+copy, paste, and you capture at most what the page had loaded and rendered.
 
 Two things go missing at once:
 
 - **The replies nobody expanded.** They are not in the document you copied because they
   were never in the page.
-- **The nesting.** Indentation on Hacker News is drawn with spacer images and table cells.
-  It does not survive a copy, so a rebuttal arrives looking like a fresh opinion.
+- **The nesting.** Indentation on Hacker News is drawn with spacer images and table cells,
+  not with characters in the text, so a copy can lose who was replying to whom.
 
 ## Take the whole tree in one request
 
 FileConcat Clipper is a browser side panel that reads the thread properly. On Hacker News
-it goes to `hn.algolia.com/api/v1/items/<id>`, which returns the entire comment tree in
+it goes to `hn.algolia.com/api/v1/items/<id>`, which returns the comment tree in
 one request: no authentication, no paging, and nothing to expand first.
 
-That means depth costs nothing. Measured on 2026-08-19 against a 638-comment thread, one
-clipping came back with 264,851 characters nested eight levels deep. None of it was on
-screen when the button was pressed.
+That means depth costs no extra request and no manual expanding, though a deeper thread
+still makes a bigger file.
 
 <Steps>
   <Step title="Open the panel on the thread">
@@ -63,25 +61,23 @@ screen when the button was pressed.
 <Callout type="tip" title="Where to get it">
   The extension is on the [Chrome Web
   Store](https://chromewebstore.google.com/detail/fileconcat-clipper/nhjmkijlimliapgbidajgbkangddnlhn),
-  free and open source. There is a page about what it does at [/clipper](/clipper) and a
+  open source. There is a page about what it does at [/clipper](/clipper) and a
   reference at [/docs/clipper](/docs/clipper).
 </Callout>
 
 ## Mind the size
 
-A quarter of a million characters is roughly 65,000 tokens, which is a real portion of a
-context window spent on one thread. That is the correct trade when the thread is the
+A long thread can take a real portion of a context window for one discussion. That is the correct trade when the thread is the
 subject, and the wrong one when it is background.
 
-The bundler is where you find that out rather than guessing. It counts the tokens for
-every major model as the bundle grows, so you know what the discussion costs before you
-paste it. If it is too much, take the linked article instead and keep the thread for a
+The bundler is where you find that out rather than guessing. It shows an estimated token
+count as the bundle grows, and the cost and fit for the model you pick, so you know what
+the discussion costs before you paste it. If it is too much, take the linked article instead and keep the thread for a
 follow-up question.
 
 <Callout type="warn" title="A snapshot, not a feed">
-  A clipping is the thread as it stood when you took it. Hacker News threads keep growing
-  for a day or two after they peak. A thread clipped early is a different file from the
-  same thread clipped tomorrow. Re-clipping and sending again replaces the old file in
+  A clipping is the thread as it stood when you took it. Later comments can make the same
+  thread clipped tomorrow a different file. Re-clipping and sending again replaces the old file in
   place rather than adding a second copy.
 </Callout>
 
@@ -91,15 +87,16 @@ The front page is a listing, so the panel puts a tap target on each of its stori
 the ones you care about and each thread is read on its own, which is how a morning of
 open tabs becomes a set of files.
 
-The more useful pattern is mixing sources. A Hacker News thread is usually about
-something: a blog post, a repository, a specification. The clipper reads articles anywhere
-with no per-site code, so the post and the argument about it can go into the same bundle.
+The more useful pattern is mixing sources. A Hacker News thread may be about a blog post,
+a repository or a specification. The clipper can read many article pages on other sites with
+a generic reader and no per-site code, so the post and the argument about it can go into the same bundle.
 The repository can go in under it from the bundler itself. A send extends the bundle
-rather than replacing it, so the order you collect things in does not matter.
+rather than replacing it: a new path is added, and a path sent again replaces its earlier copy.
 
 That is the question worth asking a model: not what this thread says, but where the thread
 and the thing it is discussing disagree.
 
-None of it is uploaded to us at any point. The clipping is made in your browser, held in your
-browser's own storage between the clip and the send, and handed to an open FileConcat
-tab, or a new one.
+The clipping never passes through a FileConcat server. It is made in your browser, held in
+your browser's own storage between the clip and the send, and handed to an open FileConcat
+tab, or a new one. Once there, the site's session recording can show its file name, as the
+[privacy page](/privacy) explains.

@@ -1,6 +1,6 @@
 ---
 title: "How to Send a YouTube Transcript to ChatGPT, or a Whole Playlist"
-description: "Send a YouTube transcript to ChatGPT or Claude as one clean file with the description: one video, a channel or a whole playlist, token count shown first."
+description: "Send a YouTube transcript to ChatGPT or Claude as one clean file with the description: one video, a channel or a playlist, token count shown first."
 date: "2026-08-28"
 author: "CeamKrier"
 draft: false
@@ -8,18 +8,18 @@ draft: false
 
 <Tldr
   items={[
-    "FileConcat Clipper, a free Chrome side panel, turns a watch page into one Markdown file: the description and the whole transcript, each segment with its timestamp.",
-    "Comments are opt-in. On a Stanford commencement address they took the clip from 3,622 to 12,898 tokens.",
+    "FileConcat Clipper, an open-source Chrome side panel, turns a watch page into one Markdown file: the description and every transcript segment YouTube returns with text and a timestamp.",
+    "Comments are opt-in. When YouTube returns them, the clip adds up to three pages of top comment threads, about 60, and some of their replies.",
     "A channel's Videos tab, a search page or a playlist is a listing, and each row is a tap. Send pushes it all into fileconcat.com as one bundle with a token count.",
   ]}
 />
 
-A forty-minute talk is roughly six thousand words. As text you can search it, quote it,
+Take a forty-minute talk. As text you can search it, quote it,
 skim the middle and ask a question of it. As video you have to watch it, even
 at double speed.
 
 So the useful move is to get the words out first and put the video back only if you need
-it. On a watch page, the thing you came for is not on the page as text at all. That is why this is more awkward than it should be.
+it. For a video with captions, the transcript sits behind a Show transcript button in the description. That is why this is more awkward than it should be.
 
 ## What people do today
 
@@ -54,15 +54,13 @@ source: "https://www.youtube.com/watch?v=VIDEO_ID"
 **0:13** - the design falls out of that`}</After>
 </BeforeAfter>
 
-You can paste the left-hand version into ChatGPT and it will cope. You will have done the
-work by hand for one video, without its title or description. Some layouts offer **Toggle timestamps** in the transcript
-panel's menu, which removes the column. It is still one video at a time, and the
-description is left behind.
+You can paste the left-hand version into ChatGPT. You will have done the
+work by hand for one video, without its title or description.
 
 ## Take the transcript and the description together
 
 FileConcat Clipper is a browser side panel that reads a watch page and hands you the
-video's description and its full transcript as one Markdown file.
+video's description and its transcript as one Markdown file.
 
 <Steps>
   <Step title="Open the panel on the video">
@@ -71,11 +69,9 @@ video's description and its full transcript as one Markdown file.
     the title and the description.
   </Step>
   <Step title="Decide about comments">
-    **Include comments** takes the top 60 threads and, under the 25 with the most
-    replies, the first page of those replies. It is off by default: it costs about 30
-    extra requests, five seconds, and a much bigger bundle. Measured 2026-09-01, the
-    Stanford commencement address went from 3,622 to 12,898 tokens (60 threads, 235
-    replies) and a shorter talk from 2,377 to 7,238.
+    **Include comments** takes up to three pages of top threads, about 60, and, under the 25 with the most
+    replies, the first page of those replies. It is off by default: it adds a run of
+    extra requests, made one at a time, and usually a bigger bundle.
   </Step>
   <Step title="Send it to the bundler">
     **Send** pushes the clipping into an open [fileconcat.com](/) tab, opening one if there
@@ -86,7 +82,7 @@ video's description and its full transcript as one Markdown file.
 <Callout type="tip" title="Where to get it">
   The extension is on the [Chrome Web
   Store](https://chromewebstore.google.com/detail/fileconcat-clipper/nhjmkijlimliapgbidajgbkangddnlhn),
-  free and open source. There is a page about what it does at [/clipper](/clipper) and a
+  open source. There is a page about what it does at [/clipper](/clipper) and a
   reference at [/docs/clipper](/docs/clipper).
 </Callout>
 
@@ -96,20 +92,20 @@ One video at a time is the small version of this problem. The bigger one is a co
 conference track or a back catalogue, where the whole point is to ask a question across
 all of it.
 
-A channel's **Videos** tab and a search results page are listings, so the panel puts a tap
-target on every row the page has loaded. Each one you tap is opened and read on its own.
-Scrolling to load more rows updates the panel with no click, because it re-reads the
-page whenever the page grows.
+A channel's **Videos** tab and a search results page are listings, so the panel lists
+the visible video rows it recognizes, each with a tap target. Each one you tap is opened
+and read on its own. Scrolling to load more rows updates the panel with no click,
+because it re-reads the page when the number of video links on it changes.
 
 A channel's **Playlists** tab is different and more useful than it looks. It lists
-playlists rather than videos, and taking one row takes every video that playlist holds,
-filed under the playlist's name. Measured on 2026-08-22, one tap on a 38-video playlist
-came back with 38 videos, each read on its own.
+playlists rather than videos, and taking one row queues the videos it recognizes on the first page
+YouTube returns for that playlist, skipping any already queued and stopping at the queue limit, filed under the playlist's name.
 
 <Callout type="warn" title="Not every video has a transcript">
   A clipping needs captions to exist, whether the uploader wrote them or YouTube generated
-  them. A video with neither says so on its own row in the panel rather than arriving
-  empty, and the rows around it carry on.
+  them. A video whose transcript comes back empty or unreadable says so on its own row
+  in the panel rather than arriving empty, and the queue goes on to the next row unless
+  it stops for a rate limit, a bot check or a run of failures.
 </Callout>
 
 ## Send the transcript to ChatGPT

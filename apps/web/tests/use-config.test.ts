@@ -62,6 +62,16 @@ describe("useConfig localStorage migration", () => {
     expect(persisted.chunkSizeKB).toBe(32);
   });
 
+  it("keeps a plain output style through a migration", async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 7, ...baseV5Fields, outputStyle: "plain" }));
+
+    const { result } = renderHook(() => useConfig());
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    expect(result.current.config.version).toBe(CONFIG_VERSION);
+    expect(result.current.config.outputStyle).toBe("plain");
+  });
+
   it("drops legacy removeEmptyLines when migrating from v4", async () => {
     const v4 = {
       version: 4,
