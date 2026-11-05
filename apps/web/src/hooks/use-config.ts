@@ -56,7 +56,7 @@ function pickIgnorePatterns(raw: Record<string, unknown>): string {
   return pickString(raw.ignorePatterns, DEFAULT_IGNORE_STRING);
 }
 
-const OUTPUT_STYLES = ["xml", "markdown"] as const;
+const OUTPUT_STYLES: readonly UserConfig["outputStyle"][] = ["xml", "markdown", "plain"];
 const OUTPUT_FORMAT_PREFS = ["auto", "single", "multi"] as const;
 
 function pickOutputFormatPref(raw: Record<string, unknown>): OutputFormatPreference {
