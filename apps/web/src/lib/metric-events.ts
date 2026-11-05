@@ -450,6 +450,16 @@ export const METRIC_EVENTS = [
    */
   "ocr_failed",
   /**
+   * What the error was when recognition could not read a file, as
+   * `<where>/<kind>`: `start` the recogniser never loaded, `read` a file in a
+   * pass, `preview` a held scan's first pages. `<kind>` is the closed label
+   * `errorKind` in `./js-errors` gives (an allowlisted `Error.name` including
+   * pdf.js's, `nonerror`, `other`). `n` files totalling `b` bytes. Since
+   * 2026-11-05: a pass lost every scan it held as `other` and nothing said
+   * whether the file, pdf.js or the browser refused it. The message never leaves.
+   */
+  "ocr_failed_kind",
+  /**
    * A pass someone stopped, with `n` the files it never finished. Written once
    * per stopped pass. Export stays open during a pass since 2026-10-25, so a
    * stop is no longer the only way to get the bundle out, and this is what says

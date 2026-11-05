@@ -26,6 +26,7 @@ import {
 import { collectFromDataTransfer } from "~/lib/collect-from-drop";
 import { encodingGuesser } from "~/lib/encoding-guess";
 import { markerFor } from "~/lib/ecosystem-markers";
+import { errorKind } from "~/lib/js-errors";
 import { addToTally, startRun, track, trackAmount, trackTally, type Tally } from "~/lib/metrics";
 import { tagDrop, tagSource } from "~/lib/clarity-tags";
 import {
@@ -531,6 +532,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       const framesRead: Tally = new Map();
       const confidences: Tally = new Map();
       const failures: Tally = new Map();
+      const failureKinds: Tally = new Map();
       let failure: ReadFailure | null = null;
       const readEntries: ContentEntry[] = [];
       // The documents this pass actually opened. Everything else it was given
@@ -602,6 +604,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             failure = readFailure(error);
             console.error("Recognition could not start:", error);
             trackAmount("ocr_failed", { value: failure, n: documents.length });
+            trackAmount("ocr_failed_kind", { value: errorKind("start", error), n: documents.length });
             return 0;
           }
           setReadProgress({ done: 0, total: documents.length });
@@ -730,6 +733,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             // pass that lost its connection half-way says so.
             const cause = readFailure(error);
             addToTally(failures, cause, document.file.size);
+            addToTally(failureKinds, errorKind("read", error), document.file.size);
             if (failure === null || failure === "other") failure = cause;
             if (!document.text) {
               merge(document.path, undefined, document, {
@@ -773,6 +777,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         const missing = browserLanguageWithoutReader();
         if (missing && language.code === "eng") track("ocr_lang_fallback", missing);
         trackTally("ocr_failed", failures);
+        trackTally("ocr_failed_kind", failureKinds);
         // How much of the pass a stop left: the files it never finished. A
         // transcript cut short returns instead of throwing, so the loop never
         // saw that stop and this is where the pass is marked stopped.
@@ -820,6 +825,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
       // Why each held document got no first pages, so a Run in `ocr_deferred`
       // without `ocr_previewed` says which of six things happened to it.
       const skips: Tally = new Map();
+      const failureKinds: Tally = new Map();
       for (const { document, reason } of skipped) addToTally(skips, reason, document.file.size);
       if (plan.length === 0 || readingRef.current) {
         trackTally("ocr_preview_skipped", skips);
@@ -882,6 +888,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
               break;
             }
             addToTally(skips, "error", document.file.size);
+            addToTally(failureKinds, errorKind("preview", error), document.file.size);
             console.error(`First-page recognition failed for ${document.path}:`, error);
           } finally {
             if (current()) {
@@ -898,6 +905,7 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         // mark of a pass someone chose.
         trackAmount("ocr_preview_ms", { n: performance.now() - startedAt });
         trackTally("ocr_preview_skipped", skips);
+        trackTally("ocr_failed_kind", failureKinds);
         // Its own counter, never `ocr_recovered`: a document read in part is not
         // rescued, and the clean-Run measure reads that counter as whole.
         trackTally("ocr_previewed", previewed);
