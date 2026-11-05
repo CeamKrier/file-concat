@@ -341,6 +341,29 @@ describe("the first pages of a held scan (Q112 O1)", () => {
     expect(result.current.validations["a.pdf"].notes ?? []).toEqual([]);
   });
 
+  it("names what refused a scan it could not read, never its message", async () => {
+    // pdf.js rejects a file it cannot parse with a named exception; a and b are
+    // the two the preview budget reaches, c and d are left to the pass.
+    const refused = Object.assign(new Error("Invalid PDF structure. /home/someone/x.pdf"), {
+      name: "InvalidPDFException",
+    });
+    pageGate = async () => {
+      throw refused;
+    };
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.ingestBatch(drop());
+    });
+    await waitFor(() => expect(result.current.isReading).toBe(false));
+    expect(TALLIES.get("ocr_failed_kind")).toEqual(new Map([["preview/invalidpdfexception", { n: 2, b: 10 }]]));
+
+    await act(async () => {
+      await result.current.readUnreadDocuments();
+    });
+    expect(TALLIES.get("ocr_failed_kind")).toEqual(new Map([["read/invalidpdfexception", { n: 4, b: 20 }]]));
+  });
+
   /** Holds every first-page read until `open()` is called. */
   const gate = () => {
     let open = () => {};

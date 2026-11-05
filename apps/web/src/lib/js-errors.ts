@@ -67,6 +67,16 @@ const KNOWN_KINDS: ReadonlySet<string> = new Set([
   "unknownerror",
   "timeouterror",
   "hierarchyrequesterror",
+  // Added 2026-11-05 for `ocr_failed_kind`: what pdf.js 6 rejects with on the
+  // main thread. Its names are string literals in its source (`super(msg,
+  // "InvalidPDFException")`), so minifying it does not rename them. A worker-side
+  // FormatError usually crosses as UnknownErrorException.
+  "invalidpdfexception",
+  "passwordexception",
+  "unknownerrorexception",
+  "responseexception",
+  "abortexception",
+  "formaterror",
 ]);
 
 /**
@@ -145,6 +155,17 @@ function classify(cause: unknown, message: string): string {
   if (!(cause instanceof Error) && !isDomException) return "nonerror";
   const name = (cause as Error).name.toLowerCase();
   return KNOWN_KINDS.has(name) ? name : "other";
+}
+
+/**
+ * `<where>/<kind>` for an error that was caught rather than thrown at the page,
+ * such as a document recognition could not read, with the same closed kind.
+ * Only the label leaves. The sink drops a value past 32 characters, and the
+ * whole event with it, so a label that would not fit is sent as `other`.
+ */
+export function errorKind(where: string, cause: unknown): string {
+  const value = `${where}/${classify(cause, cause instanceof Error ? cause.message : "")}`;
+  return value.length <= 32 ? value : `${where}/other`;
 }
 
 /**

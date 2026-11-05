@@ -28,6 +28,20 @@ beforeEach(async () => {
 
 const values = () => tracked.map((event) => event.value);
 
+describe("errorKind", () => {
+  it("gives pdf.js's own names, and nothing of the message", () => {
+    const named = (name: string) => Object.assign(new Error("/home/someone/scan.pdf"), { name });
+    expect(jsErrors.errorKind("read", named("PasswordException"))).toBe("read/passwordexception");
+    expect(jsErrors.errorKind("read", named("UnknownErrorException"))).toBe("read/unknownerrorexception");
+    expect(jsErrors.errorKind("read", new DOMException("x", "NotReadableError"))).toBe("read/notreadableerror");
+    expect(jsErrors.errorKind("read", named("SomeMinifiedName"))).toBe("read/other");
+    expect(jsErrors.errorKind("read", "Error: tesseract said no")).toBe("read/nonerror");
+    expect(jsErrors.errorKind("preview", named("UnknownErrorException"))).toBe("preview/unknownerrorexception");
+    expect(jsErrors.errorKind("a-place-far-too-long", named("UnknownErrorException"))).toBe("a-place-far-too-long/other");
+    expect(tracked).toEqual([]);
+  });
+});
+
 describe("recordError", () => {
   it("records the source and an allowlisted error name", () => {
     jsErrors.recordError("error", new TypeError("x is not a function"));
