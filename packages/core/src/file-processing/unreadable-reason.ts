@@ -56,6 +56,11 @@ const FAMILIES: ReadonlyArray<readonly [label: string, extensions: readonly stri
   ],
   // Android projects bring their signing keys along (debug.keystore, release.jks).
   ["Java keystore", ["keystore", "jks"]],
+  // Both seen in `unreadable_ext` (2026-11-05): a PKCS 12 file is a certificate
+  // with its private key, a .fla is an Adobe Animate source (a zip since CS5,
+  // a compound file before). Neither is ever text.
+  ["Certificate and private key", ["p12", "pfx"]],
+  ["Adobe Animate file", ["fla"]],
 ];
 
 /**

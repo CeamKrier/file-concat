@@ -68,7 +68,17 @@ describe("recordError", () => {
 
   it("survives a rejection whose reason is not an Error", () => {
     jsErrors.recordError("rejection", "just a string");
-    expect(values()).toEqual(["rejection/other"]);
+    expect(values()).toEqual(["rejection/nonerror"]);
+  });
+
+  it("names the causes that used to fold into other", () => {
+    class InternalError extends Error {
+      override name = "InternalError";
+    }
+    jsErrors.recordError("boundary", new InternalError("allocation size overflow"));
+    jsErrors.recordError("export", new RangeError("Invalid string length"));
+    jsErrors.recordError("error", new DOMException("gone", "NotReadableError"));
+    expect(values()).toEqual(["boundary/internalerror", "export/rangeerror", "error/notreadableerror"]);
   });
 
   it("writes one row per distinct label per page load, however often it throws", () => {

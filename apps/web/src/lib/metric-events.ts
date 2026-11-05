@@ -668,9 +668,11 @@ export const METRIC_EVENTS = [
   /**
    * An uncaught JavaScript error, as `<source>/<kind>`: where it surfaced
    * (`error` a sync throw, `rejection` an unhandled promise, `boundary` a render
-   * React caught and replaced the page with) and what it was (an allowlisted
+   * React caught and replaced the page with, `export` a copy, download or
+   * share that threw and was caught) and what it was (an allowlisted
    * `Error.name`, `chunk` for a stale asset after a deploy, `foreign` for a
-   * third-party script, `other` for the rest). `boundary/chunk-reload` is the
+   * third-party script, `nonerror` for a throw that was not an Error, `other`
+   * for an Error named off the list; `nonerror` split out of `other` on 2026-11-05). `boundary/chunk-reload` is the
    * boundary reloading once for a stale chunk instead of showing; a
    * `boundary/chunk` row is then a page the reload could not save.
    *

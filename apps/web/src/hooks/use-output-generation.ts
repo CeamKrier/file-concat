@@ -15,6 +15,7 @@ import {
 
 import { currentRun, track, trackAmount, trackDeviceExports } from "~/lib/metrics";
 import { tagBundleReady, tagOutcome } from "~/lib/clarity-tags";
+import { recordError } from "~/lib/js-errors";
 
 import type { ContentEntry } from "./use-file-ingestion";
 
@@ -44,6 +45,9 @@ export interface OutputGeneration {
   selectedFormat: OutputFormat;
   isCopied: boolean;
   isGenerating: boolean;
+  /** The last copy, download or share failed because the bundle is past what
+   * a browser can hold as one string (about 512 Mi characters in Chrome). */
+  tooLarge: boolean;
   canEmit: boolean;
   /** The browser can hand a file to the system share sheet. Read after
    * hydration, so the server render and the first client render agree. */
@@ -67,6 +71,19 @@ export function useOutputGeneration({
   const [isCopied, setIsCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [canShareFiles, setCanShareFiles] = useState(false);
+  const [tooLarge, setTooLarge] = useState(false);
+
+  // Another selection is another bundle: the last one's failure says nothing of it.
+  useEffect(() => setTooLarge(false), [includedContents]);
+
+  // A caught failure never reaches the error listeners, so it is counted here.
+  // RangeError is Chrome and Safari refusing the string, InternalError Firefox.
+  const failed = useCallback((error: unknown) => {
+    recordError("export", error);
+    if (error instanceof RangeError || (error as Error | null)?.name === "InternalError") {
+      setTooLarge(true);
+    }
+  }, []);
 
   useEffect(() => {
     setCanShareFiles(
@@ -147,9 +164,10 @@ export function useOutputGeneration({
       return true;
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
+      failed(error);
       return false;
     }
-  }, [buildSingle, includedContents, outputStyle, tokens]);
+  }, [buildSingle, includedContents, outputStyle, tokens, failed]);
 
   const download = useCallback(async () => {
     setIsGenerating(true);
@@ -195,11 +213,12 @@ export function useOutputGeneration({
       return true;
     } catch (error) {
       console.error("Error generating output:", error);
+      failed(error);
       return false;
     } finally {
       setIsGenerating(false);
     }
-  }, [selectedFormat, includedContents, chunkSizeKB, buildSingle, outputStyle, tokens]);
+  }, [selectedFormat, includedContents, chunkSizeKB, buildSingle, outputStyle, tokens, failed]);
 
   // Always a .txt: Chrome shares only a fixed list of file types, and .md and
   // .xml are not on it. The bytes are the same bundle in the chosen style.
@@ -215,16 +234,20 @@ export function useOutputGeneration({
       return true;
     } catch (error) {
       // AbortError is the sheet closed without a pick: no outcome, nothing wrong.
-      if ((error as Error).name !== "AbortError") console.error("Failed to share:", error);
+      if ((error as Error).name !== "AbortError") {
+        console.error("Failed to share:", error);
+        failed(error);
+      }
       return false;
     }
-  }, [buildSingle, includedContents, outputStyle, tokens]);
+  }, [buildSingle, includedContents, outputStyle, tokens, failed]);
 
   // Format and chunk size are persisted preferences (owned by useConfig), so a
   // fresh ingest only clears the transient emit state — not the user's choices.
   const reset = useCallback(() => {
     setIsCopied(false);
     setIsGenerating(false);
+    setTooLarge(false);
   }, []);
 
   return {
@@ -232,6 +255,7 @@ export function useOutputGeneration({
     selectedFormat,
     isCopied,
     isGenerating,
+    tooLarge,
     canEmit: includedContents.length > 0,
     canShareFiles,
     copy,

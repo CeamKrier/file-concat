@@ -21,6 +21,7 @@ function approximate(text: string): number {
 }
 
 let realEstimator: Estimator | null = null;
+let realJoinedEstimator: ((parts: string[]) => number) | null = null;
 let preloadPromise: Promise<void> | null = null;
 
 export function estimateTokenCount(text: string): number {
@@ -53,10 +54,19 @@ export function estimateBundleTokens(options: AssembleOutputOptions): number {
     ...options,
     files: options.files.map((file) => ({ ...file, content: "" })),
   });
-  // Joined on a newline because that is how each file's content sits in every
-  // style: on its own line, between the markers the wrapper holds.
-  const contents = options.files.map((file) => file.content).join("\n");
-  return estimateTokenCount(contents) + estimateTokenCount(wrapper);
+  // Counted as if joined on a newline, because that is how each file's content
+  // sits in every style: on its own line, between the markers the wrapper
+  // holds. Never actually joined: past about 512 Mi characters the browser
+  // refuses the string and the page went down with it (2026-11-04).
+  const contents = options.files.map((file) => file.content);
+  return estimateJoinedTokens(contents) + estimateTokenCount(wrapper);
+}
+
+function estimateJoinedTokens(parts: string[]): number {
+  if (realJoinedEstimator) return realJoinedEstimator(parts);
+  let length = Math.max(0, parts.length - 1);
+  for (const part of parts) length += part.length;
+  return Math.ceil(length / 4);
 }
 
 export function preloadTokenEstimator(): Promise<void> {
@@ -67,6 +77,7 @@ export function preloadTokenEstimator(): Promise<void> {
   }
   preloadPromise = import("./tokens-client").then((m) => {
     realEstimator = m.estimateTokenCount;
+    realJoinedEstimator = m.estimateJoinedTokenCount;
   });
   return preloadPromise;
 }

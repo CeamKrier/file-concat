@@ -69,6 +69,8 @@ type ResultViewProps = {
   onOutputStyleChange: (style: OutputStyle) => void;
   isCopied: boolean;
   isGenerating: boolean;
+  /** The last export failed: the bundle is too large for the browser to build. */
+  exportTooLarge?: boolean;
   onCopy: () => void;
   onDownload: () => void;
   /** Present when the browser can share a file: phones then get Share in the
@@ -177,6 +179,7 @@ export function ResultView({
   onOutputStyleChange,
   isCopied,
   isGenerating,
+  exportTooLarge,
   onCopy,
   onDownload,
   onShare,
@@ -716,6 +719,12 @@ export function ResultView({
                 </span>
               </button>
             </div>
+            {exportTooLarge && (
+              <p role="alert" className="text-ink mt-3 text-[13px] leading-[1.5]">
+                This bundle is too large for a browser to build as one file. Leave some files out
+                with Adjust what's included, then try again.
+              </p>
+            )}
 
           {/* The card's footer: everything you might do to the bundle instead
               of exporting it, and the way to tell us it went wrong. Under the

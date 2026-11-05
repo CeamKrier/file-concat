@@ -1187,6 +1187,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               onOutputStyleChange={(style) => setConfig({ outputStyle: style })}
               isCopied={output.isCopied}
               isGenerating={output.isGenerating}
+              exportTooLarge={output.tooLarge}
               onCopy={async () => {
                 if (await output.copy()) noteExport("copy");
               }}

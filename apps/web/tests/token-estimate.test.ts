@@ -7,7 +7,7 @@ import {
   type OutputStyle,
 } from "@fileconcat/core";
 
-import { estimateTokenCount } from "~/lib/tokens-client";
+import { estimateJoinedTokenCount, estimateTokenCount, joined } from "~/lib/tokens-client";
 import {
   LARGE_BUNDLE_CHARS,
   estimateBundleTokens,
@@ -154,5 +154,26 @@ describe("estimateBundleTokens", () => {
     // costing fewer.
     expect(ranking(estimates)).toEqual(ranking(exactCounts));
     expect(exactCounts.plain).toBeLessThan(exactCounts.xml);
+  });
+});
+
+describe("joined", () => {
+  it("reads every slice the joined string would give", () => {
+    const parts = ["", "abc", "", "defgh", "i", "", "", "jklmnopq", ""];
+    const whole = parts.join("\n");
+    const view = joined(parts);
+    expect(view.length).toBe(whole.length);
+    for (let start = 0; start <= whole.length + 2; start++) {
+      for (let end = start; end <= whole.length + 3; end++) {
+        expect(view.slice(start, end)).toBe(whole.slice(start, end));
+      }
+    }
+  });
+
+  it("estimates a bundle the same as the joined text it never builds", () => {
+    const files = gradientCorpus(300).map((f) => f.content);
+    expect(estimateJoinedTokenCount(files)).toBe(estimateTokenCount(files.join("\n")));
+    const small = ["a", "b c", "d"];
+    expect(estimateJoinedTokenCount(small)).toBe(exact(small.join("\n")));
   });
 });

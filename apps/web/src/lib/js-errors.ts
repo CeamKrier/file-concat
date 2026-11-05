@@ -18,8 +18,12 @@
 
 import { track } from "./metrics";
 
-/** Where the error surfaced: a sync throw, an unhandled promise, a React render. */
-export type ErrorSource = "error" | "rejection" | "boundary";
+/**
+ * Where the error surfaced: a sync throw, an unhandled promise, a React render,
+ * or a copy, download or share that threw and was caught. The last never reaches
+ * a listener, which is why a bundle too large to build left no row at all.
+ */
+export type ErrorSource = "error" | "rejection" | "boundary" | "export";
 
 /**
  * The names that reach the wire as themselves. `Error.name` is a source-level
@@ -47,6 +51,22 @@ const KNOWN_KINDS: ReadonlySet<string> = new Set([
   "networkerror",
   "notsupportederror",
   "datacloneerror",
+  // Added 2026-11-05: a crash past the browser's string limit arrived as
+  // `other`, which told us nothing. Firefox throws `InternalError` where Chrome throws RangeError
+  // (allocation size overflow, too much recursion); `RuntimeError` is a wasm
+  // reader trapping; the DOMException names are the file, encoding and DOM
+  // refusals our own paths can meet.
+  "internalerror",
+  "runtimeerror",
+  "notreadableerror",
+  "notfounderror",
+  "encodingerror",
+  "invalidstateerror",
+  "dataerror",
+  "operationerror",
+  "unknownerror",
+  "timeouterror",
+  "hierarchyrequesterror",
 ]);
 
 /**
@@ -118,8 +138,12 @@ let installed = false;
 function classify(cause: unknown, message: string): string {
   if (CHUNK_MESSAGE.test(message)) return "chunk";
   if (message === FOREIGN_MESSAGE) return "foreign";
-  if (!(cause instanceof Error)) return "other";
-  const name = cause.name.toLowerCase();
+  // A thrown string, object or nothing: worth telling apart from an Error whose
+  // name is off the list, because no Error means no stack anywhere. A
+  // DOMException is an Error in current browsers, not in jsdom or older engines.
+  const isDomException = typeof DOMException !== "undefined" && cause instanceof DOMException;
+  if (!(cause instanceof Error) && !isDomException) return "nonerror";
+  const name = (cause as Error).name.toLowerCase();
   return KNOWN_KINDS.has(name) ? name : "other";
 }
 
