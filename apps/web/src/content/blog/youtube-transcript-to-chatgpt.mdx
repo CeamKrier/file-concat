@@ -8,15 +8,15 @@ draft: false
 
 <Tldr
   items={[
-    "FileConcat Clipper, a free Chrome side panel, turns a watch page into one Markdown file: the description and the whole transcript, at paragraph granularity.",
+    "FileConcat Clipper, a free Chrome side panel, turns a watch page into one Markdown file: the description and the whole transcript, each segment with its timestamp.",
     "Comments are opt-in. On a Stanford commencement address they took the clip from 3,622 to 12,898 tokens.",
     "A channel's Videos tab, a search page or a playlist is a listing, and each row is a tap. Send pushes it all into fileconcat.com as one bundle with a token count.",
   ]}
 />
 
 A forty-minute talk is roughly six thousand words. As text you can search it, quote it,
-skim the middle and ask a question of it. As video you can only watch it, at the speed
-somebody else chose.
+skim the middle and ask a question of it. As video you have to watch it, even
+at double speed.
 
 So the useful move is to get the words out first and put the video back only if you need
 it. On a watch page, the thing you came for is not on the page as text at all. That is why this is more awkward than it should be.
@@ -26,8 +26,8 @@ it. On a watch page, the thing you came for is not on the page as text at all. T
 The manual route works and is worth knowing. Open the video, expand the description,
 click **Show transcript**, then select the transcript panel and copy it.
 
-What you get back is a column of timestamps with a line of speech beside each one, which
-is the shape of a caption file rather than the shape of a document:
+What you get back is a column of timestamps with a line of speech beside each one, with
+nothing to say which video it came from:
 
 <BeforeAfter>
   <Before label="from the transcript panel">{`0:00
@@ -38,18 +38,24 @@ that it is a fixed block of
 bytes and everything else in
 0:13
 the design falls out of that`}</Before>
-  <After label="saved as Markdown">{`# How a database stores a row
+  <After label="saved as Markdown, excerpt">{`---
+title: "How a database stores a row"
+source: "https://www.youtube.com/watch?v=VIDEO_ID"
+---
 
-Every row you write ends up
-on a page, and a page is a
-fixed block of bytes. Most
-of the design falls out of
-that one constraint.`}</After>
+## Transcript
+
+**0:00** - so the thing about a page is
+
+**0:04** - that it is a fixed block of
+
+**0:09** - bytes and everything else in
+
+**0:13** - the design falls out of that`}</After>
 </BeforeAfter>
 
-You can paste the left-hand version into ChatGPT and it will cope. It will also spend
-tokens on several hundred timestamps that carry no meaning, and you will have done the
-work by hand for one video. Some layouts offer **Toggle timestamps** in the transcript
+You can paste the left-hand version into ChatGPT and it will cope. You will have done the
+work by hand for one video, without its title or description. Some layouts offer **Toggle timestamps** in the transcript
 panel's menu, which removes the column. It is still one video at a time, and the
 description is left behind.
 
@@ -61,8 +67,8 @@ video's description and its full transcript as one Markdown file.
 <Steps>
   <Step title="Open the panel on the video">
     Click the toolbar icon. On a watch page the panel offers **Clip this video**. The
-    transcript arrives at paragraph granularity rather than per caption line, so there are
-    no timestamps to strip out afterwards.
+    transcript arrives as YouTube segments it, each line with its timestamp in bold, under
+    the title and the description.
   </Step>
   <Step title="Decide about comments">
     **Include comments** takes the top 60 threads and, under the 25 with the most
@@ -117,5 +123,5 @@ the part it rests on.
 
 The send extends the bundle rather than replacing it, so you can add the repository, the
 docs or the thread about the same subject and ask across all of it at once. None of it is
-uploaded to us on the way. The clipping is made in your browser and handed to the tab you
-already have open.
+uploaded to us on the way. The clipping is made in your browser and handed to an open FileConcat tab, or
+a new one.

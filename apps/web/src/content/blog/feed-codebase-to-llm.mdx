@@ -10,7 +10,7 @@ draft: false
   items={[
     "Paste a GitHub, GitLab or Bitbucket URL, or drop the folder, and the repository becomes one file: a tree, then a tagged block per file.",
     "The defaults leave out lockfiles, build output, vendored code and test files by name. On a fresh clone that is a median 22.7% of tokens.",
-    "Count before you paste: the median public repository is 236,218 tokens and only 23 of 60 fit a 128K window.",
+    "Count before you paste: the median of 60 public repositories is 236,218 tokens and only 23 of 60 fit a 128K window.",
     "Your files are not uploaded to us. The whole thing runs in your browser.",
   ]}
 />
@@ -53,8 +53,8 @@ one. The dependencies alone are usually larger than a chat box will accept.
 Those figures are illustrative, and which one you are looking at depends on whether the
 project is installed. On a working checkout, `node_modules` is the bulk of the bytes.
 On a fresh clone it was never committed, so there is nothing there for a filter to take out.
-Across 60 public repositories the defaults stripped a median of 22.7% of tokens, mostly test
-files dropped by name rather than dependencies. Either way what is left is the
+Across 60 public repositories the defaults stripped a median of 22.7% of tokens, about a third
+of it test files, with no installed dependencies to drop. Either way what is left is the
 source you wanted the model to read, but only one of the two starts out enormous.
 
 ## Cut the noise first
@@ -125,7 +125,8 @@ serve you better there.
 
 Command-line packers like Repomix, gitingest and code2prompt cover the same need from the
 terminal. We ran all three against FileConcat over the same 60 repositories. At the median
-the four bundles land within 8% of each other, so the choice is rarely about size.
+FileConcat, Repomix and gitingest land within 10% of each other and code2prompt runs nearly twice
+as large.
 [What each tool costs on the same repository](/blog/repomix-vs-gitingest-vs-code2prompt) has
 the distribution and the one case where the gap reached 16.4x. FileConcat's own difference
 is the browser, documents alongside code, and a token count that moves as you build.

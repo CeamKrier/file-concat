@@ -40,7 +40,7 @@ Pick on who reads the bundle. The size difference between the three is too small
 | pasting into Claude, or bundling a large folder | XML | every file ends with an explicit closing tag, the shape Anthropic documents |
 | reading the bundle yourself too | Markdown | the lightest wrapper, it renders anywhere, and a file's own code blocks come out whole |
 | bundling notes, articles or saved threads | Plain | no markup for the model to look past |
-| not sure | XML | it is the default, and the choice costs about 1% at most |
+| not sure | XML | it is the default, and the choice cost at most about 1% on five codebases |
 
 Only the wrapper each one writes around a file differs between the three, and it is a few
 percent of a bundle at most. The three land within about 1% of each other, so a bundle that is
@@ -67,12 +67,12 @@ Three choices you make before pasting move the answer more than the switch does.
 
 Test the format itself in one case: a small or local model. In one study an older model swung
 widely on the prompt template alone, while a larger, newer one held steady. And every published
-ranking was measured on models that are not yours. Drop a folder, flip the switch, and ask the
-same question of all three.
+ranking was measured on models that are not yours. Build the bundle in the app, flip its Format switch,
+and ask the same question of all three.
 
 <TryIt
   title="Try it on your own files"
-  hint="Drop a folder, then flip the Format switch under the preview to see all three."
+  hint="Drop a folder to see the XML bundle. The full app switches between all three formats."
 />
 
 {/* evidence */}
@@ -80,7 +80,8 @@ same question of all three.
 ## The three formats, side by side
 
 Only the wrapper changes. The summary at the top, the directory tree and the file contents are
-identical in all three. The same input reaches the model in different packaging.
+identical in all three, with two XML exceptions: a `]]>` inside a file is split across two CDATA
+sections, and a character XML does not allow becomes U+FFFD. The same input reaches the model in different packaging.
 
 **XML** wraps every file in a named tag and closes it explicitly.
 
@@ -168,7 +169,7 @@ between codebases is larger than the difference between formats.
 | Browser extension |   30,799 |  30,790 |  30,865 | 0.24%  |
 
 Per file, the wrapper costs 20 to 33 tokens in Markdown, 21 to 30 in plain, and 26 to 44 in XML.
-On a 50-file bundle that is a few hundred tokens against fifty thousand.
+On the 50-file TypeScript bundle above that is 1,020 to 1,293 tokens against 48,684.
 
 Since 2026-10-07 the XML style puts each file's content in a CDATA section, so the bundle also
 opens in an XML reader. That costs about 3 more tokens per file (`cl100k_base`, measured the same
@@ -286,7 +287,7 @@ Anyone quoting a single ranking as settled is quoting one row of one table.
 Tam et al. studied a different question that gets cited in these arguments: what happens when you
 constrain the model's **output** format. On `gpt-4o-mini`, GSM8K accuracy was 94.57 with a free
 natural language answer, 87.17 under format-restricting instructions, 86.95 under JSON mode and
-91.71 under JSON schema. Stricter constraints cost more reasoning.
+91.71 under JSON schema. In that test every constrained format scored below the free answer.
 
 That is about what the model writes, not what you feed it. It matters because it is the
 study behind most "structure hurts LLMs" claims, and it says nothing about how you should wrap
@@ -319,7 +320,7 @@ put your question at the very end.
 
 **XML if you are pasting into Claude, or if the bundle is large.** Closing tags are explicit, so
 no line is ambiguous about which file it belongs to. That holds up better the longer the context
-gets. Contents stay verbatim: angle brackets inside a file are never escaped, so `Record<T>`
+gets. Contents stay verbatim, apart from those two exceptions: angle brackets inside a file are never escaped, so `Record<T>`
 arrives as you wrote it. Each file sits in a CDATA section, so the bundle also opens in any XML
 reader.
 
@@ -343,7 +344,7 @@ Markdown ones and the results are genuinely better. That argument does not carry
 bundle. HTML is the only format here that fails on correctness rather than on taste.
 
 HTML earns its keep by rendering. A bundle has nothing to render: its only structure is a file
-tree, which is already there as plain text. What HTML would add is a choice with no good branch.
+tree, which is already there as plain text. What HTML would add is a trade between fidelity and tokens.
 
 | Variant                 | What breaks                                        | Token cost over raw content |
 | ----------------------- | -------------------------------------------------- | --------------------------- |
@@ -354,8 +355,8 @@ Across the same 248 files, 18 of them (7.3%) contain a closing `</pre>`, `</code
 or `</textarea>`. Each would end an HTML block early and turn the rest of the file into page
 markup. In the React tree alone it is 9.8%.
 
-Markdown has the same class of problem and a clean fix, which is to open a longer fence. No such
-escape hatch exists for `</pre>`. Cost is not the objection here. Fidelity is, and that is why
+Markdown has the same class of problem and a clean fix, which is to open a longer fence. No comparable fix
+keeps the text verbatim for `</pre>`. Cost is not the objection here. Fidelity is, and that is why
 FileConcat stops at three.
 
 ## Limitations
@@ -395,7 +396,7 @@ documents. Google says XML-style tags or Markdown headings are both effective, a
 and stay consistent. Markdown is the lighter of the two.
 
 **Why is there no HTML output format?**
-Because a bundle has nothing to render, and HTML forces a choice with no good branch. Escaping
+Because a bundle has nothing to render, and HTML forces a trade between fidelity and tokens. Escaping
 turns `Record<T>` into `Record&lt;T&gt;` and adds 5.9% to 10.6% tokens. Leaving contents verbatim
 lets any file containing a closing tag end the block early, and that is 7.3% of files in the
 trees measured here.

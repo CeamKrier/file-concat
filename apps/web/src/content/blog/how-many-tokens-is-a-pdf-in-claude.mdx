@@ -18,11 +18,11 @@ import pdfTokens from "~/data/pdf-tokens.json";
     },
     {
       figure: "About 1,600",
-      text: "Tokens per page the PDF costs on top of its text, which is the image of the page Claude reads with it. A typical page is about 2,400 tokens as a PDF and about 900 as text.",
+      text: "Tokens per page the PDF costs on top of its text. Claude reads an image of every page along with the text. A typical page is about 2,400 tokens as a PDF and about 900 as text.",
     },
     {
       figure: "2 in 3",
-      text: "PDFs with a text layer that hold at least one embedded picture, which pasted text leaves behind. One in eight of the sample was scanned and has no text to paste without recognition.",
+      text: "PDFs with a text layer that hold at least one embedded picture, which pasted text leaves behind. One in eight of the sample was scanned, and 19 of those 24 gave no text at all without recognition.",
     },
   ]}
   snapshot="2026-11-04 / 195 PDFs from Common Crawl / Claude API token counting, claude-opus-5-5"
@@ -50,7 +50,7 @@ text. The difference is the picture of the page that Claude reads alongside its 
   ours="as text"
   note="Anthropic's token counting endpoint, claude-opus-5-5, 2026-11-04. Text is what FileConcat 2.13.0 extracts."
 >
-  The same pages, counted both ways. The text side is the page's words and nothing else.
+  The same pages, counted both ways. The text side is the extracted words, with a page marker per page.
 </Bars>
 
 That price per page is fixed by the image, not by how much the page says. A page with one line of text
@@ -81,11 +81,11 @@ two in three of these PDFs hold at least one embedded picture, even if many of t
   pages the answer does not need.
 - **Upload the PDF when the answer is in a figure.** A chart's values or a diagram's labels are often
   not in the text layer at all. Check your text before you trust it for that.
-- **A scanned PDF has no text to paste.** FileConcat names the pages that are images and offers to
-  read them on your machine. In the claude.ai apps, a PDF past 100 pages is read as text only anyway.
+- **A scanned PDF usually has no text to paste.** FileConcat says when a file is a scan and offers to
+  read it on your machine. In the claude.ai apps, a PDF of 101 to 1,000 pages is read as text only anyway.
 
 The saving repeats in a long conversation, because the document stays in it and is read again with
-every message. Our measurement found two PDFs where the text costs more, and both are single pages packed
+every message. Our measurement found two PDFs where the text costs more, one of them a single page packed
 with small print.
 
 ## Count your own PDF
@@ -93,13 +93,13 @@ with small print.
 The figures above are a distribution. Your PDF is one point in it, and the result screen shows its
 token count before you paste anything.
 
-Drop a PDF here and FileConcat extracts its text in your browser, tells you which pages are scanned,
-and counts what the text costs. Your files are not uploaded to us. What you then paste into an
+Drop a PDF here and FileConcat extracts its text in your browser and estimates the tokens of what
+you would paste. Your files are not uploaded to us. What you then paste into an
 assistant is your own choice, but preparing the file uploads nothing.
 
 <TryIt
   title="Extract and count your own PDF"
-  hint="Text out, scanned pages named, and the token count of what you would paste. Your files are not uploaded to us."
+  hint="Text out, and an estimated token count of what you would paste. Your files are not uploaded to us."
 />
 
 {/* evidence */}
@@ -119,8 +119,8 @@ pages and about a third are a single page.
 The one study we found that logs Claude's PDF token counts is
 [Ak et al. (arXiv 2609.29933)](https://arxiv.org/abs/2609.29933). On Claude Sonnet 4.5 it saw a mean of
 about 2,050 tokens per page on 50 to 100 page documents, falling to about 1,540 above 100 pages, which
-it attributes to the API downsampling page images to fit a 200K window. It never counts the same
-documents as plain text, so it has no ratio.
+it attributes to the API downsampling page images to fit a 200K window. It also counts the same
+benchmarks as extracted text, but publishes no per-document ratio of the two.
 
 It also says that without citations the API "falls back to basic text extraction". Our counts
 contradict that for the direct API. Every count here was made without citations, and every page still
@@ -293,7 +293,7 @@ text per page, which is higher than what these web PDFs held.
 ### Is it cheaper to paste PDF text into Claude than to upload the PDF?
 
 Almost always. 163 of 165 PDFs with a text layer cost less as text, and the median file cost 2.81 times
-as much uploaded. The two exceptions were single pages of very dense small print.
+as much uploaded. One of the two exceptions is a single page of very dense small print, the other nine pages long.
 
 ### Do scanned PDFs cost more tokens?
 
