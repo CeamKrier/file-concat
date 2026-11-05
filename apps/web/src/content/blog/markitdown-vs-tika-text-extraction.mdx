@@ -1,6 +1,6 @@
 ---
 title: "Markitdown vs Tika: What Each Text Extractor Misses, Measured"
-description: "FileConcat 2.6, Apache Tika and Microsoft's markitdown on 129 files with a marker in every place 17 formats hold text: comments, charts, headers, deleted text, hard files."
+description: "FileConcat 2.6, Apache Tika and Microsoft's markitdown on probe files with a marker in every place 17 formats hold text: comments, charts, headers, deleted text, hard files."
 date: "2026-10-17"
 author: "CeamKrier"
 draft: false
@@ -170,7 +170,7 @@ Tika ran as `java -jar tika-app-3.3.2.jar --text`. markitdown ran as its command
 `uvx --from 'markitdown[all]==0.1.5'`.
 
 <Method
-  dataset="FileConcat's coverage probes: 129 files over 18 formats, each construct a format can hold marked with a unique string. 70 more in the same folders are unchanged Apache POI and Apache Tika test files with no markers, so they are not scored. Weights from 1,973 real files of 11 formats sampled from Common Crawl. FileConcat's 45-file test set of hard files"
+  dataset="FileConcat's coverage probes: 129 files over 18 formats. 59 mark each construct a format can hold with a unique string. The other 70 are unchanged Apache POI and Apache Tika test files with no markers, so they are not scored. Weights from 1,973 real files of 11 formats sampled from Common Crawl. FileConcat's 45-file test set of hard files"
   sample="747 constructs, 648 of them carrying a marker (all 30 Word 97 .doc constructs have none); 45 hard files"
   measured="2026-10-17"
   build="FileConcat 2.6 at commit 75d8fd8 on development; FileConcat 2.3.0 at tag v2.3.0, reader code untouched. Apache Tika app 3.3.2 on OpenJDK 21. markitdown 0.1.5. file 5.45, git 2.43.0, ripgrep 15.2.0"
@@ -346,8 +346,9 @@ RULE=2 python3 -I $D/score.py $D/rows.json packages/cli/scripts/coverage/probes 
 python3 -I $D/tables.py report.json
 ```
 
-The hard files, the comparison figures and the version worktree are in
-`packages/cli/scripts/coverage/README.md`.
+These commands match the measured run at commit 75d8fd8. The runner has since moved to Tika
+4.2.0 and markitdown 0.1.9, so check out that commit to reproduce these figures. The hard files,
+the comparison figures and the version worktree are in `packages/cli/scripts/coverage/README.md`.
 
 ## Frequently asked questions
 

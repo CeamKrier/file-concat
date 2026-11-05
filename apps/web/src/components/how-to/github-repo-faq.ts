@@ -46,7 +46,7 @@ export const GITHUB_REPO_FAQ = [
   },
   {
     q: "What does it leave out by default?",
-    a: "The .git folder, dependency and vendored directories, lock files such as package-lock.json and go.sum, build output such as dist and target, and test files named as tests, such as api.test.ts or handler_test.go. Any of it can go back in under Adjust what's included. On our fresh clones the defaults removed about a fifth of the tokens, most of it tests.",
+    a: "The .git folder, dependency and vendored directories, lock files such as package-lock.json and go.sum, build output such as dist and target, and test files named as tests, such as api.test.ts or handler_test.go. Any of it can go back in under Adjust what's included. On our fresh clones the defaults removed about a fifth of the tokens, about a third of it tests.",
   },
   {
     q: "Markdown or XML for a codebase?",

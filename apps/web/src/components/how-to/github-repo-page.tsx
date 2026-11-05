@@ -158,7 +158,7 @@ function LeftOut() {
           What stays out of the file.
         </h2>
         <p className="text-ink-secondary mx-auto mt-4 max-w-[50ch] text-[15px] leading-relaxed">
-          On our fresh clones the defaults removed about a fifth of the tokens, most of it tests.
+          On our fresh clones the defaults removed about a fifth of the tokens, about a third of it tests.
           Anything here can go back in under Adjust what's included.
         </p>
       </div>

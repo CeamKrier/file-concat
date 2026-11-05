@@ -14,7 +14,7 @@
     ]
   },
   "html": {
-    "title": "Saved web pages, article text F1 (181 pages)",
+    "title": "Saved web pages, article body F1 (181 pages)",
     "rows": [
       { "label": "rs-trafilatura", "value": 97.0 },
       { "label": "AutoExtract", "value": 97.0 },
@@ -29,9 +29,9 @@
     "title": "Archives with every text file exact (of 26)",
     "rows": [
       { "label": "FileConcat 2.1", "value": 25 },
-      { "label": "7-Zip wasm", "value": 24 },
+      { "label": "7-Zip wasm", "value": 25 },
       { "label": "libarchive", "value": 21 },
-      { "label": "FileConcat 2.0", "value": 8 }
+      { "label": "FileConcat 2.0", "value": 13 }
     ]
   }
 }

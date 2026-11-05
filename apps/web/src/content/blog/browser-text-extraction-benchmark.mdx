@@ -1,6 +1,6 @@
 ---
 title: "Text Extraction in the Browser: 9 File Types Benchmarked"
-description: "FileConcat 2.1 against 2.0 and the best server and GPU readers, on public benchmarks for PDFs, saved web pages, Office files, ebooks, archives and video. No upload, no GPU."
+description: "FileConcat 2.1 against 2.0 and the best server and GPU readers, on public benchmarks and keyed test sets for PDFs, saved web pages, Office files, ebooks, archives and video. No upload, no GPU."
 date: "2026-10-07"
 author: "CeamKrier"
 draft: false
@@ -14,19 +14,19 @@ import extraction from "~/data/browser-extraction-2026-10-07.json";
   items={[
     {
       figure: "25.7 to 40.0",
-      text: "FileConcat's PDF score from version 2.0 to 2.1, on 1,403 benchmark pages. The best reader without a GPU we ran, and half of the GPU leaders.",
+      text: "FileConcat's PDF score from version 2.0 to 2.1, on 1,403 benchmark pages. Level with LiteParse run alone (40.0 and 38.9, each +/-0.9), the best other reader without a GPU we ran, and half of the GPU leaders.",
     },
     {
       figure: "8.8 to 93.7",
-      text: "Article text on 181 saved web pages. Version 2.0 bundled the HTML source. 2.1 reads the article, one point under Mozilla Readability.",
+      text: "Article body on 181 saved web pages, scored as the other extractors are. Version 2.0 bundled the HTML source. 2.1 reads the article, one point under Mozilla Readability. The bundle as copied, with its title line and Markdown links, scores 85.1.",
     },
     {
-      figure: "8 to 25 of 26",
-      text: "Test archives read exactly. 2.1 also reads 7z, rar, Kindle books, old PowerPoint and video, which 2.0 did not read at all.",
+      figure: "13 to 25 of 26",
+      text: "Test archives with every text file back exact, level with 7-Zip run on its own. 2.1 also reads 7z, rar, Kindle books, old PowerPoint and video, which 2.0 did not read at all.",
     },
   ]}
   snapshot="2026-10-07 / FileConcat 2.1 production build / 5 public test sets"
-  citation="Measured on 2026-10-07 in FileConcat 2.1's production build, in the browser with no upload and no GPU: 40.0 on olmOCR-bench (1,403 PDF pages; FileConcat 2.0 25.7; LiteParse run alone 38.9; best published GPU reader 83.1), 93.7 article F1 on Zyte's 181-page extraction benchmark (2.0 8.8; Mozilla Readability 94.7), the exact text of 25 of 26 test archives (2.0 8 of 26), and 0% word error on video subtitle tracks (FileConcat, fileconcat.com)."
+  citation="Measured on 2026-10-07 in FileConcat 2.1's production build, in the browser with no upload and no GPU: 40.0 on olmOCR-bench (1,403 PDF pages; FileConcat 2.0 25.7; LiteParse run alone 38.9; best published GPU reader 83.1), 93.7 article-body F1 on Zyte's 181-page extraction benchmark (85.1 for the bundle as copied; 2.0 8.8; Mozilla Readability 94.7), the exact text of 25 of 26 test archives (2.0 13 of 26; 7-Zip wasm 25 of 26), and 0% word error on video subtitle tracks (FileConcat, fileconcat.com)."
 />
 
 FileConcat reads every file in the browser it was dropped into, with no upload and no GPU. Version
@@ -36,14 +36,14 @@ FileConcat reads every file in the browser it was dropped into, with no upload a
 
 ## How good is FileConcat 2.1 at each file type?
 
-Level with the best server tools where a file stores its own text, behind the GPU readers where
+Within a few points of the best server tools where a file stores its own text, behind the GPU readers where
 text has to be recognised from a scan or a voice.
 
 | File type | 2.1 | 2.0 | Best other reader | Measure |
 | --- | --- | --- | --- | --- |
 | PDF | **40.0** | 25.7 | Chandra, GPU: 83.1 | olmOCR-bench |
-| Saved web page | **93.7** | 8.8 | rs-trafilatura: 97.0 | article F1 |
-| Archive | **25 of 26** | 8 of 26 | 7-Zip wasm: 24 of 26 | exact archives |
+| Saved web page | **93.7** | 8.8 | rs-trafilatura: 97.0 | article body F1 |
+| Archive | **25 of 26** | 13 of 26 | 7-Zip wasm: 25 of 26 | text files exact |
 | PowerPoint (ppt) | **63.4** | not read | Tika ceiling: 73.1 | F1 vs Tika |
 | Excel (xlsx) | **74.1** | 55.1 | | F1 vs Tika |
 | RTF | **71.9** | 62.5 | Tika ceiling: 76.0 | F1 vs Tika |
@@ -51,13 +51,13 @@ text has to be recognised from a scan or a voice.
 | Video subtitles | **0%** | not read | | word error |
 | Video speech | **12.7% / 32.4%** | not read | | word error |
 
-Higher is better, except word error. Speech is English / Turkish. The Tika ceiling is the most two good readers agree on those
-files. Word and Excel 97-2003 files scored the same in both versions.
+Higher is better, except word error. Speech is English / Turkish. The Tika ceiling is how far Tika agrees with itself across a
+LibreOffice conversion of the same files. Word and Excel 97-2003 files scored the same in both versions.
 
 ## PDF: how close does a browser get to a GPU?
 
-Half way. 2.1 passes more of olmOCR-bench's tests than any reader without a GPU that we ran, and
-none of them writes math.
+Half way. 2.1 passes about as many of olmOCR-bench's tests as LiteParse run alone, the best other
+reader without a GPU that we ran, and none of them writes math.
 
 <Bars
   title={extraction.pdf.title}
@@ -79,7 +79,7 @@ none of them writes math.
 | baseline | 1,394 | 100.0 | 99.9 | 87.2 | 99.7 |
 | **overall** | 8,413 | **40.0** | **38.9** | **25.7** | **82.4** |
 
-The jump from 2.0 is columns and tables: 2.1 keeps a two-column page in reading order and a table's
+Most of the jump from 2.0 is columns and tables, the rest headers, tiny text and the baseline: 2.1 keeps a two-column page in reading order and a table's
 cells under their headings. A quarter of the score is equations written as LaTeX, which a text
 layer cannot give, so every reader without a vision model scores zero there.
 
@@ -105,7 +105,8 @@ the 2.0 way.
 
 ## Office files: does an old format still read?
 
-Every Office format we tested reads in 2.1, at about the agreement two good readers reach.
+Every Office format we tested reads in 2.1 except Word 95 and older, close to how far Tika agrees
+with itself across a conversion.
 
 | Format | Files | 2.0 | 2.1 | Tika ceiling |
 | --- | --- | --- | --- | --- |
@@ -117,15 +118,15 @@ Every Office format we tested reads in 2.1, at about the agreement two good read
 | xlsb | 6 | 0 | **66.1** | |
 
 Word 4-gram F1 x 100 against Apache Tika 3.3.2. The ceiling is Tika scored against itself on a
-LibreOffice-converted copy, the most two readers agree here. Office files have no public answer
+LibreOffice-converted copy. Office files have no public answer
 key, so agreement with a mature reader stands in for one.
 
-**How it reads:** SheetJS for workbooks, a reader of its own for 97-2003 files, anydoc for rtf,
+**How it reads:** SheetJS for workbooks, a reader of its own for Word 97-2003, anydoc for ppt and rtf,
 officeparser for the rest. Each has a second reader for when the first returns nothing.
 
 ## Archives: does every file inside come back?
 
-All but one, ahead of both archive libraries run on their own.
+All but one, level with 7-Zip run on its own and ahead of libarchive.
 
 <Bars
   title={extraction.archives.title}
@@ -160,8 +161,8 @@ on Whisper small, 244 MB, and the Turkish sample is two videos.
 
 On three kinds of file, and each has a way around it.
 
-1. **Scans and math.** The GPU readers at the top of the PDF chart are vision models a hundred times
-   larger than the OCR model a laptop can run. For a scan you need exact, run it through one and
+1. **Scans and math.** The GPU readers at the top of the PDF chart are vision models with billions of
+   parameters. The English OCR model FileConcat downloads is 3 MB. For a scan you need exact, run it through one and
    drop the text it returns.
 2. **Web pages saved by Firefox.** Save the page again from Chrome, or paste the article into a
    text file.
@@ -195,7 +196,7 @@ scorer did the scoring.
 
 Chromium ran with an English or Turkish language setting, matching each video's speech, since that
 setting picks the speech and OCR model. Documents went in batches of up to 20 from one folder. A
-PDF that came back without text was dropped again alone, because FileConcat reads at most three
+PDF that came back without text was dropped again alone, because FileConcat 2.1 read at most three
 scans per drop by itself. Archives and videos went one per drop.
 
 The first Turkish run came back empty: the first transcription in a session ignored the browser's
@@ -254,7 +255,7 @@ any format.
       href: "https://github.com/scrapinghub/article-extraction-benchmark",
       venue: "Zyte, commit 4a3bc97",
       sample: "181 news and blog pages",
-      compared: "40+ open-source and commercial article extractors",
+      compared: "34 open-source and commercial article extractors",
       headline: "rs_trafilatura and AutoExtract 0.970, trafilatura 2.0.0 0.958, readability.js 0.947",
     },
     {
@@ -295,7 +296,7 @@ the same scorer, so a gap between two of our rows is not a gap between two harne
   purpose, and LibreOffice wrote every converted file.
 - **Archives favour 7-Zip.** 7-Zip wrote the 7z variants and reads them in FileConcat. rar has no
   keyed set, since only WinRAR writes it.
-- **Weak and small:** a Word 6 file scored 0, since only Word 97 and later is read, and two dotx
+- **Weak and small:** a Word 6 file scored 0, since the Word reader declines Word 6 and Word 95, and two dotx
   templates scored 0.9.
 - **Not measured:** layout beyond the benchmarks' own tests, email, encrypted files.
 
@@ -326,15 +327,16 @@ a GPU.
 
 **How accurate is in-browser OCR?**
 Good enough to search and summarise a scan, not good enough for math or degraded typewritten
-pages. The GPU readers that lead the benchmark are far larger than anything a browser can load.
+pages. The GPU readers that lead the benchmark are far larger than anything FileConcat downloads.
 
 **Can I get text out of a saved web page?**
-Yes, if it was saved from Chrome. On 181 benchmark pages the article text matched at 0.937 F1,
-one point under Mozilla Readability. A page saved by Firefox is bundled as HTML source.
+Yes, if it was saved from Chrome. On 181 benchmark pages the article body matched at 0.937 F1,
+one point under Mozilla Readability. The bundle as copied, with its title line and Markdown links,
+scores 0.851. A page saved by Firefox is bundled as HTML source.
 
 **Does it read old Word, Excel and PowerPoint files?**
-doc, xls and ppt from Word 97 onward, plus rtf. Agreement with Apache Tika was 0.63 to 0.79, about
-what two good readers reach. Word 6 and older is not read.
+doc, xls and ppt from Word 97 onward, plus rtf. Agreement with Apache Tika was 0.63 to 0.79, close to
+how far Tika agrees with itself across a conversion. The Word reader declines Word 6 and Word 95 files.
 
 **Can it transcribe a video?**
 On request. A subtitle track is read exactly and at once. Without one, speech is transcribed in

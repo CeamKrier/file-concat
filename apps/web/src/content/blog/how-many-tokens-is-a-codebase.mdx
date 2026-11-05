@@ -1,6 +1,6 @@
 ---
 title: "How Many Tokens Is a Codebase? 60 Repositories Measured"
-description: "How many tokens is a codebase? We bundled 60 public repositories whole: a typical one is about 240K tokens, only 4 in 10 fit a 128K window, and the default filters remove about a fifth, mostly test files."
+description: "How many tokens is a codebase? We bundled 60 public repositories whole: a typical one is about 240K tokens, only 4 in 10 fit a 128K window, and the default filters remove about a fifth, about a third of it test files."
 date: "2026-09-07"
 author: "CeamKrier"
 draft: false
@@ -22,15 +22,16 @@ import bundleSizes from "~/data/repo-funnel-values.json";
     },
     {
       figure: "About a fifth",
-      text: "Share of a fresh clone's tokens the default filters remove, mostly test files dropped by their names. A clone has no node_modules to remove.",
+      text: "Share of a fresh clone's tokens the default filters remove, about a third of it test files. A clone has no node_modules to remove.",
     },
   ]}
   snapshot="2026-09-11 / 60 public repositories in 10 languages"
-  citation="Across 60 public repositories in 10 languages measured on 2026-09-11, the median repository assembles into 236,218 tokens of LLM context, and the default filters remove a median of 22.7% of tokens from a fresh clone, most of it test files dropped by name (FileConcat, fileconcat.com)."
+  citation="Across 60 public repositories in 10 languages measured on 2026-09-11, the median repository assembles into 236,218 tokens of LLM context, and the default filters remove a median of 22.7% of tokens from a fresh clone, about a third of it test files dropped by name, pooled over the sample (FileConcat, fileconcat.com)."
 />
 
-Every tool that turns a folder into LLM context says it removes the noise. None says how much noise
-there was or what is left after. So we bundled 60 public repositories whole, with the same engine
+Every tool that turns a folder into LLM context says it removes the noise. Some show a token count for one
+repository, but we found none that says how much noise a typical repository holds or what is left
+after. So we bundled 60 public repositories whole, with the same engine
 FileConcat ships, and counted.
 
 <Contents />
@@ -66,12 +67,13 @@ enough for the ones people struggle with.
 
 ## How much do the default filters remove?
 
-About a fifth of a fresh clone's tokens, and most of that is test files dropped by their names.
+About a fifth of a fresh clone's tokens. Test files dropped by their names are the largest part of
+it, about a third pooled over the sample, with vendored code close behind.
 
-A clone has no `node_modules`, no build output and no local env files, because none of that is
-committed. What a filter can remove from it is only what somebody named: lockfiles, vendored
-directories and test files. Before our defaults started dropping test files by name, they removed only
-a few percent. On a working folder with its dependencies installed the same filters remove far more.
+A clone has no `node_modules` and no local env files, because those are rarely committed. What a
+filter removes from it is what somebody committed anyway: test files, vendored directories,
+lockfiles and some build output. Before our defaults started dropping test files by name, they removed only
+a few percent. On a working folder with its dependencies installed the same filters likely remove far more.
 We did not measure that, and we are not going to guess it.
 
 What stays is mostly your own source, about 70% of the tokens. Documentation, configuration, images in
@@ -251,9 +253,9 @@ repository. Binary assets are rarer in a repository than in a working folder, an
 formats than "text file" usually means.
 
 <Stopper value="22.7%" tone="warn" source="median across 60 fresh clones / 3.5% before tests were dropped by name">
-  All the defaults take off a fresh clone, and more than half of it is the test suite. The rest of what a
-  filter is famous for removing was never committed. If you were counting on filtering to get a
-  repository under a context window, this is the number that says it will not.
+  All the defaults take off a fresh clone. About a third of it is test files and about as much is vendored
+  code, and `node_modules` is not there to remove. If you were counting on filtering to get a
+  repository under a context window, this is the median it gives you.
 </Stopper>
 
 **The defaults remove a fifth, and unevenly.** A median of 73.7% of files survive. The token distribution
@@ -284,8 +286,8 @@ A tool that says "removed 40% of files" and a tool that says "removed 40% of tok
 the same thing. Neither has told you which one they meant.
 
 The `.gitignore` row is the one we did not expect. Honoring `.gitignore` is a feature we built and
-describe. On a fresh clone it fires in 6 repositories out of 60, because what a `.gitignore` names was
-never committed.
+describe. On a fresh clone it fires in 6 repositories out of 60, on 53 files in the checkouts that a
+`.gitignore` names.
 
 ### What the bundle is made of
 
@@ -384,7 +386,7 @@ the file tree are all sent to the model and all charged for. None of them were i
 
 Measured over the sample, the wrapper is a median 2.5% of the bundle, 5.1% at the 75th percentile, and
 18.6% on `sintaxi/harp`. There, 147 small files mean the tags outweigh what they wrap. The counter now
-counts the same string the preview shows and the copy button copies.
+estimates the whole artifact, contents plus wrapper, which is what the copy button copies.
 
 ### 3. Above 1 MiB the count was a guess with the wrong ratio
 
@@ -527,8 +529,8 @@ and the median TypeScript one 82,762.
 
 ### Does removing node_modules and lockfiles shrink a repository a lot?
 
-On a fresh clone the defaults remove a median 22.7% of tokens, and more than half of that is test files
-dropped by name. Before that rule existed, the same defaults removed 3.5%. `node_modules` is not committed,
+On a fresh clone the defaults remove a median 22.7% of tokens, and test files dropped by name are about a
+third of that. Before that rule existed, the same defaults removed 3.5%. `node_modules` is not committed,
 so it is not there to remove. On a working folder the same filters remove much more, because that is
 where the installed dependencies and build output live. What does shrink a clone is a lockfile or a
 vendored directory. One missing entry in our ignore list cost 886,586 tokens across four Go repositories,

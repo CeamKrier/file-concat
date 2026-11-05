@@ -14,7 +14,7 @@
           "better": "higher",
           "measured": "2026-11-05",
           "post": "markitdown-vs-tika-text-extraction",
-          "note": "648 constructs in 129 probe files, each weighted by its share of 1,973 real files. All run by us.",
+          "note": "648 constructs in 59 marked probe files, each weighted by its share of 1,973 real files. All run by us.",
           "rows": [
             {
               "label": "FileConcat 2.13",
@@ -1022,7 +1022,7 @@
           "better": "higher",
           "measured": "2026-11-05",
           "post": "browser-text-extraction-benchmark",
-          "note": "Zyte's article extraction benchmark at commit 4a3bc97. Other readers: their published outputs, except Trafilatura 2.3.1, run here with the benchmark's own script.",
+          "note": "Zyte's article extraction benchmark at commit 4a3bc97. Other readers: their published outputs, except Trafilatura 2.3.1, run here with the benchmark's own script. FileConcat is scored on the article body with links as text, as the other outputs are. The bundle as copied scored 85.1 at 2.1.",
           "rows": [
             {
               "label": "FileConcat 2.13",
@@ -1092,7 +1092,7 @@
           "better": "higher",
           "measured": "2026-11-05",
           "post": "browser-text-extraction-benchmark",
-          "note": "One archive per case readers get wrong: zip64, non-ASCII names, tar dialects, 7z. All run by us.",
+          "note": "One archive per case readers get wrong: zip64, non-ASCII names, tar dialects, 7z. All run by us and scored the same way: every non-empty text file other than .bin back exact, extra entries ignored.",
           "rows": [
             {
               "label": "FileConcat 2.13",
@@ -1128,7 +1128,7 @@
             },
             {
               "label": "7-Zip wasm",
-              "value": 24
+              "value": 25
             },
             {
               "label": "libarchive",
@@ -1136,7 +1136,7 @@
             },
             {
               "label": "FileConcat 2.0",
-              "value": 8
+              "value": 13
             }
           ]
         }

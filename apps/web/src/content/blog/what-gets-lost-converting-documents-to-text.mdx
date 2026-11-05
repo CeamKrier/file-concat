@@ -11,7 +11,7 @@ kind: "research"
   items={[
     {
       figure: "16 of 16",
-      text: "Structure losses we found in our own document reader in August, all closed in the browser since FileConcat 2.1, from merged table cells to spreadsheet dates and scanned pages. FileConcat 2.0 had closed 13.",
+      text: "Structure losses we found in our own document reader in August, all closed on these test files in the browser since FileConcat 2.1, from merged table cells to spreadsheet dates and scanned pages. FileConcat 2.0 had closed 13.",
     },
     {
       figure: "2 new",
@@ -74,8 +74,8 @@ and each one is faster than reading the document again.
 
 It can be either, and only a second reader on the same file tells you which.
 
-Some structure is not in the file at all. A PDF holds positioned text with no notion of a cell, so
-every reader has to guess where a table's cells begin and end.
+Some structure is not in the file at all. An untagged PDF holds positioned text with no notion of a
+cell, so every reader has to guess where a table's cells begin and end.
 
 Other losses are a reader's choice. We ran every PDF through an independent reader that shares no
 code with ours. Both read an ordinary
@@ -108,8 +108,8 @@ names it and reads it with OCR on your machine.
 The question this page answers has two halves. When a document becomes LLM context, which structures
 survive? And where one does not, is the loss forced by the format or chosen by the reader?
 
-The second half is what makes the first half actionable. A structure that every reader loses is a
-property of the file format, and no amount of library shopping will get it back. A structure that
+The second half is what makes the first half actionable. A structure that every reader we ran
+loses points at the file format, though another library might still get it back. A structure that
 another reader recovers on the same bytes is a decision, and decisions can be changed.
 
 Document extraction is well benchmarked and the benchmarks answer a different question.
@@ -150,9 +150,9 @@ Document extraction is well benchmarked and the benchmarks answer a different qu
 
 Two things are missing from all of it.
 
-**Nothing isolates a structure.** These studies score whole real pages, so a merged cell, a running
-header and a two-column layout all land in one edit-distance number. When that number moves you cannot
-say what moved it. Our corpus goes the other way: one file, one structure, one check.
+**Nothing isolates a structure.** These studies score whole real pages. They group results by
+attributes such as merged cells, but a page that carries several structures still moves as one
+score. Our corpus goes the other way: small files, each check aimed at one structure.
 
 **The largest benchmark excludes headers and footers.** OmniDocBench states its ignore rule plainly: headers,
 footers, page numbers and page footnotes "participate in matching but are excluded from metric
@@ -166,7 +166,7 @@ and it needs two readers on identical bytes to say anything at all.
 
 ## The 27 documents we broke on purpose
 
-Twenty-seven documents, twelve formats, each file written to isolate one structure:
+Twenty-seven documents, twelve formats, each file written to test a few named structures:
 
 | Format | Files | Structures isolated |
 | --- | --- | --- |
@@ -197,7 +197,7 @@ structures that are hard, which is a different thing and the right thing for a f
 Every file goes through the path the product uses. Nothing here reimplements extraction.
 
 <Method
-  dataset="27 generated documents across 12 formats, each isolating one document structure"
+  dataset="27 generated documents across 12 formats, each written to test a few named document structures"
   sample="22,826 characters extracted by the browser chain and 22,789 by the CLI chain, 27 of 27 routed correctly, 19 checks evaluated on each"
   measured="2026-10-14"
   build="FileConcat 2.2 at db45f92 (header fix included), first readers unchanged since 2.1, both reader chains run under Node"
@@ -253,8 +253,8 @@ page as a scan.
 
 <Callout type="note" title="The scan result here is a floor">
   This measurement runs under Node, where no OCR runs. In the browser, the page named as a scan is
-  rendered and read with the OCR FileConcat ships, on its own for a small drop and on request past
-  that. So a scanned PDF that yields nothing here is recovered there.
+  rendered and read with the OCR FileConcat ships, on its own for a small drop, and past that the first few
+  pages of a held scan are tried on their own and the rest on request. So a scanned PDF that yields nothing here is recovered there.
 </Callout>
 
 ### Re-testing our own extraction
@@ -513,7 +513,8 @@ chain has not changed.
 
 ### What gets lost when you convert a PDF to text?
 
-Structure, mostly. Text in a PDF is positioned glyphs with no notion of a column, a cell or a heading.
+Structure, mostly. Text in an untagged PDF is positioned glyphs with no notion of a column, a cell or
+a heading.
 A reader has to infer all of it. In our measurement the recoverable-but-commonly-lost structures were
 column reading order, table cell positions, running headers and footers, and footnote attachment. The
 words themselves usually survive; what they belonged to often does not.
@@ -523,7 +524,7 @@ words themselves usually survive; what they belonged to often does not.
 Both happen, and you cannot tell without a second reader. On identical bytes, our reader and pypdf both
 read a naturally ordered two-column page correctly. Only ours read a page whose content stream was
 written across the gutter. That is a library difference. A table's cell boundaries, by contrast, do not
-exist anywhere in a PDF, so no reader can recover them reliably.
+exist in an untagged PDF, so a reader has to infer them from where the text sits.
 
 ### Should I upload the PDF to the model instead?
 
@@ -543,7 +544,7 @@ and the CLI pass the serial through.
 ### Does a scanned PDF work?
 
 In the browser, yes: a page with no text layer is named as a scan and read with OCR that runs on your
-machine, on its own for a small drop and on request past that. A partly scanned document says which page
+machine, on its own for a small drop, and past that the first few pages of a held scan are tried on their own and the rest on request. A partly scanned document says which page
 was the scan. In the CLI, no, and there an image-only page still disappears without a note.
 
 ### How do I check whether my document survived extraction?
@@ -563,7 +564,8 @@ plausibility is not evidence.
   numbers and footnotes excluded from scoring.
 - Anthropic. [PDF support](https://docs.claude.com/en/docs/build-with-claude/pdf-support). Claude
   Platform documentation, read 2026-09-07. Page-to-image plus text extraction, 32 MB request ceiling,
-  600 page maximum, encrypted files unsupported.
+  600 page maximum, encrypted files unsupported. Read again 2026-11-05: 128 MB per request on the
+  first-party API, and 100 pages when the context window is under 1M tokens.
 - [pypdf](https://pypdf.readthedocs.io/), version 6.14.2, used as the independent reader.
 - FileConcat, [How Many Tokens Is a Codebase?](/blog/how-many-tokens-is-a-codebase) The companion
   measurement, on what reaches the model rather than what survives conversion.
