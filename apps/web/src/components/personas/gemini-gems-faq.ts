@@ -10,6 +10,10 @@ export const GEMINI_GEMS_FAQ = [
     a: "A Gem holds about 10 knowledge files. Combining your reference documents into one file means the whole set takes a single knowledge slot. You are no longer picking which ten to keep.",
   },
   {
+    q: "What happens to my Gem's files when Gems become skills?",
+    a: "Google is moving Gems to skills on personal accounts from November 2026, and on work and school accounts in 2027. A skill holds up to 100 MB of files and does not accept some file types, such as .ts, .sql and .zip. A combined .md or .txt file carries that code and data as text, in a type skills accept, as one file.",
+  },
+  {
     q: "Does combining files count as one knowledge file?",
     a: "Yes. FileConcat returns a single file, so a folder of documents becomes one knowledge file the Gem can draw on. A file tree keeps every document labeled and in order.",
   },

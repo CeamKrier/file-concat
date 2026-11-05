@@ -233,6 +233,37 @@
       "used_by": ["apps/web/src/components/personas/gemini-gems-page.tsx"]
     },
     {
+      "url": "https://support.google.com/gemini/answer/18560919?hl=en",
+      "anchor": "About the transition from Gems to skills",
+      "checked": "2026-11-05",
+      "quotes": [
+        "Starting in November 2026, Gems will transition to skills in Gemini Apps for personal Google Accounts, and in 2027, for work and school accounts",
+        "A skill can have up to 100 MB of files",
+        "Some file types that are supported in Gems are not currently supported in skills"
+      ],
+      "used_by": [
+        "apps/web/src/components/personas/gemini-gems-page.tsx",
+        "apps/web/src/components/personas/gemini-gems-faq.ts"
+      ]
+    },
+    {
+      "url": "https://support.google.com/gemini/answer/17094296?co=GENIE.Platform%3DDesktop&hl=en",
+      "anchor": "Create & manage skills for Gemini Apps",
+      "checked": "2026-11-05",
+      "quotes": [
+        "The total size of all uploaded files must not exceed 100 MB",
+        "Archives & compressed files",
+        ".scala , .swift , .ts web & ui files",
+        "Data & config: .sql structure & naming",
+        ".md , .rst , .txt , .markdown"
+      ],
+      "used_by": [
+        "apps/web/src/components/personas/gemini-gems-page.tsx",
+        "apps/web/src/components/personas/gemini-gems-faq.ts",
+        "apps/web/src/routes/for/gemini-gems.tsx"
+      ]
+    },
+    {
       "url": "https://repomix.com/guide/privacy",
       "anchor": "Repomix CLI Tool",
       "checked": "2026-09-24",

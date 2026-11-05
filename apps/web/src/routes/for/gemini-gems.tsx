@@ -21,7 +21,7 @@ export const Route = createFileRoute("/for/gemini-gems")({
       ...generateSEOMeta({
         title: "Get past the Gemini Gems knowledge limit",
         description:
-          "Hit the Gemini Gems knowledge limit? Combine a whole folder into one file that takes a single knowledge slot. Read in your browser, not uploaded to us.",
+          "Hit the Gemini Gems knowledge limit, or a skill refusing .ts or .zip files? Combine a folder into one .md file, read in your browser and not uploaded to us.",
         url: "https://fileconcat.com/for/gemini-gems",
       }),
       {
