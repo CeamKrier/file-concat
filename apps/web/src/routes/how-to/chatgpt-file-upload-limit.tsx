@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { CHATGPT_UPLOAD_LIMIT_FAQ } from "~/components/how-to/chatgpt-upload-limit-faq";
 import { ChatGptUploadLimitPage } from "~/components/how-to/chatgpt-upload-limit-page";
+import { demoFor } from "~/lib/demo-arm";
 import { generateSEOMeta } from "~/lib/seo";
 
 const FAQ_SCHEMA = {
@@ -16,6 +17,7 @@ const FAQ_SCHEMA = {
 
 export const Route = createFileRoute("/how-to/chatgpt-file-upload-limit")({
   component: ChatGptUploadLimitPage,
+  loader: () => ({ demo: demoFor("/how-to/chatgpt-file-upload-limit") }),
   head: () => ({
     meta: [
       ...generateSEOMeta({

@@ -8,6 +8,7 @@ import { MarketingSection } from "~/components/app/marketing/section";
 import { FurtherReading, HeroFootnote, MockWindow, ProseLink } from "~/components/app/marketing";
 
 import { CHATGPT_UPLOAD_LIMIT_FAQ } from "./chatgpt-upload-limit-faq";
+import { DemoVideo } from "~/components/how-to/demo-video";
 
 /**
  * /how-to/chatgpt-file-upload-limit: the ChatGPT upload quota, not the Project
@@ -61,6 +62,8 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[17px] leading-relaxed">
             Free: 3 files a day. Paid: 80 every 3 hours. One folder counts as one.
           </p>
+
+          <DemoVideo />
         </div>
 
         <div className="min-w-0">

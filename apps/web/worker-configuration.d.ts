@@ -4,6 +4,7 @@
 interface __BaseEnv_Env {
 	METRICS: D1Database;
 	METRICS_LIMITER: RateLimit;
+	ASSETS: Fetcher;
 }
 declare namespace Cloudflare {
 	interface Env extends __BaseEnv_Env {}

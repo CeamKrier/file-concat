@@ -1,5 +1,7 @@
+import { env } from "cloudflare:workers";
 import { createStartHandler, defaultStreamHandler } from "@tanstack/react-start/server";
 
+import { withByteRange } from "~/lib/byte-range";
 import { pruneCounters, pruneFeedback } from "~/lib/metrics-retention";
 
 /**
@@ -33,8 +35,15 @@ const startFetch = createStartHandler(defaultStreamHandler);
  * from that is TanStack Router's job and it already reloads once.
  */
 const fetch: typeof startFetch = (request, ...rest) => {
-  if (new URL(request.url).pathname.startsWith("/assets/")) {
+  const { pathname } = new URL(request.url);
+  if (pathname.startsWith("/assets/")) {
     return new Response(null, { status: 404 });
+  }
+  // `/demo/*` runs the worker first (`wrangler.jsonc`) only so a clip can be
+  // answered in byte ranges, which the asset store does not do; see
+  // `withByteRange`. The bytes still come from the store.
+  if (pathname.startsWith("/demo/")) {
+    return env.ASSETS.fetch(request).then((response) => withByteRange(request, response));
   }
   return startFetch(request, ...rest);
 };

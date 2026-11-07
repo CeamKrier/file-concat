@@ -39,6 +39,7 @@
     "crons": ["0 4 * * *"]
   },
   "assets": {
+    "binding": "ASSETS",
     // Every non-asset URL routes through the SSR worker. We don't prerender
     // anything yet — @cloudflare/vite-plugin@1.22.0 overrides Vite 6's
     // builder.buildApp with its own createBuildApp, which skips the plugin
@@ -51,7 +52,9 @@
       "/app",
       "/docs",
       "/docs/*",
-      "/api/*"
+      "/api/*",
+      // Clips are answered in byte ranges by src/server.ts (Safari needs them).
+      "/demo/*"
     ]
   }
 }

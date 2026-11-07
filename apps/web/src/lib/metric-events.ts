@@ -712,6 +712,17 @@ export const METRIC_EVENTS = [
    * provider, a file name, a hidden word or how many there were.
    */
   "send_check",
+  /**
+   * VD1, the demo-loop test on the upload-limit pages (spec 2026-11-07): the
+   * arm a visit was drawn into, `video` or `control`, from `./demo-arm`. Once
+   * per page load, only when the visit landed on a page in the test and its
+   * screen could show the demo (fine pointer, 1024 px wide), in both arms, so
+   * it is the read's denominator. The arm is drawn per request and kept
+   * nowhere, so it says nothing about the person.
+   */
+  "demo_arm",
+  /** VD1: `start` the first time the demo video plays in a load. Exposure only. */
+  "demo_play",
 ] as const;
 
 export type MetricEvent = (typeof METRIC_EVENTS)[number];

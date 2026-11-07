@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { CLAUDE_UPLOAD_LIMIT_FAQ } from "~/components/how-to/claude-upload-limit-faq";
 import { ClaudeUploadLimitPage } from "~/components/how-to/claude-upload-limit-page";
+import { demoFor } from "~/lib/demo-arm";
 import { generateSEOMeta } from "~/lib/seo";
 
 const FAQ_SCHEMA = {
@@ -16,6 +17,7 @@ const FAQ_SCHEMA = {
 
 export const Route = createFileRoute("/how-to/claude-file-upload-limit")({
   component: ClaudeUploadLimitPage,
+  loader: () => ({ demo: demoFor("/how-to/claude-file-upload-limit") }),
   head: () => ({
     meta: [
       ...generateSEOMeta({

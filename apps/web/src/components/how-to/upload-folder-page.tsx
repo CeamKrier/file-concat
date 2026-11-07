@@ -8,6 +8,7 @@ import { MarketingSection } from "~/components/app/marketing/section";
 import { FurtherReading, MockWindow, ProseLink } from "~/components/app/marketing";
 
 import { UPLOAD_FOLDER_FAQ } from "./upload-folder-faq";
+import { DemoVideo } from "~/components/how-to/demo-video";
 
 /**
  * /how-to/upload-folder-to-chatgpt: a folder on disk into ChatGPT. The
@@ -78,6 +79,8 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           >
             See a worked example
           </a>
+
+          <DemoVideo />
         </div>
 
         <div className="min-w-0">
