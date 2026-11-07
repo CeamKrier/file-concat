@@ -23,6 +23,10 @@ Two textareas drive pattern filtering:
   siblings). Patterns you add here exclude their matches; delete a
   default pattern to let its files through.
 
+Both lists judge what a folder or an archive brings along. A file you drop
+or pick by itself is read whatever its name, so a lone `debug.log` comes
+through. See [Filter precedence](/docs/filter-precedence).
+
 Both textareas accept a **comma-separated list of globs**. Newlines
 between commas are fine for readability. The two interact in one
 surprising way described in

@@ -54,4 +54,20 @@ describe("collectFromDataTransfer", () => {
 
     expect(collected.map((f) => f.path)).toEqual(["dist/app.js"]);
   });
+
+  it("marks a file dropped by itself as explicit, and nothing found inside a dropped folder", async () => {
+    // A file someone dragged in by name was chosen; the filter rail's default
+    // noise rules are for what a folder brings along (ripgrep's rule).
+    const dropped = [
+      { webkitGetAsEntry: () => fileEntry("debug.log") },
+      { webkitGetAsEntry: () => dirEntry("logs", [fileEntry("app.log")]) },
+    ] as unknown as DataTransferItemList;
+    const { collected } = await collectFromDataTransfer(dropped);
+
+    expect(collected).toEqual([
+      expect.objectContaining({ path: "debug.log", explicit: true }),
+      expect.not.objectContaining({ explicit: true }),
+    ]);
+    expect(collected[1].path).toBe("logs/app.log");
+  });
 });

@@ -138,6 +138,12 @@ export type ValidationRecord = {
   guessed?: "guess" | "fallback" | "picked";
   /** Share of the first 8 KB that is control bytes no text holds, on a file that read as binary. */
   controlShare?: number;
+  /**
+   * Dropped or picked by itself, not found inside a folder, an archive or an
+   * import. The filter rail's name rules do not apply to it (ripgrep's rule):
+   * a lone `.log` someone chose came out as an empty screen.
+   */
+  explicit?: true;
 };
 
 /**
@@ -156,6 +162,8 @@ export type IncomingFile = {
   file: File;
   path?: string;
   content?: string;
+  /** See {@link ValidationRecord.explicit}. */
+  explicit?: true;
 };
 
 export type FailedFile = { path: string; error: string };
@@ -566,7 +574,8 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         if (validation) {
           setValidations((prev) => {
             const notes = afterRecognition(prev[path]?.notes, unreadPages);
-            return { ...prev, [path]: validation.included && notes.length ? { ...validation, notes } : validation };
+            const kept = { ...validation, ...(prev[path]?.explicit ? { explicit: true as const } : {}) };
+            return { ...prev, [path]: validation.included && notes.length ? { ...kept, notes } : kept };
           });
         }
         // Which language each document ended up read in, so a scoped pass never
@@ -877,7 +886,10 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
             const rest = unread.length === 0 ? null : { ...document, pages: unread, text, previewed: true };
             addToTally(rest ? previewed : recovered, document.format, document.file.size);
             setEntries((prev) => [...prev.filter((e) => e.path !== document.path), entry]);
-            setValidations((prev) => ({ ...prev, [document.path]: validation }));
+            setValidations((prev) => ({
+              ...prev,
+              [document.path]: { ...validation, ...(prev[document.path]?.explicit ? { explicit: true as const } : {}) },
+            }));
             setUnreadDocuments((prev) => prev.flatMap((d) => (d.path !== document.path ? [d] : rest ? [rest] : [])));
             setReadLanguage(language);
             setReadLanguages((prev) => ({ ...prev, [document.path]: language }));
@@ -1272,6 +1284,9 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
           setProgress({ phase: "reading", done: i + 1, total, note: STAGE.read, stages });
         }
       }
+      for (const { item, path } of routed) {
+        if (item.explicit && nextValidations[path]) nextValidations[path].explicit = true;
+      }
 
       if (append) {
         // Merging keeps a re-clipped file where it already sits rather than
@@ -1504,7 +1519,10 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
         // the list; the drag walk applies it while walking. Not user-editable:
         // what it drops never reaches the filter rail.
         const { kept, pruned } = pruneAtDoor(
-          Array.from(selected).map((file) => ({ file, path: file.webkitRelativePath || file.name })),
+          // A file with no folder path was picked by itself.
+          Array.from(selected).map((file) =>
+            file.webkitRelativePath ? { file, path: file.webkitRelativePath } : { file, path: file.name, explicit: true as const },
+          ),
         );
         await ingestBatch(kept, options, BATCH_STAGES, 0, pruned);
       } catch (error) {
@@ -1663,7 +1681,14 @@ export function useFileIngestion(config: ProcessingConfig): FileIngestion {
     setValidations((prev) => {
       const next = { ...prev };
       for (const [path, v] of guessed) {
-        next[path] = { included: true, classification: "text", size: v.size, type: v.type, recognitionTried: true };
+        next[path] = {
+          included: true,
+          classification: "text",
+          size: v.size,
+          type: v.type,
+          recognitionTried: true,
+          ...(v.explicit ? { explicit: true as const } : {}),
+        };
       }
       return next;
     });

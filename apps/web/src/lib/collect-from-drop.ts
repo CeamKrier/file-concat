@@ -7,6 +7,8 @@
 export interface CollectedFile {
   file: File;
   path: string;
+  /** Dropped by itself rather than found inside a dropped folder. */
+  explicit?: true;
 }
 
 export interface CollectFailure {
@@ -48,7 +50,7 @@ export async function collectFromDataTransfer(
       return new Promise((resolve) => {
         fileEntry.file(
           (file) => {
-            collected.push({ file, path: prefix ? `${prefix}/${file.name}` : file.name });
+            collected.push(prefix ? { file, path: `${prefix}/${file.name}` } : { file, path: file.name, explicit: true });
             report(collected.length);
             resolve();
           },

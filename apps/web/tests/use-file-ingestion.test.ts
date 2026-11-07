@@ -125,6 +125,24 @@ describe("useFileIngestion", () => {
     expect(TALLIES.pruned_ext).toEqual(["woff2"]);
   });
 
+  it("marks files picked by themselves as explicit, and nothing from a picked folder or an archive", async () => {
+    const loose = new File(["boot ok\n"], "debug.log");
+    const inFolder = new File(["boot ok\n"], "app.log");
+    Object.defineProperty(inFolder, "webkitRelativePath", { value: "logs/app.log" });
+    const zip = new File([zipSync({ "trace.log": strToU8("boot ok\n") })], "logs.zip");
+    const target = { files: [loose, inFolder, zip], value: "" } as unknown as HTMLInputElement;
+
+    const { result } = renderHook(() => useFileIngestion(DEFAULT_CONFIG));
+    await act(async () => {
+      await result.current.handleFileInput({ target } as React.ChangeEvent<HTMLInputElement>);
+    });
+
+    expect(result.current.validations["debug.log"].explicit).toBe(true);
+    expect(result.current.validations["logs/app.log"].explicit).toBeUndefined();
+    // An archive is a folder that arrived packed: its entries are judged by name.
+    expect(result.current.validations["logs/trace.log"].explicit).toBeUndefined();
+  });
+
   it("reads a picked folder whose own name is on the list: the root is what someone chose", async () => {
     const pick = (path: string, content: string): File => {
       const file = new File([content], path.split("/").pop()!);
