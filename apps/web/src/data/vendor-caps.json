@@ -68,7 +68,7 @@
     {
       "url": "https://help.openai.com/en/articles/8555545-uploading-files-and-audio-to-chatgpt",
       "anchor": "Uploading files and audio to ChatGPT",
-      "checked": "2026-10-26",
+      "checked": "2026-11-07",
       "quotes": [
         "maximum size of 512 MB per file",
         "capped at 2 million tokens per file",
@@ -78,7 +78,7 @@
         "Shared upload storage is capped at 25 GB per user",
         "Failed upload attempts can sometimes count toward the upload-rate limit",
         "does not currently show how much of your rolling upload-rate quota has been used",
-        "Choose a supported file type",
+        "Examples include the formats below",
         "Documents and text DOCX, PDF, TXT",
         "Spreadsheets XLSX, XLS, CSV, TSV",
         "Presentations PPTX",
@@ -429,12 +429,12 @@
     {
       "url": "https://support.claude.com/en/articles/9450526-export-your-claude-data",
       "anchor": "Export your Claude data",
-      "checked": "2026-10-26",
+      "checked": "2026-11-07",
       "quotes": [
         "export user information and chat history from Settings",
         "It's not possible to run an export from Claude for iOS or Android",
         "you will receive a download link via email",
-        "The download link will expire 24 hours after delivery"
+        "The download link will expire 24 hours after it's created"
       ],
       "used_by": [
         "apps/web/src/components/how-to/export-conversation-page.tsx",
