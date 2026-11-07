@@ -151,7 +151,7 @@ function Pane({
 const LEDGER = [
   { label: "extracted", count: 31, tone: "go", gap: false, note: "text pulled from pdf, docx, xlsx, pptx" },
   { label: "partly read", count: 2, tone: "warn", gap: true, note: "a chart image left unread; a footnote out of order" },
-  { label: "held back", count: 1, tone: "warn", gap: true, note: "over the size cap, add it from the review list" },
+  { label: "held back", count: 1, tone: "warn", gap: true, note: "a hidden dotfile, add it from the review list" },
   { label: "left out", count: 3, tone: "muted", gap: false, note: "two images and a lockfile" },
   { label: "flagged", count: 1, tone: "info", gap: false, note: "scanned page, recognised in the browser (en)" },
 ] as const;
