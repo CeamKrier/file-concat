@@ -19,11 +19,7 @@ export interface Demo {
  * goes in here in the same commit as its clip; until then its loader draws
  * nothing and the page renders as before.
  */
-export const VD1_CUTS: Readonly<Record<string, DemoCut>> = {
-  "/how-to/claude-file-upload-limit": "claude",
-  "/how-to/chatgpt-file-upload-limit": "chatgpt",
-  "/how-to/upload-folder-to-chatgpt": "chatgpt",
-};
+export const VD1_CUTS: Readonly<Record<string, DemoCut>> = {};
 
 /** The demo box's own CSS condition. A visit outside it never sees the box, so it is not in the read. */
 export const DEMO_MEDIA = "(pointer: fine) and (min-width: 1024px)";
