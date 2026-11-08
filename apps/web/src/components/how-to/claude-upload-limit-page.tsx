@@ -1,14 +1,15 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, ArrowUp, Hash, MonitorSmartphone } from "lucide-react";
+import { ArrowUp, Hash, MonitorSmartphone } from "lucide-react";
 
 import { AppFlow } from "~/components/app/app-flow";
 import type { DropZoneProps } from "~/components/app/drop-zone";
 import { EntrySurface } from "~/components/app/entry-surface";
 import type { ImportState } from "~/components/app/import-panel";
 import { InfoCard } from "~/components/app/info-card";
-import { FurtherReading, HeroFootnote, MockWindow, ProseLink } from "~/components/app/marketing";
+import { FurtherReading, HeroFootnote, ProseLink } from "~/components/app/marketing";
 import { MarketingSection } from "~/components/app/marketing/section";
 
+import { ClaudeUploadFrame } from "./claude-upload-frame";
 import { CLAUDE_UPLOAD_LIMIT_FAQ } from "./claude-upload-limit-faq";
 import { DemoVideo } from "~/components/how-to/demo-video";
 
@@ -41,7 +42,7 @@ function Landing({ dropProps, linkImport }: LandingProps) {
       <Limits />
       <LengthLimit />
       <Workflow />
-      <WorkedExample />
+      <ClaudeUploadFrame cap={CHAT_FILE_CAP} />
       <Faq />
       <ClosingCta />
     </>
@@ -274,76 +275,6 @@ function Workflow() {
         </ol>
       </div>
     </MarketingSection>
-  );
-}
-
-/** Measured on 2026-09-24 by importing github.com/expressjs/express through
- * /how-to/github-repo-to-text at the defaults with Format set to Plain, and
- * read off the result screen: 213 files fetched, 206 combined, 196,127 tokens
- * (FileConcat's o200k estimate), download express_fileconcat.txt. The
- * repository moves, so a rerun will not match exactly; re-date if rerun. */
-const EXAMPLE = { fetched: 213, combined: 206, tokens: 196_127 };
-const exampleChats = Math.ceil(EXAMPLE.combined / CHAT_FILE_CAP);
-const shareOf = (window: number) => Math.round((EXAMPLE.tokens / window) * 100);
-const num = (n: number) => n.toLocaleString("en-US");
-
-function WorkedExample() {
-  return (
-    <MarketingSection id="example" labelledBy="claude-upload-example">
-      <div className="mx-auto max-w-[580px] text-center">
-        <h2
-          id="claude-upload-example"
-          className="font-display text-ink text-balance text-[clamp(1.6rem,3.4vw,2rem)] font-bold leading-[1.12] tracking-[-0.025em]"
-        >
-          {num(EXAMPLE.combined)} files, one attachment.
-        </h2>
-        <p className="text-ink-secondary mx-auto mt-4 max-w-[52ch] text-[15px] leading-relaxed">
-          We imported the Express repository on 2026-09-24. Its {num(EXAMPLE.combined)} files would
-          fill {exampleChats} chats at {CHAT_FILE_CAP} each. As one file they took one slot, at{" "}
-          {num(EXAMPLE.tokens)} tokens by our estimate. That is {shareOf(1_000_000)}% of a 1M-token window,
-          and {shareOf(200_000)}% of a 200K one, where the length limit is the wall to watch.
-        </p>
-      </div>
-
-      <div className="mt-10 grid items-center gap-4 lg:grid-cols-[1fr_auto_1fr] lg:gap-6">
-        <MockWindow label="github.com/expressjs/express">
-          <pre className="text-code overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.7]">
-            <code>
-              {`${num(EXAMPLE.fetched)} files fetched\n`}
-              {`${num(EXAMPLE.fetched - EXAMPLE.combined)} left out\n`}
-              {`${exampleChats} chats at ${CHAT_FILE_CAP} files each`}
-            </code>
-          </pre>
-        </MockWindow>
-
-        <div className="text-ink-faint flex items-center justify-center">
-          <ArrowRight className="hidden h-5 w-5 lg:block" strokeWidth={2} aria-hidden="true" />
-          <span className="font-mono text-[11px] lg:hidden">becomes</span>
-        </div>
-
-        <MockWindow label="express_fileconcat.txt" trailing={<SlotChip />}>
-          <pre className="overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.7]">
-            <code>
-              <span className="text-ink-secondary">
-                {`This is a packed snapshot of a\ncodebase, assembled by FileConcat (https://fileconcat.com).\n`}
-              </span>
-              <span className="text-ink-faint">{`Source: https://github.com/\nexpressjs/express\n`}</span>
-              <span className="text-go-fg">{`File count: ${EXAMPLE.combined}.\n`}</span>
-              <span className="text-ink-faint">{`...`}</span>
-            </code>
-          </pre>
-        </MockWindow>
-      </div>
-    </MarketingSection>
-  );
-}
-
-function SlotChip() {
-  return (
-    <span className="font-mono text-[11px]">
-      <span className="text-primary">1</span>
-      <span className="text-ink-faint"> of {CHAT_FILE_CAP}</span>
-    </span>
   );
 }
 

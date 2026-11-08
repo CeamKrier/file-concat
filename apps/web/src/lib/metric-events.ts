@@ -723,6 +723,13 @@ export const METRIC_EVENTS = [
   "demo_arm",
   /** VD1: `start` the first time the demo video plays in a load. Exposure only. */
   "demo_play",
+  /**
+   * The Express example on the Claude upload-limit page (Q190), from
+   * `./example-step`: `seen` when half its one-file panel is in view, once
+   * per page load. Read only that value: the endpoint checks a value's shape, not this
+   * set.
+   */
+  "example_step",
 ] as const;
 
 export type MetricEvent = (typeof METRIC_EVENTS)[number];
