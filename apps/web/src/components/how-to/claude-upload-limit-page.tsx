@@ -11,7 +11,6 @@ import { MarketingSection } from "~/components/app/marketing/section";
 
 import { ClaudeUploadFrame } from "./claude-upload-frame";
 import { CLAUDE_UPLOAD_LIMIT_FAQ } from "./claude-upload-limit-faq";
-import { DemoVideo } from "~/components/how-to/demo-video";
 
 /**
  * /how-to/claude-file-upload-limit: the per-chat cap of 20 files, not the
@@ -80,8 +79,6 @@ function Hero({ dropProps, linkImport }: LandingProps) {
             A PDF pasted as text costs about a third of the tokens the PDF does through Claude's API.{" "}
             <ProseLink to="/blog/how-many-tokens-is-a-pdf-in-claude">We counted 195 real PDFs.</ProseLink>
           </p>
-
-          <DemoVideo />
         </div>
 
         <div className="min-w-0">

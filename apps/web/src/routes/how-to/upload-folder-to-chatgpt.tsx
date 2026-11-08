@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { UPLOAD_FOLDER_FAQ } from "~/components/how-to/upload-folder-faq";
 import { UploadFolderPage } from "~/components/how-to/upload-folder-page";
-import { demoFor } from "~/lib/demo-arm";
 import { generateSEOMeta } from "~/lib/seo";
 
 const FAQ_SCHEMA = {
@@ -17,7 +16,6 @@ const FAQ_SCHEMA = {
 
 export const Route = createFileRoute("/how-to/upload-folder-to-chatgpt")({
   component: UploadFolderPage,
-  loader: () => ({ demo: demoFor("/how-to/upload-folder-to-chatgpt") }),
   head: () => ({
     meta: [
       ...generateSEOMeta({

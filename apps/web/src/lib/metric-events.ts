@@ -713,17 +713,6 @@ export const METRIC_EVENTS = [
    */
   "send_check",
   /**
-   * VD1, the demo-loop test on the upload-limit pages (spec 2026-11-07): the
-   * arm a visit was drawn into, `video` or `control`, from `./demo-arm`. Once
-   * per page load, only when the visit landed on a page in the test and its
-   * screen could show the demo (fine pointer, 1024 px wide), in both arms, so
-   * it is the read's denominator. The arm is drawn per request and kept
-   * nowhere, so it says nothing about the person.
-   */
-  "demo_arm",
-  /** VD1: `start` the first time the demo video plays in a load. Exposure only. */
-  "demo_play",
-  /**
    * The Express example on the Claude upload-limit page (Q190), from
    * `./example-step`: `seen` when half its one-file panel is in view, once
    * per page load. Read only that value: the endpoint checks a value's shape, not this
