@@ -32,10 +32,22 @@ export function SegmentedControl<T extends string>({
   tone?: "default" | "go";
   className?: string;
 }) {
+  // A radio group is one tab stop; the arrow keys move the choice (WAI-ARIA APG).
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const at = options.findIndex((o) => o.value === value);
+    const next = (at + step + options.length) % options.length;
+    onChange(options[next].value);
+    (e.currentTarget.children[next] as HTMLElement | undefined)?.focus();
+  };
+
   return (
     <div
       role="radiogroup"
       aria-label={ariaLabel}
+      onKeyDown={onKeyDown}
       className={cn(
         "border-border bg-surface-inset rounded-input inline-flex items-center gap-0.5 border p-0.5",
         className,
@@ -49,6 +61,7 @@ export function SegmentedControl<T extends string>({
             type="button"
             role="radio"
             aria-checked={active}
+            tabIndex={active ? 0 : -1}
             onClick={() => onChange(opt.value)}
             className={cn(
               "focus-visible:ring-ring focus-visible:ring-offset-surface-inset rounded-[7px] font-mono font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
