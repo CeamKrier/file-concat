@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.14.0](https://github.com/CeamKrier/file-concat/compare/v2.13.0...v2.14.0) (2026-11-14)
+
+### Features
+
+* **web:** demo-loop test scaffold for the upload-limit pages ([aa6f4a7](https://github.com/CeamKrier/file-concat/commit/aa6f4a7089f90fe7a977286ab7b09326b402b257))
+* **web:** name what refused a scan recognition could not read ([4164b7c](https://github.com/CeamKrier/file-concat/commit/4164b7cb61b77e087ea728003e95e8dada5e7f20))
+* **web:** show the Claude file cap and its fix in one frame ([5337218](https://github.com/CeamKrier/file-concat/commit/5337218c5fcf8069c8877e93326bdf9c10e79e67))
+* **web:** turn on the demo loops on the three upload pages ([d5b392f](https://github.com/CeamKrier/file-concat/commit/d5b392f0224c06e378ba9a47b68d3b143356bd4c))
+
+### Bug Fixes
+
+* **web:** arrow keys move the choice in segmented controls ([522e290](https://github.com/CeamKrier/file-concat/commit/522e2909fa8ba856eaa9d270db6b24c55ff965e8))
+* **web:** homepage ledger no longer names the removed size cap ([171987d](https://github.com/CeamKrier/file-concat/commit/171987d30ab7c6f173003e43825e8fa76d865ab6))
+* **web:** keep a plain output style through a settings migration ([bf482ea](https://github.com/CeamKrier/file-concat/commit/bf482ea1c76445f0d5ffa7ccc3a66f19a362c795))
+* **web:** put the Claude limit page heading back ([ae1ed5d](https://github.com/CeamKrier/file-concat/commit/ae1ed5d2c1aa66a9c34ec7ece3c99e77bb4563d6))
+* **web:** read a file dropped or picked by itself whatever its name ([4aeeb22](https://github.com/CeamKrier/file-concat/commit/4aeeb2275efabb343ce287ccd6c62e70f0660d6e))
+* **web:** survive a drop past the browser's string limit ([74d7f2c](https://github.com/CeamKrier/file-concat/commit/74d7f2c9a379810d6fe2749bb2527bd0ec28f6af))
+
 ## [2.13.0](https://github.com/CeamKrier/file-concat/compare/v2.12.0...v2.13.0) (2026-11-04)
 
 ### Features
