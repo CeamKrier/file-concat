@@ -21,12 +21,13 @@ export const Route = createFileRoute("/how-to/claude-file-upload-limit")({
       ...generateSEOMeta({
         // The searcher has hit the cap on files in one chat: "claude file upload
         // limit", "claude 20 file limit", "per chat". /for/claude-projects owns
-        // the project error and keeps it. The description names the cap since
-        // 2026-10-26, the same test as /how-to/chatgpt-file-upload-limit,
-        // whose comment holds the reason and the read date.
+        // the project error and keeps it. The 2026-10-26 test (cap in the
+        // description, PDF question as the section heading) was reverted on
+        // 2026-11-14: Google landings here halved from 10-29 while CTR held.
+        // /how-to/chatgpt-file-upload-limit keeps the test as the control.
         title: "Get past the Claude file upload limit per chat",
         description:
-          "Over Claude's 20 files per chat? Combine a whole folder or GitHub repo, PDFs included, into one file and it takes one of the 20 slots. Not uploaded to us.",
+          "Hit Claude's file limit in a chat? It counts files, so a whole folder or GitHub repo, PDFs included, can go in as one attachment. Read in your browser, not uploaded to us.",
         url: "https://fileconcat.com/how-to/claude-file-upload-limit",
       }),
       {

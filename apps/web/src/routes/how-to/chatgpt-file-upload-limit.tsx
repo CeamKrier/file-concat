@@ -29,7 +29,8 @@ export const Route = createFileRoute("/how-to/chatgpt-file-upload-limit")({
         // without one. A cached snippet can lag a quota change by weeks: on a DRIFT
         // line in check-vendor-caps, fix this string first. Read the CTR
         // against the prior period around 2026-11-23 and revert if it did not
-        // move. The Claude limit page runs the same test.
+        // move. The Claude limit page ran it too and reverted it 2026-11-14;
+        // this page stays on the test as the control until about 2026-12-01.
         title: "Get past the ChatGPT file upload limit",
         description:
           "Over ChatGPT's 80 files every 3 hours, or 3 a day on Free? Combine a whole folder, PDFs included, into one file and it counts as one upload. Not uploaded to us.",

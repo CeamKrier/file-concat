@@ -143,9 +143,9 @@
     {
       "url": "https://support.claude.com/en/articles/8606394-how-large-is-the-context-window-on-paid-claude-plans",
       "anchor": "How large is the context window on paid Claude plans",
-      "checked": "2026-09-24",
+      "checked": "2026-11-14",
       "quotes": [
-        "Chatting with Claude Model Context window Claude Fable 5.1 1M tokens",
+        "Chatting with Claude Model Context window Claude Fable 5.2 1M tokens",
         "Claude Sonnet 4.6 500K tokens",
         "context window size is 200K"
       ],
@@ -238,8 +238,8 @@
     {
       "url": "https://support.google.com/gemininotebook/answer/16213268",
       "anchor": "Gemini Notebook",
-      "checked": "2026-09-24",
-      "quotes": ["Sources 50/notebook 100/notebook 300/notebook 500/notebook 600/notebook"],
+      "checked": "2026-11-14",
+      "quotes": ["All sources except notes 50/notebook 100/notebook 300/notebook 500/notebook 600/notebook"],
       "used_by": [
         "apps/web/src/components/personas/notebooklm-page.tsx",
         "apps/web/src/components/personas/notebooklm-faq.ts",
