@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { DEFAULT_IGNORE_STRING } from "@fileconcat/core";
 import { useFilterState } from "~/hooks/use-filter-state";
 import type { ContentEntry, ValidationRecord } from "~/hooks/use-file-ingestion";
 
@@ -10,6 +11,7 @@ type FixtureSpec = {
   size?: number;
   type?: string;
   content?: string;
+  explicit?: true;
 };
 
 function buildFixture(specs: FixtureSpec[]): {
@@ -24,6 +26,7 @@ function buildFixture(specs: FixtureSpec[]): {
       reason: s.reason,
       size: s.size ?? 1,
       type: s.type ?? "text/plain",
+      ...(s.explicit ? { explicit: s.explicit } : {}),
     };
   }
   return { entries, validations };
@@ -286,5 +289,54 @@ describe("useFilterState", () => {
     expect(
       result.current.fileStatuses.find((s) => s.path === "generated/schema.ts")?.reason,
     ).toBe("Matched .gitignore");
+  });
+
+  it("keeps a file picked by itself in, whatever the noise rules say about its name", () => {
+    // A lone `.log` came out as an empty screen: the default `*.log` rule is
+    // for logs a folder brings along, not for the one file someone chose.
+    const { entries, validations } = buildFixture([
+      { path: "debug.log", explicit: true },
+      { path: "server.log" },
+      { path: "logs/app.log" },
+    ]);
+
+    const { result } = renderHook(() =>
+      useFilterState({ entries, validations, includePatterns: "*.ts", ignorePatterns: DEFAULT_IGNORE_STRING }),
+    );
+
+    const byPath = Object.fromEntries(result.current.fileStatuses.map((s) => [s.path, s]));
+    expect(byPath["debug.log"].included).toBe(true);
+    expect(byPath["server.log"].included).toBe(false);
+    expect(byPath["logs/app.log"].included).toBe(false);
+  });
+
+  it("still holds back a picked file whose name says it carries secrets", () => {
+    const { entries, validations } = buildFixture([
+      { path: "terraform.tfstate", explicit: true },
+      { path: "terraform.tfstate.backup", explicit: true },
+    ]);
+
+    const { result, rerender } = renderHook(
+      ({ ignorePatterns }: { ignorePatterns: string }) =>
+        useFilterState({ entries, validations, includePatterns: "", ignorePatterns }),
+      { initialProps: { ignorePatterns: DEFAULT_IGNORE_STRING } },
+    );
+    expect(result.current.includedFileCount).toBe(0);
+    expect(result.current.fileStatuses[0].reason).toBe("Matched ignore patterns");
+
+    // Taken off the ignore list by hand, the person's own call stands.
+    rerender({ ignorePatterns: "*.log" });
+    expect(result.current.includedFileCount).toBe(2);
+  });
+
+  it("never lets an explicit pick past a file's own validation", () => {
+    const { entries, validations } = buildFixture([
+      { path: "photo.png", explicit: true, included: false, reason: "Binary file" },
+    ]);
+
+    const { result } = renderHook(() =>
+      useFilterState({ entries, validations, includePatterns: "", ignorePatterns: "" }),
+    );
+    expect(result.current.fileStatuses[0]).toMatchObject({ included: false, reason: "Binary file" });
   });
 });

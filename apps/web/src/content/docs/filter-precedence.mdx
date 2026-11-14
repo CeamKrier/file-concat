@@ -99,6 +99,14 @@ Two textareas in the **Patterns** section of the Files pane drive this layer:
 - **Ignore** is a comma-separated list of glob patterns. Files matching
   any of them are excluded.
 
+A file you drop or pick by itself skips this layer. Drop `debug.log` alone
+and it is read, although `*.log` is on the default list: the list is for
+what a folder brings along, not for a file you named. Until 2026-11-07 a
+lone log came out as an empty result. Files inside a dropped folder or an
+archive, and files from an import, are still judged by name. The one
+exception is a Terraform state file, which carries credentials and stays
+held back while its pattern is on the Ignore list.
+
 There is one rule that surprises people: **if the Include textarea has
 any non-empty content, the Ignore textarea is skipped entirely.** The
 include list is treated as an exclusive whitelist. To go back to "every

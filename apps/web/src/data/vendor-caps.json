@@ -68,7 +68,7 @@
     {
       "url": "https://help.openai.com/en/articles/8555545-uploading-files-and-audio-to-chatgpt",
       "anchor": "Uploading files and audio to ChatGPT",
-      "checked": "2026-10-26",
+      "checked": "2026-11-07",
       "quotes": [
         "maximum size of 512 MB per file",
         "capped at 2 million tokens per file",
@@ -78,7 +78,7 @@
         "Shared upload storage is capped at 25 GB per user",
         "Failed upload attempts can sometimes count toward the upload-rate limit",
         "does not currently show how much of your rolling upload-rate quota has been used",
-        "Choose a supported file type",
+        "Examples include the formats below",
         "Documents and text DOCX, PDF, TXT",
         "Spreadsheets XLSX, XLS, CSV, TSV",
         "Presentations PPTX",
@@ -143,9 +143,9 @@
     {
       "url": "https://support.claude.com/en/articles/8606394-how-large-is-the-context-window-on-paid-claude-plans",
       "anchor": "How large is the context window on paid Claude plans",
-      "checked": "2026-09-24",
+      "checked": "2026-11-14",
       "quotes": [
-        "Chatting with Claude Model Context window Claude Fable 5.1 1M tokens",
+        "Chatting with Claude Model Context window Claude Fable 5.2 1M tokens",
         "Claude Sonnet 4.6 500K tokens",
         "context window size is 200K"
       ],
@@ -238,8 +238,8 @@
     {
       "url": "https://support.google.com/gemininotebook/answer/16213268",
       "anchor": "Gemini Notebook",
-      "checked": "2026-09-24",
-      "quotes": ["Sources 50/notebook 100/notebook 300/notebook 500/notebook 600/notebook"],
+      "checked": "2026-11-14",
+      "quotes": ["All sources except notes 50/notebook 100/notebook 300/notebook 500/notebook 600/notebook"],
       "used_by": [
         "apps/web/src/components/personas/notebooklm-page.tsx",
         "apps/web/src/components/personas/notebooklm-faq.ts",
@@ -429,12 +429,12 @@
     {
       "url": "https://support.claude.com/en/articles/9450526-export-your-claude-data",
       "anchor": "Export your Claude data",
-      "checked": "2026-10-26",
+      "checked": "2026-11-07",
       "quotes": [
         "export user information and chat history from Settings",
         "It's not possible to run an export from Claude for iOS or Android",
         "you will receive a download link via email",
-        "The download link will expire 24 hours after delivery"
+        "The download link will expire 24 hours after it's created"
       ],
       "used_by": [
         "apps/web/src/components/how-to/export-conversation-page.tsx",

@@ -6,6 +6,12 @@ import type { ContentEntry, ValidationRecord } from "./use-file-ingestion";
 
 export type ManualOverride = "include" | "exclude";
 
+/**
+ * Default ignore entries whose files carry credentials. A dotfile `.env` is
+ * already held by the hidden-file check; Terraform state is not a dotfile.
+ */
+const SECRET_PATTERNS = ".env, .env.*, *.tfstate, *.tfstate.backup";
+
 export interface FilterState {
   fileStatuses: FileStatus[];
   includedFileCount: number;
@@ -81,13 +87,22 @@ export function useFilterState({
   // What the patterns say about each path, apart from the manual layer: a tree
   // toggle changes only `userToggled`, and matching every path against every
   // pattern again on each one was most of a big drop's frozen toggle.
+  //
+  // A file picked or dropped by itself skips the name rules (ripgrep's rule):
+  // a lone `.log` used to come out as an empty screen. Only a secret-bearing
+  // name still on the ignore list holds it back, since that is a leak, not noise.
   const patternReasons = useMemo(
     () =>
       entries.map((entry) => {
-        if (!(validations[entry.path]?.included ?? true)) return undefined;
+        const validation = validations[entry.path];
+        if (!(validation?.included ?? true)) return undefined;
+        if (validation?.explicit) {
+          const secret = matchesAnyPattern(entry.path, SECRET_PATTERNS) && matchesAnyPattern(entry.path, ignorePatterns);
+          return secret ? "Matched ignore patterns" : null;
+        }
         return isExcludedPath(entry.path) ? excludeReason(entry.path) : null;
       }),
-    [entries, validations, isExcludedPath, excludeReason],
+    [entries, validations, ignorePatterns, isExcludedPath, excludeReason],
   );
   // Whether file `index` is in without a manual toggle, read from the cache
   // above. Matching the patterns again here cost a 7,792-file folder sweep
