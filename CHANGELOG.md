@@ -4,10 +4,7 @@
 
 ### Features
 
-* **web:** demo-loop test scaffold for the upload-limit pages ([aa6f4a7](https://github.com/CeamKrier/file-concat/commit/aa6f4a7089f90fe7a977286ab7b09326b402b257))
 * **web:** name what refused a scan recognition could not read ([4164b7c](https://github.com/CeamKrier/file-concat/commit/4164b7cb61b77e087ea728003e95e8dada5e7f20))
-* **web:** show the Claude file cap and its fix in one frame ([5337218](https://github.com/CeamKrier/file-concat/commit/5337218c5fcf8069c8877e93326bdf9c10e79e67))
-* **web:** turn on the demo loops on the three upload pages ([d5b392f](https://github.com/CeamKrier/file-concat/commit/d5b392f0224c06e378ba9a47b68d3b143356bd4c))
 
 ### Bug Fixes
 
