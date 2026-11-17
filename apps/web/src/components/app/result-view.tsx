@@ -300,7 +300,7 @@ export function ResultView({
       kind: "note",
       icon: Gauge,
       title: `Fills most of ${fit.modelName}'s context window.`,
-      body: `That leaves roughly ${fmt.format(Math.max(0, Math.round(fit.contextLimit * (1 - fit.ratio))))} tokens for your own prompt and the reply. The count is an estimate, so read this as close rather than certain.`,
+      body: `That leaves roughly ${fmt.format(Math.max(0, Math.round(fit.contextLimit * (1 - fit.ratio))))} tokens for your own prompt and the reply. The count is an estimate, so read this as close rather than certain. A chat box can also cap a paste below the window.`,
     });
   }
 
@@ -313,7 +313,7 @@ export function ResultView({
       kind: "note",
       icon: Weight,
       title: "A big bundle for one paste.",
-      body: "Past 1 MB the token figure is extrapolated from samples the tokenizer reads across the bundle, and Copy can take a moment.",
+      body: "Past 1 MB the token figure is extrapolated from samples the tokenizer reads across the bundle, and Copy can take a moment. Some chat apps cap a paste well below the model's context window, counted in characters.",
     });
   }
 

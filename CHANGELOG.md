@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.15.1](https://github.com/CeamKrier/file-concat/compare/v2.15.0...v2.15.1) (2026-11-17)
+
+### Bug Fixes
+
+* **web:** say the count uses OpenAI's tokenizer and chat boxes cap pastes ([045bf44](https://github.com/CeamKrier/file-concat/commit/045bf44f4ba08ef32ca3bcd6f6a3c71a1f5b1d10))
+
 ## [2.15.0](https://github.com/CeamKrier/file-concat/compare/v2.14.0...v2.15.0) (2026-11-17)
 
 ### Features
