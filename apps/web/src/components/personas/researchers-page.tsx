@@ -102,7 +102,7 @@ function ContextWindow() {
         </p>
         <p className="text-go-fg mt-5 inline-flex items-center gap-2 font-mono text-[12.5px]">
           <Hash className="text-primary h-4 w-4 shrink-0" strokeWidth={2} />
-          Counted in your browser, with the same kind of tokenizer the models use
+          Counted in your browser, with OpenAI's tokenizer. Other models count somewhat differently
         </p>
       </div>
 

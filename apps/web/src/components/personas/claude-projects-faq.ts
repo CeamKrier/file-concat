@@ -25,7 +25,7 @@ export const CLAUDE_PROJECTS_FAQ = [
   },
   {
     q: "Does FileConcat show how much of the context window my files use?",
-    a: "Yes. It counts the tokens as it combines, using the same kind of tokenizer the models use. You see whether the whole set fits before you add it to the project.",
+    a: "Yes. It counts the tokens as it combines, with OpenAI's tokenizer, so Claude's own count differs somewhat. You see whether the whole set fits before you add it to the project.",
   },
   {
     q: "Can Claude read the PDFs and Word documents I combine?",
