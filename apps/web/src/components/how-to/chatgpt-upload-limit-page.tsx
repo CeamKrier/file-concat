@@ -61,6 +61,14 @@ function Hero({ dropProps }: { dropProps: DropZoneProps }) {
           <p className="text-ink-secondary mt-5 max-w-[52ch] text-[17px] leading-relaxed">
             Free: 3 files a day. Paid: 80 every 3 hours. One folder counts as one.
           </p>
+
+          {/* Q198 O1: a sixth of this page's drops were images only, mostly
+              left empty, with notes asking for AI work the tool does not do. */}
+          <p className="text-ink-muted mt-3 max-w-[52ch] text-[14px] leading-relaxed">
+            Photos or screenshots? It can read the text in them. It does not describe, edit or make
+            images.{" "}
+            <ProseLink to="/how-to/send-many-screenshots-to-chatgpt">Screenshots, step by step.</ProseLink>
+          </p>
         </div>
 
         <div className="min-w-0">

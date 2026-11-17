@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.0](https://github.com/CeamKrier/file-concat/compare/v2.14.0...v2.15.0) (2026-11-17)
+
+### Features
+
+* **web:** drop files onto the result screen to add them ([652f9b2](https://github.com/CeamKrier/file-concat/commit/652f9b212f95bc1ab9d14b11dcb3c9b50d4346ad))
+* **web:** say on the two upload-limit pages what happens to photos ([dc886b0](https://github.com/CeamKrier/file-concat/commit/dc886b053647b77e47c2f6d024187f9acc74456e))
+
 ## [2.14.0](https://github.com/CeamKrier/file-concat/compare/v2.13.0...v2.14.0) (2026-11-14)
 
 ### Features

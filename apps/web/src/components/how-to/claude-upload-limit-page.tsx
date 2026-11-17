@@ -78,6 +78,14 @@ function Hero({ dropProps, linkImport }: LandingProps) {
             A PDF pasted as text costs about a third of the tokens the PDF does through Claude's API.{" "}
             <ProseLink to="/blog/how-many-tokens-is-a-pdf-in-claude">We counted 195 real PDFs.</ProseLink>
           </p>
+
+          {/* Q198 O1: image-only drops here were mostly left empty, with notes
+              asking for AI work the tool does not do. */}
+          <p className="text-ink-muted mt-3 max-w-[52ch] text-[14px] leading-relaxed">
+            Photos or screenshots? It can read the text in them. It does not describe, edit or make
+            images.{" "}
+            <ProseLink to="/how-to/send-many-screenshots-to-chatgpt">Screenshots, step by step.</ProseLink>
+          </p>
         </div>
 
         <div className="min-w-0">

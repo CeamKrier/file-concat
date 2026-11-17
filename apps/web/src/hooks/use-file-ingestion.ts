@@ -279,7 +279,7 @@ function confidenceBand(confidence: number): string {
  * hole this closes: `append_to` rows written before 2026-08-22 carry no value
  * and can only ever be read as one undifferentiated total.
  */
-export type AppendSource = "clipper" | "manual";
+export type AppendSource = "clipper" | "manual" | "drop";
 export type IngestOptions = { append?: AppendSource };
 
 export type ReadProgress = { done: number; total: number; note?: string } | null;

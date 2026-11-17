@@ -114,7 +114,8 @@ export const METRIC_EVENTS = [
   /**
    * How many files the bundle already held when an append landed, in `n`, and
    * which affordance asked, in `value`: `clipper` for an extension push,
-   * `manual` for the `Add files` button.
+   * `manual` for the `Add files` button, `drop` for files dropped onto the
+   * result screen (since 2026-11-17).
    *
    * Written only by an append, so its row count is how often one happened, and
    * `n = 0` is an append that had nothing to append to — a replace wearing
