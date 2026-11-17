@@ -219,9 +219,9 @@
     {
       "url": "https://support.google.com/gemini/answer/14903178",
       "anchor": "analyze files in Gemini Apps",
-      "checked": "2026-10-13",
+      "checked": "2026-11-17",
       "quotes": [
-        "Up to 10 files (subject to availability) can be uploaded in the same prompt",
+        "Up to 10 files (subject to availability) can be attacheded in the same prompt",
         "All other supported file types can be up to 100 MB",
         "One code folder, or one GitHub repository, with up to 5,000 files and a maximum size of 100 MB, can be added to a chat",
         "Can contain up to 10 files (subject to availability)",
