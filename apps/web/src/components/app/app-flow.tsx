@@ -1025,6 +1025,27 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     [begin, ingestion],
   );
 
+  // The whole result screen takes a drop, because going back home to add one
+  // more file was what a user wrote in about (feedback 2026-10-26). Files only:
+  // dragging selected preview text across the page must not start a Run. A
+  // drop onto a bundle extends it, like Add files; onto an empty result it
+  // replaces, since there is nothing to keep.
+  const carriesFiles = (e: React.DragEvent) => e.dataTransfer.types.includes("Files");
+  const resultDropProps =
+    phase === "result"
+      ? {
+          onDragEnter: (e: React.DragEvent) => carriesFiles(e) && ingestion.handleDragEnter(e),
+          onDragOver: (e: React.DragEvent) => carriesFiles(e) && ingestion.handleDragOver(e),
+          onDragLeave: (e: React.DragEvent) => carriesFiles(e) && ingestion.handleDragLeave(e),
+          onDrop: (e: React.DragEvent) => {
+            if (!carriesFiles(e)) return;
+            if (filesCombined === 0) return onDrop(e);
+            setResultNote(null);
+            void begin(() => ingestion.handleDrop(e, { append: "drop" }));
+          },
+        }
+      : {};
+
   // The wired drop handlers, shared by the default hero and any persona landing
   // (via renderLanding) so an embedded DropZone starts the flow in place.
   const dropProps: DropZoneProps = {
@@ -1106,6 +1127,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       {/* Room for the feedback panel rather than a panel over the work: the
           bundle it is about stays readable beside it. */}
       <main
+        {...resultDropProps}
         className={cn(
           "ease-out-expo flex-1 transition-[padding] duration-300 motion-reduce:transition-none",
           feedbackOpen && "max-lg:pb-[448px] lg:pr-[400px]",
@@ -1138,6 +1160,14 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
             stopping={ingestion.isStopping}
             steps={processingSteps}
           />
+        )}
+
+        {phase === "result" && ingestion.isDragging && (
+          <div className="rounded-panel border-primary pointer-events-none fixed inset-3 z-50 flex items-center justify-center border-2 border-dashed bg-[oklch(var(--primary)/0.08)]">
+            <p className="font-display text-ink bg-surface rounded-card px-5 py-3 text-lg font-semibold tracking-[-0.01em]">
+              {filesCombined > 0 ? "Let go to add these to the bundle" : "Let go to start"}
+            </p>
+          </div>
         )}
 
         {phase === "result" &&
