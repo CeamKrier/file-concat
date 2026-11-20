@@ -1232,6 +1232,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
                   : undefined
               }
               onFeedback={() => setFeedbackOpen(true)}
+              exported={exports > 0}
               onStartOver={startOver}
               onAddFiles={onAddFiles}
               previewText={previewText}

@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.16.0](https://github.com/CeamKrier/file-concat/compare/v2.15.1...v2.16.0) (2026-11-20)
+
+### Features
+
+* **web:** offer Buy Me a Coffee on the result card after an export ([90d9278](https://github.com/CeamKrier/file-concat/commit/90d9278cacde53a68f7356c8114f49a5aa495b71))
+
 ## [2.15.1](https://github.com/CeamKrier/file-concat/compare/v2.15.0...v2.15.1) (2026-11-17)
 
 ### Bug Fixes

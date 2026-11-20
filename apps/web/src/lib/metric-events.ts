@@ -298,8 +298,10 @@ export const METRIC_EVENTS = [
    * A call to action that leaves the page: `clipper_store`, the Chrome Web
    * Store link on /clipper and /how-to/chatgpt-conversation-too-long. That
    * page's remedy is the extension, so a drop never shows that it worked and
-   * this click is the only visible step. The value set is closed; the store
-   * says nothing back about whether the install happened.
+   * this click is the only visible step. `coffee`, the Buy Me a Coffee link on
+   * the result card after an export (Q202, 2026-11-20). The client sends only
+   * these two constants; the server checks the value against its pattern only.
+   * Neither site says anything back about what happened there.
    */
   "cta_clicked",
   /**
