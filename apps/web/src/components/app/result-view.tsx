@@ -5,6 +5,7 @@ import {
   ChartPie,
   Check,
   ChevronDown,
+  Coffee,
   Copy,
   Download,
   FilePlus,
@@ -32,6 +33,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
+import { trackSupportClick } from "~/lib/metrics";
 import { cn } from "~/lib/utils";
 import type { BundleWeight } from "~/lib/bundle-weight";
 import type { PrunedAtDoor } from "~/lib/prune-at-door";
@@ -129,6 +131,8 @@ type ResultViewProps = {
   onSplitModeChange: (mode: SplitMode) => void;
   /** Open the feedback panel. The way back to it after the ask was dismissed. */
   onFeedback?: () => void;
+  /** True once this page load has exported; the support link waits for it. */
+  exported?: boolean;
 };
 
 const fmt = new Intl.NumberFormat("en-US");
@@ -210,6 +214,7 @@ export function ResultView({
   onSplitModeChange,
   onFeedback,
   sendCheck,
+  exported,
 }: ResultViewProps) {
   // A hidden input behind a real button, the same idiom the drop zone uses: the
   // native file picker with a label we control.
@@ -753,6 +758,21 @@ export function ResultView({
             {onFeedback && (
               <QuietAction icon={MessageSquare} label="Give feedback" onClick={onFeedback} />
             )}
+            {/* Only after the tool has done its job once, so it asks nothing of
+                someone who has not got anything yet. A link, not a button: it
+                leaves the page. */}
+            {exported && (
+              <a
+                href="https://buymeacoffee.com/ceamkrier"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={trackSupportClick}
+                className={QUIET_ACTION}
+              >
+                <Coffee className="h-4 w-4" />
+                Buy me a coffee
+              </a>
+            )}
             {/* Asked in a modal, because it is the one control here that
                 throws work away and there is no undo behind it. */}
             <QuietAction
@@ -1203,6 +1223,9 @@ function FileRows({ items }: { items: { name: string; why?: string; action?: Rea
   );
 }
 
+const QUIET_ACTION =
+  "text-ink-secondary hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-sm text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 max-sm:min-h-11";
+
 function QuietAction({
   icon: Icon,
   label,
@@ -1218,10 +1241,7 @@ function QuietAction({
     <button
       type="button"
       onClick={onClick}
-      className={cn(
-        "text-ink-secondary hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-sm text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 max-sm:min-h-11",
-        className,
-      )}
+      className={cn(QUIET_ACTION, className)}
     >
       <Icon className="h-4 w-4" />
       {label}

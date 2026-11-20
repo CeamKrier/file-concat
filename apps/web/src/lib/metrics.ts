@@ -175,6 +175,11 @@ export function trackStoreClick(): void {
   track("cta_clicked", "clipper_store");
 }
 
+/** A click on the Buy Me a Coffee link the result card shows after an export. */
+export function trackSupportClick(): void {
+  track("cta_clicked", "coffee");
+}
+
 /**
  * Adds an exported Run to this device's recap totals and sends the band of its
  * export count. Called beside every `output_taken`; a second export of the

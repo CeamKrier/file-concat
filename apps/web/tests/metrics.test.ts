@@ -228,6 +228,13 @@ describe("trackEntrySurface", () => {
   });
 });
 
+describe("trackSupportClick", () => {
+  it("sends one cta_clicked row with the coffee value", async () => {
+    metrics.trackSupportClick();
+    expect(await flush()).toEqual([{ n: "cta_clicked", v: "coffee" }]);
+  });
+});
+
 describe("trackStoreClick", () => {
   it("sends the one fixed label and nothing else", async () => {
     metrics.trackStoreClick();
