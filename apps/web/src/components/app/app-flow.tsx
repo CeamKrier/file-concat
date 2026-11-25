@@ -27,6 +27,8 @@ import { useFilterState } from "~/hooks/use-filter-state";
 import { useOutputGeneration } from "~/hooks/use-output-generation";
 import { estimateBundleTokens, preloadTokenEstimator } from "~/lib/tokens";
 import { weighBundle } from "~/lib/bundle-weight";
+import { recognitionGaps } from "~/lib/recognition-gaps";
+import { outputFileName } from "~/hooks/use-output-generation";
 import { useSelectedModel } from "~/hooks/use-selected-model";
 import { classifyUrl, type Classification, type ImportTab } from "~/lib/classify-url";
 import { friendlyFetchError, type ImportError } from "~/lib/fetch-error";
@@ -69,7 +71,7 @@ import { EncodingPicker } from "./encoding-picker";
 import { FeedbackDock } from "./feedback-dock";
 import { ReadingDialog } from "./reading-dialog";
 import { offersFor, passOutcome } from "./reading-bar";
-import { emptyKindFor, emptyReasonSlug, unreadableGroups } from "./empty-kind";
+import { emptyKindFor, emptyReasonSlug, imagesLeftOutOfPdf, unreadableGroups } from "./empty-kind";
 import {
   isRecognisableImage,
   isSpeechMedia,
@@ -350,7 +352,13 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
     // A file a running pass has not reached is named as not read yet, never as
     // a file the tool could not read (Q7 O2).
     const pending = new Set(ingestion.pendingReads);
-    const summary = summarizeExclusions(settledStatuses.filter((s) => !pending.has(s.path)));
+    // A pass removes the entry of a file it read nothing from, so that file has
+    // no status: name it here or the bundle is silent about it.
+    const listed = new Set(settledStatuses.map((s) => s.path));
+    const gaps = recognitionGaps(ingestion.unreadDocuments, ingestion.validations, listed);
+    const summary = summarizeExclusions(
+      [...settledStatuses, ...gaps].filter((s) => !pending.has(s.path)),
+    );
     const included = new Set(settledStatuses.filter((s) => s.included).map((s) => s.path));
     const partial = Object.entries(ingestion.validations)
       .filter(([path, v]) => included.has(path) && v.notes?.length)
@@ -360,7 +368,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       ...(partial.length ? { partial } : {}),
       ...(pending.size ? { pending: [...pending] } : {}),
     };
-  }, [settledStatuses, ingestion.validations, ingestion.pendingReads]);
+  }, [settledStatuses, ingestion.validations, ingestion.pendingReads, ingestion.unreadDocuments]);
 
   const [estimatorReady, setEstimatorReady] = useState(false);
   useEffect(() => {
@@ -687,6 +695,28 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
       ),
     [ingestion.validations],
   );
+
+  // The drop's images as one PDF (Q220). Only the formats recognition takes are
+  // held as files; a HEIC photo is not, so a drop of only those has no offer,
+  // and one among other images is named as left out.
+  const imagesPdf = useMemo(() => {
+    const images = ingestion.scannedDocuments.filter((d) => isRecognisableImage(d.format));
+    if (images.length === 0) return undefined;
+    const leftOut = imagesLeftOutOfPdf(Object.keys(ingestion.validations), new Set(images.map((d) => d.path)));
+    return {
+      build: async (onProgress: (done: number, total: number) => void, signal: AbortSignal) => {
+        if (import.meta.env.SSR) throw new Error("client only");
+        const { imagesToPdf } = await import("~/lib/images-pdf-client");
+        const result = await imagesToPdf(images, onProgress, signal);
+        return { ...result, skipped: [...result.skipped, ...leftOut] };
+      },
+      fileName: (index: number, total: number) => outputFileName(projectName, "pdf", { index, total }),
+      onTaken: () => {
+        track("output_taken", "download");
+        track("output_style", "pdf");
+      },
+    };
+  }, [ingestion.scannedDocuments, ingestion.validations, projectName]);
 
   const emptyKind = useMemo(
     () =>
@@ -1196,6 +1226,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
               }}
               onIncludeGuesses={ingestion.includeGuesses}
               imagesTried={recognition.imageCount > 0 && recognition.offerableImageCount === 0}
+              pdf={imagesPdf}
             />
           ) : (
             <ResultView

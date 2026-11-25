@@ -1,0 +1,69 @@
+{
+  "measured": "2026-11-25",
+  "screenshots": 72,
+  "sets": 3,
+  "questionsPerApp": 24,
+  "apps": {
+    "claude": "Claude (Opus 5.5)",
+    "chatgpt": "ChatGPT (Plus)",
+    "gemini": "Gemini (free)"
+  },
+  "note": "Three sets of 24 screenshots, 8 questions a set. A question counts when the answer names both the right screenshot and the right detail. The PDF row uses the settings FileConcat ships (JPEG 0.8, long edge 2000 px, numbered bar); the text row is FileConcat 2.16.0.",
+  "rows": [
+    {
+      "id": "F5",
+      "format": "One PDF, a page per screenshot",
+      "uploads": 1,
+      "messages": "1",
+      "correct": {
+        "claude": 24,
+        "chatgpt": 24,
+        "gemini": 24
+      }
+    },
+    {
+      "id": "F1",
+      "format": "Separate images",
+      "uploads": 24,
+      "messages": "2 to 3",
+      "correct": {
+        "claude": 24,
+        "chatgpt": 24,
+        "gemini": 24
+      }
+    },
+    {
+      "id": "F2",
+      "format": "Grids of six",
+      "uploads": 4,
+      "messages": "1",
+      "correct": {
+        "claude": 24,
+        "chatgpt": 24,
+        "gemini": 8
+      }
+    },
+    {
+      "id": "F4",
+      "format": "Text read from them",
+      "uploads": 1,
+      "messages": "1",
+      "correct": {
+        "claude": 20,
+        "chatgpt": 18,
+        "gemini": 19
+      }
+    },
+    {
+      "id": "F0",
+      "format": "No attachment",
+      "uploads": 0,
+      "messages": "1",
+      "correct": {
+        "claude": 0,
+        "chatgpt": 0,
+        "gemini": 0
+      }
+    }
+  ]
+}

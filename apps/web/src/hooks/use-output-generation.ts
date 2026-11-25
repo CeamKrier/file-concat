@@ -309,7 +309,7 @@ function chunkContents(files: ContentEntry[], target: number): ContentEntry[][] 
  * un-suffixed is what stops a bundle that fits in one chunk from ever
  * downloading as `…-part1`.
  */
-function outputFileName(
+export function outputFileName(
   projectName: string,
   extension: string,
   part?: { index: number; total: number },

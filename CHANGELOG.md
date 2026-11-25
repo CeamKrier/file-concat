@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.17.0](https://github.com/CeamKrier/file-concat/compare/v2.16.0...v2.17.0) (2026-11-25)
+
+### Features
+
+* **web:** give a drop of images one PDF, a page each ([94c3c88](https://github.com/CeamKrier/file-concat/commit/94c3c88858f84a62e16a743053c08979221620a0))
+* **web:** lead the screenshots page with one PDF ([d4f02de](https://github.com/CeamKrier/file-concat/commit/d4f02dede2b601b3230a10cd588b2fe687d25a05))
+
+### Bug Fixes
+
+* **web:** name the files recognition read nothing from ([feebf14](https://github.com/CeamKrier/file-concat/commit/feebf140f70c0246fbaa34e07ca287c7790d26e6))
+
 ## [2.16.0](https://github.com/CeamKrier/file-concat/compare/v2.15.1...v2.16.0) (2026-11-20)
 
 ### Features

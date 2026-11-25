@@ -344,4 +344,41 @@ describe("the unreadable list", () => {
     expect(groups[1].files[0]).toEqual({ name: "broken.docx", why: "Damaged DOCX file. It would not open here or, most likely, anywhere." });
     expect(groups[3].files[0].why).toBe("Not text: 31% of its first 8 KB are control bytes no text file contains.");
   });
+
+  it("leads with the PDF and keeps reading the text beside it", async () => {
+    const onOfferRead = vi.fn();
+    const onTaken = vi.fn();
+    const build = vi.fn(async (onProgress: (done: number, total: number) => void) => {
+      onProgress(2, 2);
+      return { parts: [new Blob(["a"]), new Blob(["b"])], pages: 150, images: 150, skipped: ["x.heic"] };
+    });
+    URL.createObjectURL = vi.fn((b: Blob) => `blob:${b.size}-${Math.random()}`);
+    URL.revokeObjectURL = vi.fn();
+    render(
+      <ResultEmpty
+        droppedFiles={["1.png", "2.png"]}
+        kind="recognisable"
+        onStartOver={vi.fn()}
+        onOfferRead={onOfferRead}
+        pdf={{ build, fileName: (i, n) => `shots-part${i}of${n}.pdf`, onTaken }}
+      />,
+    );
+
+    screen.getByRole("button", { name: /read the text instead/i }).click();
+    expect(onOfferRead).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      screen.getByRole("button", { name: /download as pdf/i }).click();
+    });
+
+    // Two parts are listed, not saved unasked, and the one left out is named.
+    const first = screen.getByRole("link", { name: /part 1 of 2/i });
+    expect(first.getAttribute("download")).toBe("shots-part1of2.pdf");
+    expect(screen.getByText(/x\.heic/)).toBeTruthy();
+    expect(screen.getByText(/within 100 pages/)).toBeTruthy();
+    expect(onTaken).not.toHaveBeenCalled();
+    first.addEventListener("click", (e) => e.preventDefault());
+    first.click();
+    screen.getByRole("link", { name: /part 2 of 2/i }).click();
+    expect(onTaken).toHaveBeenCalledTimes(1);
+  });
 });

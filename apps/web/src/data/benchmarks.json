@@ -12,10 +12,14 @@
           "metric": "Weighted by real files, mean of 11 formats",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-11-20",
+          "measured": "2026-11-25",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "648 constructs in 59 marked probe files, each weighted by its share of 1,973 real files. All run by us.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 90.9
+            },
             {
               "label": "FileConcat 2.16",
               "value": 90.9
@@ -80,10 +84,14 @@
           "metric": "Of 648 over 17 formats, unweighted",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-11-20",
+          "measured": "2026-11-25",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "Every construct counts once, however rare it is in real files. All run by us.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 92.7
+            },
             {
               "label": "FileConcat 2.16",
               "value": 92.7
@@ -149,10 +157,14 @@
           "unit": "count",
           "of": 130,
           "better": "higher",
-          "measured": "2026-11-20",
+          "measured": "2026-11-25",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "Tracked deletions, hidden sheets, cookie banners. A format a tool does not read earns nothing here.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 115
+            },
             {
               "label": "FileConcat 2.16",
               "value": 115
@@ -219,10 +231,14 @@
           "unit": "count",
           "of": 45,
           "better": "higher",
-          "measured": "2026-11-20",
+          "measured": "2026-11-25",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "Files hard to tell apart or hard to decode: legacy encodings, binaries that look like text. All run by us.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 45
+            },
             {
               "label": "FileConcat 2.16",
               "value": 45
@@ -301,10 +317,14 @@
           "unit": "count",
           "of": 16,
           "better": "higher",
-          "measured": "2026-11-20",
+          "measured": "2026-11-25",
           "post": "what-gets-lost-converting-documents-to-text",
           "note": "27 test documents in 12 formats, one structure each: merged cells, spreadsheet dates, scanned pages.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 16
+            },
             {
               "label": "FileConcat 2.16",
               "value": 16
@@ -373,10 +393,14 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-11-20",
+          "measured": "2026-11-25",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "200 real files.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 81.5
+            },
             {
               "label": "FileConcat 2.16",
               "value": 81.5
@@ -442,10 +466,14 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-11-20",
+          "measured": "2026-11-25",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "200 real files.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 86.9
+            },
             {
               "label": "FileConcat 2.16",
               "value": 86.9
@@ -511,10 +539,14 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-11-20",
+          "measured": "2026-11-25",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "198 real files.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 100
+            },
             {
               "label": "FileConcat 2.16",
               "value": 100
@@ -580,10 +612,14 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-11-20",
+          "measured": "2026-11-25",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "195 real files.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 72.6
+            },
             {
               "label": "FileConcat 2.16",
               "value": 72.6
@@ -649,10 +685,14 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-11-20",
+          "measured": "2026-11-25",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "124 real files. markitdown printed the raw MIME source, scored 0.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 100
+            },
             {
               "label": "FileConcat 2.16",
               "value": 100
@@ -718,10 +758,14 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-11-20",
+          "measured": "2026-11-25",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "198 real files.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 98.3
+            },
             {
               "label": "FileConcat 2.16",
               "value": 98.3
@@ -787,10 +831,14 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-11-20",
+          "measured": "2026-11-25",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "200 real files. The one format where FileConcat is not first: it misses the author.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 88.4
+            },
             {
               "label": "FileConcat 2.16",
               "value": 88.4
@@ -856,10 +904,14 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-11-20",
+          "measured": "2026-11-25",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "198 real files. markitdown printed the raw control words, scored 0.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 85.6
+            },
             {
               "label": "FileConcat 2.16",
               "value": 85.6
@@ -925,10 +977,14 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-11-20",
+          "measured": "2026-11-25",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "199 real files. markitdown does not read it.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 90.6
+            },
             {
               "label": "FileConcat 2.16",
               "value": 90.6
@@ -994,10 +1050,14 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-11-20",
+          "measured": "2026-11-25",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "196 real files. markitdown does not read it.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 96.5
+            },
             {
               "label": "FileConcat 2.16",
               "value": 96.5
@@ -1063,10 +1123,14 @@
           "metric": "Weighted coverage",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-11-20",
+          "measured": "2026-11-25",
           "post": "markitdown-vs-tika-text-extraction",
           "note": "65 real files. markitdown does not read it.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 99.7
+            },
             {
               "label": "FileConcat 2.16",
               "value": 99.7
@@ -1139,10 +1203,14 @@
           "metric": "olmOCR-bench, 1,403 pages",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-11-15",
+          "measured": "2026-11-25",
           "post": "browser-text-extraction-benchmark",
           "note": "Tests passed, mean of 8 parts. olmOCR and Mistral from allenai's table, Chandra and Marker (fast, no OCR) from their own READMEs, the rest run by us.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 46.9
+            },
             {
               "label": "FileConcat 2.14",
               "value": 46.9
@@ -1216,10 +1284,14 @@
           "metric": "Article text F1, 181 pages",
           "unit": "percent",
           "better": "higher",
-          "measured": "2026-11-15",
+          "measured": "2026-11-25",
           "post": "browser-text-extraction-benchmark",
           "note": "Zyte's article extraction benchmark at commit 4a3bc97. Other readers: their published outputs, except Trafilatura 2.3.1, run here with the benchmark's own script. FileConcat is scored on the article body with links as text, as the other outputs are. The bundle as copied scored 85.1 at 2.1.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 93.6
+            },
             {
               "label": "FileConcat 2.14",
               "value": 93.6
@@ -1290,10 +1362,14 @@
           "unit": "count",
           "of": 26,
           "better": "higher",
-          "measured": "2026-11-15",
+          "measured": "2026-11-25",
           "post": "browser-text-extraction-benchmark",
           "note": "One archive per case readers get wrong: zip64, non-ASCII names, tar dialects, 7z. All run by us and scored the same way: every non-empty text file other than .bin back exact, extra entries ignored.",
           "rows": [
+            {
+              "label": "FileConcat 2.17",
+              "value": 25
+            },
             {
               "label": "FileConcat 2.14",
               "value": 25

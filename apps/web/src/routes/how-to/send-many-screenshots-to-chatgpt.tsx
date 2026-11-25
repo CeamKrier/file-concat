@@ -23,15 +23,15 @@ export const Route = createFileRoute("/how-to/send-many-screenshots-to-chatgpt")
         // "too many screenshots", "how many images can I send". No figures in
         // the description: it cannot carry the date the caps were read. The
         // upload-limit pages test figures in theirs from 2026-10-26.
-        title: "Too many screenshots for ChatGPT or Claude? Send one file",
+        title: "Too many screenshots for ChatGPT or Claude? Send one PDF",
         description:
-          "Hit the image limit? Read the text out of every screenshot in your browser and send it to ChatGPT or Claude as one file. Not uploaded to us.",
+          "Hit the image limit? Turn every screenshot into one PDF in your browser and send it to ChatGPT, Claude or Gemini as one file. Not uploaded to us.",
         url: "https://fileconcat.com/how-to/send-many-screenshots-to-chatgpt",
       }),
       {
         name: "keywords",
         content:
-          "too many screenshots for chatgpt, how many screenshots can i send to chatgpt, how many images can i upload to claude, claude image limit, chatgpt image upload limit, send multiple screenshots to chatgpt, screenshots to text for chatgpt, combine screenshots into one file",
+          "too many screenshots for chatgpt, how many screenshots can i send to chatgpt, how many images can i upload to claude, claude image limit, chatgpt image upload limit, send multiple screenshots to chatgpt, screenshots to pdf for chatgpt, screenshots to text for chatgpt, combine screenshots into one file",
       },
     ],
     links: [
