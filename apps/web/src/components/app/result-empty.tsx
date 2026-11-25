@@ -529,8 +529,7 @@ function PdfAction({ pdf, others }: { pdf: PdfOffer; others: (Action | null)[] }
         )}
         {result && result.images > 0 && skipped.length > 0 && (
           <p className="mt-1">
-            Not in it, because this browser could not open {skipped.length === 1 ? "it" : "them"} as an image or{" "}
-            {skipped.length === 1 ? "it is" : "they are"} too large:{" "}
+            Not in it, in a format this browser cannot open or too large:{" "}
             <span className="break-words font-mono text-[12px]">{skipped.slice(0, 3).join(", ")}</span>
             {skipped.length > 3 && ` and ${skipped.length - 3} more`}.
           </p>

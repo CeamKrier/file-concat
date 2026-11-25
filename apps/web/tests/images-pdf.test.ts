@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { layout, MAX_SIDE, planParts, writePdf } from "../src/lib/images-pdf-client";
+import { imagesLeftOutOfPdf } from "~/components/app/empty-kind";
 
 const jpeg = (size: number) => new Blob([new Uint8Array(size)]);
 
@@ -52,4 +53,9 @@ describe("layout", () => {
     expect(last.top + last.height).toBe(height);
     slices.slice(1).forEach((s, i) => expect(s.top).toBeLessThan(slices[i].top + slices[i].height));
   });
+});
+
+it("names the photo formats the PDF cannot hold", () => {
+  const paths = ["a/1.png", "a/IMG_2.HEIC", "a/3.avif", "notes.txt", "a/4.tiff"];
+  expect(imagesLeftOutOfPdf(paths, new Set(["a/1.png", "a/4.tiff"]))).toEqual(["a/IMG_2.HEIC", "a/3.avif"]);
 });

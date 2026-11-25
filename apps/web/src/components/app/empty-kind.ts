@@ -182,3 +182,11 @@ function describe(
   }
   return { code: "no-reader", why: reason };
 }
+
+/**
+ * Images in the drop that the PDF cannot hold: photo formats that are never
+ * kept as files (HEIC, AVIF, BMP), so they would otherwise go missing unnamed.
+ */
+export function imagesLeftOutOfPdf(paths: readonly string[], held: ReadonlySet<string>): string[] {
+  return paths.filter((p) => /\.(heic|heif|avif|bmp|tiff?)$/i.test(p) && !held.has(p));
+}

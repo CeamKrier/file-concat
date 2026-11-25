@@ -71,7 +71,7 @@ import { EncodingPicker } from "./encoding-picker";
 import { FeedbackDock } from "./feedback-dock";
 import { ReadingDialog } from "./reading-dialog";
 import { offersFor, passOutcome } from "./reading-bar";
-import { emptyKindFor, emptyReasonSlug, unreadableGroups } from "./empty-kind";
+import { emptyKindFor, emptyReasonSlug, imagesLeftOutOfPdf, unreadableGroups } from "./empty-kind";
 import {
   isRecognisableImage,
   isSpeechMedia,
@@ -697,15 +697,18 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
   );
 
   // The drop's images as one PDF (Q220). Only the formats recognition takes are
-  // held as files; a HEIC photo is not, so a drop of only those has no offer.
+  // held as files; a HEIC photo is not, so a drop of only those has no offer,
+  // and one among other images is named as left out.
   const imagesPdf = useMemo(() => {
     const images = ingestion.scannedDocuments.filter((d) => isRecognisableImage(d.format));
     if (images.length === 0) return undefined;
+    const leftOut = imagesLeftOutOfPdf(Object.keys(ingestion.validations), new Set(images.map((d) => d.path)));
     return {
       build: async (onProgress: (done: number, total: number) => void, signal: AbortSignal) => {
         if (import.meta.env.SSR) throw new Error("client only");
         const { imagesToPdf } = await import("~/lib/images-pdf-client");
-        return imagesToPdf(images, onProgress, signal);
+        const result = await imagesToPdf(images, onProgress, signal);
+        return { ...result, skipped: [...result.skipped, ...leftOut] };
       },
       fileName: (index: number, total: number) => outputFileName(projectName, "pdf", { index, total }),
       onTaken: () => {
@@ -713,7 +716,7 @@ export function AppFlow({ renderLanding }: AppFlowProps = {}) {
         track("output_style", "pdf");
       },
     };
-  }, [ingestion.scannedDocuments, projectName]);
+  }, [ingestion.scannedDocuments, ingestion.validations, projectName]);
 
   const emptyKind = useMemo(
     () =>
