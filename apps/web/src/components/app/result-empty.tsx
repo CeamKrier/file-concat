@@ -1,6 +1,7 @@
 import {
   Archive,
   AudioLines,
+  FileDown,
   FileQuestion,
   FilterX,
   FolderX,
@@ -14,6 +15,7 @@ import type { LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import type { EmptyKind, UnreadableGroup } from "./empty-kind";
+import type { ImagesPdf } from "~/lib/images-pdf-client";
 import type { PrunedAtDoor } from "~/lib/prune-at-door";
 import { cn } from "~/lib/utils";
 import { ReadingBar } from "./reading-bar";
@@ -72,7 +74,26 @@ type ResultEmptyProps = {
   onIncludeGuesses?: () => void;
   /** True once recognition has been over every image, so `image` says it looked. */
   imagesTried?: boolean;
+  /**
+   * The drop's images as a PDF, one a page. When passed, `recognisable` and
+   * `image` lead with it: a chat reads a PDF's pages as pictures, which keeps
+   * what recognition loses (measured 2026-11-25, 72 of 72 against 57 of 72).
+   */
+  pdf?: PdfOffer;
 };
+
+export type PdfOffer = {
+  build: (onProgress: (done: number, total: number) => void, signal: AbortSignal) => Promise<ImagesPdf>;
+  /** Download name of part `index` (from 1) of `total`. */
+  fileName: (index: number, total: number) => string;
+  /** A part was downloaded. Called once per build. */
+  onTaken: () => void;
+};
+
+const PRIMARY_BUTTON =
+  "bg-primary text-primary-foreground rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2";
+const QUIET_BUTTON =
+  "text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-sm px-2 py-1 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2";
 
 // One rescue component, three voices, keyed by what was actually dropped. The
 // tone is a heads-up (amber), never an error, and every variant offers a next
@@ -171,6 +192,10 @@ const FILTERED_BY_INCLUDE =
 
 // `image` once recognition has been over the drop: the old body said nothing of
 // it, which left a person who pressed Read with no idea whether it ran.
+const IMAGES_AS_PDF =
+  "Download them as one PDF, one image a page. Claude, ChatGPT and Gemini read each page as a picture, and it is one upload instead of one per image. It is built here in your browser. Or read the text off them instead.";
+const PDF_AFTER_PASS = " They can still go to an AI chat as pictures, in one PDF.";
+
 const IMAGE_AFTER_PASS =
   "Recognition read them here in your browser and found no writing in them. FileConcat bundles text, so there was nothing to pack.";
 
@@ -236,6 +261,7 @@ export function ResultEmpty({
   guess,
   onIncludeGuesses,
   imagesTried = false,
+  pdf,
 }: ResultEmptyProps) {
   const { icon: Icon, cta } = COPY[kind];
   const groups = kind === "other" ? unreadable : [];
@@ -246,14 +272,17 @@ export function ResultEmpty({
       : unreadableCount === 1
         ? "This file could not be read as text"
         : `None of these ${unreadableCount} files could be read as text`;
+  const offersPdf = Boolean(pdf) && (kind === "recognisable" || (kind === "image" && imagesTried));
   const body =
     kind === "filtered" && byInclude
       ? FILTERED_BY_INCLUDE
       : kind === "guessed" && guess
         ? guessedBody(guess)
         : kind === "image" && imagesTried
-          ? IMAGE_AFTER_PASS
-          : COPY[kind].body;
+          ? IMAGE_AFTER_PASS + (offersPdf ? PDF_AFTER_PASS : "")
+          : offersPdf
+            ? IMAGES_AS_PDF
+            : COPY[kind].body;
   // The screen changes under the reading dialog as it closes, and the button
   // focus would return to is gone. The heading takes it, so a screen reader
   // reads what happened.
@@ -368,13 +397,18 @@ export function ResultEmpty({
         // it. The dialog carries its own stop; this one is for the case where it
         // was closed mid-pass.
         <InFlight progress={readProgress} stopping={isStopping} onStop={onStopReading} />
+      ) : offersPdf && pdf ? (
+        <PdfAction
+          pdf={pdf}
+          others={
+            kind === "recognisable" && onOfferRead
+              ? [{ label: "Read the text instead", icon: ScanText, onClick: onOfferRead }, startOver]
+              : [retry, startOver]
+          }
+        />
       ) : (
         <div className="mt-7 flex flex-col items-center gap-3">
-          <button
-            type="button"
-            onClick={primary.onClick}
-            className="bg-primary text-primary-foreground rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold transition-[filter] duration-150 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-          >
+          <button type="button" onClick={primary.onClick} className={PRIMARY_BUTTON}>
             {primary.icon && <primary.icon className="h-4 w-4" strokeWidth={2} />}
             {primary.label}
           </button>
@@ -385,7 +419,7 @@ export function ResultEmpty({
                   key={action.label}
                   type="button"
                   onClick={action.onClick}
-                  className="text-ink-muted hover:text-ink focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-sm px-2 py-1 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                  className={QUIET_BUTTON}
                 >
                   <action.icon className="h-4 w-4" />
                   {action.label}
@@ -395,6 +429,141 @@ export function ResultEmpty({
         </div>
       )}
     </section>
+  );
+}
+
+type Action = { label: string; icon: LucideIcon; onClick: () => void };
+type PdfState =
+  | { phase: "idle" }
+  | { phase: "building"; done: number; total: number }
+  | { phase: "done"; result: ImagesPdf; urls: string[] }
+  | { phase: "failed" };
+
+const PART_LINK =
+  "border-border bg-surface-alt text-ink hover:border-border-strong rounded-input focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 border px-4 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2";
+const megabytes = (bytes: number) => `${(bytes / 1_000_000).toFixed(1)} MB`;
+
+/**
+ * The PDF in front, the screen's other ways out underneath. One part downloads
+ * as soon as it is built; several are listed, because a browser asks before it
+ * saves more than one file nobody clicked.
+ */
+function PdfAction({ pdf, others }: { pdf: PdfOffer; others: (Action | null)[] }) {
+  const [state, setState] = useState<PdfState>({ phase: "idle" });
+  const urls = useRef<string[]>([]);
+  const taken = useRef(false);
+  const running = useRef<AbortController | null>(null);
+  const release = () => {
+    urls.current.forEach((url) => URL.revokeObjectURL(url));
+    urls.current = [];
+  };
+  // Leaving the screen mid-build stops it: no file is saved after the fact.
+  useEffect(
+    () => () => {
+      running.current?.abort();
+      release();
+    },
+    [],
+  );
+
+  const take = () => {
+    if (taken.current) return;
+    taken.current = true;
+    pdf.onTaken();
+  };
+  const build = async () => {
+    setState({ phase: "building", done: 0, total: 0 });
+    const run = new AbortController();
+    running.current = run;
+    try {
+      const result = await pdf.build((done, total) => setState({ phase: "building", done, total }), run.signal);
+      if (run.signal.aborted) return;
+      release();
+      taken.current = false;
+      urls.current = result.parts.map((part) => URL.createObjectURL(part));
+      setState({ phase: "done", result, urls: urls.current });
+      if (result.parts.length === 1) {
+        const a = document.createElement("a");
+        a.href = urls.current[0];
+        a.download = pdf.fileName(1, 1);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        take();
+      }
+    } catch {
+      if (!run.signal.aborted) setState({ phase: "failed" });
+    }
+  };
+
+  const building = state.phase === "building";
+  const result = state.phase === "done" ? state.result : null;
+  const parts = result?.parts ?? [];
+  const skipped = result?.skipped ?? [];
+  return (
+    <div className="mt-7 flex flex-col items-center gap-3">
+      {parts.length === 0 && (
+        <button type="button" onClick={() => void build()} disabled={building} className={cn(PRIMARY_BUTTON, "disabled:opacity-60")}>
+          <FileDown className="h-4 w-4" strokeWidth={2} />
+          {building ? "Building the PDF" : "Download as PDF"}
+        </button>
+      )}
+      <div aria-live="polite" className="text-ink-secondary mx-auto max-w-[440px] text-[13px] leading-relaxed empty:hidden">
+        {building && state.total > 0 && (
+          <p className="tabular-nums">
+            {state.done} of {state.total} images
+          </p>
+        )}
+        {state.phase === "failed" && <p>The PDF could not be built. Try again with fewer images.</p>}
+        {result && result.images === 0 && (
+          <p>None of these opened as an image in this browser, so there is no PDF.</p>
+        )}
+        {result && parts.length > 0 && (
+          <p>
+            {result.images} {result.images === 1 ? "image" : "images"} in{" "}
+            {parts.length === 1 ? "one PDF" : `${parts.length} PDFs`}
+            {result.pages > result.images && ` (${result.pages} pages, a long capture is cut into several)`}.
+            {parts.length > 1 &&
+              " Each part stays within 100 pages, the most Claude reads as pictures. Gemini takes up to 10 files in one prompt, and ChatGPT's free plan 3 uploads a day."}
+          </p>
+        )}
+        {result && result.images > 0 && skipped.length > 0 && (
+          <p className="mt-1">
+            Not in it, because this browser could not open {skipped.length === 1 ? "it" : "them"} as an image or{" "}
+            {skipped.length === 1 ? "it is" : "they are"} too large:{" "}
+            <span className="break-words font-mono text-[12px]">{skipped.slice(0, 3).join(", ")}</span>
+            {skipped.length > 3 && ` and ${skipped.length - 3} more`}.
+          </p>
+        )}
+      </div>
+      {state.phase === "done" && parts.length > 0 && (
+        <ul className="flex flex-col items-center gap-1.5">
+          {parts.map((part, i) => (
+            <li key={state.urls[i]}>
+              <a
+                href={state.urls[i]}
+                download={pdf.fileName(i + 1, parts.length)}
+                onClick={take}
+                className={parts.length > 1 ? PART_LINK : QUIET_BUTTON}
+              >
+                <FileDown className="h-4 w-4 shrink-0" strokeWidth={2} />
+                {parts.length === 1 ? "Download it again" : `Part ${i + 1} of ${parts.length}`}
+                <span className="tabular-nums opacity-80">{megabytes(part.size)}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+      {others.map(
+        (action) =>
+          action && (
+            <button key={action.label} type="button" onClick={action.onClick} className={QUIET_BUTTON}>
+              <action.icon className="h-4 w-4" />
+              {action.label}
+            </button>
+          ),
+      )}
+    </div>
   );
 }
 
