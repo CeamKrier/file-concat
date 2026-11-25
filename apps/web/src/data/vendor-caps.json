@@ -186,6 +186,8 @@
         "in PDFs of 100 pages or fewer"
       ],
       "used_by": [
+        "apps/web/src/components/how-to/screenshots-page.tsx",
+        "apps/web/src/components/how-to/screenshots-faq.ts",
         "apps/web/src/components/app/result-empty.tsx",
         "apps/web/src/content/blog/what-uses-up-your-claude-usage-limit.mdx",
         "apps/web/src/components/convert/convert-formats.ts",
@@ -230,6 +232,8 @@
         "Can't include video or audio files"
       ],
       "used_by": [
+        "apps/web/src/components/how-to/screenshots-page.tsx",
+        "apps/web/src/components/how-to/screenshots-faq.ts",
         "apps/web/src/components/app/result-empty.tsx",
         "apps/web/src/components/how-to/share-all-files-page.tsx",
         "apps/web/src/components/how-to/upload-book-page.tsx",
